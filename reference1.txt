@@ -1,0 +1,200 @@
+Influencer Analytics Platform Implementation Plan
+Built entirely with open-source components (except Supabase & Decodo) and shadcn/UI for frontend
+
+⸻
+
+📋 Features Checklist
+	1.	Core Platform
+	•	Store all Decodo JSON fields in profiles.raw_data & posts.raw_data
+	•	Global cache: auto-refresh only if data > 365 days old
+	•	Per-User unlock window: once a User “unlocks” a profile, they get 30 days of cached access
+	•	Manual refresh (“Re-unlock Profile” button) with confirm dialog & future credit deduction stub
+	2.	Profile Overview
+	•	Display influencer name, avatar, bio
+	•	Show followers, following, post count
+	•	Compute & display engagement rate (%)
+	•	Compute & display posting consistency (posts/week)
+	•	Generate a profile quality score (completeness & activity)
+	3.	Follower Growth
+	•	Line chart of follower count over time with tooltips
+	4.	Posts & Reels Grid
+	•	Responsive grid of recent content thumbnails
+	•	Under each thumbnail: caption excerpt, likes, comments, views, engagement rate
+	5.	Engagement Analytics
+	•	Average likes/comments/views
+	•	Engagement rate breakdown by type (posts, reels, stories)
+	•	Reach metrics: effective follower rate & unique reach
+	•	Engagement-over-time chart
+	6.	Audience Insights
+	•	Raw audience metrics from Decodo (growth history, top cities/regions if provided)
+	•	Placeholder panels for ML-driven demographics
+	7.	Mentions
+	•	List of brand/hashtag mentions
+	•	For each: mentioner profile, post link, timestamp, text snippet
+	8.	Campaigns
+	•	Campaign creation (logo, title, date range)
+	•	Attach post URLs & fetch analytics per post
+	•	Aggregate campaign reports (averages, totals, sentiment summaries)
+	9.	Billing & Credits
+	•	Stripe subscription integration
+	•	User credits balance display & deduction logic
+	•	Subscription gating (disable features if expired)
+	10.	AI/ML Enhancements
+	•	Audience Demographics: age & gender (DeepFace), location (spaCy)
+	•	Creator Metadata: location & content category (spaCy + Transformers)
+	•	Sentiment Analysis: comment sentiment (VADER/TextBlob)
+	•	Zero-Shot Discovery: semantic search via text embeddings
+
+⸻
+
+🚀 Module-by-Module Roadmap
+
+Work sequentially. After each module, verify completion before proceeding.
+
+Module 1: Project Initialization
+
+Commit: chore: initialize project structure and base deps
+	•	Create /backend and /frontend folders
+	•	Backend:
+	•	Initialize Python venv
+	•	Install fastapi, uvicorn, sqlalchemy, aiohttp, python-dotenv, asyncpg
+	•	Create requirements.txt
+	•	Frontend:
+	•	Scaffold Next.js 15 project
+	•	Install tailwindcss, postcss, autoprefixer
+	•	Install @shadcn/ui, next-themes, lucide-react, @tabler/icons-react
+	•	Run npx tailwindcss init -p and npx shadcn-ui init
+	•	Add placeholder .env (backend) and .env.local (frontend)
+
+✅ Module 1 complete.
+
+⸻
+
+Module 2: Core Data Models & Migrations
+
+Commit: feat: add core database models
+	•	Define SQLAlchemy models in backend/app/models.py:
+	•	User (id, email, hashed_password, role, credits)
+	•	Profile (id, username, raw_data JSON, last_refreshed DateTime)
+	•	Post (id, profile_id, raw_data JSON)
+	•	UserProfileAccess (id, user_id, profile_id, last_accessed DateTime)
+	•	Configure Base.metadata.create_all(bind=engine) on startup
+	•	Verify tables creation locally (SQLite)
+
+✅ Module 2 complete.
+
+⸻
+
+Module 3: Profile Fetch & Store Logic
+
+Commit: feat: implement Decodo profile fetch and store
+	•	In crud.py, implement fetch_and_store_profile(db, username) to:
+	•	Call Decodo via SmartProxyClient
+	•	Upsert Profile.raw_data & last_refreshed
+	•	Upsert each post into Post.raw_data
+	•	Write unit tests mocking Decodo responses
+
+✅ Module 3 complete.
+
+⸻
+
+Module 4: Caching & Unlock Rules
+
+Commit: feat: add caching and per-user unlock logic
+	•	GET /profiles/{username}:
+	1.	If no profile or global age ≥ 365 days → fetch & upsert
+	2.	Else if User’s last_accessed < 30 days → return cached raw_data
+	3.	Else → HTTP 409 “Unlock expired; use ?force=true”
+	•	Helpers in crud.py to get/update UserProfileAccess
+	•	Tests for all control flows
+
+✅ Module 4 complete.
+
+⸻
+
+Module 5: Manual Refresh Endpoint
+
+Commit: feat: add manual refresh endpoint
+	•	POST /profiles/{username}/refresh:
+	•	Accept ?force=true
+	•	If not forced and global < 365 days → 409 warning
+	•	Else → call fetch_and_store_profile, update UserProfileAccess
+	•	Stub credit deduction logic
+	•	Tests for both forced and non-forced paths
+
+✅ Module 5 complete.
+
+⸻
+
+Module 6: Analytics Page Skeleton
+
+Commit: feat: add analytics page UI skeleton
+	•	Create frontend/app/analytics/[username]/page.tsx with:
+	•	Fetch GET endpoint on mount; handle HTTP 409 with confirm() + forced POST
+	•	Render raw fields in shadcn Card components
+	•	“Re-unlock Profile” shadcn Button & Spinner
+
+✅ Module 6 complete.
+
+⸻
+
+Module 7: Follower Growth Chart
+
+Commit: feat: add follower growth chart
+	•	Extract dates and values from profile.raw_data.history
+	•	Render a shadcn <Chart> with <ChartXAxis>, <ChartYAxis>, <ChartLine>, <ChartTooltip> inside a shadcn Card
+
+✅ Module 7 complete.
+
+⸻
+
+Module 8: Posts & Reels Grid
+
+Commit: feat: add posts grid with thumbnails
+	•	GET /profiles/{username}/posts returns post array from DB
+	•	Frontend <PostsGrid />:
+	•	Use shadcn Grid
+	•	Load thumbnails via backend image-proxy (/proxy/image?url=…)
+	•	Show caption, likes, comments, views per item
+
+✅ Module 8 complete.
+
+⸻
+
+Module 9: Engagement & Audience Tabs
+
+Commit: feat: add engagement and audience tabs
+	•	Engagement Tab:
+	•	GET /profiles/{username}/engagement computing averages, breakdowns, reach
+	•	<EngagementStats /> page with shadcn charts & cards
+	•	Audience Tab:
+	•	GET /profiles/{username}/audience serving raw audience fields
+	•	<AudienceRaw /> page with shadcn panels & charts
+
+✅ Module 9 complete.
+
+⸻
+
+Module 10: Mentions, Campaigns & Billing
+
+Commit: feat: add mentions, campaigns, and billing modules
+	•	Mentions: GET /profiles/{username}/mentions + <Mentions /> list
+	•	Campaigns: CRUD endpoints & UI for campaign creation, attaching posts, campaign analytics
+	•	Billing: Stripe integration, user credits balance, subscription gating & credit deduction
+
+✅ Module 10 complete.
+
+⸻
+
+Future AI/ML Enhancements
+	•	Module 11: Audience Demographics (DeepFace + spaCy)
+	•	Module 12: Creator Metadata (spaCy + Transformers)
+	•	Module 13: Sentiment Analysis (VADER/TextBlob)
+	•	Module 14: Zero-Shot Discovery (embeddings)
+
+⸻
+
+Instructions for Claude Code:
+	1.	Implement Module 1 only.
+	2.	Return “✅ Module 1 complete” for review.
+	3.	Upon approval, proceed to Module 2, and so on—never skip ahead.
