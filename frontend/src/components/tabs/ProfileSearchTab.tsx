@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { formatNumber, formatPercentage } from '@/lib/utils'
+import { formatNumber, formatPercentage, getProfileImageUrl, isValidProfile } from '@/lib/utils'
 import { apiService, ProfileData } from '@/services/api'
-import { Loader2, Search, Instagram, Users, Heart, BarChart3 } from 'lucide-react'
+import { Loader2, Search, Instagram, Users, Heart, BarChart3, Target, TrendingUp, Clock, Zap, Star, CheckCircle2 } from 'lucide-react'
 
 export default function ProfileSearchTab() {
   const [username, setUsername] = useState('')
@@ -184,11 +184,14 @@ export default function ProfileSearchTab() {
             <CardHeader>
               <div className="flex items-start gap-4">
                 <Image
-                  src={profileData.profile.profile_pic_url || '/placeholder-avatar.svg'}
+                  src={getProfileImageUrl(profileData.profile.profile_pic_url)}
                   alt={profileData.profile.username}
                   width={80}
                   height={80}
                   className="w-20 h-20 rounded-full border-4 border-white shadow-lg object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder-avatar.svg'
+                  }}
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
@@ -269,6 +272,10 @@ export default function ProfileSearchTab() {
                   <span className="font-semibold">{formatNumber(profileData.profile.avg_engagement)}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-gray-600">Content Quality Score</span>
+                  <span className="font-semibold">{profileData.profile.content_quality_score}/10</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Influence Score</span>
                   <span className="font-semibold">{profileData.profile.influence_score}/10</span>
                 </div>
@@ -279,41 +286,223 @@ export default function ProfileSearchTab() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="w-5 h-5" />
-                  Content Strategy
+                  Advanced Metrics
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Best Posting Hour</span>
-                  <span className="font-semibold">{profileData.content_strategy.best_posting_hour}:00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Posts Per Day</span>
-                  <span className="font-semibold">{profileData.content_strategy.posting_frequency_per_day.toFixed(1)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Recommended Type</span>
-                  <span className="font-semibold capitalize">{profileData.content_strategy.recommended_content_type}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Avg Caption Length</span>
-                  <span className="font-semibold">{profileData.content_strategy.avg_caption_length} chars</span>
-                </div>
+                {profileData.engagement_metrics && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Like Rate</span>
+                      <span className="font-semibold">{formatPercentage(profileData.engagement_metrics.like_rate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Comment Rate</span>
+                      <span className="font-semibold">{formatPercentage(profileData.engagement_metrics.comment_rate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Save Rate</span>
+                      <span className="font-semibold">{formatPercentage(profileData.engagement_metrics.save_rate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Share Rate</span>
+                      <span className="font-semibold">{formatPercentage(profileData.engagement_metrics.share_rate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Reach Rate</span>
+                      <span className="font-semibold">{formatPercentage(profileData.engagement_metrics.reach_rate)}</span>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Growth Recommendations */}
-          {profileData.growth_recommendations.length > 0 && (
+          {/* Audience Insights & Competitor Analysis */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {profileData.audience_insights && (
+              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Audience Insights
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Primary Age Group</span>
+                    <span className="font-semibold">{profileData.audience_insights.primary_age_group}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Gender Split</span>
+                    <span className="font-semibold">
+                      {profileData.audience_insights.gender_split.female}% F / {profileData.audience_insights.gender_split.male}% M
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 block mb-2">Top Locations</span>
+                    <div className="flex flex-wrap gap-1">
+                      {profileData.audience_insights.top_locations.slice(0, 3).map((location, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {location}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 block mb-2">Interests</span>
+                    <div className="flex flex-wrap gap-1">
+                      {profileData.audience_insights.interests.slice(0, 4).map((interest, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {interest}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {profileData.competitor_analysis && (
+              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5" />
+                    Market Position
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Market Position</span>
+                    <span className="font-semibold">{profileData.competitor_analysis.market_position}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Competitive Score</span>
+                    <span className="font-semibold">{profileData.competitor_analysis.competitive_score}/10</span>
+                  </div>
+                  {profileData.competitor_analysis.growth_opportunities.length > 0 && (
+                    <div>
+                      <span className="text-gray-600 block mb-2">Growth Opportunities</span>
+                      <ul className="space-y-1">
+                        {profileData.competitor_analysis.growth_opportunities.slice(0, 3).map((opportunity, index) => (
+                          <li key={index} className="flex items-start gap-2 text-sm">
+                            <CheckCircle2 className="w-3 h-3 text-green-500 mt-0.5" />
+                            <span className="text-gray-700">{opportunity}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Content Strategy */}
+          {profileData.content_strategy && (
             <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Growth Recommendations</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="w-5 h-5" />
+                  Content Strategy
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" />
+                      Content Mix
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Photos</span>
+                        <span className="font-semibold">{profileData.content_strategy.content_mix.photos}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Videos</span>
+                        <span className="font-semibold">{profileData.content_strategy.content_mix.videos}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Carousels</span>
+                        <span className="font-semibold">{profileData.content_strategy.content_mix.carousels}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Reels</span>
+                        <span className="font-semibold">{profileData.content_strategy.content_mix.reels}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Zap className="w-4 h-4" />
+                      Hashtag Strategy
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Trending</span>
+                        <span className="font-semibold">{profileData.content_strategy.hashtag_strategy.trending_hashtags}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Niche</span>
+                        <span className="font-semibold">{profileData.content_strategy.hashtag_strategy.niche_hashtags}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Branded</span>
+                        <span className="font-semibold">{profileData.content_strategy.hashtag_strategy.branded_hashtags}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Location</span>
+                        <span className="font-semibold">{profileData.content_strategy.hashtag_strategy.location_hashtags}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {profileData.content_strategy.primary_content_pillars.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-3">Content Pillars</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {profileData.content_strategy.primary_content_pillars.map((pillar, index) => (
+                        <Badge key={index} variant="outline">
+                          {pillar}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {profileData.content_strategy.engagement_tactics.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-3">Engagement Tactics</h4>
+                    <ul className="space-y-1">
+                      {profileData.content_strategy.engagement_tactics.slice(0, 4).map((tactic, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm">
+                          <CheckCircle2 className="w-3 h-3 text-blue-500 mt-0.5" />
+                          <span className="text-gray-700">{tactic}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Growth Recommendations */}
+          {profileData.growth_recommendations && profileData.growth_recommendations.length > 0 && (
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Growth Recommendations
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {profileData.growth_recommendations.map((recommendation, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">•</span>
+                    <li key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+                      <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
                       <span className="text-gray-700">{recommendation}</span>
                     </li>
                   ))}
@@ -323,10 +512,13 @@ export default function ProfileSearchTab() {
           )}
 
           {/* Best Posting Times */}
-          {profileData.best_posting_times.length > 0 && (
+          {profileData.best_posting_times && profileData.best_posting_times.length > 0 && (
             <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle>Best Posting Times</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Best Posting Times
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
@@ -339,6 +531,34 @@ export default function ProfileSearchTab() {
               </CardContent>
             </Card>
           )}
+
+          {/* Data Quality & Meta Information */}
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5" />
+                Analysis Quality
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Data Quality Score</span>
+                <span className="font-semibold">{(profileData.data_quality_score * 100).toFixed(0)}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Scraping Method</span>
+                <Badge variant={profileData.scraping_method === 'inhouse' ? 'default' : 'secondary'}>
+                  {profileData.scraping_method === 'inhouse' ? 'In-house' : 'SmartProxy'}
+                </Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Analysis Time</span>
+                <span className="font-semibold text-sm">
+                  {new Date(profileData.analysis_timestamp).toLocaleString()}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

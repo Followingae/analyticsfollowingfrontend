@@ -14,7 +14,24 @@
       "Bash(git remote add:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npm start)",
+      "Bash(powershell:*)",
+      "Bash(npm run lint)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "Bash(timeout 10 npm run dev)",
+      "Bash(timeout 15 npm run dev)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(ping:*)",
+      "Bash(npm config get:*)",
+      "Bash(timeout:*)",
+      "Bash(set SHELL=cmd)",
+      "Bash(cmd /c \"npx shadcn@latest add dashboard-01\")",
+      "Bash(where git)",
+      "Bash(npm uninstall:*)",
+      "Bash(find:*)",
+      "Bash(\"taskkill\" \"/PID\" \"7160\" \"/F\")"
     ],
     "deny": []
   }

@@ -230,12 +230,12 @@ export default function AnalyticsTab() {
               <span className="font-semibold">{formatNumber(analyticsData.profile.avg_comments)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Posts Frequency</span>
-              <span className="font-semibold">{analyticsData.content_strategy.posting_frequency_per_day.toFixed(1)}/day</span>
+              <span className="text-gray-600">Content Quality</span>
+              <span className="font-semibold">{analyticsData.profile.content_quality_score}/10</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Best Hour</span>
-              <span className="font-semibold">{analyticsData.content_strategy.best_posting_hour}:00</span>
+              <span className="text-gray-600">Influence Score</span>
+              <span className="font-semibold">{analyticsData.profile.influence_score}/10</span>
             </div>
           </CardContent>
         </Card>
@@ -245,32 +245,58 @@ export default function AnalyticsTab() {
             <CardTitle>Content Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm text-gray-600">Photos</span>
-                  <span className="text-sm font-medium">{(analyticsData.content_strategy.content_type_distribution.photo * 100).toFixed(1)}%</span>
+            {analyticsData.content_strategy && (
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm text-gray-600">Photos</span>
+                    <span className="text-sm font-medium">{analyticsData.content_strategy.content_mix.photos}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-blue-500"
+                      style={{ width: `${analyticsData.content_strategy.content_mix.photos}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full bg-blue-500"
-                    style={{ width: `${analyticsData.content_strategy.content_type_distribution.photo * 100}%` }}
-                  />
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm text-gray-600">Videos</span>
+                    <span className="text-sm font-medium">{analyticsData.content_strategy.content_mix.videos}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-purple-500"
+                      style={{ width: `${analyticsData.content_strategy.content_mix.videos}%` }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm text-gray-600">Carousels</span>
+                    <span className="text-sm font-medium">{analyticsData.content_strategy.content_mix.carousels}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-green-500"
+                      style={{ width: `${analyticsData.content_strategy.content_mix.carousels}%` }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm text-gray-600">Reels</span>
+                    <span className="text-sm font-medium">{analyticsData.content_strategy.content_mix.reels}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-orange-500"
+                      style={{ width: `${analyticsData.content_strategy.content_mix.reels}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm text-gray-600">Videos</span>
-                  <span className="text-sm font-medium">{(analyticsData.content_strategy.content_type_distribution.video * 100).toFixed(1)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full bg-purple-500"
-                    style={{ width: `${analyticsData.content_strategy.content_type_distribution.video * 100}%` }}
-                  />
-                </div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>

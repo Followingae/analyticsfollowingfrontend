@@ -1,4 +1,4 @@
-export interface ProfileMetrics {
+export interface InstagramProfile {
   username: string
   full_name: string
   biography: string
@@ -7,26 +7,78 @@ export interface ProfileMetrics {
   posts_count: number
   is_verified: boolean
   is_private: boolean
-  profile_pic_url: string
-  external_url: string
+  profile_pic_url: string | null
+  external_url: string | null
   engagement_rate: number
   avg_likes: number
   avg_comments: number
   avg_engagement: number
-  follower_growth_rate: number | null
-  content_quality_score: number | null
+  content_quality_score: number
   influence_score: number
+  follower_growth_rate: number | null
+}
+
+export interface EngagementMetrics {
+  like_rate: number
+  comment_rate: number
+  save_rate: number
+  share_rate: number
+  reach_rate: number
+}
+
+export interface AudienceInsights {
+  primary_age_group: string
+  gender_split: {
+    female: number
+    male: number
+  }
+  top_locations: string[]
+  activity_times: string[]
+  interests: string[]
+}
+
+export interface CompetitorAnalysis {
+  similar_accounts: string[]
+  competitive_score: number
+  market_position: string
+  growth_opportunities: string[]
+}
+
+export interface ContentPerformance {
+  top_performing_content_types: string[]
+  optimal_posting_frequency: string
+  content_themes: string[]
+  hashtag_effectiveness: {
+    trending: number
+    niche: number
+    branded: number
+  }
 }
 
 export interface ContentStrategy {
-  best_posting_hour: number
-  content_type_distribution: {
-    photo: number
-    video: number
+  primary_content_pillars: string[]
+  posting_schedule: {
+    monday: string[]
+    tuesday: string[]
+    wednesday: string[]
+    thursday: string[]
+    friday: string[]
+    saturday: string[]
+    sunday: string[]
   }
-  recommended_content_type: string
-  posting_frequency_per_day: number
-  avg_caption_length: number
+  content_mix: {
+    photos: number
+    videos: number
+    carousels: number
+    reels: number
+  }
+  hashtag_strategy: {
+    trending_hashtags: number
+    niche_hashtags: number
+    branded_hashtags: number
+    location_hashtags: number
+  }
+  engagement_tactics: string[]
 }
 
 export interface Post {
@@ -49,13 +101,27 @@ export interface HashtagAnalysis {
   related_hashtags: string[]
 }
 
+export interface CompleteProfileResponse {
+  profile: InstagramProfile
+  engagement_metrics: EngagementMetrics
+  audience_insights: AudienceInsights
+  competitor_analysis: CompetitorAnalysis
+  content_performance: ContentPerformance
+  content_strategy: ContentStrategy
+  best_posting_times: string[]
+  growth_recommendations: string[]
+  analysis_timestamp: string
+  data_quality_score: number
+  scraping_method: string
+}
+
 export interface AnalyticsData {
-  profile: ProfileMetrics
+  profile: InstagramProfile
   recent_posts: Post[]
   hashtag_analysis: HashtagAnalysis[]
   content_strategy: ContentStrategy
   best_posting_times: string[]
-  audience_insights: Record<string, unknown>
+  audience_insights: AudienceInsights
   growth_recommendations: string[]
   analysis_timestamp: string
   data_quality_score: number

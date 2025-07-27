@@ -1,48 +1,35 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'
 
-export interface ProfileData {
-  profile: {
-    username: string
-    full_name: string
-    biography: string
-    followers: number
-    following: number
-    posts_count: number
-    is_verified: boolean
-    is_private: boolean
-    profile_pic_url: string
-    external_url: string
-    engagement_rate: number
-    avg_likes: number
-    avg_comments: number
-    avg_engagement: number
-    follower_growth_rate: number | null
-    content_quality_score: number | null
-    influence_score: number
-  }
-  recent_posts: unknown[]
-  hashtag_analysis: unknown[]
-  content_strategy: {
-    best_posting_hour: number
-    content_type_distribution: {
-      photo: number
-      video: number
-    }
-    recommended_content_type: string
-    posting_frequency_per_day: number
-    avg_caption_length: number
-  }
-  best_posting_times: string[]
-  audience_insights: Record<string, unknown>
-  growth_recommendations: string[]
-  analysis_timestamp: string
-  data_quality_score: number
+import { CompleteProfileResponse } from '../types'
+
+export interface ProfileData extends CompleteProfileResponse {}
+
+export interface BasicProfileResponse {
+  username: string
+  full_name: string
+  followers: number
+  following: number
+  posts_count: number
+  is_verified: boolean
+  profile_pic_url: string | null
 }
 
 export interface AnalyticsResponse {
   success: boolean
   data: ProfileData
   error?: string
+}
+
+export interface BasicAnalyticsResponse {
+  success: boolean
+  data: BasicProfileResponse
+  error?: string
+}
+
+export interface HealthCheckResponse {
+  status: string
+  timestamp: string
+  version?: string
 }
 
 class ApiService {
@@ -98,27 +85,38 @@ class ApiService {
     }
   }
 
-  async fetchBasicProfile(username: string, useSmartProxy = false): Promise<unknown> {
+  async fetchBasicProfile(username: string): Promise<BasicAnalyticsResponse> {
     try {
-      const endpoint = useSmartProxy
-        ? `/api/v1/instagram/profile/${username}/basic`
-        : `/api/v1/inhouse/instagram/profile/${username}/basic`
+      const endpoint = `/api/v1/inhouse/instagram/profile/${username}/basic`
       
       const response = await fetch(`${this.baseUrl}${endpoint}`)
-      return await response.json()
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      return { success: true, data }
     } catch (error) {
       console.error('Error fetching basic profile:', error)
-      throw error
+      return {
+        success: false,
+        data: {} as BasicProfileResponse,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
     }
   }
 
-  async testConnection(useSmartProxy = false): Promise<unknown> {
+  async testConnection(): Promise<HealthCheckResponse> {
     try {
-      const endpoint = useSmartProxy 
-        ? '/api/v1/test-connection'
-        : '/api/v1/inhouse/test'
+      const endpoint = '/api/v1/inhouse/test'
       
       const response = await fetch(`${this.baseUrl}${endpoint}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       return await response.json()
     } catch (error) {
       console.error('Error testing connection:', error)
@@ -126,9 +124,14 @@ class ApiService {
     }
   }
 
-  async fetchHealthCheck(): Promise<unknown> {
+  async fetchHealthCheck(): Promise<HealthCheckResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/health`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       return await response.json()
     } catch (error) {
       console.error('Error fetching health check:', error)
