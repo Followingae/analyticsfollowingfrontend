@@ -86,23 +86,23 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
 
         <Card className="@container/card">
           <CardHeader>
-            <CardDescription>Credits</CardDescription>
+            <CardDescription>Total Reach</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              1,200
+              12.8M
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingDown className="size-3" />
-                -20.8%
+                <IconTrendingUp className="size-3" />
+                Since Inception
               </Badge>
             </CardAction>
           </CardHeader>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
             <div className="line-clamp-1 flex gap-2 font-medium">
-              240 used this month <IconMessage className="size-4" />
+              Cumulative audience reached <IconEye className="size-4" />
             </div>
             <div className="text-muted-foreground">
-              For creator analysis & insights
+              Across all campaigns & posts
             </div>
           </CardFooter>
         </Card>

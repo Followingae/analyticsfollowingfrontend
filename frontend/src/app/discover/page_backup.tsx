@@ -233,11 +233,11 @@ export default function DiscoverPage() {
               </div>
             </div>
 
-            {/* Main Layout: 85% Main Content + 15% Creator Lists Sidebar */}
+
+            {/* Main Layout: 85% Search Component + 15% Creator Lists */}
             <div className="flex gap-4">
-              {/* Main Content Area - 85% width */}
-              <div className="w-[85%] space-y-6">
-                {/* Search Component */}
+              {/* Main Search Component - 85% width */}
+              <div className="w-[85%]">
                 <Card>
                   <CardHeader>
                     <CardDescription>Search and filter creators to find the perfect match for your campaign</CardDescription>
@@ -253,40 +253,40 @@ export default function DiscoverPage() {
                     <Select value={location} onValueChange={setLocation}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select Country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Countries</SelectItem>
-                        <SelectItem value="uae">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">🇦🇪</span>
-                            <span>UAE</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="saudi">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">🇸🇦</span>
-                            <span>Saudi Arabia</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="kuwait">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">🇰🇼</span>
-                            <span>Kuwait</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="qatar">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">🇶🇦</span>
-                            <span>Qatar</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="bahrain">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">🇧🇭</span>
-                            <span>Bahrain</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Countries</SelectItem>
+                      <SelectItem value="uae">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🇦🇪</span>
+                          <span>UAE</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="saudi">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🇸🇦</span>
+                          <span>Saudi Arabia</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="kuwait">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🇰🇼</span>
+                          <span>Kuwait</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="qatar">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🇶🇦</span>
+                          <span>Qatar</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="bahrain">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🇧🇭</span>
+                          <span>Bahrain</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
                     </Select>
                   </div>
 
@@ -296,20 +296,20 @@ export default function DiscoverPage() {
                     <Select value={category} onValueChange={setCategory}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem value="fashion">Fashion & Style</SelectItem>
-                        <SelectItem value="beauty">Beauty & Skincare</SelectItem>
-                        <SelectItem value="fitness">Fitness & Health</SelectItem>
-                        <SelectItem value="food">Food & Cooking</SelectItem>
-                        <SelectItem value="travel">Travel & Lifestyle</SelectItem>
-                        <SelectItem value="technology">Technology</SelectItem>
-                        <SelectItem value="business">Business & Finance</SelectItem>
-                        <SelectItem value="entertainment">Entertainment</SelectItem>
-                        <SelectItem value="gaming">Gaming</SelectItem>
-                        <SelectItem value="education">Education</SelectItem>
-                      </SelectContent>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="fashion">Fashion & Style</SelectItem>
+                      <SelectItem value="beauty">Beauty & Skincare</SelectItem>
+                      <SelectItem value="fitness">Fitness & Health</SelectItem>
+                      <SelectItem value="food">Food & Cooking</SelectItem>
+                      <SelectItem value="travel">Travel & Lifestyle</SelectItem>
+                      <SelectItem value="technology">Technology</SelectItem>
+                      <SelectItem value="business">Business & Finance</SelectItem>
+                      <SelectItem value="entertainment">Entertainment</SelectItem>
+                      <SelectItem value="gaming">Gaming</SelectItem>
+                      <SelectItem value="education">Education</SelectItem>
+                    </SelectContent>
                     </Select>
                   </div>
 
@@ -319,15 +319,15 @@ export default function DiscoverPage() {
                     <Select value={tier} onValueChange={setTier}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select Tier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Tiers</SelectItem>
-                        <SelectItem value="nano">Nano (1K-10K)</SelectItem>
-                        <SelectItem value="micro">Micro (10K-100K)</SelectItem>
-                        <SelectItem value="mid">Mid-tier (100K-1M)</SelectItem>
-                        <SelectItem value="macro">Macro (1M-10M)</SelectItem>
-                        <SelectItem value="mega">Mega (10M+)</SelectItem>
-                      </SelectContent>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Tiers</SelectItem>
+                      <SelectItem value="nano">Nano (1K-10K)</SelectItem>
+                      <SelectItem value="micro">Micro (10K-100K)</SelectItem>
+                      <SelectItem value="mid">Mid-tier (100K-1M)</SelectItem>
+                      <SelectItem value="macro">Macro (1M-10M)</SelectItem>
+                      <SelectItem value="mega">Mega (10M+)</SelectItem>
+                    </SelectContent>
                     </Select>
                   </div>
 
@@ -411,7 +411,7 @@ export default function DiscoverPage() {
                         </DrawerClose>
                       </DrawerFooter>
                     </DrawerContent>
-                  </Drawer>
+                    </Drawer>
                   </div>
 
                     {/* Search Button */}
@@ -431,8 +431,110 @@ export default function DiscoverPage() {
                   </div>
                   </CardContent>
                 </Card>
+              </div>
 
-                {/* Results Section - Directly under search */}
+              {/* Creator Lists Component - 15% width, sticky */}
+              <div className="w-[15%]">
+                <div className="sticky top-4 h-[calc(100vh-8rem)]">
+                  <Card className="h-full flex flex-col">
+                    <CardHeader className="pb-3 flex-shrink-0">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <Star className="h-4 w-4" />
+                        Your Creator Lists
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-y-auto space-y-3">
+                      <div className="space-y-2">
+                        <div 
+                          className="flex items-center justify-between p-3 border-2 border-dashed border-muted-foreground/25 rounded-lg hover:border-primary/50 transition-colors min-h-[60px] drop-zone"
+                          data-list="summer-campaign"
+                          onDragOver={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.classList.add('border-primary', 'bg-primary/5')
+                          }}
+                          onDragLeave={(e) => {
+                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
+                            if (draggedCreator) {
+                              toast.success(`${draggedCreator.name} added to Summer Campaign 2024!`)
+                            }
+                          }}
+                        >
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium">Summer Campaign 2024</p>
+                            <p className="text-xs text-muted-foreground">12 creators</p>
+                          </div>
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <div 
+                          className="flex items-center justify-between p-3 border-2 border-dashed border-muted-foreground/25 rounded-lg hover:border-primary/50 transition-colors min-h-[60px] drop-zone"
+                          data-list="tech-reviewers"
+                          onDragOver={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.classList.add('border-primary', 'bg-primary/5')
+                          }}
+                          onDragLeave={(e) => {
+                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
+                            if (draggedCreator) {
+                              toast.success(`${draggedCreator.name} added to Tech Reviewers!`)
+                            }
+                          }}
+                        >
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium">Tech Reviewers</p>
+                            <p className="text-xs text-muted-foreground">8 creators</p>
+                          </div>
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <div 
+                          className="flex items-center justify-between p-3 border-2 border-dashed border-muted-foreground/25 rounded-lg hover:border-primary/50 transition-colors min-h-[60px] drop-zone"
+                          data-list="wishlist"
+                          onDragOver={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.classList.add('border-primary', 'bg-primary/5')
+                          }}
+                          onDragLeave={(e) => {
+                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
+                            if (draggedCreator) {
+                              toast.success(`${draggedCreator.name} added to Wishlist!`)
+                            }
+                          }}
+                        >
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium">Wishlist</p>
+                            <p className="text-xs text-muted-foreground">24 creators</p>
+                          </div>
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <Button className="w-full h-8 mt-auto" variant="outline" size="sm">
+                        <Plus className="h-3 w-3 mr-1" />
+                        Create New List
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </div>
+
+            {/* Results Section */}
                 {showResults && (
                 <Card>
                   <CardHeader>
@@ -694,108 +796,10 @@ export default function DiscoverPage() {
                   </CardContent>
                 </Card>
                 )}
-              </div>
-
-              {/* Creator Lists Sidebar - 15% width, sticky */}
-              <div className="w-[15%]">
-                <div className="sticky top-4 h-[calc(100vh-6rem)]">
-                  <Card className="h-full flex flex-col">
-                    <CardHeader className="pb-3 flex-shrink-0">
-                      <CardTitle className="flex items-center gap-2 text-sm">
-                        <Star className="h-4 w-4" />
-                        Your Creator Lists
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1 overflow-y-auto space-y-3">
-                      <div className="space-y-2">
-                        <div 
-                          className="flex items-center justify-between p-3 border-2 border-dashed border-muted-foreground/25 rounded-lg hover:border-primary/50 transition-colors min-h-[60px] drop-zone"
-                          data-list="summer-campaign"
-                          onDragOver={(e) => {
-                            e.preventDefault()
-                            e.currentTarget.classList.add('border-primary', 'bg-primary/5')
-                          }}
-                          onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault()
-                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
-                            if (draggedCreator) {
-                              toast.success(`${draggedCreator.name} added to Summer Campaign 2024!`)
-                            }
-                          }}
-                        >
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium">Summer Campaign 2024</p>
-                            <p className="text-xs text-muted-foreground">12 creators</p>
-                          </div>
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <div 
-                          className="flex items-center justify-between p-3 border-2 border-dashed border-muted-foreground/25 rounded-lg hover:border-primary/50 transition-colors min-h-[60px] drop-zone"
-                          data-list="tech-reviewers"
-                          onDragOver={(e) => {
-                            e.preventDefault()
-                            e.currentTarget.classList.add('border-primary', 'bg-primary/5')
-                          }}
-                          onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault()
-                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
-                            if (draggedCreator) {
-                              toast.success(`${draggedCreator.name} added to Tech Reviewers!`)
-                            }
-                          }}
-                        >
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium">Tech Reviewers</p>
-                            <p className="text-xs text-muted-foreground">8 creators</p>
-                          </div>
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <div 
-                          className="flex items-center justify-between p-3 border-2 border-dashed border-muted-foreground/25 rounded-lg hover:border-primary/50 transition-colors min-h-[60px] drop-zone"
-                          data-list="wishlist"
-                          onDragOver={(e) => {
-                            e.preventDefault()
-                            e.currentTarget.classList.add('border-primary', 'bg-primary/5')
-                          }}
-                          onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault()
-                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
-                            if (draggedCreator) {
-                              toast.success(`${draggedCreator.name} added to Wishlist!`)
-                            }
-                          }}
-                        >
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium">Wishlist</p>
-                            <p className="text-xs text-muted-foreground">24 creators</p>
-                          </div>
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                      <Button className="w-full h-8 mt-auto" variant="outline" size="sm">
-                        <Plus className="h-3 w-3 mr-1" />
-                        Create New List
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
             </div>
+
+            {/* Results Section - Full Width */}
+            <div className="mt-6">
           </div>
         </div>
       </SidebarInset>

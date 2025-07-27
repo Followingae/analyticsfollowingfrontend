@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ChartBarInteractive } from "@/components/chart-bar-interactive"
+import { ChartPieCredits } from "@/components/chart-pie-credits"
 import { SiteHeader } from "@/components/site-header"
 import { SectionCards } from "@/components/section-cards"
 import {
@@ -202,62 +203,16 @@ export default function Page() {
             </div>
 
             {/* Performance Charts */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <ChartBarInteractive />
+            <div className="flex gap-6">
+              {/* Recent Campaign Stats - 70% width */}
+              <div className="w-[70%]">
+                <ChartBarInteractive />
+              </div>
               
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5" />
-                    Engagement Overview
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Heart className="h-4 w-4 text-primary" />
-                        <span className="text-sm">Likes</span>
-                      </div>
-                      <span className="text-sm font-medium">45.2%</span>
-                    </div>
-                    <Progress value={45.2} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-primary" />
-                        <span className="text-sm">Comments</span>
-                      </div>
-                      <span className="text-sm font-medium">23.1%</span>
-                    </div>
-                    <Progress value={23.1} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <ArrowRight className="h-4 w-4 text-primary" />
-                        <span className="text-sm">Shares</span>
-                      </div>
-                      <span className="text-sm font-medium">18.7%</span>
-                    </div>
-                    <Progress value={18.7} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Star className="h-4 w-4 text-primary" />
-                        <span className="text-sm">Saves</span>
-                      </div>
-                      <span className="text-sm font-medium">13.0%</span>
-                    </div>
-                    <Progress value={13.0} className="h-2" />
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Credits Consumption - 30% width */}
+              <div className="w-[30%]">
+                <ChartPieCredits />
+              </div>
             </div>
 
             {/* Recent Campaigns & Top Creators */}

@@ -31,7 +31,8 @@
       "Bash(where git)",
       "Bash(npm uninstall:*)",
       "Bash(find:*)",
-      "Bash(\"taskkill\" \"/PID\" \"7160\" \"/F\")"
+      "Bash(\"taskkill\" \"/PID\" \"7160\" \"/F\")",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

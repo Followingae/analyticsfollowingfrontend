@@ -21,45 +21,69 @@ import {
 
 export const description = "An interactive bar chart"
 
-// Sample campaign data - replace with real data
+// Sample campaign data - replace with real data (Previous 15 days)
 const campaignData = [
   { 
     id: 1,
     name: "Summer Fashion 2024",
     data: [
-      { date: "2024-06-01", reach: 45000, engagement: 2100 },
-      { date: "2024-06-02", reach: 52000, engagement: 2500 },
-      { date: "2024-06-03", reach: 48000, engagement: 2200 },
-      { date: "2024-06-04", reach: 61000, engagement: 3100 },
-      { date: "2024-06-05", reach: 55000, engagement: 2800 },
-      { date: "2024-06-06", reach: 67000, engagement: 3400 },
-      { date: "2024-06-07", reach: 58000, engagement: 2900 },
+      { date: "2024-07-13", reach: 42000, engagement: 1950 },
+      { date: "2024-07-14", reach: 45000, engagement: 2100 },
+      { date: "2024-07-15", reach: 52000, engagement: 2500 },
+      { date: "2024-07-16", reach: 48000, engagement: 2200 },
+      { date: "2024-07-17", reach: 61000, engagement: 3100 },
+      { date: "2024-07-18", reach: 55000, engagement: 2800 },
+      { date: "2024-07-19", reach: 67000, engagement: 3400 },
+      { date: "2024-07-20", reach: 58000, engagement: 2900 },
+      { date: "2024-07-21", reach: 63000, engagement: 3200 },
+      { date: "2024-07-22", reach: 71000, engagement: 3600 },
+      { date: "2024-07-23", reach: 59000, engagement: 2950 },
+      { date: "2024-07-24", reach: 75000, engagement: 3800 },
+      { date: "2024-07-25", reach: 68000, engagement: 3300 },
+      { date: "2024-07-26", reach: 82000, engagement: 4100 },
+      { date: "2024-07-27", reach: 77000, engagement: 3850 },
     ]
   },
   { 
     id: 2,
     name: "Fitness Challenge",
     data: [
-      { date: "2024-06-08", reach: 38000, engagement: 2800 },
-      { date: "2024-06-09", reach: 42000, engagement: 3200 },
-      { date: "2024-06-10", reach: 39000, engagement: 2900 },
-      { date: "2024-06-11", reach: 51000, engagement: 3800 },
-      { date: "2024-06-12", reach: 46000, engagement: 3400 },
-      { date: "2024-06-13", reach: 54000, engagement: 4100 },
-      { date: "2024-06-14", reach: 49000, engagement: 3600 },
+      { date: "2024-07-13", reach: 35000, engagement: 2650 },
+      { date: "2024-07-14", reach: 38000, engagement: 2800 },
+      { date: "2024-07-15", reach: 42000, engagement: 3200 },
+      { date: "2024-07-16", reach: 39000, engagement: 2900 },
+      { date: "2024-07-17", reach: 51000, engagement: 3800 },
+      { date: "2024-07-18", reach: 46000, engagement: 3400 },
+      { date: "2024-07-19", reach: 54000, engagement: 4100 },
+      { date: "2024-07-20", reach: 49000, engagement: 3600 },
+      { date: "2024-07-21", reach: 47000, engagement: 3500 },
+      { date: "2024-07-22", reach: 56000, engagement: 4200 },
+      { date: "2024-07-23", reach: 52000, engagement: 3900 },
+      { date: "2024-07-24", reach: 61000, engagement: 4600 },
+      { date: "2024-07-25", reach: 58000, engagement: 4350 },
+      { date: "2024-07-26", reach: 64000, engagement: 4800 },
+      { date: "2024-07-27", reach: 60000, engagement: 4500 },
     ]
   },
   { 
     id: 3,
     name: "Tech Product Launch",
     data: [
-      { date: "2024-06-15", reach: 72000, engagement: 4200 },
-      { date: "2024-06-16", reach: 68000, engagement: 3900 },
-      { date: "2024-06-17", reach: 85000, engagement: 5100 },
-      { date: "2024-06-18", reach: 79000, engagement: 4700 },
-      { date: "2024-06-19", reach: 91000, engagement: 5400 },
-      { date: "2024-06-20", reach: 87000, engagement: 5200 },
-      { date: "2024-06-21", reach: 95000, engagement: 5800 },
+      { date: "2024-07-13", reach: 68000, engagement: 3950 },
+      { date: "2024-07-14", reach: 72000, engagement: 4200 },
+      { date: "2024-07-15", reach: 68000, engagement: 3900 },
+      { date: "2024-07-16", reach: 85000, engagement: 5100 },
+      { date: "2024-07-17", reach: 79000, engagement: 4700 },
+      { date: "2024-07-18", reach: 91000, engagement: 5400 },
+      { date: "2024-07-19", reach: 87000, engagement: 5200 },
+      { date: "2024-07-20", reach: 95000, engagement: 5800 },
+      { date: "2024-07-21", reach: 89000, engagement: 5350 },
+      { date: "2024-07-22", reach: 98000, engagement: 5950 },
+      { date: "2024-07-23", reach: 93000, engagement: 5600 },
+      { date: "2024-07-24", reach: 105000, engagement: 6400 },
+      { date: "2024-07-25", reach: 102000, engagement: 6200 },
+      { date: "2024-07-26", reach: 110000, engagement: 6750 },
+      { date: "2024-07-27", reach: 107000, engagement: 6500 },
     ]
   }
 ]
