@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import {
@@ -34,11 +35,12 @@ function formatNumber(num: number): string {
   return num.toString()
 }
 
-export default function AnalyticsPage() {
+export default function AnalyticsPage({ params }: { params: { username: string } }) {
   const [profileData, setProfileData] = useState<CompleteProfileResponse | null>(null)
-  const [username, setUsername] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+  const username = params.username
 
   const analyzeProfile = async (targetUsername: string) => {
     if (!targetUsername.trim()) return
@@ -47,7 +49,7 @@ export default function AnalyticsPage() {
     setError(null)
     
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/inhouse/instagram/profile/${targetUsername}`)
+      const response = await fetch(`/api/mock-analytics/${targetUsername}`)
       const data = await response.json()
       
       if (!response.ok) {
@@ -63,10 +65,12 @@ export default function AnalyticsPage() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    analyzeProfile(username)
-  }
+  // Auto-load analytics when component mounts
+  useEffect(() => {
+    if (username) {
+      analyzeProfile(username)
+    }
+  }, [username])
 
   return (
     <SidebarProvider
@@ -84,46 +88,46 @@ export default function AnalyticsPage() {
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
             
             {/* Header */}
-            <div>
-              <h1 className="text-3xl font-bold">Instagram Analytics</h1>
-              <p className="text-muted-foreground">
-                Comprehensive Instagram profile analysis with AI-powered insights
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold">Creator Analytics</h1>
+                <p className="text-muted-foreground">
+                  Detailed analytics for @{username}
+                </p>
+              </div>
+              <Button variant="outline" onClick={() => router.back()}>
+                ← Back to Creators
+              </Button>
             </div>
 
-            {/* Search Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <IconSearch className="h-5 w-5" />
-                  Profile Analysis
-                </CardTitle>
-                <CardDescription>
-                  Enter an Instagram username for detailed analytics
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="flex gap-2">
-                  <Input
-                    type="text"
-                    placeholder="Enter Instagram username (e.g., mkbhd)"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    disabled={loading}
-                    className="flex-1"
-                  />
-                  <Button type="submit" disabled={loading || !username.trim()}>
-                    {loading ? "Analyzing..." : "Analyze Profile"}
-                  </Button>
-                </form>
-                
-                {error && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                    <p className="text-sm text-red-600">{error}</p>
+            {/* Loading State */}
+            {loading && (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                  <h3 className="text-lg font-semibold mb-2">Analyzing @{username}</h3>
+                  <p className="text-muted-foreground text-center">
+                    Getting comprehensive analytics data...
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <div className="text-red-500 mb-4">
+                    <IconSearch className="h-12 w-12" />
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <h3 className="text-lg font-semibold mb-2">Analysis Failed</h3>
+                  <p className="text-muted-foreground text-center mb-4">{error}</p>
+                  <Button onClick={() => analyzeProfile(username)}>
+                    Try Again
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Results Section */}
             {profileData && (
@@ -520,18 +524,6 @@ export default function AnalyticsPage() {
               </div>
             )}
 
-            {/* Empty State */}
-            {!profileData && !loading && (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <IconSearch className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Analytics Data</h3>
-                  <p className="text-muted-foreground text-center">
-                    Enter an Instagram username above to start analyzing profiles and get detailed insights.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </SidebarInset>

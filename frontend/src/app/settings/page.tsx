@@ -467,15 +467,15 @@ export default function SettingsPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="currency">Currency</Label>
-                        <Select defaultValue="usd">
+                        <Select defaultValue="aed">
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="aed"><span className="aed-currency">AED</span></SelectItem>
                             <SelectItem value="usd">USD ($)</SelectItem>
                             <SelectItem value="eur">EUR (€)</SelectItem>
                             <SelectItem value="gbp">GBP (£)</SelectItem>
-                            <SelectItem value="cad">CAD ($)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

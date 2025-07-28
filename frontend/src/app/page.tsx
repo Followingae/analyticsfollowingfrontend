@@ -39,11 +39,17 @@ function formatNumber(num: number): string {
   return num.toString()
 }
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount)
+function formatCurrency(amount: number) {
+  const formattedAmount = new Intl.NumberFormat('ar-AE', {
+    style: 'decimal',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
+  return (
+    <>
+      <span className="aed-currency">AED</span> {formattedAmount}
+    </>
+  );
 }
 
 export default function Page() {
@@ -80,8 +86,8 @@ export default function Page() {
       id: 1,
       name: "Summer Fashion 2024",
       status: "active",
-      budget: 15000,
-      spent: 8500,
+      budget: 55050,
+      spent: 31175,
       reach: 1200000,
       engagement: 4.2,
       creators: 5,
@@ -91,8 +97,8 @@ export default function Page() {
       id: 2,
       name: "Fitness Challenge",
       status: "active", 
-      budget: 12000,
-      spent: 4200,
+      budget: 44040,
+      spent: 15414,
       reach: 580000,
       engagement: 6.1,
       creators: 6,
@@ -102,8 +108,8 @@ export default function Page() {
       id: 3,
       name: "Tech Product Launch",
       status: "completed",
-      budget: 25000,
-      spent: 23500,
+      budget: 91750,
+      spent: 86245,
       reach: 850000,
       engagement: 5.8,
       creators: 3,

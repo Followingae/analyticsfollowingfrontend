@@ -2,6 +2,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* AED Custom Font for Currency Display */
+.aed-currency {
+  font-family: var(--font-aed), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-feature-settings: normal;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

@@ -152,8 +152,10 @@ export interface CreatorProfile {
   followers: number
   engagement_rate: number
   profile_pic_url: string
-  niche: string
+  categories: string[]
+  location: string
   is_verified: boolean
+  unlocked: boolean
 }
 
 export interface HashtagOpportunity {

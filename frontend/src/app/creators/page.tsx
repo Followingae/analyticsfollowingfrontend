@@ -1,13 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Plus,
   Users,
   Eye,
   Heart,
-  TrendingUp,
-  MoreHorizontal,
   BarChart3,
   Download,
   Search,
@@ -38,98 +37,87 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import ReactCountryFlag from "react-country-flag"
+import { getCountryCode } from "@/lib/countryUtils"
 
 export default function CreatorsPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const router = useRouter()
   
   const creators = [
     {
       id: 1,
-      name: "Sarah Johnson",
       username: "fashionista_sarah",
-      avatar: "/avatars/01.png",
+      full_name: "Sarah Johnson",
+      profile_pic_url: "/avatars/01.png",
       followers: 245000,
-      engagement: 4.2,
-      category: "Fashion",
-      verified: true,
-      lastPost: "2 hours ago",
-      trend: 12.5,
+      engagement_rate: 4.2,
+      categories: ["Fashion", "Lifestyle", "Beauty"],
       location: "New York, USA",
-      niche: "Fashion & Lifestyle"
+      is_verified: true,
+      unlocked: true,
+      lastPost: "2 hours ago",
+      trend: 12.5
     },
     {
       id: 2,
-      name: "Mike Chen",
       username: "tech_reviewer_mike",
-      avatar: "/avatars/02.png",
+      full_name: "Mike Chen",
+      profile_pic_url: "/avatars/02.png",
       followers: 186000,
-      engagement: 5.8,
-      category: "Technology",
-      verified: true,
-      lastPost: "1 day ago",
-      trend: -2.1,
+      engagement_rate: 5.8,
+      categories: ["Technology", "Reviews"],
       location: "San Francisco, USA",
-      niche: "Tech Reviews"
+      is_verified: true,
+      unlocked: true,
+      lastPost: "1 day ago",
+      trend: -2.1
     },
     {
       id: 3,
-      name: "Anna Rodriguez",
       username: "fitness_queen_anna",
-      avatar: "/avatars/03.png",
+      full_name: "Anna Rodriguez",
+      profile_pic_url: "/avatars/03.png",
       followers: 320000,
-      engagement: 3.9,
-      category: "Fitness",
-      verified: false,
-      lastPost: "4 hours ago",
-      trend: 8.3,
+      engagement_rate: 3.9,
+      categories: ["Fitness", "Wellness", "Health"],
       location: "Miami, USA",
-      niche: "Fitness & Wellness"
+      is_verified: false,
+      unlocked: true,
+      lastPost: "4 hours ago",
+      trend: 8.3
     },
     {
       id: 4,
-      name: "David Kim",
       username: "food_explorer_david",
-      avatar: "/avatars/04.png",
+      full_name: "David Kim",
+      profile_pic_url: "/avatars/04.png",
       followers: 125000,
-      engagement: 6.2,
-      category: "Food",
-      verified: false,
-      lastPost: "6 hours ago",
-      trend: 15.7,
+      engagement_rate: 6.2,
+      categories: ["Food", "Travel", "Culture"],
       location: "Los Angeles, USA",
-      niche: "Food & Travel"
+      is_verified: false,
+      unlocked: true,
+      lastPost: "6 hours ago",
+      trend: 15.7
     },
     {
       id: 5,
-      name: "Emma Wilson",
       username: "beauty_guru_emma",
-      avatar: "/avatars/05.png",
+      full_name: "Emma Wilson",
+      profile_pic_url: "/avatars/05.png",
       followers: 410000,
-      engagement: 4.8,
-      category: "Beauty",
-      verified: true,
-      lastPost: "3 hours ago",
-      trend: 7.2,
+      engagement_rate: 4.8,
+      categories: ["Beauty", "Skincare", "Fashion"],
       location: "London, UK",
-      niche: "Beauty & Skincare"
+      is_verified: true,
+      unlocked: true,
+      lastPost: "3 hours ago",
+      trend: 7.2
     }
   ]
 
@@ -141,7 +129,7 @@ export default function CreatorsPage() {
 
 
   const totalReach = creators.reduce((sum, creator) => sum + creator.followers, 0)
-  const avgEngagement = creators.reduce((sum, creator) => sum + creator.engagement, 0) / creators.length
+  const avgEngagement = creators.reduce((sum, creator) => sum + creator.engagement_rate, 0) / creators.length
 
   return (
     <SidebarProvider
@@ -290,12 +278,18 @@ export default function CreatorsPage() {
             {/* Creators Portfolio */}
             <Card>
               <CardHeader>
-                <CardTitle>Your Creator Portfolio</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Your Creator Portfolio</CardTitle>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add to Campaign
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {creators.map((creator) => (
-                    <Card key={creator.id} className="relative overflow-hidden">
+                    <Card key={creator.id} className="relative overflow-hidden hover:shadow-lg transition-shadow">
                       {/* Status Indicator */}
                       <div className="absolute top-2 right-2 z-10">
                         <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-xs">
@@ -303,125 +297,83 @@ export default function CreatorsPage() {
                         </Badge>
                       </div>
                       
-                      <CardContent className="p-4">
-                        {/* Creator Header */}
-                        <div className="flex items-start gap-3 mb-4">
-                          <Avatar className="h-14 w-14">
-                            <AvatarImage src={creator.avatar} alt={creator.name} />
+                      <CardHeader className="pb-3">
+                        {/* Avatar */}
+                        <div className="flex justify-center mb-3">
+                          <Avatar className="h-16 w-16">
+                            <AvatarImage src={creator.profile_pic_url} alt={creator.full_name} />
                             <AvatarFallback>
-                              {creator.name.split(' ').map(n => n[0]).join('')}
+                              {creator.full_name.split(' ').map(n => n[0]).join('')}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-sm truncate">{creator.name}</h3>
-                              {creator.verified && (
-                                <Badge variant="secondary" className="px-1 py-0 text-xs">
-                                  ✓
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">@{creator.username}</p>
-                            <div className="flex items-center gap-1 mt-1">
-                              <div className="w-2 h-2 rounded-full bg-green-500" />
-                              <span className="text-xs text-muted-foreground">Active {creator.lastPost}</span>
-                            </div>
-                          </div>
                         </div>
 
-                        {/* Key Metrics */}
-                        <div className="grid grid-cols-2 gap-3 mb-4">
+                        {/* Name and Username */}
+                        <div className="text-center space-y-1">
+                          <div className="flex items-center justify-center gap-2">
+                            <h3 className="font-semibold text-lg">{creator.full_name}</h3>
+                            {creator.is_verified && (
+                              <Badge variant="secondary" className="px-1.5 py-0.5 text-xs">
+                                ✓
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            @{creator.username}
+                          </p>
+                        </div>
+
+                        {/* Content Category Badges */}
+                        <div className="flex flex-wrap justify-center gap-1 mt-3">
+                          {creator.categories.slice(0, 3).map((category, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {category}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="space-y-4">
+                        {/* Followers and Engagement */}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
                           <div className="text-center p-2 bg-muted rounded-md">
                             <div className="text-lg font-bold">{formatNumber(creator.followers)}</div>
                             <div className="text-xs text-muted-foreground">Followers</div>
                           </div>
                           <div className="text-center p-2 bg-muted rounded-md">
-                            <div className="text-lg font-bold">{creator.engagement}%</div>
+                            <div className="text-lg font-bold">{creator.engagement_rate}%</div>
                             <div className="text-xs text-muted-foreground">Engagement</div>
                           </div>
                         </div>
 
-                        {/* Performance Metrics */}
-                        <div className="space-y-3 mb-4">
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">Performance</span>
-                              <span className={`font-medium ${creator.trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {creator.trend > 0 ? '+' : ''}{creator.trend}%
-                              </span>
-                            </div>
-                            <Progress value={Math.abs(creator.trend) * 5} className="h-2" />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">Brand Fit Score</span>
-                              <span className="font-medium text-blue-600">85/100</span>
-                            </div>
-                            <Progress value={85} className="h-2" />
-                          </div>
+                        {/* Location */}
+                        <div className="flex items-center justify-center gap-2">
+                          <ReactCountryFlag
+                            countryCode={getCountryCode(creator.location)}
+                            svg
+                            style={{
+                              width: '16px',
+                              height: '12px',
+                            }}
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {creator.location}
+                          </span>
                         </div>
 
-                        {/* Category & Location */}
-                        <div className="flex items-center justify-between mb-4">
-                          <Badge variant="outline" className="text-xs">{creator.category}</Badge>
-                          <span className="text-xs text-muted-foreground">{creator.location.split(',')[0]}</span>
-                        </div>
 
-                        {/* Campaign Status */}
-                        <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-950 rounded-md">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium">Campaign Status</span>
-                            <Badge variant="outline" className="text-xs">
-                              Active (2)
-                            </Badge>
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="space-y-2">
-                          <Button className="w-full" size="sm">
-                            <BarChart3 className="h-3 w-3 mr-2" />
-                            Detailed Insights
+                        {/* Action Button */}
+                        <div className="pt-2">
+                          <Button 
+                            className="w-full" 
+                            size="sm"
+                            onClick={() => router.push(`/analytics/${creator.username}`)}
+                          >
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            View Analytics
                           </Button>
-                          <div className="grid grid-cols-2 gap-2">
-                            <Button variant="outline" size="sm">
-                              <Plus className="h-3 w-3 mr-1" />
-                              Add to Campaign
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <MoreHorizontal className="h-3 w-3 mr-1" />
-                                  More
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View Profile
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  Contact Creator
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  Export Data
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">
-                                  Remove from Portfolio
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
                         </div>
 
-                        {/* Quick Stats */}
-                        <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
-                          <div className="flex justify-between">
-                            <span>Avg. Likes: {formatNumber(Math.floor(creator.followers * (creator.engagement / 100) * 0.9))}</span>
-                            <span>Est. Rate: ${Math.floor(creator.followers / 1000 * 12)}</span>
-                          </div>
-                        </div>
                       </CardContent>
                     </Card>
                   ))}

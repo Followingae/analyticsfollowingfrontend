@@ -138,10 +138,16 @@ export default function BillingPage() {
   const usagePercentage = ((creditsUsed / (currentPlan?.credits || 1)) * 100)
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
+    const formattedAmount = new Intl.NumberFormat('ar-AE', {
+      style: 'decimal',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+    return (
+      <>
+        <span className="aed-currency">AED</span> {formattedAmount}
+      </>
+    );
   }
 
   const getStatusColor = (status: Invoice['status']) => {

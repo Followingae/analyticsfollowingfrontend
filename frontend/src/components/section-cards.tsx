@@ -127,14 +127,6 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              8 added this month <IconUsers className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Analyzed creator profiles
-            </div>
-          </CardFooter>
         </Card>
         
         <Card className="@container/card">
@@ -150,14 +142,6 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Combined audience reach <IconEye className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Total follower count
-            </div>
-          </CardFooter>
         </Card>
 
         <Card className="@container/card">
@@ -173,14 +157,6 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Portfolio average <IconHeart className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Across all creators
-            </div>
-          </CardFooter>
         </Card>
 
         <Card className="@container/card">
@@ -196,14 +172,6 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Currently active creators <IconMessage className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              In ongoing campaigns
-            </div>
-          </CardFooter>
         </Card>
       </div>
     )
@@ -226,21 +194,13 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              2 active campaigns <IconMessage className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Running and planned
-            </div>
-          </CardFooter>
         </Card>
         
         <Card className="@container/card">
           <CardHeader>
             <CardDescription>Total Budget</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              $100K
+              <span className="aed-currency">AED</span> 368K
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
@@ -249,14 +209,6 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              $41K spent (41%) <IconTrendingUp className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Across all campaigns
-            </div>
-          </CardFooter>
         </Card>
 
         <Card className="@container/card">
@@ -272,14 +224,6 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Combined audience reached <IconEye className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Total campaign reach
-            </div>
-          </CardFooter>
         </Card>
 
         <Card className="@container/card">
@@ -295,14 +239,6 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Average ROI across campaigns <IconTrendingUp className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Performance metric
-            </div>
-          </CardFooter>
         </Card>
       </div>
     )

@@ -57,7 +57,7 @@ export default function BillingPage() {
     {
       id: "INV-001",
       date: "2024-07-01",
-      amount: 1500,
+      amount: 5505,
       status: "paid",
       description: "Monthly subscription - Pro Plan",
       dueDate: "2024-07-15",
@@ -65,7 +65,7 @@ export default function BillingPage() {
     {
       id: "INV-002",
       date: "2024-06-01",
-      amount: 1500,
+      amount: 5505,
       status: "paid",
       description: "Monthly subscription - Pro Plan",
       dueDate: "2024-06-15",
@@ -73,7 +73,7 @@ export default function BillingPage() {
     {
       id: "INV-003",
       date: "2024-05-01",
-      amount: 1200,
+      amount: 4404,
       status: "paid",
       description: "Credit package - 5000 credits",
       dueDate: "2024-05-15",
@@ -81,7 +81,7 @@ export default function BillingPage() {
     {
       id: "INV-004",
       date: "2024-04-01",
-      amount: 1500,
+      amount: 5505,
       status: "overdue",
       description: "Monthly subscription - Pro Plan",
       dueDate: "2024-04-15",
@@ -91,7 +91,7 @@ export default function BillingPage() {
   const plans = [
     {
       name: "Starter",
-      price: 49,
+      price: 180,
       period: "month",
       features: [
         "1,000 creator unlocks",
@@ -103,7 +103,7 @@ export default function BillingPage() {
     },
     {
       name: "Pro",
-      price: 149,
+      price: 547,
       period: "month",
       features: [
         "5,000 creator unlocks",
@@ -116,7 +116,7 @@ export default function BillingPage() {
     },
     {
       name: "Enterprise",
-      price: 499,
+      price: 1831,
       period: "month",
       features: [
         "Unlimited creator unlocks",
@@ -131,10 +131,16 @@ export default function BillingPage() {
   ]
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
+    const formattedAmount = new Intl.NumberFormat('ar-AE', {
+      style: 'decimal',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+    return (
+      <>
+        <span className="aed-currency">AED</span> {formattedAmount}
+      </>
+    );
   }
 
   const getStatusBadge = (status: string) => {
@@ -214,7 +220,7 @@ export default function BillingPage() {
                 <CardContent>
                   <div className="text-2xl font-bold">Pro Plan</div>
                   <p className="text-xs text-muted-foreground">
-                    {formatCurrency(149)}/month
+                    <span className="aed-currency">AED</span> 547/month
                   </p>
                 </CardContent>
               </Card>
@@ -239,7 +245,7 @@ export default function BillingPage() {
                 <CardContent>
                   <div className="text-2xl font-bold">Aug 1</div>
                   <p className="text-xs text-muted-foreground">
-                    {formatCurrency(149)} will be charged
+                    <span className="aed-currency">AED</span> 547 will be charged
                   </p>
                 </CardContent>
               </Card>
@@ -249,7 +255,7 @@ export default function BillingPage() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(5700)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(20919)}</div>
                   <p className="text-xs text-muted-foreground">
                     This year
                   </p>
@@ -260,7 +266,7 @@ export default function BillingPage() {
             {/* Alert for overdue payments */}
             {invoices.some(invoice => invoice.status === 'overdue') && (
               <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
-                <CardContent className="flex items-center gap-4 pt-6">
+                <CardContent className="flex items-center gap-4 pt-4">
                   <AlertTriangle className="h-5 w-5 text-red-600" />
                   <div className="flex-1">
                     <h3 className="font-semibold text-red-800 dark:text-red-200">Payment Required</h3>
@@ -483,7 +489,7 @@ export default function BillingPage() {
                             <div className="text-sm text-muted-foreground">Basic package</div>
                           </div>
                           <div className="text-right">
-                            <div className="font-medium">{formatCurrency(49)}</div>
+                            <div className="font-medium">{formatCurrency(180)}</div>
                             <Button size="sm" variant="outline">Buy</Button>
                           </div>
                         </div>
@@ -494,7 +500,7 @@ export default function BillingPage() {
                             <div className="text-sm text-muted-foreground">Popular choice</div>
                           </div>
                           <div className="text-right">
-                            <div className="font-medium">{formatCurrency(199)}</div>
+                            <div className="font-medium">{formatCurrency(730)}</div>
                             <Button size="sm">Buy</Button>
                           </div>
                         </div>
@@ -505,7 +511,7 @@ export default function BillingPage() {
                             <div className="text-sm text-muted-foreground">Best value</div>
                           </div>
                           <div className="text-right">
-                            <div className="font-medium">{formatCurrency(349)}</div>
+                            <div className="font-medium">{formatCurrency(1281)}</div>
                             <Button size="sm" variant="outline">Buy</Button>
                           </div>
                         </div>
@@ -535,7 +541,7 @@ export default function BillingPage() {
                       <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div className="space-y-1">
                           <p className="text-sm font-medium">Peak Usage Month</p>
-                          <p className="text-xs text-muted-foreground">July 2024 - {formatCurrency(189)} spent</p>
+                          <p className="text-xs text-muted-foreground">July 2024 - {formatCurrency(694)} spent</p>
                         </div>
                         <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
                           +23%
@@ -546,14 +552,14 @@ export default function BillingPage() {
                           <p className="text-sm font-medium">Average Monthly Cost</p>
                           <p className="text-xs text-muted-foreground">Based on last 6 months</p>
                         </div>
-                        <span className="text-sm font-medium">{formatCurrency(156)}</span>
+                        <span className="text-sm font-medium">{formatCurrency(573)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div className="space-y-1">
                           <p className="text-sm font-medium">Cost per Analysis</p>
                           <p className="text-xs text-muted-foreground">Creator profile analysis</p>
                         </div>
-                        <span className="text-sm font-medium">{formatCurrency(2.5)}</span>
+                        <span className="text-sm font-medium">{formatCurrency(9.2)}</span>
                       </div>
                     </div>
                   </div>
@@ -569,7 +575,7 @@ export default function BillingPage() {
                               Consider upgrading to Enterprise
                             </p>
                             <p className="text-xs text-green-600 dark:text-green-300">
-                              Save {formatCurrency(45)}/month with unlimited creator unlocks
+                              Save {formatCurrency(165)}/month with unlimited creator unlocks
                             </p>
                           </div>
                         </div>
@@ -595,7 +601,7 @@ export default function BillingPage() {
                               Annual billing savings
                             </p>
                             <p className="text-xs text-purple-600 dark:text-purple-300">
-                              Switch to annual billing and save {formatCurrency(358)} per year
+                              Switch to annual billing and save {formatCurrency(1314)} per year
                             </p>
                           </div>
                         </div>

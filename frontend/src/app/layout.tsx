@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -8,6 +9,18 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+});
+
+const aedFont = localFont({
+  src: [
+    {
+      path: "../fonts/aed-Regular.otf",
+      weight: "400",
+      style: "normal",
+    }
+  ],
+  variable: "--font-aed",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -22,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${aedFont.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

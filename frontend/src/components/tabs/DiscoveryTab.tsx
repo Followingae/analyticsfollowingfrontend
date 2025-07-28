@@ -10,6 +10,8 @@ import { formatNumber, formatPercentage } from '@/lib/utils'
 import { apiService } from '@/services/api'
 import { DiscoveryFilters, CreatorProfile } from '@/types'
 import { Loader2, Search, Hash, TrendingUp, Filter, Users } from 'lucide-react'
+import ReactCountryFlag from "react-country-flag"
+import { getCountryCode } from "@/lib/countryUtils"
 
 export default function DiscoveryTab() {
   const [hashtags, setHashtags] = useState('')
@@ -237,8 +239,26 @@ export default function DiscoveryTab() {
                         <span className="font-medium">{formatPercentage(creator.engagement_rate)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Niche</span>
-                        <Badge variant="outline" className="text-xs">{creator.niche}</Badge>
+                        <span className="text-gray-600">Categories</span>
+                        <div className="flex gap-1">
+                          {creator.categories.slice(0, 2).map((category, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">{category}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Location</span>
+                        <div className="flex items-center gap-1">
+                          <ReactCountryFlag
+                            countryCode={getCountryCode(creator.location)}
+                            svg
+                            style={{
+                              width: '14px',
+                              height: '10px',
+                            }}
+                          />
+                          <span className="font-medium text-xs">{creator.location}</span>
+                        </div>
                       </div>
                     </div>
                     
