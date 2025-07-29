@@ -63,7 +63,7 @@ export default function Dashboard() {
       try {
         setLoading(true)
         // Using a sample profile for demonstration - in real app this would be from user context
-        const result = await instagramApiService.getProfileSummary('cristiano')
+        const result = await instagramApiService.getBasicProfile('cristiano')
         
         if (result.success && result.data) {
           setDashboardData(result.data)
