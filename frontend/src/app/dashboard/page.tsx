@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { instagramApiService } from "@/services/instagramApi"
 import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
+import { ChartBarInteractive } from "@/components/chart-bar-interactive"
 import { ChartPieCredits } from "@/components/chart-pie-credits"
 import { SiteHeader } from "@/components/site-header"
 import { MetricCard, EngagementCard, QuickStatsGrid } from "@/components/analytics-cards"
@@ -260,7 +260,7 @@ export default function Dashboard() {
             {/* Performance Charts */}
             <div className="grid gap-6 grid-cols-10">
               <div className="col-span-7">
-                <ChartAreaInteractive />
+                <ChartBarInteractive />
               </div>
               <div className="col-span-3">
                 <ChartPieCredits />
