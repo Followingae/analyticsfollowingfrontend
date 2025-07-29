@@ -222,7 +222,14 @@ class AuthService {
         let errorMessage = 'Login failed'
         
         if (response.status === 500) {
-          errorMessage = 'Server error - authentication service is currently down. Please try again in a few minutes.'
+          // Check for the specific datetime parsing error
+          if (data.detail && data.detail.includes("'str' object cannot be interpreted as an integer")) {
+            errorMessage = 'Backend authentication service has a bug (datetime parsing error). Please contact support - this is a known issue that needs to be fixed on the server.'
+          } else if (data.detail && data.detail.includes("Authentication failed due to server error")) {
+            errorMessage = 'Authentication service has a server error. This is a backend issue that needs to be fixed.'
+          } else {
+            errorMessage = 'Server error - authentication service is currently down. Please try again in a few minutes.'
+          }
         } else if (response.status === 401 || response.status === 403) {
           errorMessage = data.detail || data.error || 'Invalid email or password'
         } else if (response.status === 422) {
