@@ -109,10 +109,13 @@ class AuthService {
       console.log('   Email:', credentials.email)
       console.log('   Headers:', REQUEST_HEADERS)
       console.log('   Body:', JSON.stringify(credentials))
+      console.log('   Base URL from config:', this.baseURL)
+      console.log('   Environment variable:', process.env.NEXT_PUBLIC_API_BASE_URL)
       
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: REQUEST_HEADERS,
+        mode: 'cors',
         body: JSON.stringify(credentials)
       })
 
@@ -165,9 +168,26 @@ class AuthService {
       }
     } catch (error) {
       console.error('❌ Login network error:', error)
+      
+      let errorMessage = 'Network error during login'
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorMessage = 'Cannot connect to server. Please check if the backend is running and accessible.'
+      } else if (error instanceof Error) {
+        if (error.message.includes('CORS')) {
+          errorMessage = 'CORS error: Backend needs to allow requests from this domain'
+        } else if (error.message.includes('NetworkError')) {
+          errorMessage = 'Network error: Cannot reach the backend server'
+        } else if (error.message.includes('ERR_CONNECTION_REFUSED')) {
+          errorMessage = 'Connection refused: Backend server is not responding'
+        } else {
+          errorMessage = `Network error: ${error.message}`
+        }
+      }
+      
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Network error during login' 
+        error: errorMessage
       }
     }
   }
