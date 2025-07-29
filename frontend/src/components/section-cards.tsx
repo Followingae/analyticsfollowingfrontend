@@ -17,6 +17,12 @@ import { CompleteProfileResponse } from "@/types"
 interface SectionCardsProps {
   profileData?: CompleteProfileResponse
   mode?: 'profile' | 'brand' | 'creators' | 'campaigns' | 'discover'
+  brandData?: {
+    currentPlan?: string
+    unlockedProfiles?: number
+    totalReach?: string
+    activeCampaigns?: number
+  }
 }
 
 function formatNumber(num: number): string {
@@ -25,7 +31,7 @@ function formatNumber(num: number): string {
   return num.toString()
 }
 
-export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProps) {
+export function SectionCards({ profileData, mode = 'profile', brandData }: SectionCardsProps) {
   const [data, setData] = useState<CompleteProfileResponse | null>(null)
 
   useEffect(() => {
@@ -42,12 +48,12 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
           <CardHeader>
             <CardDescription>Current Plan</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              Pro
+              {brandData?.currentPlan || '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconTrendingUp className="size-3" />
-                Active
+                {brandData?.currentPlan ? 'Active' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -57,12 +63,12 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
           <CardHeader>
             <CardDescription>Your Unlocked Profiles</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              1,234
+              {brandData?.unlockedProfiles ? formatNumber(brandData.unlockedProfiles) : '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconTrendingUp className="size-3" />
-                +15.2%
+                {brandData?.unlockedProfiles ? 'Available' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -72,12 +78,12 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
           <CardHeader>
             <CardDescription>Total Reach</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              12.8M
+              {brandData?.totalReach || '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconTrendingUp className="size-3" />
-                Since Inception
+                {brandData?.totalReach ? 'Cumulative' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -87,12 +93,12 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
           <CardHeader>
             <CardDescription>Active Campaigns</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              3
+              {brandData?.activeCampaigns !== undefined ? brandData.activeCampaigns : '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconTrendingUp className="size-3" />
-                Running
+                {brandData?.activeCampaigns !== undefined ? 'Running' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>

@@ -53,23 +53,16 @@ function formatCurrency(amount: number) {
 }
 
 export default function Page() {
-  // Brand analytics data now handled by SectionCards component
-
   // TODO: Replace with real backend data
+  const [brandData, setBrandData] = useState(null)
   const [recentCampaigns, setRecentCampaigns] = useState([])
-  
-  // Load campaigns from backend
-  useEffect(() => {
-    // TODO: Implement actual API call to fetch campaigns
-    // fetchRecentCampaigns().then(setRecentCampaigns)
-  }, [])
-
-  // TODO: Replace with real backend data
   const [topCreators, setTopCreators] = useState([])
   
-  // Load top creators from backend
+  // Load data from backend
   useEffect(() => {
-    // TODO: Implement actual API call to fetch top creators
+    // TODO: Implement actual API calls to fetch dashboard data
+    // fetchBrandAnalytics().then(setBrandData)
+    // fetchRecentCampaigns().then(setRecentCampaigns)
     // fetchTopCreators().then(setTopCreators)
   }, [])
 
@@ -124,7 +117,7 @@ export default function Page() {
 
               {/* Brand Metrics Overview - 65% width */}
               <div className="flex-1">
-                <SectionCards mode="brand" />
+                <SectionCards mode="brand" brandData={brandData} />
               </div>
             </div>
 
