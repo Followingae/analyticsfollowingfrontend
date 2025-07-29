@@ -6,67 +6,30 @@ export const API_CONFIG = {
 }
 
 export const ENDPOINTS = {
-  // Instagram Profile Analysis (Updated to match backend specification)
+  // Instagram Profile Analysis (Based on actual backend API)
   profile: {
-    // Full analysis with retry mechanism (8-25 seconds)
+    // Comprehensive profile analysis with detailed insights
     full: (username: string) => `/instagram/profile/${username}`,
-    // Basic profile info (2-5 seconds)
+    // Basic profile info (faster response)
     basic: (username: string) => `/instagram/profile/${username}/basic`,
-    // Quick dashboard preview (2-5 seconds)
-    summary: (username: string) => `/analytics/summary/${username}`,
-    // Autocomplete suggestions
-    suggestions: (partialUsername: string) => `/search/suggestions/${partialUsername}`,
+    // Refresh profile data (bypasses cache)
+    refresh: (username: string) => `/instagram/profile/${username}/refresh`,
   },
   
-  // Dashboard
-  dashboard: {
-    brand: (brandId: string) => `/dashboard/brand/${brandId}`,
-    overview: '/dashboard/overview',
+  // Hashtag Analysis
+  hashtag: {
+    analysis: (hashtag: string) => `/instagram/hashtag/${hashtag}`,
   },
   
-  // Campaigns
-  campaigns: {
-    list: (brandId: string) => `/campaigns/brand/${brandId}`,
-    detail: (campaignId: string) => `/campaigns/${campaignId}`,
-    analytics: (campaignId: string) => `/campaigns/${campaignId}/analytics`,
-    create: '/campaigns',
-    update: (campaignId: string) => `/campaigns/${campaignId}`,
-    delete: (campaignId: string) => `/campaigns/${campaignId}`,
-  },
-  
-  // Creators
-  creators: {
-    unlocked: (brandId: string) => `/creators/unlocked/${brandId}`,
-    profile: (creatorId: string) => `/creators/${creatorId}/profile`,
-    unlock: (creatorId: string) => `/creators/${creatorId}/unlock`,
-    analytics: (username: string) => `/creators/${username}/analytics`,
-  },
-  
-  // Discovery
-  discovery: {
-    creators: '/discovery/creators',
-    search: '/discovery/search',
-  },
-  
-  // Content
-  content: {
-    detail: (campaignId: string, contentId: string) => `/campaigns/${campaignId}/content/${contentId}`,
-    analytics: (contentId: string) => `/content/${contentId}/analytics`,
-    updateStatus: (contentId: string) => `/content/${contentId}/status`,
-  },
-  
-  // Billing & Credits
-  billing: {
-    credits: (brandId: string) => `/billing/credits/${brandId}`,
-  },
-  
-  // Authentication
+  // Authentication (Updated to match actual backend)
   auth: {
     login: '/auth/login',
     register: '/auth/register',
-    logout: '/auth/logout',
-    me: '/auth/me',
     refresh: '/auth/refresh',
+    dashboard: '/auth/dashboard',
+    searchHistory: '/auth/search-history',
+    forgotPassword: '/auth/forgot-password',
+    verifyEmail: (token: string) => `/auth/verify-email/${token}`,
   },
 }
 

@@ -1,4 +1,4 @@
-import { API_CONFIG, REQUEST_HEADERS } from '@/config/api'
+import { API_CONFIG, REQUEST_HEADERS, ENDPOINTS } from '@/config/api'
 
 export interface User {
   id: string
@@ -62,7 +62,7 @@ class AuthService {
     try {
       console.log('🔐 Registering user:', credentials.email)
       
-      const response = await fetch(`${this.baseURL}/auth/register`, {
+      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.register}`, {
         method: 'POST',
         headers: REQUEST_HEADERS,
         body: JSON.stringify(credentials)
@@ -103,7 +103,7 @@ class AuthService {
   // Login user
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const loginUrl = `${this.baseURL}/auth/login`
+      const loginUrl = `${this.baseURL}${ENDPOINTS.auth.login}`
       console.log('🔑 Login attempt:')
       console.log('   URL:', loginUrl)
       console.log('   Email:', credentials.email)
@@ -144,6 +144,10 @@ class AuthService {
         if (this.token) {
           localStorage.setItem('auth_token', this.token)
           localStorage.setItem('user_data', JSON.stringify(data.user))
+          // Store refresh token if provided
+          if (data.refresh_token) {
+            localStorage.setItem('refresh_token', data.refresh_token)
+          }
         }
         
         // Convert to expected format
@@ -197,6 +201,7 @@ class AuthService {
     console.log('🚪 Logging out user')
     this.token = null
     localStorage.removeItem('auth_token')
+    localStorage.removeItem('refresh_token')
     localStorage.removeItem('user_data')
     
     // Redirect to login page
@@ -214,7 +219,7 @@ class AuthService {
     try {
       console.log('👤 Fetching current user profile')
       
-      const response = await fetch(`${this.baseURL}/auth/me`, {
+      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.dashboard}`, {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,
@@ -268,7 +273,7 @@ class AuthService {
     try {
       console.log('📊 Fetching user dashboard stats')
       
-      const response = await fetch(`${this.baseURL}/auth/dashboard`, {
+      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.dashboard}`, {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,
@@ -317,7 +322,7 @@ class AuthService {
     try {
       console.log('📋 Fetching user search history')
       
-      const response = await fetch(`${this.baseURL}/auth/search-history`, {
+      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.searchHistory}`, {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,
@@ -385,6 +390,115 @@ class AuthService {
   isAdmin(): boolean {
     const user = this.getStoredUser()
     return user?.role === 'admin'
+  }
+
+  // Password reset functionality
+  async forgotPassword(email: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      console.log('🔐 Password reset request for:', email)
+      
+      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.forgotPassword}`, {
+        method: 'POST',
+        headers: REQUEST_HEADERS,
+        body: JSON.stringify({ email })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        return {
+          success: true,
+          message: data.message || 'Password reset email sent successfully'
+        }
+      } else {
+        return {
+          success: false,
+          error: data.error || data.detail || 'Failed to send reset email'
+        }
+      }
+    } catch (error) {
+      console.error('❌ Password reset error:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error during password reset'
+      }
+    }
+  }
+
+  // Verify email with token
+  async verifyEmail(token: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      console.log('📧 Verifying email with token')
+      
+      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.verifyEmail(token)}`, {
+        method: 'GET',
+        headers: REQUEST_HEADERS
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        return {
+          success: true,
+          message: data.message || 'Email verified successfully'
+        }
+      } else {
+        return {
+          success: false,
+          error: data.error || data.detail || 'Email verification failed'
+        }
+      }
+    } catch (error) {
+      console.error('❌ Email verification error:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error during email verification'
+      }
+    }
+  }
+
+  // Refresh authentication token
+  async refreshToken(): Promise<{ success: boolean; access_token?: string; error?: string }> {
+    const refreshToken = localStorage.getItem('refresh_token')
+    
+    if (!refreshToken) {
+      return { success: false, error: 'No refresh token available' }
+    }
+
+    try {
+      console.log('🔄 Refreshing authentication token')
+      
+      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.refresh}`, {
+        method: 'POST',
+        headers: REQUEST_HEADERS,
+        body: JSON.stringify({ refresh_token: refreshToken })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.access_token) {
+        this.token = data.access_token
+        localStorage.setItem('auth_token', data.access_token)
+        
+        return {
+          success: true,
+          access_token: data.access_token
+        }
+      } else {
+        // Refresh token is invalid, logout user
+        this.logout()
+        return {
+          success: false,
+          error: data.error || data.detail || 'Token refresh failed'
+        }
+      }
+    } catch (error) {
+      console.error('❌ Token refresh error:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error during token refresh'
+      }
+    }
   }
 }
 

@@ -379,37 +379,55 @@ export class InstagramApiService {
     }
   }
 
-  // Quick dashboard preview (2-5 seconds)
-  async getProfileSummary(username: string): Promise<BasicProfileResponse> {
-    console.log('Fetching profile summary:', `${this.baseURL}${ENDPOINTS.profile.summary(username)}`)
+
+  // Refresh profile data (bypasses cache)
+  async refreshProfileData(username: string): Promise<CompleteProfileResponse> {
+    console.log('Refreshing profile data:', `${this.baseURL}${ENDPOINTS.profile.refresh(username)}`)
     
     try {
-      const response = await this.makeRequest<ActualBackendResponse>(ENDPOINTS.profile.summary(username), {
-        method: 'GET',
+      const response = await this.makeRequest<ActualBackendResponse>(ENDPOINTS.profile.refresh(username), {
+        method: 'POST',
       })
       
       // Transform the backend response to frontend format
-      const transformedData = this.transformBackendResponse(response)
+      const transformedProfile = this.transformBackendResponse(response)
       
       return {
         success: true,
-        data: transformedData
+        data: {
+          profile: transformedProfile,
+          engagement_metrics: response.engagement_metrics,
+          audience_insights: response.audience_insights,
+          content_strategy: {
+            content_mix: response.content_strategy.content_type_distribution,
+            primary_content_pillars: response.content_performance.content_themes || [],
+            engagement_tactics: [
+              "Use trending hashtags",
+              "Post during peak hours", 
+              "Create engaging captions",
+              "Use Stories and Reels"
+            ]
+          },
+          growth_recommendations: response.growth_recommendations,
+          competitor_analysis: response.competitor_analysis,
+          best_posting_times: response.best_posting_times
+        }
       }
     } catch (error: any) {
-      console.error('Profile summary fetch failed:', error)
+      console.error('Profile refresh failed:', error)
       return {
         success: false,
-        error: error.message || 'Failed to fetch profile summary'
+        error: error.message || 'Failed to refresh profile data'
       }
     }
   }
 
-  // Autocomplete suggestions  
-  async getSearchSuggestions(partialUsername: string): Promise<{ success: boolean; data?: string[]; error?: string }> {
-    console.log('Fetching search suggestions:', `${this.baseURL}${ENDPOINTS.profile.suggestions(partialUsername)}`)
+  // Hashtag analysis
+  async getHashtagAnalysis(hashtag: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    console.log('Fetching hashtag analysis:', `${this.baseURL}${ENDPOINTS.hashtag.analysis(hashtag)}`)
     
     try {
-      const response = await this.makeRequest<string[]>(ENDPOINTS.profile.suggestions(partialUsername), {
+      const response = await this.makeRequest<any>(ENDPOINTS.hashtag.analysis(hashtag), {
         method: 'GET',
       })
       
@@ -418,10 +436,10 @@ export class InstagramApiService {
         data: response
       }
     } catch (error: any) {
-      console.error('Search suggestions failed:', error)
+      console.error('Hashtag analysis failed:', error)
       return {
         success: false,
-        error: error.message || 'Failed to fetch search suggestions'
+        error: error.message || 'Failed to fetch hashtag analysis'
       }
     }
   }
