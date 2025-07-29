@@ -141,6 +141,13 @@ class AuthService {
       const connectTest = await this.testConnection()
       console.log('🔗 Connectivity test result:', connectTest)
       
+      if (!connectTest.success) {
+        return { 
+          success: false, 
+          error: `Cannot connect to backend: ${connectTest.message}` 
+        }
+      }
+      
       const loginUrl = `${this.baseURL}${ENDPOINTS.auth.login}`
       console.log('🔑 Login attempt:')
       console.log('   URL:', loginUrl)
@@ -149,13 +156,18 @@ class AuthService {
       console.log('   Body:', JSON.stringify(credentials))
       console.log('   Base URL from config:', this.baseURL)
       console.log('   Environment variable:', process.env.NEXT_PUBLIC_API_BASE_URL)
-      console.log('   Origin:', window.location.origin)
-      console.log('   User Agent:', navigator.userAgent)
       
+      // Add better CORS and error handling
       const response = await fetch(loginUrl, {
         method: 'POST',
-        headers: REQUEST_HEADERS,
+        headers: {
+          ...REQUEST_HEADERS,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        },
         mode: 'cors',
+        credentials: 'omit',
         body: JSON.stringify(credentials)
       })
 
@@ -172,7 +184,7 @@ class AuthService {
         console.error('❌ JSON parse error:', parseError)
         return { 
           success: false, 
-          error: `Invalid JSON response: ${responseText.substring(0, 200)}...` 
+          error: `Server returned invalid response. Status: ${response.status}. Response: ${responseText.substring(0, 200)}...` 
         }
       }
 
@@ -205,9 +217,25 @@ class AuthService {
           statusText: response.statusText,
           data: data
         })
+        
+        // Handle specific error cases
+        let errorMessage = 'Login failed'
+        
+        if (response.status === 500) {
+          errorMessage = 'Server error - authentication service is currently down. Please try again in a few minutes.'
+        } else if (response.status === 401 || response.status === 403) {
+          errorMessage = data.detail || data.error || 'Invalid email or password'
+        } else if (response.status === 422) {
+          errorMessage = 'Invalid request format'
+        } else if (response.status >= 500) {
+          errorMessage = 'Backend server error - please try again later'
+        } else {
+          errorMessage = data.error || data.detail || `HTTP ${response.status}: ${response.statusText}`
+        }
+        
         return { 
           success: false, 
-          error: data.error || data.detail || `HTTP ${response.status}: ${response.statusText}` 
+          error: errorMessage
         }
       }
     } catch (error) {
@@ -216,14 +244,16 @@ class AuthService {
       let errorMessage = 'Network error during login'
       
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        errorMessage = 'Cannot connect to server. Please check if the backend is running and accessible.'
+        errorMessage = 'Cannot connect to server. Please check your internet connection and try again.'
       } else if (error instanceof Error) {
         if (error.message.includes('CORS')) {
-          errorMessage = 'CORS error: Backend needs to allow requests from this domain'
+          errorMessage = 'CORS error: Cross-origin request blocked. Please contact support.'
         } else if (error.message.includes('NetworkError')) {
-          errorMessage = 'Network error: Cannot reach the backend server'
+          errorMessage = 'Network error: Cannot reach the backend server. Please check your connection.'
         } else if (error.message.includes('ERR_CONNECTION_REFUSED')) {
-          errorMessage = 'Connection refused: Backend server is not responding'
+          errorMessage = 'Connection refused: Backend server is not responding. Please try again later.'
+        } else if (error.name === 'AbortError') {
+          errorMessage = 'Request timed out. Please try again.'
         } else {
           errorMessage = `Network error: ${error.message}`
         }

@@ -262,28 +262,71 @@ export class InstagramApiService {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout)
 
     try {
+      console.log(`🔗 Making request to: ${this.baseURL}${url}`)
+      console.log(`🔗 Headers:`, { ...authService.getAuthHeaders(), ...options.headers })
+      
       const response = await fetch(`${this.baseURL}${url}`, {
         ...options,
         headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...authService.getAuthHeaders(),
           ...options.headers,
         },
+        mode: 'cors',
+        credentials: 'omit',
         signal: controller.signal,
       })
 
       clearTimeout(timeoutId)
 
+      console.log(`📡 Response status: ${response.status}`)
+      console.log(`📡 Response headers:`, Object.fromEntries(response.headers))
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        const errorText = await response.text()
+        console.error(`❌ API Error: ${response.status} - ${errorText}`)
+        
+        // Handle specific error cases
+        if (response.status === 403) {
+          throw new Error(`Access denied. Please ensure you're logged in.`)
+        } else if (response.status === 500) {
+          throw new Error(`Server error. The backend service is experiencing issues. Please try again later.`)
+        } else if (response.status === 401) {
+          throw new Error(`Authentication required. Please log in again.`)
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
       }
 
-      return await response.json()
+      const responseText = await response.text()
+      console.log(`📡 Raw response:`, responseText)
+      
+      try {
+        return JSON.parse(responseText)
+      } catch (parseError) {
+        console.error(`❌ JSON parse error:`, parseError)
+        throw new Error(`Invalid JSON response from server: ${responseText.substring(0, 100)}...`)
+      }
     } catch (error) {
       clearTimeout(timeoutId)
 
+      console.error(`❌ Request failed:`, error)
+
+      // Retry logic
       if (retryCount < this.retryAttempts && error instanceof Error) {
+        console.log(`🔄 Retrying request (${retryCount + 1}/${this.retryAttempts}) in ${this.retryDelay * (retryCount + 1)}ms`)
         await new Promise(resolve => setTimeout(resolve, this.retryDelay * (retryCount + 1)))
         return this.makeRequest<T>(url, options, retryCount + 1)
+      }
+
+      // Enhance error messages
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error(`Request timed out after ${this.timeout}ms. Please check your connection and try again.`)
+        } else if (error.message.includes('fetch')) {
+          throw new Error(`Cannot connect to server. Please check your internet connection.`)
+        }
       }
 
       throw error

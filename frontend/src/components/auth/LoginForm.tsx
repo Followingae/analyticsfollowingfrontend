@@ -10,12 +10,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Icons } from '@/components/ui/icons'
 import { toast } from 'sonner'
-import { Instagram, BarChart3, Users, TrendingUp } from 'lucide-react'
+import { Instagram, BarChart3, Users, TrendingUp, Settings } from 'lucide-react'
+import ConnectivityTest from '@/components/ConnectivityTest'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showConnectivityTest, setShowConnectivityTest] = useState(false)
   const { login } = useAuth()
   const router = useRouter()
 
@@ -160,8 +162,26 @@ export default function LoginForm() {
                 Sign up
               </Link>
             </div>
+            
+            <div className="mt-4 text-center">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowConnectivityTest(!showConnectivityTest)}
+                className="text-xs"
+              >
+                <Settings className="mr-2 h-3 w-3" />
+                {showConnectivityTest ? 'Hide' : 'Show'} Connection Diagnostics
+              </Button>
+            </div>
           </CardContent>
         </Card>
+        
+        {showConnectivityTest && (
+          <div className="mt-6">
+            <ConnectivityTest />
+          </div>
+        )}
       </div>
     </div>
   )
