@@ -5,6 +5,7 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { instagramApiService } from "@/services/instagramApi"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
+import { ChartPieCredits } from "@/components/chart-pie-credits"
 import { SiteHeader } from "@/components/site-header"
 import { MetricCard, EngagementCard, QuickStatsGrid } from "@/components/analytics-cards"
 import {
@@ -257,65 +258,13 @@ export default function Dashboard() {
             )}
 
             {/* Performance Charts */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <ChartAreaInteractive />
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5" />
-                    Engagement Overview
-                  </CardTitle>
-                  <CardDescription>
-                    Your overall campaign engagement metrics
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Heart className="h-4 w-4 text-red-500" />
-                        <span className="text-sm">Likes</span>
-                      </div>
-                      <span className="text-sm font-medium">45.2%</span>
-                    </div>
-                    <Progress value={45.2} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-blue-500" />
-                        <span className="text-sm">Comments</span>
-                      </div>
-                      <span className="text-sm font-medium">23.1%</span>
-                    </div>
-                    <Progress value={23.1} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <ArrowRight className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">Shares</span>
-                      </div>
-                      <span className="text-sm font-medium">18.7%</span>
-                    </div>
-                    <Progress value={18.7} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Star className="h-4 w-4 text-purple-500" />
-                        <span className="text-sm">Saves</span>
-                      </div>
-                      <span className="text-sm font-medium">13.0%</span>
-                    </div>
-                    <Progress value={13.0} className="h-2" />
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid gap-6 grid-cols-10">
+              <div className="col-span-7">
+                <ChartAreaInteractive />
+              </div>
+              <div className="col-span-3">
+                <ChartPieCredits />
+              </div>
             </div>
 
             {/* Recent Campaigns & Top Creators */}

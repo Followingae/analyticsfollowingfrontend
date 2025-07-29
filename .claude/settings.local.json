@@ -48,7 +48,8 @@
       "WebFetch(domain:tailwindcss.com)",
       "Bash(git remote set-url:*)",
       "WebFetch(domain:analytics-following-backend-5qfwj.ondigitalocean.app)",
-      "WebFetch(domain:analyticsfollowingfrontend.vercel.app)"
+      "WebFetch(domain:analyticsfollowingfrontend.vercel.app)",
+      "WebFetch(domain:api.github.com)"
     ],
     "deny": []
   }
