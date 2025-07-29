@@ -46,7 +46,8 @@
       "Bash(ls:*)",
       "Bash(cat:*)",
       "WebFetch(domain:tailwindcss.com)",
-      "Bash(git remote set-url:*)"
+      "Bash(git remote set-url:*)",
+      "WebFetch(domain:analytics-following-backend-5qfwj.ondigitalocean.app)"
     ],
     "deny": []
   }
