@@ -48,78 +48,8 @@ export default function CreatorsPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const router = useRouter()
   
-  const creators = [
-    {
-      id: 1,
-      username: "fashionista_sarah",
-      full_name: "Sarah Johnson",
-      profile_pic_url: "/avatars/01.png",
-      followers: 245000,
-      engagement_rate: 4.2,
-      categories: ["Fashion", "Lifestyle", "Beauty"],
-      location: "New York, USA",
-      is_verified: true,
-      unlocked: true,
-      lastPost: "2 hours ago",
-      trend: 12.5
-    },
-    {
-      id: 2,
-      username: "tech_reviewer_mike",
-      full_name: "Mike Chen",
-      profile_pic_url: "/avatars/02.png",
-      followers: 186000,
-      engagement_rate: 5.8,
-      categories: ["Technology", "Reviews"],
-      location: "San Francisco, USA",
-      is_verified: true,
-      unlocked: true,
-      lastPost: "1 day ago",
-      trend: -2.1
-    },
-    {
-      id: 3,
-      username: "fitness_queen_anna",
-      full_name: "Anna Rodriguez",
-      profile_pic_url: "/avatars/03.png",
-      followers: 320000,
-      engagement_rate: 3.9,
-      categories: ["Fitness", "Wellness", "Health"],
-      location: "Miami, USA",
-      is_verified: false,
-      unlocked: true,
-      lastPost: "4 hours ago",
-      trend: 8.3
-    },
-    {
-      id: 4,
-      username: "food_explorer_david",
-      full_name: "David Kim",
-      profile_pic_url: "/avatars/04.png",
-      followers: 125000,
-      engagement_rate: 6.2,
-      categories: ["Food", "Travel", "Culture"],
-      location: "Los Angeles, USA",
-      is_verified: false,
-      unlocked: true,
-      lastPost: "6 hours ago",
-      trend: 15.7
-    },
-    {
-      id: 5,
-      username: "beauty_guru_emma",
-      full_name: "Emma Wilson",
-      profile_pic_url: "/avatars/05.png",
-      followers: 410000,
-      engagement_rate: 4.8,
-      categories: ["Beauty", "Skincare", "Fashion"],
-      location: "London, UK",
-      is_verified: true,
-      unlocked: true,
-      lastPost: "3 hours ago",
-      trend: 7.2
-    }
-  ]
+  // TODO: Replace with real backend data
+  const creators = []
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
@@ -128,8 +58,13 @@ export default function CreatorsPage() {
   }
 
 
-  const totalReach = creators.reduce((sum, creator) => sum + creator.followers, 0)
-  const avgEngagement = creators.reduce((sum, creator) => sum + creator.engagement_rate, 0) / creators.length
+  // TODO: Replace with real backend data
+  const creatorsData = {
+    unlockedCreators: creators.length,
+    portfolioReach: undefined,
+    avgEngagement: undefined,
+    inCampaigns: undefined
+  }
 
   return (
     <SidebarProvider
@@ -272,7 +207,7 @@ export default function CreatorsPage() {
 
 
             {/* Overview Cards */}
-            <SectionCards mode="creators" />
+            <SectionCards mode="creators" creatorsData={creatorsData} />
 
 
             {/* Creators Portfolio */}

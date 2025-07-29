@@ -118,7 +118,7 @@ export default function CampaignAnalyticsPage() {
     brandLogo: "/followinglogo.svg"
   }
 
-  const analytics = {
+  const mockAnalytics = {
     totalReach: 1250000,
     totalImpressions: 3200000,
     totalEngagement: 186000,
@@ -132,7 +132,7 @@ export default function CampaignAnalyticsPage() {
     totalReels: 12
   }
 
-  const creators = [
+  const mockCreators = [
     {
       id: 1,
       name: "Sarah Johnson",
@@ -261,12 +261,12 @@ export default function CampaignAnalyticsPage() {
   ]
 
   const contentTypeData = [
-    { type: "Posts", count: analytics.totalPosts, fill: "#8b5cf6" },
-    { type: "Stories", count: analytics.totalStories, fill: "#f59e0b" },
-    { type: "Reels", count: analytics.totalReels, fill: "#10b981" },
+    { type: "Posts", count: mockAnalytics.totalPosts, fill: "#8b5cf6" },
+    { type: "Stories", count: mockAnalytics.totalStories, fill: "#f59e0b" },
+    { type: "Reels", count: mockAnalytics.totalReels, fill: "#10b981" },
   ]
 
-  const totalContent = analytics.totalPosts + analytics.totalStories + analytics.totalReels
+  const totalContent = mockAnalytics.totalPosts + mockAnalytics.totalStories + mockAnalytics.totalReels
 
   const engagementData = [
     { metric: "Likes", value: 75400, fill: "hsl(var(--chart-1))" },
@@ -274,7 +274,7 @@ export default function CampaignAnalyticsPage() {
     { metric: "Shares", value: 3200, fill: "hsl(var(--chart-3))" },
   ]
 
-  const creatorPerformanceData = creators.map(creator => ({
+  const creatorPerformanceData = mockCreators.map(creator => ({
     name: creator.name.split(' ')[0],
     reach: creator.reach,
     engagement: creator.engagement,
@@ -430,7 +430,7 @@ export default function CampaignAnalyticsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{creators.length} Creators</span>
+                      <span className="text-sm">{mockCreators.length} Creators</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -456,7 +456,7 @@ export default function CampaignAnalyticsPage() {
                       <Eye className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{formatNumber(analytics.totalReach)}</div>
+                      <div className="text-2xl font-bold">{formatNumber(mockAnalytics.totalReach)}</div>
                       <p className="text-xs text-muted-foreground">
                         +12.5% from last period
                       </p>
@@ -469,9 +469,9 @@ export default function CampaignAnalyticsPage() {
                       <Heart className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{formatNumber(analytics.totalEngagement)}</div>
+                      <div className="text-2xl font-bold">{formatNumber(mockAnalytics.totalEngagement)}</div>
                       <p className="text-xs text-muted-foreground">
-                        {analytics.engagementRate}% engagement rate
+                        {mockAnalytics.engagementRate}% engagement rate
                       </p>
                     </CardContent>
                   </Card>
@@ -482,9 +482,9 @@ export default function CampaignAnalyticsPage() {
                       <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{formatNumber(analytics.conversions)}</div>
+                      <div className="text-2xl font-bold">{formatNumber(mockAnalytics.conversions)}</div>
                       <p className="text-xs text-muted-foreground">
-                        {analytics.ctr}% click-through rate
+                        {mockAnalytics.ctr}% click-through rate
                       </p>
                     </CardContent>
                   </Card>
@@ -495,7 +495,7 @@ export default function CampaignAnalyticsPage() {
                       <BarChart3 className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">+{analytics.roi}%</div>
+                      <div className="text-2xl font-bold">+{mockAnalytics.roi}%</div>
                       <p className="text-xs text-muted-foreground">
                         Return on investment
                       </p>
@@ -765,7 +765,7 @@ export default function CampaignAnalyticsPage() {
                     <CardDescription>Based on engagement rate and total reach</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {creators.slice(0, 3).map((creator, index) => (
+                    {mockCreators.slice(0, 3).map((creator, index) => (
                       <div key={creator.id} className="flex items-center gap-4">
                         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-semibold">
                           {index + 1}

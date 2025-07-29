@@ -33,28 +33,14 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 
-const trendData = [
-  { month: "Jan", value: 186 },
-  { month: "Feb", value: 305 },
-  { month: "Mar", value: 237 },
-  { month: "Apr", value: 273 },
-  { month: "May", value: 309 },
-  { month: "Jun", value: 314 },
-]
+// TODO: Replace with real backend data
+const trendData = []
 
-const comparisonData = [
-  { metric: "Engagement", current: 4.8, previous: 4.2 },
-  { metric: "Reach", current: 2.4, previous: 2.1 },
-  { metric: "Conversion", current: 3.2, previous: 2.8 },
-  { metric: "Growth", current: 12.5, previous: 8.3 },
-]
+// TODO: Replace with real backend data
+const comparisonData = []
 
-const distributionData = [
-  { name: "Posts", value: 35, color: "#0088FE" },
-  { name: "Stories", value: 28, color: "#00C49F" },
-  { name: "Reels", value: 22, color: "#FFBB28" },
-  { name: "IGTV", value: 15, color: "#FF8042" },
-]
+// TODO: Replace with real backend data
+const distributionData = []
 
 const chartConfig = {
   value: {
@@ -92,29 +78,30 @@ export function AnalyticsDashboardWidget({
     return num.toString()
   }
 
+  // TODO: Replace with real backend data
   const keyMetrics = [
     {
       label: "Total Reach",
-      value: "2.4M",
-      change: 12.5,
+      value: "--",
+      change: 0,
       icon: <Eye className="h-4 w-4" />,
     },
     {
-      label: "Engagement Rate",
-      value: "4.8%",
-      change: 14.3,
+      label: "Engagement Rate", 
+      value: "--",
+      change: 0,
       icon: <Heart className="h-4 w-4" />,
     },
     {
       label: "Active Creators",
-      value: "156",
-      change: -2.1,
+      value: "--",
+      change: 0,
       icon: <Users className="h-4 w-4" />,
     },
     {
       label: "Campaign ROI",
-      value: "325%",
-      change: 8.7,
+      value: "--",
+      change: 0,
       icon: <Target className="h-4 w-4" />,
     },
   ]

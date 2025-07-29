@@ -36,12 +36,12 @@ function formatNumber(num: number): string {
   return num.toString()
 }
 
-export default function AnalyticsPage({ params }: { params: { username: string } }) {
+export default async function AnalyticsPage({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params
   const [profileData, setProfileData] = useState<CompleteProfileResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const username = params.username
 
   const analyzeProfile = async (targetUsername: string) => {
     if (!targetUsername.trim()) return

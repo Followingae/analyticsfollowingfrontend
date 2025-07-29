@@ -23,6 +23,24 @@ interface SectionCardsProps {
     totalReach?: string
     activeCampaigns?: number
   }
+  creatorsData?: {
+    unlockedCreators?: number
+    portfolioReach?: string
+    avgEngagement?: string
+    inCampaigns?: number
+  }
+  campaignsData?: {
+    totalCampaigns?: number
+    totalBudget?: string
+    totalReach?: string
+    avgPerformance?: string
+  }
+  discoverData?: {
+    totalCreators?: string
+    brandReady?: string
+    avgROI?: string
+    successRate?: string
+  }
 }
 
 function formatNumber(num: number): string {
@@ -31,7 +49,7 @@ function formatNumber(num: number): string {
   return num.toString()
 }
 
-export function SectionCards({ profileData, mode = 'profile', brandData }: SectionCardsProps) {
+export function SectionCards({ profileData, mode = 'profile', brandData, creatorsData, campaignsData, discoverData }: SectionCardsProps) {
   const [data, setData] = useState<CompleteProfileResponse | null>(null)
 
   useEffect(() => {
@@ -115,12 +133,12 @@ export function SectionCards({ profileData, mode = 'profile', brandData }: Secti
           <CardHeader>
             <CardDescription>Unlocked Creators</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              5
+              {creatorsData?.unlockedCreators ? formatNumber(creatorsData.unlockedCreators) : '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconTrendingUp className="size-3" />
-                +8 added
+                {creatorsData?.unlockedCreators ? 'Available' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -130,12 +148,12 @@ export function SectionCards({ profileData, mode = 'profile', brandData }: Secti
           <CardHeader>
             <CardDescription>Portfolio Reach</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              1.3M
+              {creatorsData?.portfolioReach || '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconEye className="size-3" />
-                Combined
+                {creatorsData?.portfolioReach ? 'Combined' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -145,12 +163,12 @@ export function SectionCards({ profileData, mode = 'profile', brandData }: Secti
           <CardHeader>
             <CardDescription>Avg Engagement</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              4.8%
+              {creatorsData?.avgEngagement || '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconHeart className="size-3" />
-                Portfolio
+                {creatorsData?.avgEngagement ? 'Portfolio' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -160,12 +178,12 @@ export function SectionCards({ profileData, mode = 'profile', brandData }: Secti
           <CardHeader>
             <CardDescription>In Campaigns</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              3
+              {creatorsData?.inCampaigns !== undefined ? creatorsData.inCampaigns : '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconTrendingUp className="size-3" />
-                Active
+                {creatorsData?.inCampaigns !== undefined ? 'Active' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -182,12 +200,12 @@ export function SectionCards({ profileData, mode = 'profile', brandData }: Secti
           <CardHeader>
             <CardDescription>Total Campaigns</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              5
+              {campaignsData?.totalCampaigns !== undefined ? campaignsData.totalCampaigns : '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconTrendingUp className="size-3" />
-                2 active
+                {campaignsData?.totalCampaigns !== undefined ? 'Total' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -197,12 +215,12 @@ export function SectionCards({ profileData, mode = 'profile', brandData }: Secti
           <CardHeader>
             <CardDescription>Total Budget</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              <span className="aed-currency">AED</span> 368K
+              {campaignsData?.totalBudget || '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconTrendingUp className="size-3" />
-                41% spent
+                {campaignsData?.totalBudget ? 'Allocated' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -212,12 +230,12 @@ export function SectionCards({ profileData, mode = 'profile', brandData }: Secti
           <CardHeader>
             <CardDescription>Total Reach</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              3.4M
+              {campaignsData?.totalReach || '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconEye className="size-3" />
-                Combined
+                {campaignsData?.totalReach ? 'Combined' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -227,12 +245,12 @@ export function SectionCards({ profileData, mode = 'profile', brandData }: Secti
           <CardHeader>
             <CardDescription>Avg Performance</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              +15.3%
+              {campaignsData?.avgPerformance || '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconTrendingUp className="size-3" />
-                ROI
+                {campaignsData?.avgPerformance ? 'ROI' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -249,92 +267,60 @@ export function SectionCards({ profileData, mode = 'profile', brandData }: Secti
           <CardHeader>
             <CardDescription>Total Creators</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              12.5M+
+              {discoverData?.totalCreators || '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconUsers className="size-3" />
-                Verified
+                {discoverData?.totalCreators ? 'Available' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Verified & analyzed profiles <IconUsers className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Ready for discovery
-            </div>
-          </CardFooter>
         </Card>
         
         <Card className="@container/card">
           <CardHeader>
             <CardDescription>Brand-Ready</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              2.8M
+              {discoverData?.brandReady || '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconTrendingUp className="size-3" />
-                High-quality
+                {discoverData?.brandReady ? 'Quality' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              High-quality creator profiles <IconTrendingUp className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Brand-safe content
-            </div>
-          </CardFooter>
         </Card>
 
         <Card className="@container/card">
           <CardHeader>
             <CardDescription>Avg Campaign ROI</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              325%
+              {discoverData?.avgROI || '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconTrendingUp className="size-3" />
-                Platform avg
+                {discoverData?.avgROI ? 'Platform' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Platform average return <IconTrendingUp className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Expected ROI
-            </div>
-          </CardFooter>
         </Card>
 
         <Card className="@container/card">
           <CardHeader>
             <CardDescription>Success Rate</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              94%
+              {discoverData?.successRate || '--'}
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
                 <IconHeart className="size-3" />
-                Success
+                {discoverData?.successRate ? 'Success' : 'Loading...'}
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Campaign success rate <IconHeart className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Platform performance
-            </div>
-          </CardFooter>
         </Card>
       </div>
     )

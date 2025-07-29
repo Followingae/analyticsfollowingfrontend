@@ -27,9 +27,9 @@ const chartConfig = {
 export function ChartPieCredits() {
   const router = useRouter()
   
-  // Credits data
-  const totalPlanCredits = 1200
-  const remainingCredits = 400
+  // TODO: Replace with real backend data
+  const totalPlanCredits = 0
+  const remainingCredits = 0
   
   // Calculate percentage for radial display
   const remainingPercentage = Math.round((remainingCredits / totalPlanCredits) * 100)
@@ -53,7 +53,7 @@ export function ChartPieCredits() {
     >
       <CardHeader className="pb-2">
         <CardTitle>Credits Consumption</CardTitle>
-        <CardDescription>Total Plan Credits: {totalPlanCredits.toLocaleString()}</CardDescription>
+        <CardDescription>Total Plan Credits: {totalPlanCredits || '--'}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 justify-center pb-2">
         <ChartContainer
@@ -63,7 +63,7 @@ export function ChartPieCredits() {
           <RadialBarChart
             data={chartData}
             startAngle={90}
-            endAngle={90 + (remainingPercentage * 3.6)}
+            endAngle={90 + (remainingPercentage * 3.6 || 0)}
             innerRadius={80}
             outerRadius={130}
           >
@@ -96,14 +96,14 @@ export function ChartPieCredits() {
                           y={viewBox.cy - 8}
                           className="fill-foreground text-3xl font-bold"
                         >
-                          {remainingCredits.toLocaleString()}
+                          {remainingCredits || '--'}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy || 0) + 20}
                           className="fill-muted-foreground text-xs"
                         >
-                          Credits Available
+                          {remainingCredits ? 'Credits Available' : 'Loading...'}
                         </tspan>
                       </text>
                     )

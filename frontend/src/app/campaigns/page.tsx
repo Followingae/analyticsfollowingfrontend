@@ -81,93 +81,8 @@ export default function CampaignsPage() {
   const router = useRouter()
   const [statusFilter, setStatusFilter] = useState("all")
   
-  const campaigns = [
-    {
-      id: 1,
-      name: "Summer Fashion 2024",
-      status: "active",
-      startDate: "2024-06-01",
-      endDate: "2024-08-31",
-      budget: 55050,
-      creators: 5,
-      reach: 1200000,
-      engagement: 4.2,
-      performance: 12.5,
-      objective: "Brand Awareness",
-      deliverables: ["3 Instagram Posts", "5 Stories", "1 Reel"],
-      creators_list: [
-        { name: "Sarah Johnson", username: "fashionista_sarah", avatar: "/avatars/01.png" },
-        { name: "Emma Wilson", username: "style_emma", avatar: "/avatars/02.png" },
-        { name: "Lisa Chen", username: "chic_lisa", avatar: "/avatars/03.png" }
-      ]
-    },
-    {
-      id: 2,
-      name: "Tech Product Launch",
-      status: "finished",
-      startDate: "2024-04-15",
-      endDate: "2024-05-31",
-      budget: 91750,
-      creators: 3,
-      reach: 850000,
-      engagement: 5.8,
-      performance: 25.2,
-      objective: "Product Launch",
-      deliverables: ["Unboxing Video", "Review Post", "Tech Stories"],
-      creators_list: [
-        { name: "Mike Chen", username: "tech_mike", avatar: "/avatars/04.png" },
-        { name: "Alex Rodriguez", username: "gadget_alex", avatar: "/avatars/05.png" }
-      ]
-    },
-    {
-      id: 3,
-      name: "Holiday Collection",
-      status: "add_creators",
-      startDate: "2024-11-01",
-      endDate: "2024-12-31",
-      budget: 110100,
-      creators: 0,
-      reach: 0,
-      engagement: 0,
-      performance: 0,
-      objective: "Sales Drive",
-      deliverables: ["Holiday Posts", "Gift Guides", "Seasonal Stories"],
-      creators_list: []
-    },
-    {
-      id: 4,
-      name: "Fitness Challenge",
-      status: "active",
-      startDate: "2024-07-01",
-      endDate: "2024-07-30",
-      budget: 44040,
-      creators: 6,
-      reach: 580000,
-      engagement: 6.1,
-      performance: 18.7,
-      objective: "Community Building",
-      deliverables: ["Daily Workout Posts", "Progress Stories", "Challenge Reels"],
-      creators_list: [
-        { name: "Anna Rodriguez", username: "fit_anna", avatar: "/avatars/06.png" },
-        { name: "James Wilson", username: "strong_james", avatar: "/avatars/07.png" }
-      ]
-    },
-    {
-      id: 5,
-      name: "Beauty Tutorial Series",
-      status: "add_creators",
-      startDate: "2024-05-15",
-      endDate: "2024-08-15",
-      budget: 66060,
-      creators: 0,
-      reach: 720000,
-      engagement: 7.3,
-      performance: 21.4,
-      objective: "Education",
-      deliverables: ["Tutorial Videos", "Product Reviews", "Before/After Posts"],
-      creators_list: []
-    }
-  ]
+  // TODO: Replace with real backend data
+  const campaigns = []
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -222,9 +137,13 @@ export default function CampaignsPage() {
     return statusFilter === "all" || campaign.status === statusFilter
   })
 
-  const totalBudget = campaigns.reduce((sum, c) => sum + c.budget, 0)
-  const totalReach = campaigns.reduce((sum, c) => sum + c.reach, 0)
-  const activeCampaigns = campaigns.filter(c => c.status === 'active').length
+  // TODO: Replace with real backend data
+  const campaignsData = {
+    totalCampaigns: campaigns.length,
+    totalBudget: undefined,
+    totalReach: undefined,
+    avgPerformance: undefined
+  }
 
   return (
     <SidebarProvider
@@ -274,7 +193,7 @@ export default function CampaignsPage() {
             </div>
 
             {/* Overview Cards */}
-            <SectionCards mode="campaigns" />
+            <SectionCards mode="campaigns" campaignsData={campaignsData} />
 
 
             {/* Campaigns Grid */}

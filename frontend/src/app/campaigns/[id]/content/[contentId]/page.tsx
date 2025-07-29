@@ -60,7 +60,7 @@ export default function ContentInsightsPage() {
   const params = useParams()
 
   // TODO: Replace with real backend data
-  const [post, setPost] = useState(null)
+  const [post, setPost] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   
   useEffect(() => {
@@ -172,6 +172,31 @@ export default function ContentInsightsPage() {
     })
   }
 
+  if (loading || !post) {
+    return (
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+              <div className="flex items-center justify-center py-12">
+                <p>Loading content...</p>
+              </div>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    )
+  }
+
   return (
     <SidebarProvider
       style={
@@ -204,7 +229,7 @@ export default function ContentInsightsPage() {
                   </Avatar>
                   <div>
                     <h1 className="text-2xl font-bold">Content Insights</h1>
-                    <p className="text-muted-foreground">{campaign.name} • {post.creator.name}</p>
+                    <p className="text-muted-foreground">{campaign.name} • {post?.creator.name}</p>
                   </div>
                 </div>
               </div>
@@ -257,7 +282,7 @@ export default function ContentInsightsPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      {post.hashtags.map((tag, index) => (
+                      {post.hashtags.map((tag: string, index: number) => (
                         <Badge key={index} variant="secondary" className="text-xs">
                           {tag}
                         </Badge>
