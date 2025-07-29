@@ -219,7 +219,7 @@ class AuthService {
     try {
       console.log('👤 Fetching current user profile')
       
-      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.dashboard}`, {
+      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.me}`, {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,
