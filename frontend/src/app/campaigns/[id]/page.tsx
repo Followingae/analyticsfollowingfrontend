@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import {
   ArrowLeft,
@@ -89,9 +89,23 @@ import {
 export default function CampaignAnalyticsPage() {
   const router = useRouter()
   const params = useParams()
+  
+  // TODO: Replace with real backend data
+  const [campaign, setCampaign] = useState(null)
+  const [analytics, setAnalytics] = useState(null)
+  const [creators, setCreators] = useState([])
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    // TODO: Implement actual API calls to fetch campaign data
+    // fetchCampaign(params.id).then(setCampaign)
+    // fetchCampaignAnalytics(params.id).then(setAnalytics)
+    // fetchCampaignCreators(params.id).then(setCreators)
+    setLoading(false)
+  }, [params.id])
 
-  // Mock campaign data - in real app would fetch based on params.id
-  const campaign = {
+  // Fallback campaign structure for development
+  const fallbackCampaign = {
     id: 1,
     name: "Summer Fashion 2024",
     status: "active",

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { apiService } from "@/services/api"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import {
@@ -49,14 +50,14 @@ export default function AnalyticsPage({ params }: { params: { username: string }
     setError(null)
     
     try {
-      const response = await fetch(`/api/mock-analytics/${targetUsername}`)
-      const data = await response.json()
+      // Use real backend API service instead of mock
+      const result = await apiService.fetchProfileWithFallback(targetUsername)
       
-      if (!response.ok) {
-        throw new Error(data.detail || 'Analysis failed')
+      if (!result.success) {
+        throw new Error(result.error || 'Analysis failed')
       }
       
-      setProfileData(data)
+      setProfileData(result.data)
     } catch (error) {
       console.error('Profile analysis error:', error)
       setError(error instanceof Error ? error.message : 'Failed to analyze profile')

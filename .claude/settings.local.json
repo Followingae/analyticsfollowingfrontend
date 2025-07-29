@@ -34,7 +34,8 @@
       "Bash(\"taskkill\" \"/PID\" \"7160\" \"/F\")",
       "Bash(mv:*)",
       "Bash(move:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }

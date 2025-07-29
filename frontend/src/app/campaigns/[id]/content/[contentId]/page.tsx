@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import {
   ArrowLeft,
@@ -59,8 +59,18 @@ export default function ContentInsightsPage() {
   const router = useRouter()
   const params = useParams()
 
-  // Mock data - in real app would fetch based on params.contentId
-  const post = {
+  // TODO: Replace with real backend data
+  const [post, setPost] = useState(null)
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    // TODO: Implement actual API call to fetch content data
+    // fetchCampaignContent(params.id, params.contentId).then(setPost)
+    setLoading(false)
+  }, [params.id, params.contentId])
+
+  // Fallback post structure for development
+  const fallbackPost = {
     id: 1,
     creator: {
       name: "Sarah Johnson",

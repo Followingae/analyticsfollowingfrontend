@@ -51,20 +51,9 @@ export default function AnalyticsTab() {
       
       if (result.success) {
         setAnalyticsData(result.data)
-        // Simulate sentiment analysis (would be computed by backend)
-        setSentimentData({
-          overall_sentiment: 7.8,
-          confidence: 0.85,
-          engagement_sentiment: 8.2,
-          audience_sentiment: 7.1,
-          content_sentiment: 8.0,
-          growth_sentiment: 7.5,
-          insights: [
-            'Strong engagement patterns indicate authentic audience',
-            'Content strategy shows consistent quality',
-            'Growth trajectory is sustainable and healthy'
-          ]
-        })
+        // TODO: Fetch real sentiment analysis from backend
+        // fetchSentimentAnalysis(username).then(setSentimentData)
+        setSentimentData(null) // Remove mock data, wait for backend implementation
       }
     } catch (err) {
       console.error('Analytics failed:', err)

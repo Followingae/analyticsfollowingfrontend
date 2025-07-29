@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ChartBarInteractive } from "@/components/chart-bar-interactive"
 import { ChartPieCredits } from "@/components/chart-pie-credits"
@@ -53,105 +53,25 @@ function formatCurrency(amount: number) {
 }
 
 export default function Page() {
-  // Brand analytics data
-  const brandMetrics = [
-    {
-      title: "Current Plan",
-      value: "Pro",
-      change: 0,
-      icon: <Star className="h-4 w-4 text-primary" />
-    },
-    {
-      title: "Total Creators",
-      value: "1,234",
-      change: 15.2,
-      icon: <Users className="h-4 w-4 text-primary" />
-    },
-    {
-      title: "Monthly Reach",
-      value: "2.4M",
-      change: 8.7,
-      icon: <Eye className="h-4 w-4 text-primary" />
-    },
-    {
-      title: "Credits",
-      value: "1,200",
-      change: -20.8,
-      icon: <TrendingUp className="h-4 w-4 text-primary" />
-    }
-  ]
+  // Brand analytics data now handled by SectionCards component
 
-  const recentCampaigns = [
-    {
-      id: 1,
-      name: "Summer Fashion 2024",
-      status: "active",
-      budget: 55050,
-      spent: 31175,
-      reach: 1200000,
-      engagement: 4.2,
-      creators: 5,
-      endDate: "2024-08-31"
-    },
-    {
-      id: 2,
-      name: "Fitness Challenge",
-      status: "active", 
-      budget: 44040,
-      spent: 15414,
-      reach: 580000,
-      engagement: 6.1,
-      creators: 6,
-      endDate: "2024-07-30"
-    },
-    {
-      id: 3,
-      name: "Tech Product Launch",
-      status: "completed",
-      budget: 91750,
-      spent: 86245,
-      reach: 850000,
-      engagement: 5.8,
-      creators: 3,
-      endDate: "2024-05-31"
-    }
-  ]
+  // TODO: Replace with real backend data
+  const [recentCampaigns, setRecentCampaigns] = useState([])
+  
+  // Load campaigns from backend
+  useEffect(() => {
+    // TODO: Implement actual API call to fetch campaigns
+    // fetchRecentCampaigns().then(setRecentCampaigns)
+  }, [])
 
-  const topCreators = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      username: "fashionista_sarah",
-      avatar: "/avatars/01.png",
-      followers: 245000,
-      engagement: 4.2,
-      category: "Fashion",
-      performance: 12.5,
-      campaigns: 3
-    },
-    {
-      id: 2,
-      name: "Mike Chen", 
-      username: "tech_reviewer_mike",
-      avatar: "/avatars/02.png",
-      followers: 186000,
-      engagement: 5.8,
-      category: "Technology",
-      performance: 25.2,
-      campaigns: 2
-    },
-    {
-      id: 3,
-      name: "Anna Rodriguez",
-      username: "fitness_queen_anna",
-      avatar: "/avatars/03.png", 
-      followers: 320000,
-      engagement: 3.9,
-      category: "Fitness",
-      performance: 18.7,
-      campaigns: 4
-    }
-  ]
+  // TODO: Replace with real backend data
+  const [topCreators, setTopCreators] = useState([])
+  
+  // Load top creators from backend
+  useEffect(() => {
+    // TODO: Implement actual API call to fetch top creators
+    // fetchTopCreators().then(setTopCreators)
+  }, [])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -243,25 +163,32 @@ export default function Page() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {recentCampaigns.map((campaign) => (
-                      <div key={campaign.id} className="flex items-center justify-between space-x-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium leading-none">{campaign.name}</p>
-                            {getStatusBadge(campaign.status)}
+                    {recentCampaigns.length > 0 ? (
+                      recentCampaigns.map((campaign) => (
+                        <div key={campaign.id} className="flex items-center justify-between space-x-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium leading-none">{campaign.name}</p>
+                              {getStatusBadge(campaign.status)}
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>{formatCurrency(campaign.spent)} / {formatCurrency(campaign.budget)}</span>
+                              <span>{formatNumber(campaign.reach)} reach</span>
+                              <span>{campaign.engagement}% engagement</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>{formatCurrency(campaign.spent)} / {formatCurrency(campaign.budget)}</span>
-                            <span>{formatNumber(campaign.reach)} reach</span>
-                            <span>{campaign.engagement}% engagement</span>
+                          <div className="text-right">
+                            <div className="text-sm font-medium">+{((campaign.reach / 1000000) * 100).toFixed(1)}%</div>
+                            <div className="text-xs text-muted-foreground">ROI</div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium">+{((campaign.reach / 1000000) * 100).toFixed(1)}%</div>
-                          <div className="text-xs text-muted-foreground">ROI</div>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>No campaigns found</p>
+                        <p className="text-sm">Connect to backend to load campaign data</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -286,31 +213,38 @@ export default function Page() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {topCreators.map((creator) => (
-                      <div key={creator.id} className="flex items-center space-x-4">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={creator.avatar} alt={creator.name} />
-                          <AvatarFallback>
-                            {creator.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-1 flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium leading-none">{creator.name}</p>
-                            <Badge variant="outline" className="text-xs">{creator.category}</Badge>
+                    {topCreators.length > 0 ? (
+                      topCreators.map((creator) => (
+                        <div key={creator.id} className="flex items-center space-x-4">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={creator.avatar} alt={creator.name} />
+                            <AvatarFallback>
+                              {creator.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium leading-none">{creator.name}</p>
+                              <Badge variant="outline" className="text-xs">{creator.category}</Badge>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>{formatNumber(creator.followers)} followers</span>
+                              <span>{creator.engagement}% engagement</span>
+                              <span>{creator.campaigns} campaigns</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>{formatNumber(creator.followers)} followers</span>
-                            <span>{creator.engagement}% engagement</span>
-                            <span>{creator.campaigns} campaigns</span>
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-primary">+{creator.performance}%</div>
+                            <div className="text-xs text-muted-foreground">Performance</div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-primary">+{creator.performance}%</div>
-                          <div className="text-xs text-muted-foreground">Performance</div>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>No creators found</p>
+                        <p className="text-sm">Connect to backend to load creator data</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
