@@ -27,18 +27,18 @@ const chartConfig = {
 export function ChartPieCredits() {
   const router = useRouter()
   
-  // TODO: Replace with real backend data
-  const totalPlanCredits = 0
-  const remainingCredits = 0
+  // Sample data for demonstration - replace with real backend data
+  const totalPlanCredits = 1000
+  const remainingCredits = 450
   
   // Calculate percentage for radial display
-  const remainingPercentage = Math.round((remainingCredits / totalPlanCredits) * 100)
+  const remainingPercentage = totalPlanCredits > 0 ? Math.round((remainingCredits / totalPlanCredits) * 100) : 0
   
   const chartData = [
     {
       remaining: remainingCredits,
       percentage: remainingPercentage,
-      fill: "#bef264",
+      fill: "hsl(75, 100%, 51%)",
     },
   ]
 
@@ -77,7 +77,7 @@ export function ChartPieCredits() {
             <RadialBar 
               dataKey="percentage" 
               cornerRadius={8} 
-              fill="#bef264"
+              fill="hsl(75, 100%, 51%)"
               className="stroke-background stroke-2"
             />
             <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
@@ -93,7 +93,7 @@ export function ChartPieCredits() {
                       >
                         <tspan
                           x={viewBox.cx}
-                          y={viewBox.cy - 8}
+                          y={(viewBox.cy || 0) - 8}
                           className="fill-foreground text-3xl font-bold"
                         >
                           {remainingCredits || '--'}

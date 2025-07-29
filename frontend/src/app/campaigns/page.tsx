@@ -82,7 +82,7 @@ export default function CampaignsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   
   // TODO: Replace with real backend data
-  const campaigns = []
+  const campaigns: any[] = []
 
   const getStatusBadge = (status: string) => {
     switch (status) {

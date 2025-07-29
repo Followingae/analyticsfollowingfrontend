@@ -308,13 +308,13 @@ export default function CampaignsPage() {
         />
         <MetricCard
           title="Total Budget"
-          value={formatCurrency(totalBudget)}
+          value={`AED ${totalBudget.toLocaleString()}`}
           change={12}
           icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
         />
         <MetricCard
           title="Total Spent"
-          value={formatCurrency(totalSpent)}
+          value={`AED ${totalSpent.toLocaleString()}`}
           change={8}
           icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
         />

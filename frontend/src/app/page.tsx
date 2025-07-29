@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ChartBarInteractive } from "@/components/chart-bar-interactive"
 import { ChartPieCredits } from "@/components/chart-pie-credits"
@@ -53,10 +55,20 @@ function formatCurrency(amount: number) {
 }
 
 export default function Page() {
+  const { isAuthenticated, isLoading } = useAuth()
+  const router = useRouter()
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace('/dashboard')
+    }
+  }, [isAuthenticated, isLoading, router])
+
   // TODO: Replace with real backend data
-  const [brandData, setBrandData] = useState(null)
-  const [recentCampaigns, setRecentCampaigns] = useState([])
-  const [topCreators, setTopCreators] = useState([])
+  const [brandData, setBrandData] = useState<any>(null)
+  const [recentCampaigns, setRecentCampaigns] = useState<any[]>([])
+  const [topCreators, setTopCreators] = useState<any[]>([])
   
   // Load data from backend
   useEffect(() => {
@@ -65,6 +77,19 @@ export default function Page() {
     // fetchRecentCampaigns().then(setRecentCampaigns)
     // fetchTopCreators().then(setTopCreators)
   }, [])
+
+  // Show loading or redirect for authenticated users
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  if (isAuthenticated) {
+    return null // Will redirect to dashboard
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -212,7 +237,7 @@ export default function Page() {
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={creator.avatar} alt={creator.name} />
                             <AvatarFallback>
-                              {creator.name.split(' ').map(n => n[0]).join('')}
+                              {creator.name.split(' ').map((n: string) => n[0]).join('')}
                             </AvatarFallback>
                           </Avatar>
                           <div className="space-y-1 flex-1 min-w-0">

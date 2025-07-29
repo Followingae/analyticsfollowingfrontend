@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { formatNumber } from '@/lib/utils'
-import { apiService } from '@/services/api'
+// TODO: Create hashtag API service when backend endpoints are ready
+// import { hashtagApiService } from '@/services/hashtagApi'
 import { HashtagOpportunity } from '@/types'
 import { Loader2, Search, Hash, TrendingUp, Target, Lightbulb, BarChart3 } from 'lucide-react'
 
@@ -21,13 +22,16 @@ export default function HashtagsTab() {
     
     setLoading(true)
     try {
-      const cleanHashtag = hashtag.trim().replace('#', '')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await apiService.analyzeHashtag(cleanHashtag) as any
+      // TODO: Implement hashtag analysis API when backend endpoints are ready
+      // const cleanHashtag = hashtag.trim().replace('#', '')
+      // const result = await hashtagApiService.analyzeHashtag(cleanHashtag)
+      // if (result.success) {
+      //   setHashtagData(result.data)
+      // }
       
-      if (result.success) {
-        setHashtagData(result.data)
-      }
+      // Temporary placeholder - remove when backend is ready
+      console.log('Hashtag analysis feature will be implemented when backend endpoints are available')
+      setHashtagData(null) // Show empty state
     } catch (err) {
       console.error('Hashtag analysis failed:', err)
     } finally {

@@ -6,14 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { formatNumber } from '@/lib/utils'
-import { apiService, ProfileData } from '@/services/api'
+import { instagramApiService, CompleteProfileResponse } from '@/services/instagramApi'
 import { SentimentAnalysis } from '@/types'
 import { Loader2, TrendingUp, Users, Heart, BarChart3, Brain, Target, MessageCircle, Zap } from 'lucide-react'
 
 export default function AnalyticsTab() {
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
-  const [analyticsData, setAnalyticsData] = useState<ProfileData | null>(null)
+  const [analyticsData, setAnalyticsData] = useState<CompleteProfileResponse['data'] | null>(null)
   const [sentimentData, setSentimentData] = useState<SentimentAnalysis | null>(null)
   const [activeModule, setActiveModule] = useState('executive')
   const [useSmartProxy, setUseSmartProxy] = useState(false)
@@ -38,18 +38,14 @@ export default function AnalyticsTab() {
       let result;
       
       if (useSmartProxy) {
-        // Use SmartProxy first when toggle is enabled
-        result = await apiService.fetchProfile(username.trim(), true)
-        if (!result.success) {
-          console.warn('SmartProxy failed, trying in-house scraper:', result.error)
-          result = await apiService.fetchProfile(username.trim(), false)
-        }
+        // Use Decodo only analysis
+        result = await instagramApiService.getDecodoOnlyAnalysis(username.trim())
       } else {
-        // Use fallback method (in-house first, then SmartProxy)
-        result = await apiService.fetchProfileWithFallback(username.trim())
+        // Use fallback method (Decodo primary with in-house fallback)
+        result = await instagramApiService.fetchProfileWithFallback(username.trim())
       }
       
-      if (result.success) {
+      if (result.success && result.data) {
         setAnalyticsData(result.data)
         // TODO: Fetch real sentiment analysis from backend
         // fetchSentimentAnalysis(username).then(setSentimentData)
@@ -89,14 +85,14 @@ export default function AnalyticsTab() {
       },
       {
         title: 'Audience Quality',
-        value: analyticsData.data_quality_score * 10,
+        value: 8.5, // TODO: Add data_quality_score to backend response
         max: 10,
         color: 'orange',
         trend: '+0.5'
       },
       {
         title: 'Growth Rate',
-        value: analyticsData.profile.follower_growth_rate || 5.2,
+        value: 5.2, // TODO: Add follower_growth_rate to backend response
         format: 'percentage',
         color: 'red',
         trend: '+1.1%'
@@ -211,20 +207,20 @@ export default function AnalyticsTab() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between">
-              <span className="text-gray-600">Average Likes</span>
-              <span className="font-semibold">{formatNumber(analyticsData.profile.avg_likes)}</span>
+              <span className="text-gray-600">Followers</span>
+              <span className="font-semibold">{formatNumber(analyticsData.profile.followers)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Average Comments</span>
-              <span className="font-semibold">{formatNumber(analyticsData.profile.avg_comments)}</span>
+              <span className="text-gray-600">Posts Count</span>
+              <span className="font-semibold">{formatNumber(analyticsData.profile.posts_count || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Content Quality</span>
-              <span className="font-semibold">{analyticsData.profile.content_quality_score}/10</span>
+              <span className="font-semibold">{(analyticsData.profile.content_quality_score || 0).toFixed(1)}/10</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Influence Score</span>
-              <span className="font-semibold">{analyticsData.profile.influence_score}/10</span>
+              <span className="font-semibold">{(analyticsData.profile.influence_score || 0).toFixed(1)}/10</span>
             </div>
           </CardContent>
         </Card>

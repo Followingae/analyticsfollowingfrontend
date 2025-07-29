@@ -201,7 +201,7 @@ export default function BillingPage() {
         />
         <MetricCard
           title="Monthly Spend"
-          value={formatCurrency(currentPlan?.price || 0)}
+          value={`AED ${(currentPlan?.price || 0).toLocaleString()}`}
           icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
         />
       </div>

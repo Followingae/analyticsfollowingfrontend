@@ -396,7 +396,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
         <CardHeader>
           <CardDescription>Engagement Rate</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {data.profile.engagement_rate.toFixed(1)}%
+            {(data.profile.engagement_rate || 0).toFixed(1)}%
           </CardTitle>
           <CardAction>
             <Badge variant="outline" className="gap-1">
@@ -433,7 +433,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
         <CardHeader>
           <CardDescription>Content Quality</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {data.profile.content_quality_score.toFixed(1)}/10
+            {(data.profile.content_quality_score || 0).toFixed(1)}/10
           </CardTitle>
           <CardAction>
             <Badge variant="outline" className="gap-1">
@@ -458,7 +458,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Influence Score: {data.profile.influence_score.toFixed(1)}/10
+            Influence Score: {(data.profile.influence_score || 0).toFixed(1)}/10
           </div>
           <div className="text-muted-foreground">
             Based on reach and engagement quality
@@ -470,7 +470,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
         <CardHeader>
           <CardDescription>Growth Rate</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {growthRate ? `${growthRate > 0 ? '+' : ''}${growthRate.toFixed(1)}%` : 'N/A'}
+            {growthRate ? `${growthRate > 0 ? '+' : ''}${(growthRate || 0).toFixed(1)}%` : 'N/A'}
           </CardTitle>
           <CardAction>
             <Badge variant="outline" className="gap-1">

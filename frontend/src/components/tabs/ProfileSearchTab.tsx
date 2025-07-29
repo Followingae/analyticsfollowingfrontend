@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { formatNumber, formatPercentage, getProfileImageUrl, isValidProfile } from '@/lib/utils'
-import { apiService, ProfileData } from '@/services/api'
+import { instagramApiService, CompleteProfileResponse } from '@/services/instagramApi'
 import { Loader2, Search, Instagram, Users, Heart, BarChart3, Target, TrendingUp, Clock, Zap, Star, CheckCircle2 } from 'lucide-react'
 
 export default function ProfileSearchTab() {
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
-  const [profileData, setProfileData] = useState<ProfileData | null>(null)
+  const [profileData, setProfileData] = useState<CompleteProfileResponse['data'] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [batchUsernames, setBatchUsernames] = useState('')
   const [batchLoading, setBatchLoading] = useState(false)
@@ -22,35 +22,12 @@ export default function ProfileSearchTab() {
   const handleSearch = async () => {
     if (!username.trim()) return
     
-    setLoading(true)
-    setError(null)
-    setProfileData(null)
-
-    try {
-      let result;
-      
-      if (useSmartProxy) {
-        // Use SmartProxy first when toggle is enabled
-        result = await apiService.fetchProfile(username.trim(), true)
-        if (!result.success) {
-          console.warn('SmartProxy failed, trying in-house scraper:', result.error)
-          result = await apiService.fetchProfile(username.trim(), false)
-        }
-      } else {
-        // Use fallback method (in-house first, then SmartProxy)
-        result = await apiService.fetchProfileWithFallback(username.trim())
-      }
-      
-      if (result.success) {
-        setProfileData(result.data)
-      } else {
-        setError(result.error || 'Failed to fetch profile data')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
-    } finally {
-      setLoading(false)
-    }
+    const cleanUsername = username.trim().replace('@', '')
+    
+    console.log(`🔄 Redirecting to creators page for analysis: @${cleanUsername}`)
+    
+    // Redirect to creators page to show loading state
+    window.location.href = `/creators?analyzing=${encodeURIComponent(cleanUsername)}`
   }
 
   const handleBatchSearch = async () => {
@@ -61,8 +38,9 @@ export default function ProfileSearchTab() {
 
     setBatchLoading(true)
     try {
-      await apiService.batchAnalysis(usernames)
-      // Handle batch results
+      // TODO: Implement batch analysis API when backend endpoints are ready
+      // await batchApiService.batchAnalysis(usernames)
+      console.log('Batch analysis feature will be implemented when backend endpoints are available')
     } catch (err) {
       console.error('Batch analysis failed:', err)
     } finally {
@@ -204,18 +182,9 @@ export default function ProfileSearchTab() {
                     @{profileData.profile.username}
                   </CardDescription>
                   <p className="text-sm text-gray-700 mb-4">
-                    {profileData.profile.biography}
+                    {profileData.profile.bio}
                   </p>
-                  {profileData.profile.external_url && (
-                    <a
-                      href={profileData.profile.external_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline text-sm"
-                    >
-                      {profileData.profile.external_url}
-                    </a>
-                  )}
+                  {/* TODO: Add external_url to backend response if available */}
                 </div>
               </div>
             </CardHeader>
@@ -229,13 +198,13 @@ export default function ProfileSearchTab() {
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
-                    {formatNumber(profileData.profile.following)}
+                    {formatNumber(profileData.profile.following || 0)}
                   </div>
                   <div className="text-sm text-gray-600">Following</div>
                 </div>
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600">
-                    {formatNumber(profileData.profile.posts_count)}
+                    {formatNumber(profileData.profile.posts_count || 0)}
                   </div>
                   <div className="text-sm text-gray-600">Posts</div>
                 </div>
@@ -260,24 +229,24 @@ export default function ProfileSearchTab() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Average Likes</span>
-                  <span className="font-semibold">{formatNumber(profileData.profile.avg_likes)}</span>
+                  <span className="text-gray-600">Posts Count</span>
+                  <span className="font-semibold">{formatNumber(profileData.profile.posts_count || 0)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Average Comments</span>
-                  <span className="font-semibold">{formatNumber(profileData.profile.avg_comments)}</span>
+                  <span className="text-gray-600">Engagement Rate</span>
+                  <span className="font-semibold">{(profileData.profile.engagement_rate || 0).toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Total Engagement</span>
-                  <span className="font-semibold">{formatNumber(profileData.profile.avg_engagement)}</span>
+                  <span className="text-gray-600">Content Quality</span>
+                  <span className="font-semibold">{(profileData.profile.content_quality_score || 0).toFixed(1)}/10</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Content Quality Score</span>
-                  <span className="font-semibold">{profileData.profile.content_quality_score}/10</span>
+                  <span className="font-semibold">{(profileData.profile.content_quality_score || 0).toFixed(1)}/10</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Influence Score</span>
-                  <span className="font-semibold">{profileData.profile.influence_score}/10</span>
+                  <span className="font-semibold">{(profileData.profile.influence_score || 0).toFixed(1)}/10</span>
                 </div>
               </CardContent>
             </Card>
@@ -439,21 +408,8 @@ export default function ProfileSearchTab() {
                       Hashtag Strategy
                     </h4>
                     <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Trending</span>
-                        <span className="font-semibold">{profileData.content_strategy.hashtag_strategy.trending_hashtags}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Niche</span>
-                        <span className="font-semibold">{profileData.content_strategy.hashtag_strategy.niche_hashtags}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Branded</span>
-                        <span className="font-semibold">{profileData.content_strategy.hashtag_strategy.branded_hashtags}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Location</span>
-                        <span className="font-semibold">{profileData.content_strategy.hashtag_strategy.location_hashtags}</span>
+                      <div className="text-sm text-gray-600">
+                        Hashtag analysis will be available when implemented in backend
                       </div>
                     </div>
                   </div>
@@ -542,19 +498,17 @@ export default function ProfileSearchTab() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between">
-                <span className="text-gray-600">Data Quality Score</span>
-                <span className="font-semibold">{(profileData.data_quality_score * 100).toFixed(0)}%</span>
+                <span className="text-gray-600">Influence Score</span>
+                <span className="font-semibold">{profileData.profile.influence_score.toFixed(1)}/10</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Scraping Method</span>
-                <Badge variant={profileData.scraping_method === 'inhouse' ? 'default' : 'secondary'}>
-                  {profileData.scraping_method === 'inhouse' ? 'In-house' : 'SmartProxy'}
-                </Badge>
+                <span className="text-gray-600">Content Quality</span>
+                <span className="font-semibold">{(profileData.profile.content_quality_score || 0).toFixed(1)}/10</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Analysis Time</span>
-                <span className="font-semibold text-sm">
-                  {new Date(profileData.analysis_timestamp).toLocaleString()}
+                <span className="text-gray-600">Profile Type</span>
+                <span className="font-semibold">
+                  {profileData.profile.is_private ? 'Private' : 'Public'}
                 </span>
               </div>
             </CardContent>

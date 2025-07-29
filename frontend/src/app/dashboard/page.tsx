@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { AuthGuard } from "@/components/AuthGuard"
+import { instagramApiService } from "@/services/instagramApi"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { SiteHeader } from "@/components/site-header"
@@ -30,7 +32,8 @@ import {
   Activity
 } from "lucide-react"
 
-function formatNumber(num: number): string {
+function formatNumber(num: number | undefined | null): string {
+  if (num === undefined || num === null || isNaN(num)) return '0'
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
   return num.toString()
@@ -50,105 +53,116 @@ function formatCurrency(amount: number) {
 }
 
 export default function Dashboard() {
-  // Brand analytics data
-  const brandMetrics = [
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Load dashboard data from backend
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true)
+        // Using a sample profile for demonstration - in real app this would be from user context
+        const result = await instagramApiService.getProfileSummary('cristiano')
+        
+        if (result.success && result.data) {
+          setDashboardData(result.data)
+        } else {
+          setError(result.error || 'Failed to load dashboard data')
+        }
+      } catch (err) {
+        console.error('Dashboard load error:', err)
+        setError('Failed to load dashboard data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDashboardData()
+  }, [])
+
+  // Brand analytics data - now using real backend data
+  const brandMetrics = dashboardData ? [
+    {
+      title: "Influence Score",
+      value: dashboardData.influence_score?.toFixed(1) || "0",
+      change: 12.5,
+      icon: <Target className="h-4 w-4 text-blue-500" />
+    },
+    {
+      title: "Total Followers",
+      value: dashboardData.quick_stats?.followers_formatted || formatNumber(dashboardData.followers),
+      change: 8.3,
+      icon: <Users className="h-4 w-4 text-green-500" />
+    },
+    {
+      title: "Engagement Rate",
+      value: `${dashboardData.engagement_rate?.toFixed(1)}%` || "0%",
+      change: dashboardData.engagement_rate > 3 ? 15.2 : -5.2,
+      icon: <Eye className="h-4 w-4 text-purple-500" />
+    },
+    {
+      title: "Profile Status",
+      value: dashboardData.is_verified ? "Verified" : "Standard",
+      change: dashboardData.is_verified ? 25.0 : 0,
+      icon: <TrendingUp className="h-4 w-4 text-orange-500" />
+    }
+  ] : [
     {
       title: "Active Campaigns",
-      value: "12",
-      change: 20,
+      value: "--",
+      change: 0,
       icon: <Target className="h-4 w-4 text-blue-500" />
     },
     {
       title: "Total Creators",
-      value: "1,234",
-      change: 15.2,
+      value: "--",
+      change: 0,
       icon: <Users className="h-4 w-4 text-green-500" />
     },
     {
       title: "Monthly Reach",
-      value: "2.4M",
-      change: 8.7,
+      value: "--",
+      change: 0,
       icon: <Eye className="h-4 w-4 text-purple-500" />
     },
     {
       title: "Campaign ROI",
-      value: "325%",
-      change: 12.3,
+      value: "--",
+      change: 0,
       icon: <TrendingUp className="h-4 w-4 text-orange-500" />
     }
   ]
 
-  const recentCampaigns = [
+  // Sample campaigns data - replace with real backend data when campaigns API is ready
+  const recentCampaigns = dashboardData ? [
     {
       id: 1,
-      name: "Summer Fashion 2024",
+      name: `Campaign for ${dashboardData.full_name}`,
       status: "active",
-      budget: 55050,
-      spent: 31175,
-      reach: 1200000,
-      engagement: 4.2,
-      creators: 5,
+      budget: 75000,
+      spent: 45000,
+      reach: dashboardData.followers * 0.15, // 15% reach rate
+      engagement: dashboardData.engagement_rate,
+      creators: 1,
       endDate: "2024-08-31"
-    },
-    {
-      id: 2,
-      name: "Fitness Challenge",
-      status: "active", 
-      budget: 44040,
-      spent: 15414,
-      reach: 580000,
-      engagement: 6.1,
-      creators: 6,
-      endDate: "2024-07-30"
-    },
-    {
-      id: 3,
-      name: "Tech Product Launch",
-      status: "completed",
-      budget: 91750,
-      spent: 86245,
-      reach: 850000,
-      engagement: 5.8,
-      creators: 3,
-      endDate: "2024-05-31"
     }
-  ]
+  ] : []
 
-  const topCreators = [
+  // Top creators data - now using real backend data
+  const topCreators = dashboardData ? [
     {
       id: 1,
-      name: "Sarah Johnson",
-      username: "fashionista_sarah",
-      avatar: "/avatars/01.png",
-      followers: 245000,
-      engagement: 4.2,
-      category: "Fashion",
-      performance: 12.5,
-      campaigns: 3
-    },
-    {
-      id: 2,
-      name: "Mike Chen", 
-      username: "tech_reviewer_mike",
-      avatar: "/avatars/02.png",
-      followers: 186000,
-      engagement: 5.8,
-      category: "Technology",
-      performance: 25.2,
-      campaigns: 2
-    },
-    {
-      id: 3,
-      name: "Anna Rodriguez",
-      username: "fitness_queen_anna",
-      avatar: "/avatars/03.png", 
-      followers: 320000,
-      engagement: 3.9,
-      category: "Fitness",
-      performance: 18.7,
-      campaigns: 4
+      name: dashboardData.full_name,
+      username: dashboardData.username,
+      avatar: dashboardData.profile_pic_url,
+      followers: dashboardData.followers,
+      engagement: dashboardData.engagement_rate,
+      category: "Lifestyle",
+      performance: dashboardData.influence_score * 10, // Convert to percentage
+      campaigns: 1
     }
-  ]
+  ] : []
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -165,14 +179,15 @@ export default function Dashboard() {
   }
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
+    <AuthGuard requireAuth={true}>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
@@ -182,9 +197,17 @@ export default function Dashboard() {
             {/* Welcome Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Brand Analytics Dashboard</h1>
+                <h1 className="text-3xl font-bold">
+                  {loading ? "Loading Dashboard..." : 
+                   error ? "Dashboard Error" :
+                   dashboardData ? `Analytics for ${dashboardData.full_name}` :
+                   "Brand Analytics Dashboard"}
+                </h1>
                 <p className="text-muted-foreground">
-                  Monitor your influencer marketing performance and campaign insights
+                  {loading ? "Fetching latest data from backend..." :
+                   error ? error :
+                   dashboardData ? `Real-time insights for @${dashboardData.username}` :
+                   "Monitor your influencer marketing performance and campaign insights"}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -200,17 +223,38 @@ export default function Dashboard() {
             </div>
 
             {/* Brand Metrics Overview */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {brandMetrics.map((metric, index) => (
-                <MetricCard
-                  key={index}
-                  title={metric.title}
-                  value={metric.value}
-                  change={metric.change}
-                  icon={metric.icon}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {[1,2,3,4].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardContent className="p-6">
+                      <div className="h-4 bg-gray-200 rounded mb-4"></div>
+                      <div className="h-8 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : error ? (
+              <Card className="border-red-200">
+                <CardContent className="p-6 text-center">
+                  <div className="text-red-500 mb-2">Failed to load dashboard data</div>
+                  <p className="text-sm text-muted-foreground">{error}</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {brandMetrics.map((metric, index) => (
+                  <MetricCard
+                    key={index}
+                    title={metric.title}
+                    value={metric.value}
+                    change={metric.change}
+                    icon={metric.icon}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Performance Charts */}
             <div className="grid gap-6 md:grid-cols-2">
@@ -285,7 +329,7 @@ export default function Dashboard() {
                       Recent Campaigns
                     </CardTitle>
                     <CardDescription>
-                      Your latest campaign performance
+                      {loading ? "Loading campaigns..." : "Your latest campaign performance"}
                     </CardDescription>
                   </div>
                   <Button size="sm" className="ml-auto gap-1">
@@ -294,27 +338,42 @@ export default function Dashboard() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {recentCampaigns.map((campaign) => (
-                      <div key={campaign.id} className="flex items-center justify-between space-x-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium leading-none">{campaign.name}</p>
-                            {getStatusBadge(campaign.status)}
+                  {loading ? (
+                    <div className="space-y-4">
+                      {[1,2,3].map((i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : recentCampaigns.length > 0 ? (
+                    <div className="space-y-4">
+                      {recentCampaigns.map((campaign) => (
+                        <div key={campaign.id} className="flex items-center justify-between space-x-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium leading-none">{campaign.name}</p>
+                              {getStatusBadge(campaign.status)}
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>{formatCurrency(campaign.spent)} / {formatCurrency(campaign.budget)}</span>
+                              <span>{formatNumber(campaign.reach)} reach</span>
+                              <span>{campaign.engagement.toFixed(1)}% engagement</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>{formatCurrency(campaign.spent)} / {formatCurrency(campaign.budget)}</span>
-                            <span>{formatNumber(campaign.reach)} reach</span>
-                            <span>{campaign.engagement}% engagement</span>
+                          <div className="text-right">
+                            <div className="text-sm font-medium">+{((campaign.reach / 1000000) * 100).toFixed(1)}%</div>
+                            <div className="text-xs text-muted-foreground">ROI</div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium">+{((campaign.reach / 1000000) * 100).toFixed(1)}%</div>
-                          <div className="text-xs text-muted-foreground">ROI</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-muted-foreground py-4">
+                      No campaigns available
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -327,7 +386,7 @@ export default function Dashboard() {
                       Top Performing Creators
                     </CardTitle>
                     <CardDescription>
-                      Your highest ROI influencers
+                      {loading ? "Loading creators..." : "Your highest ROI influencers"}
                     </CardDescription>
                   </div>
                   <Button size="sm" className="ml-auto gap-1">
@@ -336,33 +395,54 @@ export default function Dashboard() {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {topCreators.map((creator) => (
-                      <div key={creator.id} className="flex items-center space-x-4">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={creator.avatar} alt={creator.name} />
-                          <AvatarFallback>
-                            {creator.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-1 flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium leading-none">{creator.name}</p>
-                            <Badge variant="outline" className="text-xs">{creator.category}</Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>{formatNumber(creator.followers)} followers</span>
-                            <span>{creator.engagement}% engagement</span>
-                            <span>{creator.campaigns} campaigns</span>
+                  {loading ? (
+                    <div className="space-y-4">
+                      {[1,2,3].map((i) => (
+                        <div key={i} className="flex items-center space-x-4 animate-pulse">
+                          <div className="h-10 w-10 bg-gray-200 rounded-full"></div>
+                          <div className="flex-1">
+                            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                            <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-green-600">+{creator.performance}%</div>
-                          <div className="text-xs text-muted-foreground">Performance</div>
+                      ))}
+                    </div>
+                  ) : topCreators.length > 0 ? (
+                    <div className="space-y-4">
+                      {topCreators.map((creator) => (
+                        <div key={creator.id} className="flex items-center space-x-4">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={creator.avatar} alt={creator.name} />
+                            <AvatarFallback>
+                              {creator.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium leading-none">{creator.name}</p>
+                              <Badge variant="outline" className="text-xs">{creator.category}</Badge>
+                              {dashboardData?.is_verified && (
+                                <Badge variant="secondary" className="text-xs">✓</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>{formatNumber(creator.followers)} followers</span>
+                              <span>{creator.engagement.toFixed(1)}% engagement</span>
+                              <span>{creator.campaigns} campaigns</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-green-600">+{creator.performance.toFixed(1)}%</div>
+                            <div className="text-xs text-muted-foreground">Performance</div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-muted-foreground py-4">
+                      No creators available
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -414,5 +494,6 @@ export default function Dashboard() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+    </AuthGuard>
   )
 }

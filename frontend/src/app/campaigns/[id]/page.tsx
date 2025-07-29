@@ -91,9 +91,9 @@ export default function CampaignAnalyticsPage() {
   const params = useParams()
   
   // TODO: Replace with real backend data
-  const [campaign, setCampaign] = useState(null)
-  const [analytics, setAnalytics] = useState(null)
-  const [creators, setCreators] = useState([])
+  const [campaign, setCampaign] = useState<any>(null)
+  const [analytics, setAnalytics] = useState<any>(null)
+  const [creators, setCreators] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   
   useEffect(() => {
@@ -363,12 +363,12 @@ export default function CampaignAnalyticsPage() {
                 </Button>
                 <div className="flex items-center gap-4">
                   <Avatar className="h-12 w-12 bg-black">
-                    <AvatarImage src={campaign.brandLogo} alt={campaign.brandName} />
-                    <AvatarFallback className="text-white">{campaign.brandName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={campaign?.brandLogo || fallbackCampaign.brandLogo} alt={campaign?.brandName || fallbackCampaign.brandName} />
+                    <AvatarFallback className="text-white">{(campaign?.brandName || fallbackCampaign.brandName).slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h1 className="text-3xl font-bold">{campaign.name}</h1>
-                    <p className="text-muted-foreground">{campaign.brandName} • {campaign.description}</p>
+                    <h1 className="text-3xl font-bold">{campaign?.name || fallbackCampaign.name}</h1>
+                    <p className="text-muted-foreground">{campaign?.brandName || fallbackCampaign.brandName} • {campaign?.description || fallbackCampaign.description}</p>
                   </div>
                 </div>
               </div>

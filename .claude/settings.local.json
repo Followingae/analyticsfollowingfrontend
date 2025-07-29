@@ -36,7 +36,17 @@
       "Bash(move:*)",
       "Bash(cp:*)",
       "Bash(git restore:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(cmd /c:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(curl:*)",
+      "Bash(touch:*)",
+      "Bash(copy:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "WebFetch(domain:tailwindcss.com)",
+      "Bash(git remote set-url:*)"
     ],
     "deny": []
   }

@@ -127,16 +127,16 @@ const chartData = [
 ]
 
 const chartConfig = {
-  visitors: {
-    label: "Visitors",
+  engagement: {
+    label: "Engagement",
   },
   desktop: {
-    label: "Desktop",
+    label: "Likes",
     color: "var(--primary)",
   },
   mobile: {
-    label: "Mobile",
-    color: "var(--primary)",
+    label: "Comments",
+    color: "hsl(var(--chart-2))",
   },
 } satisfies ChartConfig
 
@@ -167,10 +167,10 @@ export function ChartAreaInteractive() {
   return (
     <Card className="@container/card">
       <CardHeader>
-        <CardTitle>Total Visitors</CardTitle>
+        <CardTitle>Engagement Analytics</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
-            Total for the last 3 months
+            Engagement metrics for the last 3 months
           </span>
           <span className="@[540px]/card:hidden">Last 3 months</span>
         </CardDescription>
@@ -265,6 +265,11 @@ export function ChartAreaInteractive() {
                       day: "numeric",
                     })
                   }}
+                  nameKey="name"
+                  formatter={(value, name) => [
+                    value,
+                    name === "desktop" ? "Likes" : "Comments"
+                  ]}
                   indicator="dot"
                 />
               }

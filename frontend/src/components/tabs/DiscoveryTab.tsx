@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { formatNumber, formatPercentage } from '@/lib/utils'
-import { apiService } from '@/services/api'
+// TODO: Create discovery API service when backend endpoints are ready
+// import { discoveryApiService } from '@/services/discoveryApi'
 import { DiscoveryFilters, CreatorProfile } from '@/types'
 import { Loader2, Search, Hash, TrendingUp, Filter, Users } from 'lucide-react'
 import ReactCountryFlag from "react-country-flag"
@@ -32,13 +33,16 @@ export default function DiscoveryTab() {
     
     setLoading(true)
     try {
-      const hashtagList = hashtags.split(',').map(h => h.trim().replace('#', '')).filter(h => h.length > 0)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await apiService.discoverByHashtags(hashtagList, filters) as any
+      // TODO: Implement discovery API when backend endpoints are ready
+      // const hashtagList = hashtags.split(',').map(h => h.trim().replace('#', '')).filter(h => h.length > 0)
+      // const result = await discoveryApiService.discoverByHashtags(hashtagList, filters)
+      // if (result.success) {
+      //   setCreators(result.creators || [])
+      // }
       
-      if (result.success) {
-        setCreators(result.creators || [])
-      }
+      // Temporary placeholder - remove when backend is ready
+      console.log('Discovery feature will be implemented when backend endpoints are available')
+      setCreators([]) // Show empty state
     } catch (err) {
       console.error('Discovery failed:', err)
     } finally {

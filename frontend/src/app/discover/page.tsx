@@ -76,7 +76,7 @@ export default function DiscoverPage() {
   const [creatorToUnlock, setCreatorToUnlock] = useState<any>(null)
   
   // TODO: Replace with real backend data
-  const creators = []
+  const creators: any[] = []
   
   // TODO: Replace with real backend data  
   const discoverData = {
