@@ -1,8 +1,12 @@
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
+import { usePathname } from "next/navigation"
 
 export function SiteHeader() {
+  const pathname = usePathname()
+  const isDashboard = pathname === '/' || pathname === '/dashboard'
+  
   const getCurrentDate = () => {
     const today = new Date()
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -22,7 +26,12 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-medium">Dashboard</h1>
+        {!isDashboard && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground italic">Welcome,</span>
+            <span className="text-base font-bold tracking-tight">Acme Corp</span>
+          </div>
+        )}
         <div className="ml-auto flex items-center gap-3">
           <div className="text-sm text-muted-foreground font-medium">
             {getCurrentDate()}

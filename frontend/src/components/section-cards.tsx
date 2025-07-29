@@ -37,7 +37,7 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
   // Brand analytics mode (dashboard)
   if (mode === 'brand') {
     return (
-      <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-3">
+      <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-4">
         <Card className="@container/card">
           <CardHeader>
             <CardDescription>Current Plan</CardDescription>
@@ -51,19 +51,11 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Premium features unlocked
-            </div>
-            <div className="text-muted-foreground">
-              Advanced analytics & insights
-            </div>
-          </CardFooter>
         </Card>
         
         <Card className="@container/card">
           <CardHeader>
-            <CardDescription>Total Creators</CardDescription>
+            <CardDescription>Your Unlocked Profiles</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
               1,234
             </CardTitle>
@@ -74,14 +66,6 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              186 added this month <IconUsers className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Active creator portfolio
-            </div>
-          </CardFooter>
         </Card>
 
         <Card className="@container/card">
@@ -97,14 +81,21 @@ export function SectionCards({ profileData, mode = 'profile' }: SectionCardsProp
               </Badge>
             </CardAction>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Cumulative audience reached <IconEye className="size-4" />
-            </div>
-            <div className="text-muted-foreground">
-              Across all campaigns & posts
-            </div>
-          </CardFooter>
+        </Card>
+
+        <Card className="@container/card">
+          <CardHeader>
+            <CardDescription>Active Campaigns</CardDescription>
+            <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+              3
+            </CardTitle>
+            <CardAction>
+              <Badge variant="outline" className="gap-1">
+                <IconTrendingUp className="size-3" />
+                Running
+              </Badge>
+            </CardAction>
+          </CardHeader>
         </Card>
       </div>
     )
