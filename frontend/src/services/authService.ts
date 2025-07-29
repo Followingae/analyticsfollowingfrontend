@@ -100,9 +100,47 @@ class AuthService {
     }
   }
 
+  // Test backend connectivity
+  async testConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      const healthUrl = `${this.baseURL}/health`
+      console.log('🔗 Testing backend connectivity:', healthUrl)
+      
+      const response = await fetch(healthUrl, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+      
+      console.log('🔗 Health check response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers)
+      })
+      
+      if (response.ok) {
+        return { success: true, message: 'Backend is accessible' }
+      } else {
+        return { success: false, message: `Backend responded with ${response.status}: ${response.statusText}` }
+      }
+    } catch (error) {
+      console.error('🔗 Connectivity test failed:', error)
+      return { 
+        success: false, 
+        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      }
+    }
+  }
+
   // Login user
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
+      // First test connectivity
+      const connectTest = await this.testConnection()
+      console.log('🔗 Connectivity test result:', connectTest)
+      
       const loginUrl = `${this.baseURL}${ENDPOINTS.auth.login}`
       console.log('🔑 Login attempt:')
       console.log('   URL:', loginUrl)
@@ -111,6 +149,8 @@ class AuthService {
       console.log('   Body:', JSON.stringify(credentials))
       console.log('   Base URL from config:', this.baseURL)
       console.log('   Environment variable:', process.env.NEXT_PUBLIC_API_BASE_URL)
+      console.log('   Origin:', window.location.origin)
+      console.log('   User Agent:', navigator.userAgent)
       
       const response = await fetch(loginUrl, {
         method: 'POST',
