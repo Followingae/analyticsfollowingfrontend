@@ -74,8 +74,10 @@ class AuthService {
       if (response.ok && data.access_token) {
         // Backend returns direct object, not wrapped in success/data
         this.token = data.access_token
-        localStorage.setItem('auth_token', this.token)
-        localStorage.setItem('user_data', JSON.stringify(data.user))
+        if (this.token) {
+          localStorage.setItem('auth_token', this.token)
+          localStorage.setItem('user_data', JSON.stringify(data.user))
+        }
         
         // Convert to expected format
         return {
@@ -136,8 +138,10 @@ class AuthService {
       if (response.ok && data.access_token) {
         // Backend returns direct object, not wrapped in success/data
         this.token = data.access_token
-        localStorage.setItem('auth_token', this.token)
-        localStorage.setItem('user_data', JSON.stringify(data.user))
+        if (this.token) {
+          localStorage.setItem('auth_token', this.token)
+          localStorage.setItem('user_data', JSON.stringify(data.user))
+        }
         
         // Convert to expected format
         return {
@@ -344,7 +348,7 @@ class AuthService {
 
   // Get authorization headers for API calls
   getAuthHeaders(): Record<string, string> {
-    const headers = { ...REQUEST_HEADERS }
+    const headers: Record<string, string> = { ...REQUEST_HEADERS }
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`
     }

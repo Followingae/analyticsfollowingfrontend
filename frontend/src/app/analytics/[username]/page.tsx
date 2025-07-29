@@ -323,15 +323,15 @@ export default function AnalyticsPage() {
                             <div className="space-y-2">
                               <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{profileData.profile.bio}</p>
                               <div className="flex flex-wrap gap-2">
-                                {profileData.profile.external_url && (
+                                {profileData.profile.external_links?.primary_url && (
                                   <a 
-                                    href={profileData.profile.external_url} 
+                                    href={profileData.profile.external_links.primary_url} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors underline decoration-gray-300 hover:decoration-gray-500"
                                   >
                                     <ExternalLink className="h-4 w-4" />
-                                    <span className="text-sm font-medium">{profileData.profile.external_url}</span>
+                                    <span className="text-sm font-medium">{profileData.profile.external_links.primary_url}</span>
                                   </a>
                                 )}
                                 {profileData.profile.external_links?.bio_links?.map((link, index) => (
@@ -689,7 +689,7 @@ export default function AnalyticsPage() {
                             <div className="text-3xl font-bold mb-2">{profileData.profile.influence_score?.toFixed(1) || 'N/A'}</div>
                             <div className="text-sm text-muted-foreground">Influence Score</div>
                             <div className="mt-2">
-                              <Badge variant={parseFloat(profileData.profile.influence_score || '0') > 7 ? "default" : "secondary"}>
+                              <Badge variant={Number(profileData.profile.influence_score || 0) > 7 ? "default" : "secondary"}>
                                 {profileData.profile.quick_stats?.influence_level || 'Unknown'}
                               </Badge>
                             </div>

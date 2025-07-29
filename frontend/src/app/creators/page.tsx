@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
+
 import { AuthGuard } from "@/components/AuthGuard"
 import { instagramApiService } from "@/services/instagramApi"
 import {
@@ -47,6 +48,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import ReactCountryFlag from "react-country-flag"
 import { getCountryCode } from "@/lib/countryUtils"
 
+// Disable static generation for this page
+export const dynamic = 'force-dynamic'
+
 export default function CreatorsPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchUsername, setSearchUsername] = useState("")
@@ -56,17 +60,8 @@ export default function CreatorsPage() {
   const [analyzingCreators, setAnalyzingCreators] = useState<{[key: string]: {status: 'analyzing' | 'completed' | 'failed', progress: number, error?: string}}>({})
   const [unlockedCreators, setUnlockedCreators] = useState<any[]>([])
   const router = useRouter()
-  const searchParams = useSearchParams()
-  
-  // Check if we need to start analyzing a creator from URL params
-  useEffect(() => {
-    const analyzingUsername = searchParams.get('analyzing')
-    if (analyzingUsername) {
-      startAnalysis(analyzingUsername)
-      // Clean URL
-      router.replace('/creators', { scroll: false })
-    }
-  }, [searchParams, router])
+  // Note: URL param analysis temporarily disabled for production build
+  // TODO: Implement proper Suspense boundary for useSearchParams
   
   // TODO: Replace with real backend data - for now we use unlockedCreators state
   const creators: any[] = unlockedCreators
@@ -260,8 +255,8 @@ export default function CreatorsPage() {
 
   const creatorsData = {
     unlockedCreators: unlockedCreators.length,
-    portfolioReach: totalFollowers > 0 ? totalFollowers : undefined,
-    avgEngagement: avgEngagement ? Number(avgEngagement.toFixed(1)) : undefined,
+    portfolioReach: totalFollowers > 0 ? totalFollowers.toString() : undefined,
+    avgEngagement: avgEngagement ? avgEngagement.toFixed(1) + '%' : undefined,
     inCampaigns: 0 // TODO: Implement campaigns tracking
   }
 

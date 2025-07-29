@@ -414,7 +414,7 @@ export default function Dashboard() {
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={creator.avatar} alt={creator.name} />
                             <AvatarFallback>
-                              {creator.name.split(' ').map(n => n[0]).join('')}
+                              {creator.name.split(' ').map((n: string) => n[0]).join('')}
                             </AvatarFallback>
                           </Avatar>
                           <div className="space-y-1 flex-1 min-w-0">

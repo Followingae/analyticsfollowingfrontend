@@ -1,0 +1,34 @@
+{
+  "name": "analyticsfollowing-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Professional Instagram Analytics Platform",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start": "cd frontend && npm run start",
+    "lint": "cd frontend && npm run lint",
+    "install-frontend": "cd frontend && npm install"
+  },
+  "workspaces": [
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Followingae/analyticsfollowingfrontend.git"
+  },
+  "keywords": [
+    "instagram",
+    "analytics",
+    "nextjs",
+    "react",
+    "supabase",
+    "shadcn-ui"
+  ],
+  "author": "Following",
+  "license": "Private"
+}

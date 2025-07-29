@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+.next/
+frontend/.next/
+out/
+frontend/out/
+build/
+frontend/build/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Documentation and development files
+*.md
+*.txt
+backend_handover_doc.md
+BACKEND_HANDOVER.md
+FRONTEND_HANDOVER.md
+FRONTEND_REFERENCE_GUIDE.md
+DEVELOPMENT_SESSION_2025-07-27.txt
+TODAYS_WORK_NOTES.txt
+reference1.txt
+
+# Claude settings
+.claude/
