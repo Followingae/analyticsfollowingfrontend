@@ -437,7 +437,7 @@ export default function AnalyticsPage() {
                                 const imageUrl = hdImage?.url || profileData.profile.profile_pic_url_hd || profileData.profile.profile_pic_url;
                                 
                                 return imageUrl 
-                                  ? `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+                                  ? `/api/v1/proxy-image?url=${encodeURIComponent(imageUrl)}`
                                   : '/placeholder-avatar.svg';
                               })()}
                               alt={profileData.profile.full_name || 'Profile'}

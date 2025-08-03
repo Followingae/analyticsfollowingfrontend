@@ -25,7 +25,7 @@ export function proxyInstagramUrl(originalUrl?: string | null): string {
   if (!originalUrl) return '/placeholder-avatar.svg'
   
   if (originalUrl.includes('cdninstagram.com') || originalUrl.includes('scontent-')) {
-    return `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`
+    return `/api/v1/proxy-image?url=${encodeURIComponent(originalUrl)}`
   }
   return originalUrl
 }

@@ -524,7 +524,7 @@ export class InstagramApiService {
     
     // Use proxy for Instagram URLs to bypass CORS
     if (imageUrl.includes('cdninstagram.com') || imageUrl.includes('scontent-')) {
-      return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+      return `/api/v1/proxy-image?url=${encodeURIComponent(imageUrl)}`
     }
     
     return imageUrl
@@ -542,7 +542,7 @@ export class InstagramApiService {
     
     // Use proxy for Instagram URLs to bypass CORS
     if (imageUrl.includes('cdninstagram.com') || imageUrl.includes('scontent-')) {
-      return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+      return `/api/v1/proxy-image?url=${encodeURIComponent(imageUrl)}`
     }
     
     return imageUrl
