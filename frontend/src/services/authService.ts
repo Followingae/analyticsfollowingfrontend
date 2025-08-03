@@ -1,22 +1,33 @@
-import { API_CONFIG, REQUEST_HEADERS, ENDPOINTS } from '@/config/api'
+import { API_CONFIG, REQUEST_HEADERS, ENDPOINTS, getAuthHeaders } from '@/config/api'
 
 export interface User {
   id: string
   email: string
-  full_name: string
+  full_name?: string
+  first_name?: string
+  last_name?: string
+  company?: string
+  job_title?: string
+  phone_number?: string
+  bio?: string
   role: 'free' | 'premium' | 'admin'
   status: string
   created_at: string
-  last_login: string
+  last_login?: string
   profile_picture_url?: string
+  timezone?: string
+  language?: string
 }
 
 export interface AuthResponse {
   success: boolean
   data?: {
     user: User
-    access_token: string
+    access_token: string | null
+    refresh_token?: string
     token_type: string
+    message?: string
+    email_confirmation_required?: boolean
   }
   error?: string
 }
@@ -53,7 +64,7 @@ class AuthService {
     this.baseURL = API_CONFIG.BASE_URL
     // Load token from localStorage on initialization
     if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('auth_token')
+      this.token = localStorage.getItem('access_token')
     }
   }
 
@@ -69,27 +80,47 @@ class AuthService {
       })
 
       const data = await response.json()
-      console.log('📝 Registration response:', data)
+      console.log('📝 Registration response status:', response.status)
+      console.log('📝 Registration response data:', JSON.stringify(data, null, 2))
 
-      if (response.ok && data.access_token) {
-        // Backend returns direct object, not wrapped in success/data
-        this.token = data.access_token
-        if (this.token) {
-          localStorage.setItem('auth_token', this.token)
+      if (response.ok) {
+        // Handle new backend response format
+        if (data.email_confirmation_required) {
+          console.log('📧 Email confirmation required for registration')
+          return {
+            success: true,
+            data: {
+              user: data.user || null,
+              access_token: null,
+              token_type: 'bearer',
+              message: data.message || 'Please check your email and click the confirmation link before logging in.',
+              email_confirmation_required: true
+            }
+          }
+        }
+        
+        // Registration successful with immediate access
+        console.log('✅ User registered successfully:', data.user?.email)
+        
+        if (data.user) {
           localStorage.setItem('user_data', JSON.stringify(data.user))
         }
         
-        // Convert to expected format
         return {
           success: true,
           data: {
             user: data.user,
-            access_token: data.access_token,
-            token_type: data.token_type
+            access_token: data.access_token || null,
+            refresh_token: data.refresh_token || null,
+            token_type: data.token_type || 'bearer',
+            message: data.message || 'Registration successful',
+            email_confirmation_required: false
           }
         }
       } else {
-        return { success: false, error: data.error || data.detail || 'Registration failed' }
+        console.log('❌ Registration failed with status:', response.status)
+        const errorMessage = data.detail?.message || data.detail || data.error || `Registration failed (${response.status})`
+        return { success: false, error: errorMessage }
       }
     } catch (error) {
       console.error('❌ Registration error:', error)
@@ -127,9 +158,22 @@ class AuthService {
       }
     } catch (error) {
       console.error('🔗 Connectivity test failed:', error)
+      
+      let errorMessage = 'Connection failed'
+      
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        if (this.baseURL.includes('localhost')) {
+          errorMessage = 'Cannot connect to local backend server. Please make sure the backend is running on http://localhost:8000'
+        } else {
+          errorMessage = 'CORS error: Cannot connect to production backend from localhost. The backend needs to allow requests from http://localhost:3000'
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      
       return { 
         success: false, 
-        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+        message: errorMessage
       }
     }
   }
@@ -194,7 +238,7 @@ class AuthService {
         // Backend returns direct object, not wrapped in success/data
         this.token = data.access_token
         if (this.token) {
-          localStorage.setItem('auth_token', this.token)
+          localStorage.setItem('access_token', this.token)
           localStorage.setItem('user_data', JSON.stringify(data.user))
           // Store refresh token if provided
           if (data.refresh_token) {
@@ -208,6 +252,7 @@ class AuthService {
           data: {
             user: data.user,
             access_token: data.access_token,
+            refresh_token: data.refresh_token,
             token_type: data.token_type
           }
         }
@@ -231,7 +276,22 @@ class AuthService {
             errorMessage = 'Server error - authentication service is currently down. Please try again in a few minutes.'
           }
         } else if (response.status === 401 || response.status === 403) {
-          errorMessage = data.detail || data.error || 'Invalid email or password'
+          // NEW: Handle specific authentication error types
+          if (data.detail && typeof data.detail === 'object') {
+            if (data.detail.error === 'email_not_confirmed') {
+              errorMessage = data.detail.message || 'Please check your email and click the confirmation link before logging in.'
+              // Store email for potential resend functionality
+              if (data.detail.email) {
+                localStorage.setItem('pending_confirmation_email', data.detail.email)
+              }
+            } else if (data.detail.error === 'invalid_credentials') {
+              errorMessage = data.detail.message || 'Invalid email or password'
+            } else {
+              errorMessage = data.detail.message || 'Authentication failed'
+            }
+          } else {
+            errorMessage = data.detail || data.error || 'Invalid email or password'
+          }
         } else if (response.status === 422) {
           errorMessage = 'Invalid request format'
         } else if (response.status >= 500) {
@@ -277,7 +337,7 @@ class AuthService {
   logout(): void {
     console.log('🚪 Logging out user')
     this.token = null
-    localStorage.removeItem('auth_token')
+    localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user_data')
     
@@ -555,7 +615,7 @@ class AuthService {
 
       if (response.ok && data.access_token) {
         this.token = data.access_token
-        localStorage.setItem('auth_token', data.access_token)
+        localStorage.setItem('access_token', data.access_token)
         
         return {
           success: true,

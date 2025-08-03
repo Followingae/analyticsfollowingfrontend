@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
-import { instagramApiService } from "@/services/instagramApi"
+import { instagramApiService, ProfileResponse } from "@/services/instagramApi"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
+import { ProfileAccessWrapper } from "@/components/profile-access-wrapper"
+import { useProfileAccess, useAccessWarnings } from "@/hooks/useProfileAccess"
 import {
   SidebarInset,
   SidebarProvider,
@@ -16,7 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CompleteProfileResponse } from "@/services/instagramApi"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { RealEngagementTimeline } from "@/components/real-engagement-timeline"
 import { 
@@ -55,11 +57,15 @@ function formatNumber(num: number | undefined | null): string {
 export default function AnalyticsPage() {
   const params = useParams()
   const username = params?.username as string
-  const [profileData, setProfileData] = useState<CompleteProfileResponse['data'] | null>(null)
+  const [profileData, setProfileData] = useState<ProfileResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const router = useRouter()
+  
+  // 30-day access system hooks
+  const { unlockProfile, isUnlocking, checkAccessStatus } = useProfileAccess()
+  const { showExpirationWarning, showAccessExpiredWarning } = useAccessWarnings()
 
   console.log('AnalyticsPage render - username:', username, 'params:', params, 'profileData:', profileData)
 
@@ -86,9 +92,9 @@ export default function AnalyticsPage() {
     setDebugInfo(null)
     
     try {
-      console.log('Calling API service...')
-      // Use real backend API service instead of mock
-      const result = await instagramApiService.fetchProfileWithFallback(targetUsername)
+      console.log('Calling analytics API service...')
+      // NEW: Use analytics endpoint for instant load from DB cache
+      const result = await instagramApiService.getAnalytics(targetUsername)
       
       console.log('API service result:', result)
       setDebugInfo({ apiResult: result, timestamp: new Date().toISOString() })
@@ -103,12 +109,31 @@ export default function AnalyticsPage() {
         throw new Error('No data returned from backend')
       }
       
-      setProfileData(result.data)
-      console.log('Profile data set successfully')
+      const profileResponse = result.data
+      setProfileData(profileResponse)
+      
+      // Check access status and show warnings if needed (updated for new response structure)
+      const accessStatus = checkAccessStatus(profileResponse)
+      if (accessStatus.hasAccess && accessStatus.isExpiring) {
+        showExpirationWarning(accessStatus.daysRemaining!, targetUsername)
+      }
+      
+      console.log('✅ Profile data set successfully with access status:', {
+        hasAccess: profileResponse.meta?.user_has_access,
+        expiresInDays: profileResponse.meta?.access_expires_in_days
+      })
       
     } catch (error) {
       console.error('Profile analysis error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to analyze profile'
+      
+      // Check if this is a 404 error for analytics - redirect to search
+      if (errorMessage.includes('Please search for this profile first')) {
+        console.log('🔄 Profile not unlocked, redirecting to search...')
+        router.push(`/?search=${encodeURIComponent(targetUsername)}`)
+        return
+      }
+      
       setError(errorMessage)
       setDebugInfo({ 
         error: errorMessage, 
@@ -118,6 +143,16 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false)
       console.log('analyzeProfile completed')
+    }
+  }
+
+  // Handle unlock profile action
+  const handleUnlockProfile = async () => {
+    if (!username) return
+    
+    const unlockedData = await unlockProfile(username)
+    if (unlockedData) {
+      setProfileData(unlockedData)
     }
   }
 
@@ -181,9 +216,9 @@ export default function AnalyticsPage() {
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-                  <h3 className="text-lg font-semibold mb-2">Analyzing @{username}</h3>
+                  <h3 className="text-lg font-semibold mb-2">Loading Analytics for @{username}</h3>
                   <p className="text-muted-foreground text-center">
-                    Getting comprehensive analytics data...
+                    Loading analytics from database cache...
                   </p>
                 </CardContent>
               </Card>
@@ -226,8 +261,13 @@ export default function AnalyticsPage() {
             )}
 
             {/* Results Section */}
-            {profileData && profileData.profile && (
-              <div className="space-y-6">
+            {profileData && (
+              <ProfileAccessWrapper
+                profileData={profileData}
+                onUnlock={handleUnlockProfile}
+                isUnlocking={isUnlocking}
+              >
+                <div className="space-y-6">
                 
                 {/* Beautiful Creator Profile Header - Mono Theme */}
                 <div className="relative overflow-hidden">
@@ -287,13 +327,13 @@ export default function AnalyticsPage() {
                                     Verified
                                   </Badge>
                                 )}
-                                {profileData.profile.business_info?.is_business_account && (
+                                {profileData.profile.is_business_account && (
                                   <Badge variant="outline" className="border-gray-200 text-gray-700 dark:border-gray-700 dark:text-gray-300">
                                     <Building className="w-3 h-3 mr-1" />
                                     Business
                                   </Badge>
                                 )}
-                                {profileData.profile.business_info?.is_professional_account && (
+                                {profileData.profile.is_professional_account && (
                                   <Badge variant="outline" className="border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-400">
                                     <Users className="w-3 h-3 mr-1" />
                                     Professional
@@ -307,7 +347,7 @@ export default function AnalyticsPage() {
                             {/* Categories - Mono Theme */}
                             <div className="flex flex-wrap gap-2">
                               <Badge className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-0 px-3 py-1 font-medium">
-                                {profileData.profile.business_info?.category_name || 'Lifestyle'}
+                                {profileData.profile.business_category_name || 'Lifestyle'}
                               </Badge>
                               <Badge className="bg-gray-700 dark:bg-gray-300 text-white dark:text-gray-800 border-0 px-3 py-1 font-medium">
                                 Fashion
@@ -319,33 +359,22 @@ export default function AnalyticsPage() {
                           </div>
 
                           {/* Bio and Links */}
-                          {profileData.profile.bio && (
+                          {profileData.profile.biography && (
                             <div className="space-y-2">
-                              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{profileData.profile.bio}</p>
+                              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{profileData.profile.biography}</p>
                               <div className="flex flex-wrap gap-2">
-                                {profileData.profile.external_links?.primary_url && (
+                                {/* External links section removed - not available in current API */}
+                                {profileData.profile.external_url && (
                                   <a 
-                                    href={profileData.profile.external_links.primary_url} 
+                                    href={profileData.profile.external_url} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors underline decoration-gray-300 hover:decoration-gray-500"
                                   >
                                     <ExternalLink className="h-4 w-4" />
-                                    <span className="text-sm font-medium">{profileData.profile.external_links.primary_url}</span>
+                                    <span className="text-sm font-medium">{profileData.profile.external_url}</span>
                                   </a>
                                 )}
-                                {profileData.profile.external_links?.bio_links?.map((link, index) => (
-                                  <a 
-                                    key={index}
-                                    href={link.url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors underline decoration-gray-300 hover:decoration-gray-500"
-                                  >
-                                    <ExternalLink className="h-4 w-4" />
-                                    <span className="text-sm font-medium">{link.title || link.url}</span>
-                                  </a>
-                                ))}
                               </div>
                             </div>
                           )}
@@ -357,12 +386,12 @@ export default function AnalyticsPage() {
                         <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 hover:shadow-md transition-shadow">
                           <CardContent className="p-4 text-center">
                             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              {formatNumber(profileData.profile.followers)}
+                              {formatNumber(profileData.profile.followers_count)}
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Followers</div>
                             <div className="mt-1">
                               <Badge variant="outline" className="text-xs border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300">
-                                {profileData.profile.quick_stats?.followers_formatted}
+                                {formatNumber(profileData.profile.followers_count)}
                               </Badge>
                             </div>
                           </CardContent>
@@ -371,7 +400,7 @@ export default function AnalyticsPage() {
                         <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:shadow-md transition-shadow">
                           <CardContent className="p-4 text-center">
                             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              {formatNumber(profileData.profile.following)}
+                              {formatNumber(profileData.profile.following_count)}
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Following</div>
                             <div className="mt-1">
@@ -411,7 +440,7 @@ export default function AnalyticsPage() {
                                     : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-400'
                                 }`}
                               >
-                                {profileData.profile.quick_stats?.engagement_level || 'Unknown'}
+                                {profileData.profile.engagement_rate ? `${profileData.profile.engagement_rate}%` : 'Unknown'}
                               </Badge>
                             </div>
                           </CardContent>
@@ -474,85 +503,13 @@ export default function AnalyticsPage() {
                           </div>
                         </CardHeader>
                         <CardContent className="p-6">
-                          {profileData.profile.bio_analysis ? (
-                            <div className="grid gap-6 md:grid-cols-2">
-                              <div className="space-y-4">
-                                <h4 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                                  <BarChart3 className="w-4 h-4" />
-                                  Content Metrics
-                                </h4>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <Card className="border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700">
-                                    <CardContent className="p-4 text-center">
-                                      <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profileData.profile.bio_analysis.emoji_count}</div>
-                                      <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Emojis</div>
-                                      <Smile className="w-4 h-4 mx-auto mt-1 text-gray-500 dark:text-gray-400" />
-                                    </CardContent>
-                                  </Card>
-                                  <Card className="border-gray-300 dark:border-gray-600 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600">
-                                    <CardContent className="p-4 text-center">
-                                      <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profileData.profile.bio_analysis.hashtag_count}</div>
-                                      <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Hashtags</div>
-                                      <Hash className="w-4 h-4 mx-auto mt-1 text-gray-500 dark:text-gray-400" />
-                                    </CardContent>
-                                  </Card>
-                                  <Card className="border-gray-400 dark:border-gray-500 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500">
-                                    <CardContent className="p-4 text-center">
-                                      <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profileData.profile.bio_analysis.mention_count}</div>
-                                      <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Mentions</div>
-                                      <AtSign className="w-4 h-4 mx-auto mt-1 text-gray-500 dark:text-gray-400" />
-                                    </CardContent>
-                                  </Card>
-                                  <Card className="border-gray-500 dark:border-gray-400 bg-gradient-to-br from-gray-400 to-gray-500 dark:from-gray-500 dark:to-gray-400">
-                                    <CardContent className="p-4 text-center">
-                                      <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profileData.profile.bio_analysis.call_to_action_score}/10</div>
-                                      <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">CTA Score</div>
-                                      <Target className="w-4 h-4 mx-auto mt-1 text-gray-500 dark:text-gray-400" />
-                                    </CardContent>
-                                  </Card>
-                                </div>
-                              </div>
-                              
-                              <div className="space-y-4">
-                                <h4 className="font-semibold text-green-800 dark:text-green-200 flex items-center gap-2">
-                                  <Building className="w-4 h-4" />
-                                  Brand Intelligence
-                                </h4>
-                                {profileData.profile.bio_analysis.brand_mentions.length > 0 ? (
-                                  <div className="space-y-3">
-                                    <div className="flex flex-wrap gap-2">
-                                      {profileData.profile.bio_analysis.brand_mentions.map((brand, index) => (
-                                        <Badge key={index} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0 px-3 py-1">
-                                          {brand}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                    <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
-                                      <p className="text-sm text-green-700 dark:text-green-300 font-medium">
-                                        ✨ {profileData.profile.bio_analysis.brand_mentions.length} brand keyword{profileData.profile.bio_analysis.brand_mentions.length > 1 ? 's' : ''} detected
-                                      </p>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <Card className="border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950 dark:to-yellow-950">
-                                    <CardContent className="p-4 text-center">
-                                      <Building className="w-8 h-8 mx-auto mb-2 text-amber-500" />
-                                      <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">No brand keywords detected</p>
-                                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Consider adding brand partnerships mentions</p>
-                                    </CardContent>
-                                  </Card>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <Card className="border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950 dark:to-pink-950">
-                              <CardContent className="p-8 text-center">
-                                <FileText className="w-12 h-12 mx-auto mb-4 text-red-400" />
-                                <p className="text-red-700 dark:text-red-300 font-medium">Bio analysis not available</p>
-                                <Badge variant="outline" className="text-red-600 border-red-300 mt-2">No Data</Badge>
-                              </CardContent>
-                            </Card>
-                          )}
+                          <Card className="border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950 dark:to-pink-950">
+                            <CardContent className="p-8 text-center">
+                              <FileText className="w-12 h-12 mx-auto mb-4 text-red-400" />
+                              <p className="text-red-700 dark:text-red-300 font-medium">Bio analysis not available</p>
+                              <Badge variant="outline" className="text-red-600 border-red-300 mt-2">No Data</Badge>
+                            </CardContent>
+                          </Card>
                         </CardContent>
                       </Card>
 
@@ -577,10 +534,10 @@ export default function AnalyticsPage() {
                           <div className="text-center p-4 bg-muted rounded-lg">
                             <div className="text-2xl font-bold mb-1">{profileData.profile.engagement_rate?.toFixed(1) || 'N/A'}%</div>
                             <div className="text-sm text-muted-foreground">Engagement Rate</div>
-                            <div className="text-xs text-muted-foreground mt-1">{profileData.profile.quick_stats?.engagement_level || 'Unknown'}</div>
+                            <div className="text-xs text-muted-foreground mt-1">{profileData.profile.engagement_rate ? `${profileData.profile.engagement_rate}%` : 'Unknown'}</div>
                           </div>
                           <div className="text-center p-4 bg-muted rounded-lg">
-                            <div className="text-2xl font-bold mb-1">{profileData.profile.real_engagement?.posting_consistency_score || 'N/A'}</div>
+                            <div className="text-2xl font-bold mb-1">N/A</div>
                             <div className="text-sm text-muted-foreground">Consistency</div>
                             <div className="text-xs text-muted-foreground mt-1">out of 10</div>
                           </div>
@@ -601,22 +558,22 @@ export default function AnalyticsPage() {
                             <div className="space-y-2">
                               <div className="flex items-center justify-between p-2 bg-muted rounded">
                                 <span className="text-sm">Highlights</span>
-                                <Badge variant="outline">{profileData.profile.content_features?.highlight_reel_count || 0} reels</Badge>
+                                <Badge variant="outline">{profileData.profile.highlight_reel_count || 0} reels</Badge>
                               </div>
                               <div className="flex items-center justify-between p-2 bg-muted rounded">
                                 <span className="text-sm">Reels</span>
-                                <Badge variant="outline">{profileData.profile.content_features?.reels_count || 0} posts</Badge>
+                                <Badge variant="outline">0 posts</Badge>
                               </div>
                               <div className="flex items-center justify-between p-2 bg-muted rounded">
                                 <span className="text-sm">Guides</span>
-                                <Badge variant={profileData.profile.content_features?.has_guides ? "default" : "outline"}>
-                                  {profileData.profile.content_features?.has_guides ? "Available" : "Not Available"}
+                                <Badge variant={profileData.profile.has_guides ? "default" : "outline"}>
+                                  {profileData.profile.has_guides ? "Available" : "Not Available"}
                                 </Badge>
                               </div>
                               <div className="flex items-center justify-between p-2 bg-muted rounded">
                                 <span className="text-sm">AR Effects</span>
-                                <Badge variant={profileData.profile.content_features?.has_ar_effects ? "default" : "outline"}>
-                                  {profileData.profile.content_features?.has_ar_effects ? "Available" : "Not Available"}
+                                <Badge variant={profileData.profile.has_ar_effects ? "default" : "outline"}>
+                                  {profileData.profile.has_ar_effects ? "Available" : "Not Available"}
                                 </Badge>
                               </div>
                             </div>
@@ -628,17 +585,17 @@ export default function AnalyticsPage() {
                               <div className="flex items-center justify-between p-2 bg-muted rounded">
                                 <span className="text-sm">Account Type</span>
                                 <Badge variant="outline">
-                                  {profileData.profile.business_info?.is_business_account ? 'Business' : 
-                                   profileData.profile.business_info?.is_professional_account ? 'Professional' : 'Personal'}
+                                  {profileData.profile.is_business_account ? 'Business' : 
+                                   profileData.profile.is_professional_account ? 'Professional' : 'Personal'}
                                 </Badge>
                               </div>
                               <div className="flex items-center justify-between p-2 bg-muted rounded">
                                 <span className="text-sm">Contact Method</span>
-                                <Badge variant="outline">{profileData.profile.business_info?.business_contact_method || 'N/A'}</Badge>
+                                <Badge variant="outline">{'N/A'}</Badge>
                               </div>
                               <div className="flex items-center justify-between p-2 bg-muted rounded">
                                 <span className="text-sm">Category</span>
-                                <Badge variant="outline">{profileData.profile.business_info?.category_name || 'N/A'}</Badge>
+                                <Badge variant="outline">{profileData.profile.business_category_name || 'N/A'}</Badge>
                               </div>
                             </div>
                           </div>
@@ -656,10 +613,10 @@ export default function AnalyticsPage() {
                         </CardHeader>
                         <CardContent>
                           <div className="text-center">
-                            <div className="text-3xl font-bold mb-2">{formatNumber(profileData.profile.followers)}</div>
+                            <div className="text-3xl font-bold mb-2">{formatNumber(profileData.profile.followers_count)}</div>
                             <div className="text-sm text-muted-foreground">Followers</div>
                             <div className="mt-2">
-                              <Badge variant="secondary">{profileData.profile.quick_stats?.followers_formatted}</Badge>
+                              <Badge variant="secondary">{formatNumber(profileData.profile.followers_count)}</Badge>
                             </div>
                           </div>
                         </CardContent>
@@ -671,7 +628,7 @@ export default function AnalyticsPage() {
                         </CardHeader>
                         <CardContent>
                           <div className="text-center">
-                            <div className="text-3xl font-bold mb-2">{profileData.audience_insights?.primary_age_group || 'N/A'}</div>
+                            <div className="text-3xl font-bold mb-2">N/A</div>
                             <div className="text-sm text-muted-foreground">Most Common Age</div>
                             <div className="mt-2">
                               <Badge variant="outline">Demographic Data</Badge>
@@ -690,7 +647,7 @@ export default function AnalyticsPage() {
                             <div className="text-sm text-muted-foreground">Influence Score</div>
                             <div className="mt-2">
                               <Badge variant={Number(profileData.profile.influence_score || 0) > 7 ? "default" : "secondary"}>
-                                {profileData.profile.quick_stats?.influence_level || 'Unknown'}
+                                {profileData.profile.influence_score ? `${profileData.profile.influence_score}/100` : 'Unknown'}
                               </Badge>
                             </div>
                           </div>
@@ -706,31 +663,31 @@ export default function AnalyticsPage() {
                           <CardDescription>Audience gender distribution</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          {profileData.audience_insights?.gender_split ? (
+                          {profileData.demographics?.gender_distribution ? (
                             <div className="space-y-4">
                               <div>
                                 <div className="flex justify-between mb-2">
                                   <span className="text-sm font-medium">Female</span>
-                                  <span className="text-sm font-bold">{profileData.audience_insights.gender_split.female}%</span>
+                                  <span className="text-sm font-bold">{profileData.demographics.gender_distribution.female}%</span>
                                 </div>
-                                <Progress value={profileData.audience_insights.gender_split.female || 0} className="h-3" />
+                                <Progress value={profileData.demographics.gender_distribution.female || 0} className="h-3" />
                               </div>
                               
                               <div>
                                 <div className="flex justify-between mb-2">
                                   <span className="text-sm font-medium">Male</span>
-                                  <span className="text-sm font-bold">{profileData.audience_insights.gender_split.male}%</span>
+                                  <span className="text-sm font-bold">{profileData.demographics.gender_distribution.male}%</span>
                                 </div>
-                                <Progress value={profileData.audience_insights.gender_split.male || 0} className="h-3" />
+                                <Progress value={profileData.demographics.gender_distribution.male || 0} className="h-3" />
                               </div>
 
                               <div className="grid grid-cols-2 gap-4 mt-4">
                                 <div className="text-center p-3 bg-muted rounded-lg">
-                                  <div className="text-lg font-bold">{profileData.audience_insights.gender_split.female}%</div>
+                                  <div className="text-lg font-bold">{profileData.demographics.gender_distribution.female}%</div>
                                   <div className="text-xs text-muted-foreground">Female Audience</div>
                                 </div>
                                 <div className="text-center p-3 bg-muted rounded-lg">
-                                  <div className="text-lg font-bold">{profileData.audience_insights.gender_split.male}%</div>
+                                  <div className="text-lg font-bold">{profileData.demographics.gender_distribution.male}%</div>
                                   <div className="text-xs text-muted-foreground">Male Audience</div>
                                 </div>
                               </div>
@@ -750,9 +707,9 @@ export default function AnalyticsPage() {
                           <CardDescription>Geographic distribution of audience</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          {profileData.audience_insights?.top_locations && profileData.audience_insights.top_locations.length > 0 ? (
+                          {profileData.demographics?.location_distribution && Object.keys(profileData.demographics.location_distribution).length > 0 ? (
                             <div className="space-y-3">
-                              {profileData.audience_insights.top_locations.slice(0, 5).map((location, index) => (
+                              {Object.entries(profileData.demographics.location_distribution).slice(0, 5).map(([location, percentage], index) => (
                                 <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
                                   <div className="flex items-center gap-3">
                                     <div className="w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center text-xs font-bold">
@@ -784,9 +741,9 @@ export default function AnalyticsPage() {
                           <CardDescription>Top interests and categories</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          {profileData.audience_insights?.interests && profileData.audience_insights.interests.length > 0 ? (
+                          {false ? (
                             <div className="flex flex-wrap gap-2">
-                              {profileData.audience_insights.interests.map((interest, index) => (
+                              {[].map((interest, index) => (
                                 <Badge key={index} variant="secondary" className="text-xs">
                                   {interest}
                                 </Badge>
@@ -807,9 +764,9 @@ export default function AnalyticsPage() {
                           <CardDescription>When your audience is most active</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          {profileData.audience_insights?.activity_times && profileData.audience_insights.activity_times.length > 0 ? (
+                          {false ? (
                             <div className="grid grid-cols-2 gap-2">
-                              {profileData.audience_insights.activity_times.map((time, index) => (
+                              {[].map((time, index) => (
                                 <Badge key={index} variant="outline" className="justify-center p-2 text-xs">
                                   {time}
                                 </Badge>
@@ -836,38 +793,38 @@ export default function AnalyticsPage() {
                         <CardContent className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
                             <div className="text-center p-3 bg-muted rounded">
-                              <div className="text-lg font-bold">{profileData.engagement_metrics?.like_rate?.toFixed(2) || '0.00'}%</div>
+                              <div className="text-lg font-bold">0.00%</div>
                               <div className="text-sm text-muted-foreground">Like Rate</div>
-                              {(profileData.engagement_metrics?.like_rate || 0) === 0 && (
+                              {true && (
                                 <Badge variant="outline" className="text-xs mt-1 text-red-600">No Data</Badge>
                               )}
                             </div>
                             <div className="text-center p-3 bg-muted rounded">
-                              <div className="text-lg font-bold">{profileData.engagement_metrics?.comment_rate?.toFixed(2) || '0.00'}%</div>
+                              <div className="text-lg font-bold">0.00%</div>
                               <div className="text-sm text-muted-foreground">Comment Rate</div>
-                              {(profileData.engagement_metrics?.comment_rate || 0) === 0 && (
+                              {true && (
                                 <Badge variant="outline" className="text-xs mt-1 text-red-600">No Data</Badge>
                               )}
                             </div>
                             <div className="text-center p-3 bg-muted rounded">
-                              <div className="text-lg font-bold">{profileData.engagement_metrics?.save_rate?.toFixed(2) || '0.00'}%</div>
+                              <div className="text-lg font-bold">0.00%</div>
                               <div className="text-sm text-muted-foreground">Save Rate</div>
-                              {(profileData.engagement_metrics?.save_rate || 0) === 0 && (
+                              {true && (
                                 <Badge variant="outline" className="text-xs mt-1 text-red-600">No Data</Badge>
                               )}
                             </div>
                             <div className="text-center p-3 bg-muted rounded">
-                              <div className="text-lg font-bold">{profileData.engagement_metrics?.share_rate?.toFixed(2) || '0.00'}%</div>
+                              <div className="text-lg font-bold">0.00%</div>
                               <div className="text-sm text-muted-foreground">Share Rate</div>
-                              {(profileData.engagement_metrics?.share_rate || 0) === 0 && (
+                              {true && (
                                 <Badge variant="outline" className="text-xs mt-1 text-red-600">No Data</Badge>
                               )}
                             </div>
                           </div>
                           <div className="text-center p-3 bg-muted rounded">
-                            <div className="text-lg font-bold">{profileData.engagement_metrics?.reach_rate?.toFixed(2) || '0.00'}%</div>
+                            <div className="text-lg font-bold">0.00%</div>
                             <div className="text-sm text-muted-foreground">Reach Rate</div>
-                            {(profileData.engagement_metrics?.reach_rate || 0) === 0 && (
+                            {true && (
                               <Badge variant="outline" className="text-xs mt-1 text-red-600">No Data</Badge>
                             )}
                           </div>
@@ -880,22 +837,22 @@ export default function AnalyticsPage() {
                           <CardDescription>Calculated from actual posts</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          {profileData.profile.real_engagement && profileData.profile.real_engagement.recent_posts.length > 0 ? (
+                          {false ? (
                             <div className="grid grid-cols-2 gap-4">
                               <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
-                                <div className="text-lg font-bold">{profileData.profile.real_engagement.actual_engagement_rate.toFixed(2)}%</div>
+                                <div className="text-lg font-bold">N/A</div>
                                 <div className="text-sm text-muted-foreground">Actual Engagement</div>
                               </div>
                               <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
-                                <div className="text-lg font-bold">{formatNumber(profileData.profile.real_engagement.avg_likes_per_post)}</div>
+                                <div className="text-lg font-bold">N/A</div>
                                 <div className="text-sm text-muted-foreground">Avg Likes</div>
                               </div>
                               <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
-                                <div className="text-lg font-bold">{formatNumber(profileData.profile.real_engagement.avg_comments_per_post)}</div>
+                                <div className="text-lg font-bold">N/A</div>
                                 <div className="text-sm text-muted-foreground">Avg Comments</div>
                               </div>
                               <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
-                                <div className="text-lg font-bold">{profileData.profile.real_engagement.content_mix.video_percentage.toFixed(0)}%</div>
+                                <div className="text-lg font-bold">N/A</div>
                                 <div className="text-sm text-muted-foreground">Video Content</div>
                               </div>
                             </div>
@@ -916,9 +873,9 @@ export default function AnalyticsPage() {
                     </div>
 
                     {/* Real Engagement Timeline */}
-                    {profileData.profile.real_engagement && profileData.profile.real_engagement.recent_posts.length > 0 ? (
+                    {false ? (
                       <RealEngagementTimeline 
-                        data={profileData.profile.real_engagement.recent_posts} 
+                        data={[]} 
                         title="Post Performance Timeline"
                         description="Individual post engagement over time"
                       />
@@ -947,14 +904,14 @@ export default function AnalyticsPage() {
                         <CardDescription>Latest 6 posts with engagement stats</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        {profileData.profile.real_engagement && profileData.profile.real_engagement.recent_posts.length > 0 ? (
+                        {false ? (
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {profileData.profile.real_engagement.recent_posts.slice(0, 6).map((post, index) => (
-                              <Card key={post.id} className="overflow-hidden">
+                            {[].slice(0, 6).map((post, index) => (
+                              <Card key={index} className="overflow-hidden">
                                 <div className="aspect-square bg-muted flex items-center justify-center">
                                   <div className="text-center">
                                     <div className="w-8 h-8 mx-auto mb-2 bg-primary/20 rounded-full flex items-center justify-center">
-                                      {post.is_video ? <Eye className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                                      <FileText className="h-4 w-4" />
                                     </div>
                                     <div className="text-xs text-muted-foreground">Post #{index + 1}</div>
                                   </div>
@@ -962,17 +919,17 @@ export default function AnalyticsPage() {
                                 <CardContent className="p-3 space-y-2">
                                   <div className="grid grid-cols-2 gap-2 text-xs">
                                     <div>
-                                      <div className="font-medium">{formatNumber(post.likes)}</div>
+                                      <div className="font-medium">0</div>
                                       <div className="text-muted-foreground">Likes</div>
                                     </div>
                                     <div>
-                                      <div className="font-medium">{formatNumber(post.comments)}</div>
+                                      <div className="font-medium">0</div>
                                       <div className="text-muted-foreground">Comments</div>
                                     </div>
                                   </div>
                                   <div className="text-center">
                                     <Badge variant="outline" className="text-xs">
-                                      {post.engagement_rate.toFixed(1)}% ER
+                                      0.0% ER
                                     </Badge>
                                   </div>
                                 </CardContent>
@@ -1006,33 +963,33 @@ export default function AnalyticsPage() {
                               <div>
                                 <div className="flex justify-between mb-2">
                                   <span className="text-sm">Photos</span>
-                                  <span className="text-sm font-medium">{profileData.content_strategy?.content_mix?.photos || 0}%</span>
+                                  <span className="text-sm font-medium">{0}%</span>
                                 </div>
-                                <Progress value={profileData.content_strategy?.content_mix?.photos || 0} className="h-2" />
+                                <Progress value={0} className="h-2" />
                               </div>
                               
                               <div>
                                 <div className="flex justify-between mb-2">
                                   <span className="text-sm">Videos</span>
-                                  <span className="text-sm font-medium">{profileData.content_strategy?.content_mix?.videos || 0}%</span>
+                                  <span className="text-sm font-medium">{0}%</span>
                                 </div>
-                                <Progress value={profileData.content_strategy?.content_mix?.videos || 0} className="h-2" />
+                                <Progress value={0} className="h-2" />
                               </div>
                               
                               <div>
                                 <div className="flex justify-between mb-2">
                                   <span className="text-sm">Carousels</span>
-                                  <span className="text-sm font-medium">{profileData.content_strategy?.content_mix?.carousels || 0}%</span>
+                                  <span className="text-sm font-medium">{0}%</span>
                                 </div>
-                                <Progress value={profileData.content_strategy?.content_mix?.carousels || 0} className="h-2" />
+                                <Progress value={0} className="h-2" />
                               </div>
                               
                               <div>
                                 <div className="flex justify-between mb-2">
                                   <span className="text-sm">Reels</span>
-                                  <span className="text-sm font-medium">{profileData.content_strategy?.content_mix?.reels || 0}%</span>
+                                  <span className="text-sm font-medium">{0}%</span>
                                 </div>
-                                <Progress value={profileData.content_strategy?.content_mix?.reels || 0} className="h-2" />
+                                <Progress value={0} className="h-2" />
                               </div>
                             </div>
                           </div>
@@ -1042,19 +999,19 @@ export default function AnalyticsPage() {
                             <h4 className="font-medium mb-4">Performance Metrics</h4>
                             <div className="grid grid-cols-2 gap-3">
                               <div className="text-center p-3 bg-muted rounded-lg">
-                                <div className="text-lg font-bold">{profileData.profile.real_engagement?.avg_likes_per_post ? formatNumber(profileData.profile.real_engagement.avg_likes_per_post) : 'N/A'}</div>
+                                <div className="text-lg font-bold">N/A</div>
                                 <div className="text-xs text-muted-foreground">Avg Likes</div>
                               </div>
                               <div className="text-center p-3 bg-muted rounded-lg">
-                                <div className="text-lg font-bold">{profileData.profile.real_engagement?.avg_comments_per_post ? formatNumber(profileData.profile.real_engagement.avg_comments_per_post) : 'N/A'}</div>
+                                <div className="text-lg font-bold">N/A</div>
                                 <div className="text-xs text-muted-foreground">Avg Comments</div>
                               </div>
                               <div className="text-center p-3 bg-muted rounded-lg">
-                                <div className="text-lg font-bold">{profileData.profile.real_engagement?.content_mix?.video_percentage?.toFixed(0) || 0}%</div>
+                                <div className="text-lg font-bold">N/A</div>
                                 <div className="text-xs text-muted-foreground">Video Rate</div>
                               </div>
                               <div className="text-center p-3 bg-muted rounded-lg">
-                                <div className="text-lg font-bold">{profileData.profile.real_engagement?.posting_consistency_score || 'N/A'}</div>
+                                <div className="text-lg font-bold">N/A</div>
                                 <div className="text-xs text-muted-foreground">Consistency</div>
                               </div>
                             </div>
@@ -1065,7 +1022,7 @@ export default function AnalyticsPage() {
                         <div className="mt-6">
                           <h4 className="font-medium mb-3">Content Pillars</h4>
                           <div className="flex flex-wrap gap-2">
-                            {(profileData.content_strategy?.primary_content_pillars || ['Lifestyle', 'Travel', 'Fashion']).map((pillar, index) => (
+                            {['Lifestyle', 'Travel', 'Fashion'].map((pillar, index) => (
                               <Badge key={index} variant="secondary" className="text-xs">
                                 {pillar}
                               </Badge>
@@ -1077,7 +1034,7 @@ export default function AnalyticsPage() {
                         <div className="mt-6">
                           <h4 className="font-medium mb-3">Optimal Posting Times</h4>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                            {(profileData.best_posting_times || ['9:00 AM', '1:00 PM', '7:00 PM', '9:00 PM']).map((time, index) => (
+                            {['9:00 AM', '1:00 PM', '7:00 PM', '9:00 PM'].map((time, index) => (
                               <Badge key={index} variant="outline" className="justify-center p-2 text-xs">
                                 {time}
                               </Badge>
@@ -1110,8 +1067,8 @@ export default function AnalyticsPage() {
                         <div className="space-y-1">
                           <h3 className="font-semibold text-gray-800 dark:text-gray-200">Business Contact</h3>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {profileData.profile.business_info?.business_email || 
-                             profileData.profile.business_info?.business_phone_number || 
+                            {profileData.profile.business_email || 
+                             profileData.profile.business_phone_number || 
                              'Contact details not available from public profile'}
                           </p>
                         </div>
@@ -1127,16 +1084,17 @@ export default function AnalyticsPage() {
                         >
                           {profileData.profile.is_verified ? "✨ Verified Creator" : "📋 Public Profile"}
                         </Badge>
-                        {profileData.profile.business_info?.business_contact_method && (
+                        {profileData.profile.business_email && (
                           <Badge variant="outline" className="border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-400 text-xs">
-                            {profileData.profile.business_info.business_contact_method}
+                            Email Available
                           </Badge>
                         )}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+                </div>
+              </ProfileAccessWrapper>
             )}
 
           </div>

@@ -14,6 +14,7 @@ interface AuthContextType {
   logout: () => void
   refreshUser: () => Promise<void>
   refreshDashboard: () => Promise<void>
+  updateProfile: (profileData: any) => Promise<boolean>
   isPremium: boolean
   isAdmin: boolean
 }
@@ -42,19 +43,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const storedUser = authService.getStoredUser()
       
       if (storedUser && authService.isAuthenticated()) {
-        // Verify token with backend
-        const result = await authService.getCurrentUser()
-        
-        if (result.success && result.data) {
-          setUser(result.data)
-          await loadDashboardStats()
-          console.log('✅ User authenticated:', result.data.email)
-        } else {
-          // Token is invalid, clear auth state
-          authService.logout()
-          setUser(null)
-          console.log('❌ Token invalid, user logged out')
-        }
+        // Trust the stored user data without backend verification
+        // Token validation will happen on actual API calls
+        setUser(storedUser)
+        await loadDashboardStats()
+        console.log('✅ User restored from storage:', storedUser.email)
       } else {
         setUser(null)
         console.log('ℹ️ No authenticated user found')
@@ -84,14 +77,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const result = await authService.login({ email, password })
       
-      if (result.success && result.data) {
+      if (result.success && result.data && result.data.access_token) {
         setUser(result.data.user)
         await loadDashboardStats()
         toast.success(`Welcome back, ${result.data.user.full_name}!`)
         console.log('✅ User logged in successfully:', result.data.user.email)
         return true
       } else {
-        toast.error(result.error || 'Login failed')
+        // Handle specific login errors (including email confirmation)
+        const errorMessage = result.error || 'Login failed'
+        
+        // Check if this is an email confirmation error
+        if (errorMessage.includes('email') && errorMessage.includes('confirmation')) {
+          toast.error(errorMessage, {
+            duration: 8000,
+            action: {
+              label: 'Resend Email',
+              onClick: () => {
+                const email = localStorage.getItem('pending_confirmation_email')
+                if (email) {
+                  // TODO: Implement resend confirmation email
+                  toast.info('Please contact support to resend confirmation email')
+                }
+              }
+            }
+          })
+        } else {
+          toast.error(errorMessage)
+        }
+        
         console.log('❌ Login failed:', result.error)
         return false
       }
@@ -112,11 +126,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await authService.register({ email, password, full_name: fullName })
       
       if (result.success && result.data) {
-        setUser(result.data.user)
-        await loadDashboardStats()
-        toast.success(`Welcome to Analytics Following, ${result.data.user.full_name}!`)
-        console.log('✅ User registered successfully:', result.data.user.email)
-        return true
+        // NEW: Handle email confirmation flow
+        if (result.data.email_confirmation_required) {
+          // Registration successful but email confirmation required
+          const message = result.data.message || 'Registration successful! Please check your email to confirm your account.'
+          toast.success(message, {
+            duration: 10000,
+            description: `A confirmation email has been sent to ${result.data.user?.email || email}. Please click the link to activate your account.`
+          })
+          
+          // Store user data but don't set as logged in (no access token)
+          setUser(null) // Keep user logged out until email confirmed
+          
+          console.log('✅ User registered successfully, email confirmation required:', result.data.user?.email || email)
+          return true
+        } else if (result.data.access_token) {
+          // Registration successful with immediate login (if no email confirmation required)
+          setUser(result.data.user)
+          await loadDashboardStats()
+          toast.success(`Welcome to Analytics Following, ${result.data.user.full_name}!`)
+          console.log('✅ User registered and logged in successfully:', result.data.user?.email || email)
+          return true
+        } else {
+          // Registration successful but no token and no confirmation flow
+          toast.success('Registration successful! You can now log in.')
+          console.log('✅ User registered successfully:', result.data.user?.email || email)
+          return true
+        }
       } else {
         toast.error(result.error || 'Registration failed')
         console.log('❌ Registration failed:', result.error)
@@ -155,6 +191,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await loadDashboardStats()
   }
 
+  const updateProfile = async (profileData: any): Promise<boolean> => {
+    try {
+      const { settingsService } = await import('@/services/settingsService')
+      const result = await settingsService.updateProfile(profileData)
+      
+      if (result.success && result.data) {
+        // Refresh user data to get updated profile
+        await refreshUser()
+        toast.success(result.data.message || 'Profile updated successfully')
+        return true
+      } else {
+        toast.error(result.error || 'Failed to update profile')
+        return false
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Network error'
+      toast.error(errorMessage)
+      console.error('❌ Profile update error:', error)
+      return false
+    }
+  }
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -165,6 +223,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     refreshUser,
     refreshDashboard,
+    updateProfile,
     isPremium: authService.isPremiumUser(),
     isAdmin: authService.isAdmin()
   }

@@ -15,6 +15,7 @@ import {
 } from "@tabler/icons-react"
 import Image from "next/image"
 import { useTheme } from "next-themes"
+import { useAuth } from "@/contexts/AuthContext"
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -30,11 +31,6 @@ import {
 } from "@/components/ui/sidebar"
 
 const data = {
-  user: {
-    name: "Brand Manager",
-    email: "manager@brand.com",
-    avatar: "/avatars/user.jpg",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -113,6 +109,32 @@ function ThemeLogo() {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, isLoading } = useAuth()
+
+  // Dynamic user data - avoid hardcoded values
+  const dynamicUser = React.useMemo(() => {
+    if (!user) return null
+    
+    const getDisplayName = () => {
+      if (user.first_name && user.last_name) {
+        return `${user.first_name} ${user.last_name}`
+      }
+      if (user.full_name) {
+        return user.full_name
+      }
+      if (user.first_name) {
+        return user.first_name
+      }
+      return null // No fallback to avoid hardcoded values
+    }
+
+    return {
+      name: getDisplayName(),
+      email: user.email,
+      avatar: user.profile_picture_url || null,
+    }
+  }, [user])
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader className="flex justify-center items-center py-2">
@@ -134,7 +156,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        {!isLoading && dynamicUser && dynamicUser.name && (
+          <NavUser user={dynamicUser} />
+        )}
       </SidebarFooter>
     </Sidebar>
   )

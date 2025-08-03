@@ -13,8 +13,6 @@
       "Bash(git init:*)",
       "Bash(git remote add:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
       "Bash(npm start)",
       "Bash(powershell:*)",
       "Bash(npm run lint)",
@@ -49,7 +47,10 @@
       "Bash(git remote set-url:*)",
       "WebFetch(domain:analytics-following-backend-5qfwj.ondigitalocean.app)",
       "WebFetch(domain:analyticsfollowingfrontend.vercel.app)",
-      "WebFetch(domain:api.github.com)"
+      "WebFetch(domain:api.github.com)",
+      "Bash(git config:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(tasklist:*)"
     ],
     "deny": []
   }

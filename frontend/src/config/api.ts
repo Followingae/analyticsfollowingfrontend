@@ -1,18 +1,24 @@
 export const API_CONFIG = {
   BASE_URL: (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, ''), // Remove trailing slash
-  TIMEOUT: 30000,
+  TIMEOUT: 300000, // 5 minutes - Extended timeout to give backend more than enough time
+  SEARCH_TIMEOUT: 300000, // 5 minutes - Specific timeout for search endpoint (Decodo calls)
+  ANALYTICS_TIMEOUT: 10000, // 10 seconds - Short timeout for analytics endpoint (DB only)
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
 }
 
 export const ENDPOINTS = {
-  // Instagram Profile Analysis (Based on actual backend API)
+  // Instagram Profile Analysis (TWO-ENDPOINT ARCHITECTURE)
   profile: {
-    // Comprehensive profile analysis with detailed insights
+    // NEW: Profile search/preview endpoint - calls Decodo if needed, stores in DB, grants 30-day access
+    search: (username: string) => `/api/v1/instagram/profile/${username}`,
+    // NEW: Analytics endpoint - ONLY reads from DB cache, NEVER calls Decodo
+    analytics: (username: string) => `/api/v1/instagram/profile/${username}/analytics`,
+    // DEPRECATED: Use search endpoint instead
     full: (username: string) => `/api/v1/instagram/profile/${username}`,
-    // Basic profile info (faster response)
+    // DEPRECATED: Use search endpoint instead  
     basic: (username: string) => `/api/v1/instagram/profile/${username}/basic`,
-    // Refresh profile data (bypasses cache)
+    // DEPRECATED: Use search endpoint instead
     refresh: (username: string) => `/api/v1/instagram/profile/${username}/refresh`,
   },
   
@@ -40,3 +46,11 @@ export const REQUEST_HEADERS = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
 }
+
+export const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  return token ? {
+    ...REQUEST_HEADERS,
+    'Authorization': `Bearer ${token}`
+  } : REQUEST_HEADERS;
+};

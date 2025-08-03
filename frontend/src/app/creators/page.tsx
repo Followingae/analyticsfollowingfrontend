@@ -93,8 +93,8 @@ export default function CreatorsPage() {
         })
       }, 1000)
 
-      console.log(`🔍 Starting analysis for @${cleanUsername}...`)
-      const result = await instagramApiService.getProfileAnalysis(cleanUsername)
+      console.log(`🔍 Starting profile search for @${cleanUsername}...`)
+      const result = await instagramApiService.searchProfile(cleanUsername)
       
       clearInterval(progressInterval)
       console.log('📊 Analysis result:', result)
@@ -112,16 +112,16 @@ export default function CreatorsPage() {
           username: result.data.profile.username,
           full_name: result.data.profile.full_name,
           profile_pic_url: result.data.profile.profile_pic_url,
-          followers: result.data.profile.followers,
+          followers: result.data.profile.followers_count, // Fixed: use followers_count from API
           engagement_rate: result.data.profile.engagement_rate,
           is_verified: result.data.profile.is_verified,
-          bio: result.data.profile.bio,
+          bio: result.data.profile.biography, // Fixed: use biography from API
           categories: [
-            result.data.profile.business_info?.category_name || 'Lifestyle',
+            result.data.profile.business_category_name || 'Lifestyle', // Fixed: use business_category_name from API
             'Social Media',
             'Content Creator'
           ],
-          location: result.data.audience_insights?.top_locations?.[0] || 'Global',
+          location: result.data.demographics?.location_distribution ? Object.keys(result.data.demographics.location_distribution)[0] : 'Global', // Fixed: use demographics data
           influence_score: result.data.profile.influence_score,
           content_quality_score: result.data.profile.content_quality_score,
           unlocked_at: new Date().toISOString()
@@ -151,16 +151,48 @@ export default function CreatorsPage() {
           })
         }, 2000)
       } else {
+        // Enhanced error handling with specific messages
+        let errorMessage = result.error || 'Analysis failed'
+        
+        // Map common backend errors to user-friendly messages
+        if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+          errorMessage = 'Analysis is taking longer than expected. This can happen with large profiles. Please try again in a moment.'
+        } else if (errorMessage.includes('Authentication required') || errorMessage.includes('Not authenticated') || errorMessage.includes('401')) {
+          errorMessage = 'Please log in again to continue analyzing profiles.'
+        } else if (errorMessage.includes('No access to this profile')) {
+          errorMessage = 'This profile requires premium access. Click to unlock 30-day access.'
+        } else if (errorMessage.includes('Profile not found')) {
+          errorMessage = 'Instagram profile not found. Please check the username and try again.'
+        } else if (errorMessage.includes('Rate limit exceeded')) {
+          errorMessage = 'Too many requests. Please wait a moment before trying again.'
+        } else if (errorMessage.includes('Server error')) {
+          errorMessage = 'Backend service is experiencing issues. Please try again in a few minutes.'
+        }
+        
         setAnalyzingCreators(prev => ({
           ...prev,
-          [cleanUsername]: { status: 'failed', progress: 0, error: result.error || 'Analysis failed' }
+          [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
         }))
-        toast.error(result.error || `Failed to analyze @${cleanUsername}`)
+        toast.error(errorMessage)
       }
     } catch (error) {
       console.error('❌ Analysis error for @' + cleanUsername + ':', error)
       
-      const errorMessage = error instanceof Error ? error.message : 'Network error occurred'
+      // Enhanced catch block error handling
+      let errorMessage = 'Network error occurred'
+      
+      if (error instanceof Error) {
+        if (error.message.includes('timeout') || error.message.includes('timed out')) {
+          errorMessage = 'Request timed out. The backend may be busy processing large profiles. Please try again.'
+        } else if (error.message.includes('Cannot connect to server')) {
+          errorMessage = 'Cannot connect to server. Please check your internet connection and ensure the backend is running.'
+        } else if (error.message.includes('fetch') || error.message.includes('NetworkError')) {
+          errorMessage = 'Network connection failed. Please check your internet connection.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       setAnalyzingCreators(prev => ({
         ...prev,
         [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
@@ -210,7 +242,7 @@ export default function CreatorsPage() {
 
     try {
       const results = await Promise.allSettled(
-        usernames.map(username => instagramApiService.getProfileAnalysis(username))
+        usernames.map(username => instagramApiService.searchProfile(username))
       )
 
       const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length

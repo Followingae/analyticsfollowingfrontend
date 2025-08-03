@@ -20,7 +20,7 @@ export default function SimplePage() {
     setLoading(true)
     setError(null)
 
-    instagramApiService.getProfileAnalysis(username)
+    instagramApiService.getProfile(username)
       .then(result => {
         console.log('API result:', result)
         if (result.success) {

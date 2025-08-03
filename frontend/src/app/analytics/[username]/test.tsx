@@ -24,7 +24,7 @@ export default function TestPage() {
 
     try {
       console.log('Testing API with username:', username)
-      const response = await instagramApiService.getProfileAnalysis(username)
+      const response = await instagramApiService.getProfile(username)
       console.log('API Response:', response)
       setResult(response)
     } catch (err) {

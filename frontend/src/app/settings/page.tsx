@@ -17,10 +17,17 @@ import {
   Trash2,
   Download,
   Upload,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
+import { toast } from "sonner"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { AuthGuard } from "@/components/AuthGuard"
+import { useAuth } from "@/contexts/AuthContext"
+import { settingsApiService, type SettingsOverview, type UserProfile, type NotificationSettings, type PrivacySettings, type UserPreferences } from "@/services/settingsApi"
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -50,10 +57,268 @@ import {
 } from "@/components/ui/sidebar"
 
 export default function SettingsPage() {
+  // UI State
   const [showApiKey, setShowApiKey] = useState(false)
+  const [activeTab, setActiveTab] = useState("profile")
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  
+  // Settings Data
+  const [settings, setSettings] = useState<SettingsOverview | null>(null)
+  const [profileData, setProfileData] = useState<Partial<UserProfile>>({})
+  const [notificationSettings, setNotificationSettings] = useState<Partial<NotificationSettings>>({})
+  const [privacySettings, setPrivacySettings] = useState<Partial<PrivacySettings>>({})
+  const [preferences, setPreferences] = useState<Partial<UserPreferences>>({})
+  
+  // Password State
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  })
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  })
+  
+  // File upload
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { user, refreshUser, updateProfile } = useAuth()
+
+  // Load settings on component mount
+  useEffect(() => {
+    loadSettings()
+  }, [])
+
+  const loadSettings = async () => {
+    setLoading(true)
+    try {
+      console.log('🔄 Loading settings overview...')
+      const result = await settingsApiService.getSettingsOverview()
+      
+      if (result.success && result.data) {
+        console.log('✅ Settings loaded successfully')
+        setSettings(result.data)
+        
+        // Initialize form data
+        setProfileData(result.data.profile)
+        setNotificationSettings(result.data.notifications)
+        setPrivacySettings(result.data.privacy)
+        setPreferences(result.data.preferences)
+      } else {
+        console.error('❌ Failed to load settings:', result.error)
+        toast.error(result.error || 'Failed to load settings')
+      }
+    } catch (error) {
+      console.error('❌ Settings loading error:', error)
+      toast.error('Failed to load settings')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const saveProfile = async () => {
+    setSaving(true)
+    try {
+      console.log('💾 Saving profile...', profileData)
+      const success = await updateProfile(profileData)
+      
+      if (success) {
+        console.log('✅ Profile saved successfully via AuthContext')
+        // Update local state to reflect changes
+        const updatedUser = user
+        if (updatedUser) {
+          setProfileData({
+            ...profileData,
+            first_name: updatedUser.first_name || '',
+            last_name: updatedUser.last_name || '',
+            company: updatedUser.company || '',
+            job_title: updatedUser.job_title || '',
+            phone_number: updatedUser.phone_number || '',
+            bio: updatedUser.bio || ''
+          })
+        }
+      } else {
+        console.error('❌ Failed to save profile via AuthContext')
+      }
+    } catch (error) {
+      console.error('❌ Profile save error:', error)
+      toast.error('Failed to save profile')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveNotifications = async (updates: Partial<NotificationSettings>) => {
+    try {
+      console.log('🔔 Saving notifications...', updates)
+      const result = await settingsApiService.updateNotificationSettings(updates)
+      
+      if (result.success && result.data) {
+        console.log('✅ Notifications saved successfully')
+        setNotificationSettings(result.data)
+        toast.success(result.message || 'Notification preferences updated')
+      } else {
+        console.error('❌ Failed to save notifications:', result.error)
+        toast.error(result.error || 'Failed to update notifications')
+      }
+    } catch (error) {
+      console.error('❌ Notifications save error:', error)
+      toast.error('Failed to update notifications')
+    }
+  }
+
+  const savePrivacy = async (updates: Partial<PrivacySettings>) => {
+    try {
+      console.log('🔒 Saving privacy settings...', updates)
+      const result = await settingsApiService.updatePrivacySettings(updates)
+      
+      if (result.success && result.data) {
+        console.log('✅ Privacy settings saved successfully')
+        setPrivacySettings(result.data)
+        toast.success(result.message || 'Privacy settings updated')
+      } else {
+        console.error('❌ Failed to save privacy settings:', result.error)
+        toast.error(result.error || 'Failed to update privacy settings')
+      }
+    } catch (error) {
+      console.error('❌ Privacy settings save error:', error)
+      toast.error('Failed to update privacy settings')
+    }
+  }
+
+  const savePreferences = async (updates: Partial<UserPreferences>) => {
+    try {
+      console.log('⚙️ Saving preferences...', updates)
+      const result = await settingsApiService.updatePreferences(updates)
+      
+      if (result.success && result.data) {
+        console.log('✅ Preferences saved successfully')
+        setPreferences(result.data)
+        toast.success(result.message || 'Preferences updated')
+      } else {
+        console.error('❌ Failed to save preferences:', result.error)
+        toast.error(result.error || 'Failed to update preferences')
+      }
+    } catch (error) {
+      console.error('❌ Preferences save error:', error)
+      toast.error('Failed to update preferences')
+    }
+  }
+
+  const changePassword = async () => {
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      toast.error('New passwords do not match')
+      return
+    }
+
+    const validation = settingsApiService.validatePassword(passwordData.new_password)
+    if (!validation.valid) {
+      toast.error(validation.errors.join(', '))
+      return
+    }
+
+    setSaving(true)
+    try {
+      console.log('🔐 Changing password...')
+      const result = await settingsApiService.changePassword(passwordData)
+      
+      if (result.success && result.data) {
+        console.log('✅ Password changed successfully')
+        toast.success(result.message || 'Password updated successfully')
+        
+        // Clear password form
+        setPasswordData({
+          current_password: '',
+          new_password: '',
+          confirm_password: ''
+        })
+        
+        // Handle re-authentication if required
+        if (result.data.requires_reauth) {
+          toast.info('Please log in again with your new password', { duration: 5000 })
+          // Could redirect to login or handle re-auth here
+        }
+      } else {
+        console.error('❌ Failed to change password:', result.error)
+        toast.error(result.error || 'Failed to change password')
+      }
+    } catch (error) {
+      console.error('❌ Password change error:', error)
+      toast.error('Failed to change password')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const validation = settingsApiService.validateImageFile(file)
+    if (!validation.valid) {
+      toast.error(validation.error)
+      return
+    }
+
+    setSaving(true)
+    try {
+      console.log('📷 Uploading avatar...', file.name)
+      const result = await settingsApiService.uploadAvatar(file)
+      
+      if (result.success && result.data) {
+        console.log('✅ Avatar uploaded successfully')
+        setProfileData(prev => ({
+          ...prev,
+          profile_picture_url: result.data!.profile_picture_url
+        }))
+        toast.success(result.message || 'Avatar updated successfully')
+        await refreshUser() // Update auth context
+      } else {
+        console.error('❌ Failed to upload avatar:', result.error)
+        toast.error(result.error || 'Failed to upload avatar')
+      }
+    } catch (error) {
+      console.error('❌ Avatar upload error:', error)
+      toast.error('Failed to upload avatar')
+    } finally {
+      setSaving(false)
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleNotificationToggle = (key: keyof NotificationSettings, value: boolean) => {
+    const updates = { [key]: value }
+    setNotificationSettings(prev => ({ ...prev, ...updates }))
+    saveNotifications(updates)
+  }
+
+  const handlePrivacyToggle = (key: keyof PrivacySettings, value: boolean) => {
+    const updates = { [key]: value }
+    setPrivacySettings(prev => ({ ...prev, ...updates }))
+    savePrivacy(updates)
+  }
+
+  if (loading) {
+    return (
+      <AuthGuard requireAuth={true}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading settings...</p>
+          </div>
+        </div>
+      </AuthGuard>
+    )
+  }
 
   return (
-    <SidebarProvider
+    <AuthGuard requireAuth={true}>
+      <SidebarProvider
       style={
         {
           "--sidebar-width": "calc(var(--spacing) * 72)",
@@ -110,14 +375,37 @@ export default function SettingsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Avatar Section */}
                     <div className="flex items-center gap-4">
                       <Avatar className="h-20 w-20">
-                        <AvatarImage src="/avatars/user.png" alt="User Avatar" />
-                        <AvatarFallback>JD</AvatarFallback>
+                        <AvatarImage 
+                          src={profileData.profile_picture_url || "/avatars/user.png"} 
+                          alt="User Avatar" 
+                        />
+                        <AvatarFallback>
+                          {profileData.first_name?.[0] || profileData.full_name?.[0] || "U"}
+                          {profileData.last_name?.[0] || ""}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="space-y-2">
-                        <Button variant="outline" size="sm">
-                          <Upload className="h-4 w-4 mr-2" />
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarUpload}
+                          className="hidden"
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={saving}
+                        >
+                          {saving ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4 mr-2" />
+                          )}
                           Change Avatar
                         </Button>
                         <p className="text-xs text-muted-foreground">
@@ -125,30 +413,61 @@ export default function SettingsPage() {
                         </p>
                       </div>
                     </div>
+
+                    {/* Profile Form */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="firstName">First Name</Label>
-                        <Input id="firstName" defaultValue="John" />
+                        <Input 
+                          id="firstName" 
+                          value={profileData.first_name || ''} 
+                          onChange={(e) => setProfileData(prev => ({...prev, first_name: e.target.value}))}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="lastName">Last Name</Label>
-                        <Input id="lastName" defaultValue="Doe" />
+                        <Input 
+                          id="lastName" 
+                          value={profileData.last_name || ''} 
+                          onChange={(e) => setProfileData(prev => ({...prev, last_name: e.target.value}))}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" defaultValue="john.doe@example.com" />
+                        <Input 
+                          id="email" 
+                          type="email" 
+                          value={profileData.email || ''} 
+                          disabled
+                          className="bg-muted"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Email cannot be changed from settings
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="company">Company</Label>
-                        <Input id="company" defaultValue="Acme Corp" />
+                        <Input 
+                          id="company" 
+                          value={profileData.company || ''} 
+                          onChange={(e) => setProfileData(prev => ({...prev, company: e.target.value}))}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="jobTitle">Job Title</Label>
-                        <Input id="jobTitle" defaultValue="Marketing Manager" />
+                        <Input 
+                          id="jobTitle" 
+                          value={profileData.job_title || ''} 
+                          onChange={(e) => setProfileData(prev => ({...prev, job_title: e.target.value}))}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone">Phone Number</Label>
-                        <Input id="phone" defaultValue="+1 (555) 123-4567" />
+                        <Input 
+                          id="phone" 
+                          value={profileData.phone_number || ''} 
+                          onChange={(e) => setProfileData(prev => ({...prev, phone_number: e.target.value}))}
+                        />
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -156,11 +475,16 @@ export default function SettingsPage() {
                       <Textarea
                         id="bio"
                         placeholder="Tell us about yourself..."
-                        defaultValue="Marketing manager focused on influencer partnerships and brand growth."
+                        value={profileData.bio || ''}
+                        onChange={(e) => setProfileData(prev => ({...prev, bio: e.target.value}))}
                       />
                     </div>
-                    <Button>
-                      <Save className="h-4 w-4 mr-2" />
+                    <Button onClick={saveProfile} disabled={saving}>
+                      {saving ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
                       Save Changes
                     </Button>
                   </CardContent>
@@ -530,5 +854,6 @@ export default function SettingsPage() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+    </AuthGuard>
   )
 }

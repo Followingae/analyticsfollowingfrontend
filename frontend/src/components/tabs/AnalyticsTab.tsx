@@ -37,13 +37,8 @@ export default function AnalyticsTab() {
     try {
       let result;
       
-      if (useSmartProxy) {
-        // Use Decodo only analysis
-        result = await instagramApiService.getDecodoOnlyAnalysis(username.trim())
-      } else {
-        // Use fallback method (Decodo primary with in-house fallback)
-        result = await instagramApiService.fetchProfileWithFallback(username.trim())
-      }
+      // Use the new search endpoint for profile unlocking
+      result = await instagramApiService.searchProfile(username.trim())
       
       if (result.success && result.data) {
         setAnalyticsData(result.data)
@@ -208,7 +203,7 @@ export default function AnalyticsTab() {
           <CardContent className="space-y-4">
             <div className="flex justify-between">
               <span className="text-gray-600">Followers</span>
-              <span className="font-semibold">{formatNumber(analyticsData.profile.followers)}</span>
+              <span className="font-semibold">{formatNumber(analyticsData.profile.followers_count)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Posts Count</span>
@@ -230,58 +225,9 @@ export default function AnalyticsTab() {
             <CardTitle>Content Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            {analyticsData.content_strategy && (
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-gray-600">Photos</span>
-                    <span className="text-sm font-medium">{analyticsData.content_strategy.content_mix.photos}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full bg-blue-500"
-                      style={{ width: `${analyticsData.content_strategy.content_mix.photos}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-gray-600">Videos</span>
-                    <span className="text-sm font-medium">{analyticsData.content_strategy.content_mix.videos}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full bg-purple-500"
-                      style={{ width: `${analyticsData.content_strategy.content_mix.videos}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-gray-600">Carousels</span>
-                    <span className="text-sm font-medium">{analyticsData.content_strategy.content_mix.carousels}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full bg-green-500"
-                      style={{ width: `${analyticsData.content_strategy.content_mix.carousels}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-gray-600">Reels</span>
-                    <span className="text-sm font-medium">{analyticsData.content_strategy.content_mix.reels}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full bg-orange-500"
-                      style={{ width: `${analyticsData.content_strategy.content_mix.reels}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+            <div className="text-center py-8 text-muted-foreground">
+              Content distribution data not available
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -323,13 +269,13 @@ export default function AnalyticsTab() {
             Advanced Analytics Dashboard
           </CardTitle>
           <CardDescription>
-            Comprehensive analytics with 9 specialized modules for deep insights
+            Search to unlock 30-day access, then view detailed analytics instantly
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              placeholder="Enter username for detailed analytics..."
+              placeholder="Enter username to unlock analytics..."
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="flex-1"
@@ -342,7 +288,7 @@ export default function AnalyticsTab() {
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                'Analyze'
+                'Search & Unlock'
               )}
             </Button>
           </div>
