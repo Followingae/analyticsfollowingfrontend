@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
 import { AuthGuard } from "@/components/AuthGuard"
-import { instagramApiService } from "@/services/instagramApi"
+import { instagramApiService, UnlockedProfile, UnlockedProfilesResponse } from "@/services/instagramApi"
 import {
   Plus,
   Users,
@@ -58,13 +58,54 @@ export default function CreatorsPage() {
   const [bulkUsernames, setBulkUsernames] = useState("")
   const [bulkLoading, setBulkLoading] = useState(false)
   const [analyzingCreators, setAnalyzingCreators] = useState<{[key: string]: {status: 'analyzing' | 'completed' | 'failed', progress: number, error?: string}}>({})
-  const [unlockedCreators, setUnlockedCreators] = useState<any[]>([])
+  const [unlockedCreators, setUnlockedCreators] = useState<UnlockedProfile[]>([])
+  const [unlockedLoading, setUnlockedLoading] = useState(true)
+  const [unlockedError, setUnlockedError] = useState<string | null>(null)
+  const [pagination, setPagination] = useState<{page: number, totalPages: number, hasNext: boolean}>({
+    page: 1,
+    totalPages: 1,
+    hasNext: false
+  })
   const router = useRouter()
   // Note: URL param analysis temporarily disabled for production build
   // TODO: Implement proper Suspense boundary for useSearchParams
   
-  // TODO: Replace with real backend data - for now we use unlockedCreators state
-  const creators: any[] = unlockedCreators
+  // Load unlocked profiles from backend
+  const loadUnlockedProfiles = async (page: number = 1) => {
+    console.log('👥 Loading unlocked profiles, page:', page)
+    setUnlockedLoading(true)
+    setUnlockedError(null)
+    
+    try {
+      const result = await instagramApiService.getUnlockedProfiles(page, 20)
+      
+      if (result.success && result.data) {
+        console.log('✅ Unlocked profiles loaded:', result.data)
+        setUnlockedCreators(result.data.profiles)
+        setPagination({
+          page: result.data.pagination.page,
+          totalPages: result.data.pagination.total_pages,
+          hasNext: result.data.pagination.has_next
+        })
+        setUnlockedError(null)
+      } else {
+        console.error('❌ Failed to load unlocked profiles:', result.error)
+        setUnlockedError(result.error || 'Failed to load unlocked profiles')
+      }
+    } catch (error) {
+      console.error('❌ Error loading unlocked profiles:', error)
+      setUnlockedError('Network error while loading profiles')
+    } finally {
+      setUnlockedLoading(false)
+    }
+  }
+
+  // Load unlocked profiles on component mount
+  useEffect(() => {
+    loadUnlockedProfiles()
+  }, [])
+
+  const creators: UnlockedProfile[] = unlockedCreators
 
   const startAnalysis = async (username: string) => {
     const cleanUsername = username.trim().replace('@', '')
@@ -280,7 +321,7 @@ export default function CreatorsPage() {
 
 
   // Calculate real stats from unlocked creators
-  const totalFollowers = unlockedCreators.reduce((sum, creator) => sum + (creator.followers || 0), 0)
+  const totalFollowers = unlockedCreators.reduce((sum, creator) => sum + (creator.followers_count || 0), 0)
   const avgEngagement = unlockedCreators.length > 0 
     ? unlockedCreators.reduce((sum, creator) => sum + (creator.engagement_rate || 0), 0) / unlockedCreators.length 
     : undefined
@@ -554,9 +595,48 @@ export default function CreatorsPage() {
                     </Card>
                   ))}
 
+                  {/* Loading State */}
+                  {unlockedLoading && (
+                    <div className="col-span-full flex items-center justify-center py-12">
+                      <div className="text-center space-y-4">
+                        <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        <p className="text-muted-foreground">Loading your unlocked creators...</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error State */}
+                  {unlockedError && !unlockedLoading && (
+                    <div className="col-span-full flex items-center justify-center py-12">
+                      <div className="text-center space-y-4">
+                        <p className="text-red-600 dark:text-red-400">{unlockedError}</p>
+                        <Button variant="outline" onClick={() => loadUnlockedProfiles()}>
+                          Try Again
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty State */}
+                  {!unlockedLoading && !unlockedError && creators.length === 0 && (
+                    <div className="col-span-full flex items-center justify-center py-12">
+                      <div className="text-center space-y-4">
+                        <Users className="h-12 w-12 mx-auto text-muted-foreground" />
+                        <div>
+                          <h3 className="text-lg font-semibold">No unlocked creators yet</h3>
+                          <p className="text-muted-foreground">Start by searching for creators to analyze</p>
+                        </div>
+                        <Button onClick={() => setIsSearchOpen(true)}>
+                          <Search className="h-4 w-4 mr-2" />
+                          Search for Creators
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Existing Creators */}
-                  {creators.map((creator) => (
-                    <Card key={creator.id} className="relative overflow-hidden hover:shadow-lg transition-shadow">
+                  {!unlockedLoading && creators.map((creator) => (
+                    <Card key={creator.username} className="relative overflow-hidden hover:shadow-lg transition-shadow">
                       {/* Status Indicator */}
                       <div className="absolute top-2 right-2 z-10">
                         <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-xs">
@@ -568,7 +648,7 @@ export default function CreatorsPage() {
                         {/* Avatar */}
                         <div className="flex justify-center mb-3">
                           <Avatar className="h-16 w-16">
-                            <AvatarImage src={creator.profile_pic_url} alt={creator.full_name} />
+                            <AvatarImage src={creator.proxied_profile_pic_url || creator.profile_pic_url} alt={creator.full_name} />
                             <AvatarFallback>
                               {creator.full_name.split(' ').map((n: string) => n[0]).join('')}
                             </AvatarFallback>
@@ -592,11 +672,19 @@ export default function CreatorsPage() {
 
                         {/* Content Category Badges */}
                         <div className="flex flex-wrap justify-center gap-1 mt-3">
-                          {creator.categories.slice(0, 3).map((category: string, index: number) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {category}
+                          {creator.business_category_name && (
+                            <Badge variant="outline" className="text-xs">
+                              {creator.business_category_name}
                             </Badge>
-                          ))}
+                          )}
+                          {creator.is_business_account && (
+                            <Badge variant="outline" className="text-xs">
+                              Business
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="text-xs">
+                            Creator
+                          </Badge>
                         </div>
                       </CardHeader>
 
@@ -604,27 +692,19 @@ export default function CreatorsPage() {
                         {/* Followers and Engagement */}
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <div className="text-center p-2 bg-muted rounded-md">
-                            <div className="text-lg font-bold">{formatNumber(creator.followers)}</div>
+                            <div className="text-lg font-bold">{formatNumber(creator.followers_count)}</div>
                             <div className="text-xs text-muted-foreground">Followers</div>
                           </div>
                           <div className="text-center p-2 bg-muted rounded-md">
-                            <div className="text-lg font-bold">{creator.engagement_rate}%</div>
+                            <div className="text-lg font-bold">{creator.engagement_rate ? `${creator.engagement_rate}%` : 'N/A'}</div>
                             <div className="text-xs text-muted-foreground">Engagement</div>
                           </div>
                         </div>
 
-                        {/* Location */}
+                        {/* Access Info */}
                         <div className="flex items-center justify-center gap-2">
-                          <ReactCountryFlag
-                            countryCode={getCountryCode(creator.location)}
-                            svg
-                            style={{
-                              width: '16px',
-                              height: '12px',
-                            }}
-                          />
                           <span className="text-sm text-muted-foreground">
-                            {creator.location}
+                            {creator.days_remaining} days remaining
                           </span>
                         </div>
 
@@ -645,6 +725,36 @@ export default function CreatorsPage() {
                     </Card>
                   ))}
                 </div>
+                
+                {/* Pagination Controls */}
+                {!unlockedLoading && !unlockedError && creators.length > 0 && pagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-6 border-t">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadUnlockedProfiles(pagination.page - 1)}
+                        disabled={pagination.page <= 1}
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Page {pagination.page} of {pagination.totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadUnlockedProfiles(pagination.page + 1)}
+                        disabled={!pagination.hasNext}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {creators.length} creators shown
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

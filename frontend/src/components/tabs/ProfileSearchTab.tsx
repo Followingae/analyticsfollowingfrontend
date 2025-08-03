@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { formatNumber, formatPercentage, getProfileImageUrl, isValidProfile } from '@/lib/utils'
+import { formatNumber, formatPercentage, getProfileImageUrl, isValidProfile, proxyInstagramUrl } from '@/lib/utils'
 import { instagramApiService, CompleteProfileResponse } from '@/services/instagramApi'
 import { Loader2, Search, Instagram, Users, Heart, BarChart3, Target, TrendingUp, Clock, Zap, Star, CheckCircle2, ExternalLink } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -200,7 +200,7 @@ export default function ProfileSearchTab() {
             <CardHeader>
               <div className="flex items-start gap-4">
                 <Image
-                  src={getProfileImageUrl(profileData.profile.profile_pic_url)}
+                  src={proxyInstagramUrl(profileData.profile.profile_pic_url)}
                   alt={profileData.profile.username}
                   width={80}
                   height={80}

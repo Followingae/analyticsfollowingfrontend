@@ -18,7 +18,16 @@ export function formatPercentage(num: number | undefined | null): string {
 }
 
 export function getProfileImageUrl(url?: string | null): string {
-  return url || '/default-avatar.png'
+  return url || '/placeholder-avatar.svg'
+}
+
+export function proxyInstagramUrl(originalUrl?: string | null): string {
+  if (!originalUrl) return '/placeholder-avatar.svg'
+  
+  if (originalUrl.includes('cdninstagram.com') || originalUrl.includes('scontent-')) {
+    return `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`
+  }
+  return originalUrl
 }
 
 export function isValidProfile(profile: any): boolean {

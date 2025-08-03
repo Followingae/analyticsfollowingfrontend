@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
-import { instagramApiService, ProfileResponse } from "@/services/instagramApi"
+import { instagramApiService, ProfileResponse, InstagramPost } from "@/services/instagramApi"
+import { API_CONFIG } from "@/config/api"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { ProfileAccessWrapper } from "@/components/profile-access-wrapper"
@@ -20,7 +21,9 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import ErrorBoundary from "@/components/ErrorBoundary"
+import { toast } from "sonner"
 import { RealEngagementTimeline } from "@/components/real-engagement-timeline"
+import PostCard from "@/components/posts/PostCard"
 import { 
   Search, 
   TrendingUp, 
@@ -44,7 +47,8 @@ import {
   FileText,
   Hash,
   AtSign,
-  Smile
+  Smile,
+  RefreshCw
 } from "lucide-react"
 
 function formatNumber(num: number | undefined | null): string {
@@ -58,7 +62,10 @@ export default function AnalyticsPage() {
   const params = useParams()
   const username = params?.username as string
   const [profileData, setProfileData] = useState<ProfileResponse | null>(null)
+  const [postsData, setPostsData] = useState<InstagramPost[]>([])
+  const [postsLoading, setPostsLoading] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const router = useRouter()
@@ -77,6 +84,74 @@ export default function AnalyticsPage() {
         <div>Loading...</div>
       </div>
     )
+  }
+
+  // Test function to manually check posts endpoint
+  const testPostsEndpoint = async (targetUsername: string) => {
+    const testUrl = `http://localhost:8000/api/v1/instagram/profile/${targetUsername}/posts?limit=5&offset=0`;
+    console.log('🧪 TEST: Testing posts endpoint manually:', testUrl);
+    
+    try {
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        }
+      });
+      
+      console.log('🧪 TEST: Response status:', response.status);
+      console.log('🧪 TEST: Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🧪 TEST: Response data:', data);
+      } else {
+        const errorText = await response.text();
+        console.log('🧪 TEST: Error response:', errorText);
+      }
+    } catch (error) {
+      console.error('🧪 TEST: Fetch failed:', error);
+    }
+  };
+
+  const loadPosts = async (targetUsername: string) => {
+    console.log('🔍 POSTS: Starting to load posts for:', targetUsername)
+    console.log('🔍 POSTS: Posts endpoint will be:', `/api/v1/instagram/profile/${targetUsername}/posts`)
+    setPostsLoading(true)
+    
+    // First test the endpoint manually
+    await testPostsEndpoint(targetUsername);
+    
+    try {
+      console.log('🔍 POSTS: Calling instagramApiService.getPosts...')
+      const result = await instagramApiService.getPosts(targetUsername, 20, 0)
+      
+      console.log('🔍 POSTS: Full result received:', result)
+      
+      if (result.success && result.data) {
+        console.log('✅ POSTS: Success! Posts data structure:', {
+          profile: result.data.profile,
+          postsCount: result.data.posts?.length || 0,
+          firstPost: result.data.posts?.[0],
+          pagination: result.data.pagination
+        })
+        setPostsData(result.data.posts || [])
+        console.log('✅ POSTS: Posts state updated with', result.data.posts?.length || 0, 'posts')
+      } else {
+        console.log('❌ POSTS: Loading failed with error:', result.error)
+        console.log('❌ POSTS: Full result object:', result)
+        setPostsData([])
+      }
+    } catch (error) {
+      console.error('❌ POSTS: Exception during loading:', error)
+      console.error('❌ POSTS: Error stack:', error instanceof Error ? error.stack : 'No stack')
+      setPostsData([])
+    } finally {
+      setPostsLoading(false)
+      console.log('🔍 POSTS: Loading completed, postsLoading set to false')
+    }
   }
 
   const analyzeProfile = async (targetUsername: string) => {
@@ -123,6 +198,9 @@ export default function AnalyticsPage() {
         expiresInDays: profileResponse.meta?.access_expires_in_days
       })
       
+      // Load posts separately for content tab
+      loadPosts(targetUsername)
+      
     } catch (error) {
       console.error('Profile analysis error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to analyze profile'
@@ -153,6 +231,75 @@ export default function AnalyticsPage() {
     const unlockedData = await unlockProfile(username)
     if (unlockedData) {
       setProfileData(unlockedData)
+    }
+  }
+
+  // Handle refresh profile data - triggers fresh Decodo call
+  const handleRefreshProfile = async () => {
+    if (!username) return
+    
+    console.log('🔄 Starting profile refresh for:', username)
+    setRefreshing(true)
+    
+    try {
+      // Get auth token
+      const token = localStorage.getItem('access_token')
+      if (!token) {
+        toast.error('Authentication required. Please log in again.')
+        setRefreshing(false)
+        return
+      }
+
+      // Show user feedback immediately
+      toast.info(`Refreshing @${username}... this may take up to 2 minutes. Redirecting to creators page.`, {
+        duration: 3000
+      })
+
+      // Start refresh in background (don't wait for completion)
+      console.log('🔄 Starting background refresh for:', username)
+      fetch(`${API_CONFIG.BASE_URL}/api/v1/instagram/profile/${username}/force-refresh`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }).then(async (response) => {
+        // Handle completion in background
+        if (response.ok) {
+          const data = await response.json()
+          console.log('✅ Background refresh completed:', {
+            username,
+            refreshedAt: data.meta?.refreshed_at,
+            refreshType: data.meta?.refresh_type,
+            allDataReplaced: data.meta?.all_data_replaced
+          })
+          toast.success(`✅ @${username} profile data refreshed successfully!`, {
+            duration: 5000
+          })
+        } else {
+          const errorText = await response.text()
+          console.error('❌ Background refresh failed:', response.status, errorText)
+          toast.error(`❌ Failed to refresh @${username}: ${response.status} ${response.statusText}`, {
+            duration: 5000
+          })
+        }
+      }).catch((error) => {
+        console.error('❌ Background refresh network error:', error)
+        toast.error(`❌ Network error refreshing @${username}: ${error.message}`, {
+          duration: 5000
+        })
+      })
+
+      // Redirect immediately (don't wait for refresh to complete)
+      setTimeout(() => {
+        console.log('🔄 Redirecting to creators page...')
+        router.push('/creators')
+      }, 1000)
+      
+    } catch (error) {
+      console.error('❌ Profile refresh setup error:', error)
+      toast.error(`Failed to start refresh: ${error.message}`)
+      setRefreshing(false)
     }
   }
 
@@ -283,11 +430,20 @@ export default function AnalyticsPage() {
                           <div className="relative">
                             <div className="absolute -inset-1 bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600 rounded-full blur opacity-30 animate-pulse"></div>
                             <img 
-                              src={profileData.profile.profile_pic_url || 'https://via.placeholder.com/120x120/6b7280/ffffff?text=' + (profileData.profile.full_name?.charAt(0) || 'U')}
+                              src={(() => {
+                                // Use HD profile image from profile_images array if available, fallback to profile_pic_url_hd, then regular
+                                const profileImages = profileData.profile.profile_images || [];
+                                const hdImage = profileImages.find(img => img.type === 'hd');
+                                const imageUrl = hdImage?.url || profileData.profile.profile_pic_url_hd || profileData.profile.profile_pic_url;
+                                
+                                return imageUrl 
+                                  ? `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+                                  : '/placeholder-avatar.svg';
+                              })()}
                               alt={profileData.profile.full_name || 'Profile'}
                               className="relative w-32 h-32 rounded-full object-cover border-4 border-white dark:border-gray-900 shadow-2xl"
                               onError={(e) => {
-                                e.currentTarget.src = 'https://via.placeholder.com/120x120/6b7280/ffffff?text=' + (profileData.profile.full_name?.charAt(0) || 'U')
+                                e.currentTarget.src = '/placeholder-avatar.svg'
                               }}
                             />
                             {profileData.profile.is_verified && (
@@ -314,11 +470,12 @@ export default function AnalyticsPage() {
                         <div className="flex-1 space-y-6">
                           {/* Name and Status */}
                           <div className="space-y-3">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-gray-100 dark:via-gray-200 dark:to-gray-100 bg-clip-text text-transparent">
-                                {profileData.profile.full_name}
-                              </h1>
-                              <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-gray-100 dark:via-gray-200 dark:to-gray-100 bg-clip-text text-transparent">
+                                  {profileData.profile.full_name}
+                                </h1>
+                                <div className="flex flex-wrap gap-2">
                                 {profileData.profile.is_verified && (
                                   <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700">
                                     <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -339,23 +496,62 @@ export default function AnalyticsPage() {
                                     Professional
                                   </Badge>
                                 )}
+                                </div>
+                              </div>
+                              
+                              {/* Data Freshness & Refresh Button - Top Right */}
+                              <div className="flex flex-col items-end gap-2">
+                                <div className="text-xs text-gray-500 text-right">
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Profile data last received:</span>
+                                  </div>
+                                  <div className="text-gray-700 dark:text-gray-300 font-medium">
+                                    {profileData.profile.last_refreshed ? 
+                                      new Date(profileData.profile.last_refreshed).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric', 
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      }) : 
+                                      'Unknown'
+                                    }
+                                  </div>
+                                </div>
+                                
+                                <Button
+                                  onClick={handleRefreshProfile}
+                                  disabled={refreshing}
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex items-center gap-2"
+                                >
+                                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                                  {refreshing ? 'Refreshing...' : 'Refresh Data'}
+                                </Button>
+                                
+                                {refreshing && (
+                                  <div className="text-xs text-blue-600 dark:text-blue-400 text-right">
+                                    <div className="flex items-center gap-1">
+                                      <RefreshCw className="w-3 h-3 animate-spin" />
+                                      Fetching fresh data...
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                             
                             <p className="text-xl text-muted-foreground font-medium">@{profileData.profile.username}</p>
                             
-                            {/* Categories - Mono Theme */}
-                            <div className="flex flex-wrap gap-2">
-                              <Badge className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-0 px-3 py-1 font-medium">
-                                {profileData.profile.business_category_name || 'Lifestyle'}
-                              </Badge>
-                              <Badge className="bg-gray-700 dark:bg-gray-300 text-white dark:text-gray-800 border-0 px-3 py-1 font-medium">
-                                Fashion
-                              </Badge>
-                              <Badge className="bg-gray-500 dark:bg-gray-500 text-white dark:text-white border-0 px-3 py-1 font-medium">
-                                Entertainment
-                              </Badge>
-                            </div>
+                            {/* Business Category */}
+                            {profileData.profile.business_category_name && (
+                              <div className="flex flex-wrap gap-2">
+                                <Badge className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-0 px-3 py-1 font-medium">
+                                  {profileData.profile.business_category_name}
+                                </Badge>
+                              </div>
+                            )}
                           </div>
 
                           {/* Bio and Links */}
@@ -363,7 +559,6 @@ export default function AnalyticsPage() {
                             <div className="space-y-2">
                               <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{profileData.profile.biography}</p>
                               <div className="flex flex-wrap gap-2">
-                                {/* External links section removed - not available in current API */}
                                 {profileData.profile.external_url && (
                                   <a 
                                     href={profileData.profile.external_url} 
@@ -376,13 +571,33 @@ export default function AnalyticsPage() {
                                   </a>
                                 )}
                               </div>
+                              
+                              {/* Additional Data Quality Info */}
+                              {(profileData.profile.refresh_count || profileData.profile.data_quality_score) && (
+                                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                  <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                                    {profileData.profile.refresh_count && (
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        Refreshed {profileData.profile.refresh_count} times
+                                      </div>
+                                    )}
+                                    {profileData.profile.data_quality_score && (
+                                      <div className="flex items-center gap-1">
+                                        <BarChart3 className="w-3 h-3" />
+                                        Quality: {profileData.profile.data_quality_score.toFixed(1)}/10
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {/* Stats Grid - Mono Theme */}
-                      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {/* Stats Grid - Enhanced with Real Data */}
+                      <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4">
                         <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 hover:shadow-md transition-shadow">
                           <CardContent className="p-4 text-center">
                             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -391,7 +606,7 @@ export default function AnalyticsPage() {
                             <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Followers</div>
                             <div className="mt-1">
                               <Badge variant="outline" className="text-xs border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300">
-                                {formatNumber(profileData.profile.followers_count)}
+                                Audience
                               </Badge>
                             </div>
                           </CardContent>
@@ -400,12 +615,12 @@ export default function AnalyticsPage() {
                         <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:shadow-md transition-shadow">
                           <CardContent className="p-4 text-center">
                             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              {formatNumber(profileData.profile.following_count)}
+                              {formatNumber(profileData.profile.posts_count)}
                             </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Following</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total Posts</div>
                             <div className="mt-1">
                               <Badge variant="outline" className="text-xs border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300">
-                                Social Graph
+                                {postsData.length || 0} stored
                               </Badge>
                             </div>
                           </CardContent>
@@ -414,18 +629,32 @@ export default function AnalyticsPage() {
                         <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 hover:shadow-md transition-shadow">
                           <CardContent className="p-4 text-center">
                             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              {formatNumber(profileData.profile.posts_count)}
+                              {profileData.profile.avg_likes ? formatNumber(profileData.profile.avg_likes) : 'N/A'}
                             </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Posts</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Avg Likes</div>
                             <div className="mt-1">
                               <Badge variant="outline" className="text-xs border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300">
-                                Content Library
+                                Per Post
                               </Badge>
                             </div>
                           </CardContent>
                         </Card>
 
                         <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500 hover:shadow-md transition-shadow">
+                          <CardContent className="p-4 text-center">
+                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                              {profileData.profile.avg_comments ? formatNumber(profileData.profile.avg_comments) : 'N/A'}
+                            </div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Avg Comments</div>
+                            <div className="mt-1">
+                              <Badge variant="outline" className="text-xs border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300">
+                                Per Post
+                              </Badge>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-400 to-gray-500 dark:from-gray-500 dark:to-gray-400 hover:shadow-md transition-shadow">
                           <CardContent className="p-4 text-center">
                             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                               {profileData.profile.engagement_rate?.toFixed(1)}%
@@ -440,7 +669,7 @@ export default function AnalyticsPage() {
                                     : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-400'
                                 }`}
                               >
-                                {profileData.profile.engagement_rate ? `${profileData.profile.engagement_rate}%` : 'Unknown'}
+                                {profileData.profile.engagement_rate ? 'Active' : 'Unknown'}
                               </Badge>
                             </div>
                           </CardContent>
@@ -665,6 +894,30 @@ export default function AnalyticsPage() {
                         <CardContent className="space-y-4">
                           {profileData.demographics?.gender_distribution ? (
                             <div className="space-y-4">
+                              {/* Demographics Quality Info */}
+                              <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg mb-4">
+                                <div className="grid grid-cols-3 gap-4 text-xs">
+                                  <div className="text-center">
+                                    <div className="font-bold text-blue-800 dark:text-blue-200">
+                                      {profileData.demographics.sample_size?.toLocaleString() || 'N/A'}
+                                    </div>
+                                    <div className="text-blue-600 dark:text-blue-400">Sample Size</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-bold text-blue-800 dark:text-blue-200">
+                                      {profileData.demographics.confidence_score?.toFixed(1) || 'N/A'}%
+                                    </div>
+                                    <div className="text-blue-600 dark:text-blue-400">Confidence</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-bold text-blue-800 dark:text-blue-200">
+                                      {profileData.demographics.analysis_method || 'N/A'}
+                                    </div>
+                                    <div className="text-blue-600 dark:text-blue-400">Method</div>
+                                  </div>
+                                </div>
+                              </div>
+
                               <div>
                                 <div className="flex justify-between mb-2">
                                   <span className="text-sm font-medium">Female</span>
@@ -897,152 +1150,151 @@ export default function AnalyticsPage() {
                   </TabsContent>
                   
                   <TabsContent value="content" className="space-y-6">
-                    {/* Recent Posts Grid */}
+                    {/* Recent Posts Grid - Using Real Data */}
                     <Card>
                       <CardHeader>
                         <CardTitle>Recent Posts</CardTitle>
-                        <CardDescription>Latest 6 posts with engagement stats</CardDescription>
+                        <CardDescription>
+                          {postsLoading 
+                            ? "Loading posts from database..."
+                            : postsData.length 
+                              ? `Showing ${postsData.length} stored posts with engagement stats`
+                              : "No posts available in database"
+                          }
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        {false ? (
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {[].slice(0, 6).map((post, index) => (
-                              <Card key={index} className="overflow-hidden">
-                                <div className="aspect-square bg-muted flex items-center justify-center">
-                                  <div className="text-center">
-                                    <div className="w-8 h-8 mx-auto mb-2 bg-primary/20 rounded-full flex items-center justify-center">
-                                      <FileText className="h-4 w-4" />
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">Post #{index + 1}</div>
-                                  </div>
-                                </div>
-                                <CardContent className="p-3 space-y-2">
-                                  <div className="grid grid-cols-2 gap-2 text-xs">
-                                    <div>
-                                      <div className="font-medium">0</div>
-                                      <div className="text-muted-foreground">Likes</div>
-                                    </div>
-                                    <div>
-                                      <div className="font-medium">0</div>
-                                      <div className="text-muted-foreground">Comments</div>
-                                    </div>
-                                  </div>
-                                  <div className="text-center">
-                                    <Badge variant="outline" className="text-xs">
-                                      0.0% ER
-                                    </Badge>
-                                  </div>
-                                </CardContent>
-                              </Card>
+                        {postsLoading ? (
+                          <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                            <p className="text-muted-foreground">Loading posts...</p>
+                          </div>
+                        ) : postsData.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {postsData.slice(0, 12).map((post) => (
+                              <PostCard key={post.instagram_post_id || post.id} post={post} />
                             ))}
                           </div>
                         ) : (
                           <div className="text-center py-8">
                             <div className="text-muted-foreground mb-4">
                               <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                              <p>No recent posts data available</p>
+                              <p>No posts stored in database yet</p>
+                              <p className="text-sm mt-2">Posts are automatically stored when you search for a profile</p>
                             </div>
-                            <Badge variant="outline" className="text-red-600">No Data</Badge>
+                            <Badge variant="outline" className="text-orange-600">No Posts Data</Badge>
                           </div>
                         )}
                       </CardContent>
                     </Card>
 
-                    {/* Content Insights */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Content Insights</CardTitle>
-                        <CardDescription>Content distribution and performance analysis</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid gap-6 md:grid-cols-2">
-                          {/* Content Mix Chart */}
-                          <div>
-                            <h4 className="font-medium mb-4">Content Distribution</h4>
-                            <div className="space-y-3">
-                              <div>
-                                <div className="flex justify-between mb-2">
-                                  <span className="text-sm">Photos</span>
-                                  <span className="text-sm font-medium">{0}%</span>
+                    {/* Content Insights - Real Data */}
+                    {postsData.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Content Analysis</CardTitle>
+                          <CardDescription>Based on {postsData.length} stored posts</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {(() => {
+                            const posts = postsData;
+                            const totalPosts = posts.length;
+                            const photos = posts.filter(p => p.media_type === 'GraphImage').length;
+                            const videos = posts.filter(p => p.media_type === 'GraphVideo').length;
+                            const carousels = posts.filter(p => p.media_type === 'GraphSidecar').length;
+                            
+                            const avgLikes = Math.round(posts.reduce((sum, p) => sum + p.likes_count, 0) / totalPosts);
+                            const avgComments = Math.round(posts.reduce((sum, p) => sum + p.comments_count, 0) / totalPosts);
+                            const avgEngagement = (posts.reduce((sum, p) => sum + p.engagement_rate, 0) / totalPosts).toFixed(1);
+                            
+                            const photoPercent = Math.round((photos / totalPosts) * 100);
+                            const videoPercent = Math.round((videos / totalPosts) * 100);
+                            const carouselPercent = Math.round((carousels / totalPosts) * 100);
+                            
+                            return (
+                              <div className="grid gap-6 md:grid-cols-2">
+                                {/* Content Mix Chart */}
+                                <div>
+                                  <h4 className="font-medium mb-4">Content Distribution</h4>
+                                  <div className="space-y-3">
+                                    <div>
+                                      <div className="flex justify-between mb-2">
+                                        <span className="text-sm">Photos</span>
+                                        <span className="text-sm font-medium">{photoPercent}% ({photos})</span>
+                                      </div>
+                                      <Progress value={photoPercent} className="h-2" />
+                                    </div>
+                                    
+                                    <div>
+                                      <div className="flex justify-between mb-2">
+                                        <span className="text-sm">Videos</span>
+                                        <span className="text-sm font-medium">{videoPercent}% ({videos})</span>
+                                      </div>
+                                      <Progress value={videoPercent} className="h-2" />
+                                    </div>
+                                    
+                                    <div>
+                                      <div className="flex justify-between mb-2">
+                                        <span className="text-sm">Carousels</span>
+                                        <span className="text-sm font-medium">{carouselPercent}% ({carousels})</span>
+                                      </div>
+                                      <Progress value={carouselPercent} className="h-2" />
+                                    </div>
+                                  </div>
                                 </div>
-                                <Progress value={0} className="h-2" />
-                              </div>
-                              
-                              <div>
-                                <div className="flex justify-between mb-2">
-                                  <span className="text-sm">Videos</span>
-                                  <span className="text-sm font-medium">{0}%</span>
-                                </div>
-                                <Progress value={0} className="h-2" />
-                              </div>
-                              
-                              <div>
-                                <div className="flex justify-between mb-2">
-                                  <span className="text-sm">Carousels</span>
-                                  <span className="text-sm font-medium">{0}%</span>
-                                </div>
-                                <Progress value={0} className="h-2" />
-                              </div>
-                              
-                              <div>
-                                <div className="flex justify-between mb-2">
-                                  <span className="text-sm">Reels</span>
-                                  <span className="text-sm font-medium">{0}%</span>
-                                </div>
-                                <Progress value={0} className="h-2" />
-                              </div>
-                            </div>
-                          </div>
 
-                          {/* Performance Metrics */}
-                          <div>
-                            <h4 className="font-medium mb-4">Performance Metrics</h4>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="text-center p-3 bg-muted rounded-lg">
-                                <div className="text-lg font-bold">N/A</div>
-                                <div className="text-xs text-muted-foreground">Avg Likes</div>
+                                {/* Performance Metrics */}
+                                <div>
+                                  <h4 className="font-medium mb-4">Performance Metrics</h4>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                                      <div className="text-lg font-bold">{formatNumber(avgLikes)}</div>
+                                      <div className="text-xs text-muted-foreground">Avg Likes</div>
+                                    </div>
+                                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                                      <div className="text-lg font-bold">{formatNumber(avgComments)}</div>
+                                      <div className="text-xs text-muted-foreground">Avg Comments</div>
+                                    </div>
+                                    <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                                      <div className="text-lg font-bold">{avgEngagement}%</div>
+                                      <div className="text-xs text-muted-foreground">Avg Engagement</div>
+                                    </div>
+                                    <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                                      <div className="text-lg font-bold">{totalPosts}</div>
+                                      <div className="text-xs text-muted-foreground">Total Posts</div>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-center p-3 bg-muted rounded-lg">
-                                <div className="text-lg font-bold">N/A</div>
-                                <div className="text-xs text-muted-foreground">Avg Comments</div>
-                              </div>
-                              <div className="text-center p-3 bg-muted rounded-lg">
-                                <div className="text-lg font-bold">N/A</div>
-                                <div className="text-xs text-muted-foreground">Video Rate</div>
-                              </div>
-                              <div className="text-center p-3 bg-muted rounded-lg">
-                                <div className="text-lg font-bold">N/A</div>
-                                <div className="text-xs text-muted-foreground">Consistency</div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                            );
+                          })()}
 
-                        {/* Content Pillars */}
-                        <div className="mt-6">
-                          <h4 className="font-medium mb-3">Content Pillars</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {['Lifestyle', 'Travel', 'Fashion'].map((pillar, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {pillar}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Best Posting Times */}
-                        <div className="mt-6">
-                          <h4 className="font-medium mb-3">Optimal Posting Times</h4>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                            {['9:00 AM', '1:00 PM', '7:00 PM', '9:00 PM'].map((time, index) => (
-                              <Badge key={index} variant="outline" className="justify-center p-2 text-xs">
-                                {time}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                          {/* Hashtag Analysis */}
+                          {(() => {
+                            const allHashtags = postsData.flatMap(post => post.hashtags || []);
+                            const uniqueHashtags = [...new Set(allHashtags)];
+                            
+                            return uniqueHashtags.length > 0 && (
+                              <div className="mt-6">
+                                <h4 className="font-medium mb-3">Top Hashtags Used</h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {uniqueHashtags.slice(0, 10).map((hashtag, index) => (
+                                    <Badge key={index} variant="secondary" className="text-xs">
+                                      {hashtag}
+                                    </Badge>
+                                  ))}
+                                  {uniqueHashtags.length > 10 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      +{uniqueHashtags.length - 10} more
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </CardContent>
+                      </Card>
+                    )}
                   </TabsContent>
                   
                   </Tabs>

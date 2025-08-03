@@ -1,8 +1,8 @@
 export const API_CONFIG = {
   BASE_URL: (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, ''), // Remove trailing slash
-  TIMEOUT: 300000, // 5 minutes - Extended timeout to give backend more than enough time
-  SEARCH_TIMEOUT: 300000, // 5 minutes - Specific timeout for search endpoint (Decodo calls)
-  ANALYTICS_TIMEOUT: 10000, // 10 seconds - Short timeout for analytics endpoint (DB only)
+  TIMEOUT: 7200000, // 2 hours - Let backend take all the time it needs
+  SEARCH_TIMEOUT: 7200000, // 2 hours - Let backend take all the time it needs for Decodo calls
+  ANALYTICS_TIMEOUT: 7200000, // 2 hours - Let backend take all the time it needs
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
 }
@@ -14,6 +14,8 @@ export const ENDPOINTS = {
     search: (username: string) => `/api/v1/instagram/profile/${username}`,
     // NEW: Analytics endpoint - ONLY reads from DB cache, NEVER calls Decodo
     analytics: (username: string) => `/api/v1/instagram/profile/${username}/analytics`,
+    // NEW: Posts endpoint - retrieves stored posts with pagination
+    posts: (username: string) => `/api/v1/instagram/profile/${username}/posts`,
     // DEPRECATED: Use search endpoint instead
     full: (username: string) => `/api/v1/instagram/profile/${username}`,
     // DEPRECATED: Use search endpoint instead  
@@ -39,6 +41,7 @@ export const ENDPOINTS = {
     verifyEmail: (token: string) => `/api/v1/auth/verify-email/${token}`,
     me: '/api/v1/auth/me',
     logout: '/api/v1/auth/logout',
+    unlockedProfiles: '/api/v1/auth/unlocked-profiles',
   },
 }
 

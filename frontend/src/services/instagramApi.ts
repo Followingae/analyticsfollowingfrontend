@@ -66,20 +66,48 @@ export interface InstagramProfile {
 
 // Post data interface (NEW!)
 export interface InstagramPost {
+  id: string
   instagram_post_id: string
   shortcode: string
+  url?: string
   media_type: string            // "GraphImage", "GraphVideo", "GraphSidecar"
   is_video: boolean
+  is_carousel?: boolean
+  carousel_media_count?: number
   display_url: string
+  video_url?: string
   caption: string
-  likes_count: number
-  comments_count: number
-  taken_at_timestamp: number
-  posted_at: string
   hashtags: string[]
   mentions: string[]
-  post_images: Array<{url: string, width: number, height: number}>
-  post_thumbnails: Array<{url: string, width: number, height: number}>
+  likes_count: number
+  comments_count: number
+  video_view_count?: number
+  engagement_rate: number
+  taken_at_timestamp: number
+  posted_at: string
+  location?: {name: string, id: string}
+  comments_disabled?: boolean
+  tagged_users?: any[]
+  sidecar_children?: any[]
+  images?: Array<{
+    url: string
+    proxied_url: string
+    type: string
+    width: number
+    height: number
+    is_video?: boolean
+  }>
+  thumbnails?: Array<{
+    url: string
+    proxied_url: string
+    width: number
+    height: number
+    type: string
+  }>
+  dimensions?: {width: number, height: number}
+  // Legacy fields for compatibility
+  post_images?: Array<{url: string, width: number, height: number}>
+  post_thumbnails?: Array<{url: string, width: number, height: number}>
 }
 
 // Demographics data interface (NEW!)
@@ -115,6 +143,31 @@ export interface BackendProfileResponse extends InstagramProfile {
   // Kept for backward compatibility only
 }
 
+// Posts pagination interface
+export interface PostsPagination {
+  limit: number
+  offset: number
+  total: number
+  has_more: boolean
+  next_offset: number
+}
+
+// Posts API response interface - Updated to match actual backend response
+export interface PostsResponse {
+  profile: {
+    username: string
+    full_name: string
+    total_posts: number
+  }
+  posts: InstagramPost[]
+  // Optional fields that may be added by backend later
+  pagination?: PostsPagination
+  meta?: {
+    posts_returned: number
+    note: string
+  }
+}
+
 // API Response interfaces
 export interface ApiResponse<T> {
   success: boolean
@@ -124,6 +177,53 @@ export interface ApiResponse<T> {
 
 export interface BasicProfileResponse extends ApiResponse<ProfileResponse> {}
 export interface CompleteProfileResponse extends ApiResponse<ProfileResponse> {}
+export interface PostsApiResponse extends ApiResponse<PostsResponse> {}
+
+// Unlocked Profiles interfaces
+export interface UnlockedProfile {
+  // Profile data (similar to InstagramProfile but may be subset)
+  username: string
+  full_name: string
+  profile_pic_url: string
+  profile_pic_url_hd: string
+  followers_count: number
+  following_count: number
+  posts_count: number
+  is_verified: boolean
+  is_private: boolean
+  is_business_account: boolean
+  business_category_name?: string
+  engagement_rate?: number
+  
+  // Access info
+  access_granted_at: string
+  days_remaining: number
+  
+  // Pre-proxied image URLs (no CORS issues)
+  proxied_profile_pic_url: string
+  proxied_profile_pic_url_hd?: string
+}
+
+export interface UnlockedProfilesPagination {
+  page: number
+  page_size: number
+  total: number
+  total_pages: number
+  has_next: boolean
+  has_previous: boolean
+}
+
+export interface UnlockedProfilesResponse {
+  profiles: UnlockedProfile[]
+  pagination: UnlockedProfilesPagination
+  meta: {
+    total_unlocked: number
+    user_tier: string
+    access_level: string
+  }
+}
+
+export interface UnlockedProfilesApiResponse extends ApiResponse<UnlockedProfilesResponse> {}
 
 export class InstagramApiService {
   private baseURL: string
@@ -410,7 +510,7 @@ export class InstagramApiService {
 
 
   /**
-   * Get profile image with enhanced format support
+   * Get profile image with enhanced format support and CORS proxy
    * Uses new profile_images array for HD images when available
    */
   getProfileImage(profile: InstagramProfile): string {
@@ -418,16 +518,141 @@ export class InstagramApiService {
     const hdImage = images.find(img => img.type === 'hd')
     const standardImage = images.find(img => img.type === 'standard')
     
-    return hdImage?.url || standardImage?.url || profile.profile_pic_url || '/default-avatar.png'
+    const imageUrl = hdImage?.url || standardImage?.url || profile.profile_pic_url
+    
+    if (!imageUrl) return '/placeholder-avatar.svg'
+    
+    // Use proxy for Instagram URLs to bypass CORS
+    if (imageUrl.includes('cdninstagram.com') || imageUrl.includes('scontent-')) {
+      return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+    }
+    
+    return imageUrl
   }
 
   /**
-   * Get post image with enhanced format support
+   * Get post image with enhanced format support and CORS proxy
    * Uses new post_images array
    */
   getPostImage(post: InstagramPost): string {
     const images = post.post_images || []
-    return images[0]?.url || post.display_url || '/placeholder-post.png'
+    const imageUrl = images[0]?.url || post.display_url
+    
+    if (!imageUrl) return '/placeholder-post.png'
+    
+    // Use proxy for Instagram URLs to bypass CORS
+    if (imageUrl.includes('cdninstagram.com') || imageUrl.includes('scontent-')) {
+      return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+    }
+    
+    return imageUrl
+  }
+
+  /**
+   * NEW: Get posts for a profile with pagination
+   * Uses: GET /api/instagram/profile/{username}/posts
+   */
+  async getPosts(username: string, limit: number = 20, offset: number = 0): Promise<PostsApiResponse> {
+    const fullUrl = `${ENDPOINTS.profile.posts(username)}?limit=${limit}&offset=${offset}`;
+    const completeUrl = `${this.baseURL}${fullUrl}`;
+    
+    console.log('📸 POSTS: ===========================================')
+    console.log('📸 POSTS: Starting posts fetch')
+    console.log('📸 POSTS: Username:', username)
+    console.log('📸 POSTS: Parameters:', { limit, offset })
+    console.log('📸 POSTS: Endpoint function result:', ENDPOINTS.profile.posts(username))
+    console.log('📸 POSTS: Full URL path:', fullUrl)
+    console.log('📸 POSTS: Complete URL:', completeUrl)
+    console.log('📸 POSTS: Base URL:', this.baseURL)
+    console.log('📸 POSTS: Auth headers:', getAuthHeaders())
+    console.log('📸 POSTS: ===========================================')
+    
+    try {
+      const response = await this.makeRequest<PostsResponse>(
+        fullUrl,
+        { method: 'GET' }
+      )
+      
+      console.log('✅ POSTS: Raw response received:', response)
+      console.log('✅ POSTS: Response type:', typeof response)
+      console.log('✅ POSTS: Response keys:', Object.keys(response || {}))
+      
+      if (response) {
+        console.log('✅ POSTS: Profile data:', response.profile)
+        console.log('✅ POSTS: Posts array:', response.posts)
+        console.log('✅ POSTS: Posts count:', response.posts?.length || 0)
+        console.log('✅ POSTS: Pagination:', response.pagination)
+        console.log('✅ POSTS: Meta:', response.meta)
+      }
+      
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      console.error('❌ POSTS: Exception caught:', error)
+      console.error('❌ POSTS: Error message:', error.message)
+      console.error('❌ POSTS: Error stack:', error.stack)
+      console.error('❌ POSTS: Error type:', typeof error)
+      console.error('❌ POSTS: Error instanceof Error:', error instanceof Error)
+      
+      // Handle specific posts access errors
+      if (error.message.includes('profile_not_accessible') || 
+          error.message.includes("You don't have access to posts") ||
+          error.message.includes('search for this profile first')) {
+        return {
+          success: false,
+          error: 'Please search for this profile first to unlock posts access'
+        }
+      }
+      
+      return {
+        success: false,
+        error: error.message || 'Failed to load posts'
+      }
+    }
+  }
+
+  /**
+   * NEW: Get unlocked profiles for creators page
+   * Uses: GET /api/v1/auth/unlocked-profiles
+   */
+  async getUnlockedProfiles(page: number = 1, pageSize: number = 20): Promise<UnlockedProfilesApiResponse> {
+    console.log('👥 UNLOCKED: Starting unlocked profiles fetch')
+    console.log('👥 UNLOCKED: Parameters:', { page, pageSize })
+    console.log('👥 UNLOCKED: Endpoint:', `${this.baseURL}/api/v1/auth/unlocked-profiles?page=${page}&page_size=${pageSize}`)
+    
+    try {
+      const response = await this.makeRequest<UnlockedProfilesResponse>(
+        `/api/v1/auth/unlocked-profiles?page=${page}&page_size=${pageSize}`,
+        { method: 'GET' }
+      )
+      
+      console.log('✅ UNLOCKED: Raw response received:', response)
+      console.log('✅ UNLOCKED: Response type:', typeof response)
+      console.log('✅ UNLOCKED: Response keys:', Object.keys(response || {}))
+      
+      if (response) {
+        console.log('✅ UNLOCKED: Profiles array:', response.profiles)
+        console.log('✅ UNLOCKED: Profiles count:', response.profiles?.length || 0)
+        console.log('✅ UNLOCKED: Pagination:', response.pagination)
+        console.log('✅ UNLOCKED: Meta:', response.meta)
+      }
+      
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      console.error('❌ UNLOCKED: Exception caught:', error)
+      console.error('❌ UNLOCKED: Error message:', error.message)
+      console.error('❌ UNLOCKED: Error stack:', error.stack)
+      
+      return {
+        success: false,
+        error: error.message || 'Failed to load unlocked profiles'
+      }
+    }
   }
 
   // Legacy compatibility methods - all redirect to main getProfile
