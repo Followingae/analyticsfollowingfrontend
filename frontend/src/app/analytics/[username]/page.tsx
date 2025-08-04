@@ -434,11 +434,7 @@ export default function AnalyticsPage() {
                                 // Use HD profile image from profile_images array if available, fallback to profile_pic_url_hd, then regular
                                 const profileImages = profileData.profile.profile_images || [];
                                 const hdImage = profileImages.find(img => img.type === 'hd');
-                                const imageUrl = hdImage?.url || profileData.profile.profile_pic_url_hd || profileData.profile.profile_pic_url;
-                                
-                                return imageUrl 
-                                  ? `/api/v1/proxy-image?url=${encodeURIComponent(imageUrl)}`
-                                  : '/placeholder-avatar.svg';
+                                return hdImage?.url || profileData.profile.profile_pic_url_hd || profileData.profile.profile_pic_url || '/placeholder-avatar.svg';
                               })()}
                               alt={profileData.profile.full_name || 'Profile'}
                               className="relative w-32 h-32 rounded-full object-cover border-4 border-white dark:border-gray-900 shadow-2xl"

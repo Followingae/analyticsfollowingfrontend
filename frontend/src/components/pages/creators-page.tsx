@@ -189,7 +189,7 @@ export default function CreatorsPage() {
         />
         <MetricCard
           title="Avg Engagement"
-          value={`${avgEngagement.toFixed(1)}%`}
+          value={`${avgEngagement.toFixed(2)}%`}
           change={-1.2}
           icon={<Heart className="h-4 w-4 text-muted-foreground" />}
         />
@@ -283,7 +283,7 @@ export default function CreatorsPage() {
                     <div className="flex items-center gap-1">
                       {getTrendIcon(creator.trends.followers)}
                       <span className={getTrendColor(creator.trends.followers)}>
-                        {creator.trends.followers > 0 ? '+' : ''}{creator.trends.followers}%
+                        {creator.trends.followers > 0 ? '+' : ''}{creator.trends.followers.toFixed(2)}%
                       </span>
                     </div>
                   </div>
@@ -295,11 +295,11 @@ export default function CreatorsPage() {
                     <div className="flex items-center gap-1">
                       {getTrendIcon(creator.trends.engagement)}
                       <span className={getTrendColor(creator.trends.engagement)}>
-                        {creator.trends.engagement > 0 ? '+' : ''}{creator.trends.engagement}%
+                        {creator.trends.engagement > 0 ? '+' : ''}{creator.trends.engagement.toFixed(2)}%
                       </span>
                     </div>
                   </div>
-                  <p className="font-semibold">{creator.engagementRate}%</p>
+                  <p className="font-semibold">{creator.engagementRate.toFixed(2)}%</p>
                 </div>
               </div>
 
@@ -307,7 +307,7 @@ export default function CreatorsPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Content Quality</span>
-                  <span className="font-medium">{creator.contentQuality}/10</span>
+                  <span className="font-medium">{creator.contentQuality.toFixed(2)}/10</span>
                 </div>
                 <Progress value={creator.contentQuality * 10} className="h-2" />
               </div>
@@ -381,7 +381,7 @@ export default function CreatorsPage() {
                     />
                     <MetricCard
                       title="Engagement Rate"
-                      value={`${selectedCreator.engagementRate}%`}
+                      value={`${selectedCreator.engagementRate.toFixed(2)}%`}
                       change={selectedCreator.trends.engagement}
                       icon={<Heart className="h-4 w-4 text-muted-foreground" />}
                     />

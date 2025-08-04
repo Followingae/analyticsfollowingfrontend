@@ -322,14 +322,19 @@ export default function CreatorsPage() {
 
   // Calculate real stats from unlocked creators
   const totalFollowers = unlockedCreators.reduce((sum, creator) => sum + (creator.followers_count || 0), 0)
-  const avgEngagement = unlockedCreators.length > 0 
-    ? unlockedCreators.reduce((sum, creator) => sum + (creator.engagement_rate || 0), 0) / unlockedCreators.length 
+  const creatorsWithEngagement = unlockedCreators.filter(creator => 
+    creator.engagement_rate != null && 
+    !isNaN(creator.engagement_rate) && 
+    creator.engagement_rate > 0
+  )
+  const avgEngagement = creatorsWithEngagement.length > 0 
+    ? creatorsWithEngagement.reduce((sum, creator) => sum + creator.engagement_rate, 0) / creatorsWithEngagement.length 
     : undefined
 
   const creatorsData = {
     unlockedCreators: unlockedCreators.length,
-    portfolioReach: totalFollowers > 0 ? totalFollowers.toString() : undefined,
-    avgEngagement: avgEngagement ? avgEngagement.toFixed(1) + '%' : undefined,
+    portfolioReach: totalFollowers > 0 ? totalFollowers.toLocaleString() : undefined,
+    avgEngagement: avgEngagement ? avgEngagement.toFixed(2) + '%' : undefined,
     inCampaigns: 0 // TODO: Implement campaigns tracking
   }
 
@@ -696,7 +701,7 @@ export default function CreatorsPage() {
                             <div className="text-xs text-muted-foreground">Followers</div>
                           </div>
                           <div className="text-center p-2 bg-muted rounded-md">
-                            <div className="text-lg font-bold">{creator.engagement_rate ? `${creator.engagement_rate}%` : 'N/A'}</div>
+                            <div className="text-lg font-bold">{creator.engagement_rate ? `${creator.engagement_rate.toFixed(2)}%` : 'N/A'}</div>
                             <div className="text-xs text-muted-foreground">Engagement</div>
                           </div>
                         </div>
