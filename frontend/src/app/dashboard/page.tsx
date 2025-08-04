@@ -264,9 +264,6 @@ export default function Dashboard() {
                           {userDisplayData.companyName && (
                             <div className="welcome-text-brand font-bold tracking-tight">{userDisplayData.companyName}</div>
                           )}
-                          {userDisplayData.companyName && userDisplayData.displayName && userDisplayData.companyName !== userDisplayData.displayName && (
-                            <div className="text-sm text-muted-foreground">{userDisplayData.displayName}</div>
-                          )}
                           {!userDisplayData.companyName && userDisplayData.displayName && (
                             <div className="welcome-text-brand font-bold tracking-tight">{userDisplayData.displayName}</div>
                           )}

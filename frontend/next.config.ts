@@ -38,6 +38,12 @@ const nextConfig: NextConfig = {
         hostname: 'scontent*.xx.fbcdn.net',
         pathname: '/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8000',
+        pathname: '/api/v1/proxy-image/**',
+      },
     ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
