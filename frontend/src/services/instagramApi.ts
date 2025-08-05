@@ -520,12 +520,7 @@ export class InstagramApiService {
     
     const imageUrl = hdImage?.url || standardImage?.url || profile.profile_pic_url
     
-    if (!imageUrl) return '/placeholder-avatar.svg'
-    
-    // Use proxy for Instagram URLs to bypass CORS
-    if (imageUrl.includes('cdninstagram.com') || imageUrl.includes('scontent-')) {
-      return `/api/v1/proxy-image?url=${encodeURIComponent(imageUrl)}`
-    }
+    if (!imageUrl) return ''
     
     return imageUrl
   }
@@ -538,12 +533,7 @@ export class InstagramApiService {
     const images = post.post_images || []
     const imageUrl = images[0]?.url || post.display_url
     
-    if (!imageUrl) return '/placeholder-post.png'
-    
-    // Use proxy for Instagram URLs to bypass CORS
-    if (imageUrl.includes('cdninstagram.com') || imageUrl.includes('scontent-')) {
-      return `/api/v1/proxy-image?url=${encodeURIComponent(imageUrl)}`
-    }
+    if (!imageUrl) return ''
     
     return imageUrl
   }

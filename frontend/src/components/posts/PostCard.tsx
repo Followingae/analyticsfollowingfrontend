@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { InstagramPost } from '@/services/instagramApi'
 import { formatNumber } from '@/lib/utils'
+import { InstagramImage } from '@/components/ui/instagram-image'
+import { proxyInstagramUrl } from '@/lib/image-proxy'
 import { Heart, MessageCircle, Eye, MapPin, ExternalLink } from 'lucide-react'
 
 interface PostCardProps {
@@ -36,7 +38,7 @@ export default function PostCard({ post }: PostCardProps) {
             <div className="relative w-full h-full">
               <video
                 controls
-                poster={post.images?.[0]?.proxied_url || post.display_url}
+                poster={proxyInstagramUrl(post.images?.[0]?.proxied_url || post.display_url)}
                 className="w-full h-full object-cover"
               >
                 <source src={post.video_url} type="video/mp4" />
@@ -47,14 +49,10 @@ export default function PostCard({ post }: PostCardProps) {
             </div>
           ) : (
             <div className="relative w-full h-full">
-              <Image
+              <InstagramImage
                 src={post.images?.[0]?.proxied_url || post.display_url}
                 alt={post.caption?.substring(0, 100) || `Post by ${post.shortcode}`}
-                fill
-                className="object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = '/placeholder-post.png'
-                }}
+                className="w-full h-full object-cover"
               />
               {post.is_carousel && (
                 <Badge className="absolute top-2 right-2 bg-black/70 text-white">
@@ -124,8 +122,8 @@ export default function PostCard({ post }: PostCardProps) {
         {/* Hashtags */}
         {post.hashtags && post.hashtags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
-            {post.hashtags.slice(0, 5).map((hashtag) => (
-              <Badge key={hashtag} variant="secondary" className="text-xs">
+            {post.hashtags.slice(0, 5).map((hashtag, index) => (
+              <Badge key={`${hashtag}-${index}`} variant="secondary" className="text-xs">
                 {hashtag}
               </Badge>
             ))}

@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { formatNumber, formatPercentage, getProfileImageUrl, isValidProfile, proxyInstagramUrl } from '@/lib/utils'
+import { formatNumber, formatPercentage, isValidProfile } from '@/lib/utils'
+import { ProfileAvatar } from '@/components/ui/profile-avatar'
 import { instagramApiService, CompleteProfileResponse } from '@/services/instagramApi'
 import { Loader2, Search, Instagram, Users, Heart, BarChart3, Target, TrendingUp, Clock, Zap, Star, CheckCircle2, ExternalLink } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -199,15 +200,12 @@ export default function ProfileSearchTab() {
           <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-start gap-4">
-                <Image
-                  src={proxyInstagramUrl(profileData.profile.profile_pic_url)}
+                <ProfileAvatar
+                  src={profileData.profile.profile_pic_url}
                   alt={profileData.profile.username}
-                  width={80}
-                  height={80}
-                  className="w-20 h-20 rounded-full border-4 border-white shadow-lg object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = '/placeholder-avatar.svg'
-                  }}
+                  fallbackText={profileData.profile.username}
+                  size="lg"
+                  className="w-20 h-20 border-4 border-white shadow-lg"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">

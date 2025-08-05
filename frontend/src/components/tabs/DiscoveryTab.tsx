@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { ProfileAvatar } from '@/components/ui/profile-avatar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -213,12 +214,12 @@ export default function DiscoveryTab() {
                 <Card key={creator.username} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3 mb-3">
-                      <Image
-                        src={creator.profile_pic_url || '/placeholder-avatar.svg'}
+                      <ProfileAvatar
+                        src={creator.profile_pic_url}
                         alt={creator.username}
-                        width={48}
-                        height={48}
-                        className="w-12 h-12 rounded-full border-2 border-gray-200 object-cover"
+                        fallbackText={creator.username}
+                        size="lg"
+                        className="border-2 border-gray-200"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">

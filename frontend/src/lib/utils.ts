@@ -17,26 +17,6 @@ export function formatPercentage(num: number | undefined | null): string {
   return `${num.toFixed(1)}%`
 }
 
-export function getProfileImageUrl(url?: string | null): string {
-  return url || '/placeholder-avatar.svg'
-}
-
-export function proxyInstagramUrl(originalUrl?: string | null): string {
-  if (!originalUrl) return '/placeholder-avatar.svg'
-  
-  // If it's already a proxy URL, return as is
-  if (originalUrl.includes('/api/') || originalUrl.startsWith('/api/')) {
-    return originalUrl
-  }
-  
-  // Only proxy actual Instagram URLs
-  if (originalUrl.includes('cdninstagram.com') || originalUrl.includes('scontent-')) {
-    return `/api/v1/proxy-image?url=${encodeURIComponent(originalUrl)}`
-  }
-  
-  return originalUrl
-}
-
 export function isValidProfile(profile: any): boolean {
   return profile && profile.username && profile.followers !== undefined
 }

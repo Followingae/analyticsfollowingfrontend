@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { InstagramPost } from '@/services/instagramApi'
 import { formatNumber } from '@/lib/utils'
+import { InstagramImage } from '@/components/ui/instagram-image'
+import { proxyInstagramUrl } from '@/lib/image-proxy'
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -71,7 +73,7 @@ export default function CarouselPost({ post, className = '' }: CarouselPostProps
               <div className="relative w-full h-full">
                 <video
                   controls
-                  poster={currentImage.proxied_url}
+                  poster={proxyInstagramUrl(currentImage.proxied_url)}
                   className="w-full h-full object-cover"
                 >
                   <source src={currentImage.proxied_url} type="video/mp4" />
@@ -82,14 +84,10 @@ export default function CarouselPost({ post, className = '' }: CarouselPostProps
                 </Badge>
               </div>
             ) : (
-              <Image
-                src={currentImage?.proxied_url || currentImage?.url || '/placeholder-post.png'}
+              <InstagramImage
+                src={currentImage?.proxied_url || currentImage?.url}
                 alt={`${post.shortcode} - Image ${currentIndex + 1}`}
-                fill
-                className="object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = '/placeholder-post.png'
-                }}
+                className="w-full h-full object-cover"
               />
             )}
           </div>
@@ -266,7 +264,7 @@ function SinglePostView({ post, className }: CarouselPostProps) {
             <div className="relative w-full h-full">
               <video
                 controls
-                poster={post.display_url}
+                poster={proxyInstagramUrl(post.display_url)}
                 className="w-full h-full object-cover"
               >
                 <source src={post.video_url} type="video/mp4" />
@@ -277,14 +275,10 @@ function SinglePostView({ post, className }: CarouselPostProps) {
               </Badge>
             </div>
           ) : (
-            <Image
+            <InstagramImage
               src={post.display_url}
               alt={post.caption?.substring(0, 100) || `Post by ${post.shortcode}`}
-              fill
-              className="object-cover"
-              onError={(e) => {
-                e.currentTarget.src = '/placeholder-post.png'
-              }}
+              className="w-full h-full object-cover"
             />
           )}
 

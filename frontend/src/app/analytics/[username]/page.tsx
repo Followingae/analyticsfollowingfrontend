@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { instagramApiService, ProfileResponse, InstagramPost } from "@/services/instagramApi"
+import { ProfileAvatar } from "@/components/ui/profile-avatar"
 import { API_CONFIG } from "@/config/api"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -429,18 +430,16 @@ export default function AnalyticsPage() {
                         <div className="relative flex-shrink-0">
                           <div className="relative">
                             <div className="absolute -inset-1 bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600 rounded-full blur opacity-30 animate-pulse"></div>
-                            <img 
+                            <ProfileAvatar
                               src={(() => {
                                 // Use HD profile image from profile_images array if available, fallback to profile_pic_url_hd, then regular
                                 const profileImages = profileData.profile.profile_images || [];
                                 const hdImage = profileImages.find(img => img.type === 'hd');
-                                return hdImage?.url || profileData.profile.profile_pic_url_hd || profileData.profile.profile_pic_url || '/placeholder-avatar.svg';
+                                return hdImage?.url || profileData.profile.profile_pic_url_hd || profileData.profile.profile_pic_url;
                               })()}
                               alt={profileData.profile.full_name || 'Profile'}
-                              className="relative w-32 h-32 rounded-full object-cover border-4 border-white dark:border-gray-900 shadow-2xl"
-                              onError={(e) => {
-                                e.currentTarget.src = '/placeholder-avatar.svg'
-                              }}
+                              fallbackText={profileData.profile.username}
+                              className="relative w-32 h-32 border-4 border-white dark:border-gray-900 shadow-2xl"
                             />
                             {profileData.profile.is_verified && (
                               <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-gray-800 dark:bg-gray-200 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-900 shadow-lg">

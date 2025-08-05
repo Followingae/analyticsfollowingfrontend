@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { InstagramProfile } from '@/services/instagramApi'
 import { formatNumber } from '@/lib/utils'
-import { proxyInstagramUrl } from '@/lib/utils'
+import { ProfileAvatar } from '@/components/ui/profile-avatar'
 import { 
   ExternalLink, 
   MapPin, 
@@ -46,15 +46,12 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
         <div className="flex flex-col md:flex-row items-start gap-6">
           {/* Profile Picture */}
           <div className="relative flex-shrink-0">
-            <Image
-              src={proxyInstagramUrl(profile.profile_pic_url_hd || profile.profile_pic_url)}
+            <ProfileAvatar
+              src={profile.profile_pic_url_hd || profile.profile_pic_url}
               alt={`${profile.username} profile picture`}
-              width={120}
-              height={120}
-              className="w-24 h-24 md:w-30 md:h-30 rounded-full border-4 border-white shadow-lg object-cover"
-              onError={(e) => {
-                e.currentTarget.src = '/placeholder-avatar.svg'
-              }}
+              fallbackText={profile.username}
+              size="xl"
+              className="w-24 h-24 md:w-30 md:h-30 border-4 border-white shadow-lg"
             />
             {profile.is_verified && (
               <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1">
