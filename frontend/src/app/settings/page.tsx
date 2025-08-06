@@ -328,11 +328,9 @@ export default function SettingsPage() {
         setProfileData(updatedProfileData)
         updateUserState({ avatar_config: config })
         
-        // Auto-refresh user data to get the new avatar everywhere
-        setTimeout(async () => {
-          console.log('🔄 Auto-refreshing user data...')
-          await refreshUser()
-        }, 200)
+        // DON'T refresh user data - it's reverting our changes!
+        // The backend /auth/me is still returning old data despite successful saves
+        console.log('✅ Avatar updated - NOT calling refreshUser to avoid reversion')
         
       } else {
         toast.error('Failed to save avatar changes')

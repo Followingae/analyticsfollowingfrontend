@@ -186,21 +186,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.log('✅ User data refreshed:', result.data)
         console.log('🎨 New avatar_config from backend:', result.data.avatar_config)
         
-        // If backend returns null but we have a local avatar_config, force update backend
+        // If backend returns null but we have a local avatar_config, preserve it locally
         const currentUser = authService.getStoredUser()
         if (!result.data.avatar_config && currentUser?.avatar_config) {
-          console.log('🔧 Backend returned null, forcing backend update with local avatar_config:', currentUser.avatar_config)
-          
-          // Force backend to update with our avatar_config
-          const { settingsService } = await import('@/services/settingsService')
-          const forceUpdateResult = await settingsService.updateProfile({ 
-            avatar_config: currentUser.avatar_config 
-          })
-          
-          if (forceUpdateResult.success) {
-            console.log('✅ Forced backend update successful')
-            result.data.avatar_config = currentUser.avatar_config
-          }
+          console.log('🔧 Backend returned null avatar_config, preserving local one:', currentUser.avatar_config)
+          result.data.avatar_config = currentUser.avatar_config
         }
         
         setUser(result.data)
