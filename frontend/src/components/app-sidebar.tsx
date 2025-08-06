@@ -85,10 +85,9 @@ function ThemeLogo() {
       <Image 
         src="/followinglogo.svg" 
         alt="Following Logo" 
-        width={0} 
-        height={0}
-        sizes="(min-width: 640px) 75vw, 75vw"
-        className="object-contain w-full h-auto max-w-full"
+        width={80} 
+        height={40}
+        className="object-contain w-20 h-10"
       />
     )
   }
@@ -102,8 +101,8 @@ function ThemeLogo() {
       alt="Following Logo" 
       width={0} 
       height={0}
-      sizes="(min-width: 640px) 75vw, 75vw"
-      className="object-contain w-full h-auto max-w-full"
+      sizes="(min-width: 640px) 60vw, 60vw"
+      className="object-contain w-32 h-16 max-w-full"
     />
   )
 }
@@ -137,14 +136,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader className="flex justify-center items-center py-2">
-        <SidebarMenu className="w-full flex justify-center">
-          <SidebarMenuItem className="w-full flex justify-center">
+      <SidebarHeader className="flex items-center py-3 px-2">
+        <SidebarMenu className="w-full">
+          <SidebarMenuItem className="w-full">
             <SidebarMenuButton
               asChild
-              className="w-full flex justify-center data-[slot=sidebar-menu-button]:!p-8"
+              className="w-full justify-start data-[slot=sidebar-menu-button]:!py-6 data-[slot=sidebar-menu-button]:!px-2"
             >
-              <a className="w-3/4 flex justify-center">
+              <a className="flex justify-start">
                 <ThemeLogo />
               </a>
             </SidebarMenuButton>

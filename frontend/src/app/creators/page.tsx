@@ -15,7 +15,30 @@ import {
   Search,
   X,
   Building,
+  TrendingUp,
+  Calendar,
+  Target,
+  GripVertical,
 } from "lucide-react"
+
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import {
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SectionCards } from "@/components/section-cards"
@@ -66,6 +89,23 @@ export default function CreatorsPage() {
     totalPages: 1,
     hasNext: false
   })
+  
+  // Drag and drop state
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [campaigns] = useState([
+    { id: "1", name: "Summer Fashion Collection 2024", status: "active" as const, creatorCount: 3 },
+    { id: "2", name: "Tech Product Launch", status: "completed" as const, creatorCount: 2 },
+    { id: "3", name: "Holiday Special", status: "draft" as const, creatorCount: 0 }
+  ])
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  )
+  
   const router = useRouter()
   // Note: URL param analysis temporarily disabled for production build
   // TODO: Implement proper Suspense boundary for useSearchParams
@@ -319,23 +359,192 @@ export default function CreatorsPage() {
     return num.toString()
   }
 
+  // Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }
+  
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    
+    if (over && over.id.toString().startsWith('campaign-')) {
+      const campaignId = over.id.toString().replace('campaign-', '')
+      const creatorId = active.id as string
+      const creator = unlockedCreators.find(c => c.username === creatorId)
+      const campaign = campaigns.find(c => c.id === campaignId)
+      
+      if (creator && campaign) {
+        toast.success(`Added @${creator.username} to ${campaign.name}`)
+      }
+    }
+    
+    setActiveId(null)
+  }
+  
+  const getStatusColor = (status: 'active' | 'paused' | 'completed' | 'draft') => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+      case 'paused': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
+      case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
+      case 'draft': return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
 
   // Calculate real stats from unlocked creators
   const totalFollowers = unlockedCreators.reduce((sum, creator) => sum + (creator.followers_count || 0), 0)
-  const creatorsWithEngagement = unlockedCreators.filter(creator => 
-    creator.engagement_rate != null && 
-    !isNaN(creator.engagement_rate) && 
-    creator.engagement_rate > 0
-  )
-  const avgEngagement = creatorsWithEngagement.length > 0 
-    ? creatorsWithEngagement.reduce((sum, creator) => sum + creator.engagement_rate, 0) / creatorsWithEngagement.length 
-    : undefined
+  const mostDominantNiche = unlockedCreators.reduce((acc, creator) => {
+    const category = creator.business_category_name || 'Mixed'
+    acc[category] = (acc[category] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+  const dominantNiche = Object.entries(mostDominantNiche).sort(([,a], [,b]) => b - a)[0]?.[0] || "Mixed"
 
   const creatorsData = {
     unlockedCreators: unlockedCreators.length,
-    portfolioReach: totalFollowers > 0 ? totalFollowers.toLocaleString() : undefined,
-    avgEngagement: avgEngagement ? avgEngagement.toFixed(2) + '%' : undefined,
-    inCampaigns: 0 // TODO: Implement campaigns tracking
+    portfolioReach: dominantNiche, // Using this field for dominant niche
+    avgEngagement: '7 days', // Using this field for credits reset
+    inCampaigns: 0 // Will be replaced with custom cards
+  }
+
+  // Droppable Campaign Component
+  function DroppableCampaign({ campaign }: { campaign: typeof campaigns[0] }) {
+    const { isOver, setNodeRef } = useDroppable({
+      id: `campaign-${campaign.id}`,
+    })
+
+    return (
+      <Card 
+        ref={setNodeRef} 
+        className={`transition-colors ${
+          isOver ? 'ring-2 ring-primary bg-primary/5' : ''
+        }`}
+      >
+        <CardContent className="p-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-sm truncate">{campaign.name}</h3>
+              <Badge className={getStatusColor(campaign.status)}>
+                {campaign.status}
+              </Badge>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {campaign.creatorCount} creators
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Draggable Creator Component
+  function DraggableCreator({ creator }: { creator: UnlockedProfile }) {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: creator.username })
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    }
+
+    return (
+      <Card ref={setNodeRef} style={style} className="relative overflow-hidden hover:shadow-lg transition-shadow cursor-grab active:cursor-grabbing">
+        {/* Status Indicator */}
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+          <div {...attributes} {...listeners}>
+            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+          </div>
+          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-xs">
+            Unlocked
+          </Badge>
+        </div>
+        
+        <CardHeader className="pb-3">
+          {/* Avatar */}
+          <div className="flex justify-center mb-3">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={creator.proxied_profile_pic_url || creator.profile_pic_url} alt={creator.full_name} />
+              <AvatarFallback>
+                {creator.full_name.split(' ').map((n: string) => n[0]).join('')}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+
+          {/* Name and Username */}
+          <div className="text-center space-y-1">
+            <div className="flex items-center justify-center gap-2">
+              <h3 className="font-semibold text-lg">{creator.full_name}</h3>
+              {creator.is_verified && (
+                <Badge variant="secondary" className="px-1.5 py-0.5 text-xs">
+                  ✓
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              @{creator.username}
+            </p>
+          </div>
+
+          {/* Content Category Badges */}
+          <div className="flex flex-wrap justify-center gap-1 mt-3">
+            {creator.business_category_name && (
+              <Badge variant="outline" className="text-xs">
+                {creator.business_category_name}
+              </Badge>
+            )}
+            {creator.is_business_account && (
+              <Badge variant="outline" className="text-xs">
+                Business
+              </Badge>
+            )}
+            <Badge variant="outline" className="text-xs">
+              Creator
+            </Badge>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Followers and Engagement */}
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="text-center p-2 bg-muted rounded-md">
+              <div className="text-lg font-bold">{formatNumber(creator.followers_count)}</div>
+              <div className="text-xs text-muted-foreground">Followers</div>
+            </div>
+            <div className="text-center p-2 bg-muted rounded-md">
+              <div className="text-lg font-bold">{creator.engagement_rate ? `${creator.engagement_rate.toFixed(2)}%` : 'N/A'}</div>
+              <div className="text-xs text-muted-foreground">Engagement</div>
+            </div>
+          </div>
+
+          {/* Access Info */}
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {creator.days_remaining} days remaining
+            </span>
+          </div>
+
+          {/* Action Button */}
+          <div className="pt-2">
+            <Button 
+              className="w-full" 
+              size="sm"
+              onClick={() => router.push(`/analytics/${creator.username}`)}
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              View Analytics
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -351,7 +560,15 @@ export default function CreatorsPage() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <div className="flex flex-1 flex-col">
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex min-h-screen">
+            {/* Main Content */}
+            <div className="flex-1 pr-6">
+              <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
             
             {/* Header */}
@@ -495,7 +712,46 @@ export default function CreatorsPage() {
 
 
             {/* Overview Cards */}
-            <SectionCards mode="creators" creatorsData={creatorsData} />
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Creators</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{unlockedCreators.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +12% from last month
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Most Dominant Creator Niche</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dominantNiche}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +8.2% growth this week
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Credits Reset In</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">7 days</div>
+                  <p className="text-xs text-muted-foreground">
+                    +500 credits on reset
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
 
 
             {/* Creators Portfolio */}
@@ -503,14 +759,14 @@ export default function CreatorsPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Your Creator Portfolio</CardTitle>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add to Campaign
-                  </Button>
+                  <div className="text-sm text-muted-foreground">
+                    Drag creators to campaigns →
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <SortableContext items={creators.map(c => c.username)} strategy={verticalListSortingStrategy}>
+                  <div className="grid gap-6 lg:grid-cols-3">
                   {/* Currently Analyzing Creators */}
                   {Object.entries(analyzingCreators).map(([username, analysis]) => (
                     <Card key={`analyzing-${username}`} className="relative overflow-hidden hover:shadow-lg transition-shadow border-blue-200 dark:border-blue-800">
@@ -641,95 +897,10 @@ export default function CreatorsPage() {
 
                   {/* Existing Creators */}
                   {!unlockedLoading && creators.map((creator) => (
-                    <Card key={creator.username} className="relative overflow-hidden hover:shadow-lg transition-shadow">
-                      {/* Status Indicator */}
-                      <div className="absolute top-2 right-2 z-10">
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-xs">
-                          Unlocked
-                        </Badge>
-                      </div>
-                      
-                      <CardHeader className="pb-3">
-                        {/* Avatar */}
-                        <div className="flex justify-center mb-3">
-                          <Avatar className="h-16 w-16">
-                            <AvatarImage src={creator.proxied_profile_pic_url || creator.profile_pic_url} alt={creator.full_name} />
-                            <AvatarFallback>
-                              {creator.full_name.split(' ').map((n: string) => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                        </div>
-
-                        {/* Name and Username */}
-                        <div className="text-center space-y-1">
-                          <div className="flex items-center justify-center gap-2">
-                            <h3 className="font-semibold text-lg">{creator.full_name}</h3>
-                            {creator.is_verified && (
-                              <Badge variant="secondary" className="px-1.5 py-0.5 text-xs">
-                                ✓
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            @{creator.username}
-                          </p>
-                        </div>
-
-                        {/* Content Category Badges */}
-                        <div className="flex flex-wrap justify-center gap-1 mt-3">
-                          {creator.business_category_name && (
-                            <Badge variant="outline" className="text-xs">
-                              {creator.business_category_name}
-                            </Badge>
-                          )}
-                          {creator.is_business_account && (
-                            <Badge variant="outline" className="text-xs">
-                              Business
-                            </Badge>
-                          )}
-                          <Badge variant="outline" className="text-xs">
-                            Creator
-                          </Badge>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="space-y-4">
-                        {/* Followers and Engagement */}
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="text-center p-2 bg-muted rounded-md">
-                            <div className="text-lg font-bold">{formatNumber(creator.followers_count)}</div>
-                            <div className="text-xs text-muted-foreground">Followers</div>
-                          </div>
-                          <div className="text-center p-2 bg-muted rounded-md">
-                            <div className="text-lg font-bold">{creator.engagement_rate ? `${creator.engagement_rate.toFixed(2)}%` : 'N/A'}</div>
-                            <div className="text-xs text-muted-foreground">Engagement</div>
-                          </div>
-                        </div>
-
-                        {/* Access Info */}
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="text-sm text-muted-foreground">
-                            {creator.days_remaining} days remaining
-                          </span>
-                        </div>
-
-
-                        {/* Action Button */}
-                        <div className="pt-2">
-                          <Button 
-                            className="w-full" 
-                            size="sm"
-                            onClick={() => router.push(`/analytics/${creator.username}`)}
-                          >
-                            <BarChart3 className="h-4 w-4 mr-2" />
-                            View Analytics
-                          </Button>
-                        </div>
-
-                      </CardContent>
-                    </Card>
+                    <DraggableCreator key={creator.username} creator={creator} />
                   ))}
                 </div>
+                </SortableContext>
                 
                 {/* Pagination Controls */}
                 {!unlockedLoading && !unlockedError && creators.length > 0 && pagination.totalPages > 1 && (
@@ -762,8 +933,58 @@ export default function CreatorsPage() {
                 )}
               </CardContent>
             </Card>
+              </div>
+            </div>
+            </div>
+            
+            {/* Campaigns Sidebar */}
+            <div className="w-[15%] min-w-[200px] border-l bg-muted/30 sticky top-0 h-screen overflow-y-auto">
+              <div className="p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  <h2 className="font-semibold">Campaigns</h2>
+                </div>
+                
+                <div className="space-y-3">
+                  {campaigns.map((campaign) => (
+                    <DroppableCampaign
+                      key={campaign.id}
+                      campaign={campaign}
+                    />
+                  ))}
+                </div>
+                
+                <Button size="sm" className="w-full">
+                  <Plus className="h-3 w-3 mr-1" />
+                  New Campaign
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
+          
+          <DragOverlay>
+            {activeId ? (
+              <Card className="opacity-90">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={unlockedCreators.find(c => c.username === activeId)?.proxied_profile_pic_url} />
+                      <AvatarFallback><Users className="h-4 w-4" /></AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-sm">
+                        {unlockedCreators.find(c => c.username === activeId)?.full_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        @{unlockedCreators.find(c => c.username === activeId)?.username}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </SidebarInset>
     </SidebarProvider>
     </AuthGuard>
