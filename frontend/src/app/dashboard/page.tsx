@@ -263,7 +263,7 @@ export default function Dashboard() {
                     {userDisplayData && (
                       <div className="flex items-center gap-4">
                         <UserAvatar 
-                          key={`dashboard-avatar-${user?.avatar_config?.seed || 'default'}`}
+                          key={`dashboard-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
                           user={user}
                           size={80}
                           className="h-20 w-20"

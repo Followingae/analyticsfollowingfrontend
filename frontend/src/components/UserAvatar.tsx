@@ -31,6 +31,14 @@ export function UserAvatar({
   fallbackText,
   showBoringAvatar = true 
 }: UserAvatarProps) {
+  // DEBUG: Log what user data we receive
+  console.log('🎭 UserAvatar received user data:', {
+    hasUser: !!user,
+    email: user?.email,
+    avatar_config: user?.avatar_config,
+    profile_picture_url: user?.profile_picture_url
+  })
+  
   // Get user name for boring-avatars seed
   const getUserName = () => {
     if (user?.full_name) return user.full_name
@@ -76,6 +84,12 @@ export function UserAvatar({
   // Use boring-avatars if enabled
   if (showBoringAvatar) {
     const avatarConfig = user?.avatar_config
+    
+    console.log('🎨 UserAvatar using config:', {
+      seed: avatarConfig?.seed || userName,
+      colors: avatarConfig?.colors || ["#d3ff02", "#5100f3", "#c9a7f9", "#0a1221"],
+      hasAvatarConfig: !!avatarConfig
+    })
     
     return (
       <div className={cn("rounded-full overflow-hidden", className)}>

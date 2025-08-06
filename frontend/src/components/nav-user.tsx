@@ -62,7 +62,7 @@ export function NavUser({
                 }}
                 size={32}
                 className="h-8 w-8 rounded-lg"
-                key={`nav-avatar-${user.avatar_config?.seed || 'default'}`}
+                key={`nav-avatar-${JSON.stringify(user.avatar_config) || 'default'}`}
               />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name || user.email.split('@')[0]}</span>
@@ -90,7 +90,7 @@ export function NavUser({
                   }}
                   size={32}
                   className="h-8 w-8 rounded-lg"
-                  key={`nav-dropdown-avatar-${user.avatar_config?.seed || 'default'}`}
+                  key={`nav-dropdown-avatar-${JSON.stringify(user.avatar_config) || 'default'}`}
                 />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name || user.email.split('@')[0]}</span>

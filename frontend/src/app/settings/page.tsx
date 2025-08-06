@@ -448,7 +448,7 @@ export default function SettingsPage() {
                         }}
                         size={80}
                         className="h-20 w-20"
-                        key={`avatar-${avatarConfig?.seed || 'default'}`}
+                        key={`settings-avatar-${JSON.stringify(avatarConfig || profileData.avatar_config || user?.avatar_config) || 'default'}`}
                       />
                       <div className="space-y-2">
                         <div className="flex gap-2">

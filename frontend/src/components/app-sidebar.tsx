@@ -164,7 +164,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         {!isLoading && dynamicUser && dynamicUser.name && (
           <NavUser 
-            key={`nav-user-${user?.avatar_config?.seed || 'default'}`}
+            key={`nav-user-${JSON.stringify(user?.avatar_config) || 'default'}`}
             user={dynamicUser} 
           />
         )}
