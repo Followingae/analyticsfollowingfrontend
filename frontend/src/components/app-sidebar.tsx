@@ -112,6 +112,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Dynamic user data - avoid hardcoded values
   const dynamicUser = React.useMemo(() => {
+    console.log('🔍 AppSidebar: Recalculating dynamicUser with user:', user)
+    console.log('🎨 AppSidebar: Current avatar_config:', user?.avatar_config)
+    
     if (!user) return null
     
     const getDisplayName = () => {
@@ -127,11 +130,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       return null // No fallback to avoid hardcoded values
     }
 
-    return {
+    const result = {
       name: getDisplayName(),
       email: user.email,
       avatar: user.profile_picture_url || null,
+      avatar_config: user.avatar_config,
     }
+    
+    console.log('🔍 AppSidebar: Final dynamicUser:', result)
+    return result
   }, [user])
 
   return (
@@ -156,7 +163,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         {!isLoading && dynamicUser && dynamicUser.name && (
-          <NavUser user={dynamicUser} />
+          <NavUser 
+            key={`nav-user-${user?.avatar_config?.seed || 'default'}`}
+            user={dynamicUser} 
+          />
         )}
       </SidebarFooter>
     </Sidebar>

@@ -33,6 +33,12 @@ export function NavUser({
     name: string | null
     email: string
     avatar: string | null
+    avatar_config?: {
+      variant: string
+      colorScheme: string
+      colors: string[]
+      seed?: string
+    }
   }
 }) {
   const { isMobile } = useSidebar()
@@ -51,10 +57,12 @@ export function NavUser({
                 user={{
                   full_name: user.name || user.email.split('@')[0],
                   email: user.email,
-                  profile_picture_url: user.avatar || undefined
+                  profile_picture_url: user.avatar || undefined,
+                  avatar_config: user.avatar_config
                 }}
                 size={32}
                 className="h-8 w-8 rounded-lg"
+                key={`nav-avatar-${user.avatar_config?.seed || 'default'}`}
               />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name || user.email.split('@')[0]}</span>
@@ -77,10 +85,12 @@ export function NavUser({
                   user={{
                     full_name: user.name || user.email.split('@')[0],
                     email: user.email,
-                    profile_picture_url: user.avatar || undefined
+                    profile_picture_url: user.avatar || undefined,
+                    avatar_config: user.avatar_config
                   }}
                   size={32}
                   className="h-8 w-8 rounded-lg"
+                  key={`nav-dropdown-avatar-${user.avatar_config?.seed || 'default'}`}
                 />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name || user.email.split('@')[0]}</span>

@@ -87,7 +87,7 @@ export default function SettingsPage() {
   
   // File upload
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { user, refreshUser, updateProfile } = useAuth()
+  const { user, refreshUser, updateProfile, updateUserState } = useAuth()
   
   // Avatar configuration state
   const [avatarConfig, setAvatarConfig] = useState<{
@@ -315,24 +315,29 @@ export default function SettingsPage() {
       }
       setProfileData(updatedProfileData)
       
-      // Store avatar config in user preferences
+      // Update user state directly FIRST for immediate UI updates
+      updateUserState({ avatar_config: config })
+      
+      // Then save to backend (async)
       const success = await updateProfile(updatedProfileData)
       
       if (success) {
         toast.success('Avatar updated successfully')
-        // Force refresh the user context to reflect the change everywhere
-        await refreshUser()
+        console.log('✅ Avatar config saved successfully')
       } else {
-        // Revert local changes if save failed
-        setAvatarConfig(avatarConfig)
-        setProfileData(profileData)
+        // If backend save failed, revert local changes
+        console.log('❌ Backend save failed, reverting changes')
+        setAvatarConfig(user?.avatar_config || null)
+        setProfileData(prev => ({ ...prev, avatar_config: user?.avatar_config }))
+        updateUserState({ avatar_config: user?.avatar_config })
         toast.error('Failed to save avatar changes')
       }
     } catch (error) {
       console.error('❌ Avatar config update error:', error)
-      // Revert local changes if save failed
-      setAvatarConfig(avatarConfig)
-      setProfileData(profileData)
+      // Revert local changes if error occurred
+      setAvatarConfig(user?.avatar_config || null)
+      setProfileData(prev => ({ ...prev, avatar_config: user?.avatar_config }))
+      updateUserState({ avatar_config: user?.avatar_config })
       toast.error('Failed to update avatar')
     }
   }

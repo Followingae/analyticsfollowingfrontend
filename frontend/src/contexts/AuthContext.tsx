@@ -15,6 +15,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>
   refreshDashboard: () => Promise<void>
   updateProfile: (profileData: any) => Promise<boolean>
+  updateUserState: (userData: Partial<User>) => void
   isPremium: boolean
   isAdmin: boolean
 }
@@ -45,9 +46,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (storedUser && authService.isAuthenticated()) {
         // Trust the stored user data without backend verification
         // Token validation will happen on actual API calls
+        console.log('✅ User restored from storage:', storedUser.email)
+        console.log('🎨 Restored avatar_config:', storedUser.avatar_config)
         setUser(storedUser)
         await loadDashboardStats()
-        console.log('✅ User restored from storage:', storedUser.email)
       } else {
         setUser(null)
         console.log('ℹ️ No authenticated user found')
@@ -178,13 +180,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshUser = async () => {
     try {
+      console.log('🔄 Refreshing user data...')
       const result = await authService.getCurrentUser()
       if (result.success && result.data) {
+        console.log('✅ User data refreshed:', result.data)
+        console.log('🎨 New avatar_config from backend:', result.data.avatar_config)
+        
+        // WORKAROUND: If backend returns null avatar_config, preserve the local one
+        const currentUser = authService.getStoredUser()
+        if (!result.data.avatar_config && currentUser?.avatar_config) {
+          console.log('🔧 WORKAROUND: Backend returned null avatar_config, preserving local:', currentUser.avatar_config)
+          result.data.avatar_config = currentUser.avatar_config
+          
+          // Also update localStorage with the corrected data
+          localStorage.setItem('user_data', JSON.stringify(result.data))
+        }
+        
         setUser(result.data)
+        // Force a re-render by updating the state
+        setUser(prev => ({ ...result.data }))
+      } else {
+        console.log('❌ Failed to refresh user:', result.error)
       }
     } catch (error) {
       console.error('❌ Failed to refresh user:', error)
     }
+  }
+
+  const updateUserState = (userData: Partial<User>) => {
+    console.log('🔄 Direct user state update:', userData)
+    setUser(prev => {
+      if (!prev) return prev
+      
+      const updatedUser = { ...prev, ...userData }
+      
+      // Persist avatar_config changes to localStorage immediately
+      if (userData.avatar_config) {
+        console.log('💾 Persisting avatar_config to localStorage:', userData.avatar_config)
+        localStorage.setItem('user_data', JSON.stringify(updatedUser))
+      }
+      
+      return updatedUser
+    })
   }
 
   const refreshDashboard = async () => {
@@ -224,6 +261,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     refreshUser,
     refreshDashboard,
     updateProfile,
+    updateUserState,
     isPremium: authService.isPremiumUser(),
     isAdmin: authService.isAdmin()
   }

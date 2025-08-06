@@ -72,6 +72,9 @@ export default function Dashboard() {
   
   // Memoized user display data to prevent flash and avoid hardcoded values
   const userDisplayData = useMemo(() => {
+    console.log('🔍 Dashboard: Recalculating userDisplayData with user:', user)
+    console.log('🎨 Dashboard: Current avatar_config:', user?.avatar_config)
+    
     if (!user || isLoading) return null
     
     const getDisplayName = () => {
@@ -260,6 +263,7 @@ export default function Dashboard() {
                     {userDisplayData && (
                       <div className="flex items-center gap-4">
                         <UserAvatar 
+                          key={`dashboard-avatar-${user?.avatar_config?.seed || 'default'}`}
                           user={user}
                           size={80}
                           className="h-20 w-20"
