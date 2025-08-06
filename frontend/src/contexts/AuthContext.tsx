@@ -230,8 +230,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await settingsService.updateProfile(profileData)
       
       if (result.success && result.data) {
-        // Refresh user data to get updated profile
-        await refreshUser()
+        // DON'T refresh user data - it reverts avatar_config changes
+        console.log('✅ Profile updated successfully, NOT calling refreshUser')
         toast.success(result.data.message || 'Profile updated successfully')
         return true
       } else {
