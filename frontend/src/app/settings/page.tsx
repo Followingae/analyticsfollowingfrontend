@@ -305,39 +305,40 @@ export default function SettingsPage() {
     try {
       console.log('🎨 Updating avatar config:', config)
       
-      // Update local state immediately for instant feedback
-      setAvatarConfig(config)
-      
-      // Update profile data to include avatar config
+      // Save to backend first
       const updatedProfileData = {
         ...profileData,
         avatar_config: config
       }
-      setProfileData(updatedProfileData)
       
-      // Update user state directly FIRST for immediate UI updates
-      updateUserState({ avatar_config: config })
-      
-      // Then save to backend (async)
       const success = await updateProfile(updatedProfileData)
       
       if (success) {
         toast.success('Avatar updated successfully')
-        console.log('✅ Avatar config saved successfully')
+        console.log('✅ Avatar config saved to backend')
+        
+        // Force backend update again to overwrite any issues
+        setTimeout(async () => {
+          console.log('🔄 Force updating backend again...')
+          await updateProfile(updatedProfileData)
+        }, 100)
+        
+        // Update all local state
+        setAvatarConfig(config)
+        setProfileData(updatedProfileData)
+        updateUserState({ avatar_config: config })
+        
+        // Auto-refresh user data to get the new avatar everywhere
+        setTimeout(async () => {
+          console.log('🔄 Auto-refreshing user data...')
+          await refreshUser()
+        }, 200)
+        
       } else {
-        // If backend save failed, revert local changes
-        console.log('❌ Backend save failed, reverting changes')
-        setAvatarConfig(user?.avatar_config || null)
-        setProfileData(prev => ({ ...prev, avatar_config: user?.avatar_config }))
-        updateUserState({ avatar_config: user?.avatar_config })
         toast.error('Failed to save avatar changes')
       }
     } catch (error) {
       console.error('❌ Avatar config update error:', error)
-      // Revert local changes if error occurred
-      setAvatarConfig(user?.avatar_config || null)
-      setProfileData(prev => ({ ...prev, avatar_config: user?.avatar_config }))
-      updateUserState({ avatar_config: user?.avatar_config })
       toast.error('Failed to update avatar')
     }
   }
