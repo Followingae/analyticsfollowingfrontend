@@ -29,6 +29,9 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { useAuth } from "@/contexts/AuthContext"
 import { settingsApiService, type SettingsOverview, type UserProfile, type NotificationSettings, type PrivacySettings, type UserPreferences } from "@/services/settingsApi"
 import { SiteHeader } from "@/components/site-header"
+import { SettingsSkeleton } from "@/components/skeletons"
+import { AvatarSelectionDialog } from "@/components/AvatarSelectionDialog"
+import { UserAvatar } from "@/components/UserAvatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -85,6 +88,13 @@ export default function SettingsPage() {
   // File upload
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user, refreshUser, updateProfile } = useAuth()
+  
+  // Avatar configuration state
+  const [avatarConfig, setAvatarConfig] = useState<{
+    variant: string
+    colorScheme: string  
+    colors: string[]
+  } | null>(null)
 
   // Load settings on component mount
   useEffect(() => {
@@ -291,6 +301,42 @@ export default function SettingsPage() {
     }
   }
 
+  const handleAvatarConfigChange = async (config: { variant: string; colorScheme: string; colors: string[]; seed?: string }) => {
+    try {
+      console.log('🎨 Updating avatar config:', config)
+      
+      // Update local state immediately for instant feedback
+      setAvatarConfig(config)
+      
+      // Update profile data to include avatar config
+      const updatedProfileData = {
+        ...profileData,
+        avatar_config: config
+      }
+      setProfileData(updatedProfileData)
+      
+      // Store avatar config in user preferences
+      const success = await updateProfile(updatedProfileData)
+      
+      if (success) {
+        toast.success('Avatar updated successfully')
+        // Force refresh the user context to reflect the change everywhere
+        await refreshUser()
+      } else {
+        // Revert local changes if save failed
+        setAvatarConfig(avatarConfig)
+        setProfileData(profileData)
+        toast.error('Failed to save avatar changes')
+      }
+    } catch (error) {
+      console.error('❌ Avatar config update error:', error)
+      // Revert local changes if save failed
+      setAvatarConfig(avatarConfig)
+      setProfileData(profileData)
+      toast.error('Failed to update avatar')
+    }
+  }
+
   const handleNotificationToggle = (key: keyof NotificationSettings, value: boolean) => {
     const updates = { [key]: value }
     setNotificationSettings(prev => ({ ...prev, ...updates }))
@@ -306,12 +352,20 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <AuthGuard requireAuth={true}>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading settings...</p>
-          </div>
-        </div>
+        <SidebarProvider
+          style={
+            {
+              "--sidebar-width": "calc(var(--spacing) * 66)",
+              "--header-height": "calc(var(--spacing) * 12)",
+            } as React.CSSProperties
+          }
+        >
+          <AppSidebar variant="inset" />
+          <SidebarInset>
+            <SiteHeader />
+            <SettingsSkeleton />
+          </SidebarInset>
+        </SidebarProvider>
       </AuthGuard>
     )
   }
@@ -321,7 +375,7 @@ export default function SettingsPage() {
       <SidebarProvider
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--sidebar-width": "calc(var(--spacing) * 66)",
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }
@@ -329,6 +383,9 @@ export default function SettingsPage() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
+        {loading ? (
+          <SettingsSkeleton />
+        ) : (
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
             
@@ -377,40 +434,30 @@ export default function SettingsPage() {
                   <CardContent className="space-y-4">
                     {/* Avatar Section */}
                     <div className="flex items-center gap-4">
-                      <Avatar className="h-20 w-20">
-                        <AvatarImage 
-                          src={profileData.profile_picture_url || "/avatars/user.png"} 
-                          alt="User Avatar" 
-                        />
-                        <AvatarFallback>
-                          {profileData.first_name?.[0] || profileData.full_name?.[0] || "U"}
-                          {profileData.last_name?.[0] || ""}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar 
+                        user={{
+                          ...user,
+                          ...profileData,
+                          avatar_config: avatarConfig || profileData.avatar_config || user?.avatar_config
+                        }}
+                        size={80}
+                        className="h-20 w-20"
+                        key={`avatar-${avatarConfig?.seed || 'default'}`}
+                      />
                       <div className="space-y-2">
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarUpload}
-                          className="hidden"
-                        />
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={saving}
-                        >
-                          {saving ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Upload className="h-4 w-4 mr-2" />
-                          )}
-                          Change Avatar
-                        </Button>
-                        <p className="text-xs text-muted-foreground">
-                          JPG, PNG or GIF. Max size of 2MB.
-                        </p>
+                        <div className="flex gap-2">
+                          <AvatarSelectionDialog
+                            currentAvatarConfig={avatarConfig || user?.avatar_config}
+                            userName={user?.full_name || user?.first_name || user?.email || "User"}
+                            onAvatarChange={handleAvatarConfigChange}
+                            trigger={
+                              <Button variant="outline" size="sm">
+                                <User className="h-4 w-4 mr-2" />
+                                Choose Avatar
+                              </Button>
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -852,6 +899,7 @@ export default function SettingsPage() {
             </Tabs>
           </div>
         </div>
+        )}
       </SidebarInset>
     </SidebarProvider>
     </AuthGuard>

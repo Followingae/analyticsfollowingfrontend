@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { 
@@ -40,29 +41,31 @@ export function MetricCard({ title, value, change, icon, loading }: MetricCardPr
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          {icon}
+          {title}
+        </CardTitle>
+        {change !== undefined && (
+          <Badge 
+            variant="outline" 
+            className={`text-xs ${
+              change > 0 ? "text-green-600 border-green-200 bg-green-50" : 
+              change < 0 ? "text-red-600 border-red-200 bg-red-50" : 
+              "text-gray-600 border-gray-200 bg-gray-50"
+            }`}
+          >
+            {change > 0 ? (
+              <>+{change}%</>
+            ) : change < 0 ? (
+              <>{change}%</>
+            ) : (
+              <>0%</>
+            )}
+          </Badge>
+        )}
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        {change !== undefined && (
-          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-            {change > 0 ? (
-              <>
-                <TrendingUp className="h-3 w-3 text-green-500" />
-                <span className="text-green-500">+{change}%</span>
-              </>
-            ) : change < 0 ? (
-              <>
-                <TrendingDown className="h-3 w-3 text-red-500" />
-                <span className="text-red-500">{change}%</span>
-              </>
-            ) : (
-              <span>No change</span>
-            )}
-            <span>from last month</span>
-          </div>
-        )}
       </CardContent>
     </Card>
   )

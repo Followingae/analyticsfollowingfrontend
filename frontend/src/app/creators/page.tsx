@@ -47,6 +47,7 @@ import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { CreatorsSkeleton } from "@/components/skeletons"
 import {
   Select,
   SelectContent,
@@ -61,7 +62,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/UserAvatar"
 import { Progress } from "@/components/ui/progress"
 import {
   SidebarInset,
@@ -470,12 +471,14 @@ export default function CreatorsPage() {
         <CardHeader className="pb-3">
           {/* Avatar */}
           <div className="flex justify-center mb-3">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={creator.proxied_profile_pic_url || creator.profile_pic_url} alt={creator.full_name} />
-              <AvatarFallback>
-                {creator.full_name.split(' ').map((n: string) => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar 
+              user={{
+                full_name: creator.full_name,
+                profile_picture_url: creator.proxied_profile_pic_url || creator.profile_pic_url
+              }}
+              size={64}
+              className="h-16 w-16"
+            />
           </div>
 
           {/* Name and Username */}
@@ -552,7 +555,7 @@ export default function CreatorsPage() {
       <SidebarProvider
         style={
           {
-            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--sidebar-width": "calc(var(--spacing) * 66)",
             "--header-height": "calc(var(--spacing) * 12)",
           } as React.CSSProperties
         }
@@ -560,6 +563,9 @@ export default function CreatorsPage() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
+        {unlockedLoading ? (
+          <CreatorsSkeleton />
+        ) : (
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
@@ -578,7 +584,7 @@ export default function CreatorsPage() {
               </div>
               <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
                 <SheetTrigger asChild>
-                  <Button>
+                  <Button style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
                     <Search className="h-4 w-4 mr-2" />
                     Search for Creators
                   </Button>
@@ -887,7 +893,7 @@ export default function CreatorsPage() {
                           <h3 className="text-lg font-semibold">No unlocked creators yet</h3>
                           <p className="text-muted-foreground">Start by searching for creators to analyze</p>
                         </div>
-                        <Button onClick={() => setIsSearchOpen(true)}>
+                        <Button onClick={() => setIsSearchOpen(true)} style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
                           <Search className="h-4 w-4 mr-2" />
                           Search for Creators
                         </Button>
@@ -967,10 +973,14 @@ export default function CreatorsPage() {
               <Card className="opacity-90">
                 <CardContent className="p-3">
                   <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={unlockedCreators.find(c => c.username === activeId)?.proxied_profile_pic_url} />
-                      <AvatarFallback><Users className="h-4 w-4" /></AvatarFallback>
-                    </Avatar>
+                    <UserAvatar 
+                      user={{
+                        full_name: unlockedCreators.find(c => c.username === activeId)?.full_name || "Creator",
+                        profile_picture_url: unlockedCreators.find(c => c.username === activeId)?.proxied_profile_pic_url
+                      }}
+                      size={32}
+                      className="h-8 w-8"
+                    />
                     <div>
                       <p className="font-medium text-sm">
                         {unlockedCreators.find(c => c.username === activeId)?.full_name}
@@ -985,6 +995,7 @@ export default function CreatorsPage() {
             ) : null}
           </DragOverlay>
         </DndContext>
+        )}
       </SidebarInset>
     </SidebarProvider>
     </AuthGuard>

@@ -7,6 +7,7 @@ import { instagramApiService, ProfileResponse, InstagramPost } from "@/services/
 import { ProfileAvatar } from "@/components/ui/profile-avatar"
 import { API_CONFIG } from "@/config/api"
 import { AppSidebar } from "@/components/app-sidebar"
+import { AnalyticsSkeleton } from "@/components/skeletons"
 import { SiteHeader } from "@/components/site-header"
 import { ProfileAccessWrapper } from "@/components/profile-access-wrapper"
 import { useProfileAccess, useAccessWarnings } from "@/hooks/useProfileAccess"
@@ -81,9 +82,22 @@ export default function AnalyticsPage() {
   if (!username) {
     console.log('No username available, returning loading state')
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div>Loading...</div>
-      </div>
+      <AuthGuard requireAuth={true}>
+        <SidebarProvider
+          style={
+            {
+              "--sidebar-width": "calc(var(--spacing) * 66)",
+              "--header-height": "calc(var(--spacing) * 12)",
+            } as React.CSSProperties
+          }
+        >
+          <AppSidebar variant="inset" />
+          <SidebarInset>
+            <SiteHeader />
+            <AnalyticsSkeleton />
+          </SidebarInset>
+        </SidebarProvider>
+      </AuthGuard>
     )
   }
 
@@ -335,7 +349,7 @@ export default function AnalyticsPage() {
         <SidebarProvider
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--sidebar-width": "calc(var(--spacing) * 66)",
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }
@@ -360,17 +374,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Loading State */}
-            {loading && (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-                  <h3 className="text-lg font-semibold mb-2">Loading Analytics for @{username}</h3>
-                  <p className="text-muted-foreground text-center">
-                    Loading analytics from database cache...
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            {loading && <AnalyticsSkeleton />}
 
             {/* Error State */}
             {error && (
@@ -1160,9 +1164,20 @@ export default function AnalyticsPage() {
                       </CardHeader>
                       <CardContent>
                         {postsLoading ? (
-                          <div className="text-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                            <p className="text-muted-foreground">Loading posts...</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                              <Card key={i}>
+                                <CardContent className="p-4">
+                                  <div className="h-48 w-full mb-4 bg-muted animate-pulse rounded" />
+                                  <div className="h-4 w-full mb-2 bg-muted animate-pulse rounded" />
+                                  <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
+                                  <div className="flex justify-between mt-4">
+                                    <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+                                    <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
                           </div>
                         ) : postsData.length > 0 ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

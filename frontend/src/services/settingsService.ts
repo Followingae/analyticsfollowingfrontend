@@ -10,6 +10,12 @@ export interface ProfileUpdateRequest {
   bio?: string
   timezone?: string
   language?: string
+  avatar_config?: {
+    variant: string
+    colorScheme: string
+    colors: string[]
+    seed?: string
+  }
 }
 
 export interface ProfileUpdateResponse {
@@ -27,6 +33,12 @@ export interface ProfileUpdateResponse {
   language: string
   updated_at: string
   message: string
+  avatar_config?: {
+    variant: string
+    colorScheme: string
+    colors: string[]
+    seed?: string
+  }
 }
 
 class SettingsService {
@@ -81,6 +93,7 @@ class SettingsService {
 
     try {
       console.log('💾 Updating profile settings:', profileData)
+      console.log('🎨 Avatar config being sent:', profileData.avatar_config)
       
       const response = await fetchWithAuth(`${this.baseURL}/api/v1/settings/profile`, {
         method: 'PUT',
@@ -90,6 +103,7 @@ class SettingsService {
 
       const data = await response.json()
       console.log('📡 Profile update response:', data)
+      console.log('🎨 Avatar config in response:', data.avatar_config)
 
       if (response.ok) {
         return { success: true, data }

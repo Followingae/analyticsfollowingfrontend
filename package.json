@@ -30,5 +30,8 @@
     "shadcn-ui"
   ],
   "author": "Following",
-  "license": "Private"
+  "license": "Private",
+  "dependencies": {
+    "boring-avatars": "^2.0.1"
+  }
 }

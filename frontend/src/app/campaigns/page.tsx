@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { CampaignsSkeleton } from "@/components/skeletons"
 import {
   Plus,
   Target,
@@ -45,7 +46,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/UserAvatar"
 import { Progress } from "@/components/ui/progress"
 import {
   DropdownMenu,
@@ -149,7 +150,7 @@ export default function CampaignsPage() {
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--sidebar-width": "calc(var(--spacing) * 66)",
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }

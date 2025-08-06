@@ -4,8 +4,8 @@
  * This is the official, finalized dashboard layout approved by the client.
  * 
  * Layout Structure:
- * - Left Side (35%): Large "Welcome, {Brand Name}" section with avatar
- * - Right Side (65%): 3 metric cards in grid layout
+ * - Left Side (30%): Large "Welcome, {Brand Name}" section with avatar
+ * - Right Side (70%): 3 metric cards in grid layout
  * - Below: Charts and campaign/creator sections remain unchanged
  * 
  * DO NOT MODIFY THIS LAYOUT WITHOUT EXPLICIT APPROVAL
@@ -22,6 +22,7 @@ import { ChartBarInteractive } from "@/components/chart-bar-interactive"
 import { ChartPieCredits } from "@/components/chart-pie-credits"
 import { SiteHeader } from "@/components/site-header"
 import { MetricCard, EngagementCard, QuickStatsGrid } from "@/components/analytics-cards"
+import { DashboardSkeleton } from "@/components/skeletons"
 import {
   SidebarInset,
   SidebarProvider,
@@ -30,7 +31,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserAvatar } from "@/components/UserAvatar"
 import { 
   Target, 
   Users, 
@@ -123,25 +124,25 @@ export default function Dashboard() {
       title: "Active Campaigns",
       value: "12",
       change: 20,
-      icon: <Target className="h-4 w-4 text-blue-500" />
+      icon: <Target className="h-4 w-4 text-[#5100f3]" />
     },
     {
       title: "Total Creators",
       value: "1,234",
       change: 15.2,
-      icon: <Users className="h-4 w-4 text-green-500" />
+      icon: <Users className="h-4 w-4 text-[#5100f3]" />
     },
     {
-      title: "Monthly Reach",
-      value: "2.4M",
-      change: 8.7,
-      icon: <Eye className="h-4 w-4 text-purple-500" />
+      title: "Your Plan",
+      value: "Pro",
+      change: undefined,
+      icon: <Star className="h-4 w-4 text-[#5100f3]" />
     },
     {
       title: "Campaign ROI",
       value: "325%",
       change: 12.3,
-      icon: <TrendingUp className="h-4 w-4 text-orange-500" />
+      icon: <TrendingUp className="h-4 w-4 text-[#5100f3]" />
     }
   ]
 
@@ -220,7 +221,7 @@ export default function Dashboard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+        return <Badge className="bg-[#5100f3]/10 text-[#5100f3] dark:bg-[#5100f3]/20 dark:text-[#5100f3]">
           <Play className="h-3 w-3 mr-1" />
           Active
         </Badge>
@@ -236,7 +237,7 @@ export default function Dashboard() {
       <SidebarProvider
         style={
           {
-            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--sidebar-width": "calc(var(--spacing) * 66)",
             "--header-height": "calc(var(--spacing) * 12)",
           } as React.CSSProperties
         }
@@ -244,21 +245,25 @@ export default function Dashboard() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
+        {isLoading ? (
+          <DashboardSkeleton />
+        ) : (
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
             
             {/* Welcome Header & Analytics */}
             <div className="flex gap-6">
-              {/* Welcome Section - 35% width */}
-              <div className="w-[35%]">
+              {/* Welcome Section - 30% width */}
+              <div className="w-[30%]">
                 <Card className="@container/card h-full welcome-card">
                   <CardHeader>
                     {userDisplayData && (
                       <div className="flex items-center gap-4">
-                        <Avatar className="h-20 w-20">
-                          <AvatarImage src={user?.profile_picture_url || "/logo-acme.png"} alt={userDisplayData.companyName || "User"} />
-                          <AvatarFallback className="text-2xl font-bold">{userDisplayData.initials || "U"}</AvatarFallback>
-                        </Avatar>
+                        <UserAvatar 
+                          user={user}
+                          size={80}
+                          className="h-20 w-20"
+                        />
                         <div className="flex flex-col">
                           <div className="welcome-text-primary font-semibold italic text-muted-foreground">Welcome,</div>
                           {userDisplayData.companyName && (
@@ -274,7 +279,7 @@ export default function Dashboard() {
                 </Card>
               </div>
 
-              {/* Brand Metrics Overview - 65% width */}
+              {/* Brand Metrics Overview - 70% width */}
               <div className="flex-1">
                 <div className="grid gap-4 grid-cols-3">
                   {brandMetrics.slice(0, 3).map((metric, index) => (
@@ -365,12 +370,14 @@ export default function Dashboard() {
                   <div className="space-y-4">
                     {topCreators.map((creator) => (
                       <div key={creator.id} className="flex items-center space-x-4">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={creator.avatar} alt={creator.name} />
-                          <AvatarFallback>
-                            {creator.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar 
+                          user={{
+                            full_name: creator.name,
+                            profile_picture_url: creator.avatar
+                          }}
+                          size={40}
+                          className="h-10 w-10"
+                        />
                         <div className="space-y-1 flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-medium leading-none">{creator.name}</p>
@@ -383,7 +390,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm font-medium text-green-600">+{creator.performance}%</div>
+                          <div className="text-sm font-medium text-[#5100f3]">+{creator.performance}%</div>
                           <div className="text-xs text-muted-foreground">Performance</div>
                         </div>
                       </div>
@@ -408,7 +415,7 @@ export default function Dashboard() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      <div className="w-2 h-2 rounded-full bg-[#5100f3]" />
                       <h4 className="text-sm font-medium">Performance Trend</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -417,7 +424,7 @@ export default function Dashboard() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <div className="w-2 h-2 rounded-full bg-[#5100f3]" />
                       <h4 className="text-sm font-medium">Optimal Posting Times</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -426,7 +433,7 @@ export default function Dashboard() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-purple-500" />
+                      <div className="w-2 h-2 rounded-full bg-[#5100f3]" />
                       <h4 className="text-sm font-medium">Creator Recommendations</h4>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -438,6 +445,7 @@ export default function Dashboard() {
             </Card>
           </div>
         </div>
+        )}
       </SidebarInset>
     </SidebarProvider>
     </AuthGuard>

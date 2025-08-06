@@ -17,6 +17,12 @@ export interface User {
   profile_picture_url?: string
   timezone?: string
   language?: string
+  avatar_config?: {
+    variant: string
+    colorScheme: string
+    colors: string[]
+    seed?: string
+  }
 }
 
 export interface AuthResponse {
@@ -383,6 +389,7 @@ class AuthService {
       if (response.ok && (data.success || data.email)) {
         // Handle both wrapped and direct response formats
         const userData = data.success ? data.data : data
+        console.log('🎨 Avatar config in user data:', userData.avatar_config)
         localStorage.setItem('user_data', JSON.stringify(userData))
         return { success: true, data: userData }
       } else {
