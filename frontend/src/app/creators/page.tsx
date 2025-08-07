@@ -63,6 +63,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { UserAvatar } from "@/components/UserAvatar"
+import { ProfileAvatar } from "@/components/ui/profile-avatar"
 import { Progress } from "@/components/ui/progress"
 import {
   SidebarInset,
@@ -182,36 +183,33 @@ export default function CreatorsPage() {
       console.log('📊 Analysis result:', result)
       
       if (result.success && result.data && result.data.profile) {
-        // Complete the progress
-        setAnalyzingCreators(prev => ({
-          ...prev,
-          [cleanUsername]: { status: 'completed', progress: 100 }
-        }))
-        
-        // Transform the backend data to creator card format
-        const newCreator = {
+        // Transform the backend data to creator card format matching UnlockedProfile interface
+        const newCreator: UnlockedProfile = {
           id: `creator-${cleanUsername}-${Date.now()}`,
           username: result.data.profile.username,
           full_name: result.data.profile.full_name,
           profile_pic_url: result.data.profile.profile_pic_url,
-          followers: result.data.profile.followers_count, // Fixed: use followers_count from API
+          profile_pic_url_hd: result.data.profile.profile_pic_url_hd,
+          profile_images: result.data.profile.profile_images,
+          proxied_profile_pic_url: result.data.profile.proxied_profile_pic_url,
+          followers_count: result.data.profile.followers_count,
+          following_count: result.data.profile.following_count,
+          posts_count: result.data.profile.posts_count,
           engagement_rate: result.data.profile.engagement_rate,
           is_verified: result.data.profile.is_verified,
-          bio: result.data.profile.biography, // Fixed: use biography from API
-          categories: [
-            result.data.profile.business_category_name || 'Lifestyle', // Fixed: use business_category_name from API
-            'Social Media',
-            'Content Creator'
-          ],
-          location: result.data.demographics?.location_distribution ? Object.keys(result.data.demographics.location_distribution)[0] : 'Global', // Fixed: use demographics data
+          is_business_account: result.data.profile.is_business_account,
+          is_professional_account: result.data.profile.is_professional_account,
+          biography: result.data.profile.biography,
+          business_category_name: result.data.profile.business_category_name,
           influence_score: result.data.profile.influence_score,
           content_quality_score: result.data.profile.content_quality_score,
-          unlocked_at: new Date().toISOString()
+          unlocked_at: new Date().toISOString(),
+          days_remaining: result.data.meta?.access_expires_in_days || 30
         }
         
         console.log('✅ Adding creator to unlocked list:', newCreator)
         
-        // Add to unlocked creators
+        // Add to unlocked creators (this will replace analyzing state)
         setUnlockedCreators(prev => {
           // Check if already exists
           const exists = prev.find(c => c.username === cleanUsername)
@@ -222,16 +220,25 @@ export default function CreatorsPage() {
           return [newCreator, ...prev]
         })
         
-        toast.success(`Successfully analyzed @${cleanUsername}! Added to your unlocked creators.`)
+        // Complete the progress and then immediately remove from analyzing list
+        setAnalyzingCreators(prev => ({
+          ...prev,
+          [cleanUsername]: { status: 'completed', progress: 100 }
+        }))
         
-        // Remove from analyzing list after 2 seconds to show completion state briefly
+        // Remove from analyzing list immediately after data is populated
         setTimeout(() => {
           setAnalyzingCreators(prev => {
             const newState = { ...prev }
             delete newState[cleanUsername]
             return newState
           })
-        }, 2000)
+        }, 500) // Reduced to 500ms for smoother transition
+        
+        toast.success(`Successfully analyzed @${cleanUsername}! Added to your unlocked creators.`)
+        
+        // Reload unlocked profiles from backend to ensure data consistency
+        loadUnlockedProfiles()
       } else {
         // Enhanced error handling with specific messages
         let errorMessage = result.error || 'Analysis failed'
@@ -439,6 +446,45 @@ export default function CreatorsPage() {
     )
   }
 
+  // Helper function to determine influencer tier
+  const getInfluencerTier = (followerCount: number) => {
+    if (followerCount >= 1000000) return 'mega';
+    if (followerCount >= 100000) return 'macro';
+    if (followerCount >= 10000) return 'micro';
+    return 'nano';
+  };
+
+  // Tier Badge Component
+  function TierBadge({ tier, isExpired }: { tier: 'nano' | 'micro' | 'macro' | 'mega', isExpired?: boolean }) {
+    const tierStyles = {
+      nano: "bg-white text-black border border-gray-300 shadow-sm dark:bg-gray-100 dark:text-black dark:border-gray-200",
+      micro: "text-black border shadow-md" + " " + "bg-[#d3ff02] border-[#d3ff02] dark:bg-[#d3ff02] dark:border-[#d3ff02] dark:text-black",
+      macro: "text-white border shadow-lg ring-2" + " " + "bg-[#5100f3] border-[#5100f3] ring-[#5100f3]/30 dark:bg-[#5100f3] dark:border-[#5100f3] dark:ring-[#5100f3]/30", 
+      mega: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 border-2 border-yellow-500 shadow-xl ring-2 ring-yellow-400/60 animate-pulse [animation-duration:7s] dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-300 dark:border-yellow-400 dark:ring-yellow-300/60"
+    };
+
+    const tierLabels = {
+      nano: 'Nano',
+      micro: 'Micro', 
+      macro: 'Macro',
+      mega: 'Mega'
+    };
+
+    if (isExpired) {
+      return (
+        <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100 text-xs border border-red-300 dark:border-red-700">
+          Expired
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge className={`text-xs font-bold ${tierStyles[tier]}`}>
+        {tierLabels[tier]}
+      </Badge>
+    );
+  }
+
   // Draggable Creator Component
   function DraggableCreator({ creator }: { creator: UnlockedProfile }) {
     const {
@@ -456,65 +502,89 @@ export default function CreatorsPage() {
       opacity: isDragging ? 0.5 : 1,
     }
 
+    // Check if profile is expired and determine tier
+    const isExpired = creator.days_remaining !== undefined && creator.days_remaining <= 0;
+    const tier = getInfluencerTier(creator.followers_count || 0);
+
     return (
-      <Card ref={setNodeRef} style={style} className="relative overflow-hidden hover:shadow-lg transition-shadow cursor-grab active:cursor-grabbing">
+      <Card 
+        ref={setNodeRef} 
+        style={style} 
+        className="relative overflow-hidden hover:shadow-lg transition-shadow cursor-grab active:cursor-grabbing select-none"
+        {...attributes} 
+        {...listeners}
+      >
         {/* Status Indicator */}
         <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
-          <div {...attributes} {...listeners}>
-            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-          </div>
-          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-xs">
-            Unlocked
-          </Badge>
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+          <TierBadge tier={tier} isExpired={isExpired} />
         </div>
         
         <CardHeader className="pb-3">
           {/* Avatar */}
           <div className="flex justify-center mb-3">
-            <UserAvatar 
-              user={{
-                full_name: creator.full_name,
-                profile_picture_url: creator.proxied_profile_pic_url || creator.profile_pic_url
-              }}
-              size={64}
-              className="h-16 w-16"
+            <ProfileAvatar
+              src={(() => {
+                // Use HD profile image from profile_images array if available, fallback to profile_pic_url_hd, then regular
+                const profileImages = creator.profile_images || [];
+                const hdImage = profileImages.find(img => img.type === 'hd');
+                return hdImage?.url || creator.profile_pic_url_hd || creator.profile_pic_url;
+              })()}
+              alt={creator.full_name || 'Profile'}
+              fallbackText={creator.username}
+              className="w-20 h-20 border-2 border-white dark:border-gray-900 shadow-lg"
             />
           </div>
 
           {/* Name and Username */}
-          <div className="text-center space-y-1">
-            <div className="flex items-center justify-center gap-2">
-              <h3 className="font-semibold text-lg">{creator.full_name}</h3>
-              {creator.is_verified && (
-                <Badge variant="secondary" className="px-1.5 py-0.5 text-xs">
-                  ✓
-                </Badge>
-              )}
-            </div>
+          <div className="text-center space-y-1 select-none">
+            <h3 className="font-semibold text-lg">{creator.full_name}</h3>
             <p className="text-sm text-muted-foreground">
               @{creator.username}
             </p>
           </div>
 
-          {/* Content Category Badges */}
-          <div className="flex flex-wrap justify-center gap-1 mt-3">
-            {creator.business_category_name && (
-              <Badge variant="outline" className="text-xs">
-                {creator.business_category_name}
-              </Badge>
-            )}
-            {creator.is_business_account && (
-              <Badge variant="outline" className="text-xs">
-                Business
-              </Badge>
-            )}
-            <Badge variant="outline" className="text-xs">
-              Creator
-            </Badge>
+          {/* Content Category Badges - Always show 3 categories */}
+          <div className="mt-3 select-none">
+            <div className="flex flex-wrap justify-center gap-1 max-w-full">
+              {(() => {
+                const categories = [];
+                
+                // Add business category or default
+                if (creator.business_category_name) {
+                  categories.push(creator.business_category_name);
+                } else {
+                  categories.push('Lifestyle');
+                }
+                
+                // Add account type
+                if (creator.is_business_account) {
+                  categories.push('Business');
+                } else {
+                  categories.push('Creator');
+                }
+                
+                // Add content focus category
+                categories.push('Social Media');
+                
+                // Ensure we only show 3 categories
+                return categories.slice(0, 3).map((category, index) => (
+                  <Badge 
+                    key={index} 
+                    variant="outline" 
+                    className="text-xs px-2 py-1 whitespace-nowrap select-none bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                    style={{ maxWidth: '90px' }}
+                  >
+                    <span className="truncate">{category}</span>
+                  </Badge>
+                ));
+              })()
+              }
+            </div>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 select-none">
           {/* Followers and Engagement */}
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="text-center p-2 bg-muted rounded-md">
@@ -527,19 +597,16 @@ export default function CreatorsPage() {
             </div>
           </div>
 
-          {/* Access Info */}
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              {creator.days_remaining} days remaining
-            </span>
-          </div>
 
           {/* Action Button */}
           <div className="pt-2">
             <Button 
               className="w-full" 
               size="sm"
-              onClick={() => router.push(`/analytics/${creator.username}`)}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/analytics/${creator.username}`);
+              }}
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               View Analytics
@@ -774,7 +841,15 @@ export default function CreatorsPage() {
                 <SortableContext items={creators.map(c => c.username)} strategy={verticalListSortingStrategy}>
                   <div className="grid gap-6 lg:grid-cols-3">
                   {/* Currently Analyzing Creators */}
-                  {Object.entries(analyzingCreators).map(([username, analysis]) => (
+                  {Object.entries(analyzingCreators).map(([username, analysis]) => {
+                    // Check if this creator has been unlocked but is still in analyzing state
+                    const unlockedCreator = unlockedCreators.find(c => c.username === username);
+                    if (unlockedCreator && analysis.status === 'completed') {
+                      // Return the populated card instead of loading card
+                      return <DraggableCreator key={`unlocked-${username}`} creator={unlockedCreator} />;
+                    }
+                    // Return loading card for ongoing analysis
+                    return (
                     <Card key={`analyzing-${username}`} className="relative overflow-hidden hover:shadow-lg transition-shadow border-blue-200 dark:border-blue-800">
                       {/* Status Indicator */}
                       <div className="absolute top-2 right-2 z-10">
@@ -860,7 +935,8 @@ export default function CreatorsPage() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                    );
+                  })}
 
                   {/* Loading State */}
                   {unlockedLoading && (
@@ -901,8 +977,10 @@ export default function CreatorsPage() {
                     </div>
                   )}
 
-                  {/* Existing Creators */}
-                  {!unlockedLoading && creators.map((creator) => (
+                  {/* Existing Creators (exclude those currently being analyzed) */}
+                  {!unlockedLoading && creators
+                    .filter(creator => !analyzingCreators[creator.username])
+                    .map((creator) => (
                     <DraggableCreator key={creator.username} creator={creator} />
                   ))}
                 </div>
@@ -973,12 +1051,16 @@ export default function CreatorsPage() {
               <Card className="opacity-90">
                 <CardContent className="p-3">
                   <div className="flex items-center gap-2">
-                    <UserAvatar 
-                      user={{
-                        full_name: unlockedCreators.find(c => c.username === activeId)?.full_name || "Creator",
-                        profile_picture_url: unlockedCreators.find(c => c.username === activeId)?.proxied_profile_pic_url
-                      }}
-                      size={32}
+                    <ProfileAvatar
+                      src={(() => {
+                        const creator = unlockedCreators.find(c => c.username === activeId);
+                        if (!creator) return undefined;
+                        const profileImages = creator.profile_images || [];
+                        const hdImage = profileImages.find(img => img.type === 'hd');
+                        return hdImage?.url || creator.profile_pic_url_hd || creator.profile_pic_url;
+                      })()}
+                      alt={unlockedCreators.find(c => c.username === activeId)?.full_name || 'Profile'}
+                      fallbackText={unlockedCreators.find(c => c.username === activeId)?.username || 'C'}
                       className="h-8 w-8"
                     />
                     <div>
