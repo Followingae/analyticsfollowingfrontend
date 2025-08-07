@@ -548,7 +548,7 @@ export default function DiscoverPage() {
                       {currentResults.map((creator) => (
                         <Card 
                           key={creator.id} 
-                          className="relative overflow-hidden cursor-move hover:shadow-lg transition-shadow"
+                          className="relative overflow-hidden cursor-move"
                           draggable
                           onDragStart={(e) => {
                             setDraggedCreator(creator)

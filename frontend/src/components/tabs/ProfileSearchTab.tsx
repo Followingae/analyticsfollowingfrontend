@@ -76,7 +76,7 @@ export default function ProfileSearchTab() {
   return (
     <div className="space-y-6">
       {/* Search Section */}
-      <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="w-5 h-5" />
@@ -149,7 +149,7 @@ export default function ProfileSearchTab() {
       </Card>
 
       {/* Batch Analysis */}
-      <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -197,7 +197,7 @@ export default function ProfileSearchTab() {
       {profileData && (
         <div className="space-y-6">
           {/* Profile Overview */}
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+          <Card className="border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-start gap-4">
                 <ProfileAvatar
@@ -205,7 +205,7 @@ export default function ProfileSearchTab() {
                   alt={profileData.profile.username}
                   fallbackText={profileData.profile.username}
                   size="lg"
-                  className="w-20 h-20 border-4 border-white shadow-lg"
+                  className="w-20 h-20 border-4 border-white"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
@@ -282,7 +282,7 @@ export default function ProfileSearchTab() {
 
           {/* Analytics Cards */}
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <Card className="border-0 bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Heart className="w-5 h-5" />
@@ -313,7 +313,7 @@ export default function ProfileSearchTab() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <Card className="border-0 bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="w-5 h-5" />
@@ -330,7 +330,7 @@ export default function ProfileSearchTab() {
 
           {/* Audience Insights & Competitor Analysis */}
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <Card className="border-0 bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
@@ -344,7 +344,7 @@ export default function ProfileSearchTab() {
               </CardContent>
             </Card>
             
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <Card className="border-0 bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="w-5 h-5" />

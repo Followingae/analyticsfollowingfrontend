@@ -117,7 +117,7 @@ export default function PostsGrid({ username }: PostsGridProps) {
   return (
     <div className="space-y-6">
       {/* Posts Analytics Header */}
-      <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Grid3x3 className="w-5 h-5" />

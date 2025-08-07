@@ -64,7 +64,7 @@ export default function CarouselPost({ post, className = '' }: CarouselPostProps
   const currentImage = post.images[currentIndex]
 
   return (
-    <Card className={`overflow-hidden hover:shadow-lg transition-shadow ${className}`}>
+    <Card className={`overflow-hidden ${className}`}>
       <div className="relative">
         {/* Carousel Container */}
         <div className="relative aspect-square bg-gray-100">
@@ -257,7 +257,7 @@ function SinglePostView({ post, className }: CarouselPostProps) {
   }
 
   return (
-    <Card className={`overflow-hidden hover:shadow-lg transition-shadow ${className}`}>
+    <Card className={`overflow-hidden ${className}`}>
       <div className="relative">
         <div className="relative aspect-square bg-gray-100">
           {post.is_video ? (

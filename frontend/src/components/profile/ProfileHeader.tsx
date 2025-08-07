@@ -41,7 +41,7 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
   }
 
   return (
-    <Card className={`border-0 shadow-lg bg-white/80 backdrop-blur-sm ${className}`}>
+    <Card className={`border-0 bg-white/80 backdrop-blur-sm ${className}`}>
       <CardHeader>
         <div className="flex flex-col md:flex-row items-start gap-6">
           {/* Profile Picture */}
@@ -51,7 +51,7 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
               alt={`${profile.username} profile picture`}
               fallbackText={profile.username}
               size="xl"
-              className="w-24 h-24 md:w-30 md:h-30 border-4 border-white shadow-lg"
+              className="w-24 h-24 md:w-30 md:h-30 border-4 border-white"
             />
             {profile.is_verified && (
               <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1">

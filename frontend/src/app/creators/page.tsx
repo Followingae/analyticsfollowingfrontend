@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 
 import { AuthGuard } from "@/components/AuthGuard"
 import { instagramApiService, UnlockedProfile, UnlockedProfilesResponse } from "@/services/instagramApi"
+import { preloadPageImages } from "@/lib/image-cache"
 import {
   Plus,
   Users,
@@ -130,6 +131,14 @@ export default function CreatorsPage() {
           hasNext: result.data.pagination.has_next
         })
         setUnlockedError(null)
+        
+        // Preload images for better performance
+        if (result.data.profiles.length > 0) {
+          const imageUrls = result.data.profiles.map(profile => 
+            profile.profile_pic_url_hd || profile.profile_pic_url
+          ).filter(Boolean)
+          preloadPageImages(imageUrls)
+        }
       } else {
         console.error('❌ Failed to load unlocked profiles:', result.error)
         setUnlockedError(result.error || 'Failed to load unlocked profiles')
@@ -452,10 +461,10 @@ export default function CreatorsPage() {
   // Tier Badge Component
   function TierBadge({ tier, isExpired }: { tier: 'nano' | 'micro' | 'macro' | 'mega', isExpired?: boolean }) {
     const tierStyles = {
-      nano: "bg-white text-black border border-gray-300 shadow-sm dark:bg-gray-100 dark:text-black dark:border-gray-200",
-      micro: "text-black border shadow-md" + " " + "bg-[#d3ff02] border-[#d3ff02] dark:bg-[#d3ff02] dark:border-[#d3ff02] dark:text-black",
-      macro: "text-white border shadow-lg ring-2" + " " + "bg-[#5100f3] border-[#5100f3] ring-[#5100f3]/30 dark:bg-[#5100f3] dark:border-[#5100f3] dark:ring-[#5100f3]/30", 
-      mega: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 border-2 border-yellow-500 shadow-xl ring-2 ring-yellow-400/60 animate-pulse [animation-duration:7s] dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-300 dark:border-yellow-400 dark:ring-yellow-300/60"
+      nano: "bg-white text-black border border-gray-300 dark:bg-gray-100 dark:text-black dark:border-gray-200",
+      micro: "text-black border" + " " + "bg-[#d3ff02] border-[#d3ff02] dark:bg-[#d3ff02] dark:border-[#d3ff02] dark:text-black",
+      macro: "text-white border ring-2" + " " + "bg-[#5100f3] border-[#5100f3] ring-[#5100f3]/30 dark:bg-[#5100f3] dark:border-[#5100f3] dark:ring-[#5100f3]/30", 
+      mega: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 border-2 border-yellow-500 ring-2 ring-yellow-400/60 animate-pulse [animation-duration:7s] dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-300 dark:border-yellow-400 dark:ring-yellow-300/60"
     };
 
     const tierLabels = {
@@ -505,7 +514,7 @@ export default function CreatorsPage() {
       <Card 
         ref={setNodeRef} 
         style={style} 
-        className="relative overflow-hidden hover:shadow-lg transition-shadow cursor-grab active:cursor-grabbing select-none"
+        className="relative overflow-hidden cursor-grab active:cursor-grabbing select-none"
         {...attributes} 
         {...listeners}
       >
@@ -522,7 +531,7 @@ export default function CreatorsPage() {
               src={creator.profile_pic_url_hd || creator.profile_pic_url}
               alt={creator.full_name || 'Profile'}
               fallbackText={creator.username}
-              className="w-20 h-20 border-2 border-white dark:border-gray-900 shadow-lg"
+              className="w-20 h-20 border-2 border-white dark:border-gray-900"
             />
           </div>
 
@@ -840,7 +849,7 @@ export default function CreatorsPage() {
                     }
                     // Return loading card for ongoing analysis
                     return (
-                    <Card key={`analyzing-${username}`} className="relative overflow-hidden hover:shadow-lg transition-shadow border-blue-200 dark:border-blue-800">
+                    <Card key={`analyzing-${username}`} className="relative overflow-hidden border-blue-200 dark:border-blue-800">
                       {/* Status Indicator */}
                       <div className="absolute top-2 right-2 z-10">
                         <Badge className={`text-xs ${

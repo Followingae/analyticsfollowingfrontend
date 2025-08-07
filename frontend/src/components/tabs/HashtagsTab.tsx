@@ -112,7 +112,7 @@ export default function HashtagsTab() {
   return (
     <div className="space-y-6">
       {/* Single Hashtag Analysis */}
-      <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Hash className="w-5 h-5" />
@@ -178,7 +178,7 @@ export default function HashtagsTab() {
       </Card>
 
       {/* Hashtag Opportunities */}
-      <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="w-5 h-5" />
@@ -227,7 +227,7 @@ export default function HashtagsTab() {
           {/* Opportunities Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredOpportunities.map((opportunity) => (
-              <Card key={opportunity.hashtag} className="hover:shadow-md transition-shadow">
+              <Card key={opportunity.hashtag}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -295,7 +295,7 @@ export default function HashtagsTab() {
       </Card>
 
       {/* Hashtag Strategy Tips */}
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-purple-50">
+      <Card className="border-0 bg-gradient-to-r from-blue-50 to-purple-50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lightbulb className="w-5 h-5" />
@@ -351,7 +351,7 @@ export default function HashtagsTab() {
       </Card>
 
       {/* Quick Hashtag Sets */}
-      <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
@@ -380,7 +380,7 @@ export default function HashtagsTab() {
                 color: 'bg-blue-50 border-blue-200'
               }
             ].map((set) => (
-              <Card key={set.niche} className={`${set.color} hover:shadow-md transition-shadow cursor-pointer`}>
+              <Card key={set.niche} className={`${set.color} cursor-pointer`}>
                 <CardContent className="p-4">
                   <h4 className="font-semibold mb-3">{set.niche}</h4>
                   <div className="flex flex-wrap gap-1">

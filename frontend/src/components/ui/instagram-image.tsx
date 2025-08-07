@@ -1,6 +1,7 @@
 import { forwardRef, ImgHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
-import { proxyInstagramUrl, handleImageError } from '@/lib/image-proxy';
+import { proxyInstagramUrlCached } from '@/lib/image-cache';
+import { handleImageError } from '@/lib/image-proxy';
 
 interface InstagramImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   src: string | null | undefined;
@@ -14,7 +15,7 @@ interface InstagramImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 
  */
 export const InstagramImage = forwardRef<HTMLImageElement, InstagramImageProps>(
   ({ src, alt, className, fallback, onError, ...props }, ref) => {
-    const proxiedSrc = proxyInstagramUrl(src);
+    const proxiedSrc = proxyInstagramUrlCached(src);
 
     // Don't render if no source
     if (!proxiedSrc) {
@@ -27,6 +28,7 @@ export const InstagramImage = forwardRef<HTMLImageElement, InstagramImageProps>(
         src={proxiedSrc}
         alt={alt}
         className={cn("object-cover", className)}
+        crossOrigin="anonymous"
         onError={onError || handleImageError}
         {...props}
       />

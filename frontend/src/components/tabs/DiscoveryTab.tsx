@@ -67,7 +67,7 @@ export default function DiscoveryTab() {
   return (
     <div className="space-y-6">
       {/* Hashtag Discovery */}
-      <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Hash className="w-5 h-5" />
@@ -168,7 +168,7 @@ export default function DiscoveryTab() {
       </Card>
 
       {/* Trending Niches */}
-      <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
@@ -183,7 +183,7 @@ export default function DiscoveryTab() {
             {trendingNiches.map((niche) => (
               <Card 
                 key={niche.name} 
-                className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-purple-50"
+                className="cursor-pointer bg-gradient-to-br from-blue-50 to-purple-50"
                 onClick={() => handleNicheClick(niche.name.toLowerCase())}
               >
                 <CardContent className="p-4 text-center">
@@ -201,7 +201,7 @@ export default function DiscoveryTab() {
 
       {/* Creator Results */}
       {creators.length > 0 && (
-        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+        <Card className="border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
@@ -211,7 +211,7 @@ export default function DiscoveryTab() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {creators.map((creator) => (
-                <Card key={creator.username} className="hover:shadow-md transition-shadow">
+                <Card key={creator.username}>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3 mb-3">
                       <ProfileAvatar
@@ -287,7 +287,7 @@ export default function DiscoveryTab() {
       )}
 
       {/* Discovery Tips */}
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-purple-50">
+      <Card className="border-0 bg-gradient-to-r from-blue-50 to-purple-50">
         <CardHeader>
           <CardTitle className="text-lg">💡 Discovery Tips</CardTitle>
         </CardHeader>

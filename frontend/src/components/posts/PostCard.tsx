@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { InstagramPost } from '@/services/instagramApi'
 import { formatNumber } from '@/lib/utils'
 import { InstagramImage } from '@/components/ui/instagram-image'
-import { proxyInstagramUrl } from '@/lib/image-proxy'
+import { proxyInstagramUrlCached } from '@/lib/image-cache'
 import { Heart, MessageCircle, Eye, MapPin, ExternalLink } from 'lucide-react'
 
 interface PostCardProps {
@@ -30,7 +30,7 @@ export default function PostCard({ post }: PostCardProps) {
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card className="overflow-hidden">
       <div className="relative">
         {/* Main Media */}
         <div className="relative aspect-square bg-gray-100">
@@ -38,7 +38,7 @@ export default function PostCard({ post }: PostCardProps) {
             <div className="relative w-full h-full">
               <video
                 controls
-                poster={proxyInstagramUrl(post.images?.[0]?.proxied_url || post.display_url)}
+                poster={proxyInstagramUrlCached(post.images?.[0]?.proxied_url || post.display_url)}
                 className="w-full h-full object-cover"
               >
                 <source src={post.video_url} type="video/mp4" />

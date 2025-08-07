@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
-import { proxyInstagramUrl } from '@/lib/image-proxy';
+import { proxyInstagramUrlCached } from '@/lib/image-cache';
 import { cn } from '@/lib/utils';
 
 interface ProfileAvatarProps {
@@ -28,8 +28,9 @@ export function ProfileAvatar({
   return (
     <Avatar className={cn(sizeClasses[size], className)}>
       <AvatarImage
-        src={proxyInstagramUrl(src)}
+        src={proxyInstagramUrlCached(src)}
         alt={alt}
+        crossOrigin="anonymous"
       />
       <AvatarFallback>
         {fallbackText ? (

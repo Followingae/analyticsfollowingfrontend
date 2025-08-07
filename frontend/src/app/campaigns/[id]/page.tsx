@@ -639,7 +639,7 @@ export default function CampaignAnalyticsPage() {
                             <div key={index} className="text-center">
                               <div className="flex items-center justify-center mb-1">
                                 <div 
-                                  className="w-4 h-4 rounded-full border-2 border-white shadow-sm" 
+                                  className="w-4 h-4 rounded-full border-2 border-white" 
                                   style={{ backgroundColor: item.fill }}
                                 />
                               </div>

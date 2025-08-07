@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { instagramApiService, ProfileResponse, InstagramPost } from "@/services/instagramApi"
+import { preloadPageImages } from "@/lib/image-cache"
 import { ProfileAvatar } from "@/components/ui/profile-avatar"
 import { API_CONFIG } from "@/config/api"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -83,10 +84,10 @@ const getInfluencerTier = (followerCount: number) => {
 // Tier Badge Component
 function TierBadge({ tier }: { tier: 'nano' | 'micro' | 'macro' | 'mega' }) {
   const tierStyles = {
-    nano: "bg-white text-black border border-gray-300 shadow-sm dark:bg-gray-100 dark:text-black dark:border-gray-200",
-    micro: "text-black border shadow-md" + " " + "bg-[#d3ff02] border-[#d3ff02] dark:bg-[#d3ff02] dark:border-[#d3ff02] dark:text-black",
-    macro: "text-white border shadow-lg ring-2" + " " + "bg-[#5100f3] border-[#5100f3] ring-[#5100f3]/30 dark:bg-[#5100f3] dark:border-[#5100f3] dark:ring-[#5100f3]/30", 
-    mega: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 border-2 border-yellow-500 shadow-xl ring-2 ring-yellow-400/60 animate-pulse [animation-duration:7s] dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-300 dark:border-yellow-400 dark:ring-yellow-300/60"
+    nano: "bg-white text-black border border-gray-300 dark:bg-gray-100 dark:text-black dark:border-gray-200",
+    micro: "text-black border bg-[#d3ff02] border-[#d3ff02] dark:bg-[#d3ff02] dark:border-[#d3ff02] dark:text-black",
+    macro: "text-white border ring-2 bg-[#5100f3] border-[#5100f3] ring-[#5100f3]/30 dark:bg-[#5100f3] dark:border-[#5100f3] dark:ring-[#5100f3]/30", 
+    mega: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 border-2 border-yellow-500 ring-2 ring-yellow-400/60 animate-pulse [animation-duration:7s] dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-300 dark:border-yellow-400 dark:ring-yellow-300/60"
   };
 
   const tierLabels = {
@@ -197,6 +198,17 @@ export default function AnalyticsPage() {
         })
         setPostsData(result.data.posts || [])
         console.log('✅ POSTS: Posts state updated with', result.data.posts?.length || 0, 'posts')
+        
+        // Preload post images
+        if (result.data.posts && result.data.posts.length > 0) {
+          const postImages = result.data.posts.flatMap(post => [
+            post.display_url,
+            ...(post.images?.map(img => img.proxied_url) || [])
+          ]).filter(Boolean)
+          if (postImages.length > 0) {
+            preloadPageImages(postImages)
+          }
+        }
       } else {
         console.log('❌ POSTS: Loading failed with error:', result.error)
         console.log('❌ POSTS: Full result object:', result)
@@ -244,6 +256,16 @@ export default function AnalyticsPage() {
       
       const profileResponse = result.data
       setProfileData(profileResponse)
+      
+      // Preload profile images
+      const profileImages = [
+        profileResponse.profile.profile_pic_url_hd,
+        profileResponse.profile.profile_pic_url,
+        ...(profileResponse.profile.profile_images?.map(img => img.url) || [])
+      ].filter(Boolean)
+      if (profileImages.length > 0) {
+        preloadPageImages(profileImages)
+      }
       
       // Check access status and show warnings if needed (updated for new response structure)
       const accessStatus = checkAccessStatus(profileResponse)
@@ -503,7 +525,7 @@ export default function AnalyticsPage() {
                               className="relative w-32 h-32 border-4 border-white dark:border-gray-900"
                             />
                             {profileData.profile.is_verified && (
-                              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-gray-800 dark:bg-gray-200 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-900 shadow-lg">
+                              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-gray-800 dark:bg-gray-200 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-900">
                                 <svg className="w-6 h-6 text-white dark:text-gray-800" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                 </svg>
@@ -713,7 +735,7 @@ export default function AnalyticsPage() {
                       {profileData.profile.biography && (
                         <Card>
                           <CardHeader>
-                            <CardTitle>Biography</CardTitle>
+                            <CardTitle>Profile Bio</CardTitle>
                             <CardDescription>Creator's profile description</CardDescription>
                           </CardHeader>
                           <CardContent>
@@ -742,48 +764,7 @@ export default function AnalyticsPage() {
                         </Card>
                       )}
                       
-                      {/* External Links */}
-                      {profileData.profile.external_url && (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>External Links</CardTitle>
-                            <CardDescription>Links and contact information</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex flex-wrap gap-2">
-                              <a 
-                                href={profileData.profile.external_url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors underline decoration-muted-foreground hover:decoration-foreground"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                                <span className="text-sm font-medium">{profileData.profile.external_url}</span>
-                              </a>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
                       
-                      {/* Bio Analysis */}
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <FileText className="w-5 h-5" />
-                            Bio Intelligence
-                          </CardTitle>
-                          <CardDescription>Advanced biography content analysis</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
-                            <CardContent className="p-8 text-center">
-                              <FileText className="w-12 h-12 mx-auto mb-4 text-red-400" />
-                              <p className="text-red-700 dark:text-red-300 font-medium">Bio analysis not available</p>
-                              <Badge variant="outline" className="text-red-600 border-red-300 mt-2">No Data</Badge>
-                            </CardContent>
-                          </Card>
-                        </CardContent>
-                      </Card>
 
                     {/* Quality Metrics */}
                     <Card>
@@ -1354,39 +1335,60 @@ export default function AnalyticsPage() {
                   </Tabs>
                 </div>
 
-                {/* Contact Information */}
+                {/* Contact Information & External Links */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Mail className="w-5 h-5" />
-                      Professional Contact
+                      Contact & Links
                     </CardTitle>
-                    <CardDescription>Business collaboration details</CardDescription>
+                    <CardDescription>Business collaboration details and external links</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="space-y-1">
-                          <h3 className="font-semibold">Business Contact</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {profileData.profile.business_email || 
-                             profileData.profile.business_phone_number || 
-                             'Contact details not available from public profile'}
-                          </p>
+                    <div className="space-y-4">
+                      {/* Business Contact */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="space-y-1">
+                            <h3 className="font-semibold">Business Contact</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {profileData.profile.business_email || 
+                               profileData.profile.business_phone_number || 
+                               'Contact details not available from public profile'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Badge 
+                            variant={profileData.profile.is_verified ? "default" : "outline"}
+                          >
+                            {profileData.profile.is_verified ? "✨ Verified Creator" : "📋 Public Profile"}
+                          </Badge>
+                          {profileData.profile.business_email && (
+                            <Badge variant="outline" className="text-xs">
+                              Email Available
+                            </Badge>
+                          )}
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2">
-                        <Badge 
-                          variant={profileData.profile.is_verified ? "default" : "outline"}
-                        >
-                          {profileData.profile.is_verified ? "✨ Verified Creator" : "📋 Public Profile"}
-                        </Badge>
-                        {profileData.profile.business_email && (
-                          <Badge variant="outline" className="text-xs">
-                            Email Available
-                          </Badge>
-                        )}
-                      </div>
+                      
+                      {/* External Links */}
+                      {profileData.profile.external_url && (
+                        <div className="pt-4 border-t border-border">
+                          <h4 className="font-semibold mb-2">External Links</h4>
+                          <div className="flex flex-wrap gap-2">
+                            <a 
+                              href={profileData.profile.external_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors underline decoration-muted-foreground hover:decoration-foreground"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              <span className="text-sm font-medium">{profileData.profile.external_url}</span>
+                            </a>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

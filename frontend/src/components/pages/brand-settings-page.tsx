@@ -160,7 +160,7 @@ export default function BrandSettingsPage() {
           <CardContent className="p-6">
             <div className="text-center space-y-4">
               <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">Preview Mode</h3>
-              <div className="flex items-center justify-center gap-4 p-6 bg-white dark:bg-gray-900 rounded-lg shadow-sm">
+              <div className="flex items-center justify-center gap-4 p-6 bg-white dark:bg-gray-900 rounded-lg">
                 {settings.brandLogo && (
                   <img src={settings.brandLogo} alt="Brand Logo" className="h-12 w-auto" />
                 )}

@@ -104,7 +104,7 @@ export default function AnalyticsTab() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {kpis.map((kpi) => (
-          <Card key={kpi.title} className="border-0 shadow-md">
+          <Card key={kpi.title} className="border-0">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-medium text-gray-600">{kpi.title}</h3>
@@ -142,7 +142,7 @@ export default function AnalyticsTab() {
 
     return (
       <div className="space-y-6">
-        <Card className="border-0 shadow-md">
+        <Card className="border-0">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Brain className="w-5 h-5" />
@@ -196,7 +196,7 @@ export default function AnalyticsTab() {
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-0 shadow-md">
+        <Card className="border-0">
           <CardHeader>
             <CardTitle>Performance Metrics</CardTitle>
           </CardHeader>
@@ -220,7 +220,7 @@ export default function AnalyticsTab() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-md">
+        <Card className="border-0">
           <CardHeader>
             <CardTitle>Content Distribution</CardTitle>
           </CardHeader>
@@ -262,7 +262,7 @@ export default function AnalyticsTab() {
   return (
     <div className="space-y-6">
       {/* Search Section */}
-      <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5" />
@@ -313,7 +313,7 @@ export default function AnalyticsTab() {
       {analyticsData && (
         <>
           {/* Module Navigation */}
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+          <Card className="border-0 bg-white/80 backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
                 {modules.map((module) => {
@@ -336,7 +336,7 @@ export default function AnalyticsTab() {
           </Card>
 
           {/* Current Module Content */}
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+          <Card className="border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 {React.createElement(modules.find(m => m.id === activeModule)?.icon || BarChart3, { className: "w-5 h-5" })}
@@ -354,7 +354,7 @@ export default function AnalyticsTab() {
       )}
 
       {!analyticsData && (
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-purple-50">
+        <Card className="border-0 bg-gradient-to-r from-blue-50 to-purple-50">
           <CardHeader>
             <CardTitle className="text-lg">📊 Analytics Modules</CardTitle>
           </CardHeader>
