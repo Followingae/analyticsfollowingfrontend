@@ -265,8 +265,8 @@ export default function Dashboard() {
                         <UserAvatar 
                           key={`dashboard-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
                           user={user}
-                          size={80}
-                          className="h-20 w-20"
+                          size={90}
+                          className="h-22 w-22"
                         />
                         <div className="flex flex-col">
                           <div className="welcome-text-primary font-semibold italic text-muted-foreground">Welcome,</div>

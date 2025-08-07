@@ -51,7 +51,8 @@
       "Bash(git config:*)",
       "WebFetch(domain:localhost)",
       "Bash(tasklist:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }

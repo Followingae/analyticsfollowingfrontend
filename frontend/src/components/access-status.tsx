@@ -55,51 +55,7 @@ export function AccessStatus({
   const progressValue = daysRemaining ? Math.max(0, (daysRemaining / 30) * 100) : 0
 
   if (hasAccess) {
-    return (
-      <Card className="border-green-200 bg-green-50 dark:bg-green-900/20">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <CardTitle className="text-green-800 dark:text-green-200">Full Access Granted</CardTitle>
-            </div>
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              <Unlock className="h-3 w-3 mr-1" />
-              Active
-            </Badge>
-          </div>
-          <CardDescription className="text-green-700 dark:text-green-300">
-            You have complete access to @{username}'s profile and analytics
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {daysRemaining && (
-            <>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-green-700 dark:text-green-300">Access expires in</span>
-                <span className="font-medium text-green-800 dark:text-green-200">
-                  {daysRemaining} day{daysRemaining !== 1 ? 's' : ''}
-                </span>
-              </div>
-              <Progress 
-                value={progressValue} 
-                className="h-2"
-              />
-              <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                <Calendar className="h-3 w-3" />
-                <span>Expires on {new Date(expiresAt!).toLocaleDateString()}</span>
-                {accessMethod && (
-                  <>
-                    <span>•</span>
-                    <span>Unlocked via {accessMethod}</span>
-                  </>
-                )}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    )
+    return null
   }
 
   return (

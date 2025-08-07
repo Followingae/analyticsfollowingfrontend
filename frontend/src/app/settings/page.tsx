@@ -136,19 +136,24 @@ export default function SettingsPage() {
       
       if (success) {
         console.log('✅ Profile saved successfully via AuthContext')
-        // Update local state to reflect changes
-        const updatedUser = user
-        if (updatedUser) {
-          setProfileData({
-            ...profileData,
-            first_name: updatedUser.first_name || '',
-            last_name: updatedUser.last_name || '',
-            company: updatedUser.company || '',
-            job_title: updatedUser.job_title || '',
-            phone_number: updatedUser.phone_number || '',
-            bio: updatedUser.bio || ''
-          })
-        }
+        
+        // Use a small delay to ensure auth context state has been updated
+        setTimeout(() => {
+          // Update local form state with current user data from auth context
+          // The auth context has already been updated with fresh API response data
+          if (user) {
+            setProfileData({
+              first_name: user.first_name || '',
+              last_name: user.last_name || '',
+              company: user.company || '',
+              job_title: user.job_title || '',
+              phone_number: user.phone_number || '',
+              bio: user.bio || '',
+              email: user.email || '',
+              avatar_config: user.avatar_config
+            })
+          }
+        }, 100)
       } else {
         console.error('❌ Failed to save profile via AuthContext')
       }

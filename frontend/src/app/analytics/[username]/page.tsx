@@ -50,7 +50,8 @@ import {
   Hash,
   AtSign,
   Smile,
-  RefreshCw
+  RefreshCw,
+  Unlock
 } from "lucide-react"
 
 function formatNumber(num: number | undefined | null): string {
@@ -313,7 +314,7 @@ export default function AnalyticsPage() {
       
     } catch (error) {
       console.error('❌ Profile refresh setup error:', error)
-      toast.error(`Failed to start refresh: ${error.message}`)
+      toast.error(`Failed to start refresh: ${error instanceof Error ? error.message : String(error)}`)
       setRefreshing(false)
     }
   }
@@ -498,37 +499,46 @@ export default function AnalyticsPage() {
                                 </div>
                               </div>
                               
-                              {/* Data Freshness & Refresh Button - Top Right */}
-                              <div className="flex flex-col items-end gap-2">
-                                <div className="text-xs text-gray-500 text-right">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    <span>Profile data last received:</span>
-                                  </div>
-                                  <div className="text-gray-700 dark:text-gray-300 font-medium">
-                                    {profileData.profile.last_refreshed ? 
-                                      new Date(profileData.profile.last_refreshed).toLocaleDateString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric', 
-                                        year: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      }) : 
-                                      'Unknown'
-                                    }
-                                  </div>
-                                </div>
+                              {/* Profile Status & Data Freshness - Top Right */}
+                              <div className="flex flex-col items-end gap-3">
+                                {/* Profile Unlocked Badge */}
+                                {profileData.meta?.user_has_access && (
+                                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 px-3 py-2 text-sm font-medium shadow-sm">
+                                    <Unlock className="h-4 w-4 mr-2" />
+                                    Profile Unlocked till {profileData.meta?.access_expires_in_days ? (profileData.meta.access_expires_in_days + (profileData.meta.access_expires_in_days !== 1 ? ' days' : ' day')) : 'N/A'}
+                                  </Badge>
+                                )}
                                 
-                                <Button
-                                  onClick={handleRefreshProfile}
-                                  disabled={refreshing}
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex items-center gap-2"
-                                >
-                                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                                  {refreshing ? 'Refreshing...' : 'Refresh Data'}
-                                </Button>
+                                {/* Data Freshness & Refresh Button - Single Row */}
+                                <div className="flex items-center gap-2">
+                                  <div className="text-xs text-gray-500 flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Profile data last received: </span>
+                                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                      {profileData.profile.last_refreshed ? 
+                                        new Date(profileData.profile.last_refreshed).toLocaleDateString('en-US', {
+                                          month: 'short',
+                                          day: 'numeric', 
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        }) : 
+                                        'Unknown'
+                                      }
+                                    </span>
+                                  </div>
+                                  
+                                  <Button
+                                    onClick={handleRefreshProfile}
+                                    disabled={refreshing}
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex items-center gap-1 h-6 px-2 text-xs"
+                                  >
+                                    <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+                                    {refreshing ? 'Refreshing...' : 'Refresh'}
+                                  </Button>
+                                </div>
                                 
                                 {refreshing && (
                                   <div className="text-xs text-blue-600 dark:text-blue-400 text-right">

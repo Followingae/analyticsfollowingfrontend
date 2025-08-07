@@ -210,11 +210,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       const updatedUser = { ...prev, ...userData }
       
-      // Persist avatar_config changes to localStorage immediately
-      if (userData.avatar_config) {
-        console.log('💾 Persisting avatar_config to localStorage:', userData.avatar_config)
-        localStorage.setItem('user_data', JSON.stringify(updatedUser))
-      }
+      // Persist all changes to localStorage immediately
+      console.log('💾 Persisting updated user to localStorage:', updatedUser)
+      localStorage.setItem('user_data', JSON.stringify(updatedUser))
       
       return updatedUser
     })
@@ -230,8 +228,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await settingsService.updateProfile(profileData)
       
       if (result.success && result.data) {
-        // DON'T refresh user data - it reverts avatar_config changes
-        console.log('✅ Profile updated successfully, NOT calling refreshUser')
+        console.log('✅ Profile updated successfully via AuthContext')
+        
+        // Update the local auth state with the fresh data from API response
+        updateUserState({
+          first_name: result.data.first_name,
+          last_name: result.data.last_name,
+          full_name: result.data.full_name,
+          company: result.data.company,
+          job_title: result.data.job_title,
+          phone_number: result.data.phone_number,
+          bio: result.data.bio,
+          avatar_config: result.data.avatar_config
+        })
+        
         toast.success(result.data.message || 'Profile updated successfully')
         return true
       } else {
