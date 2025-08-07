@@ -50,7 +50,8 @@
       "WebFetch(domain:api.github.com)",
       "Bash(git config:*)",
       "WebFetch(domain:localhost)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
