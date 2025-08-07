@@ -61,12 +61,12 @@ export function SiteHeader() {
         />
         {!isDashboard && userDisplayData && userDisplayData.displayName && (
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground italic">Welcome,</span>
+            <span className="text-base font-bold tracking-tight">Welcome,</span>
             <span className="text-base font-bold tracking-tight">{userDisplayData.displayName}</span>
             {userDisplayData.companyName && (
               <>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-sm font-medium text-muted-foreground">{userDisplayData.companyName}</span>
+                <span className="text-base font-bold tracking-tight">•</span>
+                <span className="text-base font-bold tracking-tight">{userDisplayData.companyName}</span>
               </>
             )}
           </div>

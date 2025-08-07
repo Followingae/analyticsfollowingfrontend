@@ -57,7 +57,9 @@ class ImageCache {
     // Clean up old entries if cache is full
     if (this.memoryCache.size >= this.maxMemoryCache) {
       const oldestKey = this.memoryCache.keys().next().value
-      this.memoryCache.delete(oldestKey)
+      if (oldestKey) {
+        this.memoryCache.delete(oldestKey)
+      }
     }
 
     this.memoryCache.set(originalUrl, proxiedUrl)

@@ -1,9 +1,7 @@
 "use client"
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { BoringAvatar } from "@/components/ui/boring-avatar"
 import { cn } from "@/lib/utils"
-
 interface UserAvatarProps {
   user?: {
     full_name?: string
@@ -23,7 +21,6 @@ interface UserAvatarProps {
   fallbackText?: string
   showBoringAvatar?: boolean
 }
-
 export function UserAvatar({ 
   user, 
   size = 40, 
@@ -31,14 +28,6 @@ export function UserAvatar({
   fallbackText,
   showBoringAvatar = true 
 }: UserAvatarProps) {
-  // DEBUG: Log what user data we receive
-  console.log('🎭 UserAvatar received user data:', {
-    hasUser: !!user,
-    email: user?.email,
-    avatar_config: user?.avatar_config,
-    profile_picture_url: user?.profile_picture_url
-  })
-  
   // Get user name for boring-avatars seed
   const getUserName = () => {
     if (user?.full_name) return user.full_name
@@ -47,7 +36,6 @@ export function UserAvatar({
     if (user?.email) return user.email
     return fallbackText || "User"
   }
-
   // Get user initials for fallback
   const getUserInitials = () => {
     if (user?.first_name && user?.last_name) {
@@ -65,10 +53,8 @@ export function UserAvatar({
     }
     return fallbackText?.[0]?.toUpperCase() || "U"
   }
-
   const userName = getUserName()
   const userInitials = getUserInitials()
-
   // If user has a custom profile picture, use it
   if (user?.profile_picture_url) {
     return (
@@ -80,17 +66,9 @@ export function UserAvatar({
       </Avatar>
     )
   }
-
   // Use boring-avatars if enabled
   if (showBoringAvatar) {
     const avatarConfig = user?.avatar_config
-    
-    console.log('🎨 UserAvatar using config:', {
-      seed: avatarConfig?.seed || userName,
-      colors: avatarConfig?.colors || ["#d3ff02", "#5100f3", "#c9a7f9", "#0a1221"],
-      hasAvatarConfig: !!avatarConfig
-    })
-    
     return (
       <div className={cn("rounded-full overflow-hidden", className)}>
         <BoringAvatar
@@ -102,7 +80,6 @@ export function UserAvatar({
       </div>
     )
   }
-
   // Fallback to regular avatar with initials
   return (
     <Avatar className={cn("", className)} style={{ width: size, height: size }}>

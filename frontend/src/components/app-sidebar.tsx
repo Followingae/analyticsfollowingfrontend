@@ -12,6 +12,7 @@ import {
   IconTarget,
   IconCreditCard,
   IconCompass,
+  IconList,
 } from "@tabler/icons-react"
 import Image from "next/image"
 import { useTheme } from "next-themes"
@@ -46,6 +47,11 @@ const data = {
       title: "Creators",
       url: "/creators",
       icon: IconUsers,
+    },
+    {
+      title: "My Lists",
+      url: "/my-lists",
+      icon: IconList,
     },
     {
       title: "Campaigns",
@@ -85,9 +91,9 @@ function ThemeLogo() {
       <Image 
         src="/followinglogo.svg" 
         alt="Following Logo" 
-        width={120} 
+        width={128} 
         height={40}
-        className="object-contain w-24 h-10"
+        className="object-contain w-28 h-10"
       />
     )
   }
@@ -99,10 +105,9 @@ function ThemeLogo() {
     <Image 
       src={logoSrc}
       alt="Following Logo" 
-      width={0} 
-      height={0}
-      sizes="(min-width: 640px) 60vw, 60vw"
-      className="object-contain w-4/5 h-auto max-w-full"
+      width={128} 
+      height={40}
+      className="object-contain w-28 h-10"
     />
   )
 }
@@ -112,9 +117,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Dynamic user data - avoid hardcoded values
   const dynamicUser = React.useMemo(() => {
-    console.log('🔍 AppSidebar: Recalculating dynamicUser with user:', user)
-    console.log('🎨 AppSidebar: Current avatar_config:', user?.avatar_config)
-    
     if (!user) return null
     
     const getDisplayName = () => {
@@ -130,27 +132,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       return null // No fallback to avoid hardcoded values
     }
 
-    const result = {
+    return {
       name: getDisplayName(),
       email: user.email,
       avatar: user.profile_picture_url || null,
       avatar_config: user.avatar_config,
     }
-    
-    console.log('🔍 AppSidebar: Final dynamicUser:', result)
-    return result
   }, [user])
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader className="flex justify-center items-center py-2">
+      <SidebarHeader className="flex justify-center items-center py-3">
         <SidebarMenu className="w-full flex justify-center">
-          <SidebarMenuItem className="w-full flex justify-center">
+          <SidebarMenuItem className="flex justify-center">
             <SidebarMenuButton
               asChild
-              className="w-full flex justify-center data-[slot=sidebar-menu-button]:!py-6 data-[slot=sidebar-menu-button]:!px-0"
+              className="flex justify-center data-[slot=sidebar-menu-button]:!py-3 data-[slot=sidebar-menu-button]:!px-3"
             >
-              <a className="w-2/5 flex justify-center">
+              <a className="flex justify-center items-center">
                 <ThemeLogo />
               </a>
             </SidebarMenuButton>

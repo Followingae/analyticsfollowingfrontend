@@ -1,10 +1,9 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-
 import { AuthGuard } from "@/components/AuthGuard"
 import { instagramApiService, UnlockedProfile, UnlockedProfilesResponse } from "@/services/instagramApi"
+import { listsApiService, List, CreateListRequest, AddProfileToListRequest, ListsPaginatedResponse } from "@/services/listsApi"
 import { preloadPageImages } from "@/lib/image-cache"
 import {
   Plus,
@@ -21,7 +20,6 @@ import {
   Target,
   GripVertical,
 } from "lucide-react"
-
 import {
   DndContext,
   DragEndEvent,
@@ -40,7 +38,6 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-
 import { AppSidebar } from "@/components/app-sidebar"
 import { SectionCards } from "@/components/section-cards"
 import { toast } from "sonner"
@@ -73,10 +70,8 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import ReactCountryFlag from "react-country-flag"
 import { getCountryCode } from "@/lib/countryUtils"
-
 // Disable static generation for this page
 export const dynamic = 'force-dynamic'
-
 export default function CreatorsPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchUsername, setSearchUsername] = useState("")
@@ -92,15 +87,13 @@ export default function CreatorsPage() {
     totalPages: 1,
     hasNext: false
   })
-  
   // Drag and drop state
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [campaigns] = useState([
-    { id: "1", name: "Summer Fashion Collection 2024", status: "active" as const, creatorCount: 3 },
-    { id: "2", name: "Tech Product Launch", status: "completed" as const, creatorCount: 2 },
-    { id: "3", name: "Holiday Special", status: "draft" as const, creatorCount: 0 }
-  ])
-  
+  const [myLists, setMyLists] = useState<List[]>([])
+  const [listsLoading, setListsLoading] = useState(true)
+  const [isCreatingList, setIsCreatingList] = useState(false)
+  const [newListName, setNewListName] = useState("")
+  const [selectedColor, setSelectedColor] = useState("#ff6b6b")
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -108,22 +101,47 @@ export default function CreatorsPage() {
       },
     })
   )
-  
   const router = useRouter()
   // Note: URL param analysis temporarily disabled for production build
   // TODO: Implement proper Suspense boundary for useSearchParams
-  
+  // Load lists from backend
+  const loadLists = async () => {
+    setListsLoading(true)
+    try {
+      const result = await listsApiService.getAllLists()
+      if (result.success && result.data) {
+        // Handle the nested structure: {lists: [...], pagination: {...}}
+        if (result.data && typeof result.data === 'object' && 'lists' in result.data && Array.isArray((result.data as ListsPaginatedResponse).lists)) {
+          const paginatedData = result.data as ListsPaginatedResponse
+          // Ensure we only set valid list objects
+          const validLists = paginatedData.lists.filter(list => list && typeof list === 'object' && list.id)
+          setMyLists(validLists)
+        } else if (Array.isArray(result.data)) {
+          // Ensure we only set valid list objects
+          const validLists = result.data.filter(list => list && typeof list === 'object' && list.id)
+          setMyLists(validLists)
+        } else {
+          setMyLists([])
+        }
+      } else {
+        // Ensure we always have a valid array
+        setMyLists([])
+      }
+    } catch (error) {
+      // Ensure we always have a valid array
+      setMyLists([])
+    } finally {
+      setListsLoading(false)
+    }
+  }
   // Load unlocked profiles from backend
   const loadUnlockedProfiles = async (page: number = 1) => {
-    console.log('👥 Loading unlocked profiles, page:', page)
     setUnlockedLoading(true)
     setUnlockedError(null)
-    
     try {
       const result = await instagramApiService.getUnlockedProfiles(page, 20)
-      
       if (result.success && result.data) {
-        console.log('✅ Unlocked profiles loaded:', result.data)
+        console.log('Unlocked profiles data:', result.data.profiles[0]) // Log first profile to see structure
         setUnlockedCreators(result.data.profiles)
         setPagination({
           page: result.data.pagination.page,
@@ -131,7 +149,6 @@ export default function CreatorsPage() {
           hasNext: result.data.pagination.has_next
         })
         setUnlockedError(null)
-        
         // Preload images for better performance
         if (result.data.profiles.length > 0) {
           const imageUrls = result.data.profiles.map(profile => 
@@ -150,26 +167,21 @@ export default function CreatorsPage() {
       setUnlockedLoading(false)
     }
   }
-
-  // Load unlocked profiles on component mount
+  // Load data on component mount
   useEffect(() => {
     loadUnlockedProfiles()
+    loadLists()
   }, [])
-
   const creators: UnlockedProfile[] = unlockedCreators
-
   const startAnalysis = async (username: string) => {
     const cleanUsername = username.trim().replace('@', '')
-    
     // Add to analyzing list
     setAnalyzingCreators(prev => ({
       ...prev,
       [cleanUsername]: { status: 'analyzing', progress: 0 }
     }))
-
     // Show success message
     toast.success(`Started analyzing @${cleanUsername}...`)
-
     try {
       // Simulate progress updates
       const progressInterval = setInterval(() => {
@@ -184,13 +196,8 @@ export default function CreatorsPage() {
           return prev
         })
       }, 1000)
-
-      console.log(`🔍 Starting profile search for @${cleanUsername}...`)
       const result = await instagramApiService.searchProfile(cleanUsername)
-      
       clearInterval(progressInterval)
-      console.log('📊 Analysis result:', result)
-      
       if (result.success && result.data && result.data.profile) {
         // Transform the backend data to creator card format matching UnlockedProfile interface
         const newCreator: UnlockedProfile = {
@@ -210,26 +217,20 @@ export default function CreatorsPage() {
           access_granted_at: new Date().toISOString(),
           days_remaining: result.data.meta?.access_expires_in_days || 30
         }
-        
-        console.log('✅ Adding creator to unlocked list:', newCreator)
-        
         // Add to unlocked creators (this will replace analyzing state)
         setUnlockedCreators(prev => {
           // Check if already exists
           const exists = prev.find(c => c.username === cleanUsername)
           if (exists) {
-            console.log('⚠️ Creator already exists, updating data')
             return prev.map(c => c.username === cleanUsername ? newCreator : c)
           }
           return [newCreator, ...prev]
         })
-        
         // Complete the progress and then immediately remove from analyzing list
         setAnalyzingCreators(prev => ({
           ...prev,
           [cleanUsername]: { status: 'completed', progress: 100 }
         }))
-        
         // Remove from analyzing list immediately after data is populated
         setTimeout(() => {
           setAnalyzingCreators(prev => {
@@ -238,14 +239,26 @@ export default function CreatorsPage() {
             return newState
           })
         }, 500) // Reduced to 500ms for smoother transition
-        
         toast.success(`Successfully analyzed @${cleanUsername}! Added to your unlocked creators.`)
-        
         // Reload unlocked profiles from backend to ensure data consistency
         loadUnlockedProfiles()
       } else {
         // Enhanced error handling with specific messages
-        let errorMessage = result.error || 'Analysis failed'
+        let errorMessage = 'Analysis failed'
+        if (typeof result.error === 'string') {
+          errorMessage = result.error
+        } else if (result.error && typeof result.error === 'object') {
+          // Handle validation error objects with {type, loc, msg, input, url} structure
+          if (Array.isArray(result.error) && result.error.length > 0 && result.error[0].msg) {
+            errorMessage = result.error[0].msg
+          } else if (result.error.msg) {
+            errorMessage = result.error.msg
+          } else if (result.error.detail) {
+            errorMessage = result.error.detail
+          } else {
+            errorMessage = JSON.stringify(result.error)
+          }
+        }
         
         // Map common backend errors to user-friendly messages
         if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
@@ -261,7 +274,6 @@ export default function CreatorsPage() {
         } else if (errorMessage.includes('Server error')) {
           errorMessage = 'Backend service is experiencing issues. Please try again in a few minutes.'
         }
-        
         setAnalyzingCreators(prev => ({
           ...prev,
           [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
@@ -270,10 +282,8 @@ export default function CreatorsPage() {
       }
     } catch (error) {
       console.error('❌ Analysis error for @' + cleanUsername + ':', error)
-      
       // Enhanced catch block error handling
       let errorMessage = 'Network error occurred'
-      
       if (error instanceof Error) {
         if (error.message.includes('timeout') || error.message.includes('timed out')) {
           errorMessage = 'Request timed out. The backend may be busy processing large profiles. Please try again.'
@@ -285,62 +295,49 @@ export default function CreatorsPage() {
           errorMessage = error.message
         }
       }
-      
       setAnalyzingCreators(prev => ({
         ...prev,
         [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
       }))
-      
       toast.error(`Error analyzing @${cleanUsername}: ${errorMessage}`)
     }
   }
-
   const handleSearchCreator = async () => {
     if (!searchUsername.trim()) {
       toast.error("Please enter an Instagram username")
       return
     }
-
     const cleanUsername = searchUsername.trim().replace('@', '')
     setIsSearchOpen(false)
     setSearchUsername("")
-    
     // Start analysis
     await startAnalysis(cleanUsername)
   }
-
   const handleBulkAnalysis = async () => {
     if (!bulkUsernames.trim()) {
       toast.error("Please enter usernames for bulk analysis")
       return
     }
-
     const usernames = bulkUsernames
       .split(/[,\n]/)
       .map(u => u.trim().replace('@', ''))
       .filter(u => u.length > 0)
-
     if (usernames.length === 0) {
       toast.error("No valid usernames found")
       return
     }
-
     if (usernames.length > 10) {
       toast.error("Maximum 10 usernames allowed for bulk analysis")
       return
     }
-
     setBulkLoading(true)
     toast.info(`Starting bulk analysis for ${usernames.length} creators...`)
-
     try {
       const results = await Promise.allSettled(
         usernames.map(username => instagramApiService.searchProfile(username))
       )
-
       const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length
       const failed = results.length - successful
-
       if (successful > 0) {
         toast.success(`Successfully analyzed ${successful} creators${failed > 0 ? `, ${failed} failed` : ''}`)
         // For now, navigate to the first successful result
@@ -363,36 +360,74 @@ export default function CreatorsPage() {
       setBulkLoading(false)
     }
   }
-
   const formatNumber = (num: number | undefined | null) => {
     if (num === undefined || num === null || isNaN(num)) return '0'
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
     return num.toString()
   }
-
   // Drag and drop handlers
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string)
   }
-  
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
-    
-    if (over && over.id.toString().startsWith('campaign-')) {
-      const campaignId = over.id.toString().replace('campaign-', '')
-      const creatorId = active.id as string
-      const creator = unlockedCreators.find(c => c.username === creatorId)
-      const campaign = campaigns.find(c => c.id === campaignId)
-      
-      if (creator && campaign) {
-        toast.success(`Added @${creator.username} to ${campaign.name}`)
+    if (over && over.id.toString().startsWith('list-')) {
+      const listId = over.id.toString().replace('list-', '')
+      const creatorUsername = active.id as string
+      const creator = unlockedCreators.find(c => c.username === creatorUsername)
+      const list = myLists.find(l => l.id === listId)
+      if (creator && list) {
+        try {
+          const profileData: AddProfileToListRequest = {
+            profile_id: creator.username,
+            position: 0,
+            is_pinned: false
+          }
+          const result = await listsApiService.addProfileToList(listId, profileData)
+          console.log('Add profile to list result:', result)
+          if (result.success) {
+            // Update local state to reflect the change
+            setMyLists(prev => prev.map(l => 
+              l.id === listId 
+                ? { ...l, creator_count: l.creator_count + 1 }
+                : l
+            ))
+            toast.success(`Added @${creator.username} to ${list.name}`)
+            // Reload lists to get updated data
+            loadLists()
+          } else {
+            // Handle specific error messages from backend
+            let errorMessage = 'Failed to add creator to list'
+            if (typeof result.error === 'string') {
+              errorMessage = result.error
+            } else if (result.error && typeof result.error === 'object') {
+              // Handle validation error objects with {type, loc, msg, input, url} structure
+              if (Array.isArray(result.error) && result.error.length > 0 && result.error[0].msg) {
+                errorMessage = result.error[0].msg
+              } else if (result.error.msg) {
+                errorMessage = result.error.msg
+              } else if (result.error.detail) {
+                errorMessage = result.error.detail
+              } else {
+                errorMessage = JSON.stringify(result.error)
+              }
+            }
+            
+            if (errorMessage.includes('already exists')) {
+              toast.info(`@${creator.username} is already in ${list.name}`)
+            } else {
+              toast.error(errorMessage)
+            }
+          }
+        } catch (error) {
+          console.error('Error adding creator to list:', error)
+          toast.error('Network error while adding creator to list')
+        }
       }
     }
-    
     setActiveId(null)
   }
-  
   const getStatusColor = (status: 'active' | 'paused' | 'completed' | 'draft') => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
@@ -402,8 +437,6 @@ export default function CreatorsPage() {
       default: return 'bg-gray-100 text-gray-800'
     }
   }
-
-
   // Calculate real stats from unlocked creators
   const totalFollowers = unlockedCreators.reduce((sum, creator) => sum + (creator.followers_count || 0), 0)
   const mostDominantNiche = unlockedCreators.reduce((acc, creator) => {
@@ -412,20 +445,98 @@ export default function CreatorsPage() {
     return acc
   }, {} as Record<string, number>)
   const dominantNiche = Object.entries(mostDominantNiche).sort(([,a], [,b]) => b - a)[0]?.[0] || "Mixed"
-
   const creatorsData = {
     unlockedCreators: unlockedCreators.length,
     portfolioReach: dominantNiche, // Using this field for dominant niche
     avgEngagement: '7 days', // Using this field for credits reset
     inCampaigns: 0 // Will be replaced with custom cards
   }
-
-  // Droppable Campaign Component
-  function DroppableCampaign({ campaign }: { campaign: typeof campaigns[0] }) {
+  // Handle list creation
+  const handleCreateList = async () => {
+    if (!newListName.trim()) {
+      toast.error("Please enter a list name")
+      return
+    }
+    const listData: CreateListRequest = {
+      name: newListName.trim(),
+      color: selectedColor
+    }
+    try {
+      const result = await listsApiService.createList(listData)
+      if (result.success && result.data) {
+        setMyLists(prev => [...prev, result.data!])
+        setNewListName("")
+        setIsCreatingList(false)
+        toast.success(`Created list "${result.data.name}"`)
+      } else {
+        let errorMessage = 'Failed to create list'
+        if (typeof result.error === 'string') {
+          errorMessage = result.error
+        } else if (result.error && typeof result.error === 'object') {
+          // Handle validation error objects
+          if (Array.isArray(result.error) && result.error.length > 0 && result.error[0].msg) {
+            errorMessage = result.error[0].msg
+          } else if (result.error.msg) {
+            errorMessage = result.error.msg
+          } else if (result.error.detail) {
+            errorMessage = result.error.detail
+          } else {
+            errorMessage = JSON.stringify(result.error)
+          }
+        }
+        toast.error(errorMessage)
+      }
+    } catch (error) {
+      toast.error('Network error while creating list')
+    }
+  }
+  // Remove creator from list - This will be implemented when we have list items API
+  const removeCreatorFromList = async (listId: string, creatorUsername: string) => {
+    // TODO: Implement with list items API
+    // For now, show placeholder message
+    toast.info(`Remove functionality will be implemented with list items API`)
+  }
+  // Delete entire list
+  const deleteList = async (listId: string) => {
+    const list = myLists.find(l => l.id === listId)
+    if (!list) return
+    if (window.confirm(`Are you sure you want to delete "${list.name}"? This action cannot be undone.`)) {
+      try {
+        const result = await listsApiService.deleteList(listId)
+        if (result.success) {
+          setMyLists(prev => prev.filter(l => l.id !== listId))
+          toast.success(`Deleted list "${list.name}"`)
+        } else {
+          let errorMessage = 'Failed to delete list'
+          if (typeof result.error === 'string') {
+            errorMessage = result.error
+          } else if (result.error && typeof result.error === 'object') {
+            // Handle validation error objects
+            if (Array.isArray(result.error) && result.error.length > 0 && result.error[0].msg) {
+              errorMessage = result.error[0].msg
+            } else if (result.error.msg) {
+              errorMessage = result.error.msg
+            } else if (result.error.detail) {
+              errorMessage = result.error.detail
+            } else {
+              errorMessage = JSON.stringify(result.error)
+            }
+          }
+          toast.error(errorMessage)
+        }
+      } catch (error) {
+        toast.error('Network error while deleting list')
+      }
+    }
+  }
+  // Droppable List Component
+  function DroppableList({ list }: { list: typeof myLists[0] }) {
     const { isOver, setNodeRef } = useDroppable({
-      id: `campaign-${campaign.id}`,
+      id: `list-${list.id}`,
     })
-
+    // TODO: Get actual creators in this list from list items API
+    // For now, we can't show specific creators since we don't have list items yet
+    const creatorsInList: UnlockedProfile[] = []
     return (
       <Card 
         ref={setNodeRef} 
@@ -434,22 +545,44 @@ export default function CreatorsPage() {
         }`}
       >
         <CardContent className="p-3">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium text-sm truncate">{campaign.name}</h3>
-              <Badge className={getStatusColor(campaign.status)}>
-                {campaign.status}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-full flex-shrink-0" 
+                  style={{ backgroundColor: list.color }}
+                />
+                <h3 className="font-medium text-sm truncate">{list.name}</h3>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                onClick={() => deleteList(list.id)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
             </div>
             <div className="text-xs text-muted-foreground">
-              {campaign.creatorCount} creators
+              {list.creator_count} creators
             </div>
+            {/* Show creators in list - placeholder until list items API is implemented */}
+            {list.creator_count > 0 ? (
+              <div className="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
+                {list.creator_count} creator{list.creator_count !== 1 ? 's' : ''} added
+                <br />
+                <span className="text-xs">List items will be shown when API is ready</span>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground p-2 bg-muted/20 rounded border-2 border-dashed">
+                Drop creators here
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
     )
   }
-
   // Helper function to determine influencer tier
   const getInfluencerTier = (followerCount: number) => {
     if (followerCount >= 1000000) return 'mega';
@@ -457,7 +590,6 @@ export default function CreatorsPage() {
     if (followerCount >= 10000) return 'micro';
     return 'nano';
   };
-
   // Tier Badge Component
   function TierBadge({ tier, isExpired }: { tier: 'nano' | 'micro' | 'macro' | 'mega', isExpired?: boolean }) {
     const tierStyles = {
@@ -466,14 +598,12 @@ export default function CreatorsPage() {
       macro: "text-white border ring-2" + " " + "bg-[#5100f3] border-[#5100f3] ring-[#5100f3]/30 dark:bg-[#5100f3] dark:border-[#5100f3] dark:ring-[#5100f3]/30", 
       mega: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 border-2 border-yellow-500 ring-2 ring-yellow-400/60 animate-pulse [animation-duration:7s] dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-300 dark:border-yellow-400 dark:ring-yellow-300/60"
     };
-
     const tierLabels = {
       nano: 'Nano',
       micro: 'Micro', 
       macro: 'Macro',
       mega: 'Mega'
     };
-
     if (isExpired) {
       return (
         <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100 text-xs border border-red-300 dark:border-red-700">
@@ -481,14 +611,12 @@ export default function CreatorsPage() {
         </Badge>
       );
     }
-
     return (
       <Badge className={`text-xs font-bold ${tierStyles[tier]}`}>
         {tierLabels[tier]}
       </Badge>
     );
   }
-
   // Draggable Creator Component
   function DraggableCreator({ creator }: { creator: UnlockedProfile }) {
     const {
@@ -499,17 +627,14 @@ export default function CreatorsPage() {
       transition,
       isDragging,
     } = useSortable({ id: creator.username })
-
     const style = {
       transform: CSS.Transform.toString(transform),
       transition,
       opacity: isDragging ? 0.5 : 1,
     }
-
     // Check if profile is expired and determine tier
     const isExpired = creator.days_remaining !== undefined && creator.days_remaining <= 0;
     const tier = getInfluencerTier(creator.followers_count || 0);
-
     return (
       <Card 
         ref={setNodeRef} 
@@ -523,7 +648,6 @@ export default function CreatorsPage() {
           <GripVertical className="h-4 w-4 text-muted-foreground" />
           <TierBadge tier={tier} isExpired={isExpired} />
         </div>
-        
         <CardHeader className="pb-3">
           {/* Avatar */}
           <div className="flex justify-center mb-3">
@@ -534,7 +658,6 @@ export default function CreatorsPage() {
               className="w-20 h-20 border-2 border-white dark:border-gray-900"
             />
           </div>
-
           {/* Name and Username */}
           <div className="text-center space-y-1 select-none">
             <h3 className="font-semibold text-lg">{creator.full_name}</h3>
@@ -542,30 +665,25 @@ export default function CreatorsPage() {
               @{creator.username}
             </p>
           </div>
-
           {/* Content Category Badges - Always show 3 categories */}
           <div className="mt-3 select-none">
             <div className="flex flex-wrap justify-center gap-1 max-w-full">
               {(() => {
                 const categories = [];
-                
                 // Add business category or default
                 if (creator.business_category_name) {
                   categories.push(creator.business_category_name);
                 } else {
                   categories.push('Lifestyle');
                 }
-                
                 // Add account type
                 if (creator.is_business_account) {
                   categories.push('Business');
                 } else {
                   categories.push('Creator');
                 }
-                
                 // Add content focus category
                 categories.push('Social Media');
-                
                 // Ensure we only show 3 categories
                 return categories.slice(0, 3).map((category, index) => (
                   <Badge 
@@ -582,7 +700,6 @@ export default function CreatorsPage() {
             </div>
           </div>
         </CardHeader>
-
         <CardContent className="space-y-4 select-none">
           {/* Followers and Engagement */}
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -595,8 +712,6 @@ export default function CreatorsPage() {
               <div className="text-xs text-muted-foreground">Engagement</div>
             </div>
           </div>
-
-
           {/* Action Button */}
           <div className="pt-2">
             <Button 
@@ -615,7 +730,6 @@ export default function CreatorsPage() {
       </Card>
     )
   }
-
   return (
     <AuthGuard requireAuth={true}>
       <SidebarProvider
@@ -642,7 +756,6 @@ export default function CreatorsPage() {
             <div className="flex-1 pr-6">
               <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-            
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
@@ -685,7 +798,6 @@ export default function CreatorsPage() {
                         {searchLoading ? "Analyzing..." : "Analyze & Add Creator"}
                       </Button>
                     </div>
-
                     {/* Bulk Analysis */}
                     <div className="space-y-4">
                       <div>
@@ -711,7 +823,6 @@ export default function CreatorsPage() {
                         {bulkLoading ? "Processing..." : "Bulk Analyze"}
                       </Button>
                     </div>
-
                     {/* Upload CSV */}
                     <div className="space-y-4">
                       <div>
@@ -730,7 +841,6 @@ export default function CreatorsPage() {
                         </div>
                       </div>
                     </div>
-
                     {/* Search Filters */}
                     <div className="space-y-4">
                       <label className="text-sm font-medium">Discovery Filters</label>
@@ -768,7 +878,6 @@ export default function CreatorsPage() {
                         Find Similar Creators
                       </Button>
                     </div>
-
                     <div className="pt-4 border-t">
                       <div className="text-xs text-muted-foreground space-y-1">
                         <p>💡 Pro tips:</p>
@@ -781,8 +890,6 @@ export default function CreatorsPage() {
                 </SheetContent>
               </Sheet>
             </div>
-
-
             {/* Overview Cards */}
             <div className="grid gap-4 md:grid-cols-3">
               <Card>
@@ -797,7 +904,6 @@ export default function CreatorsPage() {
                   </p>
                 </CardContent>
               </Card>
-              
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Most Dominant Creator Niche</CardTitle>
@@ -810,7 +916,6 @@ export default function CreatorsPage() {
                   </p>
                 </CardContent>
               </Card>
-              
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Credits Reset In</CardTitle>
@@ -824,15 +929,13 @@ export default function CreatorsPage() {
                 </CardContent>
               </Card>
             </div>
-
-
             {/* Creators Portfolio */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Your Creator Portfolio</CardTitle>
                   <div className="text-sm text-muted-foreground">
-                    Drag creators to campaigns →
+                    Drag creators to lists →
                   </div>
                 </div>
               </CardHeader>
@@ -862,7 +965,6 @@ export default function CreatorsPage() {
                            'Failed'}
                         </Badge>
                       </div>
-                      
                       <CardHeader className="pb-3">
                         {/* Avatar Placeholder */}
                         <div className="flex justify-center mb-3">
@@ -876,7 +978,6 @@ export default function CreatorsPage() {
                             )}
                           </div>
                         </div>
-
                         {/* Username */}
                         <div className="text-center space-y-1">
                           <h3 className="font-semibold text-lg">@{username}</h3>
@@ -887,7 +988,6 @@ export default function CreatorsPage() {
                           </p>
                         </div>
                       </CardHeader>
-
                       <CardContent className="space-y-4">
                         {/* Progress Bar */}
                         {analysis.status === 'analyzing' && (
@@ -899,7 +999,6 @@ export default function CreatorsPage() {
                             <Progress value={analysis.progress} className="h-2" />
                           </div>
                         )}
-
                         {/* Action Button */}
                         <div className="pt-2">
                           {analysis.status === 'completed' ? (
@@ -936,7 +1035,6 @@ export default function CreatorsPage() {
                     </Card>
                     );
                   })}
-
                   {/* Loading State */}
                   {unlockedLoading && (
                     <div className="col-span-full flex items-center justify-center py-12">
@@ -946,7 +1044,6 @@ export default function CreatorsPage() {
                       </div>
                     </div>
                   )}
-
                   {/* Error State */}
                   {unlockedError && !unlockedLoading && (
                     <div className="col-span-full flex items-center justify-center py-12">
@@ -958,7 +1055,6 @@ export default function CreatorsPage() {
                       </div>
                     </div>
                   )}
-
                   {/* Empty State */}
                   {!unlockedLoading && !unlockedError && creators.length === 0 && (
                     <div className="col-span-full flex items-center justify-center py-12">
@@ -975,7 +1071,6 @@ export default function CreatorsPage() {
                       </div>
                     </div>
                   )}
-
                   {/* Existing Creators (exclude those currently being analyzed) */}
                   {!unlockedLoading && creators
                     .filter(creator => !analyzingCreators[creator.username])
@@ -984,7 +1079,6 @@ export default function CreatorsPage() {
                   ))}
                 </div>
                 </SortableContext>
-                
                 {/* Pagination Controls */}
                 {!unlockedLoading && !unlockedError && creators.length > 0 && pagination.totalPages > 1 && (
                   <div className="flex items-center justify-between pt-6 border-t">
@@ -1019,32 +1113,68 @@ export default function CreatorsPage() {
               </div>
             </div>
             </div>
-            
-            {/* Campaigns Sidebar */}
+            {/* My Lists Sidebar */}
             <div className="w-[15%] min-w-[200px] border-l bg-muted/30 sticky top-0 h-screen overflow-y-auto">
               <div className="p-4 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  <h2 className="font-semibold">Campaigns</h2>
+                  <Users className="h-5 w-5" />
+                  <h2 className="font-semibold">My Lists</h2>
                 </div>
-                
                 <div className="space-y-3">
-                  {campaigns.map((campaign) => (
-                    <DroppableCampaign
-                      key={campaign.id}
-                      campaign={campaign}
+                  {Array.isArray(myLists) && myLists.filter(list => list && list.id).map((list) => (
+                    <DroppableList
+                      key={list.id}
+                      list={list}
                     />
                   ))}
                 </div>
-                
-                <Button size="sm" className="w-full">
-                  <Plus className="h-3 w-3 mr-1" />
-                  New Campaign
-                </Button>
+                {/* Create New List Button */}
+                {!isCreatingList ? (
+                  <Button size="sm" className="w-full" onClick={() => setIsCreatingList(true)}>
+                    <Plus className="h-3 w-3 mr-1" />
+                    New List
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="List name..."
+                      value={newListName}
+                      onChange={(e) => setNewListName(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleCreateList()}
+                      className="text-sm"
+                    />
+                    {/* Color picker */}
+                    <div className="flex gap-1 justify-center">
+                      {["#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#ffd93d", "#ff9472"].map(color => (
+                        <button
+                          key={color}
+                          className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-gray-900 dark:border-gray-100' : 'border-gray-300'}`}
+                          style={{ backgroundColor: color }}
+                          onClick={() => setSelectedColor(color)}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" className="flex-1" onClick={handleCreateList}>
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1" 
+                        onClick={() => {
+                          setIsCreatingList(false)
+                          setNewListName("")
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          
           <DragOverlay>
             {activeId ? (
               <Card className="opacity-90">

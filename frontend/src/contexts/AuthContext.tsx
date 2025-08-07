@@ -37,7 +37,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const initializeAuth = async () => {
-    console.log('🔄 Initializing authentication state')
     
     try {
       // Check if user is stored locally
@@ -46,16 +45,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (storedUser && authService.isAuthenticated()) {
         // Trust the stored user data without backend verification
         // Token validation will happen on actual API calls
-        console.log('✅ User restored from storage:', storedUser.email)
-        console.log('🎨 Restored avatar_config:', storedUser.avatar_config)
         setUser(storedUser)
         await loadDashboardStats()
       } else {
         setUser(null)
-        console.log('ℹ️ No authenticated user found')
       }
     } catch (error) {
-      console.error('❌ Auth initialization error:', error)
       setUser(null)
     } finally {
       setIsLoading(false)
@@ -69,7 +64,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setDashboardStats(result.data)
       }
     } catch (error) {
-      console.error('❌ Failed to load dashboard stats:', error)
     }
   }
 
@@ -83,7 +77,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(result.data.user)
         await loadDashboardStats()
         toast.success(`Welcome back, ${result.data.user.full_name}!`)
-        console.log('✅ User logged in successfully:', result.data.user.email)
         return true
       } else {
         // Handle specific login errors (including email confirmation)
@@ -108,13 +101,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           toast.error(errorMessage)
         }
         
-        console.log('❌ Login failed:', result.error)
         return false
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed'
       toast.error(errorMessage)
-      console.error('❌ Login error:', error)
       return false
     } finally {
       setIsLoading(false)
@@ -140,30 +131,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // Store user data but don't set as logged in (no access token)
           setUser(null) // Keep user logged out until email confirmed
           
-          console.log('✅ User registered successfully, email confirmation required:', result.data.user?.email || email)
           return true
         } else if (result.data.access_token) {
           // Registration successful with immediate login (if no email confirmation required)
           setUser(result.data.user)
           await loadDashboardStats()
           toast.success(`Welcome to Analytics Following, ${result.data.user.full_name}!`)
-          console.log('✅ User registered and logged in successfully:', result.data.user?.email || email)
           return true
         } else {
           // Registration successful but no token and no confirmation flow
           toast.success('Registration successful! You can now log in.')
-          console.log('✅ User registered successfully:', result.data.user?.email || email)
           return true
         }
       } else {
         toast.error(result.error || 'Registration failed')
-        console.log('❌ Registration failed:', result.error)
         return false
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed'
       toast.error(errorMessage)
-      console.error('❌ Registration error:', error)
       return false
     } finally {
       setIsLoading(false)
@@ -175,43 +161,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setDashboardStats(null)
     authService.logout()
     toast.success('Successfully logged out')
-    console.log('👋 User logged out')
   }
 
   const refreshUser = async () => {
     try {
-      console.log('🔄 Refreshing user data...')
       const result = await authService.getCurrentUser()
       if (result.success && result.data) {
-        console.log('✅ User data refreshed:', result.data)
-        console.log('🎨 New avatar_config from backend:', result.data.avatar_config)
         
         // If backend returns null but we have a local avatar_config, preserve it locally
         const currentUser = authService.getStoredUser()
         if (!result.data.avatar_config && currentUser?.avatar_config) {
-          console.log('🔧 Backend returned null avatar_config, preserving local one:', currentUser.avatar_config)
           result.data.avatar_config = currentUser.avatar_config
         }
         
         setUser(result.data)
         localStorage.setItem('user_data', JSON.stringify(result.data))
       } else {
-        console.log('❌ Failed to refresh user:', result.error)
       }
     } catch (error) {
-      console.error('❌ Failed to refresh user:', error)
     }
   }
 
   const updateUserState = (userData: Partial<User>) => {
-    console.log('🔄 Direct user state update:', userData)
     setUser(prev => {
       if (!prev) return prev
       
       const updatedUser = { ...prev, ...userData }
       
       // Persist all changes to localStorage immediately
-      console.log('💾 Persisting updated user to localStorage:', updatedUser)
       localStorage.setItem('user_data', JSON.stringify(updatedUser))
       
       return updatedUser
@@ -228,7 +205,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await settingsService.updateProfile(profileData)
       
       if (result.success && result.data) {
-        console.log('✅ Profile updated successfully via AuthContext')
         
         // Update the local auth state with the fresh data from API response
         updateUserState({
@@ -251,7 +227,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Network error'
       toast.error(errorMessage)
-      console.error('❌ Profile update error:', error)
       return false
     }
   }

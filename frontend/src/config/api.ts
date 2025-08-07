@@ -29,6 +29,31 @@ export const ENDPOINTS = {
     analysis: (hashtag: string) => `/api/v1/instagram/hashtag/${hashtag}`,
   },
   
+  // My Lists Management
+  lists: {
+    // Core List Management
+    getAll: '/api/v1/lists',
+    create: '/api/v1/lists',
+    update: (id: string) => `/api/v1/lists/${id}`,
+    delete: (id: string) => `/api/v1/lists/${id}`,
+    
+    // List Items Management
+    addItem: (id: string) => `/api/v1/lists/${id}/items`,
+    updateItem: (id: string, itemId: string) => `/api/v1/lists/${id}/items/${itemId}`,
+    removeItem: (id: string, itemId: string) => `/api/v1/lists/${id}/items/${itemId}`,
+    bulkAdd: (id: string) => `/api/v1/lists/${id}/items/bulk`,
+    
+    // Advanced Operations
+    reorder: (id: string) => `/api/v1/lists/${id}/reorder`,
+    duplicate: (id: string) => `/api/v1/lists/${id}/duplicate`,
+    analytics: (id: string) => `/api/v1/lists/${id}/analytics`,
+  },
+  
+  // Profiles for Lists
+  profiles: {
+    availableForLists: '/api/v1/profiles/available-for-lists',
+  },
+
   // Authentication (Updated to match actual backend)
   auth: {
     login: '/api/v1/auth/login',

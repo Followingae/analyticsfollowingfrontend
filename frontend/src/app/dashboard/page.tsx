@@ -72,8 +72,6 @@ export default function Dashboard() {
   
   // Memoized user display data to prevent flash and avoid hardcoded values
   const userDisplayData = useMemo(() => {
-    console.log('🔍 Dashboard: Recalculating userDisplayData with user:', user)
-    console.log('🎨 Dashboard: Current avatar_config:', user?.avatar_config)
     
     if (!user || isLoading) return null
     
