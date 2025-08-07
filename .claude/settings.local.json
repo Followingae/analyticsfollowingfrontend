@@ -52,7 +52,9 @@
       "WebFetch(domain:localhost)",
       "Bash(tasklist:*)",
       "Bash(git commit:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

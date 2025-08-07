@@ -59,7 +59,7 @@ export function TopNav() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
-                <UserAvatar size="md" fallbackText="JD" />
+                <UserAvatar size={32} fallbackText="JD" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>

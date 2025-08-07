@@ -42,7 +42,7 @@ export default function PostsGrid({ username }: PostsGridProps) {
         } else {
           setPosts(prev => [...prev, ...result.data!.posts])
         }
-        setPagination(result.data.pagination)
+        setPagination(result.data.pagination || null)
       } else {
         setError(result.error || 'Failed to load posts')
       }

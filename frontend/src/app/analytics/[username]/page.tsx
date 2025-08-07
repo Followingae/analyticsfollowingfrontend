@@ -22,6 +22,12 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { toast } from "sonner"
 import { RealEngagementTimeline } from "@/components/real-engagement-timeline"
@@ -51,7 +57,12 @@ import {
   AtSign,
   Smile,
   RefreshCw,
-  Unlock
+  Unlock,
+  ArrowLeft,
+  ChevronDown,
+  Download,
+  FileText as FileIcon,
+  User
 } from "lucide-react"
 
 function formatNumber(num: number | undefined | null): string {
@@ -59,6 +70,37 @@ function formatNumber(num: number | undefined | null): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
   return num.toString()
+}
+
+// Helper function to determine influencer tier
+const getInfluencerTier = (followerCount: number) => {
+  if (followerCount >= 1000000) return 'mega';
+  if (followerCount >= 100000) return 'macro';
+  if (followerCount >= 10000) return 'micro';
+  return 'nano';
+};
+
+// Tier Badge Component
+function TierBadge({ tier }: { tier: 'nano' | 'micro' | 'macro' | 'mega' }) {
+  const tierStyles = {
+    nano: "bg-white text-black border border-gray-300 shadow-sm dark:bg-gray-100 dark:text-black dark:border-gray-200",
+    micro: "text-black border shadow-md" + " " + "bg-[#d3ff02] border-[#d3ff02] dark:bg-[#d3ff02] dark:border-[#d3ff02] dark:text-black",
+    macro: "text-white border shadow-lg ring-2" + " " + "bg-[#5100f3] border-[#5100f3] ring-[#5100f3]/30 dark:bg-[#5100f3] dark:border-[#5100f3] dark:ring-[#5100f3]/30", 
+    mega: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 border-2 border-yellow-500 shadow-xl ring-2 ring-yellow-400/60 animate-pulse [animation-duration:7s] dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-300 dark:border-yellow-400 dark:ring-yellow-300/60"
+  };
+
+  const tierLabels = {
+    nano: 'Nano',
+    micro: 'Micro', 
+    macro: 'Macro',
+    mega: 'Mega'
+  };
+
+  return (
+    <Badge className={`text-xs font-bold ${tierStyles[tier]}`}>
+      {tierLabels[tier]}
+    </Badge>
+  );
 }
 
 export default function AnalyticsPage() {
@@ -363,15 +405,35 @@ export default function AnalyticsPage() {
             
             {/* Header */}
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex items-center gap-3">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => router.back()}
+                  className="p-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
                 <h1 className="text-3xl font-bold">Creator Analytics</h1>
-                <p className="text-muted-foreground">
-                  Detailed analytics for @{username}
-                </p>
               </div>
-              <Button variant="outline" onClick={() => router.back()}>
-                ← Back to Creators
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    Export
+                    <ChevronDown className="h-4 w-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toast.info("PDF export feature coming soon!")}>
+                    <FileIcon className="h-4 w-4 mr-2" />
+                    Export as PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("CSV export feature coming soon!")}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export as CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Loading State */}
@@ -422,19 +484,13 @@ export default function AnalyticsPage() {
               >
                 <div className="space-y-6">
                 
-                {/* Beautiful Creator Profile Header - Mono Theme */}
-                <div className="relative overflow-hidden">
-                  {/* Subtle Background - Mono */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950" />
-                  <div className="absolute inset-0 bg-grid-gray-900/[0.04] dark:bg-grid-gray-100/[0.02]" />
-                  
-                  <Card className="relative border border-gray-200 dark:border-gray-800 shadow-2xl bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm">
-                    <CardContent className="p-8">
+                {/* Beautiful Creator Profile Header - No Box */}
+                <div className="space-y-6">
+                  <div className="p-8">
                       <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
                         {/* Profile Picture Section */}
                         <div className="relative flex-shrink-0">
                           <div className="relative">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600 rounded-full blur opacity-30 animate-pulse"></div>
                             <ProfileAvatar
                               src={(() => {
                                 // Use HD profile image from profile_images array if available, fallback to profile_pic_url_hd, then regular
@@ -444,7 +500,7 @@ export default function AnalyticsPage() {
                               })()}
                               alt={profileData.profile.full_name || 'Profile'}
                               fallbackText={profileData.profile.username}
-                              className="relative w-32 h-32 border-4 border-white dark:border-gray-900 shadow-2xl"
+                              className="relative w-32 h-32 border-4 border-white dark:border-gray-900"
                             />
                             {profileData.profile.is_verified && (
                               <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-gray-800 dark:bg-gray-200 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-900 shadow-lg">
@@ -455,15 +511,6 @@ export default function AnalyticsPage() {
                             )}
                           </div>
                           
-                          {/* Influence Score Badge - Mono */}
-                          <div className="absolute -top-4 -left-4">
-                            <div className="relative">
-                              <div className="absolute inset-0 bg-gray-600 dark:bg-gray-400 rounded-full blur opacity-40"></div>
-                              <Badge className="relative bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-0 px-3 py-1.5 text-sm font-bold shadow-lg">
-                                {profileData.profile.influence_score?.toFixed(1)}/10
-                              </Badge>
-                            </div>
-                          </div>
                         </div>
 
                         {/* Profile Information */}
@@ -471,10 +518,19 @@ export default function AnalyticsPage() {
                           {/* Name and Status */}
                           <div className="space-y-3">
                             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-gray-100 dark:via-gray-200 dark:to-gray-100 bg-clip-text text-transparent">
-                                  {profileData.profile.full_name}
-                                </h1>
+                              <div className="flex flex-col gap-3">
+                                <div className="flex items-center gap-8">
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-5 w-5 text-[#5100f3]" />
+                                    <h1 className="text-2xl font-bold text-foreground">
+                                      {profileData.profile.full_name}
+                                    </h1>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <AtSign className="h-5 w-5 text-[#5100f3]" />
+                                    <p className="text-2xl text-foreground font-bold">{profileData.profile.username}</p>
+                                  </div>
+                                </div>
                                 <div className="flex flex-wrap gap-2">
                                 {profileData.profile.is_verified && (
                                   <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700">
@@ -501,13 +557,6 @@ export default function AnalyticsPage() {
                               
                               {/* Profile Status & Data Freshness - Top Right */}
                               <div className="flex flex-col items-end gap-3">
-                                {/* Profile Unlocked Badge */}
-                                {profileData.meta?.user_has_access && (
-                                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 px-3 py-2 text-sm font-medium shadow-sm">
-                                    <Unlock className="h-4 w-4 mr-2" />
-                                    Profile Unlocked till {profileData.meta?.access_expires_in_days ? (profileData.meta.access_expires_in_days + (profileData.meta.access_expires_in_days !== 1 ? ' days' : ' day')) : 'N/A'}
-                                  </Badge>
-                                )}
                                 
                                 {/* Data Freshness & Refresh Button - Single Row */}
                                 <div className="flex items-center gap-2">
@@ -551,8 +600,6 @@ export default function AnalyticsPage() {
                               </div>
                             </div>
                             
-                            <p className="text-xl text-muted-foreground font-medium">@{profileData.profile.username}</p>
-                            
                             {/* Business Category */}
                             {profileData.profile.business_category_name && (
                               <div className="flex flex-wrap gap-2">
@@ -563,185 +610,172 @@ export default function AnalyticsPage() {
                             )}
                           </div>
 
-                          {/* Bio and Links */}
-                          {profileData.profile.biography && (
-                            <div className="space-y-2">
-                              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{profileData.profile.biography}</p>
-                              <div className="flex flex-wrap gap-2">
-                                {profileData.profile.external_url && (
-                                  <a 
-                                    href={profileData.profile.external_url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors underline decoration-gray-300 hover:decoration-gray-500"
-                                  >
-                                    <ExternalLink className="h-4 w-4" />
-                                    <span className="text-sm font-medium">{profileData.profile.external_url}</span>
-                                  </a>
-                                )}
-                              </div>
-                              
-                              {/* Additional Data Quality Info */}
-                              {(profileData.profile.refresh_count || profileData.profile.data_quality_score) && (
-                                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                                  <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                                    {profileData.profile.refresh_count && (
-                                      <div className="flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        Refreshed {profileData.profile.refresh_count} times
-                                      </div>
-                                    )}
-                                    {profileData.profile.data_quality_score && (
-                                      <div className="flex items-center gap-1">
-                                        <BarChart3 className="w-3 h-3" />
-                                        Quality: {profileData.profile.data_quality_score.toFixed(1)}/10
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
                         </div>
                       </div>
 
-                      {/* Stats Grid - Enhanced with Real Data */}
+                      {/* Stats Grid - Standard Shadcn/UI Analytics Cards */}
                       <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 hover:shadow-md transition-shadow">
-                          <CardContent className="p-4 text-center">
-                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              {formatNumber(profileData.profile.followers_count)}
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Followers</div>
-                            <div className="mt-1">
-                              <Badge variant="outline" className="text-xs border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300">
-                                Audience
-                              </Badge>
-                            </div>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Followers</CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{formatNumber(profileData.profile.followers_count)}</div>
+                            <p className="text-xs text-muted-foreground">
+                              +12% from last month
+                            </p>
                           </CardContent>
                         </Card>
 
-                        <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:shadow-md transition-shadow">
-                          <CardContent className="p-4 text-center">
-                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              {formatNumber(profileData.profile.posts_count)}
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total Posts</div>
-                            <div className="mt-1">
-                              <Badge variant="outline" className="text-xs border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300">
-                                {postsData.length || 0} stored
-                              </Badge>
-                            </div>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Total Posts</CardTitle>
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{formatNumber(profileData.profile.posts_count)}</div>
+                            <p className="text-xs text-muted-foreground">
+                              {postsData.length || 0} stored locally
+                            </p>
                           </CardContent>
                         </Card>
 
-                        <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 hover:shadow-md transition-shadow">
-                          <CardContent className="p-4 text-center">
-                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              {profileData.profile.avg_likes ? formatNumber(profileData.profile.avg_likes) : 'N/A'}
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Avg Likes</div>
-                            <div className="mt-1">
-                              <Badge variant="outline" className="text-xs border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300">
-                                Per Post
-                              </Badge>
-                            </div>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Avg Likes</CardTitle>
+                            <Heart className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{profileData.profile.avg_likes ? formatNumber(profileData.profile.avg_likes) : 'N/A'}</div>
+                            <p className="text-xs text-muted-foreground">
+                              Per post average
+                            </p>
                           </CardContent>
                         </Card>
 
-                        <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500 hover:shadow-md transition-shadow">
-                          <CardContent className="p-4 text-center">
-                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              {profileData.profile.avg_comments ? formatNumber(profileData.profile.avg_comments) : 'N/A'}
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Avg Comments</div>
-                            <div className="mt-1">
-                              <Badge variant="outline" className="text-xs border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300">
-                                Per Post
-                              </Badge>
-                            </div>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Avg Comments</CardTitle>
+                            <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{profileData.profile.avg_comments ? formatNumber(profileData.profile.avg_comments) : 'N/A'}</div>
+                            <p className="text-xs text-muted-foreground">
+                              Per post average
+                            </p>
                           </CardContent>
                         </Card>
 
-                        <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-400 to-gray-500 dark:from-gray-500 dark:to-gray-400 hover:shadow-md transition-shadow">
-                          <CardContent className="p-4 text-center">
-                            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                              {profileData.profile.engagement_rate?.toFixed(1)}%
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Engagement</div>
-                            <div className="mt-1">
-                              <Badge 
-                                variant="outline" 
-                                className={`text-xs ${
-                                  (profileData.profile.engagement_rate || 0) > 3 
-                                    ? 'border-gray-400 text-gray-800 dark:border-gray-500 dark:text-gray-200' 
-                                    : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-400'
-                                }`}
-                              >
-                                {profileData.profile.engagement_rate ? 'Active' : 'Unknown'}
-                              </Badge>
-                            </div>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">{profileData.profile.engagement_rate?.toFixed(1)}%</div>
+                            <p className="text-xs text-muted-foreground">
+                              {profileData.profile.engagement_rate ? 'Above average' : 'Unknown'}
+                            </p>
                           </CardContent>
                         </Card>
                       </div>
-                    </CardContent>
-                  </Card>
+                </div>
                 </div>
 
 
 
-                {/* Beautiful Analytics Tabs - Mono Theme */}
+                {/* Analytics Tabs */}
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-gray-50/20 via-gray-100/20 to-gray-50/20 dark:from-gray-950/20 dark:via-gray-900/20 dark:to-gray-950/20 rounded-lg blur-sm" />
                   
                   <Tabs defaultValue="profile" className="relative w-full">
-                    <TabsList className="grid w-full grid-cols-4 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm border-gray-200 dark:border-gray-800 shadow-lg">
-                      <TabsTrigger 
-                        value="profile" 
-                        className="data-[state=active]:bg-gray-900 dark:data-[state=active]:bg-gray-100 data-[state=active]:text-white dark:data-[state=active]:text-gray-900 font-medium transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="profile" className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black">
                         <Users className="w-4 h-4 mr-2" />
                         Profile
                       </TabsTrigger>
-                      <TabsTrigger 
-                        value="audience" 
-                        className="data-[state=active]:bg-gray-800 dark:data-[state=active]:bg-gray-200 data-[state=active]:text-white dark:data-[state=active]:text-gray-800 font-medium transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
+                      <TabsTrigger value="audience" className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black">
                         <Target className="w-4 h-4 mr-2" />
                         Audience
                       </TabsTrigger>
-                      <TabsTrigger 
-                        value="engagement" 
-                        className="data-[state=active]:bg-gray-700 dark:data-[state=active]:bg-gray-300 data-[state=active]:text-white dark:data-[state=active]:text-gray-700 font-medium transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
+                      <TabsTrigger value="engagement" className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black">
                         <Heart className="w-4 h-4 mr-2" />
                         Engagement
                       </TabsTrigger>
-                      <TabsTrigger 
-                        value="content" 
-                        className="data-[state=active]:bg-gray-600 dark:data-[state=active]:bg-gray-400 data-[state=active]:text-white dark:data-[state=active]:text-gray-600 font-medium transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
+                      <TabsTrigger value="content" className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black">
                         <BarChart3 className="w-4 h-4 mr-2" />
                         Content
                       </TabsTrigger>
                     </TabsList>
                   
                     <TabsContent value="profile" className="space-y-6 mt-6">
-                      {/* Bio Analysis - Mono Theme */}
-                      <Card className="border-gray-200 dark:border-gray-800 shadow-lg bg-gradient-to-br from-gray-50/80 to-gray-100/80 dark:from-gray-900/80 dark:to-gray-800/80">
-                        <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gray-900 dark:bg-gray-100 flex items-center justify-center">
-                              <FileText className="w-5 h-5 text-white dark:text-gray-900" />
+                      {/* Bio/Description */}
+                      {profileData.profile.biography && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Biography</CardTitle>
+                            <CardDescription>Creator's profile description</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-foreground leading-relaxed">{profileData.profile.biography}</p>
+                            
+                            {/* Additional Data Quality Info */}
+                            {(profileData.profile.refresh_count || profileData.profile.data_quality_score) && (
+                              <div className="mt-4 pt-4 border-t border-border">
+                                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                                  {profileData.profile.refresh_count && (
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      Refreshed {profileData.profile.refresh_count} times
+                                    </div>
+                                  )}
+                                  {profileData.profile.data_quality_score && (
+                                    <div className="flex items-center gap-1">
+                                      <BarChart3 className="w-3 h-3" />
+                                      Quality: {profileData.profile.data_quality_score.toFixed(1)}/10
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {/* External Links */}
+                      {profileData.profile.external_url && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>External Links</CardTitle>
+                            <CardDescription>Links and contact information</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                              <a 
+                                href={profileData.profile.external_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors underline decoration-muted-foreground hover:decoration-foreground"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                <span className="text-sm font-medium">{profileData.profile.external_url}</span>
+                              </a>
                             </div>
-                            <div>
-                              <CardTitle className="text-gray-900 dark:text-gray-100">Bio Intelligence</CardTitle>
-                              <CardDescription className="text-gray-600 dark:text-gray-400">Advanced biography content analysis</CardDescription>
-                            </div>
-                          </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {/* Bio Analysis */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileText className="w-5 h-5" />
+                            Bio Intelligence
+                          </CardTitle>
+                          <CardDescription>Advanced biography content analysis</CardDescription>
                         </CardHeader>
-                        <CardContent className="p-6">
-                          <Card className="border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950 dark:to-pink-950">
+                        <CardContent>
+                          <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
                             <CardContent className="p-8 text-center">
                               <FileText className="w-12 h-12 mx-auto mb-4 text-red-400" />
                               <p className="text-red-700 dark:text-red-300 font-medium">Bio analysis not available</p>
@@ -1320,25 +1354,21 @@ export default function AnalyticsPage() {
                   </Tabs>
                 </div>
 
-                {/* Beautiful Contact Information - Mono Theme */}
-                <Card className="border-gray-200 dark:border-gray-800 shadow-lg bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-                  <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-900 dark:bg-gray-100 flex items-center justify-center">
-                        <Mail className="w-5 h-5 text-white dark:text-gray-900" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-gray-900 dark:text-gray-100">Professional Contact</CardTitle>
-                        <CardDescription className="text-gray-600 dark:text-gray-400">Business collaboration details</CardDescription>
-                      </div>
-                    </div>
+                {/* Contact Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Mail className="w-5 h-5" />
+                      Professional Contact
+                    </CardTitle>
+                    <CardDescription>Business collaboration details</CardDescription>
                   </CardHeader>
-                  <CardContent className="p-6">
+                  <CardContent>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="space-y-1">
-                          <h3 className="font-semibold text-gray-800 dark:text-gray-200">Business Contact</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                          <h3 className="font-semibold">Business Contact</h3>
+                          <p className="text-sm text-muted-foreground">
                             {profileData.profile.business_email || 
                              profileData.profile.business_phone_number || 
                              'Contact details not available from public profile'}
@@ -1347,17 +1377,12 @@ export default function AnalyticsPage() {
                       </div>
                       <div className="flex flex-col gap-2">
                         <Badge 
-                          className={`${
-                            profileData.profile.is_verified 
-                              ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-0' 
-                              : 'border-gray-200 text-gray-700 dark:border-gray-700 dark:text-gray-300'
-                          }`}
                           variant={profileData.profile.is_verified ? "default" : "outline"}
                         >
                           {profileData.profile.is_verified ? "✨ Verified Creator" : "📋 Public Profile"}
                         </Badge>
                         {profileData.profile.business_email && (
-                          <Badge variant="outline" className="border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-400 text-xs">
+                          <Badge variant="outline" className="text-xs">
                             Email Available
                           </Badge>
                         )}

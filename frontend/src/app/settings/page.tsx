@@ -149,8 +149,7 @@ export default function SettingsPage() {
               job_title: user.job_title || '',
               phone_number: user.phone_number || '',
               bio: user.bio || '',
-              email: user.email || '',
-              avatar_config: user.avatar_config
+              email: user.email || ''
             })
           }
         }, 100)
@@ -447,11 +446,11 @@ export default function SettingsPage() {
                         user={{
                           ...user,
                           ...profileData,
-                          avatar_config: avatarConfig || profileData.avatar_config || user?.avatar_config
+                          avatar_config: avatarConfig || user?.avatar_config
                         }}
                         size={80}
                         className="h-20 w-20"
-                        key={`settings-avatar-${JSON.stringify(avatarConfig || profileData.avatar_config || user?.avatar_config) || 'default'}`}
+                        key={`settings-avatar-${JSON.stringify(avatarConfig || user?.avatar_config) || 'default'}`}
                       />
                       <div className="space-y-2">
                         <div className="flex gap-2">

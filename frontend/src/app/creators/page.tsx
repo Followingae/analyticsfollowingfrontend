@@ -185,25 +185,20 @@ export default function CreatorsPage() {
       if (result.success && result.data && result.data.profile) {
         // Transform the backend data to creator card format matching UnlockedProfile interface
         const newCreator: UnlockedProfile = {
-          id: `creator-${cleanUsername}-${Date.now()}`,
           username: result.data.profile.username,
           full_name: result.data.profile.full_name,
           profile_pic_url: result.data.profile.profile_pic_url,
           profile_pic_url_hd: result.data.profile.profile_pic_url_hd,
-          profile_images: result.data.profile.profile_images,
-          proxied_profile_pic_url: result.data.profile.proxied_profile_pic_url,
+          proxied_profile_pic_url: result.data.profile.profile_pic_url,
           followers_count: result.data.profile.followers_count,
           following_count: result.data.profile.following_count,
           posts_count: result.data.profile.posts_count,
           engagement_rate: result.data.profile.engagement_rate,
           is_verified: result.data.profile.is_verified,
+          is_private: result.data.profile.is_private,
           is_business_account: result.data.profile.is_business_account,
-          is_professional_account: result.data.profile.is_professional_account,
-          biography: result.data.profile.biography,
           business_category_name: result.data.profile.business_category_name,
-          influence_score: result.data.profile.influence_score,
-          content_quality_score: result.data.profile.content_quality_score,
-          unlocked_at: new Date().toISOString(),
+          access_granted_at: new Date().toISOString(),
           days_remaining: result.data.meta?.access_expires_in_days || 30
         }
         
@@ -524,12 +519,7 @@ export default function CreatorsPage() {
           {/* Avatar */}
           <div className="flex justify-center mb-3">
             <ProfileAvatar
-              src={(() => {
-                // Use HD profile image from profile_images array if available, fallback to profile_pic_url_hd, then regular
-                const profileImages = creator.profile_images || [];
-                const hdImage = profileImages.find(img => img.type === 'hd');
-                return hdImage?.url || creator.profile_pic_url_hd || creator.profile_pic_url;
-              })()}
+              src={creator.profile_pic_url_hd || creator.profile_pic_url}
               alt={creator.full_name || 'Profile'}
               fallbackText={creator.username}
               className="w-20 h-20 border-2 border-white dark:border-gray-900 shadow-lg"
@@ -1055,9 +1045,7 @@ export default function CreatorsPage() {
                       src={(() => {
                         const creator = unlockedCreators.find(c => c.username === activeId);
                         if (!creator) return undefined;
-                        const profileImages = creator.profile_images || [];
-                        const hdImage = profileImages.find(img => img.type === 'hd');
-                        return hdImage?.url || creator.profile_pic_url_hd || creator.profile_pic_url;
+                        return creator.profile_pic_url_hd || creator.profile_pic_url;
                       })()}
                       alt={unlockedCreators.find(c => c.username === activeId)?.full_name || 'Profile'}
                       fallbackText={unlockedCreators.find(c => c.username === activeId)?.username || 'C'}

@@ -96,7 +96,7 @@ class ApiInterceptor {
         const token = authService.getToken()
         if (token) {
           const updatedOptions = this.updateAuthHeader(config.options, token)
-          resolve(fetch(config.url, updatedOptions))
+          fetch(config.url, updatedOptions).then(resolve).catch(reject)
         } else {
           reject(new Error('No token available after refresh'))
         }

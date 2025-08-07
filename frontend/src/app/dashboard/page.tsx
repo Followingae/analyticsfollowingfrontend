@@ -264,7 +264,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-4">
                         <UserAvatar 
                           key={`dashboard-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
-                          user={user}
+                          user={user || undefined}
                           size={90}
                           className="h-22 w-22"
                         />
