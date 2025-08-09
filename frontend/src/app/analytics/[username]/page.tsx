@@ -1064,85 +1064,140 @@ export default function AnalyticsPage() {
                     <div className="grid gap-6 md:grid-cols-2">
                       <Card>
                         <CardHeader>
-                          <CardTitle>Engagement Metrics</CardTitle>
-                          <CardDescription>Current engagement performance</CardDescription>
+                          <CardTitle>Enhanced Engagement Analytics</CardTitle>
+                          <CardDescription>Multi-faceted engagement rates from backend</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="text-center p-3 bg-muted rounded">
-                              <div className="text-lg font-bold">0.00%</div>
-                              <div className="text-sm text-muted-foreground">Like Rate</div>
-                              {true && (
-                                <Badge variant="outline" className="text-xs mt-1 text-red-600">No Data</Badge>
-                              )}
+                          {profileData?.analytics ? (
+                            <div className="grid grid-cols-1 gap-4">
+                              <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                                <div className="text-2xl font-bold text-blue-600">{profileData.analytics.engagement_rate?.toFixed(2) || '0.00'}%</div>
+                                <div className="text-sm text-muted-foreground font-medium">Overall Engagement Rate</div>
+                                <div className="text-xs text-muted-foreground mt-1">All-time average performance</div>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
+                                  <div className="text-lg font-bold text-green-600">{profileData.analytics.engagement_rate_last_12_posts?.toFixed(2) || '0.00'}%</div>
+                                  <div className="text-sm text-muted-foreground">Last 12 Posts</div>
+                                  <Badge variant="outline" className="text-xs mt-1">Instagram Standard</Badge>
+                                </div>
+                                <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded">
+                                  <div className="text-lg font-bold text-purple-600">{profileData.analytics.engagement_rate_last_30_days?.toFixed(2) || '0.00'}%</div>
+                                  <div className="text-sm text-muted-foreground">Recent 30 Days</div>
+                                  <Badge variant="outline" className="text-xs mt-1">Trending</Badge>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded">
+                                  <div className="text-lg font-bold text-orange-600">{formatNumber(profileData.analytics.avg_likes)}</div>
+                                  <div className="text-sm text-muted-foreground">Avg Likes</div>
+                                </div>
+                                <div className="text-center p-3 bg-red-50 dark:bg-red-950 rounded">
+                                  <div className="text-lg font-bold text-red-600">{formatNumber(profileData.analytics.avg_comments)}</div>
+                                  <div className="text-sm text-muted-foreground">Avg Comments</div>
+                                </div>
+                              </div>
+                              
+                              <div className="text-center p-3 bg-gray-50 dark:bg-gray-950 rounded">
+                                <div className="text-lg font-bold">{profileData.analytics.posts_analyzed || 0}</div>
+                                <div className="text-sm text-muted-foreground">Posts Analyzed</div>
+                                <div className="text-xs text-muted-foreground mt-1">Data reliability: {profileData.analytics.data_quality_score?.toFixed(1) || '0.0'}/10</div>
+                              </div>
                             </div>
-                            <div className="text-center p-3 bg-muted rounded">
-                              <div className="text-lg font-bold">0.00%</div>
-                              <div className="text-sm text-muted-foreground">Comment Rate</div>
-                              {true && (
-                                <Badge variant="outline" className="text-xs mt-1 text-red-600">No Data</Badge>
-                              )}
-                            </div>
-                            <div className="text-center p-3 bg-muted rounded">
-                              <div className="text-lg font-bold">0.00%</div>
-                              <div className="text-sm text-muted-foreground">Save Rate</div>
-                              {true && (
-                                <Badge variant="outline" className="text-xs mt-1 text-red-600">No Data</Badge>
-                              )}
-                            </div>
-                            <div className="text-center p-3 bg-muted rounded">
-                              <div className="text-lg font-bold">0.00%</div>
-                              <div className="text-sm text-muted-foreground">Share Rate</div>
-                              {true && (
-                                <Badge variant="outline" className="text-xs mt-1 text-red-600">No Data</Badge>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-center p-3 bg-muted rounded">
-                            <div className="text-lg font-bold">0.00%</div>
-                            <div className="text-sm text-muted-foreground">Reach Rate</div>
-                            {true && (
-                              <Badge variant="outline" className="text-xs mt-1 text-red-600">No Data</Badge>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Real Performance Data</CardTitle>
-                          <CardDescription>Calculated from actual posts</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {false ? (
+                          ) : profileData?.profile ? (
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
-                                <div className="text-lg font-bold">N/A</div>
-                                <div className="text-sm text-muted-foreground">Actual Engagement</div>
+                              <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded">
+                                <div className="text-lg font-bold text-blue-600">{profileData.profile.engagement_rate?.toFixed(2) || '0.00'}%</div>
+                                <div className="text-sm text-muted-foreground">Engagement Rate</div>
                               </div>
                               <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
-                                <div className="text-lg font-bold">N/A</div>
+                                <div className="text-lg font-bold text-green-600">{profileData.profile.influence_score?.toFixed(1) || '0.0'}</div>
+                                <div className="text-sm text-muted-foreground">Influence Score</div>
+                              </div>
+                              <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded">
+                                <div className="text-lg font-bold text-orange-600">{formatNumber(profileData.profile.avg_likes)}</div>
                                 <div className="text-sm text-muted-foreground">Avg Likes</div>
                               </div>
-                              <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
-                                <div className="text-lg font-bold">N/A</div>
+                              <div className="text-center p-3 bg-red-50 dark:bg-red-950 rounded">
+                                <div className="text-lg font-bold text-red-600">{formatNumber(profileData.profile.avg_comments)}</div>
                                 <div className="text-sm text-muted-foreground">Avg Comments</div>
-                              </div>
-                              <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
-                                <div className="text-lg font-bold">N/A</div>
-                                <div className="text-sm text-muted-foreground">Video Content</div>
                               </div>
                             </div>
                           ) : (
                             <div className="text-center py-8">
                               <div className="text-muted-foreground mb-4">
-                                <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                <p>No recent posts data available</p>
+                                <Heart className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                <p>No engagement data available</p>
                               </div>
                               <Badge variant="outline" className="text-red-600">No Data</Badge>
-                              <p className="text-xs text-muted-foreground mt-2">
-                                Backend recent_posts array is empty - cannot calculate real performance metrics
-                              </p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Post-Level Analytics</CardTitle>
+                          <CardDescription>Performance metrics from individual posts ({postsData.length} posts)</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {postsData && postsData.length > 0 ? (
+                            <>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
+                                  <div className="text-lg font-bold text-green-600">
+                                    {(postsData.reduce((sum, post) => sum + post.engagement_rate, 0) / postsData.length).toFixed(2)}%
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">Avg Post Engagement</div>
+                                </div>
+                                <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded">
+                                  <div className="text-lg font-bold text-blue-600">
+                                    {formatNumber(postsData.reduce((sum, post) => sum + post.likes_count, 0) / postsData.length)}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">Avg Likes</div>
+                                </div>
+                                <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded">
+                                  <div className="text-lg font-bold text-purple-600">
+                                    {formatNumber(postsData.reduce((sum, post) => sum + post.comments_count, 0) / postsData.length)}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">Avg Comments</div>
+                                </div>
+                                <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded">
+                                  <div className="text-lg font-bold text-orange-600">
+                                    {postsData.filter(post => post.is_video).length}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">Video Posts</div>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-3 gap-4 text-sm">
+                                <div className="text-center p-2 bg-gray-50 dark:bg-gray-950 rounded">
+                                  <div className="font-semibold">{Math.max(...postsData.map(p => p.engagement_rate)).toFixed(2)}%</div>
+                                  <div className="text-muted-foreground text-xs">Best Post</div>
+                                </div>
+                                <div className="text-center p-2 bg-gray-50 dark:bg-gray-950 rounded">
+                                  <div className="font-semibold">{Math.min(...postsData.map(p => p.engagement_rate)).toFixed(2)}%</div>
+                                  <div className="text-muted-foreground text-xs">Lowest Post</div>
+                                </div>
+                                <div className="text-center p-2 bg-gray-50 dark:bg-gray-950 rounded">
+                                  <div className="font-semibold">{postsData.filter(post => post.is_carousel).length}</div>
+                                  <div className="text-muted-foreground text-xs">Carousels</div>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-center py-8">
+                              <div className="text-muted-foreground mb-4">
+                                <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                <p>Loading post analytics...</p>
+                              </div>
+                              {postsLoading ? (
+                                <Badge variant="outline" className="text-blue-600">Loading Posts...</Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-red-600">No Posts Data</Badge>
+                              )}
                             </div>
                           )}
                         </CardContent>
@@ -1150,11 +1205,11 @@ export default function AnalyticsPage() {
                     </div>
 
                     {/* Real Engagement Timeline */}
-                    {false ? (
+                    {postsData && postsData.length > 0 ? (
                       <RealEngagementTimeline 
-                        data={[]} 
+                        data={postsData} 
                         title="Post Performance Timeline"
-                        description="Individual post engagement over time"
+                        description={`Individual post engagement over time (${postsData.length} posts)`}
                       />
                     ) : (
                       <Card>
@@ -1165,8 +1220,8 @@ export default function AnalyticsPage() {
                         <CardContent className="flex items-center justify-center py-8">
                           <div className="text-center text-muted-foreground">
                             <div className="text-2xl mb-2">📊</div>
-                            <p>No post data available for timeline analysis</p>
-                            <Badge variant="outline" className="text-red-600 mt-2">No Data</Badge>
+                            <p>{postsLoading ? 'Loading timeline data...' : 'No post data available for timeline analysis'}</p>
+                            <Badge variant="outline" className={postsLoading ? "text-blue-600" : "text-red-600"} >{postsLoading ? 'Loading...' : 'No Data'}</Badge>
                           </div>
                         </CardContent>
                       </Card>

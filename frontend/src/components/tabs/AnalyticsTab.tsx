@@ -56,48 +56,50 @@ export default function AnalyticsTab() {
   const renderExecutiveSummary = () => {
     if (!analyticsData) return null
 
+    // ✅ KEEP - Using pre-calculated values from enhanced backend analytics
+    const analytics = analyticsData.analytics || analyticsData.profile;
     const kpis = [
       {
         title: 'Influence Score',
-        value: analyticsData.profile.influence_score,
+        value: analytics.influence_score,
         max: 10,
         color: 'purple',
         trend: '+2.3'
       },
       {
-        title: 'Engagement Rate',
-        value: analyticsData.profile.engagement_rate,
+        title: 'Overall Engagement',
+        value: analytics.engagement_rate,
         format: 'percentage',
         color: 'blue',
         trend: '+0.8%'
       },
       {
         title: 'Content Quality',
-        value: analyticsData.profile.content_quality_score || 8.5,
+        value: analytics.content_quality_score || analyticsData.profile.content_quality_score || 0,
         max: 10,
         color: 'green',
         trend: '+1.2'
       },
       {
-        title: 'Audience Quality',
-        value: 8.5, // TODO: Add data_quality_score to backend response
+        title: 'Data Quality',
+        value: analytics.data_quality_score || analyticsData.profile.data_quality_score || 0,
         max: 10,
         color: 'orange',
         trend: '+0.5'
       },
       {
-        title: 'Growth Rate',
-        value: 5.2, // TODO: Add follower_growth_rate to backend response
+        title: 'Recent (30d) Engagement',
+        value: analytics.engagement_rate_last_30_days || analytics.engagement_rate,
         format: 'percentage',
         color: 'red',
         trend: '+1.1%'
       },
       {
-        title: 'Authenticity',
-        value: 9.1,
-        max: 10,
+        title: 'Last 12 Posts',
+        value: analytics.engagement_rate_last_12_posts || analytics.engagement_rate,
+        format: 'percentage',
         color: 'indigo',
-        trend: '+0.3'
+        trend: '+0.3%'
       }
     ]
 

@@ -16,6 +16,19 @@ export interface InstagramProfile {
   content_quality_score: number
   influence_score: number
   follower_growth_rate: number | null
+  // NEW: Enhanced analytics from backend
+  analytics?: {
+    engagement_rate: number                    // Overall engagement rate
+    engagement_rate_last_12_posts: number     // Last 12 posts (Instagram standard)
+    engagement_rate_last_30_days: number      // Recent 30-day performance
+    influence_score: number                     // Multi-factor score (1-10)
+    avg_likes: number                          // Average likes per post
+    avg_comments: number                       // Average comments per post
+    avg_total_engagement: number               // Combined average engagement
+    posts_analyzed: number                     // Number of posts used in calculation
+    data_quality_score: number                // Data reliability score
+    content_quality_score: number             // Content analysis score
+  }
 }
 
 export interface EngagementMetrics {

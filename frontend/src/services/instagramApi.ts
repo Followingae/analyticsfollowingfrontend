@@ -107,13 +107,20 @@ export interface AudienceDemographics {
   confidence_score: number
   analysis_method: string
 }
-// Main API response structure - Updated for backend v2.0.1
+// Main API response structure - Updated for enhanced analytics v2.1
 export interface ProfileResponse {
   profile: InstagramProfile
   analytics: {
-    engagement_rate: number
-    influence_score: number
-    data_quality_score: number
+    engagement_rate: number                    // Overall engagement rate
+    engagement_rate_last_12_posts: number     // Last 12 posts (Instagram standard)
+    engagement_rate_last_30_days: number      // Recent 30-day performance
+    influence_score: number                     // Multi-factor score (1-10)
+    avg_likes: number                          // Average likes per post
+    avg_comments: number                       // Average comments per post
+    avg_total_engagement: number               // Combined average engagement
+    posts_analyzed: number                     // Number of posts used in calculation
+    data_quality_score: number                // Data reliability score
+    content_quality_score: number             // Content analysis score
   }
   meta: {
     analysis_timestamp: string
@@ -473,6 +480,52 @@ export class InstagramApiService {
       }
     }
   }
+  /**
+   * NEW: Manual Engagement Calculation
+   * Uses: POST /api/v1/engagement/calculate/profile/{username}
+   * Purpose: Recalculate engagement from stored Decodo post data
+   */
+  async recalculateEngagement(username: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const response = await this.makeRequest<{ message: string }>(
+        `/api/v1/engagement/calculate/profile/${username}`,
+        { method: 'POST' }
+      )
+      return {
+        success: true,
+        message: response.message || 'Engagement recalculated successfully'
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to recalculate engagement'
+      }
+    }
+  }
+
+  /**
+   * NEW: Engagement Statistics
+   * Uses: GET /api/v1/engagement/stats
+   * Purpose: Shows calculation coverage and database stats
+   */
+  async getEngagementStats(): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await this.makeRequest<any>(
+        `/api/v1/engagement/stats`,
+        { method: 'GET' }
+      )
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get engagement stats'
+      }
+    }
+  }
+
   // Legacy compatibility methods - all redirect to main getProfile
   async getDecodoOnlyAnalysis(username: string): Promise<CompleteProfileResponse> {
     return this.getProfile(username)
