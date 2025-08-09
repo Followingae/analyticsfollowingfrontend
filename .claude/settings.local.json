@@ -54,7 +54,8 @@
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }
