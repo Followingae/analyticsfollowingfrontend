@@ -146,13 +146,48 @@ export default function PostCard({ post }: PostCardProps) {
           <span>{formatDate(post.posted_at)}</span>
         </div>
 
-        {/* Media Type Badge */}
-        <div className="mt-2">
+        {/* Media Type and AI Badges */}
+        <div className="mt-2 flex flex-wrap gap-1">
           <Badge variant="outline" className="text-xs">
             {post.media_type === 'GraphImage' && '📸 Image'}
             {post.media_type === 'GraphVideo' && '🎥 Video'}
             {post.media_type === 'GraphSidecar' && '📱 Carousel'}
           </Badge>
+          
+          {/* AI Content Category - New Structure */}
+          {(post.ai_analysis?.ai_content_category || post.ai_content_category) && (
+            <Badge className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+              🧠 {post.ai_analysis?.ai_content_category || post.ai_content_category}
+            </Badge>
+          )}
+          
+          {/* AI Sentiment - New Structure */}
+          {(post.ai_analysis?.ai_sentiment || post.ai_sentiment) && (
+            <Badge className={`text-xs ${
+              (post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'positive' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+              (post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'negative' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+              'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+            }`}>
+              {(post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'positive' && '😊'}
+              {(post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'negative' && '😔'}
+              {(post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'neutral' && '😐'}
+              {post.ai_analysis?.ai_sentiment || post.ai_sentiment}
+            </Badge>
+          )}
+          
+          {/* AI Language - New Structure */}
+          {(post.ai_analysis?.ai_language || post.ai_language_code) && (
+            <Badge variant="outline" className="text-xs">
+              🌐 {(post.ai_analysis?.ai_language || post.ai_language_code)?.toUpperCase()}
+            </Badge>
+          )}
+          
+          {/* AI Processing Status for posts */}
+          {post.ai_analysis?.ai_processing_status === 'pending' && (
+            <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              ⏳ Analyzing...
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>

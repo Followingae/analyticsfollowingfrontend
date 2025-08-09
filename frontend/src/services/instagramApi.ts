@@ -6,7 +6,48 @@ import { fetchWithAuth } from '@/utils/apiInterceptor'
  * Updated according to FRONTEND_HANDOVER.md (July 31, 2025)
  * Backend Version: Production Ready (Post-Audit)
  */
-// Main profile interface matching new backend structure
+// AI Analysis Status - Updated to match backend integration guide
+export type AIProcessingStatus = 'pending' | 'completed' | 'not_available'
+
+// AI Content Categories
+export type AIContentCategory = 
+  | 'Fashion & Beauty' | 'Food & Dining' | 'Travel & Adventure' 
+  | 'Technology & Gadgets' | 'Fitness & Health' | 'Home & Lifestyle'
+  | 'Business & Professional' | 'Art & Creativity' | 'Entertainment'
+  | 'Education & Learning' | 'Sports & Recreation' | 'Family & Personal'
+  | 'Photography' | 'Music & Audio' | 'Automotive' | 'Gaming'
+  | 'Nature & Outdoors' | 'Shopping & Reviews' | 'News & Politics' | 'General'
+
+// AI Sentiment
+export type AISentiment = 'positive' | 'negative' | 'neutral'
+
+// AI Language Codes
+export type AILanguageCode = 'ar' | 'bg' | 'de' | 'el' | 'en' | 'es' | 'fr' | 'hi' | 'it' | 'ja' | 'nl' | 'pl' | 'pt' | 'ru' | 'sw' | 'th' | 'tr' | 'ur' | 'vi' | 'zh'
+
+// AI Content Distribution
+export interface AIContentDistribution {
+  [category: string]: number // 0.0 to 1.0
+}
+
+// AI Language Distribution
+export interface AILanguageDistribution {
+  [languageCode: string]: number // 0.0 to 1.0
+}
+
+// AI Processing Progress
+export interface AIProcessingProgress {
+  completed: number
+  processing: number
+  pending: number
+  total_posts?: number
+  analyzed_posts?: number
+  processing_posts?: number
+  pending_posts?: number
+  completion_percentage?: number
+  estimated_completion_time?: string
+}
+
+// Main profile interface matching new backend structure with AI enhancements
 export interface InstagramProfile {
   // Core Profile Information
   username: string
@@ -15,45 +56,64 @@ export interface InstagramProfile {
   external_url: string
   profile_pic_url: string
   profile_pic_url_hd: string
+  category?: string // Original Instagram category
+  
   // Statistics (ALL from Decodo)
   followers_count: number
   following_count: number
   posts_count: number
   mutual_followers_count: number
   highlight_reel_count: number
+  
   // Account Status
   is_verified: boolean
   is_private: boolean
   is_business_account: boolean
   is_professional_account: boolean
-  // Business Information (NEW!)
+  
+  // Business Information
   business_category_name: string
   business_email: string
   business_phone_number: string
-  // Features (NEW!)
+  instagram_business_category?: string
+  
+  // Features
   has_ar_effects: boolean
   has_clips: boolean
   has_guides: boolean
   has_channel: boolean
-  // AI & Special Features (NEW!)
+  
+  // AI & Special Features
   ai_agent_type: string
   ai_agent_owner_username: string
   transparency_label: string
+  
   // Analytics (Enhanced)
   engagement_rate: number
   avg_likes: number
   avg_comments: number
   influence_score: number
   content_quality_score: number
-  // Media Storage (NEW!)
+  
+  // AI fields are now in separate ai_insights object - keeping these for backward compatibility
+  ai_primary_content_type?: AIContentCategory | null
+  ai_content_distribution?: AIContentDistribution | null
+  ai_avg_sentiment_score?: number | null // -1.0 to +1.0
+  ai_language_distribution?: AILanguageDistribution | null
+  ai_content_quality_score?: number | null // 0.0 to 1.0
+  ai_profile_analyzed_at?: string | null
+  ai_analysis_status?: AIProcessingStatus
+  
+  // Media Storage
   profile_images: Array<{url: string, type: string, size: string}>
   profile_thumbnails: Array<{url: string, width: number, height: number}>
+  
   // Data Management
   data_quality_score: number
   last_refreshed: string
   refresh_count: number
 }
-// Post data interface (NEW!)
+// Post data interface with AI enhancements
 export interface InstagramPost {
   id: string
   instagram_post_id: string
@@ -94,6 +154,21 @@ export interface InstagramPost {
     type: string
   }>
   dimensions?: {width: number, height: number}
+  
+  // AI analysis is now in separate ai_analysis object - keeping these for backward compatibility
+  ai_content_category?: AIContentCategory | null
+  ai_category_confidence?: number | null // 0.0 to 1.0
+  ai_sentiment?: AISentiment | null
+  ai_sentiment_score?: number | null // -1.0 to +1.0
+  ai_sentiment_confidence?: number | null // 0.0 to 1.0
+  ai_language_code?: AILanguageCode | null
+  ai_language_confidence?: number | null // 0.0 to 1.0
+  ai_analyzed_at?: string | null
+  ai_analysis_status?: AIProcessingStatus
+  
+  // NEW: AI analysis object from integration guide
+  ai_analysis?: PostAIAnalysis
+  
   // Legacy fields for compatibility
   post_images?: Array<{url: string, width: number, height: number}>
   post_thumbnails?: Array<{url: string, width: number, height: number}>
@@ -107,8 +182,47 @@ export interface AudienceDemographics {
   confidence_score: number
   analysis_method: string
 }
-// Main API response structure - Updated for enhanced analytics v2.1
+// AI Sentiment Analysis
+export interface AISentimentAnalysis {
+  average_sentiment_score?: number | null // -1.0 to +1.0
+  positive_ratio?: number | null // 0.0 to 1.0
+  neutral_ratio?: number | null // 0.0 to 1.0
+  negative_ratio?: number | null // 0.0 to 1.0
+}
+
+// AI Language Insights
+export interface AILanguageInsights {
+  primary_language?: AILanguageCode | null
+  language_distribution?: AILanguageDistribution | null
+}
+
+// AI Insights - Updated to match backend integration guide
+export interface AIInsights {
+  ai_primary_content_type?: AIContentCategory | null
+  ai_content_distribution?: AIContentDistribution | null
+  ai_avg_sentiment_score?: number | null // -1.0 to 1.0
+  ai_language_distribution?: AILanguageDistribution | null
+  ai_content_quality_score?: number | null // 0.0 to 1.0
+  ai_profile_analyzed_at?: string | null
+  has_ai_analysis: boolean
+  ai_processing_status: AIProcessingStatus
+}
+
+// Post AI Analysis - New structure from integration guide
+export interface PostAIAnalysis {
+  ai_content_category?: AIContentCategory | null
+  ai_sentiment?: AISentiment | null
+  ai_sentiment_score?: number | null // -1.0 to 1.0
+  ai_language?: AILanguageCode | null
+  ai_language_confidence?: number | null // 0.0 to 1.0
+  ai_post_analyzed_at?: string | null
+  has_ai_analysis: boolean
+  ai_processing_status: AIProcessingStatus
+}
+
+// Main API response structure - Updated for automatic AI integration
 export interface ProfileResponse {
+  success: boolean
   profile: InstagramProfile
   analytics: {
     engagement_rate: number                    // Overall engagement rate
@@ -121,12 +235,21 @@ export interface ProfileResponse {
     posts_analyzed: number                     // Number of posts used in calculation
     data_quality_score: number                // Data reliability score
     content_quality_score: number             // Content analysis score
+    
+    // Legacy AI analytics - may still be present
+    ai_enhanced_engagement?: number | null
+    ai_content_quality_score?: number | null
+    ai_avg_sentiment?: number | null
+    ai_analysis_status?: AIProcessingStatus
   }
+  // NEW: Automatic AI insights integration
+  ai_insights?: AIInsights
   meta: {
     analysis_timestamp: string
     user_has_access: boolean
     access_expires_in_days: number
     data_source: string
+    includes_ai_insights?: boolean
   }
   posts?: InstagramPost[]
   demographics?: AudienceDemographics
@@ -143,7 +266,7 @@ export interface PostsPagination {
   has_more: boolean
   next_offset: number
 }
-// Posts API response interface - Updated to match actual backend response
+// Posts API response interface - Updated with AI analysis summary
 export interface PostsResponse {
   profile: {
     username: string
@@ -155,7 +278,21 @@ export interface PostsResponse {
   pagination?: PostsPagination
   meta?: {
     posts_returned: number
-    note: string
+    note?: string
+    // NEW AI ANALYSIS SUMMARY
+    ai_analysis_summary?: {
+      total_posts: number
+      posts_analyzed: number
+      posts_processing: number
+      posts_pending: number
+    }
+  }
+  // NEW: AI analytics from integration guide
+  ai_analytics?: {
+    posts_with_ai_analysis: number
+    total_posts_returned: number
+    ai_analysis_coverage: number // percentage
+    ai_features_available: string[]
   }
 }
 // API Response interfaces
@@ -522,6 +659,185 @@ export class InstagramApiService {
       return {
         success: false,
         error: error.message || 'Failed to get engagement stats'
+      }
+    }
+  }
+
+  /**
+   * NEW: Get Detailed AI Insights for Profile
+   * Uses: GET /api/v1/ai/profile/{username}/insights
+   * Purpose: Detailed AI insights with processing status
+   */
+  async getProfileAIInsights(username: string): Promise<{ success: boolean; data?: AIInsights; error?: string }> {
+    try {
+      const response = await this.makeRequest<{ ai_insights: AIInsights }>(
+        `/api/v1/ai/profile/${username}/insights`,
+        { method: 'GET' }
+      )
+      return {
+        success: true,
+        data: response.ai_insights
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get AI insights'
+      }
+    }
+  }
+
+  /**
+   * NEW: Trigger Profile Content Analysis
+   * Uses: POST /api/v1/ai/analyze/profile/{username}/content
+   * Purpose: Start AI analysis for profile content
+   */
+  async triggerProfileAnalysis(username: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const response = await this.makeRequest<{ 
+        message: string
+        status: string
+        estimated_completion: string
+        posts_to_analyze: number
+      }>(
+        `/api/v1/ai/analyze/profile/${username}/content`,
+        { method: 'POST' }
+      )
+      return {
+        success: true,
+        message: response.message
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to trigger AI analysis'
+      }
+    }
+  }
+
+  /**
+   * NEW: Analyze Individual Post
+   * Uses: POST /api/v1/ai/analyze/post/{post_id}
+   * Purpose: Trigger AI analysis for specific post
+   */
+  async analyzeIndividualPost(postId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await this.makeRequest<{
+        post_id: string
+        analysis: {
+          ai_content_category: AIContentCategory
+          ai_category_confidence: number
+          ai_sentiment: AISentiment
+          ai_sentiment_score: number
+          ai_sentiment_confidence: number
+          ai_language_code: AILanguageCode
+          ai_language_confidence: number
+          analysis_metadata: {
+            processed_at: string
+            processing_time_ms: number
+          }
+        }
+      }>(
+        `/api/v1/ai/analyze/post/${postId}`,
+        { method: 'POST' }
+      )
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to analyze post'
+      }
+    }
+  }
+
+  /**
+   * NEW: Get AI System Statistics
+   * Uses: GET /api/v1/ai/analysis/stats
+   * Purpose: Get overall AI system statistics
+   */
+  async getAIStats(): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await this.makeRequest<{
+        ai_analysis_stats: {
+          posts: {
+            total: number
+            analyzed: number
+            processing: number
+            pending: number
+            analysis_coverage: number
+          }
+          profiles: {
+            total: number
+            analyzed: number
+            processing: number
+            pending: number
+            analysis_coverage: number
+          }
+          content_categories: Record<string, number>
+          sentiment_distribution: {
+            positive: number
+            neutral: number
+            negative: number
+          }
+          processing_queue: {
+            active_analyses: number
+            queue_depth: number
+            average_processing_time: string
+          }
+        }
+      }>(
+        `/api/v1/ai/analysis/stats`,
+        { method: 'GET' }
+      )
+      return {
+        success: true,
+        data: response.ai_analysis_stats
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get AI stats'
+      }
+    }
+  }
+
+  /**
+   * NEW: Get AI Models Status
+   * Uses: GET /api/v1/ai/models/status
+   * Purpose: Check AI service and models status
+   */
+  async getAIModelsStatus(): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await this.makeRequest<{
+        ai_service_initialized: boolean
+        models_info: {
+          initialized: boolean
+          loaded_models: string[]
+          device_info: {
+            cuda_available: boolean
+            cuda_device_count: number
+          }
+        }
+        supported_features: {
+          sentiment_analysis: boolean
+          language_detection: boolean
+          content_categorization: boolean
+          profile_insights: boolean
+        }
+      }>(
+        `/api/v1/ai/models/status`,
+        { method: 'GET' }
+      )
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get AI models status'
       }
     }
   }
