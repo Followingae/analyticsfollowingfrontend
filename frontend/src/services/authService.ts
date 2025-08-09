@@ -1,4 +1,5 @@
 import { API_CONFIG, REQUEST_HEADERS, ENDPOINTS, getAuthHeaders } from '@/config/api'
+import { fetchWithAuth } from '@/utils/apiInterceptor'
 export interface User {
   id: string
   email: string
@@ -285,7 +286,7 @@ class AuthService {
       return { success: false, error: 'No authentication token' }
     }
     try {
-      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.me}`, {
+      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.auth.me}`, {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,
@@ -327,7 +328,7 @@ class AuthService {
       return { success: false, error: 'No authentication token' }
     }
     try {
-      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.dashboard}`, {
+      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.auth.dashboard}`, {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,
@@ -364,7 +365,7 @@ class AuthService {
       return { success: false, error: 'No authentication token' }
     }
     try {
-      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.searchHistory}`, {
+      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.auth.searchHistory}`, {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,

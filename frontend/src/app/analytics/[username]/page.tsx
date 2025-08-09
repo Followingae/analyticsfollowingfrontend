@@ -1315,15 +1315,15 @@ export default function AnalyticsPage() {
                               <CardContent>
                                 <div className="text-center">
                                   <div className="text-2xl font-bold mb-2 text-green-600">
-                                    {profileData.ai_insights.ai_avg_sentiment_score > 0 ? 
+                                    {profileData.ai_insights.ai_avg_sentiment_score && profileData.ai_insights.ai_avg_sentiment_score > 0 ? 
                                       `+${profileData.ai_insights.ai_avg_sentiment_score.toFixed(2)}` : 
-                                      profileData.ai_insights.ai_avg_sentiment_score.toFixed(2)
+                                      profileData.ai_insights.ai_avg_sentiment_score?.toFixed(2) || 'N/A'
                                     }
                                   </div>
                                   <div className="text-sm text-muted-foreground mb-3">Sentiment Score (-1.0 to +1.0)</div>
                                   <div className="text-sm font-medium">
-                                    {profileData.ai_insights.ai_avg_sentiment_score > 0.3 ? '😊 Positive Content Preferred' :
-                                     profileData.ai_insights.ai_avg_sentiment_score < -0.3 ? '😔 Serious Content Preferred' :
+                                    {(profileData.ai_insights.ai_avg_sentiment_score ?? 0) > 0.3 ? '😊 Positive Content Preferred' :
+                                     (profileData.ai_insights.ai_avg_sentiment_score ?? 0) < -0.3 ? '😔 Serious Content Preferred' :
                                      '😐 Balanced Content Preferred'}
                                   </div>
                                 </div>

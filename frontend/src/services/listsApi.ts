@@ -1,4 +1,5 @@
 import { getAuthHeaders, API_CONFIG, ENDPOINTS } from '@/config/api'
+import { fetchWithAuth } from '@/utils/apiInterceptor'
 
 // Types for the Lists API
 export interface List {
@@ -106,7 +107,7 @@ export class ListsApiService {
     const url = `${API_CONFIG.BASE_URL}${ENDPOINTS.lists.getAll}`
     
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method: 'GET',
         headers: getAuthHeaders()
       })
@@ -133,7 +134,7 @@ export class ListsApiService {
 
   async createList(listData: CreateListRequest): Promise<ApiResponse<List>> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.create}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.create}`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(listData)
@@ -160,7 +161,7 @@ export class ListsApiService {
 
   async updateList(listId: string, updates: UpdateListRequest): Promise<ApiResponse<List>> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.update(listId)}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.update(listId)}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(updates)
@@ -187,7 +188,7 @@ export class ListsApiService {
 
   async deleteList(listId: string): Promise<ApiResponse<void>> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.delete(listId)}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.delete(listId)}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -209,7 +210,7 @@ export class ListsApiService {
       const url = `${API_CONFIG.BASE_URL}${ENDPOINTS.lists.addItem(listId)}`
       console.log('Add profile request:', { url, profileData, headers: getAuthHeaders() })
       
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(profileData)
@@ -232,7 +233,7 @@ export class ListsApiService {
 
   async removeProfileFromList(listId: string, itemId: string): Promise<ApiResponse<void>> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.removeItem(listId, itemId)}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.removeItem(listId, itemId)}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       })
@@ -250,7 +251,7 @@ export class ListsApiService {
 
   async bulkAddProfilesToList(listId: string, profilesData: BulkAddProfilesRequest): Promise<ApiResponse<ListItem[]>> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.bulkAdd(listId)}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.bulkAdd(listId)}`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(profilesData)
@@ -271,7 +272,7 @@ export class ListsApiService {
   // Advanced Operations
   async reorderList(listId: string, reorderData: ReorderListRequest): Promise<ApiResponse<void>> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.reorder(listId)}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.reorder(listId)}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(reorderData)
@@ -290,7 +291,7 @@ export class ListsApiService {
 
   async duplicateList(listId: string): Promise<ApiResponse<List>> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.duplicate(listId)}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.duplicate(listId)}`, {
         method: 'POST',
         headers: getAuthHeaders()
       })
@@ -309,7 +310,7 @@ export class ListsApiService {
 
   async getAvailableProfiles(page: number = 1, perPage: number = 20): Promise<ApiResponse<PaginatedResponse<AvailableProfile>>> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.profiles.availableForLists}?page=${page}&per_page=${perPage}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.profiles.availableForLists}?page=${page}&per_page=${perPage}`, {
         method: 'GET',
         headers: getAuthHeaders()
       })
@@ -328,7 +329,7 @@ export class ListsApiService {
 
   async getListAnalytics(listId: string): Promise<ApiResponse<any>> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.analytics(listId)}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.analytics(listId)}`, {
         method: 'GET',
         headers: getAuthHeaders()
       })
