@@ -25,6 +25,12 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -234,15 +240,18 @@ export default function AnalyticsPage() {
     }
   }
 
-  const analyzeProfile = async (targetUsername: string) => {
-    console.log('analyzeProfile called with:', targetUsername)
+  const analyzeProfile = async (targetUsername: string, isBackgroundRefresh: boolean = false) => {
+    console.log('analyzeProfile called with:', targetUsername, 'backgroundRefresh:', isBackgroundRefresh)
     
     if (!targetUsername?.trim()) {
       console.log('No username provided')
       return
     }
     
-    setLoading(true)
+    // Only show full loading state if this is not a background refresh and we don't have profile data
+    if (!isBackgroundRefresh) {
+      setLoading(true)
+    }
     setError(null)
     setDebugInfo(null)
     
@@ -344,7 +353,7 @@ export default function AnalyticsPage() {
     }
   }
 
-  // Handle refresh profile data - triggers fresh Decodo call
+  // Handle refresh profile data - triggers fresh Instagram data fetch + AI analysis
   const handleRefreshProfile = async () => {
     if (!username) return
     
@@ -352,63 +361,31 @@ export default function AnalyticsPage() {
     setRefreshing(true)
     
     try {
-      // Get auth token
-      const token = localStorage.getItem('access_token')
-      if (!token) {
-        toast.error('Authentication required. Please log in again.')
-        setRefreshing(false)
-        return
+      // Use the service method for refresh
+      const result = await instagramApiService.refreshProfile(username)
+      console.log('🔄 Refresh response:', result)
+
+      if (result.success) {
+        // Show success message based on response
+        if (result.data?.refresh_needed === false) {
+          toast.success('Profile data is already up to date')
+        } else {
+          toast.success(result.message || 'Profile data updated successfully')
+        }
+
+        // Refresh the profile data in UI after successful refresh
+        setTimeout(() => {
+          console.log('🔄 Refreshing UI data after successful refresh')
+          analyzeProfile(username, true) // Background refresh to keep UI visible
+        }, 1000)
+      } else {
+        toast.error(result.error || result.message || 'Failed to refresh - please try again')
       }
 
-      // Show user feedback immediately
-      toast.info(`Refreshing @${username}... this may take up to 2 minutes. Redirecting to creators page.`, {
-        duration: 3000
-      })
-
-      // Start refresh in background (don't wait for completion)
-      console.log('🔄 Starting background refresh for:', username)
-      fetch(`${API_CONFIG.BASE_URL}/api/v1/instagram/profile/${username}/force-refresh`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }).then(async (response) => {
-        // Handle completion in background
-        if (response.ok) {
-          const data = await response.json()
-          console.log('✅ Background refresh completed:', {
-            username,
-            refreshedAt: data.meta?.refreshed_at,
-            refreshType: data.meta?.refresh_type,
-            allDataReplaced: data.meta?.all_data_replaced
-          })
-          toast.success(`✅ @${username} profile data refreshed successfully!`, {
-            duration: 5000
-          })
-        } else {
-          const errorText = await response.text()
-          console.error('❌ Background refresh failed:', response.status, errorText)
-          toast.error(`❌ Failed to refresh @${username}: ${response.status} ${response.statusText}`, {
-            duration: 5000
-          })
-        }
-      }).catch((error) => {
-        console.error('❌ Background refresh network error:', error)
-        toast.error(`❌ Network error refreshing @${username}: ${error.message}`, {
-          duration: 5000
-        })
-      })
-
-      // Redirect immediately (don't wait for refresh to complete)
-      setTimeout(() => {
-        console.log('🔄 Redirecting to creators page...')
-        router.push('/creators')
-      }, 1000)
-      
     } catch (error) {
-      console.error('❌ Profile refresh setup error:', error)
-      toast.error(`Failed to start refresh: ${error instanceof Error ? error.message : String(error)}`)
+      console.error('❌ Profile refresh error:', error)
+      toast.error('Network error during refresh')
+    } finally {
       setRefreshing(false)
     }
   }
@@ -424,7 +401,7 @@ export default function AnalyticsPage() {
     const timer = setInterval(() => {
       if (username && profileData?.ai_insights?.ai_processing_status === 'pending') {
         console.log('Auto-refreshing for AI analysis progress...')
-        analyzeProfile(username)
+        analyzeProfile(username, true) // Background refresh - don't show loading state
       } else {
         // Stop auto-refresh if no longer pending
         if (aiAutoRefreshTimer) {
@@ -699,7 +676,7 @@ export default function AnalyticsPage() {
                                     className="flex items-center gap-1 h-6 px-2 text-xs"
                                   >
                                     <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
-                                    {refreshing ? 'Refreshing...' : 'Refresh'}
+                                    {refreshing ? 'Updating...' : 'Refresh Data'}
                                   </Button>
                                 </div>
                                 
@@ -707,7 +684,7 @@ export default function AnalyticsPage() {
                                   <div className="text-xs text-blue-600 dark:text-blue-400 text-right">
                                     <div className="flex items-center gap-1">
                                       <RefreshCw className="w-3 h-3 animate-spin" />
-                                      Fetching fresh data...
+                                      Refreshing Instagram data & running AI analysis...
                                     </div>
                                   </div>
                                 )}
@@ -802,20 +779,57 @@ export default function AnalyticsPage() {
                 {/* Analytics Tabs */}
                 <div className="relative">
                   
-                  <Tabs defaultValue="profile" className="relative w-full" onValueChange={handleTabChange}>
-                    <TabsList className="flex w-full h-auto p-1 bg-muted rounded-lg overflow-x-auto scrollbar-hide">
+                  <TooltipProvider>
+                    <Tabs defaultValue="profile" className="relative w-full" onValueChange={handleTabChange}>
+                      <TabsList className="flex w-full h-auto p-1 bg-muted rounded-lg overflow-x-auto scrollbar-hide">
                       <TabsTrigger value="profile" className="flex-1 min-w-0 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black text-sm px-2 py-2">
                         <Users className="w-4 h-4 mr-1 flex-shrink-0" />
                         <span className="truncate">Profile</span>
                       </TabsTrigger>
-                      <TabsTrigger value="audience" className="flex-1 min-w-0 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black text-sm px-2 py-2">
-                        <Target className="w-4 h-4 mr-1 flex-shrink-0" />
-                        <span className="truncate">Audience</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="engagement" className="flex-1 min-w-0 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black text-sm px-2 py-2">
-                        <Heart className="w-4 h-4 mr-1 flex-shrink-0" />
-                        <span className="truncate">Engagement</span>
-                      </TabsTrigger>
+                      {profileData?.ai_insights?.ai_processing_status === 'pending' ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <TabsTrigger 
+                              value="audience" 
+                              className="flex-1 min-w-0 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black text-sm px-2 py-2 opacity-75"
+                            >
+                              <Target className="w-4 h-4 mr-1 flex-shrink-0" />
+                              <span className="truncate">Audience</span>
+                              <div className="ml-1 w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                            </TabsTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>AI is analyzing audience data - processing in progress</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <TabsTrigger value="audience" className="flex-1 min-w-0 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black text-sm px-2 py-2">
+                          <Target className="w-4 h-4 mr-1 flex-shrink-0" />
+                          <span className="truncate">Audience</span>
+                        </TabsTrigger>
+                      )}
+                      {profileData?.ai_insights?.ai_processing_status === 'pending' ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <TabsTrigger 
+                              value="engagement" 
+                              className="flex-1 min-w-0 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black text-sm px-2 py-2 opacity-75"
+                            >
+                              <Heart className="w-4 h-4 mr-1 flex-shrink-0" />
+                              <span className="truncate">Engagement</span>
+                              <div className="ml-1 w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                            </TabsTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>AI is analyzing engagement data - processing in progress</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <TabsTrigger value="engagement" className="flex-1 min-w-0 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black text-sm px-2 py-2">
+                          <Heart className="w-4 h-4 mr-1 flex-shrink-0" />
+                          <span className="truncate">Engagement</span>
+                        </TabsTrigger>
+                      )}
                       <TabsTrigger value="content" className="flex-1 min-w-0 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black text-sm px-2 py-2">
                         <BarChart3 className="w-4 h-4 mr-1 flex-shrink-0" />
                         <span className="truncate">Content</span>
@@ -1924,7 +1938,8 @@ export default function AnalyticsPage() {
                   </TabsContent>
                   
                   
-                  </Tabs>
+                    </Tabs>
+                  </TooltipProvider>
                 </div>
 
                 {/* Contact Information & External Links */}

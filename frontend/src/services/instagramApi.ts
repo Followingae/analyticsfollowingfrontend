@@ -596,6 +596,38 @@ export class InstagramApiService {
       }
     }
   }
+
+  /**
+   * NEW: Refresh profile with AI analysis
+   * Uses: POST /api/v1/ai/refresh/profile/{username}
+   */
+  async refreshProfile(username: string): Promise<{ success: boolean; data?: any; error?: string; message?: string }> {
+    try {
+      const response = await this.makeRequest<{
+        success: boolean;
+        data: {
+          username: string;
+          refresh_performed: boolean;
+          refresh_needed: boolean;
+        };
+        message: string;
+      }>(
+        `/api/v1/ai/refresh/profile/${username}`,
+        { method: 'POST' }
+      )
+      return {
+        success: response.success,
+        data: response.data,
+        message: response.message
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to refresh profile'
+      }
+    }
+  }
+
   /**
    * NEW: Get unlocked profiles for creators page
    * Uses: GET /api/v1/auth/unlocked-profiles
