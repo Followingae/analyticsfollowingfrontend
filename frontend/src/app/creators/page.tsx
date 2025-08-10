@@ -3,7 +3,6 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { instagramApiService, UnlockedProfile, UnlockedProfilesResponse } from "@/services/instagramApi"
-import { listsApiService, List, CreateListRequest, AddProfileToListRequest, ListsPaginatedResponse } from "@/services/listsApi"
 import { preloadPageImages } from "@/lib/image-cache"
 import {
   Plus,
@@ -18,29 +17,12 @@ import {
   TrendingUp,
   Calendar,
   Target,
-  GripVertical,
 } from "lucide-react"
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  useDroppable,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import {
-  useSortable,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import { AppSidebar } from "@/components/app-sidebar"
 import { SectionCards } from "@/components/section-cards"
 import { toast } from "sonner"
+import { useNotificationHelpers } from "@/contexts/NotificationContext"
+import { useAIAnalysisTrigger } from "@/hooks/useAIStatus"
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -87,53 +69,11 @@ export default function CreatorsPage() {
     totalPages: 1,
     hasNext: false
   })
-  // Drag and drop state
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [myLists, setMyLists] = useState<List[]>([])
-  const [listsLoading, setListsLoading] = useState(true)
-  const [isCreatingList, setIsCreatingList] = useState(false)
-  const [newListName, setNewListName] = useState("")
-  const [selectedColor, setSelectedColor] = useState("#ff6b6b")
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  )
   const router = useRouter()
+  const { notifyAnalysisComplete, notifyAnalysisFailed } = useNotificationHelpers()
+  const { triggerAnalysis } = useAIAnalysisTrigger()
   // Note: URL param analysis temporarily disabled for production build
   // TODO: Implement proper Suspense boundary for useSearchParams
-  // Load lists from backend
-  const loadLists = async () => {
-    setListsLoading(true)
-    try {
-      const result = await listsApiService.getAllLists()
-      if (result.success && result.data) {
-        // Handle the nested structure: {lists: [...], pagination: {...}}
-        if (result.data && typeof result.data === 'object' && 'lists' in result.data && Array.isArray((result.data as ListsPaginatedResponse).lists)) {
-          const paginatedData = result.data as ListsPaginatedResponse
-          // Ensure we only set valid list objects
-          const validLists = paginatedData.lists.filter(list => list && typeof list === 'object' && list.id)
-          setMyLists(validLists)
-        } else if (Array.isArray(result.data)) {
-          // Ensure we only set valid list objects
-          const validLists = result.data.filter(list => list && typeof list === 'object' && list.id)
-          setMyLists(validLists)
-        } else {
-          setMyLists([])
-        }
-      } else {
-        // Ensure we always have a valid array
-        setMyLists([])
-      }
-    } catch (error) {
-      // Ensure we always have a valid array
-      setMyLists([])
-    } finally {
-      setListsLoading(false)
-    }
-  }
   // Load unlocked profiles from backend
   const loadUnlockedProfiles = async (page: number = 1) => {
     setUnlockedLoading(true)
@@ -170,7 +110,6 @@ export default function CreatorsPage() {
   // Load data on component mount
   useEffect(() => {
     loadUnlockedProfiles()
-    loadLists()
   }, [])
   const creators: UnlockedProfile[] = unlockedCreators
   const startAnalysis = async (username: string) => {
@@ -240,8 +179,14 @@ export default function CreatorsPage() {
           })
         }, 500) // Reduced to 500ms for smoother transition
         toast.success(`Successfully analyzed @${cleanUsername}! Added to your unlocked creators.`)
-        // Reload unlocked profiles from backend to ensure data consistency
-        loadUnlockedProfiles()
+        notifyAnalysisComplete(cleanUsername)
+        
+        // Trigger professional AI status management for the newly analyzed profile
+        setTimeout(() => {
+          triggerAnalysis(cleanUsername)
+        }, 1000)
+        
+        // Note: New creator already added to unlockedCreators state above, no need to reload entire list
       } else {
         // Enhanced error handling with specific messages
         let errorMessage = 'Analysis failed'
@@ -279,6 +224,7 @@ export default function CreatorsPage() {
           [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
         }))
         toast.error(errorMessage)
+        notifyAnalysisFailed(cleanUsername, errorMessage)
       }
     } catch (error) {
       console.error('❌ Analysis error for @' + cleanUsername + ':', error)
@@ -300,6 +246,7 @@ export default function CreatorsPage() {
         [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
       }))
       toast.error(`Error analyzing @${cleanUsername}: ${errorMessage}`)
+      notifyAnalysisFailed(cleanUsername, errorMessage)
     }
   }
   const handleSearchCreator = async () => {
@@ -366,68 +313,6 @@ export default function CreatorsPage() {
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
     return num.toString()
   }
-  // Drag and drop handlers
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string)
-  }
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
-    if (over && over.id.toString().startsWith('list-')) {
-      const listId = over.id.toString().replace('list-', '')
-      const creatorUsername = active.id as string
-      const creator = unlockedCreators.find(c => c.username === creatorUsername)
-      const list = myLists.find(l => l.id === listId)
-      if (creator && list) {
-        try {
-          const profileData: AddProfileToListRequest = {
-            profile_id: creator.username,
-            position: 0,
-            is_pinned: false
-          }
-          const result = await listsApiService.addProfileToList(listId, profileData)
-          console.log('Add profile to list result:', result)
-          if (result.success) {
-            // Update local state to reflect the change
-            setMyLists(prev => prev.map(l => 
-              l.id === listId 
-                ? { ...l, creator_count: l.creator_count + 1 }
-                : l
-            ))
-            toast.success(`Added @${creator.username} to ${list.name}`)
-            // Reload lists to get updated data
-            loadLists()
-          } else {
-            // Handle specific error messages from backend
-            let errorMessage = 'Failed to add creator to list'
-            if (typeof result.error === 'string') {
-              errorMessage = result.error
-            } else if (result.error && typeof result.error === 'object') {
-              // Handle validation error objects with {type, loc, msg, input, url} structure
-              if (Array.isArray(result.error) && result.error.length > 0 && result.error[0].msg) {
-                errorMessage = result.error[0].msg
-              } else if (result.error.msg) {
-                errorMessage = result.error.msg
-              } else if (result.error.detail) {
-                errorMessage = result.error.detail
-              } else {
-                errorMessage = JSON.stringify(result.error)
-              }
-            }
-            
-            if (errorMessage.includes('already exists')) {
-              toast.info(`@${creator.username} is already in ${list.name}`)
-            } else {
-              toast.error(errorMessage)
-            }
-          }
-        } catch (error) {
-          console.error('Error adding creator to list:', error)
-          toast.error('Network error while adding creator to list')
-        }
-      }
-    }
-    setActiveId(null)
-  }
   const getStatusColor = (status: 'active' | 'paused' | 'completed' | 'draft') => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
@@ -450,138 +335,6 @@ export default function CreatorsPage() {
     portfolioReach: dominantNiche, // Using this field for dominant niche
     avgEngagement: '7 days', // Using this field for credits reset
     inCampaigns: 0 // Will be replaced with custom cards
-  }
-  // Handle list creation
-  const handleCreateList = async () => {
-    if (!newListName.trim()) {
-      toast.error("Please enter a list name")
-      return
-    }
-    const listData: CreateListRequest = {
-      name: newListName.trim(),
-      color: selectedColor
-    }
-    try {
-      const result = await listsApiService.createList(listData)
-      if (result.success && result.data) {
-        setMyLists(prev => [...prev, result.data!])
-        setNewListName("")
-        setIsCreatingList(false)
-        toast.success(`Created list "${result.data.name}"`)
-      } else {
-        let errorMessage = 'Failed to create list'
-        if (typeof result.error === 'string') {
-          errorMessage = result.error
-        } else if (result.error && typeof result.error === 'object') {
-          // Handle validation error objects
-          if (Array.isArray(result.error) && result.error.length > 0 && result.error[0].msg) {
-            errorMessage = result.error[0].msg
-          } else if (result.error.msg) {
-            errorMessage = result.error.msg
-          } else if (result.error.detail) {
-            errorMessage = result.error.detail
-          } else {
-            errorMessage = JSON.stringify(result.error)
-          }
-        }
-        toast.error(errorMessage)
-      }
-    } catch (error) {
-      toast.error('Network error while creating list')
-    }
-  }
-  // Remove creator from list - This will be implemented when we have list items API
-  const removeCreatorFromList = async (listId: string, creatorUsername: string) => {
-    // TODO: Implement with list items API
-    // For now, show placeholder message
-    toast.info(`Remove functionality will be implemented with list items API`)
-  }
-  // Delete entire list
-  const deleteList = async (listId: string) => {
-    const list = myLists.find(l => l.id === listId)
-    if (!list) return
-    if (window.confirm(`Are you sure you want to delete "${list.name}"? This action cannot be undone.`)) {
-      try {
-        const result = await listsApiService.deleteList(listId)
-        if (result.success) {
-          setMyLists(prev => prev.filter(l => l.id !== listId))
-          toast.success(`Deleted list "${list.name}"`)
-        } else {
-          let errorMessage = 'Failed to delete list'
-          if (typeof result.error === 'string') {
-            errorMessage = result.error
-          } else if (result.error && typeof result.error === 'object') {
-            // Handle validation error objects
-            if (Array.isArray(result.error) && result.error.length > 0 && result.error[0].msg) {
-              errorMessage = result.error[0].msg
-            } else if (result.error.msg) {
-              errorMessage = result.error.msg
-            } else if (result.error.detail) {
-              errorMessage = result.error.detail
-            } else {
-              errorMessage = JSON.stringify(result.error)
-            }
-          }
-          toast.error(errorMessage)
-        }
-      } catch (error) {
-        toast.error('Network error while deleting list')
-      }
-    }
-  }
-  // Droppable List Component
-  function DroppableList({ list }: { list: typeof myLists[0] }) {
-    const { isOver, setNodeRef } = useDroppable({
-      id: `list-${list.id}`,
-    })
-    // TODO: Get actual creators in this list from list items API
-    // For now, we can't show specific creators since we don't have list items yet
-    const creatorsInList: UnlockedProfile[] = []
-    return (
-      <Card 
-        ref={setNodeRef} 
-        className={`transition-colors ${
-          isOver ? 'ring-2 ring-primary bg-primary/5' : ''
-        }`}
-      >
-        <CardContent className="p-3">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-3 h-3 rounded-full flex-shrink-0" 
-                  style={{ backgroundColor: list.color }}
-                />
-                <h3 className="font-medium text-sm truncate">{list.name}</h3>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                onClick={() => deleteList(list.id)}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {list.creator_count} creators
-            </div>
-            {/* Show creators in list - placeholder until list items API is implemented */}
-            {list.creator_count > 0 ? (
-              <div className="text-xs text-muted-foreground p-2 bg-muted/50 rounded">
-                {list.creator_count} creator{list.creator_count !== 1 ? 's' : ''} added
-                <br />
-                <span className="text-xs">List items will be shown when API is ready</span>
-              </div>
-            ) : (
-              <div className="text-xs text-muted-foreground p-2 bg-muted/20 rounded border-2 border-dashed">
-                Drop creators here
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    )
   }
   // Helper function to determine influencer tier
   const getInfluencerTier = (followerCount: number) => {
@@ -617,37 +370,26 @@ export default function CreatorsPage() {
       </Badge>
     );
   }
-  // Draggable Creator Component
-  function DraggableCreator({ creator }: { creator: UnlockedProfile }) {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id: creator.username })
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      opacity: isDragging ? 0.5 : 1,
-    }
-    // Check if profile is expired and determine tier
-    const isExpired = creator.days_remaining !== undefined && creator.days_remaining <= 0;
-    const tier = getInfluencerTier(creator.followers_count || 0);
+  // Creator Component (vertical layout with circular images)
+  function CreatorCard({ creator }: { creator: UnlockedProfile }) {
     return (
-      <Card 
-        ref={setNodeRef} 
-        style={style} 
-        className="relative overflow-hidden cursor-grab active:cursor-grabbing select-none"
-        {...attributes} 
-        {...listeners}
-      >
-        {/* Status Indicator */}
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-          <TierBadge tier={tier} isExpired={isExpired} />
-        </div>
+      <Card className="relative overflow-hidden">
+        {/* Country Flag - Top Left */}
+        {creator.country_block && (
+          <div className="absolute top-3 left-3 z-10">
+            <ReactCountryFlag 
+              countryCode={getCountryCode(creator.country_block)}
+              svg 
+              style={{
+                width: '24px',
+                height: '18px',
+                borderRadius: '2px',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
+              }}
+              title={creator.country_block}
+            />
+          </div>
+        )}
         <CardHeader className="pb-3">
           {/* Avatar */}
           <div className="flex justify-center mb-3">
@@ -665,7 +407,7 @@ export default function CreatorsPage() {
               @{creator.username}
             </p>
           </div>
-          {/* Content Category Badges - Always show 3 categories */}
+          {/* Content Category Badges */}
           <div className="mt-3 select-none">
             <div className="flex flex-wrap justify-center gap-1 max-w-full">
               {(() => {
@@ -712,10 +454,10 @@ export default function CreatorsPage() {
               <div className="text-xs text-muted-foreground">Engagement</div>
             </div>
           </div>
-          {/* Action Button */}
-          <div className="pt-2">
+          {/* Action Buttons */}
+          <div className="pt-2 flex gap-2">
             <Button 
-              className="w-full" 
+              className="flex-1" 
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
@@ -724,6 +466,17 @@ export default function CreatorsPage() {
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               View Analytics
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                // TODO: Implement add to list functionality
+                toast.info(`Add to list functionality coming soon for @${creator.username}`);
+              }}
+            >
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
         </CardContent>
@@ -746,14 +499,9 @@ export default function CreatorsPage() {
         {unlockedLoading ? (
           <CreatorsSkeleton />
         ) : (
-        <DndContext
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
           <div className="flex min-h-screen">
             {/* Main Content */}
-            <div className="flex-1 pr-6">
+            <div className="flex-1">
               <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
             {/* Header */}
@@ -764,8 +512,8 @@ export default function CreatorsPage() {
               <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
                 <SheetTrigger asChild>
                   <Button style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
-                    <Search className="h-4 w-4 mr-2" />
-                    Search for Creators
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Creators
                   </Button>
                 </SheetTrigger>
                 <SheetContent className="w-[450px] sm:w-[600px] p-8">
@@ -890,149 +638,162 @@ export default function CreatorsPage() {
                 </SheetContent>
               </Sheet>
             </div>
-            {/* Overview Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Creators</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{unlockedCreators.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +12% from last month
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Most Dominant Creator Niche</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{dominantNiche}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +8.2% growth this week
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Credits Reset In</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">7 days</div>
-                  <p className="text-xs text-muted-foreground">
-                    +500 credits on reset
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
             {/* Creators Portfolio */}
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <CardTitle>Your Creator Portfolio</CardTitle>
-                  <div className="text-sm text-muted-foreground">
-                    Drag creators to lists →
+                </div>
+                
+                {/* Search and Filters in one row */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search creators..."
+                      className="pl-10 w-[200px]"
+                    />
                   </div>
+                  
+                  <Select>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Countries</SelectItem>
+                      <SelectItem value="us">United States</SelectItem>
+                      <SelectItem value="uk">United Kingdom</SelectItem>
+                      <SelectItem value="ca">Canada</SelectItem>
+                      <SelectItem value="au">Australia</SelectItem>
+                      <SelectItem value="de">Germany</SelectItem>
+                      <SelectItem value="fr">France</SelectItem>
+                      <SelectItem value="es">Spain</SelectItem>
+                      <SelectItem value="it">Italy</SelectItem>
+                      <SelectItem value="br">Brazil</SelectItem>
+                      <SelectItem value="mx">Mexico</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="fashion">Fashion & Style</SelectItem>
+                      <SelectItem value="beauty">Beauty & Skincare</SelectItem>
+                      <SelectItem value="fitness">Fitness & Health</SelectItem>
+                      <SelectItem value="food">Food & Cooking</SelectItem>
+                      <SelectItem value="technology">Technology</SelectItem>
+                      <SelectItem value="travel">Travel & Adventure</SelectItem>
+                      <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                      <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="entertainment">Entertainment</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Tier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Tiers</SelectItem>
+                      <SelectItem value="nano">Nano (1K-10K)</SelectItem>
+                      <SelectItem value="micro">Micro (10K-100K)</SelectItem>
+                      <SelectItem value="macro">Macro (100K-1M)</SelectItem>
+                      <SelectItem value="mega">Mega (1M+)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button variant="outline" size="sm">
+                    Clear Filters
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <SortableContext items={creators.map(c => c.username)} strategy={verticalListSortingStrategy}>
-                  <div className="grid gap-6 lg:grid-cols-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Currently Analyzing Creators */}
                   {Object.entries(analyzingCreators).map(([username, analysis]) => {
                     // Check if this creator has been unlocked but is still in analyzing state
                     const unlockedCreator = unlockedCreators.find(c => c.username === username);
                     if (unlockedCreator && analysis.status === 'completed') {
                       // Return the populated card instead of loading card
-                      return <DraggableCreator key={`unlocked-${username}`} creator={unlockedCreator} />;
+                      return <CreatorCard key={`unlocked-${username}`} creator={unlockedCreator} />;
                     }
-                    // Return loading card for ongoing analysis
+                    // Return skeleton card that matches real creator card layout
                     return (
-                    <Card key={`analyzing-${username}`} className="relative overflow-hidden border-blue-200 dark:border-blue-800">
-                      {/* Status Indicator */}
-                      <div className="absolute top-2 right-2 z-10">
-                        <Badge className={`text-xs ${
-                          analysis.status === 'analyzing' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' :
-                          analysis.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
-                          'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
-                        }`}>
-                          {analysis.status === 'analyzing' ? 'Analyzing...' :
-                           analysis.status === 'completed' ? 'Ready!' :
-                           'Failed'}
-                        </Badge>
-                      </div>
-                      <CardHeader className="pb-3">
-                        {/* Avatar Placeholder */}
-                        <div className="flex justify-center mb-3">
-                          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center">
-                            {analysis.status === 'analyzing' ? (
-                              <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-                            ) : analysis.status === 'completed' ? (
-                              <BarChart3 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                            ) : (
-                              <X className="h-8 w-8 text-red-600 dark:text-red-400" />
-                            )}
-                          </div>
+                      <Card key={`analyzing-${username}`} className="relative overflow-hidden animate-pulse">
+                        {/* Status Badge */}
+                        <div className="absolute top-3 left-3 z-10">
+                          <div className="w-6 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
                         </div>
-                        {/* Username */}
-                        <div className="text-center space-y-1">
-                          <h3 className="font-semibold text-lg">@{username}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {analysis.status === 'analyzing' ? 'Fetching profile data...' :
-                             analysis.status === 'completed' ? 'Analysis complete!' :
-                             analysis.error || 'Analysis failed'}
-                          </p>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {/* Progress Bar */}
-                        {analysis.status === 'analyzing' && (
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Progress</span>
-                              <span>{analysis.progress}%</span>
+                        
+                        <CardHeader className="pb-3">
+                          {/* Avatar Skeleton */}
+                          <div className="flex justify-center mb-3">
+                            <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
                             </div>
-                            <Progress value={analysis.progress} className="h-2" />
                           </div>
-                        )}
-                        {/* Action Button */}
-                        <div className="pt-2">
-                          {analysis.status === 'completed' ? (
-                            <Button 
-                              className="w-full" 
-                              size="sm"
-                              onClick={() => router.push(`/analytics/${username}`)}
-                            >
-                              <BarChart3 className="h-4 w-4 mr-2" />
-                              View Analytics
-                            </Button>
-                          ) : analysis.status === 'failed' ? (
-                            <Button 
-                              className="w-full" 
-                              size="sm"
-                              variant="outline"
-                              onClick={() => startAnalysis(username)}
-                            >
-                              <BarChart3 className="h-4 w-4 mr-2" />
-                              Retry Analysis
-                            </Button>
-                          ) : (
-                            <Button 
-                              className="w-full" 
-                              size="sm"
-                              disabled
-                            >
-                              <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                              Analyzing...
-                            </Button>
+                          
+                          {/* Name and Username Skeleton */}
+                          <div className="text-center space-y-1">
+                            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded mx-auto w-32"></div>
+                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mx-auto w-24"></div>
+                          </div>
+                          
+                          {/* Category Badges Skeleton */}
+                          <div className="mt-3 flex justify-center gap-1">
+                            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                          </div>
+                        </CardHeader>
+                        
+                        <CardContent className="space-y-4">
+                          {/* Stats Skeleton */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-1"></div>
+                              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16 mx-auto"></div>
+                            </div>
+                            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-1"></div>
+                              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20 mx-auto"></div>
+                            </div>
+                          </div>
+                          
+                          {/* Action Buttons Skeleton */}
+                          <div className="pt-2 flex gap-2">
+                            <div className="flex-1 h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                            <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                          </div>
+                          
+                          {/* Progress indicator for analyzing status */}
+                          {analysis.status === 'analyzing' && (
+                            <div className="text-center">
+                              <div className="text-sm text-muted-foreground">Analyzing @{username}...</div>
+                              <Progress value={analysis.progress} className="h-2 mt-2" />
+                            </div>
                           )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                          
+                          {/* Error state */}
+                          {analysis.status === 'failed' && (
+                            <div className="text-center">
+                              <div className="text-sm text-red-600 dark:text-red-400 mb-2">
+                                {analysis.error || 'Analysis failed'}
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => startAnalysis(username)}
+                                className="w-full"
+                              >
+                                Retry Analysis
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
                     );
                   })}
                   {/* Loading State */}
@@ -1065,8 +826,8 @@ export default function CreatorsPage() {
                           <p className="text-muted-foreground">Start by searching for creators to analyze</p>
                         </div>
                         <Button onClick={() => setIsSearchOpen(true)} style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
-                          <Search className="h-4 w-4 mr-2" />
-                          Search for Creators
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Creators
                         </Button>
                       </div>
                     </div>
@@ -1075,10 +836,9 @@ export default function CreatorsPage() {
                   {!unlockedLoading && creators
                     .filter(creator => !analyzingCreators[creator.username])
                     .map((creator) => (
-                    <DraggableCreator key={creator.username} creator={creator} />
+                    <CreatorCard key={creator.username} creator={creator} />
                   ))}
                 </div>
-                </SortableContext>
                 {/* Pagination Controls */}
                 {!unlockedLoading && !unlockedError && creators.length > 0 && pagination.totalPages > 1 && (
                   <div className="flex items-center justify-between pt-6 border-t">
@@ -1113,97 +873,7 @@ export default function CreatorsPage() {
               </div>
             </div>
             </div>
-            {/* My Lists Sidebar */}
-            <div className="w-[15%] min-w-[200px] border-l bg-muted/30 sticky top-0 h-screen overflow-y-auto">
-              <div className="p-4 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  <h2 className="font-semibold">My Lists</h2>
-                </div>
-                <div className="space-y-3">
-                  {Array.isArray(myLists) && myLists.filter(list => list && list.id).map((list) => (
-                    <DroppableList
-                      key={list.id}
-                      list={list}
-                    />
-                  ))}
-                </div>
-                {/* Create New List Button */}
-                {!isCreatingList ? (
-                  <Button size="sm" className="w-full" onClick={() => setIsCreatingList(true)}>
-                    <Plus className="h-3 w-3 mr-1" />
-                    New List
-                  </Button>
-                ) : (
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="List name..."
-                      value={newListName}
-                      onChange={(e) => setNewListName(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleCreateList()}
-                      className="text-sm"
-                    />
-                    {/* Color picker */}
-                    <div className="flex gap-1 justify-center">
-                      {["#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#ffd93d", "#ff9472"].map(color => (
-                        <button
-                          key={color}
-                          className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-gray-900 dark:border-gray-100' : 'border-gray-300'}`}
-                          style={{ backgroundColor: color }}
-                          onClick={() => setSelectedColor(color)}
-                        />
-                      ))}
-                    </div>
-                    <div className="flex gap-1">
-                      <Button size="sm" className="flex-1" onClick={handleCreateList}>
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="flex-1" 
-                        onClick={() => {
-                          setIsCreatingList(false)
-                          setNewListName("")
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
-          <DragOverlay>
-            {activeId ? (
-              <Card className="opacity-90">
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
-                    <ProfileAvatar
-                      src={(() => {
-                        const creator = unlockedCreators.find(c => c.username === activeId);
-                        if (!creator) return undefined;
-                        return creator.profile_pic_url_hd || creator.profile_pic_url;
-                      })()}
-                      alt={unlockedCreators.find(c => c.username === activeId)?.full_name || 'Profile'}
-                      fallbackText={unlockedCreators.find(c => c.username === activeId)?.username || 'C'}
-                      className="h-8 w-8"
-                    />
-                    <div>
-                      <p className="font-medium text-sm">
-                        {unlockedCreators.find(c => c.username === activeId)?.full_name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        @{unlockedCreators.find(c => c.username === activeId)?.username}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
         )}
       </SidebarInset>
     </SidebarProvider>

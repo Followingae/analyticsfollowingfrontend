@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -44,8 +45,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            {children}
-            <Toaster />
+            <NotificationProvider>
+              {children}
+              <Toaster />
+            </NotificationProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

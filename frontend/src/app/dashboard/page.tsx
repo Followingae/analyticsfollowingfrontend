@@ -23,6 +23,7 @@ import { ChartPieCredits } from "@/components/chart-pie-credits"
 import { SiteHeader } from "@/components/site-header"
 import { MetricCard, EngagementCard, QuickStatsGrid } from "@/components/analytics-cards"
 import { DashboardSkeleton } from "@/components/skeletons"
+import { DashboardNotificationsFixed } from "@/components/dashboard-notifications-fixed"
 import {
   SidebarInset,
   SidebarProvider,
@@ -183,41 +184,6 @@ export default function Dashboard() {
     }
   ]
 
-  const topCreators = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      username: "fashionista_sarah",
-      avatar: "/avatars/01.png",
-      followers: 245000,
-      engagement: 4.2,
-      category: "Fashion",
-      performance: 12.5,
-      campaigns: 3
-    },
-    {
-      id: 2,
-      name: "Mike Chen", 
-      username: "tech_reviewer_mike",
-      avatar: "/avatars/02.png",
-      followers: 186000,
-      engagement: 5.8,
-      category: "Technology",
-      performance: 25.2,
-      campaigns: 2
-    },
-    {
-      id: 3,
-      name: "Anna Rodriguez",
-      username: "fitness_queen_anna",
-      avatar: "/avatars/03.png", 
-      followers: 320000,
-      engagement: 3.9,
-      category: "Fitness",
-      performance: 18.7,
-      campaigns: 4
-    }
-  ]
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -307,7 +273,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Recent Campaigns & Top Creators */}
+            {/* Recent Campaigns & Notifications */}
             <div className="grid gap-6 md:grid-cols-2">
               {/* Recent Campaigns */}
               <Card>
@@ -351,58 +317,11 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              {/* Top Performing Creators */}
-              <Card>
-                <CardHeader className="flex flex-row items-center">
-                  <div className="grid gap-2">
-                    <CardTitle className="flex items-center gap-2">
-                      <Star className="h-5 w-5" />
-                      Top Performing Creators
-                    </CardTitle>
-                    <CardDescription>
-                      Your highest ROI influencers
-                    </CardDescription>
-                  </div>
-                  <Button size="sm" className="ml-auto gap-1">
-                    View All
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {topCreators.map((creator) => (
-                      <div key={creator.id} className="flex items-center space-x-4">
-                        <UserAvatar 
-                          user={{
-                            full_name: creator.name,
-                            profile_picture_url: creator.avatar
-                          }}
-                          size={40}
-                          className="h-10 w-10"
-                        />
-                        <div className="space-y-1 flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium leading-none">{creator.name}</p>
-                            <Badge variant="outline" className="text-xs">{creator.category}</Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>{formatNumber(creator.followers)} followers</span>
-                            <span>{creator.engagement}% engagement</span>
-                            <span>{creator.campaigns} campaigns</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-[#5100f3]">+{creator.performance}%</div>
-                          <div className="text-xs text-muted-foreground">Performance</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Notifications */}
+              <DashboardNotificationsFixed />
             </div>
 
-            {/* Quick Insights */}
+            {/* AI-Powered Insights */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

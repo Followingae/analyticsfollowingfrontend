@@ -1,6 +1,8 @@
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
+import { NotificationBell } from "@/components/ui/notification"
+import { useNotifications } from "@/contexts/NotificationContext"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useMemo } from "react"
@@ -9,6 +11,7 @@ export function SiteHeader() {
   const pathname = usePathname()
   const isDashboard = pathname === '/' || pathname === '/dashboard'
   const { user, isLoading } = useAuth()
+  const { notifications, markAsRead, markAllAsRead, deleteNotification } = useNotifications()
   
   // Memoized dynamic user data to prevent flash
   const userDisplayData = useMemo(() => {
@@ -75,6 +78,12 @@ export function SiteHeader() {
           <div className="text-sm text-muted-foreground font-medium">
             {getCurrentDate()}
           </div>
+          <NotificationBell
+            notifications={notifications}
+            onMarkAsRead={markAsRead}
+            onMarkAllAsRead={markAllAsRead}
+            onDelete={deleteNotification}
+          />
           <ModeToggle />
         </div>
       </div>

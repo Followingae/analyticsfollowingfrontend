@@ -8,7 +8,7 @@ import { InstagramPost } from '@/services/instagramApi'
 import { formatNumber } from '@/lib/utils'
 import { InstagramImage } from '@/components/ui/instagram-image'
 import { proxyInstagramUrlCached } from '@/lib/image-cache'
-import { Heart, MessageCircle, Eye, MapPin, ExternalLink } from 'lucide-react'
+import { Heart, MessageCircle, Eye, MapPin, ExternalLink, Brain, Sparkles, Languages, Clock, CheckCircle, Loader2 } from 'lucide-react'
 
 interface PostCardProps {
   post: InstagramPost
@@ -56,7 +56,7 @@ export default function PostCard({ post }: PostCardProps) {
               />
               {post.is_carousel && (
                 <Badge className="absolute top-2 right-2 bg-black/70 text-white">
-                  📸 {post.carousel_media_count}
+{post.carousel_media_count}
                 </Badge>
               )}
             </div>
@@ -146,47 +146,98 @@ export default function PostCard({ post }: PostCardProps) {
           <span>{formatDate(post.posted_at)}</span>
         </div>
 
-        {/* Media Type and AI Badges */}
-        <div className="mt-2 flex flex-wrap gap-1">
-          <Badge variant="outline" className="text-xs">
-            {post.media_type === 'GraphImage' && '📸 Image'}
-            {post.media_type === 'GraphVideo' && '🎥 Video'}
-            {post.media_type === 'GraphSidecar' && '📱 Carousel'}
-          </Badge>
-          
-          {/* AI Content Category - New Structure */}
-          {(post.ai_analysis?.ai_content_category || post.ai_content_category) && (
-            <Badge className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-              🧠 {post.ai_analysis?.ai_content_category || post.ai_content_category}
-            </Badge>
-          )}
-          
-          {/* AI Sentiment - New Structure */}
-          {(post.ai_analysis?.ai_sentiment || post.ai_sentiment) && (
-            <Badge className={`text-xs ${
-              (post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'positive' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-              (post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'negative' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-              'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-            }`}>
-              {(post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'positive' && '😊'}
-              {(post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'negative' && '😔'}
-              {(post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'neutral' && '😐'}
-              {post.ai_analysis?.ai_sentiment || post.ai_sentiment}
-            </Badge>
-          )}
-          
-          {/* AI Language - New Structure */}
-          {(post.ai_analysis?.ai_language || post.ai_language_code) && (
+        {/* Media Type and AI Analysis Section */}
+        <div className="mt-3 space-y-2">
+          {/* Basic Media Type */}
+          <div className="flex items-center gap-1">
             <Badge variant="outline" className="text-xs">
-              🌐 {(post.ai_analysis?.ai_language || post.ai_language_code)?.toUpperCase()}
+              {post.media_type === 'GraphImage' && 'Image'}
+              {post.media_type === 'GraphVideo' && 'Video'}
+              {post.media_type === 'GraphSidecar' && 'Carousel'}
             </Badge>
+          </div>
+
+          {/* AI Analysis Results */}
+          {(post.ai_analysis?.has_ai_analysis || post.ai_content_category) && (
+            <div className="p-2 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 rounded-lg border">
+              <div className="flex items-center gap-1 mb-2">
+                <Brain className="w-3 h-3 text-purple-600" />
+                <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                  AI Analysis
+                </span>
+                {(post.ai_analysis?.ai_processing_status === 'completed' || post.ai_content_category) && (
+                  <CheckCircle className="w-3 h-3 text-green-600" />
+                )}
+              </div>
+              
+              <div className="flex flex-wrap gap-1">
+                {/* AI Content Category */}
+                {(post.ai_analysis?.ai_content_category || post.ai_content_category) && (
+                  <Badge className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                    <Sparkles className="w-2 h-2 mr-1" />
+                    {post.ai_analysis?.ai_content_category || post.ai_content_category}
+                  </Badge>
+                )}
+                
+                {/* AI Sentiment */}
+                {(post.ai_analysis?.ai_sentiment || post.ai_sentiment) && (
+                  <Badge className={`text-xs ${
+                    (post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'positive' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                    (post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'negative' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                    'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                  }`}>
+                    {post.ai_analysis?.ai_sentiment || post.ai_sentiment}
+                    {(post.ai_analysis?.ai_sentiment_score || post.ai_sentiment_score) && (
+                      <span className="ml-1 text-xs opacity-75">
+                        ({((post.ai_analysis?.ai_sentiment_score || post.ai_sentiment_score) * 100).toFixed(0)}%)
+                      </span>
+                    )}
+                  </Badge>
+                )}
+                
+                {/* AI Language */}
+                {(post.ai_analysis?.ai_language || post.ai_language_code) && (
+                  <Badge variant="outline" className="text-xs">
+                    <Languages className="w-2 h-2 mr-1" />
+                    {(post.ai_analysis?.ai_language || post.ai_language_code)?.toUpperCase()}
+                    {(post.ai_analysis?.ai_language_confidence || post.ai_language_confidence) && (
+                      <span className="ml-1 opacity-75">
+                        ({Math.round((post.ai_analysis?.ai_language_confidence || post.ai_language_confidence) * 100)}%)
+                      </span>
+                    )}
+                  </Badge>
+                )}
+                
+                {/* Analysis Date */}
+                {(post.ai_analysis?.ai_post_analyzed_at || post.ai_analyzed_at) && (
+                  <Badge variant="secondary" className="text-xs">
+                    <Clock className="w-2 h-2 mr-1" />
+                    {new Date(post.ai_analysis?.ai_post_analyzed_at || post.ai_analyzed_at).toLocaleDateString()}
+                  </Badge>
+                )}
+              </div>
+            </div>
           )}
-          
-          {/* AI Processing Status for posts */}
-          {post.ai_analysis?.ai_processing_status === 'pending' && (
-            <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              ⏳ Analyzing...
-            </Badge>
+
+          {/* AI Processing Status */}
+          {(post.ai_analysis?.ai_processing_status === 'pending' || post.ai_analysis_status === 'pending') && (
+            <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span className="font-medium">AI analysis in progress...</span>
+              </div>
+            </div>
+          )}
+
+          {/* No AI Analysis Available */}
+          {!(post.ai_analysis?.has_ai_analysis || post.ai_content_category) && 
+           !(post.ai_analysis?.ai_processing_status === 'pending' || post.ai_analysis_status === 'pending') && (
+            <div className="p-2 bg-gray-50 dark:bg-gray-950/30 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                <Brain className="w-3 h-3 opacity-50" />
+                <span>AI analysis not available for this post</span>
+              </div>
+            </div>
           )}
         </div>
       </CardContent>

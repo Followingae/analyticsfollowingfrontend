@@ -319,6 +319,7 @@ export interface UnlockedProfile {
   is_business_account: boolean
   business_category_name?: string
   engagement_rate?: number
+  country_block?: string // Country from Decodo API
   // Access info
   access_granted_at: string
   days_remaining: number
@@ -599,7 +600,7 @@ export class InstagramApiService {
 
   /**
    * NEW: Refresh profile with AI analysis
-   * Uses: POST /api/v1/ai/refresh/profile/{username}
+   * Uses: POST /api/v1/ai/fix/profile/{username}
    */
   async refreshProfile(username: string): Promise<{ success: boolean; data?: any; error?: string; message?: string }> {
     try {
@@ -612,7 +613,7 @@ export class InstagramApiService {
         };
         message: string;
       }>(
-        `/api/v1/ai/refresh/profile/${username}`,
+        `/api/v1/ai/fix/profile/${username}`,
         { method: 'POST' }
       )
       return {
@@ -696,6 +697,122 @@ export class InstagramApiService {
   }
 
   /**
+   * NEW: Get Profile Analysis Status (with job tracking)
+   * Uses: GET /api/v1/ai/status/profile/{username}
+   * Purpose: Check analysis status with job tracking info
+   */
+  async getProfileAnalysisStatus(username: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await this.makeRequest<any>(
+        `/api/v1/ai/status/profile/${username}`,
+        { method: 'GET' }
+      )
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get profile analysis status'
+      }
+    }
+  }
+
+  /**
+   * NEW: Get Analysis Job Status
+   * Uses: GET /api/v1/ai/analysis/status/{job_id}
+   * Purpose: Track specific job progress
+   */
+  async getAnalysisJobStatus(jobId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await this.makeRequest<any>(
+        `/api/v1/ai/analysis/status/${jobId}`,
+        { method: 'GET' }
+      )
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get job status'
+      }
+    }
+  }
+
+  /**
+   * NEW: Detect Partial Data Issues (Batch Fix)
+   * Uses: POST /api/v1/ai/fix/batch
+   * Purpose: Detect and fix partial data corruption
+   */
+  async detectPartialDataIssues(): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await this.makeRequest<any>(
+        `/api/v1/ai/fix/batch`,
+        { method: 'POST' }
+      )
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to detect partial data issues'
+      }
+    }
+  }
+
+  /**
+   * NEW: Repair Profile Aggregation Data
+   * Uses: POST /api/v1/ai/repair/profile-aggregation
+   * Purpose: Fix partial data corruption
+   */
+  async repairProfileAggregation(profileIds: string[]): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const profileIdsParam = profileIds.join(',')
+      const response = await this.makeRequest<any>(
+        `/api/v1/ai/repair/profile-aggregation?profile_ids=${profileIdsParam}`,
+        { method: 'POST' }
+      )
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to repair profile aggregation'
+      }
+    }
+  }
+
+  /**
+   * NEW: Get System Health Status
+   * Uses: GET /api/v1/ai/status/profile/{username}
+   * Purpose: Check AI system health
+   */
+  async getAISystemHealth(username: string = 'default'): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await this.makeRequest<any>(
+        `/api/v1/ai/status/profile/${username}`,
+        { method: 'GET' }
+      )
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get AI system health'
+      }
+    }
+  }
+
+  /**
    * NEW: Get Detailed AI Insights for Profile
    * Uses: GET /api/v1/ai/profile/{username}/insights
    * Purpose: Detailed AI insights with processing status
@@ -719,9 +836,9 @@ export class InstagramApiService {
   }
 
   /**
-   * NEW: Trigger Profile Content Analysis
-   * Uses: POST /api/v1/ai/analyze/profile/{username}/content
-   * Purpose: Start AI analysis for profile content
+   * NEW: Fix Profile Issues
+   * Uses: POST /api/v1/ai/fix/profile/{username}
+   * Purpose: Fix profile data issues
    */
   async triggerProfileAnalysis(username: string): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
@@ -731,7 +848,7 @@ export class InstagramApiService {
         estimated_completion: string
         posts_to_analyze: number
       }>(
-        `/api/v1/ai/analyze/profile/${username}/content`,
+        `/api/v1/ai/fix/profile/${username}`,
         { method: 'POST' }
       )
       return {

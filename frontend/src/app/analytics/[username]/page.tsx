@@ -5,6 +5,9 @@ import { useRouter, useParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { instagramApiService, ProfileResponse, InstagramPost, AIInsights, AIProcessingStatus } from "@/services/instagramApi"
 import { AILoadingState } from "@/components/AILoadingState"
+import { AIStatusIndicator, AIInsightsDisplay } from "@/components/ui/ai-status-indicator"
+import { AIDataHealthMonitor } from "@/components/ui/ai-data-health"
+import { AIContentCharts } from "@/components/ui/ai-content-charts"
 import { preloadPageImages } from "@/lib/image-cache"
 import { ProfileAvatar } from "@/components/ui/profile-avatar"
 import { API_CONFIG } from "@/config/api"
@@ -13,6 +16,7 @@ import { AnalyticsSkeleton } from "@/components/skeletons"
 import { SiteHeader } from "@/components/site-header"
 import { ProfileAccessWrapper } from "@/components/profile-access-wrapper"
 import { useProfileAccess, useAccessWarnings } from "@/hooks/useProfileAccess"
+import { useAIStatus } from "@/hooks/useAIStatus"
 import {
   SidebarInset,
   SidebarProvider,
@@ -135,6 +139,9 @@ export default function AnalyticsPage() {
   // 30-day access system hooks
   const { unlockProfile, isUnlocking, checkAccessStatus } = useProfileAccess()
   const { showExpirationWarning, showAccessExpiredWarning } = useAccessWarnings()
+  
+  // Professional AI status management
+  const { handleProfileLoad } = useAIStatus()
 
   console.log('AnalyticsPage render - username:', username, 'params:', params, 'profileData:', profileData)
 
@@ -436,6 +443,11 @@ export default function AnalyticsPage() {
         setTimeout(() => {
           analyzeProfile(username)
         }, 100)
+        
+        // Professional AI status management - automatically handle AI analysis status
+        setTimeout(() => {
+          handleProfileLoad(username)
+        }, 200)
       }
     } catch (error) {
       console.error('Error in useEffect:', error)
@@ -643,6 +655,23 @@ export default function AnalyticsPage() {
                                     {profileData.ai_insights.ai_primary_content_type}
                                   </Badge>
                                 )}
+                                </div>
+
+                                {/* AI Status Indicator */}
+                                <div className="mt-4">
+                                  <AIStatusIndicator
+                                    username={profileData.profile.username}
+                                    insights={profileData.ai_insights}
+                                    showDetails={true}
+                                    onRetryAnalysis={async () => {
+                                      try {
+                                        await instagramApiService.triggerProfileAnalysis(profileData.profile.username)
+                                        toast.success("AI analysis started successfully")
+                                      } catch (error) {
+                                        toast.error("Failed to start AI analysis")
+                                      }
+                                    }}
+                                  />
                                 </div>
                               </div>
                               
@@ -1322,9 +1351,9 @@ export default function AnalyticsPage() {
                                   </div>
                                   <div className="text-sm text-muted-foreground mb-3">Sentiment Score (-1.0 to +1.0)</div>
                                   <div className="text-sm font-medium">
-                                    {(profileData.ai_insights.ai_avg_sentiment_score ?? 0) > 0.3 ? '😊 Positive Content Preferred' :
-                                     (profileData.ai_insights.ai_avg_sentiment_score ?? 0) < -0.3 ? '😔 Serious Content Preferred' :
-                                     '😐 Balanced Content Preferred'}
+                                    {(profileData.ai_insights.ai_avg_sentiment_score ?? 0) > 0.3 ? 'Positive Content Preferred' :
+                                     (profileData.ai_insights.ai_avg_sentiment_score ?? 0) < -0.3 ? 'Serious Content Preferred' :
+                                     'Balanced Content Preferred'}
                                   </div>
                                 </div>
                               </CardContent>
@@ -1563,7 +1592,7 @@ export default function AnalyticsPage() {
                         </CardHeader>
                         <CardContent className="flex items-center justify-center py-8">
                           <div className="text-center text-muted-foreground">
-                            <div className="text-2xl mb-2">📊</div>
+                            <div className="text-2xl mb-2"></div>
                             <p>{postsLoading ? 'Loading timeline data...' : 'No post data available for timeline analysis'}</p>
                             <Badge variant="outline" className={postsLoading ? "text-blue-600" : "text-red-600"} >{postsLoading ? 'Loading...' : 'No Data'}</Badge>
                           </div>
@@ -1594,8 +1623,7 @@ export default function AnalyticsPage() {
                                 <div className="space-y-4">
                                   <div className="text-center p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 rounded-lg">
                                     <div className="text-2xl font-bold text-green-600 mb-1">
-                                      {(profileData.ai_insights.ai_avg_sentiment_score || 0) > 0 ? '📈' : 
-                                       (profileData.ai_insights.ai_avg_sentiment_score || 0) < 0 ? '📉' : '📊'} 
+ 
                                       {(profileData.ai_insights.ai_avg_sentiment_score || 0) > 0 ? 
                                         ` +${((profileData.ai_insights.ai_avg_sentiment_score || 0) * 100).toFixed(0)}%` : 
                                         ` ${((profileData.ai_insights.ai_avg_sentiment_score || 0) * 100).toFixed(0)}%`}
@@ -1605,13 +1633,13 @@ export default function AnalyticsPage() {
                                   
                                   <div className="space-y-2">
                                     <div className="flex justify-between items-center p-2 bg-green-50 dark:bg-green-900/30 rounded">
-                                      <span className="text-sm">😊 Positive Content</span>
+                                      <span className="text-sm">Positive Content</span>
                                       <Badge variant="secondary" className="bg-green-100 text-green-800">
                                         Higher Engagement
                                       </Badge>
                                     </div>
                                     <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-900/30 rounded">
-                                      <span className="text-sm">😐 Neutral Content</span>
+                                      <span className="text-sm">Neutral Content</span>
                                       <Badge variant="outline">
                                         Moderate Engagement
                                       </Badge>
@@ -1629,46 +1657,20 @@ export default function AnalyticsPage() {
                             />
                           )}
 
-                          {/* AI Category Performance */}
-                          {profileData.ai_insights?.has_ai_analysis && profileData.ai_insights.ai_content_distribution ? (
-                            <Card>
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <BarChart3 className="w-5 h-5 text-purple-600" />
-                                  Content Category ROI
-                                </CardTitle>
-                                <CardDescription>Which topics perform best</CardDescription>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="space-y-3">
-                                  {Object.entries(profileData.ai_insights.ai_content_distribution).slice(0, 4).map(([category, percentage]) => {
-                                    // Simulate performance score based on percentage (higher = better performing)
-                                    const performanceScore = (percentage * 120).toFixed(0);
-                                    return (
-                                      <div key={category} className="flex items-center justify-between p-3 bg-muted rounded">
-                                        <div>
-                                          <span className="text-sm font-medium">{category}</span>
-                                          <div className="text-xs text-muted-foreground">
-                                            {(percentage * 100).toFixed(1)}% of content
-                                          </div>
-                                        </div>
-                                        <div className="text-right">
-                                          <div className="text-sm font-bold text-purple-600">
-                                            {performanceScore}% avg
-                                          </div>
-                                          <div className="text-xs text-muted-foreground">engagement</div>
-                                        </div>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              </CardContent>
-                            </Card>
+                          {/* AI Content Distribution Charts */}
+                          {profileData.ai_insights?.has_ai_analysis ? (
+                            <AIContentCharts
+                              contentDistribution={profileData.ai_insights.ai_content_distribution}
+                              languageDistribution={profileData.ai_insights.ai_language_distribution}
+                              primaryContentType={profileData.ai_insights.ai_primary_content_type}
+                              sentimentScore={profileData.ai_insights.ai_avg_sentiment_score}
+                              qualityScore={profileData.ai_insights.ai_content_quality_score}
+                            />
                           ) : (
                             <AILoadingState 
-                              title="Category Performance"
-                              description="AI analyzing which content types perform best"
-                              message="Evaluating category performance..."
+                              title="AI Content Analytics"
+                              description="AI analyzing content patterns and performance"
+                              message="Generating comprehensive content insights..."
                               icon={<BarChart3 className="w-5 h-5" />}
                             />
                           )}
@@ -1687,7 +1689,7 @@ export default function AnalyticsPage() {
                                 <div className="space-y-3">
                                   <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border-l-4 border-blue-500">
                                     <div className="font-medium text-blue-800 dark:text-blue-200 text-sm">
-                                      🎯 Primary Focus
+Primary Focus
                                     </div>
                                     <p className="text-sm text-blue-700 dark:text-blue-300">
                                       Continue with {profileData.ai_insights.ai_primary_content_type || 'current'} content - it resonates well
@@ -1696,7 +1698,7 @@ export default function AnalyticsPage() {
                                   
                                   <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg border-l-4 border-green-500">
                                     <div className="font-medium text-green-800 dark:text-green-200 text-sm">
-                                      📈 Sentiment Strategy  
+Sentiment Strategy  
                                     </div>
                                     <p className="text-sm text-green-700 dark:text-green-300">
                                       {(profileData.ai_insights.ai_avg_sentiment_score || 0) > 0 ? 
@@ -1708,7 +1710,7 @@ export default function AnalyticsPage() {
                                   
                                   <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg border-l-4 border-purple-500">
                                     <div className="font-medium text-purple-800 dark:text-purple-200 text-sm">
-                                      🌟 Quality Score
+Quality Score
                                     </div>
                                     <p className="text-sm text-purple-700 dark:text-purple-300">
                                       Content quality: {((profileData.ai_insights.ai_content_quality_score || 0) * 10).toFixed(1)}/10 - 
@@ -1940,6 +1942,13 @@ export default function AnalyticsPage() {
                   
                     </Tabs>
                   </TooltipProvider>
+
+                  {/* AI Data Health Monitor - Developer/Admin Panel */}
+                  {debugInfo && (
+                    <div className="mt-8">
+                      <AIDataHealthMonitor />
+                    </div>
+                  )}
                 </div>
 
                 {/* Contact Information & External Links */}
@@ -1969,7 +1978,7 @@ export default function AnalyticsPage() {
                           <Badge 
                             variant={profileData.profile.is_verified ? "default" : "outline"}
                           >
-                            {profileData.profile.is_verified ? "✨ Verified Creator" : "📋 Public Profile"}
+                            {profileData.profile.is_verified ? "Verified Creator" : "Public Profile"}
                           </Badge>
                           {profileData.profile.business_email && (
                             <Badge variant="outline" className="text-xs">
