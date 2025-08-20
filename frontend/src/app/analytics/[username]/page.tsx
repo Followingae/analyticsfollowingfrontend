@@ -1952,7 +1952,7 @@ Quality Score
                   {/* AI Data Health Monitor - Developer/Admin Panel */}
                   {debugInfo && (
                     <div className="mt-8">
-                      <AIDataHealthMonitor />
+                      <AIDataHealthMonitor username={username || undefined} />
                     </div>
                   )}
                 </div>

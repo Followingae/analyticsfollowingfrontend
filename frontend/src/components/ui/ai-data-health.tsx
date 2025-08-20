@@ -40,7 +40,7 @@ interface SystemHealth {
   recommendations: string[]
 }
 
-export function AIDataHealthMonitor() {
+export function AIDataHealthMonitor({ username }: { username?: string }) {
   const [healthStatus, setHealthStatus] = useState<DataHealthStatus | null>(null)
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -55,7 +55,7 @@ export function AIDataHealthMonitor() {
       const partialDataResult = await instagramApiService.detectPartialDataIssues()
       
       // Get system health status
-      const healthResult = await instagramApiService.getAISystemHealth()
+      const healthResult = await instagramApiService.getAISystemHealth(username)
 
       if (partialDataResult.success) {
         setHealthStatus(partialDataResult.data)
@@ -114,9 +114,10 @@ export function AIDataHealthMonitor() {
   useEffect(() => {
     checkDataHealth()
     
-    // Auto-refresh every 5 minutes
-    const interval = setInterval(checkDataHealth, 300000)
-    return () => clearInterval(interval)
+    // REMOVED: Auto-refresh polling was spamming backend with 404 errors
+    // Manual refresh button is available instead
+    // const interval = setInterval(checkDataHealth, 300000)
+    // return () => clearInterval(interval)
   }, [])
 
   const getHealthColor = () => {
