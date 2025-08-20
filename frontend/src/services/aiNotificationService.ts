@@ -273,77 +273,82 @@ export class ProfessionalAINotifications {
   }
 
   /**
-   * Poll analysis completion status using new backend format
+   * DISABLED: Polling was spamming backend with repeated API calls
+   * Use the new notification system instead
    */
   private pollAnalysisCompletion(username: string): void {
-    // Clear any existing interval for this username
-    const existingInterval = this.progressIntervals.get(username)
-    if (existingInterval) {
-      clearInterval(existingInterval)
-    }
+    // REMOVED: This polling was causing repeated calls to /api/v1/ai/fix/profile/{username}
+    console.warn('pollAnalysisCompletion: Polling disabled to prevent API spam. Use notification system instead.')
+    return
+    
+    // // Clear any existing interval for this username
+    // const existingInterval = this.progressIntervals.get(username)
+    // if (existingInterval) {
+    //   clearInterval(existingInterval)
+    // }
 
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await this.triggerProfileAnalysis(username)
-        
-        // Check completion status
-        if (response.completion_status.all_steps_completed && response.completion_status.ready_for_display) {
-          // Analysis complete
-          this.clearProgressInterval(username)
-          
-          this.updateNotification({
-            title: 'AI Insights Complete',
-            message: response.message || 'AI insights are now available!',
-            type: 'success'
-          })
-          
-          // Refresh if recommended by backend
-          if (response.frontend_actions?.can_refresh_profile) {
-            setTimeout(() => {
-              window.location.reload()
-            }, 2000)
-          }
-          
-        } else if (response.status === 'PROCESSING') {
-          // Still processing - update status message
-          let statusMessage = 'AI analysis in progress...'
-          
-          if (response.completion_status.posts_processing_done) {
-            statusMessage = 'Generating profile insights...'
-          } else if (response.posts_analyzed && response.total_posts_found) {
-            const progress = Math.round((response.posts_analyzed / response.total_posts_found) * 100)
-            statusMessage = `Analyzing posts (${progress}%)...`
-          }
-          
-          this.updateNotification({
-            title: 'AI Analysis Running',
-            message: statusMessage,
-            type: 'info'
-          })
-          
-        } else if (response.status === 'FAILED') {
-          // Analysis failed
-          this.clearProgressInterval(username)
-          this.scheduleRetryAnalysis(username)
-        }
-        
-      } catch (error) {
-        console.error('Progress tracking error:', error)
-        // Continue polling with generic message
-        this.updateNotification({
-          title: 'AI Processing',
-          message: 'AI insights processing...',
-          type: 'info'
-        })
-      }
-    }, 10000) // Check every 10 seconds
+    // const pollInterval = setInterval(async () => {
+    //   try {
+    //     const response = await this.triggerProfileAnalysis(username)
+    //     
+    //     // Check completion status
+    //     if (response.completion_status.all_steps_completed && response.completion_status.ready_for_display) {
+    //       // Analysis complete
+    //       this.clearProgressInterval(username)
+    //       
+    //       this.updateNotification({
+    //         title: 'AI Insights Complete',
+    //         message: response.message || 'AI insights are now available!',
+    //         type: 'success'
+    //       })
+    //       
+    //       // Refresh if recommended by backend
+    //       if (response.frontend_actions?.can_refresh_profile) {
+    //         setTimeout(() => {
+    //           window.location.reload()
+    //         }, 2000)
+    //       }
+    //       
+    //     } else if (response.status === 'PROCESSING') {
+    //       // Still processing - update status message
+    //       let statusMessage = 'AI analysis in progress...'
+    //       
+    //       if (response.completion_status.posts_processing_done) {
+    //         statusMessage = 'Generating profile insights...'
+    //       } else if (response.posts_analyzed && response.total_posts_found) {
+    //         const progress = Math.round((response.posts_analyzed / response.total_posts_found) * 100)
+    //         statusMessage = `Analyzing posts (${progress}%)...`
+    //       }
+    //       
+    //       this.updateNotification({
+    //         title: 'AI Analysis Running',
+    //         message: statusMessage,
+    //         type: 'info'
+    //       })
+    //       
+    //     } else if (response.status === 'FAILED') {
+    //       // Analysis failed
+    //       this.clearProgressInterval(username)
+    //       this.scheduleRetryAnalysis(username)
+    //     }
+    //     
+    //   } catch (error) {
+    //     console.error('Progress tracking error:', error)
+    //     // Continue polling with generic message
+    //     this.updateNotification({
+    //       title: 'AI Processing',
+    //       message: 'AI insights processing...',
+    //       type: 'info'
+    //     })
+    //   }
+    // }, 10000) // Check every 10 seconds
 
-    this.progressIntervals.set(username, pollInterval)
+    // this.progressIntervals.set(username, pollInterval)
 
-    // Cleanup after 15 minutes
-    setTimeout(() => {
-      this.clearProgressInterval(username)
-    }, 900000)
+    // // Cleanup after 15 minutes
+    // setTimeout(() => {
+    //   this.clearProgressInterval(username)
+    // }, 900000)
   }
 
   /**

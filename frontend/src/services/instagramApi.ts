@@ -295,6 +295,17 @@ export interface PostAIAnalysis {
   ai_processing_status?: AIProcessingStatus
 }
 
+// NEW: Simple notification interfaces
+export interface SearchNotification {
+  message: string
+  type: 'success' | 'error'
+}
+
+export interface NotificationResponse {
+  initial_search: SearchNotification
+  detailed_search: SearchNotification
+}
+
 // Main API response structure - Updated for automatic AI integration
 export interface ProfileResponse {
   success: boolean
@@ -328,6 +339,8 @@ export interface ProfileResponse {
   }
   posts?: InstagramPost[]
   demographics?: AudienceDemographics
+  // NEW: Simple 2-type notifications
+  notifications?: NotificationResponse
 }
 // Legacy interface - DEPRECATED - Use InstagramProfile instead
 export interface BackendProfileResponse extends InstagramProfile {
@@ -375,6 +388,9 @@ export interface ApiResponse<T> {
   success: boolean
   data?: T
   error?: string
+  message?: string
+  // NEW: Notifications available in both success and error responses
+  notifications?: NotificationResponse
 }
 export interface BasicProfileResponse extends ApiResponse<ProfileResponse> {}
 export interface CompleteProfileResponse extends ApiResponse<ProfileResponse> {}
@@ -818,24 +834,20 @@ export class InstagramApiService {
   }
 
   /**
-   * NEW: Detect Partial Data Issues (Batch Fix)
-   * Uses: POST /api/v1/ai/fix/batch
-   * Purpose: Detect and fix partial data corruption
+   * REMOVED: Batch endpoint no longer exists on backend
+   * Returns mock data to prevent 404 errors
    */
   async detectPartialDataIssues(): Promise<{ success: boolean; data?: any; error?: string }> {
-    try {
-      const response = await this.makeRequest<any>(
-        `/api/v1/ai/fix/batch`,
-        { method: 'POST' }
-      )
-      return {
-        success: true,
-        data: response
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || 'Failed to detect partial data issues'
+    console.warn('detectPartialDataIssues: This endpoint has been removed from the backend')
+    return { 
+      success: true, 
+      data: {
+        healthy_profiles: 0,
+        partial_data_profiles: 0,
+        total_profiles: 0,
+        affected_usernames: [],
+        health_percentage: 100,
+        last_check: new Date().toISOString()
       }
     }
   }

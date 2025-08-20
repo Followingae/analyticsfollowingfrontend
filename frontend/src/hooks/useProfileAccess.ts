@@ -8,6 +8,7 @@
 import { useState, useCallback } from "react"
 import { instagramApiService, ProfileResponse } from "@/services/instagramApi"
 import { toast } from "sonner"
+import { handleNotificationsWithFallback, handleErrorNotificationsWithFallback } from "@/utils/notifications"
 
 interface UseProfileAccessResult {
   unlockProfile: (username: string) => Promise<ProfileResponse | null>
@@ -41,10 +42,11 @@ export function useProfileAccess(): UseProfileAccessResult {
             `for ${expiresInDays} days` : 
             'for 30 days'
             
-          toast.success(`🎉 Profile unlocked! Full access granted ${expirationText}`, {
-            description: `You now have complete access to @${username}'s analytics and insights.`,
-            duration: 5000
-          })
+          // Handle new notification system from backend
+          handleNotificationsWithFallback(
+            result.data.notifications,
+            `🎉 Profile unlocked! Full access granted ${expirationText}`
+          )
           
           console.log('✅ Profile successfully unlocked:', {
             username,
@@ -64,30 +66,33 @@ export function useProfileAccess(): UseProfileAccessResult {
           return result.data
         }
       } else {
-        // API call failed
-        const errorMessage = result.error || 'Failed to unlock profile'
+        // API call failed - handle new notification system for errors
+        handleErrorNotificationsWithFallback(result.notifications, () => {
+          // Fallback to old error handling
+          const errorMessage = result.error || 'Failed to unlock profile'
+          
+          if (errorMessage.includes('Authentication required')) {
+            toast.error('Authentication required', {
+              description: 'Please log in to unlock profiles.',
+              action: {
+                label: 'Login',
+                onClick: () => window.location.href = '/login'
+              }
+            })
+          } else if (errorMessage.includes('Rate limit')) {
+            toast.error('Rate limit exceeded', {
+              description: 'Please wait a moment before trying again.',
+              duration: 4000
+            })
+          } else {
+            toast.error('Failed to unlock profile', {
+              description: errorMessage,
+              duration: 4000
+            })
+          }
+        })
         
-        if (errorMessage.includes('Authentication required')) {
-          toast.error('Authentication required', {
-            description: 'Please log in to unlock profiles.',
-            action: {
-              label: 'Login',
-              onClick: () => window.location.href = '/login'
-            }
-          })
-        } else if (errorMessage.includes('Rate limit')) {
-          toast.error('Rate limit exceeded', {
-            description: 'Please wait a moment before trying again.',
-            duration: 4000
-          })
-        } else {
-          toast.error('Failed to unlock profile', {
-            description: errorMessage,
-            duration: 4000
-          })
-        }
-        
-        console.error('❌ Profile unlock failed:', errorMessage)
+        console.error('❌ Profile unlock failed:', result.error)
         return null
       }
     } catch (error) {

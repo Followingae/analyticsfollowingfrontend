@@ -61,7 +61,7 @@ export default function LoginPage() {
       </div>
       <div className="bg-white relative hidden lg:block p-6">
         <img
-          src="/smile-for-the-camera-2025-04-06-07-25-08-utc.jpg"
+          src="/photography-portrait-and-smile-with-man-in-studio-2025-04-05-12-13-56-utc.jpg"
           alt="Analytics Following - Professional Instagram Analytics"
           className="absolute inset-6 h-[calc(100%-3rem)] w-[calc(100%-3rem)] object-cover dark:brightness-[0.2] dark:grayscale rounded-lg"
         />

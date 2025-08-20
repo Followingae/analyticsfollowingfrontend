@@ -21,8 +21,9 @@ import {
 import { AppSidebar } from "@/components/app-sidebar"
 import { SectionCards } from "@/components/section-cards"
 import { toast } from "sonner"
-import { useAINotifications } from "@/services/aiNotificationService"
-import { useAIAnalysisTrigger } from "@/hooks/useAIStatus"
+import { handleNotificationsWithFallback } from "@/utils/notifications"
+// REMOVED: AI notification service that was causing polling
+// REMOVED: AI analysis trigger that was causing duplicate requests
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -65,14 +66,15 @@ export default function CreatorsPage() {
   const [unlockedCreators, setUnlockedCreators] = useState<UnlockedProfile[]>([])
   const [unlockedLoading, setUnlockedLoading] = useState(true)
   const [unlockedError, setUnlockedError] = useState<string | null>(null)
+  // Basic request state tracking to prevent spam clicks
+  const [activeAnalysisRequests, setActiveAnalysisRequests] = useState<Set<string>>(new Set())
   const [pagination, setPagination] = useState<{page: number, totalPages: number, hasNext: boolean}>({
     page: 1,
     totalPages: 1,
     hasNext: false
   })
   const router = useRouter()
-  const aiNotificationService = useAINotifications()
-  const { triggerAnalysis } = useAIAnalysisTrigger()
+  // REMOVED: AI notification service and analysis trigger to stop polling madness
   // Note: URL param analysis temporarily disabled for production build
   // TODO: Implement proper Suspense boundary for useSearchParams
   // Load unlocked profiles from backend
@@ -82,7 +84,6 @@ export default function CreatorsPage() {
     try {
       const result = await instagramApiService.getUnlockedProfiles(page, 20)
       if (result.success && result.data) {
-        console.log('Unlocked profiles data:', result.data.profiles[0]) // Log first profile to see structure
         setUnlockedCreators(result.data.profiles)
         setPagination({
           page: result.data.pagination.page,
@@ -115,6 +116,16 @@ export default function CreatorsPage() {
   const creators: UnlockedProfile[] = unlockedCreators
   const startAnalysis = async (username: string) => {
     const cleanUsername = username.trim().replace('@', '')
+    
+    // Prevent spam clicks - basic request state tracking
+    if (activeAnalysisRequests.has(cleanUsername)) {
+      toast.info(`Analysis already in progress for @${cleanUsername}`)
+      return
+    }
+    
+    // Add to active requests to prevent duplicates
+    setActiveAnalysisRequests(prev => new Set([...prev, cleanUsername]))
+    
     // Add to analyzing list
     setAnalyzingCreators(prev => ({
       ...prev,
@@ -145,7 +156,7 @@ export default function CreatorsPage() {
           full_name: result.data.profile.full_name,
           profile_pic_url: result.data.profile.profile_pic_url,
           profile_pic_url_hd: result.data.profile.profile_pic_url_hd,
-          proxied_profile_pic_url: result.data.profile.profile_pic_url,
+          proxied_profile_pic_url: '', // Let frontend handle proxying for new profiles
           followers_count: result.data.profile.followers_count,
           following_count: result.data.profile.following_count,
           posts_count: result.data.profile.posts_count,
@@ -171,21 +182,29 @@ export default function CreatorsPage() {
           ...prev,
           [cleanUsername]: { status: 'completed', progress: 100 }
         }))
-        // Remove from analyzing list immediately after data is populated
+        // Remove from analyzing list and active requests
         setTimeout(() => {
           setAnalyzingCreators(prev => {
             const newState = { ...prev }
             delete newState[cleanUsername]
             return newState
           })
+          // Remove from active requests to allow retries
+          setActiveAnalysisRequests(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(cleanUsername)
+            return newSet
+          })
         }, 500) // Reduced to 500ms for smoother transition
-        toast.success(`Successfully analyzed @${cleanUsername}! Added to your unlocked creators.`)
-        // AI notifications are handled by the AI notification service
+        // Handle new notification system from backend
+        handleNotificationsWithFallback(
+          result.data.notifications,
+          `Successfully analyzed @${cleanUsername}! Added to your unlocked creators.`
+        )
         
-        // Trigger professional AI status management for the newly analyzed profile
-        setTimeout(() => {
-          triggerAnalysis(cleanUsername)
-        }, 1000)
+        // REMOVED: AI polling and duplicate requests stopped
+        // Profile search already includes AI analysis trigger
+        // No additional polling needed - notifications handle completion status
         
         // Note: New creator already added to unlockedCreators state above, no need to reload entire list
       } else {
@@ -224,8 +243,18 @@ export default function CreatorsPage() {
           ...prev,
           [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
         }))
-        toast.error(errorMessage)
-        // Error notifications are handled by the AI notification service
+        // Remove from active requests to allow retries
+        setActiveAnalysisRequests(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(cleanUsername)
+          return newSet
+        })
+        // Handle new notification system for errors
+        handleNotificationsWithFallback(
+          result.notifications,
+          undefined,
+          errorMessage
+        )
       }
     } catch (error) {
       console.error('❌ Analysis error for @' + cleanUsername + ':', error)
@@ -246,8 +275,13 @@ export default function CreatorsPage() {
         ...prev,
         [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
       }))
+      // Remove from active requests to allow retries
+      setActiveAnalysisRequests(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(cleanUsername)
+        return newSet
+      })
       toast.error(`Error analyzing @${cleanUsername}: ${errorMessage}`)
-      // Error notifications are handled by the AI notification service
     }
   }
   const handleSearchCreator = async () => {

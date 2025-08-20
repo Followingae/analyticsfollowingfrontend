@@ -16,9 +16,15 @@ class ImageCache {
 
   /**
    * Get cached image URL or create new proxied URL with caching headers
+   * IMPORTANT: Only works client-side due to CORS proxy restrictions
    */
   getCachedUrl(originalUrl: string): string {
     if (!originalUrl) return ''
+
+    // CRITICAL: Only proxy on client-side - server-side requests are blocked by CORS proxy
+    if (typeof window === 'undefined') {
+      return originalUrl // Return original URL on server-side
+    }
 
     // Check memory cache first
     const cached = this.memoryCache.get(originalUrl)
@@ -37,20 +43,29 @@ class ImageCache {
 
   private createProxiedUrl(url: string): string {
     const apiKey = process.env.NEXT_PUBLIC_CORSPROXY_API_KEY
-    if (!apiKey) {
-      console.warn('CORSPROXY API key not found')
+    const altProxy = process.env.NEXT_PUBLIC_CORS_ALTERNATIVE
+    
+    if (!apiKey && !altProxy) {
+      console.warn('No CORS proxy configured')
       return url
     }
 
-    // Add cache control parameters to the proxy request
-    const proxyUrl = new URL('https://api.corsproxy.io/')
-    proxyUrl.searchParams.set('url', url)
-    proxyUrl.searchParams.set('key', apiKey)
+    // Try primary CORS proxy first
+    if (apiKey) {
+      const proxyUrl = new URL('https://api.corsproxy.io/')
+      proxyUrl.searchParams.set('url', url)
+      proxyUrl.searchParams.set('key', apiKey)
+      proxyUrl.searchParams.set('cache', 'max-age=1800') // 30 minutes
+      
+      return proxyUrl.toString()
+    }
     
-    // Add cache headers to proxy request
-    proxyUrl.searchParams.set('cache', 'max-age=1800') // 30 minutes
+    // Fallback to alternative proxy
+    if (altProxy) {
+      return `${altProxy}${encodeURIComponent(url)}`
+    }
     
-    return proxyUrl.toString()
+    return url
   }
 
   private addToMemoryCache(originalUrl: string, proxiedUrl: string): void {
@@ -70,6 +85,12 @@ class ImageCache {
    */
   preloadImage(url: string): Promise<string> {
     return new Promise((resolve, reject) => {
+      // Skip preloading on server-side to avoid CORS proxy 403 errors
+      if (typeof window === 'undefined') {
+        resolve(this.getCachedUrl(url))
+        return
+      }
+
       const img = new Image()
       const cachedUrl = this.getCachedUrl(url)
       
@@ -164,15 +185,9 @@ export function useCachedImage(url: string | null | undefined) {
     const cached = proxyInstagramUrlCached(url)
     setCachedUrl(cached)
 
-    // Preload the image to verify it works
-    imageCache.preloadImage(url)
-      .then(() => {
-        setIsLoading(false)
-      })
-      .catch((err) => {
-        setError(err.message)
-        setIsLoading(false)
-      })
+    // Skip preloading to avoid CORS proxy 403 errors
+    // Just return the cached URL immediately
+    setIsLoading(false)
   }, [url])
 
   return { cachedUrl, isLoading, error }
@@ -180,13 +195,9 @@ export function useCachedImage(url: string | null | undefined) {
 
 /**
  * Utility to preload images for a page/component
+ * DISABLED: Skip preloading to avoid CORS proxy 403 errors
  */
 export function preloadPageImages(urls: (string | null | undefined)[]): Promise<void> {
-  const validUrls = urls.filter((url): url is string => Boolean(url))
-  
-  return imageCache.preloadImages(validUrls).then(() => {
-    console.log(`✅ Preloaded ${validUrls.length} images for page`)
-  }).catch(err => {
-    console.warn('Some images failed to preload:', err)
-  })
+  // Skip preloading entirely to avoid CORS proxy server-side requests
+  return Promise.resolve()
 }

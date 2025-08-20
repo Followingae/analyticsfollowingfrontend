@@ -128,26 +128,27 @@ export function AIStatusIndicator({
     }
   }
 
-  // Auto-refresh status for running analyses
-  useEffect(() => {
-    if (status === 'running' || status === 'pending') {
-      const interval = setInterval(async () => {
-        try {
-          const result = await instagramApiService.getProfileAnalysisStatus(username)
-          if (result.success && result.data) {
-            setStatus(result.data.analysis_status)
-            if (result.data.progress?.percentage) {
-              setProgress(result.data.progress.percentage)
-            }
-          }
-        } catch (error) {
-          console.error('Failed to refresh AI status:', error)
-        }
-      }, 3000)
+  // REMOVED: Auto-refresh polling was spamming backend every 3 seconds
+  // Use the new notification system instead of polling
+  // useEffect(() => {
+  //   if (status === 'running' || status === 'pending') {
+  //     const interval = setInterval(async () => {
+  //       try {
+  //         const result = await instagramApiService.getProfileAnalysisStatus(username)
+  //         if (result.success && result.data) {
+  //           setStatus(result.data.analysis_status)
+  //           if (result.data.progress?.percentage) {
+  //             setProgress(result.data.progress.percentage)
+  //           }
+  //         }
+  //       } catch (error) {
+  //         console.error('Failed to refresh AI status:', error)
+  //       }
+  //     }, 3000)
 
-      return () => clearInterval(interval)
-    }
-  }, [status, username])
+  //     return () => clearInterval(interval)
+  //   }
+  // }, [status, username])
 
   if (compact) {
     return (
