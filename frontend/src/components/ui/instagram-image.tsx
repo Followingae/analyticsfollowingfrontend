@@ -12,6 +12,7 @@ interface InstagramImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 
 /**
  * Instagram Image component with automatic CORS proxy
  * Handles Instagram CDN URLs and provides graceful error handling
+ * FIXED: Uses regular img tag to avoid Next.js server-side optimization
  */
 export const InstagramImage = forwardRef<HTMLImageElement, InstagramImageProps>(
   ({ src, alt, className, fallback, onError, ...props }, ref) => {
@@ -22,6 +23,8 @@ export const InstagramImage = forwardRef<HTMLImageElement, InstagramImageProps>(
       return fallback ? <>{fallback}</> : null;
     }
 
+    // Use regular img tag to avoid Next.js server-side optimization
+    // which triggers CORS proxy 403 errors since proxy blocks server requests
     return (
       <img
         ref={ref}
