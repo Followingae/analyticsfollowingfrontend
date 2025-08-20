@@ -60,46 +60,10 @@ export default function AnalyticsTab() {
     const analytics = analyticsData.analytics || analyticsData.profile;
     const kpis = [
       {
-        title: 'Influence Score',
-        value: analytics.influence_score,
-        max: 10,
-        color: 'purple',
-        trend: '+2.3'
-      },
-      {
         title: 'Overall Engagement',
         value: analytics.engagement_rate,
         format: 'percentage',
-        color: 'blue',
-        trend: '+0.8%'
-      },
-      {
-        title: 'Content Quality',
-        value: analytics.content_quality_score || analyticsData.profile.content_quality_score || 0,
-        max: 10,
-        color: 'green',
-        trend: '+1.2'
-      },
-      {
-        title: 'Data Quality',
-        value: analytics.data_quality_score || analyticsData.profile.data_quality_score || 0,
-        max: 10,
-        color: 'orange',
-        trend: '+0.5'
-      },
-      {
-        title: 'Recent (30d) Engagement',
-        value: analytics.engagement_rate_last_30_days || analytics.engagement_rate,
-        format: 'percentage',
-        color: 'red',
-        trend: '+1.1%'
-      },
-      {
-        title: 'Last 12 Posts',
-        value: analytics.engagement_rate_last_12_posts || analytics.engagement_rate,
-        format: 'percentage',
-        color: 'indigo',
-        trend: '+0.3%'
+        color: 'blue'
       }
     ]
 
@@ -110,9 +74,6 @@ export default function AnalyticsTab() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-medium text-gray-600">{kpi.title}</h3>
-                <Badge variant="outline" className="text-green-600">
-                  {kpi.trend}
-                </Badge>
               </div>
               <div className="text-2xl font-bold text-gray-900 mb-2">
                 {kpi.format === 'percentage' ? `${kpi.value.toFixed(1)}%` : kpi.value.toFixed(1)}

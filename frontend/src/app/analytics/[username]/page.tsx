@@ -6,7 +6,6 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { instagramApiService, ProfileResponse, InstagramPost, AIInsights, AIProcessingStatus } from "@/services/instagramApi"
 import { AILoadingState } from "@/components/AILoadingState"
 import { AIStatusIndicator, AIInsightsDisplay } from "@/components/ui/ai-status-indicator"
-import { AIDataHealthMonitor } from "@/components/ui/ai-data-health"
 import { AIContentCharts } from "@/components/ui/ai-content-charts"
 import { 
   ContentDistributionChart, 
@@ -94,6 +93,33 @@ function formatNumber(num: number | undefined | null): string {
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
   return num.toString()
 }
+
+// Category Icon Mapping
+const getCategoryIcon = (category: string) => {
+  const iconMap: { [key: string]: string } = {
+    "Fashion & Beauty": "👗",
+    "Food & Drink": "🍽️",
+    "Travel & Tourism": "✈️",
+    "Technology": "💻",
+    "Fitness & Health": "💪",
+    "Entertainment": "🎬",
+    "Lifestyle": "🌟",
+    "Business & Finance": "💼",
+    "Education": "📚",
+    "Art & Culture": "🎨",
+    "Sports": "⚽",
+    "Music": "🎵",
+    "Photography": "📸",
+    "Gaming": "🎮",
+    "Automotive": "🚗",
+    "Home & Garden": "🏡",
+    "Pets & Animals": "🐕",
+    "News & Politics": "📰",
+    "Science": "🔬",
+    "General": "📱"
+  };
+  return iconMap[category] || "📱";
+};
 
 // Helper function to determine influencer tier
 const getInfluencerTier = (followerCount: number) => {
@@ -379,11 +405,11 @@ export default function AnalyticsPage() {
       console.log('🔄 Refresh response:', result)
 
       if (result.success) {
-        // Show success message based on response
+        // Simple success message - just refresh the data
         if (result.data?.refresh_needed === false) {
           toast.success('Profile data is already up to date')
         } else {
-          toast.success(result.message || 'Profile data updated successfully')
+          toast.success('Profile data refreshed successfully')
         }
 
         // Refresh the profile data in UI after successful refresh
@@ -392,7 +418,17 @@ export default function AnalyticsPage() {
           analyzeProfile(username, true) // Background refresh to keep UI visible
         }, 1000)
       } else {
-        toast.error(result.error || result.message || 'Failed to refresh - please try again')
+        // Handle specific AI analysis in progress error
+        if (result.message && result.message.includes('AI Analysis already in progress')) {
+          toast.info('AI analysis is currently processing. Refreshing current data...')
+          // Still refresh the UI with current data
+          setTimeout(() => {
+            console.log('🔄 Refreshing UI data while AI analysis is in progress')
+            analyzeProfile(username, true)
+          }, 500)
+        } else {
+          toast.error(result.error || result.message || 'Failed to refresh - please try again')
+        }
       }
 
     } catch (error) {
@@ -602,13 +638,6 @@ export default function AnalyticsPage() {
                               fallbackText={profileData.profile.username}
                               className="relative w-32 h-32 border-4 border-white dark:border-gray-900"
                             />
-                            {profileData.profile.is_verified && (
-                              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-gray-800 dark:bg-gray-200 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-900">
-                                <svg className="w-6 h-6 text-white dark:text-gray-800" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                            )}
                           </div>
                           
                         </div>
@@ -632,14 +661,6 @@ export default function AnalyticsPage() {
                                   </div>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                {profileData.profile.is_verified && (
-                                  <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700">
-                                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                    Verified
-                                  </Badge>
-                                )}
                                 {profileData.profile.is_business_account && (
                                   <Badge variant="outline" className="border-gray-200 text-gray-700 dark:border-gray-700 dark:text-gray-300">
                                     <Building className="w-3 h-3 mr-1" />
@@ -654,31 +675,33 @@ export default function AnalyticsPage() {
                                 )}
                                 
                                 
-                                {/* AI Content Category */}
-                                {profileData.ai_insights?.ai_primary_content_type && (
-                                  <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                    <Brain className="w-3 h-3 mr-1" />
+                                {/* TOP 3 Content Categories */}
+                                {profileData.ai_insights?.top_3_categories && profileData.ai_insights.top_3_categories.length > 0 ? (
+                                  <div className="flex flex-wrap gap-2">
+                                    {profileData.ai_insights.top_3_categories.map((category, index) => (
+                                      <Badge
+                                        key={category.category}
+                                        variant={index === 0 ? "default" : "secondary"}
+                                        className={`${
+                                          index === 0 ? "bg-primary text-primary-foreground" : "bg-secondary"
+                                        } flex items-center gap-1 px-3 py-1`}
+                                      >
+                                        <span className="mr-1">{getCategoryIcon(category.category)}</span>
+                                        {category.category}
+                                        <span className="text-xs opacity-70">
+                                          {category.percentage}%
+                                        </span>
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                ) : profileData.ai_insights?.ai_primary_content_type && (
+                                  <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1">
+                                    <span className="mr-1">{getCategoryIcon(profileData.ai_insights.ai_primary_content_type)}</span>
                                     {profileData.ai_insights.ai_primary_content_type}
                                   </Badge>
                                 )}
                                 </div>
 
-                                {/* AI Status Indicator */}
-                                <div className="mt-4">
-                                  <AIStatusIndicator
-                                    username={profileData.profile.username}
-                                    insights={profileData.ai_insights}
-                                    showDetails={true}
-                                    onRetryAnalysis={async () => {
-                                      try {
-                                        await instagramApiService.triggerProfileAnalysis(profileData.profile.username)
-                                        toast.success("AI analysis started successfully")
-                                      } catch (error) {
-                                        toast.error("Failed to start AI analysis")
-                                      }
-                                    }}
-                                  />
-                                </div>
                               </div>
                               
                               {/* Profile Status & Data Freshness - Top Right */}
@@ -726,14 +749,6 @@ export default function AnalyticsPage() {
                               </div>
                             </div>
                             
-                            {/* Business Category */}
-                            {profileData.profile.business_category_name && (
-                              <div className="flex flex-wrap gap-2">
-                                <Badge className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-0 px-3 py-1 font-medium">
-                                  {profileData.profile.business_category_name}
-                                </Badge>
-                              </div>
-                            )}
                           </div>
 
                         </div>
@@ -871,131 +886,61 @@ export default function AnalyticsPage() {
                       </TabsTrigger>
                     </TabsList>
                   
-                    <TabsContent value="profile" className="space-y-6 mt-6">
-                      {/* Bio/Description */}
+                    <TabsContent value="profile" className="space-y-8 mt-6">
+                      {/* Profile Bio */}
                       {profileData.profile.biography && (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Profile Bio</CardTitle>
-                            <CardDescription>Creator's profile description</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-foreground leading-relaxed">{profileData.profile.biography}</p>
-                            
-                            {/* Additional Data Quality Info */}
-                            {(profileData.profile.refresh_count || profileData.profile.data_quality_score) && (
-                              <div className="mt-4 pt-4 border-t border-border">
-                                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                                  {profileData.profile.refresh_count && (
-                                    <div className="flex items-center gap-1">
-                                      <Clock className="w-3 h-3" />
-                                      Refreshed {profileData.profile.refresh_count} times
-                                    </div>
-                                  )}
-                                  {profileData.profile.data_quality_score && (
-                                    <div className="flex items-center gap-1">
-                                      <BarChart3 className="w-3 h-3" />
-                                      Quality: {profileData.profile.data_quality_score.toFixed(1)}/10
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
+                        <div className="space-y-3">
+                          <h3 className="text-lg font-semibold">About</h3>
+                          <p className="text-muted-foreground leading-relaxed">{profileData.profile.biography}</p>
+                        </div>
                       )}
                       
                       
 
-                    {/* Quality Metrics */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Quality Metrics</CardTitle>
-                        <CardDescription>Content and influence scoring</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="text-center p-4 bg-muted rounded-lg">
-                            <div className="text-2xl font-bold mb-1">{profileData.profile.influence_score?.toFixed(1) || 'N/A'}</div>
-                            <div className="text-sm text-muted-foreground">Influence Score</div>
-                            <div className="text-xs text-muted-foreground mt-1">out of 10</div>
-                          </div>
-                          <div className="text-center p-4 bg-muted rounded-lg">
-                            <div className="text-2xl font-bold mb-1">{profileData.profile.content_quality_score?.toFixed(1) || 'N/A'}</div>
-                            <div className="text-sm text-muted-foreground">Content Quality</div>
-                            <div className="text-xs text-muted-foreground mt-1">out of 10</div>
-                          </div>
-                          <div className="text-center p-4 bg-muted rounded-lg">
-                            <div className="text-2xl font-bold mb-1">{profileData.profile.engagement_rate?.toFixed(1) || 'N/A'}%</div>
-                            <div className="text-sm text-muted-foreground">Engagement Rate</div>
-                            <div className="text-xs text-muted-foreground mt-1">{profileData.profile.engagement_rate ? `${profileData.profile.engagement_rate}%` : 'Unknown'}</div>
-                          </div>
-                          <div className="text-center p-4 bg-muted rounded-lg">
-                            <div className="text-2xl font-bold mb-1">N/A</div>
-                            <div className="text-sm text-muted-foreground">Consistency</div>
-                            <div className="text-xs text-muted-foreground mt-1">out of 10</div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
 
-                    {/* Content Features */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Content Features</CardTitle>
-                        <CardDescription>Available content types and features</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div>
-                            <h4 className="font-medium mb-3">Feature Availability</h4>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between p-2 bg-muted rounded">
-                                <span className="text-sm">Highlights</span>
-                                <Badge variant="outline">{profileData.profile.highlight_reel_count || 0} reels</Badge>
-                              </div>
-                              <div className="flex items-center justify-between p-2 bg-muted rounded">
-                                <span className="text-sm">Reels</span>
-                                <Badge variant="outline">0 posts</Badge>
-                              </div>
-                              <div className="flex items-center justify-between p-2 bg-muted rounded">
-                                <span className="text-sm">Guides</span>
-                                <Badge variant={profileData.profile.has_guides ? "default" : "outline"}>
-                                  {profileData.profile.has_guides ? "Available" : "Not Available"}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center justify-between p-2 bg-muted rounded">
-                                <span className="text-sm">AR Effects</span>
-                                <Badge variant={profileData.profile.has_ar_effects ? "default" : "outline"}>
-                                  {profileData.profile.has_ar_effects ? "Available" : "Not Available"}
-                                </Badge>
-                              </div>
+                      {/* Profile Details */}
+                      <div className="space-y-6">
+                        <h3 className="text-lg font-semibold">Profile Details</h3>
+                        
+                        <div className="grid gap-6 sm:grid-cols-2">
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Account Type</span>
+                              <Badge variant="secondary">
+                                {profileData.profile.is_business_account ? 'Business' : 
+                                 profileData.profile.is_professional_account ? 'Professional' : 'Personal'}
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Posts</span>
+                              <span className="text-sm text-muted-foreground">{formatNumber(profileData.profile.posts_count || 0)}</span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Followers</span>
+                              <span className="text-sm text-muted-foreground">{formatNumber(profileData.profile.followers_count)}</span>
                             </div>
                           </div>
                           
-                          <div>
-                            <h4 className="font-medium mb-3">Business Information</h4>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between p-2 bg-muted rounded">
-                                <span className="text-sm">Account Type</span>
-                                <Badge variant="outline">
-                                  {profileData.profile.is_business_account ? 'Business' : 
-                                   profileData.profile.is_professional_account ? 'Professional' : 'Personal'}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center justify-between p-2 bg-muted rounded">
-                                <span className="text-sm">Contact Method</span>
-                                <Badge variant="outline">{'N/A'}</Badge>
-                              </div>
-                              <div className="flex items-center justify-between p-2 bg-muted rounded">
-                                <span className="text-sm">Category</span>
-                                <Badge variant="outline">{profileData.profile.business_category_name || 'N/A'}</Badge>
-                              </div>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Avg Likes</span>
+                              <span className="text-sm text-muted-foreground">{profileData.profile.avg_likes ? formatNumber(profileData.profile.avg_likes) : 'N/A'}</span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Avg Comments</span>
+                              <span className="text-sm text-muted-foreground">{profileData.profile.avg_comments ? formatNumber(profileData.profile.avg_comments) : 'N/A'}</span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Engagement Rate</span>
+                              <span className="text-sm text-muted-foreground">{profileData.profile.engagement_rate ? profileData.profile.engagement_rate.toFixed(1) + '%' : 'N/A'}</span>
                             </div>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
                   </TabsContent>
                   
                   <TabsContent value="audience" className="space-y-6">
@@ -1011,156 +956,79 @@ export default function AnalyticsPage() {
                     ) : (
                       <>
                         {/* Audience Overview */}
-                        <div className="grid gap-6 md:grid-cols-3">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">Total Audience</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-center">
-                            <div className="text-3xl font-bold mb-2">{formatNumber(profileData.profile.followers_count)}</div>
-                            <div className="text-sm text-muted-foreground">Followers</div>
-                            <div className="mt-2">
-                              <Badge variant="secondary">{formatNumber(profileData.profile.followers_count)}</Badge>
+                        <div className="space-y-6">
+                          <h3 className="text-lg font-semibold">Audience Overview</h3>
+                          <div className="grid gap-6 sm:grid-cols-3">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold">{formatNumber(profileData.profile.followers_count)}</div>
+                              <div className="text-sm text-muted-foreground">Total Followers</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-2xl font-bold">{getInfluencerTier(profileData.profile.followers_count)}</div>
+                              <div className="text-sm text-muted-foreground">Influencer Tier</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-2xl font-bold">
+                                {profileData.ai_insights?.top_3_categories && profileData.ai_insights.top_3_categories.length > 0 
+                                  ? profileData.ai_insights.top_3_categories[0].category 
+                                  : 'Mixed'}
+                              </div>
+                              <div className="text-sm text-muted-foreground">Content Focus</div>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
 
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">Primary Age Group</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-center">
-                            <div className="text-3xl font-bold mb-2">N/A</div>
-                            <div className="text-sm text-muted-foreground">Most Common Age</div>
-                            <div className="mt-2">
-                              <Badge variant="outline">Demographic Data</Badge>
-                            </div>
+                        {/* Demographics */}
+                        <div className="space-y-6">
+                          <h3 className="text-lg font-semibold">Demographics</h3>
+                          
+                          <div className="grid gap-8 sm:grid-cols-2">
+                            {/* Gender Distribution */}
+                            {profileData.demographics?.gender_distribution ? (
+                              <div className="space-y-4">
+                                <h4 className="text-sm font-medium">Gender Distribution</h4>
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Female</span>
+                                    <span className="text-sm font-medium">{profileData.demographics.gender_distribution.female}%</span>
+                                  </div>
+                                  <Progress value={profileData.demographics.gender_distribution.female || 0} className="h-2" />
+                                  
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Male</span>
+                                    <span className="text-sm font-medium">{profileData.demographics.gender_distribution.male}%</span>
+                                  </div>
+                                  <Progress value={profileData.demographics.gender_distribution.male || 0} className="h-2" />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <h4 className="text-sm font-medium">Gender Distribution</h4>
+                                <p className="text-sm text-muted-foreground">Data not available</p>
+                              </div>
+                            )}
+                            
+                            {/* Top Locations */}
+                            {profileData.demographics?.location_distribution && Object.keys(profileData.demographics.location_distribution).length > 0 ? (
+                              <div className="space-y-4">
+                                <h4 className="text-sm font-medium">Top Locations</h4>
+                                <div className="space-y-2">
+                                  {Object.entries(profileData.demographics.location_distribution).slice(0, 4).map(([location, percentage], index) => (
+                                    <div key={index} className="flex justify-between items-center">
+                                      <span className="text-sm text-muted-foreground">{location}</span>
+                                      <span className="text-sm font-medium">{Math.max(0, 100 - index * 15)}%</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <h4 className="text-sm font-medium">Top Locations</h4>
+                                <p className="text-sm text-muted-foreground">Data not available</p>
+                              </div>
+                            )}
                           </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">Audience Quality</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-center">
-                            <div className="text-3xl font-bold mb-2">{profileData.profile.influence_score?.toFixed(1) || 'N/A'}</div>
-                            <div className="text-sm text-muted-foreground">Influence Score</div>
-                            <div className="mt-2">
-                              <Badge variant={Number(profileData.profile.influence_score || 0) > 7 ? "default" : "secondary"}>
-                                {profileData.profile.influence_score ? `${profileData.profile.influence_score}/100` : 'Unknown'}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    {/* Demographics & Locations */}
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Gender Demographics</CardTitle>
-                          <CardDescription>Audience gender distribution</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {profileData.demographics?.gender_distribution ? (
-                            <div className="space-y-4">
-                              {/* Demographics Quality Info */}
-                              <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg mb-4">
-                                <div className="grid grid-cols-3 gap-4 text-xs">
-                                  <div className="text-center">
-                                    <div className="font-bold text-blue-800 dark:text-blue-200">
-                                      {profileData.demographics.sample_size?.toLocaleString() || 'N/A'}
-                                    </div>
-                                    <div className="text-blue-600 dark:text-blue-400">Sample Size</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="font-bold text-blue-800 dark:text-blue-200">
-                                      {profileData.demographics.confidence_score?.toFixed(1) || 'N/A'}%
-                                    </div>
-                                    <div className="text-blue-600 dark:text-blue-400">Confidence</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="font-bold text-blue-800 dark:text-blue-200">
-                                      {profileData.demographics.analysis_method || 'N/A'}
-                                    </div>
-                                    <div className="text-blue-600 dark:text-blue-400">Method</div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <div className="flex justify-between mb-2">
-                                  <span className="text-sm font-medium">Female</span>
-                                  <span className="text-sm font-bold">{profileData.demographics.gender_distribution.female}%</span>
-                                </div>
-                                <Progress value={profileData.demographics.gender_distribution.female || 0} className="h-3" />
-                              </div>
-                              
-                              <div>
-                                <div className="flex justify-between mb-2">
-                                  <span className="text-sm font-medium">Male</span>
-                                  <span className="text-sm font-bold">{profileData.demographics.gender_distribution.male}%</span>
-                                </div>
-                                <Progress value={profileData.demographics.gender_distribution.male || 0} className="h-3" />
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-4 mt-4">
-                                <div className="text-center p-3 bg-muted rounded-lg">
-                                  <div className="text-lg font-bold">{profileData.demographics.gender_distribution.female}%</div>
-                                  <div className="text-xs text-muted-foreground">Female Audience</div>
-                                </div>
-                                <div className="text-center p-3 bg-muted rounded-lg">
-                                  <div className="text-lg font-bold">{profileData.demographics.gender_distribution.male}%</div>
-                                  <div className="text-xs text-muted-foreground">Male Audience</div>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-8">
-                              <p className="text-muted-foreground">Gender data not available</p>
-                              <Badge variant="outline" className="text-red-600 mt-2">No Data</Badge>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Top Locations</CardTitle>
-                          <CardDescription>Geographic distribution of audience</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {profileData.demographics?.location_distribution && Object.keys(profileData.demographics.location_distribution).length > 0 ? (
-                            <div className="space-y-3">
-                              {Object.entries(profileData.demographics.location_distribution).slice(0, 5).map(([location, percentage], index) => (
-                                <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center text-xs font-bold">
-                                      {index + 1}
-                                    </div>
-                                    <span className="text-sm font-medium">{location}</span>
-                                  </div>
-                                  <Badge variant="outline" className="text-xs">
-                                    {Math.max(0, 100 - index * 15)}%
-                                  </Badge>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-center py-8">
-                              <p className="text-muted-foreground">Location data not available</p>
-                              <Badge variant="outline" className="text-red-600 mt-2">No Data</Badge>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </div>
+                        </div>
 
                     {/* Interests & Activity */}
                     <div className="grid gap-6 md:grid-cols-2">
@@ -1262,80 +1130,59 @@ export default function AnalyticsPage() {
                             />
                           )}
 
-                          {/* AI Content Interest Categories */}
-                          {profileData.ai_insights?.has_ai_analysis && profileData.ai_insights.ai_content_distribution ? (
-                            <Card>
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <Tag className="w-5 h-5 text-blue-600" />
-                                  Interest Categories
-                                </CardTitle>
-                                <CardDescription>What your audience is interested in</CardDescription>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="space-y-4">
-                                  <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                                    <div className="text-xl font-bold text-blue-600">
-                                      {profileData.ai_insights.ai_primary_content_type || 'Mixed'}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">Primary Interest</div>
-                                  </div>
-                                  
-                                  <div className="space-y-2">
-                                    {Object.entries(profileData.ai_insights.ai_content_distribution).slice(0, 4).map(([category, percentage]) => (
-                                      <div key={category} className="flex items-center justify-between p-2 bg-muted rounded">
-                                        <span className="text-sm font-medium">{category}</span>
-                                        <Badge variant="secondary" className="text-xs">
-                                          {(percentage * 100).toFixed(1)}%
-                                        </Badge>
+                          {/* Content Category Breakdown */}
+                          <div className="space-y-6">
+                            <h3 className="text-lg font-semibold">Content Categories</h3>
+                            
+                            {profileData.ai_insights?.top_10_categories && profileData.ai_insights.top_10_categories.length > 0 ? (
+                              <div className="space-y-4">
+                                {/* TOP 3 Summary */}
+                                <div className="grid gap-4 sm:grid-cols-3">
+                                  {profileData.ai_insights.top_10_categories.slice(0, 3).map((category, index) => (
+                                    <div key={category.category} className="text-center">
+                                      <div className="text-lg font-bold flex items-center justify-center gap-1">
+                                        <span>{getCategoryIcon(category.category)}</span>
+                                        {category.percentage}%
                                       </div>
-                                    ))}
-                                  </div>
+                                      <div className="text-sm text-muted-foreground">{category.category}</div>
+                                      <div className="text-xs text-muted-foreground">{category.count} posts</div>
+                                    </div>
+                                  ))}
                                 </div>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <AILoadingState 
-                              title="Interest Analysis"
-                              description="AI analyzing audience content preferences"
-                              message="Identifying audience interests..."
-                              icon={<Tag className="w-5 h-5" />}
-                            />
-                          )}
+                                
+                                {/* TOP 10 Breakdown */}
+                                <div className="space-y-2">
+                                  <h4 className="text-sm font-medium">Complete Breakdown</h4>
+                                  {profileData.ai_insights.top_10_categories.map((category, index) => (
+                                    <div key={category.category} className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50 transition-colors">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs text-muted-foreground w-4 text-center">#{index + 1}</span>
+                                        <span className="text-sm">{getCategoryIcon(category.category)}</span>
+                                        <span className="text-sm font-medium">{category.category}</span>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <div className="text-right">
+                                          <div className="text-sm font-medium">{category.percentage}%</div>
+                                          <div className="text-xs text-muted-foreground">{category.count} posts</div>
+                                        </div>
+                                        <div className="w-16 h-2 bg-secondary rounded-full overflow-hidden">
+                                          <div 
+                                            className="h-full bg-primary transition-all duration-300" 
+                                            style={{ width: `${category.percentage}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-8">
+                                <p className="text-sm text-muted-foreground">Content analysis in progress...</p>
+                              </div>
+                            )}
+                          </div>
 
-                          {/* AI Audience Sophistication */}
-                          {profileData.ai_insights?.has_ai_analysis && profileData.ai_insights.ai_content_quality_score ? (
-                            <Card>
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <Sparkles className="w-5 h-5 text-orange-600" />
-                                  Audience Sophistication
-                                </CardTitle>
-                                <CardDescription>AI-analyzed content quality expectations</CardDescription>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="text-center">
-                                  <div className="text-3xl font-bold mb-2 text-orange-600">
-                                    {(profileData.ai_insights.ai_content_quality_score * 10).toFixed(1)}
-                                  </div>
-                                  <div className="text-sm text-muted-foreground mb-3">Sophistication Score (out of 10)</div>
-                                  <Progress value={profileData.ai_insights.ai_content_quality_score * 100} className="h-3" />
-                                  <p className="text-xs text-muted-foreground mt-2">
-                                    {profileData.ai_insights.ai_content_quality_score > 0.7 ? 'High-quality content expected' : 
-                                     profileData.ai_insights.ai_content_quality_score > 0.4 ? 'Moderate content standards' : 
-                                     'Casual content preferences'}
-                                  </p>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ) : (
-                            <AILoadingState 
-                              title="Sophistication Analysis"
-                              description="AI analyzing audience quality expectations"
-                              message="Evaluating audience sophistication..."
-                              icon={<Sparkles className="w-5 h-5" />}
-                            />
-                          )}
 
                           {/* AI Sentiment Profile */}
                           {profileData.ai_insights?.has_ai_analysis && profileData.ai_insights.ai_avg_sentiment_score !== null ? (
@@ -1392,80 +1239,6 @@ export default function AnalyticsPage() {
                     ) : (
                       <>
                         <div className="grid gap-6 md:grid-cols-2">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Enhanced Engagement Analytics</CardTitle>
-                          <CardDescription>Multi-faceted engagement rates from backend</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {profileData?.analytics ? (
-                            <div className="grid grid-cols-1 gap-4">
-                              <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                                <div className="text-2xl font-bold text-blue-600">{profileData.analytics.engagement_rate?.toFixed(2) || '0.00'}%</div>
-                                <div className="text-sm text-muted-foreground font-medium">Overall Engagement Rate</div>
-                                <div className="text-xs text-muted-foreground mt-1">All-time average performance</div>
-                              </div>
-                              
-                              <div className="grid grid-cols-2 gap-4">
-                                <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
-                                  <div className="text-lg font-bold text-green-600">{profileData.analytics.engagement_rate_last_12_posts?.toFixed(2) || '0.00'}%</div>
-                                  <div className="text-sm text-muted-foreground">Last 12 Posts</div>
-                                  <Badge variant="outline" className="text-xs mt-1">Instagram Standard</Badge>
-                                </div>
-                                <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded">
-                                  <div className="text-lg font-bold text-purple-600">{profileData.analytics.engagement_rate_last_30_days?.toFixed(2) || '0.00'}%</div>
-                                  <div className="text-sm text-muted-foreground">Recent 30 Days</div>
-                                  <Badge variant="outline" className="text-xs mt-1">Trending</Badge>
-                                </div>
-                              </div>
-                              
-                              <div className="grid grid-cols-2 gap-4">
-                                <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded">
-                                  <div className="text-lg font-bold text-orange-600">{formatNumber(profileData.analytics.avg_likes)}</div>
-                                  <div className="text-sm text-muted-foreground">Avg Likes</div>
-                                </div>
-                                <div className="text-center p-3 bg-red-50 dark:bg-red-950 rounded">
-                                  <div className="text-lg font-bold text-red-600">{formatNumber(profileData.analytics.avg_comments)}</div>
-                                  <div className="text-sm text-muted-foreground">Avg Comments</div>
-                                </div>
-                              </div>
-                              
-                              <div className="text-center p-3 bg-gray-50 dark:bg-gray-950 rounded">
-                                <div className="text-lg font-bold">{profileData.analytics.posts_analyzed || 0}</div>
-                                <div className="text-sm text-muted-foreground">Posts Analyzed</div>
-                                <div className="text-xs text-muted-foreground mt-1">Data reliability: {profileData.analytics.data_quality_score?.toFixed(1) || '0.0'}/10</div>
-                              </div>
-                            </div>
-                          ) : profileData?.profile ? (
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded">
-                                <div className="text-lg font-bold text-blue-600">{profileData.profile.engagement_rate?.toFixed(2) || '0.00'}%</div>
-                                <div className="text-sm text-muted-foreground">Engagement Rate</div>
-                              </div>
-                              <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded">
-                                <div className="text-lg font-bold text-green-600">{profileData.profile.influence_score?.toFixed(1) || '0.0'}</div>
-                                <div className="text-sm text-muted-foreground">Influence Score</div>
-                              </div>
-                              <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded">
-                                <div className="text-lg font-bold text-orange-600">{formatNumber(profileData.profile.avg_likes)}</div>
-                                <div className="text-sm text-muted-foreground">Avg Likes</div>
-                              </div>
-                              <div className="text-center p-3 bg-red-50 dark:bg-red-950 rounded">
-                                <div className="text-lg font-bold text-red-600">{formatNumber(profileData.profile.avg_comments)}</div>
-                                <div className="text-sm text-muted-foreground">Avg Comments</div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-center py-8">
-                              <div className="text-muted-foreground mb-4">
-                                <Heart className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                <p>No engagement data available</p>
-                              </div>
-                              <Badge variant="outline" className="text-red-600">No Data</Badge>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
 
                       <Card>
                         <CardHeader>
@@ -1949,71 +1722,31 @@ Quality Score
                     </Tabs>
                   </TooltipProvider>
 
-                  {/* AI Data Health Monitor - Developer/Admin Panel */}
-                  {debugInfo && (
-                    <div className="mt-8">
-                      <AIDataHealthMonitor username={username || undefined} />
-                    </div>
-                  )}
                 </div>
 
-                {/* Contact Information & External Links */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Mail className="w-5 h-5" />
-                      Contact & Links
-                    </CardTitle>
-                    <CardDescription>Business collaboration details and external links</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* Business Contact */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="space-y-1">
-                            <h3 className="font-semibold">Business Contact</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {profileData.profile.business_email || 
-                               profileData.profile.business_phone_number || 
-                               'Contact details not available from public profile'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Badge 
-                            variant={profileData.profile.is_verified ? "default" : "outline"}
-                          >
-                            {profileData.profile.is_verified ? "Verified Creator" : "Public Profile"}
-                          </Badge>
-                          {profileData.profile.business_email && (
-                            <Badge variant="outline" className="text-xs">
-                              Email Available
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* External Links */}
-                      {profileData.profile.external_url && (
-                        <div className="pt-4 border-t border-border">
-                          <h4 className="font-semibold mb-2">External Links</h4>
-                          <div className="flex flex-wrap gap-2">
-                            <a 
-                              href={profileData.profile.external_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors underline decoration-muted-foreground hover:decoration-foreground"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              <span className="text-sm font-medium">{profileData.profile.external_url}</span>
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Contact & Links - Subtle approach */}
+                {(profileData.profile.business_email || profileData.profile.business_phone_number || profileData.profile.external_url) && (
+                  <div className="flex flex-wrap items-center gap-2 px-1">
+                    {profileData.profile.business_email && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Mail className="h-3 w-3 mr-1" />
+                        Email Available
+                      </Badge>
+                    )}
+                    {profileData.profile.business_phone_number && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Phone className="h-3 w-3 mr-1" />
+                        Phone Available
+                      </Badge>
+                    )}
+                    {profileData.profile.external_url && (
+                      <Badge variant="secondary" className="text-xs">
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Website
+                      </Badge>
+                    )}
+                  </div>
+                )}
                 </div>
               </ProfileAccessWrapper>
             )}
