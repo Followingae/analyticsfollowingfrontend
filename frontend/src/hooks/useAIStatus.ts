@@ -26,12 +26,12 @@ export function useAIStatus() {
   }, [notificationHelpers])
 
   /**
-   * Handle profile loading - automatically checks AI status and manages recovery
-   * Call this when a profile page loads
+   * Handle profile analysis - triggers new comprehensive AI analysis with completion indicators
+   * Call this when a profile page loads or when analysis needs to be triggered
    */
   const handleProfileLoad = async (username: string): Promise<void> => {
     if (aiServiceRef.current) {
-      await aiServiceRef.current.handleProfileLoad(username)
+      await aiServiceRef.current.handleProfileAnalysis(username)
     }
   }
 
@@ -82,7 +82,7 @@ export function useAIAnalysisTrigger() {
 
   const triggerAnalysis = async (username: string): Promise<void> => {
     const aiService = new ProfessionalAINotifications(notificationHelpers)
-    await aiService.handleProfileLoad(username)
+    await aiService.handleProfileAnalysis(username)
   }
 
   return { triggerAnalysis }

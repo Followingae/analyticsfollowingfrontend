@@ -47,6 +47,78 @@ export interface AIProcessingProgress {
   estimated_completion_time?: string
 }
 
+// AI Analysis Completion Status
+export interface AICompletionStatus {
+  all_steps_completed: boolean
+  posts_processing_done: boolean
+  profile_insights_done: boolean
+  database_updates_done: boolean
+  ready_for_display: boolean
+}
+
+// Frontend Action Recommendations
+export interface AIFrontendActions {
+  can_refresh_profile: boolean
+  can_view_ai_insights: boolean
+  should_show_success_message?: boolean
+  should_show_error_message?: boolean
+  recommended_next_step: 'refresh_profile_data' | 'retry_analysis_later' | 'view_existing_data'
+}
+
+// NEW: AI Verification Response from backend team
+export interface AIVerificationResponse {
+  username: string
+  total_posts: number
+  posts_analyzed: number
+  analysis_coverage: number // percentage 0-100
+  ready_for_frontend_display: boolean
+  profile_ai_insights_complete: boolean
+  sample_ai_data: {
+    post_count: number
+    sample_posts: Array<{
+      id: string
+      ai_content_category: AIContentCategory
+      ai_category_confidence: number
+      ai_sentiment: AISentiment
+      ai_sentiment_score: number
+      ai_language_code: AILanguageCode
+      ai_analyzed_at: string
+      is_real_ai_data: boolean
+    }>
+  }
+  verification_timestamp: string
+  system_status: 'healthy' | 'degraded' | 'offline'
+}
+
+// NEW: AI Status Monitoring Response
+export interface AIStatusMonitoringResponse {
+  active_analyses: number
+  queue_depth: number
+  system_health: 'healthy' | 'degraded' | 'offline'
+  models_loaded: boolean
+  processing_capacity: number
+  last_health_check: string
+}
+
+// AI Analysis Response
+export interface AIAnalysisResponse {
+  success: boolean
+  status: 'COMPLETED' | 'FAILED' | 'PROCESSING'
+  analysis_complete: boolean
+  message: string
+  error?: string
+  username?: string
+  profile_id?: string
+  posts_analyzed?: number
+  total_posts_found?: number
+  success_rate?: number
+  profile_insights_updated?: boolean
+  processing_type?: 'direct' | 'background'
+  action_taken?: 'analysis_completed' | 'already_complete' | 'analysis_failed'
+  completion_status: AICompletionStatus
+  frontend_actions: AIFrontendActions
+}
+
 // Main profile interface matching new backend structure with AI enhancements
 export interface InstagramProfile {
   // Core Profile Information
@@ -155,13 +227,14 @@ export interface InstagramPost {
   }>
   dimensions?: {width: number, height: number}
   
-  // AI analysis is now in separate ai_analysis object - keeping these for backward compatibility
+  // Legacy fields - DEPRECATED: Use ai_analysis object instead
+  // Kept for backward compatibility but use ai_analysis.* fields for new code
   ai_content_category?: AIContentCategory | null
   ai_category_confidence?: number | null // 0.0 to 1.0
   ai_sentiment?: AISentiment | null
   ai_sentiment_score?: number | null // -1.0 to +1.0
   ai_sentiment_confidence?: number | null // 0.0 to 1.0
-  ai_language_code?: AILanguageCode | null
+  ai_language_code?: AILanguageCode | null // CORRECTED FIELD NAME
   ai_language_confidence?: number | null // 0.0 to 1.0
   ai_analyzed_at?: string | null
   ai_analysis_status?: AIProcessingStatus
@@ -208,16 +281,18 @@ export interface AIInsights {
   ai_processing_status: AIProcessingStatus
 }
 
-// Post AI Analysis - New structure from integration guide
+// Post AI Analysis - Updated with corrected field names from backend team
 export interface PostAIAnalysis {
   ai_content_category?: AIContentCategory | null
+  ai_category_confidence?: number | null // 0.0 to 1.0 - CORRECTED FIELD NAME
   ai_sentiment?: AISentiment | null
   ai_sentiment_score?: number | null // -1.0 to 1.0
-  ai_language?: AILanguageCode | null
+  ai_language_code?: AILanguageCode | null // CORRECTED FIELD NAME (was ai_language)
   ai_language_confidence?: number | null // 0.0 to 1.0
-  ai_post_analyzed_at?: string | null
+  ai_analyzed_at?: string | null // CORRECTED FIELD NAME (was ai_post_analyzed_at)
   has_ai_analysis: boolean
-  ai_processing_status: AIProcessingStatus
+  is_real_ai_data?: boolean // NEW: Guarantee no mock data
+  ai_processing_status?: AIProcessingStatus
 }
 
 // Main API response structure - Updated for automatic AI integration
@@ -836,29 +911,39 @@ export class InstagramApiService {
   }
 
   /**
-   * NEW: Fix Profile Issues
+   * NEW: Comprehensive AI Profile Analysis
    * Uses: POST /api/v1/ai/fix/profile/{username}
-   * Purpose: Fix profile data issues
+   * Purpose: Complete AI analysis with full completion indicators
    */
-  async triggerProfileAnalysis(username: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  async triggerProfileAnalysis(username: string): Promise<AIAnalysisResponse> {
     try {
-      const response = await this.makeRequest<{ 
-        message: string
-        status: string
-        estimated_completion: string
-        posts_to_analyze: number
-      }>(
+      const response = await this.makeRequest<AIAnalysisResponse>(
         `/api/v1/ai/fix/profile/${username}`,
         { method: 'POST' }
       )
-      return {
-        success: true,
-        message: response.message
-      }
+      
+      return response
     } catch (error: any) {
+      // Return a properly formatted error response
       return {
         success: false,
-        error: error.message || 'Failed to trigger AI analysis'
+        status: 'FAILED',
+        analysis_complete: false,
+        message: error.message || 'AI analysis failed',
+        error: error.message || 'Failed to trigger AI analysis',
+        completion_status: {
+          all_steps_completed: false,
+          posts_processing_done: false,
+          profile_insights_done: false,
+          database_updates_done: false,
+          ready_for_display: false
+        },
+        frontend_actions: {
+          can_refresh_profile: false,
+          can_view_ai_insights: false,
+          should_show_error_message: true,
+          recommended_next_step: 'retry_analysis_later'
+        }
       }
     }
   }
@@ -948,6 +1033,52 @@ export class InstagramApiService {
       return {
         success: false,
         error: error.message || 'Failed to get AI stats'
+      }
+    }
+  }
+
+  /**
+   * NEW: AI Verification Endpoint - Verify AI analysis completion
+   * Uses: GET /api/v1/ai/verify/{username}
+   * Purpose: Check exact AI analysis status and sample real data
+   */
+  async verifyAIAnalysis(username: string): Promise<{ success: boolean; data?: AIVerificationResponse; error?: string }> {
+    try {
+      const response = await this.makeRequest<AIVerificationResponse>(
+        `/api/v1/ai/verify/${username}`,
+        { method: 'GET' }
+      )
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to verify AI analysis'
+      }
+    }
+  }
+
+  /**
+   * NEW: AI Status Monitoring - Check system health
+   * Uses: GET /api/v1/ai/analysis/status  
+   * Purpose: Monitor AI system status and processing capacity
+   */
+  async getAISystemStatus(): Promise<{ success: boolean; data?: AIStatusMonitoringResponse; error?: string }> {
+    try {
+      const response = await this.makeRequest<AIStatusMonitoringResponse>(
+        `/api/v1/ai/analysis/status`,
+        { method: 'GET' }
+      )
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get AI system status'
       }
     }
   }

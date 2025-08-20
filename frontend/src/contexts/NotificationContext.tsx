@@ -169,83 +169,12 @@ export function useNotificationHelpers() {
     addNotification({ title, message, type: 'info', actionLabel, actionUrl })
   }, [addNotification])
 
-  const notifyAnalysisComplete = useCallback((username: string) => {
-    notifySuccess(
-      'Analysis Complete',
-      `@${username} has been successfully analyzed and added to your creators.`,
-      'View Analytics',
-      `/analytics/${username}`
-    )
-  }, [notifySuccess])
-
-  const notifyAnalysisFailed = useCallback((username: string, error?: string) => {
-    notifyError(
-      'Analysis Failed',
-      error || `Failed to analyze @${username}. Please try again later.`,
-      'Retry',
-      `/creators`
-    )
-  }, [notifyError])
-
-  // AI-specific notification helpers
-  const notifyAIAnalysisStarted = useCallback((username: string) => {
-    notifyInfo(
-      'AI Analysis Started',
-      `AI analysis started for @${username}. This may take a few minutes.`,
-      'View Progress',
-      `/analytics/${username}`
-    )
-  }, [notifyInfo])
-
-  const notifyAIInsightsReady = useCallback((username: string) => {
-    notifySuccess(
-      'AI Insights Ready',
-      `AI content insights are now available for @${username}!`,
-      'View Insights',
-      `/analytics/${username}`
-    )
-  }, [notifySuccess])
-
-  const notifyAIDataRepaired = useCallback((profileCount: number) => {
-    notifySuccess(
-      'Data Repair Complete',
-      `Successfully repaired AI data for ${profileCount} profile${profileCount > 1 ? 's' : ''}.`,
-      'View Profiles',
-      '/creators'
-    )
-  }, [notifySuccess])
-
-  const notifyAIProcessingUpdate = useCallback((username: string, progress: number) => {
-    notifyInfo(
-      'AI Processing Update',
-      `AI analysis for @${username} is ${progress}% complete.`,
-      'View Status',
-      `/analytics/${username}`
-    )
-  }, [notifyInfo])
-
-  const notifyAISystemHealth = useCallback((status: 'healthy' | 'warning' | 'critical', message: string) => {
-    const type = status === 'healthy' ? 'success' : status === 'warning' ? 'warning' : 'error'
-    addNotification({
-      title: 'AI System Status',
-      message: message,
-      type,
-      actionLabel: 'View Details',
-      actionUrl: '/system-health'
-    })
-  }, [addNotification])
+  // Legacy notification helpers removed - use new AI notification service instead
 
   return {
     notifySuccess,
     notifyError,
     notifyWarning,
-    notifyInfo,
-    notifyAnalysisComplete,
-    notifyAnalysisFailed,
-    notifyAIAnalysisStarted,
-    notifyAIInsightsReady,
-    notifyAIDataRepaired,
-    notifyAIProcessingUpdate,
-    notifyAISystemHealth
+    notifyInfo
   }
 }

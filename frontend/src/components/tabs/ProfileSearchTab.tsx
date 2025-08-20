@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,8 +9,15 @@ import { Badge } from '@/components/ui/badge'
 import { formatNumber, formatPercentage, isValidProfile } from '@/lib/utils'
 import { ProfileAvatar } from '@/components/ui/profile-avatar'
 import { instagramApiService, CompleteProfileResponse } from '@/services/instagramApi'
-import { Loader2, Search, Instagram, Users, Heart, BarChart3, Target, TrendingUp, Clock, Zap, Star, CheckCircle2, ExternalLink } from 'lucide-react'
+import { useAINotifications } from '@/services/aiNotificationService'
+import { Loader2, Search, Instagram, Users, Heart, BarChart3, Target, TrendingUp, Clock, Zap, Star, CheckCircle2, ExternalLink, Brain } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { 
+  ContentDistributionChart, 
+  SentimentIndicator, 
+  LanguageDistribution, 
+  QualityScoreIndicator 
+} from '@/components/ui/ai-insights'
 
 export default function ProfileSearchTab() {
   const [username, setUsername] = useState('')
@@ -21,6 +28,14 @@ export default function ProfileSearchTab() {
   const [batchLoading, setBatchLoading] = useState(false)
   const [useSmartProxy, setUseSmartProxy] = useState(false)
   const router = useRouter()
+  const aiNotificationService = useAINotifications()
+  
+  // Cleanup AI notification service on unmount
+  useEffect(() => {
+    return () => {
+      aiNotificationService.cleanup()
+    }
+  }, [aiNotificationService])
 
   const handleSearch = async () => {
     if (!username.trim()) return
@@ -38,6 +53,11 @@ export default function ProfileSearchTab() {
       if (result.success && result.data) {
         setProfileData(result.data)
         console.log('✅ Profile unlocked! User can now view analytics instantly.')
+        
+        // Trigger AI analysis with new completion status handling
+        if (result.data.profile?.username) {
+          aiNotificationService.handleProfileAnalysis(result.data.profile.username)
+        }
       } else {
         setError(result.error || 'Profile search failed')
       }
@@ -316,17 +336,119 @@ export default function ProfileSearchTab() {
             <Card className="border-0 bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  Advanced Metrics
+                  <Brain className="w-5 h-5" />
+                  AI Insights Overview
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="text-center py-8 text-muted-foreground">
-                  Advanced metrics not available
-                </div>
+                {profileData.ai_insights?.has_ai_analysis ? (
+                  <div className="space-y-4">
+                    {/* Primary content type */}
+                    {profileData.ai_insights.ai_primary_content_type && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Primary Content</span>
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                          {profileData.ai_insights.ai_primary_content_type}
+                        </Badge>
+                      </div>
+                    )}
+                    
+                    {/* Sentiment score */}
+                    {profileData.ai_insights.ai_avg_sentiment_score !== null && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Avg Sentiment</span>
+                        <span className={`font-semibold ${
+                          (profileData.ai_insights.ai_avg_sentiment_score || 0) > 0.2 ? 'text-green-600' :
+                          (profileData.ai_insights.ai_avg_sentiment_score || 0) < -0.2 ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                          {profileData.ai_insights.ai_avg_sentiment_score >= 0 ? '+' : ''}
+                          {profileData.ai_insights.ai_avg_sentiment_score.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Quality score */}
+                    {profileData.ai_insights.ai_content_quality_score !== null && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">AI Quality Score</span>
+                        <span className="font-semibold text-purple-600">
+                          {(profileData.ai_insights.ai_content_quality_score * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Analysis date */}
+                    {profileData.ai_insights.ai_profile_analyzed_at && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Last AI Analysis</span>
+                        <span className="text-sm text-gray-500">
+                          {new Date(profileData.ai_insights.ai_profile_analyzed_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <Brain className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">AI insights processing...</p>
+                    <p className="text-xs">Analysis will appear here once complete</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
+
+          {/* AI Insights Section - Only show if AI analysis is available */}
+          {profileData.ai_insights?.has_ai_analysis && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Content Intelligence</h3>
+                <p className="text-gray-600">Advanced AI-powered analysis of content patterns and quality</p>
+              </div>
+
+              {/* AI Insights Grid */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Content Distribution Chart */}
+                {profileData.ai_insights.ai_content_distribution && (
+                  <ContentDistributionChart
+                    distribution={profileData.ai_insights.ai_content_distribution}
+                    primaryContentType={profileData.ai_insights.ai_primary_content_type}
+                    className="border-0 bg-white/80 backdrop-blur-sm"
+                  />
+                )}
+
+                {/* Sentiment Analysis */}
+                <SentimentIndicator
+                  sentimentScore={profileData.ai_insights.ai_avg_sentiment_score}
+                  className="border-0 bg-white/80 backdrop-blur-sm"
+                  size="md"
+                  showDetails={true}
+                />
+              </div>
+
+              {/* Second Row */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Language Distribution */}
+                {profileData.ai_insights.ai_language_distribution && (
+                  <LanguageDistribution
+                    distribution={profileData.ai_insights.ai_language_distribution}
+                    className="border-0 bg-white/80 backdrop-blur-sm"
+                    maxLanguages={5}
+                    showPercentages={true}
+                  />
+                )}
+
+                {/* Quality Score */}
+                <QualityScoreIndicator
+                  qualityScore={profileData.ai_insights.ai_content_quality_score}
+                  className="border-0 bg-white/80 backdrop-blur-sm"
+                  size="md"
+                  showDetails={true}
+                  showBreakdown={true}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Audience Insights & Competitor Analysis */}
           <div className="grid md:grid-cols-2 gap-6">

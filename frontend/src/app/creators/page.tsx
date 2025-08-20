@@ -21,7 +21,7 @@ import {
 import { AppSidebar } from "@/components/app-sidebar"
 import { SectionCards } from "@/components/section-cards"
 import { toast } from "sonner"
-import { useNotificationHelpers } from "@/contexts/NotificationContext"
+import { useAINotifications } from "@/services/aiNotificationService"
 import { useAIAnalysisTrigger } from "@/hooks/useAIStatus"
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
@@ -50,6 +50,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { AIVerificationTool } from "@/components/ui/ai-verification-tool"
 import ReactCountryFlag from "react-country-flag"
 import { getCountryCode } from "@/lib/countryUtils"
 // Disable static generation for this page
@@ -70,7 +71,7 @@ export default function CreatorsPage() {
     hasNext: false
   })
   const router = useRouter()
-  const { notifyAnalysisComplete, notifyAnalysisFailed } = useNotificationHelpers()
+  const aiNotificationService = useAINotifications()
   const { triggerAnalysis } = useAIAnalysisTrigger()
   // Note: URL param analysis temporarily disabled for production build
   // TODO: Implement proper Suspense boundary for useSearchParams
@@ -179,7 +180,7 @@ export default function CreatorsPage() {
           })
         }, 500) // Reduced to 500ms for smoother transition
         toast.success(`Successfully analyzed @${cleanUsername}! Added to your unlocked creators.`)
-        notifyAnalysisComplete(cleanUsername)
+        // AI notifications are handled by the AI notification service
         
         // Trigger professional AI status management for the newly analyzed profile
         setTimeout(() => {
@@ -224,7 +225,7 @@ export default function CreatorsPage() {
           [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
         }))
         toast.error(errorMessage)
-        notifyAnalysisFailed(cleanUsername, errorMessage)
+        // Error notifications are handled by the AI notification service
       }
     } catch (error) {
       console.error('❌ Analysis error for @' + cleanUsername + ':', error)
@@ -246,7 +247,7 @@ export default function CreatorsPage() {
         [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
       }))
       toast.error(`Error analyzing @${cleanUsername}: ${errorMessage}`)
-      notifyAnalysisFailed(cleanUsername, errorMessage)
+      // Error notifications are handled by the AI notification service
     }
   }
   const handleSearchCreator = async () => {
@@ -626,12 +627,19 @@ export default function CreatorsPage() {
                         Find Similar Creators
                       </Button>
                     </div>
+                    {/* AI Verification Tool */}
+                    <div className="pt-6 border-t space-y-4">
+                      <h3 className="text-sm font-medium">🔬 AI Analysis Verification</h3>
+                      <AIVerificationTool />
+                    </div>
+                    
                     <div className="pt-4 border-t">
                       <div className="text-xs text-muted-foreground space-y-1">
                         <p>💡 Pro tips:</p>
                         <p>• Use @username format for best results</p>
                         <p>• Bulk analysis supports up to 50 usernames</p>
                         <p>• CSV upload allows up to 100 creators</p>
+                        <p>• Use AI verification to ensure complete analysis</p>
                       </div>
                     </div>
                   </div>

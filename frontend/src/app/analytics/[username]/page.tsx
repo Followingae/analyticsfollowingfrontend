@@ -8,6 +8,12 @@ import { AILoadingState } from "@/components/AILoadingState"
 import { AIStatusIndicator, AIInsightsDisplay } from "@/components/ui/ai-status-indicator"
 import { AIDataHealthMonitor } from "@/components/ui/ai-data-health"
 import { AIContentCharts } from "@/components/ui/ai-content-charts"
+import { 
+  ContentDistributionChart, 
+  SentimentIndicator, 
+  LanguageDistribution, 
+  QualityScoreIndicator 
+} from '@/components/ui/ai-insights'
 import { preloadPageImages } from "@/lib/image-cache"
 import { ProfileAvatar } from "@/components/ui/profile-avatar"
 import { API_CONFIG } from "@/config/api"
@@ -1540,10 +1546,10 @@ export default function AnalyticsPage() {
                                     )}
                                     
                                     {/* AI Language Detection */}
-                                    {postsData.some(post => post.ai_analysis?.ai_language || post.ai_language_code) && (
+                                    {postsData.some(post => post.ai_analysis?.ai_language_code || post.ai_language_code) && (
                                       <div className="text-center p-2 bg-blue-100 dark:bg-blue-900 rounded">
                                         <div className="font-semibold text-blue-800 dark:text-blue-200">
-                                          {Array.from(new Set(postsData.filter(post => post.ai_analysis?.ai_language || post.ai_language_code).map(post => post.ai_analysis?.ai_language || post.ai_language_code))).join(', ').toUpperCase()}
+                                          {Array.from(new Set(postsData.filter(post => post.ai_analysis?.ai_language_code || post.ai_language_code).map(post => post.ai_analysis?.ai_language_code || post.ai_language_code))).join(', ').toUpperCase()}
                                         </div>
                                         <div className="text-blue-600 dark:text-blue-400 text-xs">Languages</div>
                                       </div>

@@ -9,6 +9,7 @@ import { formatNumber } from '@/lib/utils'
 import { InstagramImage } from '@/components/ui/instagram-image'
 import { proxyInstagramUrlCached } from '@/lib/image-cache'
 import { Heart, MessageCircle, Eye, MapPin, ExternalLink, Brain, Sparkles, Languages, Clock, CheckCircle, Loader2 } from 'lucide-react'
+import { SentimentBadge, LanguageBadge } from '@/components/ui/ai-insights'
 
 interface PostCardProps {
   post: InstagramPost
@@ -180,39 +181,20 @@ export default function PostCard({ post }: PostCardProps) {
                 )}
                 
                 {/* AI Sentiment */}
-                {(post.ai_analysis?.ai_sentiment || post.ai_sentiment) && (
-                  <Badge className={`text-xs ${
-                    (post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'positive' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                    (post.ai_analysis?.ai_sentiment || post.ai_sentiment) === 'negative' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                    'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                  }`}>
-                    {post.ai_analysis?.ai_sentiment || post.ai_sentiment}
-                    {(post.ai_analysis?.ai_sentiment_score || post.ai_sentiment_score) && (
-                      <span className="ml-1 text-xs opacity-75">
-                        ({((post.ai_analysis?.ai_sentiment_score || post.ai_sentiment_score) * 100).toFixed(0)}%)
-                      </span>
-                    )}
-                  </Badge>
-                )}
+                <SentimentBadge
+                  sentimentScore={post.ai_analysis?.ai_sentiment_score || post.ai_sentiment_score}
+                />
                 
                 {/* AI Language */}
-                {(post.ai_analysis?.ai_language || post.ai_language_code) && (
-                  <Badge variant="outline" className="text-xs">
-                    <Languages className="w-2 h-2 mr-1" />
-                    {(post.ai_analysis?.ai_language || post.ai_language_code)?.toUpperCase()}
-                    {(post.ai_analysis?.ai_language_confidence || post.ai_language_confidence) && (
-                      <span className="ml-1 opacity-75">
-                        ({Math.round((post.ai_analysis?.ai_language_confidence || post.ai_language_confidence) * 100)}%)
-                      </span>
-                    )}
-                  </Badge>
-                )}
+                <LanguageBadge
+                  languageCode={post.ai_analysis?.ai_language_code || post.ai_language_code}
+                />
                 
                 {/* Analysis Date */}
-                {(post.ai_analysis?.ai_post_analyzed_at || post.ai_analyzed_at) && (
+                {(post.ai_analysis?.ai_analyzed_at || post.ai_analyzed_at) && (
                   <Badge variant="secondary" className="text-xs">
                     <Clock className="w-2 h-2 mr-1" />
-                    {new Date(post.ai_analysis?.ai_post_analyzed_at || post.ai_analyzed_at).toLocaleDateString()}
+                    {new Date(post.ai_analysis?.ai_analyzed_at || post.ai_analyzed_at).toLocaleDateString()}
                   </Badge>
                 )}
               </div>
