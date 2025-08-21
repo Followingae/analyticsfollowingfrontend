@@ -1,5 +1,7 @@
 "use client"
 
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   Bell,
   CircleUser,
@@ -20,6 +22,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { creditsApiService } from "@/services/creditsApi"
+import { CreditBalance } from "@/types"
+import { formatCredits, getCreditBalanceStatus } from "@/utils/creditUtils"
 
 interface DashboardHeaderProps {
   currentPage?: string
@@ -27,6 +32,80 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderProps) {
   const isActive = (page: string) => currentPage === page
+  const router = useRouter()
+  
+  // Credit balance state
+  const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null)
+  const [loading, setLoading] = useState(true)
+  
+  // Load credit balance
+  useEffect(() => {
+    const loadBalance = async () => {
+      try {
+        const result = await creditsApiService.getBalance()
+        if (result.success && result.data) {
+          setCreditBalance(result.data)
+        }
+      } catch (error) {
+        console.error('Failed to load credit balance:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadBalance()
+    
+    // Set up periodic refresh every 5 minutes
+    const interval = setInterval(loadBalance, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Handle credit badge click
+  const handleCreditClick = () => {
+    router.push('/billing')
+  }
+
+  // Get credit badge styling based on status
+  const getCreditBadgeProps = () => {
+    if (loading) {
+      return {
+        className: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100",
+        text: "Loading..."
+      }
+    }
+
+    if (!creditBalance) {
+      return {
+        className: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100",
+        text: "No data"
+      }
+    }
+
+    const status = getCreditBalanceStatus(creditBalance)
+    const creditText = `${formatCredits(creditBalance.current_balance)} credits`
+    
+    switch (status.status) {
+      case 'critical':
+      case 'empty':
+        return {
+          className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100 animate-pulse",
+          text: creditText
+        }
+      case 'low':
+        return {
+          className: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100",
+          text: creditText
+        }
+      case 'healthy':
+      default:
+        return {
+          className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
+          text: creditText
+        }
+    }
+  }
+
+  const creditBadgeProps = getCreditBadgeProps()
   
   return (
     <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -154,8 +233,12 @@ export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderPr
             />
           </div>
         </form>
-        <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-          2,450 credits
+        <Badge 
+          variant="secondary" 
+          className={`${creditBadgeProps.className} cursor-pointer hover:opacity-80 transition-opacity`}
+          onClick={handleCreditClick}
+        >
+          {creditBadgeProps.text}
         </Badge>
         <Button variant="outline" size="icon">
           <Bell className="h-4 w-4" />

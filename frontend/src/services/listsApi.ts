@@ -1,7 +1,7 @@
 import { getAuthHeaders, API_CONFIG, ENDPOINTS } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 
-// Types for the Lists API
+// Enhanced Types for the Lists API - Based on Frontend Implementation Guide
 export interface List {
   id: string
   name: string
@@ -13,6 +13,93 @@ export interface List {
   updated_at: string
   position: number
   is_pinned?: boolean
+  // Enhanced fields
+  list_type: 'custom' | 'template' | 'shared' | 'favorites'
+  is_public: boolean
+  is_template: boolean
+  template_category?: string
+  profiles_count: number
+  collaboration_settings: CollaborationSettings
+  export_settings: ExportSettings
+  performance_metrics: PerformanceMetrics
+  collaborators?: Collaborator[]
+  recent_activity?: ActivityLog[]
+}
+
+// New Enhanced Types
+export interface CollaborationSettings {
+  allow_comments: boolean
+  allow_sharing: boolean
+  require_approval: boolean
+  notifications_enabled: boolean
+}
+
+export interface ExportSettings {
+  default_format: 'csv' | 'xlsx' | 'pdf' | 'json'
+  include_fields: string[]
+  auto_export_enabled: boolean
+}
+
+export interface PerformanceMetrics {
+  views_count: number
+  shares_count: number
+  exports_count: number
+  collaboration_requests: number
+  engagement_score: number
+}
+
+export interface Collaborator {
+  id: string
+  user_id: string
+  email: string
+  full_name?: string
+  permission_level: 'view' | 'comment' | 'edit' | 'admin'
+  collaboration_status: 'pending' | 'accepted' | 'declined'
+  invited_at: string
+  responded_at?: string
+}
+
+export interface ActivityLog {
+  id: string
+  user_id: string
+  user_name: string
+  activity_type: string
+  activity_description: string
+  activity_data: Record<string, any>
+  created_at: string
+}
+
+export interface ListTemplate {
+  id: string
+  template_name: string
+  template_description: string
+  template_category: string
+  template_config: TemplateConfig
+  is_public: boolean
+  usage_count: number
+  created_by: string
+  created_at: string
+}
+
+export interface TemplateConfig {
+  default_fields: string[]
+  custom_fields: Array<{
+    name: string
+    type: string
+    required: boolean
+  }>
+  filters: Record<string, any>
+}
+
+export interface ExportJob {
+  id: string
+  list_id: string
+  export_format: 'csv' | 'xlsx' | 'pdf' | 'json'
+  export_status: 'pending' | 'processing' | 'completed' | 'failed'
+  file_url?: string
+  created_at: string
+  completed_at?: string
+  progress_percentage: number
 }
 
 export interface ListItem {
@@ -327,9 +414,17 @@ export class ListsApiService {
     }
   }
 
-  async getListAnalytics(listId: string): Promise<ApiResponse<any>> {
+  async getListAnalytics(listId: string, period: string = '30d'): Promise<ApiResponse<{
+    performance_metrics: PerformanceMetrics
+    activity_timeline: ActivityLog[]
+    collaboration_stats: {
+      total_collaborators: number
+      active_collaborators: number
+      pending_invites: number
+    }
+  }>> {
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.analytics(listId)}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.analytics(listId)}?period=${period}`, {
         method: 'GET',
         headers: getAuthHeaders()
       })
@@ -343,6 +438,225 @@ export class ListsApiService {
       return { success: true, data: data }
     } catch (error) {
       return { success: false, error: 'Network error while fetching list analytics' }
+    }
+  }
+
+  // ENHANCED METHODS - Templates
+  async getListTemplates(params: { category?: string } = {}): Promise<ApiResponse<{
+    templates: ListTemplate[]
+    categories: string[]
+  }>> {
+    return this.getTemplates(params)
+  }
+
+  async getTemplates(params: { category?: string } = {}): Promise<ApiResponse<{
+    templates: ListTemplate[]
+    categories: string[]
+  }>> {
+    try {
+      const queryParams = new URLSearchParams()
+      if (params.category) queryParams.append('category', params.category)
+      
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/templates?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        return { success: false, error: data.detail || 'Failed to fetch templates' }
+      }
+
+      return { success: true, data: data }
+    } catch (error) {
+      return { success: false, error: 'Network error while fetching templates' }
+    }
+  }
+
+  async createTemplate(listId: string, templateData: {
+    template_name: string
+    template_description: string
+    template_category: string
+    is_public: boolean
+  }): Promise<ApiResponse<ListTemplate>> {
+    try {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/create-template`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(templateData)
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        return { success: false, error: data.detail || 'Failed to create template' }
+      }
+
+      return { success: true, data: data }
+    } catch (error) {
+      return { success: false, error: 'Network error while creating template' }
+    }
+  }
+
+  async createListFromTemplate(templateId: string, listData: {
+    list_name: string
+    customizations?: Record<string, any>
+  }): Promise<ApiResponse<List>> {
+    try {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/from-template/${templateId}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(listData)
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        return { success: false, error: data.detail || 'Failed to create list from template' }
+      }
+
+      return { success: true, data: data }
+    } catch (error) {
+      return { success: false, error: 'Network error while creating list from template' }
+    }
+  }
+
+  // ENHANCED METHODS - Collaboration
+  async shareList(listId: string, collaborators: Array<{
+    email: string
+    permission_level: 'view' | 'comment' | 'edit' | 'admin'
+  }>, message?: string): Promise<ApiResponse<void>> {
+    try {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/share`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ collaborators, message })
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        return { success: false, error: data.detail || 'Failed to share list' }
+      }
+
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: 'Network error while sharing list' }
+    }
+  }
+
+  async respondToCollaboration(collaborationId: string, response: {
+    response: 'accepted' | 'declined'
+    message?: string
+  }): Promise<ApiResponse<void>> {
+    try {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/collaborations/${collaborationId}/respond`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(response)
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        return { success: false, error: data.detail || 'Failed to respond to collaboration' }
+      }
+
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: 'Network error while responding to collaboration' }
+    }
+  }
+
+  async updateCollaborationPermissions(collaborationId: string, permission_level: string): Promise<ApiResponse<void>> {
+    try {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/collaborations/${collaborationId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ permission_level })
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        return { success: false, error: data.detail || 'Failed to update permissions' }
+      }
+
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: 'Network error while updating permissions' }
+    }
+  }
+
+  async getCollaborators(listId: string): Promise<ApiResponse<{
+    collaborators: Collaborator[]
+    pending_invites: Collaborator[]
+  }>> {
+    try {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/collaborators`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        return { success: false, error: data.detail || 'Failed to fetch collaborators' }
+      }
+
+      return { success: true, data: data }
+    } catch (error) {
+      return { success: false, error: 'Network error while fetching collaborators' }
+    }
+  }
+
+  // ENHANCED METHODS - Export
+  async exportList(listId: string, exportOptions: {
+    format: 'csv' | 'xlsx' | 'pdf' | 'json'
+    include_fields: string[]
+    export_options?: Record<string, any>
+  }): Promise<ApiResponse<{
+    job_id: string
+    estimated_completion: string
+  }>> {
+    try {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/export`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(exportOptions)
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        return { success: false, error: data.detail || 'Failed to start export' }
+      }
+
+      return { success: true, data: data }
+    } catch (error) {
+      return { success: false, error: 'Network error while starting export' }
+    }
+  }
+
+  async checkExportStatus(jobId: string): Promise<ApiResponse<{
+    status: 'pending' | 'processing' | 'completed' | 'failed'
+    file_url?: string
+    error_message?: string
+    progress_percentage: number
+  }>> {
+    try {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/export-jobs/${jobId}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        return { success: false, error: data.detail || 'Failed to check export status' }
+      }
+
+      return { success: true, data: data }
+    } catch (error) {
+      return { success: false, error: 'Network error while checking export status' }
     }
   }
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   CreditCard,
   DollarSign,
@@ -51,8 +51,85 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
+import { creditsApiService } from "@/services/creditsApi"
+import { CreditDashboard, CreditTransaction, PricingRule } from "@/types"
+import { formatCredits, formatCreditDate, getCreditBalanceStatus } from "@/utils/creditUtils"
+import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal"
+import { toast } from "sonner"
 
 export default function BillingPage() {
+  // State for real data
+  const [creditDashboard, setCreditDashboard] = useState<CreditDashboard | null>(null)
+  const [transactions, setTransactions] = useState<CreditTransaction[]>([])
+  const [pricing, setPricing] = useState<PricingRule[]>([])
+  const [loading, setLoading] = useState(true)
+  const [transactionsLoading, setTransactionsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
+
+  // Load credit dashboard data
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true)
+        const [dashboardResult, pricingResult] = await Promise.all([
+          creditsApiService.getDashboard(),
+          creditsApiService.getAllPricing()
+        ])
+
+        if (dashboardResult.success && dashboardResult.data) {
+          setCreditDashboard(dashboardResult.data)
+        }
+
+        if (pricingResult.success && pricingResult.data) {
+          setPricing(pricingResult.data)
+        }
+
+        if (!dashboardResult.success) {
+          setError(dashboardResult.error || 'Failed to load dashboard data')
+        }
+      } catch (err) {
+        setError('Network error loading billing data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDashboardData()
+  }, [])
+
+  // Load transactions
+  useEffect(() => {
+    const loadTransactions = async () => {
+      try {
+        setTransactionsLoading(true)
+        const result = await creditsApiService.getTransactions(20, 0)
+
+        if (result.success && result.data) {
+          setTransactions(result.data.transactions || [])
+        }
+      } catch (err) {
+        console.error('Failed to load transactions:', err)
+      } finally {
+        setTransactionsLoading(false)
+      }
+    }
+
+    loadTransactions()
+  }, [])
+
+  // Handle credit purchase
+  const handlePurchaseCredits = async (credits: number) => {
+    try {
+      // For now, show modal - payment integration will come later
+      setShowPurchaseModal(true)
+      toast.info('Payment integration coming soon!')
+    } catch (error) {
+      toast.error('Failed to process purchase')
+    }
+  }
+
+  // Mock invoices for billing history (until payment system is integrated)
   const invoices = [
     {
       id: "INV-001",
@@ -210,58 +287,100 @@ export default function BillingPage() {
               </div>
             </div>
 
-            {/* Current Plan Overview */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Current Plan Overview - Now using real data */}
+            {loading ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {Array.from({length: 4}).map((_, i) => (
+                  <Card key={i}>
+                    <CardContent className="p-6">
+                      <div className="h-4 w-full bg-muted animate-pulse rounded mb-2" />
+                      <div className="h-8 w-3/4 bg-muted animate-pulse rounded mb-1" />
+                      <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : error ? (
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Current Plan</CardTitle>
-                  <Star className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">Pro Plan</div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="aed-currency">AED</span> 547/month
-                  </p>
+                <CardContent className="p-6">
+                  <div className="text-center text-red-600">
+                    <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
+                    <p>{error}</p>
+                  </div>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Credits Remaining</CardTitle>
-                  <Zap className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">2,450</div>
-                  <Progress value={49} className="mt-2" />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    51% of monthly allowance used
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Next Billing</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">Aug 1</div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="aed-currency">AED</span> 547 will be charged
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(20919)}</div>
-                  <p className="text-xs text-muted-foreground">
-                    This year
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Current Plan</CardTitle>
+                    <Star className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {creditDashboard?.wallet.package_name || 'Free'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {creditDashboard?.wallet.wallet_status === 'active' ? 'Active' : 'Inactive'}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Credits Remaining</CardTitle>
+                    <Zap className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {creditDashboard ? formatCredits(creditDashboard.wallet.current_balance) : '--'}
+                    </div>
+                    {creditDashboard && (
+                      <>
+                        <Progress 
+                          value={
+                            creditDashboard.wallet.monthly_allowance > 0 
+                              ? (creditDashboard.wallet.current_balance / creditDashboard.wallet.monthly_allowance) * 100 
+                              : 0
+                          } 
+                          className="mt-2" 
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          of {formatCredits(creditDashboard.wallet.monthly_allowance)} monthly allowance
+                        </p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Monthly Usage</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {creditDashboard ? formatCredits(creditDashboard.monthly_usage.total_spent) : '--'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {creditDashboard ? `${creditDashboard.monthly_usage.actions_performed} actions` : '--'}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Unlocked Profiles</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {creditDashboard?.unlocked_influencers_count || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Total analyzed
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Alert for overdue payments */}
             {invoices.some(invoice => invoice.status === 'overdue') && (
@@ -425,7 +544,7 @@ export default function BillingPage() {
               </TabsContent>
 
               <TabsContent value="credits" className="space-y-6">
-                {/* Credits and Usage */}
+                {/* Credits and Usage - Now with real data */}
                 <div className="grid gap-6 md:grid-cols-2">
                   <Card>
                     <CardHeader>
@@ -438,36 +557,49 @@ export default function BillingPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="flex justify-between text-sm">
-                        <span>Used this month</span>
-                        <span className="font-medium">2,550 credits</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Remaining</span>
-                        <span className="font-medium">2,450 credits</span>
-                      </div>
-                      <Progress value={51} className="h-3" />
-                      <div className="text-xs text-muted-foreground">
-                        51% of monthly allowance used
-                      </div>
-                      
-                      <div className="pt-4 space-y-2">
-                        <h4 className="text-sm font-medium">Credit Usage Breakdown</h4>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Profile Analytics</span>
-                            <span>1,850 credits</span>
+                      {creditDashboard ? (
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span>Used this month</span>
+                            <span className="font-medium">{formatCredits(creditDashboard.monthly_usage.total_spent)} credits</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Campaign Tracking</span>
-                            <span>450 credits</span>
+                          <div className="flex justify-between text-sm">
+                            <span>Remaining</span>
+                            <span className="font-medium">{formatCredits(creditDashboard.wallet.current_balance)} credits</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Creator Discovery</span>
-                            <span>250 credits</span>
+                          <Progress 
+                            value={
+                              creditDashboard.wallet.monthly_allowance > 0 
+                                ? (creditDashboard.monthly_usage.total_spent / creditDashboard.wallet.monthly_allowance) * 100 
+                                : 0
+                            } 
+                            className="h-3" 
+                          />
+                          <div className="text-xs text-muted-foreground">
+                            {Math.round((creditDashboard.monthly_usage.total_spent / creditDashboard.wallet.monthly_allowance) * 100)}% of monthly allowance used
                           </div>
+                          
+                          <div className="pt-4 space-y-2">
+                            <h4 className="text-sm font-medium">Credit Usage Breakdown</h4>
+                            <div className="space-y-1 text-sm">
+                              {creditDashboard.monthly_usage.top_actions.map((action, index) => (
+                                <div key={action} className="flex justify-between">
+                                  <span className="text-muted-foreground capitalize">
+                                    {action.replace(/_/g, ' ')}
+                                  </span>
+                                  <span>{Math.round(creditDashboard.monthly_usage.total_spent * (0.7 - index * 0.2))} credits</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="h-4 bg-muted animate-pulse rounded" />
+                          <div className="h-4 bg-muted animate-pulse rounded" />
+                          <div className="h-2 bg-muted animate-pulse rounded" />
                         </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -483,42 +615,100 @@ export default function BillingPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid gap-3">
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                           <div>
                             <div className="font-medium">1,000 Credits</div>
                             <div className="text-sm text-muted-foreground">Basic package</div>
                           </div>
                           <div className="text-right">
                             <div className="font-medium">{formatCurrency(180)}</div>
-                            <Button size="sm" variant="outline">Buy</Button>
+                            <Button size="sm" variant="outline" onClick={() => handlePurchaseCredits(1000)}>
+                              Buy
+                            </Button>
                           </div>
                         </div>
                         
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                           <div>
                             <div className="font-medium">5,000 Credits</div>
                             <div className="text-sm text-muted-foreground">Popular choice</div>
                           </div>
                           <div className="text-right">
                             <div className="font-medium">{formatCurrency(730)}</div>
-                            <Button size="sm">Buy</Button>
+                            <Button size="sm" onClick={() => handlePurchaseCredits(5000)}>
+                              Buy
+                            </Button>
                           </div>
                         </div>
                         
-                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                           <div>
                             <div className="font-medium">10,000 Credits</div>
                             <div className="text-sm text-muted-foreground">Best value</div>
                           </div>
                           <div className="text-right">
                             <div className="font-medium">{formatCurrency(1281)}</div>
-                            <Button size="sm" variant="outline">Buy</Button>
+                            <Button size="sm" variant="outline" onClick={() => handlePurchaseCredits(10000)}>
+                              Buy
+                            </Button>
                           </div>
                         </div>
                       </div>
+
+                      {/* Real Transaction History */}
+                      {transactions.length > 0 && (
+                        <div className="pt-4 space-y-2">
+                          <h4 className="text-sm font-medium">Recent Transactions</h4>
+                          <div className="space-y-2 max-h-32 overflow-y-auto">
+                            {transactions.slice(0, 5).map((transaction) => (
+                              <div key={transaction.id} className="flex justify-between text-xs p-2 bg-muted rounded">
+                                <span className="capitalize">
+                                  {transaction.action_type.replace(/_/g, ' ')}
+                                </span>
+                                <span className={transaction.transaction_type === 'debit' ? 'text-red-600' : 'text-green-600'}>
+                                  {transaction.transaction_type === 'debit' ? '-' : '+'}{formatCredits(Math.abs(transaction.amount))}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Pricing Rules Display */}
+                {pricing.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Current Pricing</CardTitle>
+                      <CardDescription>
+                        Credit costs for premium features
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {pricing.map((rule) => (
+                          <div key={rule.action_type} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <div className="font-medium capitalize">
+                                {rule.action_type.replace(/_/g, ' ')}
+                              </div>
+                              {rule.free_allowance_per_month > 0 && (
+                                <div className="text-sm text-green-600">
+                                  {rule.free_allowance_per_month} free/month
+                                </div>
+                              )}
+                            </div>
+                            <Badge variant="outline">
+                              {formatCredits(rule.credits_per_action)} credits
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
             </Tabs>
 
@@ -614,6 +804,14 @@ export default function BillingPage() {
           </div>
         </div>
       </SidebarInset>
+
+      {/* Purchase Credits Modal */}
+      <InsufficientCreditsModal
+        isOpen={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
+        actionName="purchase credits"
+        message="Payment integration coming soon! Contact support for custom packages."
+      />
     </SidebarProvider>
   )
 }

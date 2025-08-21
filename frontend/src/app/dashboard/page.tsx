@@ -14,7 +14,7 @@
 
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { useAuth } from "@/contexts/AuthContext"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -120,7 +120,31 @@ export default function Dashboard() {
     }
   }, [user, isLoading])
 
-  // Brand analytics data
+  // Credit balance state
+  const [creditBalance, setCreditBalance] = useState<any>(null)
+  const [creditLoading, setCreditLoading] = useState(true)
+
+  // Load credit balance
+  useEffect(() => {
+    const loadCreditBalance = async () => {
+      try {
+        const { creditsApiService } = await import('@/services/creditsApi')
+        const result = await creditsApiService.getBalance()
+        
+        if (result.success && result.data) {
+          setCreditBalance(result.data)
+        }
+      } catch (error) {
+        console.error('Failed to load credit balance:', error)
+      } finally {
+        setCreditLoading(false)
+      }
+    }
+
+    loadCreditBalance()
+  }, [])
+
+  // Brand analytics data - dynamic Your Plan card
   const brandMetrics = [
     {
       title: "Active Campaigns",
@@ -136,7 +160,7 @@ export default function Dashboard() {
     },
     {
       title: "Your Plan",
-      value: "Pro",
+      value: creditLoading ? "Loading..." : (creditBalance?.package_name || "Free"),
       change: undefined,
       icon: <Star className="h-4 w-4 text-[#5100f3]" />
     },

@@ -56,7 +56,8 @@
       "mcp__ide__getDiagnostics",
       "Bash(sed:*)",
       "Bash(git push:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(PORT=3001 npm run start)"
     ],
     "deny": []
   }

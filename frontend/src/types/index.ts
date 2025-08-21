@@ -179,3 +179,72 @@ export interface HashtagOpportunity {
   competition_level: number
   opportunity_score: number
 }
+
+// Credit System Types
+export interface CreditBalance {
+  current_balance: number
+  monthly_allowance: number
+  package_name: string
+  billing_cycle_start: string
+  wallet_status: 'active' | 'locked' | 'suspended'
+}
+
+export interface CreditWalletSummary extends CreditBalance {
+  total_spent_this_month: number
+  total_transactions_this_month: number
+  next_billing_date: string
+}
+
+export interface CreditTransaction {
+  id: string
+  amount: number
+  action_type: string
+  created_at: string
+  description: string
+  transaction_type: 'debit' | 'credit'
+  remaining_balance: number
+}
+
+export interface CreditDashboard {
+  wallet: CreditBalance
+  recent_transactions: CreditTransaction[]
+  monthly_usage: {
+    total_spent: number
+    actions_performed: number
+    top_actions: string[]
+    free_allowances_used: number
+  }
+  pricing_rules: Array<{
+    action_type: string
+    credits_per_action: number
+    free_allowance_per_month: number
+  }>
+  unlocked_influencers_count: number
+}
+
+export interface PricingRule {
+  action_type: string
+  credits_per_action: number
+  free_allowance_per_month: number
+  bulk_discounts?: Array<{
+    min_quantity: number
+    discount_percentage: number
+  }>
+}
+
+export interface CanPerformResult {
+  can_perform: boolean
+  credits_required: number
+  current_balance: number
+  free_allowance_remaining: number
+  reason?: string
+}
+
+export interface CreditError {
+  detail: string
+  headers?: {
+    'X-Credits-Required'?: string
+    'X-Credits-Available'?: string
+    'X-Credits-Needed'?: string
+  }
+}

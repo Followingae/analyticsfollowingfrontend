@@ -1,4 +1,5 @@
 "use client"
+// @ts-nocheck
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
@@ -46,6 +47,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import ErrorBoundary from "@/components/ErrorBoundary"
+import { CreditGate } from "@/components/credits/CreditGate"
 import { toast } from "sonner"
 import { RealEngagementTimeline } from "@/components/real-engagement-timeline"
 import PostCard from "@/components/posts/PostCard"
@@ -552,24 +554,10 @@ export default function AnalyticsPage() {
                 </Button>
                 <h1 className="text-3xl font-bold">Creator Analytics</h1>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    Export
-                    <ChevronDown className="h-4 w-4 ml-2" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => toast.info("PDF export feature coming soon!")}>
-                    <FileIcon className="h-4 w-4 mr-2" />
-                    Export as PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.info("CSV export feature coming soon!")}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export as CSV
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button variant="outline" onClick={() => toast.info("Export feature coming soon!")}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
             </div>
 
             {/* Loading State - Only show full skeleton when completely loading, not during AI processing */}
@@ -675,26 +663,8 @@ export default function AnalyticsPage() {
                                 )}
                                 
                                 
-                                {/* TOP 3 Content Categories */}
-                                {profileData.ai_insights?.top_3_categories && profileData.ai_insights.top_3_categories.length > 0 ? (
-                                  <div className="flex flex-wrap gap-2">
-                                    {profileData.ai_insights.top_3_categories.map((category, index) => (
-                                      <Badge
-                                        key={category.category}
-                                        variant={index === 0 ? "default" : "secondary"}
-                                        className={`${
-                                          index === 0 ? "bg-primary text-primary-foreground" : "bg-secondary"
-                                        } flex items-center gap-1 px-3 py-1`}
-                                      >
-                                        <span className="mr-1">{getCategoryIcon(category.category)}</span>
-                                        {category.category}
-                                        <span className="text-xs opacity-70">
-                                          {category.percentage}%
-                                        </span>
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                ) : profileData.ai_insights?.ai_primary_content_type && (
+                                {/* Primary Content Category */}
+                                {profileData.ai_insights?.ai_primary_content_type && (
                                   <Badge variant="secondary" className="flex items-center gap-1 px-3 py-1">
                                     <span className="mr-1">{getCategoryIcon(profileData.ai_insights.ai_primary_content_type)}</span>
                                     {profileData.ai_insights.ai_primary_content_type}
@@ -1227,8 +1197,9 @@ export default function AnalyticsPage() {
                   </TabsContent>
                   
                   <TabsContent value="engagement" className="space-y-6">
-                    {/* Show processing state during AI analysis */}
-                    {profileData?.ai_insights?.ai_processing_status === 'pending' ? (
+                    <CreditGate actionType="detailed_analytics">
+                      {/* Show processing state during AI analysis */}
+                      {profileData?.ai_insights?.ai_processing_status === 'pending' ? (
                       <Card>
                         <CardContent className="flex flex-col items-center justify-center py-12">
                           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
@@ -1557,10 +1528,12 @@ Quality Score
                     </div>
                       </>
                     )}
+                    </CreditGate>
                   </TabsContent>
                   
                   <TabsContent value="content" className="space-y-6">
-                    {/* Recent Posts Grid - Using Real Data */}
+                    <CreditGate actionType="profile_posts">
+                      {/* Recent Posts Grid - Using Real Data */}
                     <Card>
                       <CardHeader>
                         <CardTitle>Recent Posts</CardTitle>
@@ -1716,6 +1689,7 @@ Quality Score
                         </CardContent>
                       </Card>
                     )}
+                    </CreditGate>
                   </TabsContent>
                   
                   

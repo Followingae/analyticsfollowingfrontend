@@ -20,6 +20,9 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { instagramApiService } from "@/services/instagramApi"
+import { creditsApiService } from "@/services/creditsApi"
+import { PricingRule } from "@/types"
+import { formatCredits } from "@/utils/creditUtils"
 
 export type AIProcessingStatus = 'completed' | 'pending' | 'not_available' | 'partial_data' | 'running' | 'failed'
 
@@ -52,6 +55,26 @@ export function AIStatusIndicator({
   const [status, setStatus] = useState<AIProcessingStatus>(insights?.ai_processing_status || 'not_available')
   const [progress, setProgress] = useState(0)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [pricing, setPricing] = useState<PricingRule | null>(null)
+  const [pricingLoading, setPricingLoading] = useState(true)
+
+  // Load pricing for AI insights
+  useEffect(() => {
+    const loadPricing = async () => {
+      try {
+        const result = await creditsApiService.getActionPricing('ai_insights')
+        if (result.success && result.data) {
+          setPricing(result.data)
+        }
+      } catch (error) {
+        console.error('Failed to load AI insights pricing:', error)
+      } finally {
+        setPricingLoading(false)
+      }
+    }
+
+    loadPricing()
+  }, [])
 
   const getStatusInfo = (status: AIProcessingStatus) => {
     switch (status) {
@@ -182,12 +205,32 @@ export function AIStatusIndicator({
               size="sm" 
               variant="outline" 
               onClick={handleRetryAnalysis}
-              disabled={isRefreshing}
+              disabled={isRefreshing || pricingLoading}
+              className="relative"
             >
               {isRefreshing ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <>
+                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : pricingLoading ? (
+                <>
+                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                  Loading...
+                </>
               ) : (
-                'Start Analysis'
+                <>
+                  <Brain className="h-3 w-3 mr-2" />
+                  Start AI Analysis
+                  {pricing && (
+                    <Badge 
+                      variant="secondary" 
+                      className="ml-2 text-xs bg-purple-100 text-purple-800 border-purple-200"
+                    >
+                      {formatCredits(pricing.credits_per_action)} credits
+                    </Badge>
+                  )}
+                </>
               )}
             </Button>
           )}

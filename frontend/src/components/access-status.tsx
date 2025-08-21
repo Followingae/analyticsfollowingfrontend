@@ -5,7 +5,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,8 +20,12 @@ import {
   Calendar,
   CheckCircle,
   AlertTriangle,
-  Zap
+  Zap,
+  Loader2
 } from "lucide-react"
+import { creditsApiService } from "@/services/creditsApi"
+import { PricingRule } from "@/types"
+import { formatCredits } from "@/utils/creditUtils"
 
 interface AccessStatusProps {
   hasAccess: boolean
@@ -40,6 +44,26 @@ export function AccessStatus({
   onUnlock,
   isUnlocking 
 }: AccessStatusProps) {
+  const [pricing, setPricing] = useState<PricingRule | null>(null)
+  const [pricingLoading, setPricingLoading] = useState(true)
+
+  // Load pricing for influencer unlock
+  useEffect(() => {
+    const loadPricing = async () => {
+      try {
+        const result = await creditsApiService.getActionPricing('influencer_unlock')
+        if (result.success && result.data) {
+          setPricing(result.data)
+        }
+      } catch (error) {
+        console.error('Failed to load pricing:', error)
+      } finally {
+        setPricingLoading(false)
+      }
+    }
+
+    loadPricing()
+  }, [])
   const getTimeRemaining = () => {
     if (!expiresAt) return null
     
@@ -85,7 +109,7 @@ export function AccessStatus({
         
         <Button 
           onClick={onUnlock}
-          disabled={isUnlocking}
+          disabled={isUnlocking || pricingLoading}
           className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
           size="lg"
         >
@@ -94,10 +118,20 @@ export function AccessStatus({
               <Clock className="h-4 w-4 mr-2 animate-spin" />
               Unlocking Profile...
             </>
+          ) : pricingLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Loading...
+            </>
           ) : (
             <>
               <Zap className="h-4 w-4 mr-2" />
               Unlock 30-Day Access
+              {pricing && (
+                <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-white/30">
+                  {formatCredits(pricing.credits_per_action)} credits
+                </Badge>
+              )}
             </>
           )}
         </Button>
@@ -149,6 +183,27 @@ export function AccessUpgradePrompt({ username, onUnlock, isUnlocking }: {
   onUnlock?: () => void
   isUnlocking?: boolean 
 }) {
+  const [pricing, setPricing] = useState<PricingRule | null>(null)
+  const [pricingLoading, setPricingLoading] = useState(true)
+
+  // Load pricing for influencer unlock
+  useEffect(() => {
+    const loadPricing = async () => {
+      try {
+        const result = await creditsApiService.getActionPricing('influencer_unlock')
+        if (result.success && result.data) {
+          setPricing(result.data)
+        }
+      } catch (error) {
+        console.error('Failed to load pricing:', error)
+      } finally {
+        setPricingLoading(false)
+      }
+    }
+
+    loadPricing()
+  }, [])
+
   return (
     <div className="text-center py-8 px-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg border border-orange-200">
       <Lock className="h-12 w-12 text-orange-500 mx-auto mb-4" />
@@ -160,7 +215,7 @@ export function AccessUpgradePrompt({ username, onUnlock, isUnlocking }: {
       </p>
       <Button 
         onClick={onUnlock}
-        disabled={isUnlocking}
+        disabled={isUnlocking || pricingLoading}
         className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
       >
         {isUnlocking ? (
@@ -168,13 +223,29 @@ export function AccessUpgradePrompt({ username, onUnlock, isUnlocking }: {
             <Clock className="h-4 w-4 mr-2 animate-spin" />
             Unlocking...
           </>
+        ) : pricingLoading ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Loading...
+          </>
         ) : (
           <>
             <Zap className="h-4 w-4 mr-2" />
             Unlock 30-Day Access
+            {pricing && (
+              <span className="ml-2 text-sm opacity-90">
+                ({formatCredits(pricing.credits_per_action)} credits)
+              </span>
+            )}
           </>
         )}
       </Button>
+      
+      {pricing && pricing.free_allowance_per_month > 0 && (
+        <div className="mt-3 text-xs text-green-600 dark:text-green-400">
+          ✨ {pricing.free_allowance_per_month} free unlocks per month included
+        </div>
+      )}
     </div>
   )
 }

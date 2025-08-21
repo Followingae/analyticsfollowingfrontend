@@ -22,6 +22,13 @@ export class ApiErrorHandler {
           code: 'UNAUTHORIZED'
         }
       
+      case 402:
+        return {
+          status: 402,
+          message: 'Insufficient credits to perform this action.',
+          code: 'INSUFFICIENT_CREDITS'
+        }
+      
       case 403:
         return {
           status: 403,
@@ -103,6 +110,31 @@ export class ApiErrorHandler {
   static getRetryDelay(retryCount: number): number {
     // Exponential backoff: 1s, 2s, 4s
     return Math.min(1000 * Math.pow(2, retryCount), 10000)
+  }
+
+  static handleCreditError(error: any): {
+    isCreditsError: boolean
+    creditsRequired?: number
+    creditsAvailable?: number
+    creditsNeeded?: number
+    message: string
+  } {
+    if (error?.status === 402 || error?.data?.detail?.includes('credits')) {
+      const headers = error.headers || error.data?.headers || {}
+      
+      return {
+        isCreditsError: true,
+        creditsRequired: headers['X-Credits-Required'] ? parseInt(headers['X-Credits-Required']) : undefined,
+        creditsAvailable: headers['X-Credits-Available'] ? parseInt(headers['X-Credits-Available']) : undefined,
+        creditsNeeded: headers['X-Credits-Needed'] ? parseInt(headers['X-Credits-Needed']) : undefined,
+        message: error.data?.detail || error.message || 'Insufficient credits to perform this action'
+      }
+    }
+
+    return {
+      isCreditsError: false,
+      message: error?.message || 'An error occurred'
+    }
   }
 }
 
