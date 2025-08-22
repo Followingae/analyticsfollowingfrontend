@@ -512,5 +512,53 @@ class AuthService {
       }
     }
   }
+
+  // Get unlocked profiles
+  async getUnlockedProfiles(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    if (!this.token) {
+      return { success: false, error: 'No authentication token' }
+    }
+    try {
+      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.auth.unlockedProfiles}`, {
+        method: 'GET',
+        headers: {
+          ...REQUEST_HEADERS,
+          'Authorization': `Bearer ${this.token}`
+        }
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        console.log('🔐 AuthService: Unlocked profiles data:', data)
+        console.log('🔐 AuthService: Unlocked profiles - Full Object:', JSON.stringify(data, null, 2))
+        console.log('🔐 AuthService: Checking fields:')
+        console.log('  - data.profiles:', data.profiles)
+        console.log('  - data.data:', data.data)
+        console.log('  - data (direct):', Array.isArray(data) ? `Array with ${data.length} items` : 'Not an array')
+        console.log('  - data.unlocked_profiles:', data.unlocked_profiles)
+        console.log('  - data.results:', data.results)
+        
+        const profilesArray = data.profiles || data.data || data.unlocked_profiles || data.results || (Array.isArray(data) ? data : [])
+        console.log('🔐 AuthService: Final profiles array:', profilesArray, 'Length:', Array.isArray(profilesArray) ? profilesArray.length : 'Not array')
+        
+        return {
+          success: true,
+          data: profilesArray
+        }
+      } else {
+        return {
+          success: false,
+          error: data.detail || data.error || 'Failed to fetch unlocked profiles'
+        }
+      }
+    } catch (error) {
+      console.error('🔐 AuthService: Unlocked profiles error:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error fetching unlocked profiles'
+      }
+    }
+  }
 }
 export const authService = new AuthService()

@@ -18,9 +18,6 @@ import {
 import Image from "next/image"
 import { useTheme } from "next-themes"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
-import { FeatureGate } from "@/components/FeatureGate"
-import { CreditGate } from "@/components/CreditGate"
-import { SubscriptionGate } from "@/components/SubscriptionGate"
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -40,7 +37,7 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
-import { Crown, Coins, Lock } from "lucide-react"
+import { Crown } from "lucide-react"
 
 function ThemeLogo() {
   const { theme, resolvedTheme } = useTheme()
@@ -105,27 +102,24 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
   }, [user])
 
 
-  // Base navigation items with feature requirements
+  // Base navigation items - only actual existing pages
   const getNavigationData = () => {
     const searchAnalytics = [
       {
         title: "Dashboard",
         url: "/dashboard",
         icon: IconDashboard,
-        available: true
       },
       {
         title: "Discovery",
         url: "/discover",
         icon: IconCompass,
-        available: true
       },
       {
         title: "Creators",
         url: "/creators",
         icon: IconUsers,
-        available: true
-      },
+      }
     ]
 
     const management = [
@@ -133,40 +127,17 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         title: "Campaigns",
         url: "/campaigns",
         icon: IconTarget,
-        available: true
       },
       {
         title: "Lists",
         url: "/my-lists",
         icon: IconList,
-        available: true
       },
       {
         title: "Proposals",
-        url: "/proposals",
+        url: "/brand-proposals", // Use the actual existing route
         icon: IconFileText,
-        available: true,
-        requiresTier: 'brand_standard'
-      },
-    ]
-
-    const premium = [
-      {
-        title: "Advanced Analytics",
-        url: "/analytics/advanced",
-        icon: IconChartBar,
-        available: hasRole('brand_premium') || hasRole('brand_enterprise'),
-        requiresTier: 'brand_premium',
-        feature: 'advanced_analytics'
-      },
-      {
-        title: "API Dashboard",
-        url: "/api",
-        icon: IconSearch,
-        available: hasRole('brand_premium') || hasRole('brand_enterprise'),
-        requiresTier: 'brand_premium',
-        feature: 'api_access'
-      },
+      }
     ]
 
     const more = [
@@ -174,73 +145,30 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         title: "Billing",
         url: "/billing",
         icon: IconCreditCard,
-        available: true
       },
       {
         title: "Settings",
         url: "/settings",
         icon: IconSettings,
-        available: true
       },
       {
         title: "Help & Support",
         url: "#",
         icon: IconHelp,
-        available: true
       },
+      // Include upgrade for free users only
+      ...(hasRole('brand_free') ? [{
+        title: "Upgrade Plan",
+        url: "/billing",
+        icon: Crown,
+      }] : [])
     ]
 
-    return { searchAnalytics, management, premium, more }
+    return { searchAnalytics, management, more }
   }
 
   const data = getNavigationData()
 
-  const NavItemWithGate = ({ item }: { item: any }) => {
-    if (!item.requiresTier && !item.feature) {
-      return <NavMain items={[item]} />
-    }
-
-    if (item.requiresTier) {
-      return (
-        <SubscriptionGate 
-          requiredTier={item.requiresTier}
-          feature={item.feature}
-          fallback={
-            <div className="relative">
-              <NavMain items={[{ ...item, url: '#' }]} />
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-md flex items-center justify-center">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Lock className="w-3 h-3" />
-                  <span>Requires {item.requiresTier.replace('brand_', '')}</span>
-                </div>
-              </div>
-            </div>
-          }
-        >
-          <NavMain items={[item]} />
-        </SubscriptionGate>
-      )
-    }
-
-    return (
-      <FeatureGate 
-        feature={item.feature}
-        fallback={
-          <div className="relative">
-            <NavMain items={[{ ...item, url: '#' }]} />
-            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-md flex items-center justify-center">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Crown className="w-3 h-3" />
-                <span>Premium</span>
-              </div>
-            </div>
-          </div>
-        }
-      >
-        <NavMain items={[item]} />
-      </FeatureGate>
-    )
-  }
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -255,15 +183,6 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
           </SidebarMenuItem>
         </SidebarMenu>
         
-        {/* Subtle Tier Display */}
-        {user && user.role === 'brand_free' && (
-          <div className="px-2 py-1">
-            <Button size="sm" variant="outline" className="w-full">
-              <Crown className="w-3 h-3 mr-1" />
-              Upgrade Plan
-            </Button>
-          </div>
-        )}
       </SidebarHeader>
       
       <SidebarContent>
@@ -272,29 +191,13 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <CreditGate 
-                  action="quick_search" 
-                  cost={5}
-                  showTopUp={false}
-                  fallback={
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start"
-                      disabled
-                    >
-                      <IconSearch className="size-4" />
-                      Quick Search
-                    </Button>
-                  }
+                <Button 
+                  variant="default" 
+                  className="w-full justify-start bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
                 >
-                  <Button 
-                    variant="default" 
-                    className="w-full justify-start bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
-                  >
-                    <IconSearch className="size-4" />
-                    Quick Search
-                  </Button>
-                </CreditGate>
+                  <IconSearch className="size-4" />
+                  Quick Search
+                </Button>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
@@ -312,30 +215,10 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         <SidebarGroup>
           <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarGroupContent>
-            <div className="space-y-1">
-              {data.management.map((item, index) => (
-                <NavItemWithGate key={index} item={item} />
-              ))}
-            </div>
+            <NavMain items={data.management} />
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Premium Features Section */}
-        {(hasRole('brand_premium') || hasRole('brand_enterprise') || hasRole('brand_standard')) && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center gap-1">
-              <Crown className="w-3 h-3 text-orange-500" />
-              Premium Features
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <div className="space-y-1">
-                {data.premium.map((item, index) => (
-                  <NavItemWithGate key={index} item={item} />
-                ))}
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
 
         {/* More Section */}
         <SidebarGroup className="mt-auto">

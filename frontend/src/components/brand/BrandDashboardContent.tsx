@@ -70,16 +70,30 @@ export function BrandDashboardContent() {
   // Credit balance state
   const [creditBalance, setCreditBalance] = useState<any>(null)
   const [creditLoading, setCreditLoading] = useState(true)
+  
+  // Unlocked profiles state
+  const [unlockedProfilesCount, setUnlockedProfilesCount] = useState<number>(0)
+  const [profilesLoading, setProfilesLoading] = useState(true)
 
-  // Load credit balance
+  // Load real credit balance
   useEffect(() => {
     const loadCreditBalance = async () => {
+      if (!user) {
+        setCreditLoading(false)
+        return
+      }
+
       try {
         const { creditsApiService } = await import('@/services/creditsApi')
         const result = await creditsApiService.getBalance()
         
+        console.log('🏢 BrandDashboard: Credit API Response:', result)
+        
         if (result.success && result.data) {
+          console.log('🏢 BrandDashboard: Credit Balance Data:', result.data)
           setCreditBalance(result.data)
+        } else {
+          console.log('🏢 BrandDashboard: No credit data or API failed:', result.error)
         }
       } catch (error) {
         console.error('Failed to load credit balance:', error)
@@ -89,7 +103,40 @@ export function BrandDashboardContent() {
     }
 
     loadCreditBalance()
-  }, [])
+  }, [user])
+
+  // Load unlocked profiles count
+  useEffect(() => {
+    const loadUnlockedProfiles = async () => {
+      if (!user) {
+        setProfilesLoading(false)
+        return
+      }
+
+      try {
+        const { authService } = await import('@/services/authService')
+        const result = await authService.getUnlockedProfiles()
+        
+        console.log('🏢 BrandDashboard: Unlocked Profiles Response:', result)
+        
+        if (result.success && result.data) {
+          const count = Array.isArray(result.data) ? result.data.length : 0
+          console.log('🏢 BrandDashboard: Unlocked Profiles Count:', count)
+          setUnlockedProfilesCount(count)
+        } else {
+          console.log('🏢 BrandDashboard: No unlocked profiles or API failed:', result.error)
+          setUnlockedProfilesCount(0)
+        }
+      } catch (error) {
+        console.error('Failed to load unlocked profiles:', error)
+        setUnlockedProfilesCount(0)
+      } finally {
+        setProfilesLoading(false)
+      }
+    }
+
+    loadUnlockedProfiles()
+  }, [user])
 
   // Brand analytics data - dynamic Your Plan card
   const brandMetrics = [
@@ -101,13 +148,26 @@ export function BrandDashboardContent() {
     },
     {
       title: "Total Creators",
-      value: "--",
+      value: profilesLoading ? "Loading..." : unlockedProfilesCount.toString(),
       change: undefined,
       icon: <Users className="h-4 w-4 text-[#5100f3]" />
     },
     {
       title: "Your Plan",
-      value: creditLoading ? "Loading..." : (creditBalance?.package_name || "Free"),
+      value: (() => {
+        // Get plan from user profile first, then fallback to credits API
+        if (user?.role === 'premium') return 'Professional'
+        if (user?.role === 'enterprise') return 'Enterprise'
+        if (user?.role === 'standard') return 'Standard'
+        
+        // Fallback to credits API if available
+        if (creditLoading) return "Loading..."
+        return creditBalance?.package_name || 
+               creditBalance?.subscription_tier || 
+               creditBalance?.plan || 
+               creditBalance?.tier || 
+               "Free Plan"
+      })(),
       change: undefined,
       icon: <Star className="h-4 w-4 text-[#5100f3]" />
     },

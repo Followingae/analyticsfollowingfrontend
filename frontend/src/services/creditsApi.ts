@@ -159,8 +159,63 @@ class CreditsApiService {
   }
 
   // Credit Balance & Wallet Management
+  async getTotalPlanCredits(): Promise<ApiResponse<{
+    total_plan_credits: number
+    package_credits: number
+    purchased_credits: number
+    bonus_credits: number
+    monthly_allowance: number
+    package_name: string
+    current_balance: number
+  }>> {
+    return this.makeRequest('/api/v1/credits/total-plan-credits')
+  }
+
   async getBalance(): Promise<ApiResponse<CreditBalance>> {
-    return this.makeRequest<CreditBalance>('/api/v1/credits/balance')
+    try {
+      const response = await this.makeRequest<any>('/api/v1/credits/balance')
+      
+      console.log('🔍 Raw Credits API Response:', response)
+      console.log('🔍 Raw Credits API Response - Full Object:', JSON.stringify(response, null, 2))
+      
+      if (response.success && response.data) {
+        const rawData = response.data
+        console.log('🔍 Raw Credits Data:', rawData)
+        console.log('🔍 Raw Credits Data - Full Object:', JSON.stringify(rawData, null, 2))
+        
+        // Log specific fields we're looking for
+        console.log('🔍 Looking for subscription fields:')
+        console.log('  - package_name:', rawData.package_name)
+        console.log('  - subscription_tier:', rawData.subscription_tier)
+        console.log('  - plan:', rawData.plan)
+        console.log('  - tier:', rawData.tier)
+        console.log('  - current_balance:', rawData.current_balance)
+        
+        // Handle potential field mapping - backend might use different field names
+        const mappedData: CreditBalance = {
+          current_balance: rawData.balance ?? rawData.current_balance ?? rawData.credits ?? 0,
+          monthly_allowance: rawData.monthly_allowance ?? rawData.monthly_limit ?? 0,
+          package_name: rawData.package_name ?? rawData.subscription_tier ?? rawData.plan ?? rawData.tier ?? 'Free',
+          billing_cycle_start: rawData.billing_cycle_start ?? rawData.cycle_start ?? rawData.next_reset_date ?? new Date().toISOString(),
+          wallet_status: rawData.is_locked ? 'locked' : 'active'
+        }
+        
+        console.log('🗺️ Mapped Credits Data:', mappedData)
+        
+        return {
+          success: true,
+          data: mappedData
+        }
+      }
+      
+      return response
+    } catch (error) {
+      console.error('❌ Credits API Error:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
   }
 
   async getWalletSummary(): Promise<ApiResponse<CreditWalletSummary>> {

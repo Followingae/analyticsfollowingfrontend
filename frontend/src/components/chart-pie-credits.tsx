@@ -39,15 +39,44 @@ export function ChartPieCredits() {
     const loadBalance = async () => {
       try {
         setLoading(true)
-        const result = await creditsApiService.getBalance()
         
-        if (result.success && result.data) {
-          setCreditBalance(result.data)
+        // Use new total plan credits endpoint for complete information
+        const planCreditsResult = await creditsApiService.getTotalPlanCredits()
+        
+        if (planCreditsResult.success && planCreditsResult.data) {
+          console.log('📊 ChartPieCredits: Total Plan Credits Response:', planCreditsResult.data)
+          
+          // Map the new response to our credit balance format
+          const planData = planCreditsResult.data
+          const mappedCreditBalance = {
+            current_balance: planData.current_balance,
+            monthly_allowance: planData.monthly_allowance,
+            package_name: planData.package_name,
+            total_plan_credits: planData.total_plan_credits,
+            package_credits: planData.package_credits,
+            purchased_credits: planData.purchased_credits,
+            bonus_credits: planData.bonus_credits,
+            billing_cycle_start: new Date().toISOString(),
+            wallet_status: 'active' as const
+          }
+          
+          console.log('📊 ChartPieCredits: Mapped Credit Data:', mappedCreditBalance)
+          setCreditBalance(mappedCreditBalance)
           setError(null)
         } else {
-          setError(result.error || 'Failed to load credit balance')
+          console.log('📊 ChartPieCredits: Plan Credits API failed, trying balance API fallback')
+          // Fallback to balance endpoint
+          const balanceResult = await creditsApiService.getBalance()
+          if (balanceResult.success && balanceResult.data) {
+            console.log('📊 ChartPieCredits: Balance API Fallback:', balanceResult.data)
+            setCreditBalance(balanceResult.data)
+            setError(null)
+          } else {
+            setError(balanceResult.error || 'Failed to load credit balance')
+          }
         }
       } catch (err) {
+        console.error('📊 ChartPieCredits: Error loading credits:', err)
         setError('Network error loading credits')
       } finally {
         setLoading(false)
@@ -67,10 +96,25 @@ export function ChartPieCredits() {
       }]
     }
     
-    const totalCredits = creditBalance.monthly_allowance || creditBalance.current_balance
-    const percentage = totalCredits > 0 
-      ? Math.round((creditBalance.current_balance / totalCredits) * 100) 
-      : 0
+    // For balance-based system (premium users), show percentage of current balance
+    // For allowance-based system, show percentage of monthly allowance used
+    const currentBalance = creditBalance.current_balance || 0
+    const monthlyAllowance = creditBalance.monthly_allowance || 0
+    
+    let totalCredits = currentBalance
+    let remainingCredits = currentBalance
+    let percentage = 100 // Default to full if just showing balance
+    
+    if (monthlyAllowance > 0) {
+      // Allowance-based system
+      totalCredits = monthlyAllowance
+      remainingCredits = currentBalance
+      percentage = Math.round((remainingCredits / totalCredits) * 100)
+    } else {
+      // Balance-based system - show as percentage of total (assume some usage pattern)
+      // For display purposes, show current balance as 100% available
+      percentage = 100
+    }
     
     const status = getCreditBalanceStatus(creditBalance)
     let fillColor = "hsl(75, 100%, 51%)" // Default green
@@ -89,7 +133,7 @@ export function ChartPieCredits() {
     }
     
     return [{
-      remaining: creditBalance.current_balance || 0,
+      remaining: remainingCredits,
       percentage,
       fill: fillColor,
     }]
@@ -109,7 +153,7 @@ export function ChartPieCredits() {
         <CardDescription>
           {loading ? 'Loading...' : 
            error ? 'Error loading data' :
-           creditBalance ? `Total Plan Credits: ${formatCredits(creditBalance.monthly_allowance)}` : 
+           creditBalance ? `Total Plan Credits: ${formatCredits((creditBalance as any).total_plan_credits || creditBalance.current_balance)}` : 
            '--'
           }
         </CardDescription>

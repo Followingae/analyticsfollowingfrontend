@@ -64,7 +64,7 @@ export const ENDPOINTS = {
     forgotPassword: '/api/v1/auth/forgot-password',
     resetPassword: '/api/v1/auth/reset-password',
     verifyEmail: (token: string) => `/api/v1/auth/verify-email/${token}`,
-    me: '/api/v1/auth/me',
+    me: '/api/v1/me',
     logout: '/api/v1/auth/logout',
     unlockedProfiles: '/api/v1/auth/unlocked-profiles',
   },

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { authService, User, DashboardStats } from '@/services/authService'
+import { useAuth } from '@/contexts/AuthContext'
 import { EnhancedUser, UserRole, PermissionType, FeatureAccess, SessionContext } from '@/types/auth'
 import { toast } from 'sonner'
 
@@ -90,16 +91,38 @@ interface EnhancedAuthProviderProps {
 }
 
 export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
+  const { 
+    user: basicUser, 
+    isAuthenticated: basicIsAuthenticated, 
+    isLoading: basicIsLoading, 
+    dashboardStats: basicDashboardStats,
+    login: basicLogin,
+    register: basicRegister,
+    logout: basicLogout,
+    refreshUser: basicRefreshUser,
+    updateProfile: basicUpdateProfile
+  } = useAuth()
+  
   const [user, setUser] = useState<EnhancedUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
   const [lastActivity, setLastActivity] = useState<Date>(new Date())
   const [sessionTimeout] = useState<number>(30 * 60 * 1000) // 30 minutes
 
-  // Initialize auth state
+  // Sync with basic auth context
   useEffect(() => {
-    initializeAuth()
-  }, [])
+    if (!basicIsLoading) {
+      if (basicIsAuthenticated && basicUser) {
+        const enhancedUser = enhanceUserData(basicUser)
+        setUser(enhancedUser)
+        setDashboardStats(basicDashboardStats)
+      } else {
+        setUser(null)
+        setDashboardStats(null)
+      }
+      setIsLoading(false)
+    }
+  }, [basicUser, basicIsAuthenticated, basicIsLoading, basicDashboardStats])
 
   // Activity tracking
   useEffect(() => {
@@ -122,25 +145,20 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     setLastActivity(new Date())
   }
 
-  const initializeAuth = async () => {
-    try {
-      const storedUser = authService.getStoredUser()
-      
-      if (storedUser && authService.isAuthenticated()) {
-        const enhancedUser = enhanceUserData(storedUser)
-        setUser(enhancedUser)
-        await loadDashboardStats()
-      } else {
-        setUser(null)
-      }
-    } catch (error) {
-      setUser(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const enhanceUserData = (basicUser: User): EnhancedUser => {
+    console.log('🔧 EnhancedAuth: Raw user data from backend:', basicUser)
+    console.log('🔧 EnhancedAuth: Raw user data - Full Object:', JSON.stringify(basicUser, null, 2))
+    console.log('🔧 EnhancedAuth: User role field:', basicUser.role)
+    console.log('🔧 EnhancedAuth: Looking for subscription fields:')
+    console.log('  - basicUser.subscription_tier:', (basicUser as any).subscription_tier)
+    console.log('  - basicUser.plan:', (basicUser as any).plan)
+    console.log('  - basicUser.tier:', (basicUser as any).tier)
+    console.log('  - basicUser.package_name:', (basicUser as any).package_name)
+    console.log('  - basicUser.credit_packages:', (basicUser as any).credit_packages)
+    console.log('  - basicUser.subscription:', (basicUser as any).subscription)
+    console.log('  - basicUser.monthly_credits:', (basicUser as any).monthly_credits)
+    
     // Map basic user roles to enhanced roles
     let role: UserRole
     switch (basicUser.role) {
@@ -155,6 +173,8 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
         role = 'brand_free'
         break
     }
+    
+    console.log('🔧 EnhancedAuth: Mapped role from', basicUser.role, 'to', role)
 
     return {
       ...basicUser,
@@ -178,111 +198,20 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
   }
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    setIsLoading(true)
     updateActivity()
-    
-    try {
-      const result = await authService.login({ email, password })
-      
-      if (result.success && result.data && result.data.access_token) {
-        const enhancedUser = enhanceUserData(result.data.user)
-        setUser(enhancedUser)
-        await loadDashboardStats()
-        toast.success(`Welcome back, ${result.data.user.full_name}!`)
-        return true
-      } else {
-        const errorMessage = result.error || 'Login failed'
-        
-        if (errorMessage.includes('email') && errorMessage.includes('confirmation')) {
-          toast.error(errorMessage, {
-            duration: 8000,
-            action: {
-              label: 'Resend Email',
-              onClick: () => {
-                const email = localStorage.getItem('pending_confirmation_email')
-                if (email) {
-                  toast.info('Please contact support to resend confirmation email')
-                }
-              }
-            }
-          })
-        } else {
-          toast.error(errorMessage)
-        }
-        
-        return false
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed'
-      toast.error(errorMessage)
-      return false
-    } finally {
-      setIsLoading(false)
-    }
+    return await basicLogin(email, password)
   }
 
   const register = async (email: string, password: string, fullName: string): Promise<boolean> => {
-    setIsLoading(true)
-    
-    try {
-      const result = await authService.register({ email, password, full_name: fullName })
-      
-      if (result.success && result.data) {
-        if (result.data.email_confirmation_required) {
-          const message = result.data.message || 'Registration successful! Please check your email to confirm your account.'
-          toast.success(message, {
-            duration: 10000,
-            description: `A confirmation email has been sent to ${result.data.user?.email || email}. Please click the link to activate your account.`
-          })
-          
-          setUser(null)
-          return true
-        } else if (result.data.access_token) {
-          const enhancedUser = enhanceUserData(result.data.user)
-          setUser(enhancedUser)
-          await loadDashboardStats()
-          toast.success(`Welcome to Analytics Following, ${result.data.user.full_name}!`)
-          return true
-        } else {
-          toast.success('Registration successful! You can now log in.')
-          return true
-        }
-      } else {
-        toast.error(result.error || 'Registration failed')
-        return false
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed'
-      toast.error(errorMessage)
-      return false
-    } finally {
-      setIsLoading(false)
-    }
+    return await basicRegister(email, password, fullName)
   }
 
   const logout = () => {
-    setUser(null)
-    setDashboardStats(null)
-    authService.logout()
-    toast.success('Successfully logged out')
+    basicLogout()
   }
 
   const refreshUser = async () => {
-    try {
-      const result = await authService.getCurrentUser()
-      if (result.success && result.data) {
-        const currentUser = authService.getStoredUser()
-        if (!result.data.avatar_config && currentUser?.avatar_config) {
-          result.data.avatar_config = currentUser.avatar_config
-        }
-        
-        const enhancedUser = enhanceUserData(result.data)
-        setUser(enhancedUser)
-        localStorage.setItem('user_data', JSON.stringify(result.data))
-      }
-    } catch (error) {
-      // Silent fail
-    }
+    await basicRefreshUser()
   }
 
   const updateUserState = (userData: Partial<EnhancedUser>) => {
@@ -324,33 +253,7 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
   }
 
   const updateProfile = async (profileData: any): Promise<boolean> => {
-    try {
-      const { settingsService } = await import('@/services/settingsService')
-      const result = await settingsService.updateProfile(profileData)
-      
-      if (result.success && result.data) {
-        updateUserState({
-          first_name: result.data.first_name,
-          last_name: result.data.last_name,
-          full_name: result.data.full_name,
-          company: result.data.company,
-          job_title: result.data.job_title,
-          phone_number: result.data.phone_number,
-          bio: result.data.bio,
-          avatar_config: result.data.avatar_config
-        })
-        
-        toast.success(result.data.message || 'Profile updated successfully')
-        return true
-      } else {
-        toast.error(result.error || 'Failed to update profile')
-        return false
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Network error'
-      toast.error(errorMessage)
-      return false
-    }
+    return await basicUpdateProfile(profileData)
   }
 
   // Role and permission checking methods
@@ -445,8 +348,8 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
   const value: EnhancedAuthContextType = {
     user,
-    isAuthenticated: !!user,
-    isLoading,
+    isAuthenticated: basicIsAuthenticated,
+    isLoading: basicIsLoading,
     dashboardStats,
     login,
     register,

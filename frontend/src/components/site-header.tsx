@@ -7,8 +7,9 @@ import { useNotifications } from "@/contexts/NotificationContext"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Crown, Coins } from "lucide-react"
+import { creditsApiService, CreditBalance } from "@/services/creditsApi"
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -16,6 +17,10 @@ export function SiteHeader() {
   const { user, isLoading } = useAuth()
   const { user: enhancedUser, isBrandUser } = useEnhancedAuth()
   const { notifications, markAsRead, markAllAsRead, deleteNotification } = useNotifications()
+  
+  // Real credit balance state
+  const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null)
+  const [creditLoading, setCreditLoading] = useState(true)
   
   // Memoized dynamic user data to prevent flash
   const userDisplayData = useMemo(() => {
@@ -47,6 +52,37 @@ export function SiteHeader() {
     }
   }, [user, isLoading])
   
+  // Load real credit balance
+  useEffect(() => {
+    const loadCreditBalance = async () => {
+      if (!user || !isBrandUser) {
+        setCreditLoading(false)
+        return
+      }
+
+      try {
+        const result = await creditsApiService.getBalance()
+        console.log('🎯 SiteHeader: Credit API Response:', result)
+        
+        if (result.success && result.data) {
+          console.log('🎯 SiteHeader: Credit Balance Data:', result.data)
+          setCreditBalance(result.data)
+        } else {
+          console.log('🎯 SiteHeader: No credit data or API failed:', result.error)
+          // API call succeeded but no data - user might not have a credit wallet yet
+          setCreditBalance(null)
+        }
+      } catch (error) {
+        console.error('Failed to load credit balance:', error)
+        setCreditBalance(null)
+      } finally {
+        setCreditLoading(false)
+      }
+    }
+
+    loadCreditBalance()
+  }, [user, isBrandUser])
+
   const getCurrentDate = () => {
     const today = new Date()
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -83,28 +119,39 @@ export function SiteHeader() {
             {getCurrentDate()}
           </div>
           
-          {/* Subtle Tier and Credit Display for Brand Users */}
-          {isBrandUser && enhancedUser && (
+          {/* Live Tier and Credit Display for Brand Users */}
+          {isBrandUser && enhancedUser && !creditLoading && (
+            <div className="flex items-center gap-2">
+              {/* Real plan name from credit API */}
+              <Badge variant="outline" className="text-xs">
+                <Crown className="w-3 h-3 mr-1" />
+                {creditBalance?.package_name || enhancedUser.role?.replace('brand_', '') || 'Free'}
+              </Badge>
+              
+              {/* Real credit balance */}
+              {creditBalance && creditBalance.current_balance !== undefined && (
+                <Badge variant="secondary" className="text-xs">
+                  <Coins className="w-3 h-3 mr-1" />
+                  {creditBalance.current_balance.toLocaleString()}
+                </Badge>
+              )}
+              
+              {/* Monthly allowance for users with allowances */}
+              {creditBalance && creditBalance.monthly_allowance > 0 && (
+                <Badge variant="outline" className="text-xs text-muted-foreground">
+                  {creditBalance.monthly_allowance} monthly
+                </Badge>
+              )}
+            </div>
+          )}
+          
+          {/* Loading state */}
+          {isBrandUser && creditLoading && (
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
                 <Crown className="w-3 h-3 mr-1" />
-                {enhancedUser.role?.replace('brand_', '') || 'Free'}
+                Loading...
               </Badge>
-              
-              {/* Mock credit display - replace with actual credit API */}
-              {(enhancedUser.role === 'brand_standard' || enhancedUser.role === 'brand_premium' || enhancedUser.role === 'brand_enterprise') && (
-                <Badge variant="secondary" className="text-xs">
-                  <Coins className="w-3 h-3 mr-1" />
-                  150
-                </Badge>
-              )}
-              
-              {enhancedUser.role === 'brand_free' && (
-                <Badge variant="outline" className="text-xs text-muted-foreground">
-                  <Coins className="w-3 h-3 mr-1" />
-                  5 searches left
-                </Badge>
-              )}
             </div>
           )}
           
