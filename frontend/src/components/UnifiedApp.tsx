@@ -7,6 +7,7 @@ import { LoadingScreen } from '@/components/LoadingScreen'
 import { SuperAdminInterface } from '@/components/admin/SuperAdminInterface'
 import { AdminInterface } from '@/components/admin/AdminInterface'
 import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
+import { BrandDashboardContent } from '@/components/brand/BrandDashboardContent'
 import { UnauthorizedAccess } from '@/components/UnauthorizedAccess'
 
 export function UnifiedApp() {
@@ -63,7 +64,11 @@ export function UnifiedApp() {
     case 'brand_premium':
     case 'brand_standard':
     case 'brand_free':
-      return <BrandUserInterface />
+      return (
+        <BrandUserInterface>
+          <BrandDashboardContent />
+        </BrandUserInterface>
+      )
     
     default:
       return <UnauthorizedAccess />

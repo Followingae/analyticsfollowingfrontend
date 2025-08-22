@@ -2,15 +2,19 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { NotificationBell } from "@/components/ui/notification"
+import { Badge } from "@/components/ui/badge"
 import { useNotifications } from "@/contexts/NotificationContext"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { useMemo } from "react"
+import { Crown, Coins } from "lucide-react"
 
 export function SiteHeader() {
   const pathname = usePathname()
   const isDashboard = pathname === '/' || pathname === '/dashboard'
   const { user, isLoading } = useAuth()
+  const { user: enhancedUser, isBrandUser } = useEnhancedAuth()
   const { notifications, markAsRead, markAllAsRead, deleteNotification } = useNotifications()
   
   // Memoized dynamic user data to prevent flash
@@ -78,6 +82,32 @@ export function SiteHeader() {
           <div className="text-sm text-muted-foreground font-medium">
             {getCurrentDate()}
           </div>
+          
+          {/* Subtle Tier and Credit Display for Brand Users */}
+          {isBrandUser && enhancedUser && (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                <Crown className="w-3 h-3 mr-1" />
+                {enhancedUser.role?.replace('brand_', '') || 'Free'}
+              </Badge>
+              
+              {/* Mock credit display - replace with actual credit API */}
+              {(enhancedUser.role === 'brand_standard' || enhancedUser.role === 'brand_premium' || enhancedUser.role === 'brand_enterprise') && (
+                <Badge variant="secondary" className="text-xs">
+                  <Coins className="w-3 h-3 mr-1" />
+                  150
+                </Badge>
+              )}
+              
+              {enhancedUser.role === 'brand_free' && (
+                <Badge variant="outline" className="text-xs text-muted-foreground">
+                  <Coins className="w-3 h-3 mr-1" />
+                  5 searches left
+                </Badge>
+              )}
+            </div>
+          )}
+          
           <NotificationBell
             notifications={notifications}
             onMarkAsRead={markAsRead}

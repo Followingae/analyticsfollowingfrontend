@@ -1,8 +1,9 @@
 'use client'
 
 import { ReactNode } from 'react'
-import { SidebarProvider } from '@/components/ui/sidebar'
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { EnhancedAppSidebar } from '@/components/brand/EnhancedAppSidebar'
+import { SiteHeader } from '@/components/site-header'
 
 interface BrandUserInterfaceProps {
   children?: ReactNode
@@ -10,13 +11,21 @@ interface BrandUserInterfaceProps {
 
 export function BrandUserInterface({ children }: BrandUserInterfaceProps) {
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <EnhancedAppSidebar />
-        <main className="flex-1">
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 66)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <EnhancedAppSidebar variant="inset" />
+      <SidebarInset>
+        <SiteHeader />
+        <main className="flex flex-1 flex-col">
           {children}
         </main>
-      </div>
+      </SidebarInset>
     </SidebarProvider>
   )
 }

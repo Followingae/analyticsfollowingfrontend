@@ -104,24 +104,6 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
     }
   }, [user])
 
-  // Get tier-specific data
-  const getTierInfo = () => {
-    if (!user) return { name: 'Free', color: 'bg-gray-500' }
-    
-    switch (user.role) {
-      case 'brand_enterprise':
-        return { name: 'Enterprise', color: 'bg-gradient-to-r from-purple-600 to-blue-600' }
-      case 'brand_premium':
-        return { name: 'Premium', color: 'bg-gradient-to-r from-orange-500 to-pink-600' }
-      case 'brand_standard':
-        return { name: 'Standard', color: 'bg-blue-500' }
-      case 'brand_free':
-      default:
-        return { name: 'Free', color: 'bg-gray-500' }
-    }
-  }
-
-  const tierInfo = getTierInfo()
 
   // Base navigation items with feature requirements
   const getNavigationData = () => {
@@ -273,35 +255,13 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
           </SidebarMenuItem>
         </SidebarMenu>
         
-        {/* Subscription Tier Display */}
-        {user && (
+        {/* Subtle Tier Display */}
+        {user && user.role === 'brand_free' && (
           <div className="px-2 py-1">
-            <div className={`rounded-lg p-2 text-white text-center ${tierInfo.color}`}>
-              <div className="flex items-center justify-center gap-1">
-                <Crown className="w-4 h-4" />
-                <span className="text-sm font-medium">{tierInfo.name} Plan</span>
-              </div>
-              {user.role === 'brand_free' && (
-                <p className="text-xs opacity-90 mt-1">
-                  5 searches remaining
-                </p>
-              )}
-              {(user.role === 'brand_standard' || user.role === 'brand_premium') && (
-                <div className="flex items-center justify-center gap-1 mt-1">
-                  <Coins className="w-3 h-3" />
-                  <span className="text-xs">150 credits</span>
-                </div>
-              )}
-            </div>
-            {user.role === 'brand_free' && (
-              <Button 
-                size="sm" 
-                className="w-full mt-2 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700"
-              >
-                <Crown className="w-3 h-3 mr-1" />
-                Upgrade
-              </Button>
-            )}
+            <Button size="sm" variant="outline" className="w-full">
+              <Crown className="w-3 h-3 mr-1" />
+              Upgrade Plan
+            </Button>
           </div>
         )}
       </SidebarHeader>
@@ -319,14 +279,11 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
                   fallback={
                     <Button 
                       variant="outline" 
-                      className="w-full justify-start opacity-50"
+                      className="w-full justify-start"
                       disabled
                     >
                       <IconSearch className="size-4" />
                       Quick Search
-                      <Badge variant="outline" className="ml-auto text-xs">
-                        5 credits
-                      </Badge>
                     </Button>
                   }
                 >
