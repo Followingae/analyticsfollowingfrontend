@@ -852,9 +852,6 @@ export default function SettingsPage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="aed"><span className="aed-currency">AED</span></SelectItem>
-                            <SelectItem value="usd">USD ($)</SelectItem>
-                            <SelectItem value="eur">EUR (€)</SelectItem>
-                            <SelectItem value="gbp">GBP (£)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

@@ -13,6 +13,7 @@ import {
   IconCreditCard,
   IconCompass,
   IconList,
+  IconFileText,
 } from "@tabler/icons-react"
 import Image from "next/image"
 import { useTheme } from "next-themes"
@@ -29,10 +30,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
 } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
 
 const data = {
-  navMain: [
+  searchAnalytics: [
     {
       title: "Dashboard",
       url: "/",
@@ -48,18 +53,25 @@ const data = {
       url: "/creators",
       icon: IconUsers,
     },
-    {
-      title: "My Lists",
-      url: "/my-lists",
-      icon: IconList,
-    },
+  ],
+  management: [
     {
       title: "Campaigns",
       url: "/campaigns",
       icon: IconTarget,
     },
+    {
+      title: "Lists",
+      url: "/my-lists",
+      icon: IconList,
+    },
+    {
+      title: "Proposals",
+      url: "/brand-proposals",
+      icon: IconFileText,
+    },
   ],
-  navSecondary: [
+  more: [
     {
       title: "Billing",
       url: "/billing",
@@ -142,14 +154,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader className="flex justify-center items-center py-3">
-        <SidebarMenu className="w-full flex justify-center">
-          <SidebarMenuItem className="flex justify-center">
-            <SidebarMenuButton
-              asChild
-              className="flex justify-center data-[slot=sidebar-menu-button]:!py-3 data-[slot=sidebar-menu-button]:!px-3"
-            >
-              <a className="flex justify-center items-center">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <a href="/" className="flex items-center">
                 <ThemeLogo />
               </a>
             </SidebarMenuButton>
@@ -157,8 +166,46 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {/* Quick Search Button */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <Button 
+                  variant="default" 
+                  className="w-full justify-start bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
+                >
+                  <IconSearch className="size-4" />
+                  Quick Search
+                </Button>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Search & Analytics Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Search & Analytics</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <NavMain items={data.searchAnalytics} />
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Management Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Management</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <NavMain items={data.management} />
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* More Section */}
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupLabel>More</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <NavMain items={data.more} />
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         {!isLoading && dynamicUser && dynamicUser.name && (

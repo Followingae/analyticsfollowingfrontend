@@ -36,12 +36,11 @@ export function NavSecondary({
                 <SidebarMenuButton 
                   asChild
                   className={cn(
-                    "h-12 text-base font-medium",
                     isActive && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
                   )}
                 >
                   <a href={item.url}>
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className="size-4" />
                     <span>{item.title}</span>
                   </a>
                 </SidebarMenuButton>

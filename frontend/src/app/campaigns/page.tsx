@@ -216,12 +216,16 @@ export default function CampaignsPage() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    const formattedAmount = new Intl.NumberFormat('ar-AE', {
+      style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount)
+    }).format(amount);
+    return (
+      <>
+        <span className="aed-currency">AED</span> {formattedAmount}
+      </>
+    );
   }
 
   const formatNumber = (num: number) => {
@@ -331,7 +335,7 @@ export default function CampaignsPage() {
                     <Download className="h-4 w-4 mr-2" />
                     Export Reports
                   </Button>
-                  <Button onClick={() => router.push('/campaigns/new')} style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                  <Button onClick={() => router.push('/campaigns/new')}  >
                     <Plus className="h-4 w-4 mr-2" />
                     New Campaign
                   </Button>
@@ -471,7 +475,7 @@ export default function CampaignsPage() {
               {!campaignsLoading && !campaignsError && (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {filteredCampaigns.map((campaign) => (
-                    <Card key={campaign.id} className="group hover:shadow-md transition-shadow">
+                    <Card key={campaign.id} className="group">
                       <CardHeader className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 border-b">
                         <div className="flex items-start justify-between">
                           <div className="space-y-1">
@@ -579,7 +583,7 @@ export default function CampaignsPage() {
                       }
                     </p>
                     {(!searchQuery.trim() && statusFilter === "all" && typeFilter === "all" && priorityFilter === "all") && (
-                      <Button className="mt-4" onClick={() => router.push('/campaigns/new')} style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                      <Button className="mt-4" onClick={() => router.push('/campaigns/new')}  >
                         <Plus className="h-4 w-4 mr-2" />
                         Create Your First Campaign
                       </Button>

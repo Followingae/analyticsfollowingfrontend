@@ -2,6 +2,6 @@
 
 import { UnifiedApp } from "@/components/UnifiedApp"
 
-export default function DashboardPage() {
+export default function AdminDashboardPage() {
   return <UnifiedApp />
 }

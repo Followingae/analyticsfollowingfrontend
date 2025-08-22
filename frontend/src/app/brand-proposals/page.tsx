@@ -166,12 +166,16 @@ export default function BrandProposalsPage() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    const formattedAmount = new Intl.NumberFormat('ar-AE', {
+      style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount)
+    }).format(amount);
+    return (
+      <>
+        <span className="aed-currency">AED</span> {formattedAmount}
+      </>
+    );
   }
 
   const formatDate = (dateString: string) => {
@@ -328,7 +332,7 @@ export default function BrandProposalsPage() {
                   {!proposalsLoading && !proposalsError && (
                     <div className="space-y-4">
                       {activeProposals.map((proposal) => (
-                        <Card key={proposal.id} className={`group hover:shadow-md transition-shadow ${
+                        <Card key={proposal.id} className={`group ${
                           proposal.status === 'sent' && proposal.brand_response_due_date && 
                           new Date(proposal.brand_response_due_date) < new Date() ? 'border-red-200 dark:border-red-800' : ''
                         }`}>
@@ -421,9 +425,8 @@ export default function BrandProposalsPage() {
                                         setResponseForm(prev => ({ ...prev, decision: 'approved' }))
                                         setIsResponseDialogOpen(true)
                                       }}
-                                      style={{ backgroundColor: '#5100f3', color: 'white' }} 
-                                      className="hover:opacity-90"
-                                    >
+                                       
+                                                                          >
                                       <ThumbsUp className="h-4 w-4 mr-1" />
                                       Approve
                                     </Button>
@@ -436,17 +439,15 @@ export default function BrandProposalsPage() {
                       ))}
 
                       {activeProposals.length === 0 && (
-                        <div className="flex items-center justify-center py-12">
-                          <div className="text-center space-y-4">
-                            <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
-                            <div>
-                              <h3 className="text-lg font-semibold">No active proposals</h3>
-                              <p className="text-muted-foreground">
-                                You'll see marketing proposals from service providers here
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                        <Card>
+                          <CardContent className="flex flex-col items-center justify-center py-12">
+                            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No active proposals</h3>
+                            <p className="text-muted-foreground text-center">
+                              You'll see marketing proposals from service providers here
+                            </p>
+                          </CardContent>
+                        </Card>
                       )}
                     </div>
                   )}
@@ -676,7 +677,7 @@ export default function BrandProposalsPage() {
                         <h4 className="font-medium">Counter Proposal Details</h4>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium">Requested Budget (USD)</label>
+                            <label className="text-sm font-medium">Requested Budget (AED)</label>
                             <Input
                               type="number"
                               placeholder="0"
@@ -765,7 +766,7 @@ export default function BrandProposalsPage() {
                     }}>
                       Cancel
                     </Button>
-                    <Button onClick={handleSubmitResponse} style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                    <Button onClick={handleSubmitResponse}  className="hover:opacity-90">
                       <Send className="h-4 w-4 mr-2" />
                       Submit Response
                     </Button>

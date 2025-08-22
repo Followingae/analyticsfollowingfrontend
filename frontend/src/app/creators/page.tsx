@@ -546,7 +546,7 @@ export default function CreatorsPage() {
               </div>
               <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
                 <SheetTrigger asChild>
-                  <Button style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                  <Button>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Creators
                   </Button>

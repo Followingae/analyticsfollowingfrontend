@@ -51,7 +51,7 @@
 
 :root {
   --radius: 0.625rem;
-  
+
   /* Default: Custom Ilias Ism theme (dark mode is default) */
   --gradient: #d3ff02;
 
@@ -83,14 +83,14 @@
   --destructive-foreground: hsl(75, 10%, 97.55%);
 
   --ring: hsl(75, 100%, 51%);
-  
+
   /* Chart colors using the custom palette */
   --chart-1: hsl(75, 100%, 51%);
   --chart-2: hsl(75, 80%, 45%);
   --chart-3: hsl(75, 60%, 40%);
   --chart-4: hsl(75, 40%, 35%);
   --chart-5: hsl(75, 20%, 30%);
-  
+
   /* Sidebar colors */
   --sidebar: hsl(75, 45%, 6.63%);
   --sidebar-foreground: hsl(75, 10%, 97.55%);
@@ -162,4 +162,15 @@ html:not(.dark) {
 .welcome-card {
   border: none;
   box-shadow: none;
+}
+
+.dark {
+  --sidebar: hsl(240 5.9% 10%);
+  --sidebar-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-primary: hsl(224.3 76.3% 48%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }

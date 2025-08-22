@@ -150,23 +150,35 @@ export default function MyListsPage() {
       setLoading(true)
       setError(null)
       
-      const response = await listsApiService.getMyLists({
-        page,
-        limit: pagination.limit,
-        sort_by: sortBy,
-        sort_order: sortOrder,
-        search: searchQuery || undefined
-      })
+      const response = await listsApiService.getAllLists()
       
-      setMyLists(response.lists)
-      setPagination({
-        page: response.pagination.page,
-        limit: response.pagination.limit,
-        total: response.pagination.total,
-        totalPages: response.pagination.total_pages,
-        hasNext: response.pagination.has_next,
-        hasPrevious: response.pagination.has_previous
-      })
+      if (response.success && response.data) {
+        // Handle both array and paginated response formats
+        if (Array.isArray(response.data)) {
+          setMyLists(response.data)
+          setPagination({
+            page: 1,
+            limit: response.data.length,
+            total: response.data.length,
+            totalPages: 1,
+            hasNext: false,
+            hasPrevious: false
+          })
+        } else {
+          // Handle paginated response
+          setMyLists(response.data.lists || response.data.data || [])
+          setPagination({
+            page: response.data.pagination?.page || 1,
+            limit: response.data.pagination?.limit || 20,
+            total: response.data.pagination?.total || 0,
+            totalPages: response.data.pagination?.total_pages || 1,
+            hasNext: response.data.pagination?.has_next || false,
+            hasPrevious: response.data.pagination?.has_previous || false
+          })
+        }
+      } else {
+        throw new Error(response.error || 'Failed to load lists')
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to load lists")
       toast.error("Failed to load your lists")
@@ -410,8 +422,7 @@ export default function MyListsPage() {
                   <Button
                     onClick={() => setIsCreatingList(true)}
                     className="gap-2"
-                    style={{ backgroundColor: '#5100f3', color: 'white' }}
-                  >
+                                      >
                     <Plus className="h-4 w-4" />
                     New List
                   </Button>
@@ -455,18 +466,18 @@ export default function MyListsPage() {
 
               {/* Lists Grid */}
               {filteredAndSortedLists.length === 0 ? (
-                <Card className="text-center py-12">
-                  <CardContent>
-                    <Folder className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Lists Found</h3>
-                    <p className="text-muted-foreground mb-4">
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <Folder className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No lists found</h3>
+                    <p className="text-muted-foreground text-center">
                       {searchQuery.trim() 
-                        ? "No lists match your search criteria." 
-                        : "Create your first list to get started organizing creators."
+                        ? "Try adjusting your search criteria" 
+                        : "Create your first list to get started organizing creators"
                       }
                     </p>
                     {!searchQuery.trim() && (
-                      <Button onClick={() => setIsCreatingList(true)} style={{ backgroundColor: '#5100f3', color: 'white' }}>
+                      <Button className="mt-4" onClick={() => setIsCreatingList(true)}>
                         <Plus className="h-4 w-4 mr-2" />
                         Create Your First List
                       </Button>
@@ -476,7 +487,7 @@ export default function MyListsPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredAndSortedLists.map((list) => (
-                    <Card key={list.id} className="group hover:shadow-md transition-shadow">
+                    <Card key={list.id} className="group">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">

@@ -58,12 +58,12 @@ export function AIStatusIndicator({
     return (
       <div className="relative w-full">
         {/* Central AI Processing Display */}
-        <Card className="border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 dark:border-blue-700 shadow-lg">
+        <Card className="border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 dark:border-blue-700">
           <CardContent className="flex flex-col items-center justify-center py-12 px-8">
             {/* Large AI Brain Icon with Animation */}
             <div className="relative mb-6">
               <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping" />
-              <div className="relative bg-gradient-to-r from-blue-500 to-purple-500 p-6 rounded-full shadow-lg">
+              <div className="relative bg-gradient-to-r from-blue-500 to-purple-500 p-6 rounded-full">
                 <Brain className="h-12 w-12 text-white animate-pulse" />
               </div>
             </div>
@@ -189,11 +189,11 @@ export function AIStatusIndicator({
     return (
       <div className="relative w-full">
         {/* Completed State - Celebratory */}
-        <Card className="border-2 border-green-300 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 dark:border-green-700 shadow-lg">
+        <Card className="border-2 border-green-300 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 dark:border-green-700 ">
           <CardContent className="flex flex-col items-center justify-center py-8 px-6">
             {/* Success Icon */}
             <div className="relative mb-4">
-              <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-4 rounded-full shadow-lg">
+              <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-4 rounded-full ">
                 <CheckCircle className="h-8 w-8 text-white" />
               </div>
               <div className="absolute -top-1 -right-1 animate-bounce">
@@ -241,7 +241,7 @@ export function AIStatusIndicator({
           <CardContent className="flex flex-col items-center justify-center py-16 px-8">
             {/* Large AI Brain Icon */}
             <div className="relative mb-6">
-              <div className="bg-gradient-to-r from-gray-400 to-blue-400 p-6 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="bg-gradient-to-r from-gray-400 to-blue-400 p-6 rounded-full">
                 <Brain className="h-12 w-12 text-white" />
               </div>
               <div className="absolute -top-2 -right-2 bg-yellow-400 rounded-full p-1">
@@ -283,7 +283,7 @@ export function AIStatusIndicator({
               onClick={onTriggerAnalysis} 
               disabled={isTriggering}
               size="lg"
-              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:scale-100"
+              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold px-8 py-3 rounded-lg   transition-all duration-300 transform hover:scale-105 disabled:scale-100"
             >
               {isTriggering ? (
                 <>

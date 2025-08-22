@@ -279,12 +279,16 @@ export default function SuperadminPage() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    const formattedAmount = new Intl.NumberFormat('ar-AE', {
+      style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount)
+    }).format(amount);
+    return (
+      <>
+        <span className="aed-currency">AED</span> {formattedAmount}
+      </>
+    );
   }
 
   const formatNumber = (num: number) => {
@@ -720,10 +724,10 @@ export default function SuperadminPage() {
                       </Table>
                       
                       {users.length === 0 && (
-                        <div className="text-center py-12">
-                          <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <div className="flex flex-col items-center justify-center py-12">
+                          <Users className="h-12 w-12 text-muted-foreground mb-4" />
                           <h3 className="text-lg font-semibold mb-2">No users found</h3>
-                          <p className="text-muted-foreground">
+                          <p className="text-muted-foreground text-center">
                             Try adjusting your search or filter criteria
                           </p>
                         </div>

@@ -22,7 +22,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  DollarSign,
+  Banknote,
   Target,
   AlertCircle,
   Filter,
@@ -281,12 +281,16 @@ export default function ProposalsPage() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    const formattedAmount = new Intl.NumberFormat('ar-AE', {
+      style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount)
+    }).format(amount);
+    return (
+      <>
+        <span className="aed-currency">AED</span> {formattedAmount}
+      </>
+    );
   }
 
   const formatDate = (dateString: string) => {
@@ -451,7 +455,7 @@ export default function ProposalsPage() {
 
                       {/* Budget */}
                       <div>
-                        <label className="text-sm font-medium">Proposed Budget (USD)</label>
+                        <label className="text-sm font-medium">Proposed Budget (AED)</label>
                         <Input
                           type="number"
                           placeholder="0"
@@ -537,7 +541,7 @@ export default function ProposalsPage() {
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Proposed Value</CardTitle>
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          <Banknote className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{formatCurrency(pipelineSummary.total_proposed_value)}</div>
@@ -687,7 +691,7 @@ export default function ProposalsPage() {
                   {!proposalsLoading && !proposalsError && (
                     <div className="space-y-4">
                       {filteredProposals.map((proposal) => (
-                        <Card key={proposal.id} className="group hover:shadow-md transition-shadow">
+                        <Card key={proposal.id} className="group">
                           <CardContent className="p-6">
                             <div className="flex items-start justify-between">
                               <div className="flex-1 space-y-3">
@@ -712,7 +716,7 @@ export default function ProposalsPage() {
 
                                 <div className="flex items-center gap-6 text-sm text-muted-foreground">
                                   <div className="flex items-center gap-1">
-                                    <DollarSign className="h-4 w-4" />
+                                    <Banknote className="h-4 w-4" />
                                     <span>{formatCurrency(proposal.proposed_budget_usd)}</span>
                                   </div>
                                   <div className="flex items-center gap-1">
@@ -790,26 +794,24 @@ export default function ProposalsPage() {
                       ))}
 
                       {filteredProposals.length === 0 && (
-                        <div className="flex items-center justify-center py-12">
-                          <div className="text-center space-y-4">
-                            <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
-                            <div>
-                              <h3 className="text-lg font-semibold">No proposals found</h3>
-                              <p className="text-muted-foreground">
-                                {searchQuery.trim() || statusFilter !== "all" || serviceTypeFilter !== "all" || priorityFilter !== "all"
-                                  ? "Try adjusting your search or filter criteria"
-                                  : "Create your first proposal to get started"
-                                }
-                              </p>
-                            </div>
+                        <Card>
+                          <CardContent className="flex flex-col items-center justify-center py-12">
+                            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No proposals found</h3>
+                            <p className="text-muted-foreground text-center">
+                              {searchQuery.trim() || statusFilter !== "all" || serviceTypeFilter !== "all" || priorityFilter !== "all"
+                                ? "Try adjusting your search or filter criteria"
+                                : "Create your first proposal to get started"
+                              }
+                            </p>
                             {(!searchQuery.trim() && statusFilter === "all" && serviceTypeFilter === "all" && priorityFilter === "all") && (
-                              <Button onClick={() => setIsCreatingProposal(true)} style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                              <Button className="mt-4" onClick={() => setIsCreatingProposal(true)}>
                                 <Plus className="h-4 w-4 mr-2" />
                                 Create Your First Proposal
                               </Button>
                             )}
-                          </div>
-                        </div>
+                          </CardContent>
+                        </Card>
                       )}
                     </div>
                   )}

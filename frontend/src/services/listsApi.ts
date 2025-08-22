@@ -457,7 +457,7 @@ export class ListsApiService {
       const queryParams = new URLSearchParams()
       if (params.category) queryParams.append('category', params.category)
       
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/templates?${queryParams.toString()}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/lists/templates?${queryParams.toString()}`, {
         method: 'GET',
         headers: getAuthHeaders()
       })
