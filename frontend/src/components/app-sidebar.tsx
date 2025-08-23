@@ -6,7 +6,6 @@ import {
   IconDashboard,
   IconHelp,
   IconReport,
-  IconSearch,
   IconSettings,
   IconUsers,
   IconTarget,
@@ -166,23 +165,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {/* Quick Search Button */}
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <Button 
-                  variant="default" 
-                  className="w-full justify-start bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
-                >
-                  <IconSearch className="size-4" />
-                  Quick Search
-                </Button>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
         {/* Search & Analytics Section */}
         <SidebarGroup>
           <SidebarGroupLabel>Search & Analytics</SidebarGroupLabel>

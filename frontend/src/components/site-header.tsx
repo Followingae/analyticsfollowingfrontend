@@ -5,12 +5,14 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { NotificationBell } from "@/components/ui/notification"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Balloons } from "@/components/ui/balloons"
 import { useNotifications } from "@/contexts/NotificationContext"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
-import { useMemo, useState, useEffect } from "react"
-import { Crown, Coins } from "lucide-react"
+import { useMemo, useState, useEffect, useRef } from "react"
+import { Crown, Coins, PartyPopper } from "lucide-react"
 import { creditsApiService, CreditBalance } from "@/services/creditsApi"
 import { teamApiService, TeamContext } from "@/services/teamApi"
 
@@ -24,6 +26,9 @@ export function SiteHeader() {
   // Team context state (replaces individual credit balance)
   const [teamContext, setTeamContext] = useState<TeamContext | null>(null)
   const [contextLoading, setContextLoading] = useState(true)
+  
+  // Balloons ref for triggering animation
+  const balloonsRef = useRef<{ launchAnimation: () => void }>(null)
   
   // Memoized dynamic user data to prevent flash
   const userDisplayData = useMemo(() => {
@@ -147,17 +152,7 @@ export function SiteHeader() {
               {/* Team subscription tier */}
               <Badge variant="outline" className="text-xs">
                 <Crown className="w-3 h-3 mr-1" />
-                {teamContext.subscription_tier.charAt(0).toUpperCase() + teamContext.subscription_tier.slice(1)} Team
-              </Badge>
-              
-              {/* User role in team */}
-              <Badge variant="secondary" className="text-xs">
-                {teamContext.user_role === 'owner' ? '👑 Owner' : '👤 Member'}
-              </Badge>
-              
-              {/* Team usage summary - profiles remaining */}
-              <Badge variant="outline" className="text-xs text-muted-foreground">
-                {teamContext.remaining_capacity.profiles} profiles left
+                {teamContext.subscription_tier.charAt(0).toUpperCase() + teamContext.subscription_tier.slice(1)}
               </Badge>
             </div>
           )}
@@ -188,9 +183,24 @@ export function SiteHeader() {
             onMarkAllAsRead={markAllAsRead}
             onDelete={deleteNotification}
           />
+          
+          {/* Balloon Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => balloonsRef.current?.launchAnimation()}
+            className="h-8 w-8"
+            title="Launch celebration balloons!"
+          >
+            <PartyPopper className="h-4 w-4" />
+          </Button>
+          
           <ModeToggle />
         </div>
       </div>
+      
+      {/* Balloons Component */}
+      <Balloons ref={balloonsRef} />
     </header>
   )
 }

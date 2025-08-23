@@ -94,8 +94,8 @@ export function ChartProfileAnalysis() {
           }
         </Badge>
       )}
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Profile Analysis</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">Profile Analytics</CardTitle>
         <div className="text-xs text-muted-foreground">25 credits per unlock</div>
       </CardHeader>
       <CardContent className="p-1">
