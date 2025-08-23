@@ -27,7 +27,6 @@ import {
   Share2,
   Copy,
   Download,
-  FileText,
   UserPlus,
   Settings,
   Activity,
