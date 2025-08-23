@@ -20,6 +20,7 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  Users as TeamIcon,
 } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
@@ -28,6 +29,10 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { AuthGuard } from "@/components/AuthGuard"
 import { useAuth } from "@/contexts/AuthContext"
 import { settingsApiService, type SettingsOverview, type UserProfile, type NotificationSettings, type PrivacySettings, type UserPreferences } from "@/services/settingsApi"
+import TeamContextDisplay from "@/components/team/TeamContextDisplay"
+import TeamMembersManagement from "@/components/team/TeamMembersManagement"
+import UsageLimitWarning from "@/components/team/UsageLimitWarning"
+import { teamApiService, TeamContext } from "@/services/teamApi"
 import { SiteHeader } from "@/components/site-header"
 import { SettingsSkeleton } from "@/components/skeletons"
 import { AvatarSelectionDialog } from "@/components/AvatarSelectionDialog"
@@ -73,6 +78,10 @@ export default function SettingsPage() {
   const [privacySettings, setPrivacySettings] = useState<Partial<PrivacySettings>>({})
   const [preferences, setPreferences] = useState<Partial<UserPreferences>>({})
   
+  // Team Data
+  const [teamContext, setTeamContext] = useState<TeamContext | null>(null)
+  const [teamContextLoading, setTeamContextLoading] = useState(true)
+  
   // Password State
   const [passwordData, setPasswordData] = useState({
     current_password: '',
@@ -99,6 +108,7 @@ export default function SettingsPage() {
   // Load settings on component mount
   useEffect(() => {
     loadSettings()
+    loadTeamContext()
   }, [])
 
   const loadSettings = async () => {
@@ -125,6 +135,32 @@ export default function SettingsPage() {
       toast.error('Failed to load settings')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadTeamContext = async () => {
+    setTeamContextLoading(true)
+    try {
+      // Check for stored context first
+      const storedContext = teamApiService.getStoredTeamContext()
+      if (storedContext) {
+        setTeamContext(storedContext)
+        return
+      }
+
+      // Try to fetch team context
+      const result = await teamApiService.getTeamContext()
+      if (result.success && result.data) {
+        setTeamContext(result.data)
+        teamApiService.updateTeamContext(result.data)
+      } else {
+        setTeamContext(null)
+      }
+    } catch (error) {
+      console.log('Team features not available:', error)
+      setTeamContext(null)
+    } finally {
+      setTeamContextLoading(false)
     }
   }
 
@@ -419,10 +455,11 @@ export default function SettingsPage() {
 
             {/* Settings Tabs */}
             <Tabs defaultValue="profile" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="profile">Profile</TabsTrigger>
                 <TabsTrigger value="notifications">Notifications</TabsTrigger>
                 <TabsTrigger value="security">Security</TabsTrigger>
+                <TabsTrigger value="team">Team</TabsTrigger>
                 <TabsTrigger value="integrations">Integrations</TabsTrigger>
                 <TabsTrigger value="preferences">Preferences</TabsTrigger>
               </TabsList>
@@ -686,6 +723,45 @@ export default function SettingsPage() {
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="team" className="space-y-6">
+                {/* Team Management */}
+                {teamContextLoading ? (
+                  <Card>
+                    <CardContent className="flex items-center justify-center py-8">
+                      <div className="text-sm text-muted-foreground">Loading team data...</div>
+                    </CardContent>
+                  </Card>
+                ) : !teamContext ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <TeamIcon className="h-5 w-5" />
+                        Team Management
+                      </CardTitle>
+                      <CardDescription>
+                        Team features are not available for your account
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Contact support to enable team features for your organization.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Usage Warnings */}
+                    <UsageLimitWarning teamContext={teamContext} className="w-full" />
+                    
+                    {/* Team Overview and Members */}
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <TeamContextDisplay teamContext={teamContext} className="w-full" />
+                      <TeamMembersManagement teamContext={teamContext} className="w-full" />
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="integrations" className="space-y-6">

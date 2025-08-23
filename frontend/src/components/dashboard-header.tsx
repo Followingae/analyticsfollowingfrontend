@@ -230,6 +230,7 @@ export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderPr
               type="search"
               placeholder="Search creators, campaigns..."
               className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
+              data-search-input
             />
           </div>
         </form>

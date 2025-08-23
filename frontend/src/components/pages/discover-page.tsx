@@ -172,6 +172,7 @@ export default function DiscoverPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full"
+                data-search-input
               />
             </div>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>

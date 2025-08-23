@@ -3,10 +3,11 @@
 import { useState, useMemo, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { ChartBarInteractive } from "@/components/chart-bar-interactive"
-import { ChartPieCredits } from "@/components/chart-pie-credits"
+import { ChartProfileAnalysis } from "@/components/chart-profile-analysis"
+import { ChartPostAnalytics } from "@/components/chart-post-analytics"
 import { MetricCard } from "@/components/analytics-cards"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
-import { Card, CardHeader } from "@/components/ui/card"
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { UserAvatar } from "@/components/UserAvatar"
 import { 
   Target, 
@@ -74,6 +75,7 @@ export function BrandDashboardContent() {
   // Unlocked profiles state
   const [unlockedProfilesCount, setUnlockedProfilesCount] = useState<number>(0)
   const [profilesLoading, setProfilesLoading] = useState(true)
+  
 
   // Load real credit balance
   useEffect(() => {
@@ -138,6 +140,7 @@ export function BrandDashboardContent() {
     loadUnlockedProfiles()
   }, [user])
 
+
   // Brand analytics data - dynamic Your Plan card
   const brandMetrics = [
     {
@@ -184,13 +187,13 @@ export function BrandDashboardContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="w-full min-h-screen">
+      <div className="@container/main w-full max-w-full space-y-8 p-4 md:p-6">
         
         {/* Welcome Header & Analytics */}
-        <div className="flex gap-6">
+        <div className="grid gap-6 grid-cols-12 items-stretch">
           {/* Welcome Section - 30% width */}
-          <div className="w-[30%]">
+          <div className="col-span-4">
             <Card className="@container/card h-full welcome-card">
               <CardHeader>
                 {userDisplayData && (
@@ -217,8 +220,8 @@ export function BrandDashboardContent() {
           </div>
 
           {/* Brand Metrics Overview - 70% width */}
-          <div className="flex-1">
-            <div className="grid gap-4 grid-cols-3">
+          <div className="col-span-8">
+            <div className="grid gap-4 grid-cols-3 h-full">
               {brandMetrics.slice(0, 3).map((metric, index) => (
                 <MetricCard
                   key={index}
@@ -232,15 +235,28 @@ export function BrandDashboardContent() {
           </div>
         </div>
 
-        {/* Performance Charts */}
-        <div className="grid gap-6 grid-cols-10">
-          <div className="col-span-8">
-            <ChartBarInteractive />
+        {/* Recent Campaign Stats and Credits Consumption */}
+        <div className="grid gap-4 grid-cols-12">
+          {/* Recent Campaign Stats */}
+          <div className="col-span-6">
+            <div className="h-[320px]">
+              <ChartBarInteractive />
+            </div>
           </div>
-          <div className="col-span-2">
-            <ChartPieCredits />
+          {/* Profile Analysis Chart */}
+          <div className="col-span-3">
+            <div className="h-[320px]">
+              <ChartProfileAnalysis />
+            </div>
+          </div>
+          {/* Post Analytics Chart */}
+          <div className="col-span-3">
+            <div className="h-[320px]">
+              <ChartPostAnalytics />
+            </div>
           </div>
         </div>
+
 
       </div>
     </div>

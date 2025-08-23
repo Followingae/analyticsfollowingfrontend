@@ -1,7 +1,10 @@
-"use client"
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
+import { BrandDashboardContent } from "@/components/brand/BrandDashboardContent"
 
-import { UnifiedApp } from "@/components/UnifiedApp"
-
-export default function DashboardPage() {
-  return <UnifiedApp />
+export default function Page() {
+  return (
+    <BrandUserInterface>
+      <BrandDashboardContent />
+    </BrandUserInterface>
+  )
 }

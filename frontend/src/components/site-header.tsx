@@ -1,3 +1,5 @@
+"use client"
+
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -10,6 +12,7 @@ import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { useMemo, useState, useEffect } from "react"
 import { Crown, Coins } from "lucide-react"
 import { creditsApiService, CreditBalance } from "@/services/creditsApi"
+import { teamApiService, TeamContext } from "@/services/teamApi"
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -18,9 +21,9 @@ export function SiteHeader() {
   const { user: enhancedUser, isBrandUser } = useEnhancedAuth()
   const { notifications, markAsRead, markAllAsRead, deleteNotification } = useNotifications()
   
-  // Real credit balance state
-  const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null)
-  const [creditLoading, setCreditLoading] = useState(true)
+  // Team context state (replaces individual credit balance)
+  const [teamContext, setTeamContext] = useState<TeamContext | null>(null)
+  const [contextLoading, setContextLoading] = useState(true)
   
   // Memoized dynamic user data to prevent flash
   const userDisplayData = useMemo(() => {
@@ -52,35 +55,54 @@ export function SiteHeader() {
     }
   }, [user, isLoading])
   
-  // Load real credit balance
+  // Load team context (replaces individual credit balance)
   useEffect(() => {
-    const loadCreditBalance = async () => {
+    const loadTeamContext = async () => {
       if (!user || !isBrandUser) {
-        setCreditLoading(false)
+        setContextLoading(false)
         return
       }
 
       try {
-        const result = await creditsApiService.getBalance()
-        console.log('🎯 SiteHeader: Credit API Response:', result)
+        // First check for stored team context
+        const storedContext = teamApiService.getStoredTeamContext()
+        if (storedContext) {
+          setTeamContext(storedContext)
+          setContextLoading(false)
+          return
+        }
+
+        // If no stored context, try to fetch from API
+        const result = await teamApiService.getTeamContext()
+        console.log('🎯 SiteHeader: Team Context API Response:', result)
         
         if (result.success && result.data) {
-          console.log('🎯 SiteHeader: Credit Balance Data:', result.data)
-          setCreditBalance(result.data)
+          console.log('🎯 SiteHeader: Team Context Data:', result.data)
+          setTeamContext(result.data)
+          teamApiService.updateTeamContext(result.data)
         } else {
-          console.log('🎯 SiteHeader: No credit data or API failed:', result.error)
-          // API call succeeded but no data - user might not have a credit wallet yet
-          setCreditBalance(null)
+          console.log('🎯 SiteHeader: No team context or API failed:', result.error)
+          setTeamContext(null)
         }
       } catch (error) {
-        console.error('Failed to load credit balance:', error)
-        setCreditBalance(null)
+        console.error('Failed to load team context:', error)
+        setTeamContext(null)
       } finally {
-        setCreditLoading(false)
+        setContextLoading(false)
       }
     }
 
-    loadCreditBalance()
+    loadTeamContext()
+
+    // Listen for team context updates
+    const handleTeamContextUpdate = (event: CustomEvent<TeamContext>) => {
+      setTeamContext(event.detail)
+    }
+
+    window.addEventListener('teamContextUpdated', handleTeamContextUpdate as EventListener)
+    return () => {
+      window.removeEventListener('teamContextUpdated', handleTeamContextUpdate as EventListener)
+    }
   }, [user, isBrandUser])
 
   const getCurrentDate = () => {
@@ -119,34 +141,39 @@ export function SiteHeader() {
             {getCurrentDate()}
           </div>
           
-          {/* Live Tier and Credit Display for Brand Users */}
-          {isBrandUser && enhancedUser && !creditLoading && (
+          {/* Live Team Context Display for Brand Users */}
+          {isBrandUser && enhancedUser && !contextLoading && teamContext && (
             <div className="flex items-center gap-2">
-              {/* Real plan name from credit API */}
+              {/* Team subscription tier */}
               <Badge variant="outline" className="text-xs">
                 <Crown className="w-3 h-3 mr-1" />
-                {creditBalance?.package_name || enhancedUser.role?.replace('brand_', '') || 'Free'}
+                {teamContext.subscription_tier.charAt(0).toUpperCase() + teamContext.subscription_tier.slice(1)} Team
               </Badge>
               
-              {/* Real credit balance */}
-              {creditBalance && creditBalance.current_balance !== undefined && (
-                <Badge variant="secondary" className="text-xs">
-                  <Coins className="w-3 h-3 mr-1" />
-                  {creditBalance.current_balance.toLocaleString()}
-                </Badge>
-              )}
+              {/* User role in team */}
+              <Badge variant="secondary" className="text-xs">
+                {teamContext.user_role === 'owner' ? '👑 Owner' : '👤 Member'}
+              </Badge>
               
-              {/* Monthly allowance for users with allowances */}
-              {creditBalance && creditBalance.monthly_allowance > 0 && (
-                <Badge variant="outline" className="text-xs text-muted-foreground">
-                  {creditBalance.monthly_allowance} monthly
-                </Badge>
-              )}
+              {/* Team usage summary - profiles remaining */}
+              <Badge variant="outline" className="text-xs text-muted-foreground">
+                {teamContext.remaining_capacity.profiles} profiles left
+              </Badge>
+            </div>
+          )}
+          
+          {/* Fallback for non-team users */}
+          {isBrandUser && enhancedUser && !contextLoading && !teamContext && (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                <Crown className="w-3 h-3 mr-1" />
+                {enhancedUser.role?.replace('brand_', '') || 'Free'}
+              </Badge>
             </div>
           )}
           
           {/* Loading state */}
-          {isBrandUser && creditLoading && (
+          {isBrandUser && contextLoading && (
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
                 <Crown className="w-3 h-3 mr-1" />

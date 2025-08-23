@@ -117,18 +117,18 @@ export function ChartPieCredits() {
     }
     
     const status = getCreditBalanceStatus(creditBalance)
-    let fillColor = "hsl(75, 100%, 51%)" // Default green
+    let fillColor = "#5100f3" // Brand color default
     
     switch (status.status) {
       case 'critical':
       case 'empty':
-        fillColor = "hsl(0, 84%, 60%)" // Red
+        fillColor = "#5100f3" // Brand color
         break
       case 'low':
-        fillColor = "hsl(43, 89%, 38%)" // Orange
+        fillColor = "#5100f3" // Brand color
         break
       case 'healthy':
-        fillColor = "hsl(75, 100%, 51%)" // Green
+        fillColor = "#5100f3" // Brand color
         break
     }
     
@@ -145,7 +145,7 @@ export function ChartPieCredits() {
 
   return (
     <Card 
-      className="flex flex-col cursor-pointer hover:bg-muted/50 transition-colors" 
+      className="flex flex-col h-full cursor-pointer hover:bg-muted/50 transition-colors" 
       onClick={handleClick}
     >
       <CardHeader className="pb-2">

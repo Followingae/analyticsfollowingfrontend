@@ -1,18 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import {
-  Plus,
   Target,
   ArrowLeft,
   Upload,
-  Edit,
   Eye,
   Users,
   TrendingUp,
   ShoppingCart,
   MousePointer,
+  Calendar,
+  DollarSign,
+  Briefcase,
+  Sparkles,
+  Loader2,
 } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
@@ -23,9 +29,19 @@ import { Input } from "@/components/ui/input"
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
 import {
   Select,
   SelectContent,
@@ -37,67 +53,146 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import Calendar05 from "@/components/calendar-05"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { teamApiService } from "@/services/teamApi"
+import { campaignsApiService } from "@/services/campaignsApi"
+
+// Form validation schema
+const campaignSchema = z.object({
+  name: z.string().min(2, "Campaign name must be at least 2 characters").max(100, "Campaign name too long"),
+  description: z.string().min(10, "Description must be at least 10 characters").max(500, "Description too long"),
+  objective: z.enum(["awareness", "engagement", "conversions", "sales", "traffic"], {
+    required_error: "Please select a campaign objective",
+  }),
+  budget: z.string().min(1, "Budget is required").refine((val) => {
+    const num = parseFloat(val)
+    return num > 0 && num <= 1000000
+  }, "Budget must be between 1 and 1,000,000 AED"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  priority: z.enum(["low", "medium", "high", "critical"], {
+    required_error: "Please select campaign priority",
+  }),
+})
+
+type CampaignFormData = z.infer<typeof campaignSchema>
+
+const objectives = [
+  { 
+    value: "awareness" as const, 
+    label: "Brand Awareness", 
+    description: "Increase brand recognition and reach",
+    icon: Eye,
+    color: "bg-blue-50 border-blue-200 text-blue-700"
+  },
+  { 
+    value: "engagement" as const, 
+    label: "Engagement", 
+    description: "Drive interactions and community building",
+    icon: Users,
+    color: "bg-green-50 border-green-200 text-green-700"
+  },
+  { 
+    value: "conversions" as const, 
+    label: "Conversions", 
+    description: "Convert prospects into customers",
+    icon: MousePointer,
+    color: "bg-purple-50 border-purple-200 text-purple-700"
+  },
+  { 
+    value: "sales" as const, 
+    label: "Sales", 
+    description: "Generate direct revenue and sales",
+    icon: ShoppingCart,
+    color: "bg-orange-50 border-orange-200 text-orange-700"
+  },
+  { 
+    value: "traffic" as const, 
+    label: "Website Traffic", 
+    description: "Drive visitors to your website",
+    icon: TrendingUp,
+    color: "bg-indigo-50 border-indigo-200 text-indigo-700"
+  }
+]
+
+const priorities = [
+  { value: "low" as const, label: "Low", color: "bg-gray-50 text-gray-600" },
+  { value: "medium" as const, label: "Medium", color: "bg-yellow-50 text-yellow-700" },
+  { value: "high" as const, label: "High", color: "bg-orange-50 text-orange-700" },
+  { value: "critical" as const, label: "Critical", color: "bg-red-50 text-red-700" },
+]
 
 export default function NewCampaignPage() {
   const router = useRouter()
-  const [campaignData, setCampaignData] = useState({
-    name: "",
-    description: "",
-    objective: "",
-    budget: "",
-    brandName: "Your Brand Name",
-    brandLogo: "/followinglogo.svg"
+  const [isLoading, setIsLoading] = useState(false)
+  const [teamContext, setTeamContext] = useState<any>(null)
+  const [loadingTeam, setLoadingTeam] = useState(true)
+
+  const form = useForm<CampaignFormData>({
+    resolver: zodResolver(campaignSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      objective: undefined,
+      budget: "",
+      startDate: "",
+      endDate: "",
+      priority: "medium",
+    },
   })
 
-  const objectives = [
-    { 
-      value: "awareness", 
-      label: "Brand Awareness", 
-      icon: Eye 
-    },
-    { 
-      value: "engagement", 
-      label: "Engagement", 
-      icon: Users 
-    },
-    { 
-      value: "conversions", 
-      label: "Conversions", 
-      icon: MousePointer 
-    },
-    { 
-      value: "sales", 
-      label: "Sales", 
-      icon: ShoppingCart 
-    },
-    { 
-      value: "traffic", 
-      label: "Website Traffic", 
-      icon: TrendingUp 
-    }
-  ]
-
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const result = e.target?.result as string
-        setCampaignData(prev => ({ ...prev, brandLogo: result }))
+  // Load team context for automatic brand name
+  useEffect(() => {
+    const loadTeamData = async () => {
+      try {
+        const result = await teamApiService.getTeamContext()
+        if (result.success && result.data) {
+          setTeamContext(result.data)
+          console.log('🏢 Team context loaded for campaign creation:', result.data)
+        }
+      } catch (error) {
+        console.error('Error loading team context:', error)
+        toast.error('Failed to load team information')
+      } finally {
+        setLoadingTeam(false)
       }
-      reader.readAsDataURL(file)
     }
-  }
 
-  const handleCreateCampaign = () => {
-    toast.success("Campaign created successfully!")
-    router.push("/campaigns")
+    loadTeamData()
+  }, [])
+
+  const handleCreateCampaign = async (data: CampaignFormData) => {
+    setIsLoading(true)
+    
+    try {
+      // Create campaign using the API service
+      const campaignData = {
+        name: data.name,
+        description: data.description,
+        objective: data.objective,
+        budget_allocated: parseFloat(data.budget),
+        start_date: data.startDate,
+        end_date: data.endDate,
+        priority: data.priority,
+        status: 'planning' as const,
+      }
+
+      const result = await campaignsApiService.createCampaign(campaignData)
+      
+      if (result.success) {
+        toast.success("Campaign created successfully! 🎉")
+        router.push("/campaigns")
+      } else {
+        toast.error(result.error || "Failed to create campaign")
+      }
+    } catch (error) {
+      console.error('Campaign creation error:', error)
+      toast.error("Failed to create campaign")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -116,151 +211,335 @@ export default function NewCampaignPage() {
           <div className="@container/main flex flex-1 flex-col p-4 md:p-6">
             
             {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => router.back()}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h1 className="text-3xl font-bold">Create New Campaign</h1>
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => router.back()}
+                  className="h-10 w-10"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div>
+                  <h1 className="text-3xl font-bold">Create New Campaign</h1>
+                  <p className="text-muted-foreground mt-1">
+                    {loadingTeam ? "Loading team information..." : `Build a campaign for ${teamContext?.team_name || 'your team'}`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-[#5100f3]" />
+                <Badge variant="secondary" className="bg-[#5100f3]/10 text-[#5100f3] border-[#5100f3]/20">
+                  {teamContext?.subscription_tier || 'Loading...'}
+                </Badge>
+              </div>
             </div>
 
-            {/* Form Content */}
-            <div className="grid gap-8 lg:grid-cols-2 flex-1">
-              
-              {/* Left Column */}
-              <div className="space-y-7">
+            {/* Form */}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleCreateCampaign)} className="space-y-8">
                 
-                {/* Brand Information */}
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Brand Information</h2>
-                  
-                  <div className="flex items-center gap-6">
-                    <div className="relative group">
-                      <Avatar className="h-18 w-18 bg-black">
-                        <AvatarImage src={campaignData.brandLogo} alt="Brand Logo" />
-                        <AvatarFallback className="text-lg text-white">{campaignData.brandName.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div 
-                        className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                        onClick={() => document.getElementById('logo-upload')?.click()}
-                      >
-                        <Edit className="h-5 w-5 text-white" />
+                {/* Team Information Card */}
+                <Card className="border-2 border-dashed border-muted-foreground/25">
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-[#5100f3]/10 rounded-lg">
+                        <Briefcase className="h-5 w-5 text-[#5100f3]" />
+                      </div>
+                      <div>
+                        <CardTitle>Team Information</CardTitle>
+                        <CardDescription>
+                          Campaign will be created for your team account
+                        </CardDescription>
                       </div>
                     </div>
-                    
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor="brand-name">Brand Name</Label>
-                      <Input
-                        id="brand-name"
-                        value={campaignData.brandName}
-                        onChange={(e) => setCampaignData(prev => ({ ...prev, brandName: e.target.value }))}
-                      />
-                    </div>
-                    
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoChange}
-                      className="hidden"
-                      id="logo-upload"
-                    />
-                  </div>
-                </div>
-
-                {/* Campaign Information */}
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Campaign Information</h2>
-                  
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="campaign-name">Campaign Name</Label>
-                      <Input
-                        id="campaign-name"
-                        placeholder="Enter campaign name..."
-                        value={campaignData.name}
-                        onChange={(e) => setCampaignData(prev => ({ ...prev, name: e.target.value }))}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="campaign-description">Description</Label>
-                      <Textarea
-                        id="campaign-description"
-                        placeholder="Describe your campaign goals, target audience, and key messaging..."
-                        value={campaignData.description}
-                        onChange={(e) => setCampaignData(prev => ({ ...prev, description: e.target.value }))}
-                        className="min-h-[90px]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Campaign Objective */}
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Campaign Objective</h2>
-                  
-                  <RadioGroup 
-                    value={campaignData.objective} 
-                    onValueChange={(value) => setCampaignData(prev => ({ ...prev, objective: value }))}
-                    className="flex gap-3"
-                  >
-                    {objectives.map((objective) => {
-                      const IconComponent = objective.icon
-                      return (
-                        <div key={objective.value} className="flex items-center space-x-2">
-                          <RadioGroupItem value={objective.value} id={objective.value} className="peer sr-only" />
-                          <Label
-                            htmlFor={objective.value}
-                            className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-3 hover:bg-muted hover:border-muted-foreground peer-data-[state=checked]:bg-black peer-data-[state=checked]:text-white peer-data-[state=checked]:border-black [&:has([data-state=checked])]:bg-black [&:has([data-state=checked])]:text-white [&:has([data-state=checked])]:border-black cursor-pointer transition-all w-18 h-18"
-                          >
-                            <IconComponent className="h-4 w-4 mb-1" />
-                            <div className="text-xs font-medium text-center leading-tight">{objective.label.split(' ')[0]}</div>
-                          </Label>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingTeam ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm text-muted-foreground">Loading team information...</span>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Team Name</p>
+                          <p className="text-2xl font-bold">{teamContext?.team_name || 'Unknown Team'}</p>
                         </div>
-                      )
-                    })}
-                  </RadioGroup>
-                </div>
-              </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Subscription</p>
+                          <Badge className={`${
+                            teamContext?.subscription_tier === 'premium' ? 'bg-purple-100 text-purple-700' :
+                            teamContext?.subscription_tier === 'standard' ? 'bg-blue-100 text-blue-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {teamContext?.subscription_tier?.toUpperCase() || 'FREE'}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
-              {/* Right Column */}
-              <div className="space-y-7">
-                
-                {/* Campaign Duration */}
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Campaign Duration</h2>
-                  <Calendar05 />
-                </div>
-
-                {/* Budget */}
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Budget</h2>
+                <div className="grid gap-8 lg:grid-cols-2">
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="budget">Total Budget (<span className="aed-currency">AED</span>)</Label>
-                    <Input
-                      id="budget"
-                      type="number"
-                      placeholder="Enter total budget..."
-                      value={campaignData.budget}
-                      onChange={(e) => setCampaignData(prev => ({ ...prev, budget: e.target.value }))}
-                      className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
+                  {/* Left Column - Campaign Details */}
+                  <div className="space-y-6">
+                    
+                    {/* Basic Information */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Target className="h-5 w-5" />
+                          Campaign Details
+                        </CardTitle>
+                        <CardDescription>
+                          Define your campaign's core information and goals
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Campaign Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter campaign name..." {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Describe your campaign goals, target audience, and key messaging..."
+                                  className="min-h-[100px]"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Provide a clear description of what you want to achieve
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="priority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Priority Level</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select priority level" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {priorities.map((priority) => (
+                                    <SelectItem key={priority.value} value={priority.value}>
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="secondary" className={priority.color}>
+                                          {priority.label}
+                                        </Badge>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+
+                    {/* Campaign Objective */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <TrendingUp className="h-5 w-5" />
+                          Campaign Objective
+                        </CardTitle>
+                        <CardDescription>
+                          Choose the primary goal for your campaign
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <FormField
+                          control={form.control}
+                          name="objective"
+                          render={({ field }) => (
+                            <FormItem className="space-y-3">
+                              <FormControl>
+                                <div className="grid grid-cols-1 gap-3">
+                                  {objectives.map((objective) => {
+                                    const IconComponent = objective.icon
+                                    return (
+                                      <label
+                                        key={objective.value}
+                                        className={`
+                                          flex items-center space-x-4 rounded-lg border-2 p-4 cursor-pointer transition-all
+                                          ${field.value === objective.value 
+                                            ? `${objective.color} border-current` 
+                                            : 'border-muted hover:border-muted-foreground/50'
+                                          }
+                                        `}
+                                        onClick={() => field.onChange(objective.value)}
+                                      >
+                                        <IconComponent className="h-5 w-5" />
+                                        <div className="flex-1 space-y-1">
+                                          <p className="text-sm font-medium">{objective.label}</p>
+                                          <p className="text-xs text-muted-foreground">{objective.description}</p>
+                                        </div>
+                                        <input
+                                          type="radio"
+                                          className="sr-only"
+                                          value={objective.value}
+                                          checked={field.value === objective.value}
+                                          onChange={() => field.onChange(objective.value)}
+                                        />
+                                      </label>
+                                    )
+                                  })}
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Right Column - Budget & Timeline */}
+                  <div className="space-y-6">
+                    
+                    {/* Budget */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <DollarSign className="h-5 w-5" />
+                          Budget Planning
+                        </CardTitle>
+                        <CardDescription>
+                          Set your campaign budget allocation
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <FormField
+                          control={form.control}
+                          name="budget"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Total Budget (AED)</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input 
+                                    type="number" 
+                                    placeholder="Enter total budget..."
+                                    className="pl-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    {...field}
+                                  />
+                                  <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Budget should be between 1 and 1,000,000 AED
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+
+                    {/* Timeline */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Calendar className="h-5 w-5" />
+                          Campaign Timeline
+                        </CardTitle>
+                        <CardDescription>
+                          Define when your campaign will run
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="startDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Start Date</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="endDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>End Date</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Action Button */}
-            <div className="flex justify-end pt-4">
-              <Button onClick={handleCreateCampaign} size="lg">
-                <Target className="h-4 w-4 mr-2" />
-                Create Campaign
-              </Button>
-            </div>
+                {/* Form Actions */}
+                <Separator />
+                <div className="flex items-center justify-between pt-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => router.back()}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    size="lg" 
+                    disabled={isLoading}
+                    className="min-w-[150px]"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Target className="mr-2 h-4 w-4" />
+                        Create Campaign
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </div>
         </div>
       </SidebarInset>

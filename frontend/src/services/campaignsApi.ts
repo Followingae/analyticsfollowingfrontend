@@ -398,11 +398,11 @@ export class CampaignsApiService {
       })
     }
     
-    return this.makeRequest(`/api/campaigns?${params.toString()}`)
+    return this.makeRequest(`/api/v1/campaigns?${params.toString()}`)
   }
 
   async getCampaignDetails(campaignId: string): Promise<ApiResponse<EnhancedCampaign>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}`)
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}`)
   }
 
   async createCampaign(campaignData: {
@@ -423,21 +423,21 @@ export class CampaignsApiService {
     tags?: string[]
     notes?: string
   }): Promise<ApiResponse<EnhancedCampaign>> {
-    return this.makeRequest('/api/campaigns', {
+    return this.makeRequest('/api/v1/campaigns', {
       method: 'POST',
       body: JSON.stringify(campaignData)
     })
   }
 
   async updateCampaign(campaignId: string, updates: Partial<EnhancedCampaign>): Promise<ApiResponse<EnhancedCampaign>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}`, {
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}`, {
       method: 'PUT',
       body: JSON.stringify(updates)
     })
   }
 
   async deleteCampaign(campaignId: string): Promise<ApiResponse<{ message: string }>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}`, {
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}`, {
       method: 'DELETE'
     })
   }
@@ -447,7 +447,7 @@ export class CampaignsApiService {
     deliverables: CampaignDeliverable[]
     total_count: number
   }>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/deliverables`)
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/deliverables`)
   }
 
   async createDeliverable(campaignId: string, deliverableData: {
@@ -465,7 +465,7 @@ export class CampaignsApiService {
     review_required?: boolean
     approval_required?: boolean
   }): Promise<ApiResponse<CampaignDeliverable>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/deliverables`, {
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/deliverables`, {
       method: 'POST',
       body: JSON.stringify(deliverableData)
     })
@@ -501,7 +501,7 @@ export class CampaignsApiService {
     milestones: CampaignMilestone[]
     total_count: number
   }>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/milestones`)
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/milestones`)
   }
 
   async createMilestone(campaignId: string, milestoneData: {
@@ -514,7 +514,7 @@ export class CampaignsApiService {
     budget_checkpoint?: number
     success_criteria?: string[]
   }): Promise<ApiResponse<CampaignMilestone>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/milestones`, {
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/milestones`, {
       method: 'POST',
       body: JSON.stringify(milestoneData)
     })
@@ -541,7 +541,7 @@ export class CampaignsApiService {
     collaborators: CampaignCollaborator[]
     total_count: number
   }>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/collaborators`)
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/collaborators`)
   }
 
   async inviteCollaborator(campaignId: string, inviteData: {
@@ -550,7 +550,7 @@ export class CampaignsApiService {
     permissions: CollaboratorPermissions
     message?: string
   }): Promise<ApiResponse<CampaignCollaborator>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/collaborators/invite`, {
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/collaborators/invite`, {
       method: 'POST',
       body: JSON.stringify(inviteData)
     })
@@ -574,7 +574,7 @@ export class CampaignsApiService {
 
   // Budget Management
   async getBudgetBreakdown(campaignId: string): Promise<ApiResponse<BudgetBreakdown>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/budget`)
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/budget`)
   }
 
   async addBudgetTransaction(campaignId: string, transaction: {
@@ -584,7 +584,7 @@ export class CampaignsApiService {
     description: string
     receipt_url?: string
   }): Promise<ApiResponse<BudgetTransaction>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/budget/transactions`, {
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/budget/transactions`, {
       method: 'POST',
       body: JSON.stringify(transaction)
     })
@@ -594,7 +594,7 @@ export class CampaignsApiService {
     category_name: string
     allocated: number
   }[]): Promise<ApiResponse<BudgetBreakdown>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/budget/categories`, {
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/budget/categories`, {
       method: 'PUT',
       body: JSON.stringify({ categories })
     })
@@ -608,7 +608,7 @@ export class CampaignsApiService {
     reporting_period_end: string
     include_sections?: string[]
   }): Promise<ApiResponse<CampaignReport>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/reports/generate`, {
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/reports/generate`, {
       method: 'POST',
       body: JSON.stringify(reportData)
     })
@@ -618,15 +618,15 @@ export class CampaignsApiService {
     reports: CampaignReport[]
     total_count: number
   }>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/reports`)
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/reports`)
   }
 
   async getPerformanceSummary(campaignId: string): Promise<ApiResponse<PerformanceSummary>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/performance`)
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/performance`)
   }
 
   async getCampaignAnalytics(): Promise<ApiResponse<CampaignAnalytics>> {
-    return this.makeRequest('/api/campaigns/analytics')
+    return this.makeRequest('/api/v1/campaigns/analytics')
   }
 
   // Templates
@@ -634,7 +634,7 @@ export class CampaignsApiService {
     templates: CampaignTemplate[]
     total_count: number
   }>> {
-    return this.makeRequest('/api/campaigns/templates')
+    return this.makeRequest('/api/v1/campaigns/templates')
   }
 
   async createCampaignFromTemplate(templateId: string, campaignData: {
@@ -645,7 +645,7 @@ export class CampaignsApiService {
     client_name?: string
     customizations?: Record<string, any>
   }): Promise<ApiResponse<EnhancedCampaign>> {
-    return this.makeRequest(`/api/campaigns/templates/${templateId}/create`, {
+    return this.makeRequest(`/api/v1/campaigns/templates/${templateId}/create`, {
       method: 'POST',
       body: JSON.stringify(campaignData)
     })
@@ -665,7 +665,7 @@ export class CampaignsApiService {
       milestones_due_this_week: number
     }
   }>> {
-    return this.makeRequest('/api/campaigns/dashboard')
+    return this.makeRequest('/api/v1/campaigns/dashboard')
   }
 
   async exportCampaignData(campaignId: string, exportOptions: {
@@ -681,7 +681,7 @@ export class CampaignsApiService {
     download_url?: string
     expires_at: string
   }>> {
-    return this.makeRequest(`/api/campaigns/${campaignId}/export`, {
+    return this.makeRequest(`/api/v1/campaigns/${campaignId}/export`, {
       method: 'POST',
       body: JSON.stringify(exportOptions)
     })

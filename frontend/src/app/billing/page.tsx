@@ -165,43 +165,66 @@ export default function BillingPage() {
     },
   ]
 
-  const plans = [
+  const teamPlans = [
     {
-      name: "Starter",
-      price: 180,
-      period: "month",
+      name: "Free Team",
+      price: 0,
+      period: "Forever",
+      teamMembers: 1,
+      limits: {
+        profiles: 5,
+        emails: 0,
+        posts: 0
+      },
       features: [
-        "1,000 creator unlocks",
+        "5 profile analyses per month",
+        "1 team member",
         "Basic analytics",
-        "Email support",
-        "5 active campaigns",
+        "Manual data refresh",
+        "Community support"
       ],
       popular: false,
     },
     {
-      name: "Pro",
-      price: 547,
+      name: "Standard Team",
+      price: 199,
       period: "month",
+      teamMembers: 2,
+      limits: {
+        profiles: 500,
+        emails: 250,
+        posts: 125
+      },
       features: [
-        "5,000 creator unlocks",
-        "Advanced analytics",
-        "Priority support",
-        "25 active campaigns",
-        "Custom reporting",
+        "500 profile analyses per month",
+        "Up to 2 team members",
+        "250 email unlocks per month",
+        "125 post analyses per month",
+        "Complete analytics & AI insights",
+        "Data export capabilities",
+        "Priority support"
       ],
       popular: true,
     },
     {
-      name: "Enterprise",
-      price: 1831,
+      name: "Premium Team",
+      price: 499,
       period: "month",
+      teamMembers: 5,
+      limits: {
+        profiles: 2000,
+        emails: 800,
+        posts: 300
+      },
       features: [
-        "Unlimited creator unlocks",
-        "Enterprise analytics",
-        "Dedicated support",
-        "Unlimited campaigns",
-        "White-label solution",
-        "API access",
+        "2000 profile analyses per month",
+        "Up to 5 team members",
+        "800 email unlocks per month",
+        "300 post analyses per month",
+        "Complete analytics & AI insights",
+        "Data export capabilities",
+        "Priority support",
+        "Advanced team management"
       ],
       popular: false,
     },
@@ -413,14 +436,14 @@ export default function BillingPage() {
                 {/* Pricing Plans */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Available Plans</CardTitle>
+                    <CardTitle>Team Subscription Plans</CardTitle>
                     <CardDescription>
-                      Choose the plan that best fits your Instagram analytics needs
+                      Choose the team plan that fits your collaborative analytics needs. All plans include pooled usage limits shared across team members.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-6 md:grid-cols-3">
-                      {plans.map((plan) => (
+                      {teamPlans.map((plan) => (
                         <div
                           key={plan.name}
                           className={`relative rounded-lg border p-6 ${
@@ -435,11 +458,43 @@ export default function BillingPage() {
                           <div className="text-center">
                             <h3 className="text-lg font-semibold">{plan.name}</h3>
                             <div className="mt-2">
-                              <span className="text-3xl font-bold">{formatCurrency(plan.price)}</span>
+                              <span className="text-3xl font-bold">
+                                {plan.price === 0 ? 'Free' : formatCurrency(plan.price)}
+                              </span>
                               <span className="text-muted-foreground">/{plan.period}</span>
                             </div>
+                            <div className="mt-2">
+                              <Badge variant="outline" className="text-xs">
+                                <Users className="h-3 w-3 mr-1" />
+                                {plan.teamMembers} team member{plan.teamMembers !== 1 ? 's' : ''}
+                              </Badge>
+                            </div>
                           </div>
-                          <ul className="mt-6 space-y-3">
+
+                          {/* Usage Limits Summary */}
+                          <div className="mt-4 p-3 bg-muted rounded-lg">
+                            <h4 className="text-sm font-medium mb-2">Monthly Limits (Shared)</h4>
+                            <div className="space-y-1 text-xs">
+                              <div className="flex justify-between">
+                                <span>👤 Profile analyses</span>
+                                <span className="font-medium">{plan.limits.profiles.toLocaleString()}</span>
+                              </div>
+                              {plan.limits.emails > 0 && (
+                                <div className="flex justify-between">
+                                  <span>📧 Email unlocks</span>
+                                  <span className="font-medium">{plan.limits.emails.toLocaleString()}</span>
+                                </div>
+                              )}
+                              {plan.limits.posts > 0 && (
+                                <div className="flex justify-between">
+                                  <span>📊 Post analyses</span>
+                                  <span className="font-medium">{plan.limits.posts.toLocaleString()}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <ul className="mt-4 space-y-3">
                             {plan.features.map((feature, index) => (
                               <li key={index} className="flex items-center gap-2 text-sm">
                                 <CheckCircle className="h-4 w-4 text-green-500" />
@@ -451,10 +506,42 @@ export default function BillingPage() {
                             className="mt-6 w-full"
                             variant={plan.popular ? "default" : "outline"}
                           >
-                            {plan.name === "Pro" ? "Current Plan" : "Upgrade"}
+                            {plan.name === "Standard Team" ? "Current Plan" : 
+                             plan.price === 0 ? "Current Plan" : "Upgrade Team"}
                           </Button>
                         </div>
                       ))}
+                    </div>
+                    
+                    {/* Team Plan Benefits */}
+                    <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                      <h4 className="text-lg font-semibold mb-3">🚀 Team Plan Benefits</h4>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <h5 className="font-medium">👥 Collaborative Analytics</h5>
+                          <p className="text-sm text-muted-foreground">
+                            Share insights and analysis work across your entire team with role-based permissions.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <h5 className="font-medium">📊 Pooled Usage Limits</h5>
+                          <p className="text-sm text-muted-foreground">
+                            Team members share monthly limits, maximizing efficiency and reducing individual restrictions.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <h5 className="font-medium">⚡ Same Analytics Power</h5>
+                          <p className="text-sm text-muted-foreground">
+                            All team plans get identical comprehensive analytics - only usage capacity differs.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <h5 className="font-medium">🔒 Team Management</h5>
+                          <p className="text-sm text-muted-foreground">
+                            Team owners can invite members, manage permissions, and control billing centrally.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

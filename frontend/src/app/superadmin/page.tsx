@@ -9,6 +9,8 @@ import {
   Users,
   Activity,
   Shield,
+  UserX,
+  Database,
   Server,
   AlertTriangle,
   CheckCircle,
@@ -41,6 +43,7 @@ import { toast } from "sonner"
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -299,7 +302,7 @@ export default function SuperadminPage() {
 
   if (loading) {
     return (
-      <AuthGuard requireAuth={true}>
+      <AuthGuard requireAuth={true} requireSuperAdmin={true}>
         <SidebarProvider>
           <AppSidebar variant="inset" />
           <SidebarInset>
@@ -318,7 +321,7 @@ export default function SuperadminPage() {
 
   if (error) {
     return (
-      <AuthGuard requireAuth={true}>
+      <AuthGuard requireAuth={true} requireSuperAdmin={true}>
         <SidebarProvider>
           <AppSidebar variant="inset" />
           <SidebarInset>
@@ -338,7 +341,7 @@ export default function SuperadminPage() {
   }
 
   return (
-    <AuthGuard requireAuth={true}>
+    <AuthGuard requireAuth={true} requireSuperAdmin={true}>
       <SidebarProvider
         style={
           {
@@ -453,47 +456,37 @@ export default function SuperadminPage() {
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <Users className="h-4 w-4 text-[#5100f3]" />
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{formatNumber(systemStats.total_users)}</div>
-                          <p className="text-xs text-muted-foreground">
-                            {formatNumber(systemStats.active_users_24h)} active (24h)
-                          </p>
                         </CardContent>
                       </Card>
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
-                          <Activity className="h-4 w-4 text-muted-foreground" />
+                          <Activity className="h-4 w-4 text-[#5100f3]" />
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{formatNumber(systemStats.active_campaigns)}</div>
-                          <p className="text-xs text-muted-foreground">
-                            {formatNumber(systemStats.total_campaigns)} total
-                          </p>
                         </CardContent>
                       </Card>
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Credits in Circulation</CardTitle>
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          <DollarSign className="h-4 w-4 text-[#5100f3]" />
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{formatNumber(systemStats.total_credits_in_circulation)}</div>
-                          <p className="text-xs text-muted-foreground">
-                            {formatNumber(systemStats.credits_spent_today)} spent today
-                          </p>
                         </CardContent>
                       </Card>
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">System Health</CardTitle>
-                          <Server className="h-4 w-4 text-muted-foreground" />
+                          <Server className="h-4 w-4 text-[#5100f3]" />
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{systemStats.system_health_score}/100</div>
-                          <Progress value={systemStats.system_health_score} className="mt-2" />
                         </CardContent>
                       </Card>
                     </div>
@@ -724,12 +717,12 @@ export default function SuperadminPage() {
                       </Table>
                       
                       {users.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-12">
-                          <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                          <h3 className="text-lg font-semibold mb-2">No users found</h3>
-                          <p className="text-muted-foreground text-center">
-                            Try adjusting your search or filter criteria
-                          </p>
+                        <div className="py-12 flex justify-center">
+                          <EmptyState
+                            title="No users found"
+                            description="Try adjusting your search or filter criteria\nto find the users you're looking for."
+                            icons={[UserX, Users, Database]}
+                          />
                         </div>
                       )}
                     </CardContent>

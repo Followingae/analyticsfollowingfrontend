@@ -28,15 +28,15 @@ import {
   Upload,
   Mail,
   Share,
+  FileText,
+  Briefcase,
   ExternalLink,
   X,
   ArrowRight,
   AlertCircle,
   Settings,
   Activity,
-  Briefcase,
   PieChart,
-  FileText,
   Zap,
 } from "lucide-react"
 import { Label, PolarRadiusAxis, RadialBar, RadialBarChart } from "recharts"
@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/card"
 import { UserAvatar } from "@/components/UserAvatar"
 import { Progress } from "@/components/ui/progress"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
@@ -347,47 +348,39 @@ export default function CampaignsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
-                    <Activity className="h-4 w-4 text-muted-foreground" />
+                    <Activity className="h-4 w-4 text-[#5100f3]" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-green-600">{activeCampaigns.length}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {campaigns.length} total campaigns
-                    </p>
+                    <div className="text-2xl font-bold">{activeCampaigns.length}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <DollarSign className="h-4 w-4 text-[#5100f3]" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{formatCurrency(totalBudget)}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrency(totalSpent)} spent
-                    </p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Avg Completion</CardTitle>
-                    <Target className="h-4 w-4 text-muted-foreground" />
+                    <Target className="h-4 w-4 text-[#5100f3]" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{avgCompletion.toFixed(1)}%</div>
-                    <Progress value={avgCompletion} className="mt-2" />
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Budget Utilization</CardTitle>
-                    <PieChart className="h-4 w-4 text-muted-foreground" />
+                    <PieChart className="h-4 w-4 text-[#5100f3]" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
                       {totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(1) : 0}%
                     </div>
-                    <Progress value={totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0} className="mt-2" />
                   </CardContent>
                 </Card>
               </div>
@@ -572,24 +565,23 @@ export default function CampaignsPage() {
               )}
 
               {!campaignsLoading && !campaignsError && filteredCampaigns.length === 0 && (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <Target className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No campaigns found</h3>
-                    <p className="text-muted-foreground text-center">
-                      {searchQuery.trim() || statusFilter !== "all" || typeFilter !== "all" || priorityFilter !== "all"
-                        ? "Try adjusting your search or filter criteria"
-                        : "Create your first campaign to get started"
-                      }
-                    </p>
-                    {(!searchQuery.trim() && statusFilter === "all" && typeFilter === "all" && priorityFilter === "all") && (
-                      <Button className="mt-4" onClick={() => router.push('/campaigns/new')}  >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Your First Campaign
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
+                <div className="flex justify-center py-12">
+                  <EmptyState
+                    title={searchQuery.trim() || statusFilter !== "all" || typeFilter !== "all" || priorityFilter !== "all" 
+                      ? "No campaigns found" 
+                      : "No campaigns yet"
+                    }
+                    description={searchQuery.trim() || statusFilter !== "all" || typeFilter !== "all" || priorityFilter !== "all"
+                      ? "Try adjusting your search or filter criteria\nto find the campaigns you're looking for."
+                      : "Create your first campaign to start tracking\nyour marketing performance and engagement."
+                    }
+                    icons={[Target, BarChart3, FileText]}
+                    action={(!searchQuery.trim() && statusFilter === "all" && typeFilter === "all" && priorityFilter === "all") ? {
+                      label: "Create Your First Campaign",
+                      onClick: () => router.push('/campaigns/new')
+                    } : undefined}
+                  />
+                </div>
               )}
             </div>
           </div>

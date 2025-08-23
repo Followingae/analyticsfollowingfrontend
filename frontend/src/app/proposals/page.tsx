@@ -323,7 +323,7 @@ export default function ProposalsPage() {
   }
 
   return (
-    <AuthGuard requireAuth={true}>
+    <AuthGuard requireAuth={true} requireSuperAdmin={true}>
       <SidebarProvider
         style={
           {

@@ -1,6 +1,7 @@
 import { API_CONFIG, ENDPOINTS, REQUEST_HEADERS, getAuthHeaders } from '@/config/api'
 import { authService } from './authService'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { TeamUsageLimitError, TeamAccessError, teamApiService } from './teamApi'
 /**
  * PRODUCTION READY API INTERFACES
  * Updated according to FRONTEND_HANDOVER.md (July 31, 2025)
@@ -306,7 +307,7 @@ export interface NotificationResponse {
   detailed_search: SearchNotification
 }
 
-// Main API response structure - Updated for automatic AI integration
+// Main API response structure - Updated for team authentication system
 export interface ProfileResponse {
   success: boolean
   profile: InstagramProfile
@@ -341,6 +342,37 @@ export interface ProfileResponse {
   demographics?: AudienceDemographics
   // NEW: Simple 2-type notifications
   notifications?: NotificationResponse
+  // BREAKING CHANGE: Team context replaces user_context
+  team_context: {
+    team_id: string
+    team_name: string
+    user_role: 'owner' | 'member'
+    subscription_tier: 'free' | 'standard' | 'premium'
+    subscription_status: 'active' | 'inactive' | 'expired'
+    monthly_limits: {
+      profiles: number
+      emails: number
+      posts: number
+    }
+    current_usage: {
+      profiles: number
+      emails: number
+      posts: number
+    }
+    remaining_capacity: {
+      profiles: number
+      emails: number
+      posts: number
+    }
+    user_permissions: {
+      can_analyze_profiles: boolean
+      can_unlock_emails: boolean
+      can_analyze_posts: boolean
+      can_manage_team: boolean
+      can_invite_members: boolean
+      can_view_billing: boolean
+    }
+  }
 }
 // Legacy interface - DEPRECATED - Use InstagramProfile instead
 export interface BackendProfileResponse extends InstagramProfile {
@@ -472,10 +504,31 @@ export class InstagramApiService {
       clearTimeout(timeoutId)
       if (!response.ok) {
         const errorText = await response.text()
-        // Handle specific error cases for two-endpoint architecture
-        if (response.status === 401) {
+        let errorData: any = {}
+        
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { detail: errorText }
+        }
+
+        // Handle team-specific error cases first
+        if (response.status === 402) {
+          throw new TeamUsageLimitError({
+            detail: errorData.detail || 'Team usage limit exceeded',
+            headers: Object.fromEntries(response.headers.entries())
+          })
+        } else if (response.status === 401) {
+          // Check if this is a team-related 401 error
+          if (errorData.detail?.includes('team')) {
+            throw new TeamAccessError(errorData.detail)
+          }
           throw new Error(`Authentication required. Please log in again.`)
         } else if (response.status === 403) {
+          // Check if this is a team permission error
+          if (errorData.detail?.includes('team') || errorData.detail?.includes('owner')) {
+            throw new TeamAccessError(errorData.detail)
+          }
           throw new Error(`No access to this profile. Click to unlock 30-day access.`)
         } else if (response.status === 404) {
           // Different 404 handling based on endpoint
@@ -542,6 +595,7 @@ export class InstagramApiService {
       const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.search(username), {
         method: 'GET',
       }, 0, API_CONFIG.SEARCH_TIMEOUT)
+      
       // Validate response structure
       if (!response) {
         throw new Error('Empty response received from backend')
@@ -549,11 +603,29 @@ export class InstagramApiService {
       if (!response.profile) {
         throw new Error('No profile data received from backend')
       }
+
+      // Store team context if present
+      if (response.team_context) {
+        teamApiService.updateTeamContext(response.team_context)
+      }
+
       return {
         success: true,
         data: response
       }
     } catch (error: any) {
+      if (error instanceof TeamUsageLimitError) {
+        return {
+          success: false,
+          error: `Team ${error.usageType} limit exceeded. Used: ${error.currentUsage}/${error.limit}, Available: ${error.available}. Consider upgrading your ${error.tier} plan.`
+        }
+      }
+      if (error instanceof TeamAccessError) {
+        return {
+          success: false,
+          error: error.message
+        }
+      }
       return {
         success: false,
         error: error.message || 'Failed to search profile'
@@ -575,6 +647,7 @@ export class InstagramApiService {
       const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.analytics(username), {
         method: 'GET',
       }, 0, API_CONFIG.ANALYTICS_TIMEOUT)
+      
       // Validate response structure
       if (!response) {
         throw new Error('Empty response received from backend')
@@ -582,11 +655,29 @@ export class InstagramApiService {
       if (!response.profile) {
         throw new Error('No profile data received from backend')
       }
+
+      // Store team context if present
+      if (response.team_context) {
+        teamApiService.updateTeamContext(response.team_context)
+      }
+
       return {
         success: true,
         data: response
       }
     } catch (error: any) {
+      if (error instanceof TeamUsageLimitError) {
+        return {
+          success: false,
+          error: `Team ${error.usageType} limit exceeded. Used: ${error.currentUsage}/${error.limit}, Available: ${error.available}. Consider upgrading your ${error.tier} plan.`
+        }
+      }
+      if (error instanceof TeamAccessError) {
+        return {
+          success: false,
+          error: error.message
+        }
+      }
       // Handle specific 404 case for unlocked profiles
       if (error.message.includes('404')) {
         return {

@@ -7,6 +7,9 @@ import {
   Filter,
   Users,
   Heart,
+  UserSearch,
+  Sparkles,
+  Zap,
   MapPin,
   Star,
   ChevronDown,
@@ -27,6 +30,7 @@ import { toast } from "sonner"
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
 import {
   Card,
   CardContent,
@@ -167,19 +171,17 @@ export default function DiscoverPage() {
               </div>
             </div>
 
-            {/* Overview Cards */}
-            <SectionCards mode="discover" discoverData={discoverData} />
+            {/* Discovery Coming Soon - Full Page State */}
+            <div className="flex items-center justify-center min-h-[70vh] px-4">
+              <EmptyState
+                title="Discovery Powered by AI"
+                description="Coming Soon.
 
-            {/* Empty State */}
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No creators found</h3>
-                <p className="text-muted-foreground text-center">
-                  Connect to backend to load creator discovery data
-                </p>
-              </CardContent>
-            </Card>
+Discover the perfect creators for your brand using our revolutionary AI-powered matching system. Find authentic voices, analyze engagement patterns, and connect with influencers who truly align with your vision."
+                icons={[Sparkles, UserSearch, Zap]}
+                className="max-w-4xl p-20 text-lg"
+              />
+            </div>
           </div>
         </div>
       </SidebarInset>

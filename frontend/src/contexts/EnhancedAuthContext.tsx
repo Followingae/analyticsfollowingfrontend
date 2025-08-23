@@ -159,22 +159,48 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     console.log('  - basicUser.subscription:', (basicUser as any).subscription)
     console.log('  - basicUser.monthly_credits:', (basicUser as any).monthly_credits)
     
-    // Map basic user roles to enhanced roles
+    // Map basic user roles to enhanced roles with strict role separation
     let role: UserRole
-    switch (basicUser.role) {
+    switch (basicUser.role?.toLowerCase()) {
       case 'admin':
-        role = 'super_admin' // Treat existing admin as super_admin
+      case 'superadmin':
+        // CRITICAL: Only actual admins get admin access
+        role = 'super_admin' // Treat backend 'admin' as 'super_admin'
+        console.log('🔧 EnhancedAuth: ⚠️ ADMIN USER DETECTED - Granting super_admin access')
         break
       case 'premium':
+        // FIXED: Premium users are BRAND users, not admin users
         role = 'brand_premium'
+        console.log('🔧 EnhancedAuth: ✅ Premium user mapped to brand_premium (NO admin access)')
+        break
+      case 'standard':
+        role = 'brand_standard'
+        console.log('🔧 EnhancedAuth: ✅ Standard user mapped to brand_standard')
+        break
+      case 'enterprise':
+        role = 'brand_enterprise'
+        console.log('🔧 EnhancedAuth: ✅ Enterprise user mapped to brand_enterprise')
         break
       case 'free':
       default:
         role = 'brand_free'
+        console.log('🔧 EnhancedAuth: ✅ Free user mapped to brand_free')
         break
     }
     
-    console.log('🔧 EnhancedAuth: Mapped role from', basicUser.role, 'to', role)
+    console.log('🔧 EnhancedAuth: ROLE MAPPING RESULT:', {
+      original: basicUser.role,
+      mapped: role,
+      isAdmin: role === 'super_admin' || role === 'admin',
+      isBrand: role.startsWith('brand_'),
+      warningLevel: role === 'super_admin' ? 'CRITICAL - ADMIN ACCESS' : 'NORMAL'
+    })
+
+    // Validate that premium users don't get admin permissions
+    if (basicUser.role === 'premium' && (role === 'super_admin' || role === 'admin')) {
+      console.error('🚨 SECURITY ALERT: Premium user was about to get admin access! Forcing to brand_premium')
+      role = 'brand_premium'
+    }
 
     return {
       ...basicUser,

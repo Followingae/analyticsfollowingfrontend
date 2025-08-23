@@ -57,8 +57,12 @@
       "Bash(sed:*)",
       "Bash(git push:*)",
       "Bash(true)",
-      "Bash(PORT=3001 npm run start)"
+      "Bash(PORT=3001 npm run start)",
+      "WebSearch"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": [
+      "C:\\c\\Users\\user\\Desktop\\analyticsfollowingfrontend\\analyticsfollowingfrontend"
+    ]
   }
 }

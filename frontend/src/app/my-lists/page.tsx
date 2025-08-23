@@ -13,6 +13,8 @@ import {
   Heart,
   BarChart3,
   Search,
+  List as ListIcon,
+  FileText,
   X,
   Edit3,
   Trash2,
@@ -57,6 +59,7 @@ import { toast } from "sonner"
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -466,24 +469,20 @@ export default function MyListsPage() {
 
               {/* Lists Grid */}
               {filteredAndSortedLists.length === 0 ? (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <Folder className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No lists found</h3>
-                    <p className="text-muted-foreground text-center">
-                      {searchQuery.trim() 
-                        ? "Try adjusting your search criteria" 
-                        : "Create your first list to get started organizing creators"
-                      }
-                    </p>
-                    {!searchQuery.trim() && (
-                      <Button className="mt-4" onClick={() => setIsCreatingList(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Your First List
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
+                <div className="flex justify-center py-12">
+                  <EmptyState
+                    title={searchQuery.trim() ? "No lists found" : "No lists yet"}
+                    description={searchQuery.trim() 
+                      ? "Try adjusting your search criteria\nto find the lists you're looking for." 
+                      : "Create your first list to get started\norganizing and managing your creators."
+                    }
+                    icons={[ListIcon, Users, FileText]}
+                    action={!searchQuery.trim() ? {
+                      label: "Create Your First List",
+                      onClick: () => setIsCreatingList(true)
+                    } : undefined}
+                  />
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredAndSortedLists.map((list) => (

@@ -41,10 +41,8 @@ export function MetricCard({ title, value, change, icon, loading }: MetricCardPr
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          {icon}
-          {title}
-        </CardTitle>
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon}
         {change !== undefined && (
           <Badge 
             variant="outline" 
