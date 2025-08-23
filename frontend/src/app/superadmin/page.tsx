@@ -16,7 +16,6 @@ import {
   CheckCircle,
   XCircle,
   TrendingUp,
-  Database,
   Globe,
   Zap,
   Settings,
@@ -38,7 +37,7 @@ import {
   FileText,
 } from "lucide-react"
 
-import { AppSidebar } from "@/components/app-sidebar"
+import { SuperadminSidebar } from "@/components/superadmin/SuperadminSidebar"
 import { toast } from "sonner"
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
@@ -304,7 +303,7 @@ export default function SuperadminPage() {
     return (
       <AuthGuard requireAuth={true} requireSuperAdmin={true}>
         <SidebarProvider>
-          <AppSidebar variant="inset" />
+          <SuperadminSidebar variant="inset" />
           <SidebarInset>
             <SiteHeader />
             <div className="flex flex-1 flex-col items-center justify-center">
@@ -323,7 +322,7 @@ export default function SuperadminPage() {
     return (
       <AuthGuard requireAuth={true} requireSuperAdmin={true}>
         <SidebarProvider>
-          <AppSidebar variant="inset" />
+          <SuperadminSidebar variant="inset" />
           <SidebarInset>
             <SiteHeader />
             <div className="flex flex-1 flex-col items-center justify-center">
@@ -350,7 +349,7 @@ export default function SuperadminPage() {
           } as React.CSSProperties
         }
       >
-        <AppSidebar variant="inset" />
+        <SuperadminSidebar variant="inset" />
         <SidebarInset>
           <SiteHeader />
           <div className="flex flex-1 flex-col">
