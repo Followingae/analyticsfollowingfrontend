@@ -429,7 +429,7 @@ export default function CreatorsPage() {
           {/* Avatar */}
           <div className="flex justify-center mb-3">
             <ProfileAvatar
-              src={creator.profile_pic_url_hd || creator.profile_pic_url}
+              src={creator.proxied_profile_pic_url_hd || creator.proxied_profile_pic_url || creator.profile_pic_url_hd || creator.profile_pic_url}
               alt={creator.full_name || 'Profile'}
               fallbackText={creator.username}
               className="w-20 h-20 border-2 border-white dark:border-gray-900"
@@ -496,7 +496,8 @@ export default function CreatorsPage() {
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                router.push(`/analytics/${creator.username}`);
+                // Pass existing profile data to avoid unnecessary API calls
+                router.push(`/analytics/${creator.username}?fromDashboard=true`);
               }}
             >
               <BarChart3 className="h-4 w-4 mr-2" />
@@ -760,11 +761,11 @@ export default function CreatorsPage() {
                     const unlockedCreator = unlockedCreators.find(c => c.username === username);
                     if (unlockedCreator && analysis.status === 'completed') {
                       // Return the populated card instead of loading card
-                      return <CreatorCard key={`unlocked-${username}`} creator={unlockedCreator} />;
+                      return <CreatorCard key={`unlocked-completed-${username}-${unlockedCreator.id || unlockedCreator.pk}`} creator={unlockedCreator} />;
                     }
                     // Return skeleton card that matches real creator card layout
                     return (
-                      <Card key={`analyzing-${username}`} className="relative overflow-hidden animate-pulse">
+                      <Card key={`analyzing-${username}-${analysis.status}-${analysis.progress}`} className="relative overflow-hidden animate-pulse">
                         {/* Status Badge */}
                         <div className="absolute top-3 left-3 z-10">
                           <div className="w-6 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -878,7 +879,7 @@ export default function CreatorsPage() {
                   {!unlockedLoading && creators
                     .filter(creator => !analyzingCreators[creator.username])
                     .map((creator) => (
-                    <CreatorCard key={creator.username} creator={creator} />
+                    <CreatorCard key={`creator-${creator.username}-${creator.id || creator.pk}`} creator={creator} />
                   ))}
                 </div>
                 {/* Pagination Controls */}

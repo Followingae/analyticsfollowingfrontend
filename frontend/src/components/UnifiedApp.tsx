@@ -81,21 +81,27 @@ export function RoleBasedRedirect() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      // Determine redirect path based on role
-      switch (user.role) {
-        case 'super_admin':
-        case 'admin':
-          router.replace('/admin/dashboard')
-          break
-        
-        case 'brand_enterprise':
-        case 'brand_premium':
-        case 'brand_standard':
-        case 'brand_free':
-        default:
-          router.replace('/dashboard')
-          break
+    if (!isLoading) {
+      if (isAuthenticated && user) {
+        // Determine redirect path based on role
+        switch (user.role) {
+          case 'super_admin':
+          case 'admin':
+            router.replace('/admin/dashboard')
+            break
+          
+          case 'brand_enterprise':
+          case 'brand_premium':
+          case 'brand_standard':
+          case 'brand_free':
+          default:
+            router.replace('/dashboard')
+            break
+        }
+      } else {
+        // Not authenticated - redirect to login
+        console.log('🔐 RoleBasedRedirect: Not authenticated, redirecting to login')
+        router.replace('/auth/login')
       }
     }
   }, [user, isLoading, isAuthenticated, router])

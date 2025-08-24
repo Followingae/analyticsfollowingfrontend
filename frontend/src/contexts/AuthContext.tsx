@@ -37,7 +37,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const initializeAuth = async () => {
-    
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.log('🔐 AuthContext: Auth initialization timeout - clearing loading state')
+      setIsLoading(false)
+      setUser(null)
+    }, 5000) // 5 second timeout
+
     try {
       // Check if user is stored locally
       const storedUser = authService.getStoredUser()
@@ -51,8 +57,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(null)
       }
     } catch (error) {
+      console.error('🔐 AuthContext: Auth initialization error:', error)
       setUser(null)
     } finally {
+      clearTimeout(timeoutId)
       setIsLoading(false)
     }
   }
@@ -62,8 +70,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await authService.getDashboardStats()
       if (result.success && result.data) {
         setDashboardStats(result.data)
+      } else if (result.error && (result.error.includes('403') || result.error.includes('401') || result.error.includes('authentication'))) {
+        // Token is invalid, clear auth state
+        console.log('🔐 AuthContext: Invalid token detected, clearing auth state')
+        authService.logout()
+        setUser(null)
+        setDashboardStats(null)
       }
     } catch (error) {
+      console.error('🔐 AuthContext: Dashboard stats error:', error)
     }
   }
 

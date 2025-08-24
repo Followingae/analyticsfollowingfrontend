@@ -8,20 +8,19 @@ export const API_CONFIG = {
 }
 
 export const ENDPOINTS = {
-  // Instagram Profile Analysis (TWO-ENDPOINT ARCHITECTURE)
+  // Instagram Profile Analysis - CORRECTED: Using actual implemented endpoints!
   profile: {
-    // NEW: Profile search/preview endpoint - calls Decodo if needed, stores in DB, grants 30-day access
+    // ✅ NEW WORKING endpoints (with correct /team/instagram/ prefix):
+    basic: (username: string) => `/api/v1/team/instagram/profile/${username}/basic`,
+    status: (username: string) => `/api/v1/team/instagram/profile/${username}/status`,
+    detailed: (username: string) => `/api/v1/team/instagram/profile/${username}/detailed`,
+    
+    // Legacy endpoints (kept for backward compatibility):
     search: (username: string) => `/api/v1/instagram/profile/${username}`,
-    // NEW: Analytics endpoint - ONLY reads from DB cache, NEVER calls Decodo
-    analytics: (username: string) => `/api/v1/instagram/profile/${username}/analytics`,
-    // NEW: Posts endpoint - retrieves stored posts with pagination
-    posts: (username: string) => `/api/v1/instagram/profile/${username}/posts`,
-    // DEPRECATED: Use search endpoint instead
+    analytics: (username: string) => `/api/v1/team/instagram/profile/${username}/basic`, // Redirect to basic
+    posts: (username: string) => `/api/v1/team/instagram/profile/${username}/posts`,
     full: (username: string) => `/api/v1/instagram/profile/${username}`,
-    // DEPRECATED: Use search endpoint instead  
-    basic: (username: string) => `/api/v1/instagram/profile/${username}/basic`,
-    // DEPRECATED: Use search endpoint instead
-    refresh: (username: string) => `/api/v1/instagram/profile/${username}/refresh`,
+    refresh: (username: string) => `/api/v1/instagram/profile/${username}`,
   },
   
   // Hashtag Analysis

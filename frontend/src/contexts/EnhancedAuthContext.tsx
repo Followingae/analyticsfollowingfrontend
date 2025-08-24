@@ -111,7 +111,15 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
   // Sync with basic auth context
   useEffect(() => {
+    // Safety timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.log('🔐 EnhancedAuthContext: Timeout - forcing loading to false')
+      setIsLoading(false)
+      setUser(null)
+    }, 10000) // 10 second timeout
+
     if (!basicIsLoading) {
+      clearTimeout(timeoutId)
       if (basicIsAuthenticated && basicUser) {
         const enhancedUser = enhanceUserData(basicUser)
         setUser(enhancedUser)
@@ -122,6 +130,8 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
       }
       setIsLoading(false)
     }
+
+    return () => clearTimeout(timeoutId)
   }, [basicUser, basicIsAuthenticated, basicIsLoading, basicDashboardStats])
 
   // Activity tracking
@@ -217,9 +227,15 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
       const result = await authService.getDashboardStats()
       if (result.success && result.data) {
         setDashboardStats(result.data)
+      } else if (result.error && (result.error.includes('403') || result.error.includes('401') || result.error.includes('authentication'))) {
+        // Token is invalid, clear auth state
+        console.log('🔐 EnhancedAuthContext: Invalid token detected, clearing auth state')
+        basicLogout()
+        setUser(null)
+        setDashboardStats(null)
       }
     } catch (error) {
-      // Silent fail
+      console.error('🔐 EnhancedAuthContext: Dashboard stats error:', error)
     }
   }
 

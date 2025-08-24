@@ -580,75 +580,163 @@ export class InstagramApiService {
     }
   }
   /**
-   * NEW: Profile search/preview endpoint - TWO-ENDPOINT ARCHITECTURE
-   * Uses: GET /api/v1/instagram/profile/{username}
-   * Purpose: Initial profile search and preview cards
-   * Behavior:
-   * - Checks database first
-   * - If not found: Calls Decodo + stores in database
-   * - If found: Returns cached data instantly
-   * - Grants user 30-day access
-   * - Response Time: 15-30 seconds (first time) or 0.5 seconds (cached)
+   * NEW: Step 1 - Get Basic Profile Data (Progressive Loading)
+   * Uses: GET /api/v1/team/instagram/profile/{username}/basic
+   * Purpose: Immediate basic data response (1-3 seconds)
+   * Returns: Basic profile info without AI insights
+   */
+  async getBasicProfile(username: string): Promise<BasicProfileResponse> {
+    try {
+      // NEW BACKEND: This endpoint now returns complete data with AI insights for existing profiles
+      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.basic(username), {
+        method: 'GET',
+      }, 0, 10000) // 10 second timeout for complete data
+      
+      // Validate response structure
+      if (!response) {
+        throw new Error('Empty response received from backend')
+      }
+      if (!response.profile) {
+        throw new Error('No profile data received from backend')
+      }
+
+      // Store team context if present
+      if (response.team_context) {
+        teamApiService.updateTeamContext(response.team_context)
+      }
+
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      if (error instanceof TeamUsageLimitError) {
+        return {
+          success: false,
+          error: `Team ${error.usageType} limit exceeded. Used: ${error.currentUsage}/${error.limit}, Available: ${error.available}. Consider upgrading your ${error.tier} plan.`
+        }
+      }
+      if (error instanceof TeamAccessError) {
+        return {
+          success: false,
+          error: error.message
+        }
+      }
+      return {
+        success: false,
+        error: error.message || 'Failed to get basic profile data'
+      }
+    }
+  }
+
+  /**
+   * NEW: Step 2 - Check AI Processing Status (Progressive Loading)  
+   * Uses: GET /api/v1/team/instagram/profile/{username}/status
+   * Purpose: Poll to check if AI analysis is complete
+   */
+  async getProfileStatus(username: string): Promise<{ success: boolean; data?: { analysis_status: 'processing' | 'completed'; estimated_completion?: number }; error?: string }> {
+    try {
+      const response = await this.makeRequest<{ 
+        analysis_status: 'processing' | 'completed'
+        estimated_completion?: number
+        progress?: {
+          completed: number
+          total: number
+          percentage: number
+        }
+      }>(ENDPOINTS.profile.status(username), {
+        method: 'GET',
+      }, 0, 3000) // 3 second timeout for status check
+      
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get profile status'
+      }
+    }
+  }
+
+  /**
+   * NEW: Step 3 - Get Detailed Profile Data with AI Insights (Progressive Loading)
+   * Uses: GET /api/v1/team/instagram/profile/{username}/detailed
+   * Purpose: Complete data with AI insights when ready
+   */
+  async getDetailedProfile(username: string): Promise<BasicProfileResponse> {
+    try {
+      // FIXED: Use correct endpoint with /team/instagram/ prefix
+      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.detailed(username), {
+        method: 'GET',
+      }, 0, 10000) // 10 second timeout for detailed data
+      
+      // Validate response structure
+      if (!response) {
+        throw new Error('Empty response received from backend')
+      }
+      if (!response.profile) {
+        throw new Error('No profile data received from backend')
+      }
+
+      // Store team context if present
+      if (response.team_context) {
+        teamApiService.updateTeamContext(response.team_context)
+      }
+
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error: any) {
+      if (error instanceof TeamUsageLimitError) {
+        return {
+          success: false,
+          error: `Team ${error.usageType} limit exceeded. Used: ${error.currentUsage}/${error.limit}, Available: ${error.available}. Consider upgrading your ${error.tier} plan.`
+        }
+      }
+      if (error instanceof TeamAccessError) {
+        return {
+          success: false,
+          error: error.message
+        }
+      }
+      return {
+        success: false,
+        error: error.message || 'Failed to get detailed profile data'
+      }
+    }
+  }
+
+  /**
+   * LEGACY: Profile search/preview endpoint - kept for backward compatibility
+   * @deprecated Use getBasicProfile for new implementations
    */
   async searchProfile(username: string): Promise<BasicProfileResponse> {
-    try {
-      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.search(username), {
-        method: 'GET',
-      }, 0, API_CONFIG.SEARCH_TIMEOUT)
-      
-      // Validate response structure
-      if (!response) {
-        throw new Error('Empty response received from backend')
-      }
-      if (!response.profile) {
-        throw new Error('No profile data received from backend')
-      }
-
-      // Store team context if present
-      if (response.team_context) {
-        teamApiService.updateTeamContext(response.team_context)
-      }
-
-      return {
-        success: true,
-        data: response
-      }
-    } catch (error: any) {
-      if (error instanceof TeamUsageLimitError) {
-        return {
-          success: false,
-          error: `Team ${error.usageType} limit exceeded. Used: ${error.currentUsage}/${error.limit}, Available: ${error.available}. Consider upgrading your ${error.tier} plan.`
-        }
-      }
-      if (error instanceof TeamAccessError) {
-        return {
-          success: false,
-          error: error.message
-        }
-      }
-      return {
-        success: false,
-        error: error.message || 'Failed to search profile'
-      }
-    }
+    return this.getBasicProfile(username)
   }
   /**
-   * NEW: Analytics endpoint - TWO-ENDPOINT ARCHITECTURE
-   * Uses: GET /api/v1/instagram/profile/{username}/analytics
-   * Purpose: "View Analysis" detailed page
-   * Behavior:
-   * - ONLY reads from database cache
-   * - NEVER calls Decodo
-   * - Response Time: ~0.5 seconds
-   * - Returns 404 if profile not unlocked yet
+   * DEPRECATED: Analytics endpoint - REMOVED from backend
+   * @deprecated Use getBasicProfile() and getDetailedProfile() instead
+   * This method now redirects to the new progressive loading approach
    */
   async getAnalytics(username: string): Promise<BasicProfileResponse> {
+    console.warn('⚠️ getAnalytics is deprecated. Use getBasicProfile() instead.')
+    return this.getBasicProfile(username)
+  }
+  /**
+   * NEW: Progressive Profile Loading - Complete 3-Step Process
+   * Implements the full progressive loading flow with polling
+   * This method orchestrates the entire process automatically
+   */
+  async getProfile(username: string): Promise<BasicProfileResponse> {
     try {
-      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.analytics(username), {
+      // Direct API call - avoid calling getBasicProfile to prevent recursion
+      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.basic(username), {
         method: 'GET',
-      }, 0, API_CONFIG.ANALYTICS_TIMEOUT)
+      }, 0, 10000)
       
-      // Validate response structure
       if (!response) {
         throw new Error('Empty response received from backend')
       }
@@ -663,40 +751,61 @@ export class InstagramApiService {
 
       return {
         success: true,
-        data: response
+        data: response,
+        status: response.ai_insights?.ai_processing_status || 'not_available'
       }
+
     } catch (error: any) {
-      if (error instanceof TeamUsageLimitError) {
+      console.error('Profile fetch error:', error)
+      
+      if (error.message.includes('profile_not_accessible') || 
+          error.message.includes('search for this profile first')) {
         return {
           success: false,
-          error: `Team ${error.usageType} limit exceeded. Used: ${error.currentUsage}/${error.limit}, Available: ${error.available}. Consider upgrading your ${error.tier} plan.`
+          error: 'Please search for this profile first to unlock access'
         }
       }
-      if (error instanceof TeamAccessError) {
-        return {
-          success: false,
-          error: error.message
-        }
-      }
-      // Handle specific 404 case for unlocked profiles
-      if (error.message.includes('404')) {
-        return {
-          success: false,
-          error: 'Please search for this profile first to unlock analytics'
-        }
-      }
+      
       return {
         success: false,
-        error: error.message || 'Failed to load analytics'
+        error: error.message || 'Failed to get profile'
       }
     }
   }
+
   /**
-   * DEPRECATED: Use searchProfile instead for better performance
-   * This method now redirects to searchProfile for backward compatibility
+   * NEW: Get Detailed Profile Data When Ready (with polling)
+   * Call this after getProfile() to get AI insights when available
+   * This method handles polling automatically
    */
-  async getProfile(username: string): Promise<BasicProfileResponse> {
-    return this.searchProfile(username)
+  async getDetailedProfileWhenReady(username: string, maxWaitTime: number = 60000): Promise<BasicProfileResponse> {
+    const startTime = Date.now()
+    const pollInterval = 5000 // 5 seconds
+
+    while (Date.now() - startTime < maxWaitTime) {
+      try {
+        // Check status first
+        const statusResponse = await this.getProfileStatus(username)
+        
+        if (statusResponse.success && statusResponse.data?.analysis_status === 'completed') {
+          // AI is ready, get detailed data
+          return await this.getDetailedProfile(username)
+        }
+        
+        // Still processing, wait before next poll
+        await new Promise(resolve => setTimeout(resolve, pollInterval))
+        
+      } catch (error) {
+        // Continue polling on errors (might be temporary)
+        await new Promise(resolve => setTimeout(resolve, pollInterval))
+      }
+    }
+
+    // Timeout reached, return basic data
+    return {
+      success: false,
+      error: 'AI analysis timeout - basic data is available but detailed insights are still processing'
+    }
   }
   /**
    * Legacy method - now redirects to main getProfile method
@@ -1235,9 +1344,47 @@ export class InstagramApiService {
   async fetchProfileWithFallback(username: string): Promise<CompleteProfileResponse> {
     return this.getProfile(username)
   }
-  // Legacy method for backward compatibility
+  // Fixed method - no longer calls getProfile to avoid recursion
   async getBasicProfile(username: string): Promise<BasicProfileResponse> {
-    return this.getProfile(username)
+    try {
+      // Direct API call to avoid recursion with getProfile
+      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.basic(username), {
+        method: 'GET',
+      }, 0, 120000) // 2 minutes timeout for AI analysis
+      
+      if (!response) {
+        throw new Error('Empty response received from backend')
+      }
+      if (!response.profile) {
+        throw new Error('No profile data received from backend')
+      }
+
+      // Store team context if present
+      if (response.team_context) {
+        teamApiService.updateTeamContext(response.team_context)
+      }
+
+      return {
+        success: true,
+        data: response,
+        status: response.ai_insights?.ai_processing_status || 'not_available'
+      }
+    } catch (error: any) {
+      console.error('Basic profile fetch error:', error)
+      
+      if (error.message.includes('profile_not_accessible') || 
+          error.message.includes('search for this profile first')) {
+        return {
+          success: false,
+          error: 'Please search for this profile first to unlock access'
+        }
+      }
+      
+      return {
+        success: false,
+        error: error.message || 'Failed to fetch basic profile'
+      }
+    }
   }
 }
 export const instagramApiService = new InstagramApiService()

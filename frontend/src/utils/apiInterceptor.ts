@@ -32,6 +32,13 @@ class ApiInterceptor {
         return this.handle401Error(config)
       }
       
+      // If 403 (Forbidden), likely an invalid token - clear auth and redirect to login
+      if (response.status === 403) {
+        console.log('🚫 403 Forbidden - clearing auth state and redirecting to login')
+        authService.logout()
+        throw new Error('Access forbidden. Please log in again.')
+      }
+      
       return response
     } catch (error) {
       throw error
