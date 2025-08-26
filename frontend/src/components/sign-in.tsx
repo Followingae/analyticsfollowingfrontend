@@ -27,6 +27,7 @@ interface SignInPageProps {
   title?: React.ReactNode;
   description?: React.ReactNode;
   testimonials?: Testimonial[];
+  isLoading?: boolean;
   onSignIn?: (event: React.FormEvent<HTMLFormElement>) => void;
   onResetPassword?: () => void;
   onCreateAccount?: () => void;
@@ -60,6 +61,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   title = <span className="font-light text-foreground tracking-tighter">Welcome</span>,
   description = "Access your account and continue your journey with us",
   testimonials = [],
+  isLoading = false,
   onSignIn,
   onResetPassword,
   onCreateAccount,
@@ -72,6 +74,14 @@ export const SignInPage: React.FC<SignInPageProps> = ({
       <section className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="flex flex-col gap-6">
+            {/* Logo aligned with left side */}
+            <div className="mb-4">
+              <img 
+                src="/followinglogo.svg" 
+                className="h-6 w-auto object-contain animate-element animate-delay-50 opacity-60" 
+                alt="Following Logo" 
+              />
+            </div>
             <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">{title}</h1>
             <p className="animate-element animate-delay-200 text-muted-foreground">{description}</p>
 
@@ -99,8 +109,15 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                 <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-violet-400 transition-colors">Reset password</a>
               </div>
 
-              <button type="submit" className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
-                Sign In
+              <button 
+                type="submit" 
+                disabled={isLoading}
+                className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent"></div>
+                )}
+                {isLoading ? "Signing In..." : "Sign In"}
               </button>
             </form>
 
@@ -113,32 +130,24 @@ export const SignInPage: React.FC<SignInPageProps> = ({
       </section>
 
       {/* Right column: magnet lines animation + testimonials */}
-      <section className="hidden md:block flex-1 relative p-4">
-        <div className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900">
+      <section className="hidden md:block flex-1 relative p-16">
+        <div className="animate-slide-right animate-delay-300 absolute inset-16 rounded-3xl flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 overflow-hidden p-8">
           <MagnetLines
-            rows={12}
-            columns={8}
+            rows={14}
+            columns={10}
             containerSize="100%"
             lineColor="#8b5cf6"
-            lineWidth="20px"
-            lineHeight="60px"
-            baseAngle={0}
-            className="w-full h-full"
-            style={{ minHeight: '400px', minWidth: '300px', opacity: 1 }}
+            lineWidth="8px"
+            lineHeight="45px"
+            baseAngle={45}
+            className=""
+            style={{ opacity: 1 }}
           />
         </div>
         
-        {/* Centered Logo */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <img 
-            src="/followinglogo.svg" 
-            className="h-10 w-auto object-contain animate-element animate-delay-800" 
-            alt="Following Logo" 
-          />
-        </div>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-4/5">
+        <div className="absolute bottom-6 right-6">
           <div 
-            className="animate-testimonial animate-delay-1000 flex items-center justify-center rounded-3xl border border-white/20 dark:border-white/15 px-6 py-4 shadow-lg"
+            className="animate-testimonial animate-delay-1000 flex items-center justify-center rounded-2xl border border-white/20 dark:border-white/15 px-4 py-2 shadow-lg"
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.15)',
               backdropFilter: 'blur(12px) saturate(120%)',
@@ -146,7 +155,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               borderColor: 'rgba(255, 255, 255, 0.2)',
             }}
           >
-            <p className="text-sm text-gray-700 dark:text-gray-300 opacity-90">
+            <p className="text-xs text-gray-700 dark:text-gray-300 opacity-70">
               Built with ❤️ in Dubai
             </p>
           </div>

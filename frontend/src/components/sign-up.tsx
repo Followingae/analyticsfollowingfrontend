@@ -71,7 +71,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
         <div className="w-full max-w-md">
           <div className="flex flex-col gap-6">
             <div className="animate-element animate-delay-50 mb-2">
-              <img src="/followinglogo.svg" className="h-8 w-auto object-contain" alt="Following Logo" />
+              <img src="/followinglogo.svg" className="h-6 w-auto object-contain opacity-60" alt="Following Logo" />
             </div>
             <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">{title}</h1>
             <p className="animate-element animate-delay-200 text-muted-foreground">{description}</p>
@@ -139,32 +139,24 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
       </section>
 
       {/* Right column: magnet lines animation + testimonials */}
-      <section className="hidden md:block flex-1 relative p-4">
-        <div className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900">
+      <section className="hidden md:block flex-1 relative p-16">
+        <div className="animate-slide-right animate-delay-300 absolute inset-16 rounded-3xl flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 overflow-hidden p-8">
           <MagnetLines
-            rows={12}
-            columns={8}
+            rows={14}
+            columns={10}
             containerSize="100%"
             lineColor="#8b5cf6"
-            lineWidth="20px"
-            lineHeight="60px"
-            baseAngle={0}
-            className="w-full h-full"
-            style={{ minHeight: '400px', minWidth: '300px', opacity: 1 }}
+            lineWidth="8px"
+            lineHeight="45px"
+            baseAngle={45}
+            className=""
+            style={{ opacity: 1 }}
           />
         </div>
         
-        {/* Centered Logo */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <img 
-            src="/followinglogo.svg" 
-            className="h-10 w-auto object-contain animate-element animate-delay-800" 
-            alt="Following Logo" 
-          />
-        </div>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-4/5">
+        <div className="absolute bottom-6 right-6">
           <div 
-            className="animate-testimonial animate-delay-1200 flex items-center justify-center rounded-3xl border border-white/20 dark:border-white/15 px-6 py-4 shadow-lg"
+            className="animate-testimonial animate-delay-1200 flex items-center justify-center rounded-2xl border border-white/20 dark:border-white/15 px-4 py-2 shadow-lg"
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.15)',
               backdropFilter: 'blur(12px) saturate(120%)',
@@ -172,7 +164,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
               borderColor: 'rgba(255, 255, 255, 0.2)',
             }}
           >
-            <p className="text-sm text-gray-700 dark:text-gray-300 opacity-90">
+            <p className="text-xs text-gray-700 dark:text-gray-300 opacity-70">
               Built with ❤️ in Dubai
             </p>
           </div>

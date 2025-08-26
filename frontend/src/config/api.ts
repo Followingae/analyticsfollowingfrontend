@@ -8,19 +8,33 @@ export const API_CONFIG = {
 }
 
 export const ENDPOINTS = {
-  // Instagram Profile Analysis - CORRECTED: Using actual implemented endpoints!
-  profile: {
-    // ✅ NEW WORKING endpoints (with correct /team/instagram/ prefix):
-    basic: (username: string) => `/api/v1/team/instagram/profile/${username}/basic`,
-    status: (username: string) => `/api/v1/team/instagram/profile/${username}/status`,
-    detailed: (username: string) => `/api/v1/team/instagram/profile/${username}/detailed`,
+  // Creator Search System - Robust Implementation
+  creator: {
+    // Core Search Endpoints
+    search: (username: string) => `/api/v1/creator/search/${username}`, // POST - Main creator search
+    get: (username: string) => `/api/v1/creator/${username}`, // GET - Get existing creator data
+    detailed: (username: string) => `/api/v1/creator/${username}/detailed`, // GET - Get detailed analytics
     
-    // Legacy endpoints (kept for backward compatibility):
-    search: (username: string) => `/api/v1/instagram/profile/${username}`,
-    analytics: (username: string) => `/api/v1/team/instagram/profile/${username}/basic`, // Redirect to basic
-    posts: (username: string) => `/api/v1/team/instagram/profile/${username}/posts`,
-    full: (username: string) => `/api/v1/instagram/profile/${username}`,
-    refresh: (username: string) => `/api/v1/instagram/profile/${username}`,
+    // Posts & Content
+    posts: (username: string) => `/api/v1/creator/${username}/posts`, // GET - Get creator posts with AI
+    
+    // Analysis Status
+    status: (username: string) => `/api/v1/creator/${username}/status`, // GET - Check AI analysis status
+    
+    // Refresh & Updates
+    refresh: (username: string) => `/api/v1/creator/${username}/refresh`, // POST - Force refresh
+    
+    // Background Processing
+    scheduleAnalysis: (username: string) => `/api/v1/creator/${username}/schedule-analysis`, // POST - Schedule analysis
+  },
+
+  // Legacy Profile Endpoints (Deprecated - use creator endpoints above)
+  profile: {
+    basic: (username: string) => `/api/v1/creator/search/${username}`,
+    search: (username: string) => `/api/v1/creator/search/${username}`,
+    analytics: (username: string) => `/api/v1/creator/${username}/detailed`,
+    posts: (username: string) => `/api/v1/creator/${username}/posts`,
+    full: (username: string) => `/api/v1/creator/${username}/detailed`,
   },
   
   // Hashtag Analysis
@@ -66,6 +80,11 @@ export const ENDPOINTS = {
     me: '/api/v1/me',
     logout: '/api/v1/auth/logout',
     unlockedProfiles: '/api/v1/auth/unlocked-profiles',
+  },
+
+  // Teams
+  teams: {
+    overview: '/api/v1/teams/overview',
   },
 }
 

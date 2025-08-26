@@ -18,6 +18,7 @@ import {
   Receipt,
   AlertTriangle,
   TrendingUp,
+  Users,
 } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"

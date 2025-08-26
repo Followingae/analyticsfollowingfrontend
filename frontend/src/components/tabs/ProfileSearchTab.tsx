@@ -8,65 +8,38 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { formatNumber, formatPercentage, isValidProfile } from '@/lib/utils'
 import { ProfileAvatar } from '@/components/ui/profile-avatar'
-import { instagramApiService, CompleteProfileResponse } from '@/services/instagramApi'
-import { useAINotifications } from '@/services/aiNotificationService'
+import { creatorApiService } from '@/services/creatorApi'
+import { CreatorSearchResponse } from '@/types/creator'
+import { useCreatorSearch } from '@/hooks/useCreatorSearch'
 import { Loader2, Search, Instagram, Users, Heart, BarChart3, Target, TrendingUp, Clock, Zap, Star, CheckCircle2, ExternalLink, Brain } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { 
-  ContentDistributionChart, 
-  SentimentIndicator, 
-  LanguageDistribution, 
-  QualityScoreIndicator 
-} from '@/components/ui/ai-insights'
+import { AIInsightsCard } from '@/components/ai-insights/AIInsightsCard'
+import { AnalysisStatusCard } from '@/components/ai-insights/AnalysisStatusCard'
 
 export default function ProfileSearchTab() {
   const [username, setUsername] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [profileData, setProfileData] = useState<CompleteProfileResponse['data'] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { 
+    profile, 
+    loading, 
+    error, 
+    analysisStatus, 
+    searchCreator, 
+    retryAnalysis, 
+    clearSearch 
+  } = useCreatorSearch()
   const [batchUsernames, setBatchUsernames] = useState('')
   const [batchLoading, setBatchLoading] = useState(false)
   const [useSmartProxy, setUseSmartProxy] = useState(false)
   const router = useRouter()
-  const aiNotificationService = useAINotifications()
-  
-  // Cleanup AI notification service on unmount
-  useEffect(() => {
-    return () => {
-      aiNotificationService.cleanup()
-    }
-  }, [aiNotificationService])
 
   const handleSearch = async () => {
     if (!username.trim()) return
     
     const cleanUsername = username.trim().replace('@', '')
-    setLoading(true)
-    setError(null)
-    setProfileData(null)
-    
-    console.log(`🔍 Starting profile search for: @${cleanUsername}`)
-    
-    try {
-      const result = await instagramApiService.searchProfile(cleanUsername)
-      
-      if (result.success && result.data) {
-        setProfileData(result.data)
-        console.log('✅ Profile unlocked! User can now view analytics instantly.')
-        
-        // Trigger AI analysis with new completion status handling
-        if (result.data.profile?.username) {
-          aiNotificationService.handleProfileAnalysis(result.data.profile.username)
-        }
-      } else {
-        setError(result.error || 'Profile search failed')
-      }
-    } catch (err) {
-      console.error('Profile search error:', err)
-      setError(err instanceof Error ? err.message : 'An error occurred during search')
-    } finally {
-      setLoading(false)
-    }
+    await searchCreator(cleanUsername, {
+      force_refresh: false,
+      show_progress: true
+    })
   }
 
   const handleBatchSearch = async () => {
@@ -213,32 +186,41 @@ export default function ProfileSearchTab() {
         </Card>
       )}
 
+      {/* Analysis Status Card */}
+      {analysisStatus && (
+        <AnalysisStatusCard 
+          status={analysisStatus}
+          onRetry={retryAnalysis}
+          className="mb-6"
+        />
+      )}
+
       {/* Profile Results */}
-      {profileData && (
+      {profile && (
         <div className="space-y-6">
           {/* Profile Overview */}
           <Card className="border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-start gap-4">
                 <ProfileAvatar
-                  src={profileData.profile.profile_pic_url}
-                  alt={profileData.profile.username}
-                  fallbackText={profileData.profile.username}
+                  src={profile.profile_pic_url_hd || profile.profile_pic_url}
+                  alt={profile.username}
+                  fallbackText={profile.username}
                   size="lg"
                   className="w-20 h-20 border-4 border-white"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <CardTitle className="text-2xl">{profileData.profile.full_name}</CardTitle>
-                    {profileData.profile.is_verified && (
+                    <CardTitle className="text-2xl">{profile.full_name}</CardTitle>
+                    {profile.is_verified && (
                       <Badge className="bg-blue-500">Verified</Badge>
                     )}
                   </div>
                   <CardDescription className="text-gray-600 mb-3">
-                    @{profileData.profile.username}
+                    @{profile.username}
                   </CardDescription>
                   <p className="text-sm text-gray-700 mb-4">
-                    {profileData.profile.biography}
+                    {profile.biography}
                   </p>
                   {/* TODO: Add external_url to backend response if available */}
                 </div>
@@ -248,25 +230,25 @@ export default function ProfileSearchTab() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">
-                    {formatNumber(profileData.profile.followers_count)}
+                    {formatNumber(profile.followers_count)}
                   </div>
                   <div className="text-sm text-gray-600">Followers</div>
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
-                    {formatNumber(profileData.profile.following_count || 0)}
+                    {formatNumber(profile.following_count || 0)}
                   </div>
                   <div className="text-sm text-gray-600">Following</div>
                 </div>
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600">
-                    {formatNumber(profileData.profile.posts_count || 0)}
+                    {formatNumber(profile.posts_count || 0)}
                   </div>
                   <div className="text-sm text-gray-600">Posts</div>
                 </div>
                 <div className="text-center p-4 bg-orange-50 rounded-lg">
                   <div className="text-2xl font-bold text-orange-600">
-                    {formatPercentage(profileData.profile.engagement_rate)}
+                    {profile.engagement_rate ? `${(profile.engagement_rate * 100).toFixed(1)}%` : 'N/A'}
                   </div>
                   <div className="text-sm text-gray-600">Engagement</div>
                 </div>
@@ -285,12 +267,12 @@ export default function ProfileSearchTab() {
                       Profile Unlocked!
                     </h3>
                     <p className="text-green-700 dark:text-green-300">
-                      @{profileData.profile.username} is now available for detailed analytics
+                      @{profile.username} is now available for detailed analytics
                     </p>
                   </div>
                 </div>
                 <Button 
-                  onClick={() => router.push(`/analytics/${profileData.profile.username}`)}
+                  onClick={() => router.push(`/analytics/${profile.username}`)}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
@@ -312,24 +294,18 @@ export default function ProfileSearchTab() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Posts Count</span>
-                  <span className="font-semibold">{formatNumber(profileData.profile.posts_count || 0)}</span>
+                  <span className="font-semibold">{formatNumber(profile.posts_count || 0)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Engagement Rate</span>
-                  <span className="font-semibold">{(profileData.profile.engagement_rate || 0).toFixed(1)}%</span>
+                  <span className="font-semibold">{profile.engagement_rate ? `${(profile.engagement_rate * 100).toFixed(1)}%` : 'N/A'}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Content Quality</span>
-                  <span className="font-semibold">{(profileData.profile.content_quality_score || 0).toFixed(1)}/10</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Content Quality Score</span>
-                  <span className="font-semibold">{(profileData.profile.content_quality_score || 0).toFixed(1)}/10</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Influence Score</span>
-                  <span className="font-semibold">{(profileData.profile.influence_score || 0).toFixed(1)}/10</span>
-                </div>
+                {profile.ai_insights?.content_quality_score && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Content Quality</span>
+                    <span className="font-semibold">{profile.ai_insights.content_quality_score.toFixed(1)}/10</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -341,48 +317,47 @@ export default function ProfileSearchTab() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {profileData.ai_insights?.has_ai_analysis ? (
+                {profile.ai_insights?.available ? (
                   <div className="space-y-4">
-                    {/* Primary content type */}
-                    {profileData.ai_insights.ai_primary_content_type && (
+                    {/* Primary content category */}
+                    {profile.ai_insights.content_category && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Primary Content</span>
                         <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                          {profileData.ai_insights.ai_primary_content_type}
+                          {profile.ai_insights.content_category}
                         </Badge>
                       </div>
                     )}
                     
                     {/* Sentiment score */}
-                    {profileData.ai_insights.ai_avg_sentiment_score !== null && (
+                    {profile.ai_insights.average_sentiment !== undefined && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Avg Sentiment</span>
                         <span className={`font-semibold ${
-                          (profileData.ai_insights.ai_avg_sentiment_score || 0) > 0.2 ? 'text-green-600' :
-                          (profileData.ai_insights.ai_avg_sentiment_score || 0) < -0.2 ? 'text-red-600' : 'text-gray-600'
+                          profile.ai_insights.average_sentiment > 0.1 ? 'text-green-600' :
+                          profile.ai_insights.average_sentiment < -0.1 ? 'text-red-600' : 'text-gray-600'
                         }`}>
-                          {profileData.ai_insights.ai_avg_sentiment_score >= 0 ? '+' : ''}
-                          {profileData.ai_insights.ai_avg_sentiment_score.toFixed(2)}
+                          {Math.round(((profile.ai_insights.average_sentiment + 1) / 2) * 100)}% positive
                         </span>
                       </div>
                     )}
                     
                     {/* Quality score */}
-                    {profileData.ai_insights.ai_content_quality_score !== null && (
+                    {profile.ai_insights.content_quality_score !== undefined && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">AI Quality Score</span>
                         <span className="font-semibold text-purple-600">
-                          {(profileData.ai_insights.ai_content_quality_score * 100).toFixed(0)}%
+                          {profile.ai_insights.content_quality_score.toFixed(1)}/10
                         </span>
                       </div>
                     )}
                     
                     {/* Analysis date */}
-                    {profileData.ai_insights.ai_profile_analyzed_at && (
+                    {profile.ai_insights.last_analyzed && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Last AI Analysis</span>
                         <span className="text-sm text-gray-500">
-                          {new Date(profileData.ai_insights.ai_profile_analyzed_at).toLocaleDateString()}
+                          {new Date(profile.ai_insights.last_analyzed).toLocaleDateString()}
                         </span>
                       </div>
                     )}
@@ -398,55 +373,18 @@ export default function ProfileSearchTab() {
             </Card>
           </div>
 
-          {/* AI Insights Section - Only show if AI analysis is available */}
-          {profileData.ai_insights?.has_ai_analysis && (
+          {/* AI Insights Section */}
+          {profile.ai_insights?.available && (
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Content Intelligence</h3>
                 <p className="text-gray-600">Advanced AI-powered analysis of content patterns and quality</p>
               </div>
 
-              {/* AI Insights Grid */}
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Content Distribution Chart */}
-                {profileData.ai_insights.ai_content_distribution && (
-                  <ContentDistributionChart
-                    distribution={profileData.ai_insights.ai_content_distribution}
-                    primaryContentType={profileData.ai_insights.ai_primary_content_type}
-                    className="border-0 bg-white/80 backdrop-blur-sm"
-                  />
-                )}
-
-                {/* Sentiment Analysis */}
-                <SentimentIndicator
-                  sentimentScore={profileData.ai_insights.ai_avg_sentiment_score}
-                  className="border-0 bg-white/80 backdrop-blur-sm"
-                  size="md"
-                  showDetails={true}
-                />
-              </div>
-
-              {/* Second Row */}
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Language Distribution */}
-                {profileData.ai_insights.ai_language_distribution && (
-                  <LanguageDistribution
-                    distribution={profileData.ai_insights.ai_language_distribution}
-                    className="border-0 bg-white/80 backdrop-blur-sm"
-                    maxLanguages={5}
-                    showPercentages={true}
-                  />
-                )}
-
-                {/* Quality Score */}
-                <QualityScoreIndicator
-                  qualityScore={profileData.ai_insights.ai_content_quality_score}
-                  className="border-0 bg-white/80 backdrop-blur-sm"
-                  size="md"
-                  showDetails={true}
-                  showBreakdown={true}
-                />
-              </div>
+              <AIInsightsCard 
+                insights={profile.ai_insights}
+                className="border-0 bg-white/80 backdrop-blur-sm"
+              />
             </div>
           )}
 

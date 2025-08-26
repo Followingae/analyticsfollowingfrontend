@@ -3,11 +3,9 @@
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
-import { NotificationBell } from "@/components/ui/notification"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Balloons } from "@/components/ui/balloons"
-import { useNotifications } from "@/contexts/NotificationContext"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
@@ -21,7 +19,6 @@ export function SiteHeader() {
   const isDashboard = pathname === '/' || pathname === '/dashboard'
   const { user, isLoading } = useAuth()
   const { user: enhancedUser, isBrandUser } = useEnhancedAuth()
-  const { notifications, markAsRead, markAllAsRead, deleteNotification } = useNotifications()
   
   // Team context state (replaces individual credit balance)
   const [teamContext, setTeamContext] = useState<TeamContext | null>(null)
@@ -131,12 +128,12 @@ export function SiteHeader() {
         />
         {!isDashboard && userDisplayData && userDisplayData.displayName && (
           <div className="flex items-center gap-2">
-            <span className="text-base font-bold tracking-tight">Welcome,</span>
-            <span className="text-base font-bold tracking-tight">{userDisplayData.displayName}</span>
+            <span className="text-sm text-muted-foreground font-medium">Welcome,</span>
+            <span className="text-sm text-muted-foreground font-medium">{userDisplayData.displayName}</span>
             {userDisplayData.companyName && (
               <>
-                <span className="text-base font-bold tracking-tight">•</span>
-                <span className="text-base font-bold tracking-tight">{userDisplayData.companyName}</span>
+                <span className="text-sm text-muted-foreground font-medium">•</span>
+                <span className="text-sm text-muted-foreground font-medium">{userDisplayData.companyName}</span>
               </>
             )}
           </div>
@@ -177,12 +174,6 @@ export function SiteHeader() {
             </div>
           )}
           
-          <NotificationBell
-            notifications={notifications}
-            onMarkAsRead={markAsRead}
-            onMarkAllAsRead={markAllAsRead}
-            onDelete={deleteNotification}
-          />
           
           {/* Balloon Button */}
           <Button

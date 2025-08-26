@@ -204,10 +204,7 @@ export function FloatingSetupChecklist() {
             }}
             // Accessibility: respect reduced motion preference
             style={{
-              background: 'transparent',
-              "@media (prefers-reduced-motion: reduce)": {
-                animation: "none"
-              }
+              background: 'transparent'
             }}
           >
             <Button

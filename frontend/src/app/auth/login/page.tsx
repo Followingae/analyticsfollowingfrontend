@@ -63,6 +63,7 @@ export default function LoginPage() {
           text: "Transform your Instagram strategy with AI-powered insights and comprehensive analytics tools."
         }
       ]}
+      isLoading={isLoading}
       onSignIn={handleSubmit}
       onResetPassword={handleResetPassword}
       onCreateAccount={handleCreateAccount}

@@ -32,7 +32,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 interface RealEngagementTimelineProps {
-  data: Array<{
+  data?: Array<{
     id: string
     shortcode: string
     timestamp: number
@@ -42,17 +42,20 @@ interface RealEngagementTimelineProps {
     video_views?: number
     engagement_rate: number
   }>
+  username?: string
   title?: string
   description?: string
 }
 
 export function RealEngagementTimeline({ 
   data, 
+  username,
   title = "Real Engagement Timeline",
   description = "Actual post performance over time"
 }: RealEngagementTimelineProps) {
   // Transform data for chart - sort by timestamp and format
   const chartData = React.useMemo(() => {
+    if (!data || data.length === 0) return []
     return data
       .sort((a, b) => a.timestamp - b.timestamp)
       .map((post, index) => ({
@@ -155,32 +158,34 @@ export function RealEngagementTimeline({
         </ChartContainer>
         
         {/* Performance Summary */}
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div className="text-center p-2 bg-muted rounded">
-            <div className="font-bold text-lg">
-              {(chartData.reduce((sum, post) => sum + post.engagement_rate, 0) / chartData.length).toFixed(2)}%
+        {chartData.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="text-center p-2 bg-muted rounded">
+              <div className="font-bold text-lg">
+                {(chartData.reduce((sum, post) => sum + post.engagement_rate, 0) / chartData.length).toFixed(2)}%
+              </div>
+              <div className="text-muted-foreground">Avg Engagement</div>
             </div>
-            <div className="text-muted-foreground">Avg Engagement</div>
-          </div>
-          <div className="text-center p-2 bg-muted rounded">
-            <div className="font-bold text-lg">
-              {Math.max(...chartData.map(p => p.engagement_rate)).toFixed(2)}%
+            <div className="text-center p-2 bg-muted rounded">
+              <div className="font-bold text-lg">
+                {Math.max(...chartData.map(p => p.engagement_rate)).toFixed(2)}%
+              </div>
+              <div className="text-muted-foreground">Best Post</div>
             </div>
-            <div className="text-muted-foreground">Best Post</div>
-          </div>
-          <div className="text-center p-2 bg-muted rounded">
-            <div className="font-bold text-lg">
-              {formatNumber(chartData.reduce((sum, post) => sum + post.likes, 0))}
+            <div className="text-center p-2 bg-muted rounded">
+              <div className="font-bold text-lg">
+                {formatNumber(chartData.reduce((sum, post) => sum + post.likes, 0))}
+              </div>
+              <div className="text-muted-foreground">Total Likes</div>
             </div>
-            <div className="text-muted-foreground">Total Likes</div>
-          </div>
-          <div className="text-center p-2 bg-muted rounded">
-            <div className="font-bold text-lg">
-              {((chartData.filter(p => p.is_video).length / chartData.length) * 100).toFixed(0)}%
+            <div className="text-center p-2 bg-muted rounded">
+              <div className="font-bold text-lg">
+                {((chartData.filter(p => p.is_video).length / chartData.length) * 100).toFixed(0)}%
+              </div>
+              <div className="text-muted-foreground">Video Content</div>
             </div>
-            <div className="text-muted-foreground">Video Content</div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   )

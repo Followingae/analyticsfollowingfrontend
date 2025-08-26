@@ -8,44 +8,48 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { formatNumber, formatPercentage } from '@/lib/utils'
-// TODO: Create discovery API service when backend endpoints are ready
-// import { discoveryApiService } from '@/services/discoveryApi'
-import { DiscoveryFilters, CreatorProfile } from '@/types'
+import { creatorApiService } from '@/services/creatorApi'
+import { CreatorProfile } from '@/types/creator'
 import { Loader2, Search, Hash, TrendingUp, Filter, Users } from 'lucide-react'
-import ReactCountryFlag from "react-country-flag"
-import { getCountryCode } from "@/lib/countryUtils"
 
 export default function DiscoveryTab() {
   const [hashtags, setHashtags] = useState('')
   const [loading, setLoading] = useState(false)
   const [creators, setCreators] = useState<CreatorProfile[]>([])
-  const [filters, setFilters] = useState<DiscoveryFilters>({
+  const [filters, setFilters] = useState({
     follower_count_min: 1000,
     follower_count_max: 1000000,
-    engagement_rate_min: 1,
-    engagement_rate_max: 10,
-    niche: '',
-    location: ''
+    engagement_rate_min: 0.01,
+    engagement_rate_max: 0.10,
+    content_categories: [] as string[],
+    languages: [] as string[]
   })
   const [showFilters, setShowFilters] = useState(false)
 
   const handleDiscovery = async () => {
-    if (!hashtags.trim()) return
-    
     setLoading(true)
     try {
-      // TODO: Implement discovery API when backend endpoints are ready
-      // const hashtagList = hashtags.split(',').map(h => h.trim().replace('#', '')).filter(h => h.length > 0)
-      // const result = await discoveryApiService.discoverByHashtags(hashtagList, filters)
-      // if (result.success) {
-      //   setCreators(result.creators || [])
-      // }
+      const result = await creatorApiService.getUnlockedCreators({
+        limit: 20,
+        offset: 0,
+        min_followers: filters.follower_count_min,
+        max_followers: filters.follower_count_max,
+        min_engagement_rate: filters.engagement_rate_min,
+        max_engagement_rate: filters.engagement_rate_max,
+        content_categories: filters.content_categories,
+        languages: filters.languages,
+        sort_by: 'engagement_rate',
+        sort_order: 'desc'
+      })
       
-      // Temporary placeholder - remove when backend is ready
-      console.log('Discovery feature will be implemented when backend endpoints are available')
-      setCreators([]) // Show empty state
+      if (result.success && result.data) {
+        setCreators(result.data.creators)
+      } else {
+        setCreators([])
+      }
     } catch (err) {
       console.error('Discovery failed:', err)
+      setCreators([])
     } finally {
       setLoading(false)
     }
@@ -61,7 +65,15 @@ export default function DiscoveryTab() {
   ]
 
   const handleNicheClick = (niche: string) => {
-    setFilters(prev => ({ ...prev, niche }))
+    setFilters(prev => ({ 
+      ...prev, 
+      content_categories: [niche.toLowerCase()] 
+    }))
+    // Auto-trigger discovery when niche is clicked
+    setLoading(true)
+    setTimeout(() => {
+      handleDiscovery()
+    }, 100)
   }
 
   return (
@@ -74,15 +86,15 @@ export default function DiscoveryTab() {
             Hashtag-Based Discovery
           </CardTitle>
           <CardDescription>
-            Find creators and influencers using specific hashtags
+            Discover trending creators and unlocked profiles
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Hash className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
               <Input
-                placeholder="Enter hashtags (e.g., fitness, fashion, food)..."
+                placeholder="Search unlocked creators..."
                 value={hashtags}
                 onChange={(e) => setHashtags(e.target.value)}
                 className="pl-10"
@@ -98,7 +110,7 @@ export default function DiscoveryTab() {
             </Button>
             <Button 
               onClick={handleDiscovery} 
-              disabled={loading || !hashtags.trim()}
+              disabled={loading}
               className="px-6"
             >
               {loading ? (
@@ -140,7 +152,7 @@ export default function DiscoveryTab() {
                     <label className="block text-sm font-medium mb-2">Min Engagement %</label>
                     <Input
                       type="number"
-                      step="0.1"
+                      step="0.01"
                       value={filters.engagement_rate_min}
                       onChange={(e) => setFilters(prev => ({ 
                         ...prev, 
@@ -152,7 +164,7 @@ export default function DiscoveryTab() {
                     <label className="block text-sm font-medium mb-2">Max Engagement %</label>
                     <Input
                       type="number"
-                      step="0.1"
+                      step="0.01"
                       value={filters.engagement_rate_max}
                       onChange={(e) => setFilters(prev => ({ 
                         ...prev, 
@@ -215,7 +227,7 @@ export default function DiscoveryTab() {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3 mb-3">
                       <ProfileAvatar
-                        src={creator.profile_pic_url}
+                        src={creator.profile_pic_url_hd || creator.profile_pic_url}
                         alt={creator.username}
                         fallbackText={creator.username}
                         size="lg"
@@ -237,33 +249,21 @@ export default function DiscoveryTab() {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Followers</span>
-                        <span className="font-medium">{formatNumber(creator.followers)}</span>
+                        <span className="font-medium">{formatNumber(creator.followers_count)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Engagement</span>
-                        <span className="font-medium">{formatPercentage(creator.engagement_rate)}</span>
+                        <span className="font-medium">{creator.engagement_rate ? `${(creator.engagement_rate * 100).toFixed(1)}%` : 'N/A'}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Categories</span>
-                        <div className="flex gap-1">
-                          {creator.categories.slice(0, 2).map((category, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">{category}</Badge>
-                          ))}
+                      {creator.ai_insights?.content_category && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Category</span>
+                          <Badge variant="outline" className="text-xs">{creator.ai_insights.content_category}</Badge>
                         </div>
-                      </div>
+                      )}
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Location</span>
-                        <div className="flex items-center gap-1">
-                          <ReactCountryFlag
-                            countryCode={getCountryCode(creator.location)}
-                            svg
-                            style={{
-                              width: '14px',
-                              height: '10px',
-                            }}
-                          />
-                          <span className="font-medium text-xs">{creator.location}</span>
-                        </div>
+                        <span className="text-gray-600">Posts</span>
+                        <span className="font-medium">{formatNumber(creator.posts_count)}</span>
                       </div>
                     </div>
                     
@@ -272,8 +272,8 @@ export default function DiscoveryTab() {
                       size="sm" 
                       className="w-full mt-3"
                       onClick={() => {
-                        // Navigate to profile analysis
-                        window.open(`https://instagram.com/${creator.username}`, '_blank')
+                        // Navigate to analytics page
+                        window.open(`/analytics/${creator.username}`, '_blank')
                       }}
                     >
                       View Profile

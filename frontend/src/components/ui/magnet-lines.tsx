@@ -63,19 +63,6 @@ function MagnetLines({
 
   const total = rows * columns;
   const spans = Array.from({ length: total }, (_, i) => {
-    const row = Math.floor(i / columns);
-    const col = i % columns;
-    const centerRow = Math.floor(rows / 2);
-    const centerCol = Math.floor(columns / 2);
-    
-    // Skip center 4 lines (2x2 grid in the middle)
-    const isInCenter = (row === centerRow || row === centerRow - 1) && 
-                      (col === centerCol || col === centerCol - 1);
-    
-    if (isInCenter) {
-      return <span key={i} className="block" />;
-    }
-    
     return (
       <span
         key={i}

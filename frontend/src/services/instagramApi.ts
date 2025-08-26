@@ -587,9 +587,13 @@ export class InstagramApiService {
    */
   async getBasicProfile(username: string): Promise<BasicProfileResponse> {
     try {
-      // NEW BACKEND: This endpoint now returns complete data with AI insights for existing profiles
-      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.basic(username), {
-        method: 'GET',
+      // NEW BACKEND: Using creator search endpoint with POST method and team token
+      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.creator.search(username), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ force_refresh: false })
       }, 0, 10000) // 10 second timeout for complete data
       
       // Validate response structure
@@ -644,8 +648,8 @@ export class InstagramApiService {
           total: number
           percentage: number
         }
-      }>(ENDPOINTS.profile.status(username), {
-        method: 'GET',
+      }>(ENDPOINTS.creator.status(username), {
+        method: 'GET'
       }, 0, 3000) // 3 second timeout for status check
       
       return {
@@ -667,9 +671,9 @@ export class InstagramApiService {
    */
   async getDetailedProfile(username: string): Promise<BasicProfileResponse> {
     try {
-      // FIXED: Use correct endpoint with /team/instagram/ prefix
-      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.detailed(username), {
-        method: 'GET',
+      // FIXED: Use new creator detailed endpoint with GET method
+      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.creator.detailed(username), {
+        method: 'GET'
       }, 0, 10000) // 10 second timeout for detailed data
       
       // Validate response structure
@@ -733,8 +737,12 @@ export class InstagramApiService {
   async getProfile(username: string): Promise<BasicProfileResponse> {
     try {
       // Direct API call - avoid calling getBasicProfile to prevent recursion
-      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.basic(username), {
-        method: 'GET',
+      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.creator.search(username), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ force_refresh: false })
       }, 0, 10000)
       
       if (!response) {
@@ -861,12 +869,12 @@ export class InstagramApiService {
    * Uses: GET /api/instagram/profile/{username}/posts
    */
   async getPosts(username: string, limit: number = 20, offset: number = 0): Promise<PostsApiResponse> {
-    const fullUrl = `${ENDPOINTS.profile.posts(username)}?limit=${limit}&offset=${offset}`;
-    const completeUrl = `${this.baseURL}${fullUrl}`;
     try {
       const response = await this.makeRequest<PostsResponse>(
-        fullUrl,
-        { method: 'GET' }
+        `${ENDPOINTS.creator.posts(username)}?limit=${limit}&offset=${offset}&include_ai=true`,
+        { 
+          method: 'GET'
+        }
       )
       return {
         success: true,
@@ -1348,8 +1356,12 @@ export class InstagramApiService {
   async getBasicProfile(username: string): Promise<BasicProfileResponse> {
     try {
       // Direct API call to avoid recursion with getProfile
-      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.profile.basic(username), {
-        method: 'GET',
+      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.creator.search(username), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ force_refresh: false })
       }, 0, 120000) // 2 minutes timeout for AI analysis
       
       if (!response) {

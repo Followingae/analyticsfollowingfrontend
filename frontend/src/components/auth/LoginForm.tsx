@@ -18,6 +18,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [showConnectivityTest, setShowConnectivityTest] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const { login } = useAuth()
   const router = useRouter()
 
@@ -30,14 +31,18 @@ export default function LoginForm() {
     }
 
     setIsLoading(true)
+    setErrorMessage('') // Clear any previous errors
     
     try {
       const success = await login(email, password)
       if (success) {
         router.push('/dashboard')
+      } else {
+        setErrorMessage('Login failed. Please check your credentials and try again.')
       }
     } catch (error) {
       console.error('Login error:', error)
+      setErrorMessage('An unexpected error occurred. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -132,6 +137,14 @@ export default function LoginForm() {
                   className="transition-all"
                 />
               </div>
+              
+              {/* Error Message Display */}
+              {errorMessage && (
+                <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md">
+                  <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+                </div>
+              )}
+              
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && (
                   <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />

@@ -6,6 +6,7 @@
 
 import { API_CONFIG, getAuthHeaders } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { creatorApiService } from './creatorApi'
 
 // Team Context Interface (replaces user_context)
 export interface TeamContext {
@@ -344,10 +345,49 @@ class TeamApiService {
 
   async getTeamUsage(): Promise<ApiResponse<TeamUsageSummary>> {
     try {
-      const response = await this.makeRequest<TeamUsageSummary>('/api/v1/team/instagram/team/usage')
+      // Use the new creator API system/stats endpoint and transform the response
+      const statsResponse = await creatorApiService.getUsageStats()
+      
+      if (!statsResponse.success || !statsResponse.data) {
+        return {
+          success: false,
+          error: statsResponse.error || 'Failed to fetch team usage'
+        }
+      }
+
+      // Transform the response to match TeamUsageSummary interface
+      const stats = statsResponse.data
+      const usageSummary: TeamUsageSummary = {
+        team_id: 'default',
+        team_name: stats.team_context.team_name || 'Default Team',
+        subscription_tier: stats.team_context.subscription_tier || 'free',
+        current_usage: {
+          profiles: stats.usage_limits.profiles_used,
+          emails: 0, // TODO: Add email usage if needed
+          posts: stats.usage_limits.posts_used
+        },
+        monthly_limits: {
+          profiles: stats.usage_limits.profiles_limit || 0,
+          emails: 0, // TODO: Add email limits if needed
+          posts: stats.usage_limits.posts_limit || 0
+        },
+        remaining_capacity: {
+          profiles: stats.usage_limits.remaining_profiles || 0,
+          emails: 0, // TODO: Add email remaining if needed
+          posts: Math.max(0, (stats.usage_limits.posts_limit || 0) - (stats.usage_limits.posts_used || 0))
+        },
+        billing_cycle_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // TODO: Add actual billing cycle
+        usage_alerts: [], // TODO: Add usage alerts if needed
+        team_stats: {
+          total_profiles: stats.team_stats.total_unlocked_profiles,
+          ai_analyzed_profiles: stats.team_stats.profiles_with_ai,
+          ai_completion_rate: parseFloat(stats.team_stats.ai_completion_rate.replace('%', ''))
+        }
+      }
+
       return {
         success: true,
-        data: response
+        data: usageSummary
       }
     } catch (error: any) {
       return {
@@ -359,10 +399,52 @@ class TeamApiService {
 
   async getTeamContext(): Promise<ApiResponse<TeamContext>> {
     try {
-      const response = await this.makeRequest<TeamContext>('/api/v1/team/instagram/team/context')
+      // Use the new creator API system/stats endpoint
+      const statsResponse = await creatorApiService.getUsageStats()
+      
+      if (!statsResponse.success || !statsResponse.data) {
+        return {
+          success: false,
+          error: statsResponse.error || 'Failed to fetch team context'
+        }
+      }
+
+      // Transform the new response format to match existing TeamContext interface
+      const stats = statsResponse.data
+      const teamContext: TeamContext = {
+        team_id: 'default', // TODO: Add team_id to backend response if needed
+        team_name: stats.team_context.team_name || 'Default Team',
+        user_role: 'member', // TODO: Add user role to backend response if needed
+        subscription_tier: stats.team_context.subscription_tier || 'free',
+        subscription_status: 'active', // TODO: Add status to backend response if needed
+        monthly_limits: {
+          profiles: stats.usage_limits.profiles_limit || 0,
+          emails: 0, // TODO: Add email limits if needed
+          posts: stats.usage_limits.posts_limit || 0
+        },
+        current_usage: {
+          profiles: stats.usage_limits.profiles_used || 0,
+          emails: 0, // TODO: Add email usage if needed  
+          posts: stats.usage_limits.posts_used || 0
+        },
+        remaining_capacity: {
+          profiles: stats.usage_limits.remaining_profiles || 0,
+          emails: 0, // TODO: Add email remaining if needed
+          posts: Math.max(0, (stats.usage_limits.posts_limit || 0) - (stats.usage_limits.posts_used || 0))
+        },
+        user_permissions: {
+          can_analyze_profiles: true,
+          can_unlock_emails: false, // TODO: Add permission logic if needed
+          can_analyze_posts: true,
+          can_manage_team: false, // TODO: Add permission logic if needed
+          can_invite_members: false, // TODO: Add permission logic if needed
+          can_view_billing: false // TODO: Add permission logic if needed
+        }
+      }
+
       return {
         success: true,
-        data: response
+        data: teamContext
       }
     } catch (error: any) {
       return {

@@ -25,15 +25,34 @@ export function ProfileAvatar({
   size = 'md',
   className
 }: ProfileAvatarProps) {
+  // Handle empty/null/undefined src
+  if (!src || src.trim() === '') {
+    return (
+      <Avatar className={cn(sizeClasses[size], className)}>
+        <AvatarFallback>
+          {fallbackText ? (
+            <span className="text-xs font-medium">
+              {fallbackText.slice(0, 2).toUpperCase()}
+            </span>
+          ) : (
+            <User className="h-4 w-4" />
+          )}
+        </AvatarFallback>
+      </Avatar>
+    )
+  }
+  
   const proxiedSrc = proxyInstagramUrlCached(src)
 
   const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
-    // Try original URL as fallback if proxied URL fails
-    if (proxiedSrc !== src && src) {
-      event.currentTarget.src = src
+    const img = event.currentTarget
+    
+    // If this is a proxied URL failing, try the original
+    if (proxiedSrc !== src && src && !img.dataset.tried_original) {
+      img.dataset.tried_original = 'true'
+      img.src = src
+      return
     }
-    // Note: With the new backend URL refresh system, expired URLs should be automatically 
-    // refreshed, so image errors should be rare now
   }
   
   return (

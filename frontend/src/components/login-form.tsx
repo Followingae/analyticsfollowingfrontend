@@ -7,11 +7,13 @@ import Link from "next/link"
 
 interface LoginFormProps extends React.ComponentProps<"form"> {
   isLoading?: boolean
+  errorMessage?: string
 }
 
 export function LoginForm({
   className,
   isLoading = false,
+  errorMessage,
   ...props
 }: LoginFormProps) {
   return (
@@ -52,6 +54,14 @@ export function LoginForm({
             required 
           />
         </div>
+        
+        {/* Error Message Display */}
+        {errorMessage && (
+          <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md">
+            <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+          </div>
+        )}
+        
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && (
             <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />

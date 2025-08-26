@@ -24,6 +24,13 @@ export interface User {
     seed?: string
   }
 }
+export interface TokenData {
+  access_token: string
+  refresh_token: string
+  token_type: string
+  expires_at: number
+}
+
 export interface AuthResponse {
   success: boolean
   data?: {
@@ -31,6 +38,7 @@ export interface AuthResponse {
     access_token: string | null
     refresh_token?: string
     token_type: string
+    expires_in?: number
     message?: string
     email_confirmation_required?: boolean
   }
@@ -59,13 +67,88 @@ export interface DashboardStats {
 }
 class AuthService {
   private baseURL: string
-  private token: string | null = null
+  private tokenData: TokenData | null = null
+
   constructor() {
     this.baseURL = API_CONFIG.BASE_URL
-    // Load token from localStorage on initialization
+    // Load token data from localStorage on initialization
+    this.loadTokenData()
+  }
+
+  private loadTokenData(): void {
     if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('access_token')
+      // Try new token format first
+      const storedTokens = localStorage.getItem('auth_tokens')
+      if (storedTokens) {
+        try {
+          this.tokenData = JSON.parse(storedTokens)
+          return
+        } catch {
+          // Invalid token data, clear it
+          localStorage.removeItem('auth_tokens')
+        }
+      }
+      
+      // Migration: Check for old token format
+      const oldAccessToken = localStorage.getItem('access_token')
+      const oldRefreshToken = localStorage.getItem('refresh_token')
+      
+      if (oldAccessToken) {
+        console.log('🔄 Migrating from old token format')
+        // Create new token data with default expiration (assume expired to force refresh)
+        const tokenData: TokenData = {
+          access_token: oldAccessToken,
+          refresh_token: oldRefreshToken || '',
+          token_type: 'bearer',
+          expires_at: Date.now() - 1 // Mark as expired to force refresh
+        }
+        
+        this.saveTokenData(tokenData)
+        
+        // Clean up old tokens
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+      }
     }
+  }
+
+  private saveTokenData(tokenData: TokenData): void {
+    this.tokenData = tokenData
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
+    }
+  }
+
+  private clearTokenData(): void {
+    this.tokenData = null
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_tokens')
+      localStorage.removeItem('access_token') // Remove old format
+      localStorage.removeItem('refresh_token') // Remove old format
+      localStorage.removeItem('user_data')
+    }
+  }
+
+  private isTokenExpired(): boolean {
+    if (!this.tokenData) return true
+    // Consider token expired if it expires in less than 5 minutes
+    const bufferTime = 5 * 60 * 1000 // 5 minutes in milliseconds
+    return Date.now() >= (this.tokenData.expires_at - bufferTime)
+  }
+
+  private async ensureValidToken(): Promise<boolean> {
+    if (!this.tokenData) {
+      console.log('🔐 No token data available')
+      return false
+    }
+
+    if (this.isTokenExpired()) {
+      console.log('🔄 Token expired, attempting refresh...')
+      const refreshResult = await this.refreshToken()
+      return refreshResult.success
+    }
+
+    return true
   }
   // Register new user
   async register(credentials: RegisterCredentials): Promise<AuthResponse> {
@@ -164,12 +247,7 @@ class AuthService {
       // Add better CORS and error handling
       const response = await fetch(loginUrl, {
         method: 'POST',
-        headers: {
-          ...REQUEST_HEADERS,
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        },
+        headers: REQUEST_HEADERS,
         mode: 'cors',
         credentials: 'omit',
         body: JSON.stringify(credentials)
@@ -185,16 +263,20 @@ class AuthService {
         }
       }
       if (response.ok && data.access_token) {
-        // Backend returns direct object, not wrapped in success/data
-        this.token = data.access_token
-        if (this.token) {
-          localStorage.setItem('access_token', this.token)
-          localStorage.setItem('user_data', JSON.stringify(data.user))
-          // Store refresh token if provided
-          if (data.refresh_token) {
-            localStorage.setItem('refresh_token', data.refresh_token)
-          }
+        // Calculate expiration time (default to 15 minutes if not provided)
+        const expiresIn = data.expires_in || 900 // 15 minutes in seconds
+        const expiresAt = Date.now() + (expiresIn * 1000)
+        
+        // Save token data with expiration
+        const tokenData: TokenData = {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token || '',
+          token_type: data.token_type || 'bearer',
+          expires_at: expiresAt
         }
+        
+        this.saveTokenData(tokenData)
+        localStorage.setItem('user_data', JSON.stringify(data.user))
         // Convert to expected format
         return {
           success: true,
@@ -271,10 +353,8 @@ class AuthService {
   }
   // Logout user
   logout(): void {
-    this.token = null
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('user_data')
+    console.log('🚪 Logging out user')
+    this.clearTokenData()
     // Redirect to login page
     if (typeof window !== 'undefined') {
       window.location.href = '/auth/login'
@@ -282,17 +362,21 @@ class AuthService {
   }
   // Get current user profile
   async getCurrentUser(): Promise<{ success: boolean; data?: User; error?: string }> {
-    if (!this.token) {
+    // Ensure we have a valid token before making the request
+    const hasValidToken = await this.ensureValidToken()
+    if (!hasValidToken) {
       return { success: false, error: 'No authentication token' }
     }
+
     try {
       const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.auth.me}`, {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,
-          'Authorization': `Bearer ${this.token}`
+          'Authorization': `Bearer ${this.tokenData!.access_token}`
         }
       })
+
       let data: any
       const responseText = await response.text()
       try {
@@ -303,19 +387,21 @@ class AuthService {
           error: `Invalid JSON response: ${responseText.substring(0, 200)}...` 
         }
       }
+
       if (response.ok && (data.success || data.email)) {
         // Handle both wrapped and direct response formats
         const userData = data.success ? data.data : data
         localStorage.setItem('user_data', JSON.stringify(userData))
         return { success: true, data: userData }
       } else {
-        if (response.status === 401) {
-          // Token is invalid, logout
-          this.logout()
-        }
         return { success: false, error: data.error || data.detail || 'Failed to fetch user profile' }
       }
     } catch (error) {
+      // If fetchWithAuth throws, it means all retry attempts failed
+      if (error instanceof Error && error.message.includes('Authentication failed')) {
+        console.log('🚪 Authentication failed, logging out')
+        this.logout()
+      }
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Network error fetching user' 
@@ -324,7 +410,9 @@ class AuthService {
   }
   // Get user dashboard statistics
   async getDashboardStats(): Promise<{ success: boolean; data?: DashboardStats; error?: string }> {
-    if (!this.token) {
+    // Ensure we have a valid token before making the request
+    const hasValidToken = await this.ensureValidToken()
+    if (!hasValidToken) {
       return { success: false, error: 'No authentication token' }
     }
     try {
@@ -332,7 +420,7 @@ class AuthService {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,
-          'Authorization': `Bearer ${this.token}`
+          'Authorization': `Bearer ${this.tokenData!.access_token}`
         }
       })
       let data: any
@@ -361,7 +449,9 @@ class AuthService {
   }
   // Get user search history
   async getSearchHistory(): Promise<{ success: boolean; data?: any[]; error?: string }> {
-    if (!this.token) {
+    // Ensure we have a valid token before making the request
+    const hasValidToken = await this.ensureValidToken()
+    if (!hasValidToken) {
       return { success: false, error: 'No authentication token' }
     }
     try {
@@ -369,7 +459,7 @@ class AuthService {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,
-          'Authorization': `Bearer ${this.token}`
+          'Authorization': `Bearer ${this.tokenData!.access_token}`
         }
       })
       const data = await response.json()
@@ -387,11 +477,11 @@ class AuthService {
   }
   // Check if user is authenticated
   isAuthenticated(): boolean {
-    return !!this.token
+    return !!this.tokenData && !this.isTokenExpired()
   }
   // Get stored token
   getToken(): string | null {
-    return this.token
+    return this.tokenData?.access_token || null
   }
   // Get stored user data
   getStoredUser(): User | null {
@@ -409,8 +499,8 @@ class AuthService {
   // Get authorization headers for API calls
   getAuthHeaders(): Record<string, string> {
     const headers: Record<string, string> = { ...REQUEST_HEADERS }
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`
+    if (this.tokenData?.access_token) {
+      headers['Authorization'] = `Bearer ${this.tokenData.access_token}`
     }
     return headers
   }
@@ -479,25 +569,44 @@ class AuthService {
   }
   // Refresh authentication token
   async refreshToken(): Promise<{ success: boolean; access_token?: string; error?: string }> {
-    const refreshToken = localStorage.getItem('refresh_token')
-    if (!refreshToken) {
+    if (!this.tokenData?.refresh_token) {
+      console.log('🔐 No refresh token available')
       return { success: false, error: 'No refresh token available' }
     }
+
     try {
+      console.log('🔄 Refreshing token...')
       const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.refresh}`, {
         method: 'POST',
         headers: REQUEST_HEADERS,
-        body: JSON.stringify({ refresh_token: refreshToken })
+        body: JSON.stringify({ refresh_token: this.tokenData.refresh_token })
       })
+
       const data = await response.json()
+      
       if (response.ok && data.access_token) {
-        this.token = data.access_token
-        localStorage.setItem('access_token', data.access_token)
+        console.log('✅ Token refreshed successfully')
+        
+        // Calculate new expiration time
+        const expiresIn = data.expires_in || 900 // 15 minutes in seconds
+        const expiresAt = Date.now() + (expiresIn * 1000)
+        
+        // Update token data
+        const newTokenData: TokenData = {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token || this.tokenData.refresh_token,
+          token_type: data.token_type || 'bearer',
+          expires_at: expiresAt
+        }
+        
+        this.saveTokenData(newTokenData)
+        
         return {
           success: true,
           access_token: data.access_token
         }
       } else {
+        console.log('❌ Token refresh failed:', data.error || data.detail)
         // Refresh token is invalid, logout user
         this.logout()
         return {
@@ -506,6 +615,7 @@ class AuthService {
         }
       }
     } catch (error) {
+      console.error('❌ Token refresh error:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error during token refresh'
@@ -515,15 +625,18 @@ class AuthService {
 
   // Get unlocked profiles
   async getUnlockedProfiles(): Promise<{ success: boolean; data?: any[]; error?: string }> {
-    if (!this.token) {
-      return { success: false, error: 'No authentication token' }
+    // Ensure we have a valid token before making the request
+    const hasValidToken = await this.ensureValidToken()
+    if (!hasValidToken) {
+      console.error('🔐 AuthService: No authentication token found')
+      return { success: false, error: 'Failed to load unlocked creators: No authentication token' }
     }
     try {
       const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.auth.unlockedProfiles}`, {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,
-          'Authorization': `Bearer ${this.token}`
+          'Authorization': `Bearer ${this.tokenData!.access_token}`
         }
       })
       

@@ -2,7 +2,9 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
-import { instagramApiService, UnlockedProfile, UnlockedProfilesResponse } from "@/services/instagramApi"
+import { creatorApiService } from "@/services/creatorApi"
+import { useCreatorSearch } from "@/hooks/useCreatorSearch"
+import { CreatorProfile, UnlockedCreatorsResponse } from "@/types/creator"
 import { preloadPageImages } from "@/lib/image-cache"
 import {
   Plus,
@@ -17,18 +19,24 @@ import {
   TrendingUp,
   Calendar,
   Target,
+  Brain,
+  Sparkles,
+  Globe,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle,
 } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SectionCards } from "@/components/section-cards"
 import { toast } from "sonner"
 import { handleNotificationsWithFallback } from "@/utils/notifications"
-// REMOVED: AI notification service that was causing polling
-// REMOVED: AI analysis trigger that was causing duplicate requests
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CreatorsSkeleton } from "@/components/skeletons"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
 import {
   Select,
   SelectContent,
@@ -45,293 +53,221 @@ import {
 } from "@/components/ui/card"
 import { UserAvatar } from "@/components/UserAvatar"
 import { ProfileAvatar } from "@/components/ui/profile-avatar"
-import { Progress } from "@/components/ui/progress"
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { AIVerificationTool } from "@/components/ui/ai-verification-tool"
+import { AIInsightsCard } from "@/components/ai-insights/AIInsightsCard"
+import { AnalysisStatusCard } from "@/components/ai-insights/AnalysisStatusCard"
 import ReactCountryFlag from "react-country-flag"
 import { getCountryCode } from "@/lib/countryUtils"
+
 // Disable static generation for this page
 export const dynamic = 'force-dynamic'
+
 export default function CreatorsPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchUsername, setSearchUsername] = useState("")
-  const [searchLoading, setSearchLoading] = useState(false)
   const [bulkUsernames, setBulkUsernames] = useState("")
   const [bulkLoading, setBulkLoading] = useState(false)
-  const [analyzingCreators, setAnalyzingCreators] = useState<{[key: string]: {status: 'analyzing' | 'completed' | 'failed', progress: number, error?: string}}>({})
-  const [unlockedCreators, setUnlockedCreators] = useState<UnlockedProfile[]>([])
+  const [unlockedCreators, setUnlockedCreators] = useState<CreatorProfile[]>([])
   const [unlockedLoading, setUnlockedLoading] = useState(true)
   const [unlockedError, setUnlockedError] = useState<string | null>(null)
-  // Basic request state tracking to prevent spam clicks
-  const [activeAnalysisRequests, setActiveAnalysisRequests] = useState<Set<string>>(new Set())
+
+  // Robust deduplication utility
+  const deduplicateProfiles = (profiles: CreatorProfile[]): CreatorProfile[] => {
+    console.log('🔧 Creators: Deduplicating profiles, input count:', profiles.length)
+    
+    const seen = new Set<string>()
+    const deduplicated = profiles.filter(profile => {
+      // Use multiple identifiers for robust deduplication
+      const primaryId = profile.username?.toLowerCase()
+      const secondaryId = profile.id || profile.pk
+      const fallbackId = profile.full_name?.toLowerCase()
+      
+      // Create a unique key combining multiple identifiers
+      const uniqueKey = `${primaryId}|${secondaryId}|${fallbackId}`
+      
+      // Also check individual identifiers to catch various duplicate scenarios
+      const isDuplicate = seen.has(primaryId) || 
+                         (secondaryId && seen.has(secondaryId.toString())) ||
+                         seen.has(uniqueKey)
+      
+      if (!isDuplicate) {
+        seen.add(primaryId)
+        if (secondaryId) seen.add(secondaryId.toString())
+        seen.add(uniqueKey)
+        return true
+      }
+      
+      console.log('🔧 Creators: Removing duplicate profile:', primaryId)
+      return false
+    })
+    
+    console.log('🔧 Creators: Deduplication complete, output count:', deduplicated.length)
+    return deduplicated
+  }
+
+  // Centralized function to update creators list with deduplication
+  const updateUnlockedCreators = (newProfiles: CreatorProfile[], operation: 'replace' | 'add' = 'replace') => {
+    console.log('🔧 Creators: Updating creators list, operation:', operation, 'new profiles:', newProfiles.length)
+    
+    setUnlockedCreators(prev => {
+      let updatedProfiles: CreatorProfile[]
+      
+      if (operation === 'replace') {
+        updatedProfiles = newProfiles
+      } else {
+        // Add new profiles to existing ones
+        updatedProfiles = [...newProfiles, ...prev]
+      }
+      
+      // Always deduplicate the final list
+      return deduplicateProfiles(updatedProfiles)
+    })
+  }
   const [pagination, setPagination] = useState<{page: number, totalPages: number, hasNext: boolean}>({
     page: 1,
     totalPages: 1,
     hasNext: false
   })
   const router = useRouter()
-  // REMOVED: AI notification service and analysis trigger to stop polling madness
-  // Note: URL param analysis temporarily disabled for production build
-  // TODO: Implement proper Suspense boundary for useSearchParams
-  // Load unlocked profiles from backend
+
+  // Creator search hook for new search functionality
+  const {
+    profile: searchedProfile,
+    loading: searchLoading,
+    searching,
+    aiAnalyzing,
+    aiComplete,
+    error: searchError,
+    analysisStatus,
+    stage: searchStage,
+    searchCreator,
+    retryAnalysis,
+    clearSearch
+  } = useCreatorSearch()
+
+  // Load unlocked profiles from backend using working authService API
   const loadUnlockedProfiles = async (page: number = 1) => {
     setUnlockedLoading(true)
     setUnlockedError(null)
     try {
-      const result = await instagramApiService.getUnlockedProfiles(page, 20)
+      // Import authService dynamically to avoid issues
+      const { authService } = await import('@/services/authService')
+      const result = await authService.getUnlockedProfiles()
+
+      console.log('🔍 Creators: Auth service result:', result)
+
       if (result.success && result.data) {
-        setUnlockedCreators(result.data.profiles)
+        // Convert the data to match CreatorProfile format and update with deduplication
+        const profiles = Array.isArray(result.data) ? result.data : []
+        updateUnlockedCreators(profiles, 'replace')
+        
+        // Since authService doesn't have pagination, set basic pagination
         setPagination({
-          page: result.data.pagination.page,
-          totalPages: result.data.pagination.total_pages,
-          hasNext: result.data.pagination.has_next
+          page: 1,
+          totalPages: 1,
+          hasNext: false
         })
         setUnlockedError(null)
+        
         // Preload images for better performance
-        if (result.data.profiles.length > 0) {
-          const imageUrls = result.data.profiles.map(profile => 
+        if (profiles.length > 0) {
+          const imageUrls = profiles.map((profile: any) => 
             profile.profile_pic_url_hd || profile.profile_pic_url
           ).filter(Boolean)
           preloadPageImages(imageUrls)
         }
       } else {
-        console.error('❌ Failed to load unlocked profiles:', result.error)
-        setUnlockedError(result.error || 'Failed to load unlocked profiles')
+        console.error('❌ Failed to load unlocked creators:', result.error)
+        setUnlockedError(result.error || 'Failed to load unlocked creators')
       }
     } catch (error) {
-      console.error('❌ Error loading unlocked profiles:', error)
-      setUnlockedError('Network error while loading profiles')
+      console.error('❌ Error loading unlocked creators:', error)
+      setUnlockedError('Network error while loading creators')
     } finally {
       setUnlockedLoading(false)
     }
   }
+
   // Load data on component mount
   useEffect(() => {
     loadUnlockedProfiles()
   }, [])
-  const creators: UnlockedProfile[] = unlockedCreators
-  const startAnalysis = async (username: string) => {
-    const cleanUsername = username.trim().replace('@', '')
-    
-    // Prevent spam clicks - basic request state tracking
-    if (activeAnalysisRequests.has(cleanUsername)) {
-      toast.info(`Analysis already in progress for @${cleanUsername}`)
-      return
+
+  // Automatically add search results to the list when they complete
+  useEffect(() => {
+    if (searchedProfile && searchStage === 'complete') {
+      console.log('🔧 Creators: Auto-adding search result:', searchedProfile.username)
+      updateUnlockedCreators([searchedProfile], 'add')
     }
-    
-    // Add to active requests to prevent duplicates
-    setActiveAnalysisRequests(prev => new Set([...prev, cleanUsername]))
-    
-    // Add to analyzing list
-    setAnalyzingCreators(prev => ({
-      ...prev,
-      [cleanUsername]: { status: 'analyzing', progress: 0 }
-    }))
-    // Show success message
-    toast.success(`Started analyzing @${cleanUsername}...`)
-    try {
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setAnalyzingCreators(prev => {
-          const current = prev[cleanUsername]
-          if (current && current.status === 'analyzing' && current.progress < 90) {
-            return {
-              ...prev,
-              [cleanUsername]: { ...current, progress: current.progress + 10 }
-            }
-          }
-          return prev
-        })
-      }, 1000)
-      const result = await instagramApiService.searchProfile(cleanUsername)
-      clearInterval(progressInterval)
-      if (result.success && result.data && result.data.profile) {
-        // Transform the backend data to creator card format matching UnlockedProfile interface
-        const newCreator: UnlockedProfile = {
-          username: result.data.profile.username,
-          full_name: result.data.profile.full_name,
-          profile_pic_url: result.data.profile.profile_pic_url,
-          profile_pic_url_hd: result.data.profile.profile_pic_url_hd,
-          proxied_profile_pic_url: '', // Let frontend handle proxying for new profiles
-          followers_count: result.data.profile.followers_count,
-          following_count: result.data.profile.following_count,
-          posts_count: result.data.profile.posts_count,
-          engagement_rate: result.data.profile.engagement_rate,
-          is_verified: result.data.profile.is_verified,
-          is_private: result.data.profile.is_private,
-          is_business_account: result.data.profile.is_business_account,
-          business_category_name: result.data.profile.business_category_name,
-          access_granted_at: new Date().toISOString(),
-          days_remaining: result.data.meta?.access_expires_in_days || 30
-        }
-        // Add to unlocked creators (this will replace analyzing state)
-        setUnlockedCreators(prev => {
-          // Check if already exists
-          const exists = prev.find(c => c.username === cleanUsername)
-          if (exists) {
-            return prev.map(c => c.username === cleanUsername ? newCreator : c)
-          }
-          return [newCreator, ...prev]
-        })
-        // Complete the progress and then immediately remove from analyzing list
-        setAnalyzingCreators(prev => ({
-          ...prev,
-          [cleanUsername]: { status: 'completed', progress: 100 }
-        }))
-        // Remove from analyzing list and active requests
-        setTimeout(() => {
-          setAnalyzingCreators(prev => {
-            const newState = { ...prev }
-            delete newState[cleanUsername]
-            return newState
-          })
-          // Remove from active requests to allow retries
-          setActiveAnalysisRequests(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(cleanUsername)
-            return newSet
-          })
-        }, 500) // Reduced to 500ms for smoother transition
-        // Handle new notification system from backend
-        handleNotificationsWithFallback(
-          result.data.notifications,
-          `Successfully analyzed @${cleanUsername}! Added to your unlocked creators.`
-        )
-        
-        // REMOVED: AI polling and duplicate requests stopped
-        // Profile search already includes AI analysis trigger
-        // No additional polling needed - notifications handle completion status
-        
-        // Note: New creator already added to unlockedCreators state above, no need to reload entire list
-      } else {
-        // Enhanced error handling with specific messages
-        let errorMessage = 'Analysis failed'
-        if (typeof result.error === 'string') {
-          errorMessage = result.error
-        } else if (result.error && typeof result.error === 'object') {
-          // Handle validation error objects with {type, loc, msg, input, url} structure
-          if (Array.isArray(result.error) && result.error.length > 0 && result.error[0].msg) {
-            errorMessage = result.error[0].msg
-          } else if (result.error.msg) {
-            errorMessage = result.error.msg
-          } else if (result.error.detail) {
-            errorMessage = result.error.detail
-          } else {
-            errorMessage = JSON.stringify(result.error)
-          }
-        }
-        
-        // Map common backend errors to user-friendly messages
-        if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
-          errorMessage = 'Analysis is taking longer than expected. This can happen with large profiles. Please try again in a moment.'
-        } else if (errorMessage.includes('Authentication required') || errorMessage.includes('Not authenticated') || errorMessage.includes('401')) {
-          errorMessage = 'Please log in again to continue analyzing profiles.'
-        } else if (errorMessage.includes('No access to this profile')) {
-          errorMessage = 'This profile requires premium access. Click to unlock 30-day access.'
-        } else if (errorMessage.includes('Profile not found')) {
-          errorMessage = 'Instagram profile not found. Please check the username and try again.'
-        } else if (errorMessage.includes('Rate limit exceeded')) {
-          errorMessage = 'Too many requests. Please wait a moment before trying again.'
-        } else if (errorMessage.includes('Server error')) {
-          errorMessage = 'Backend service is experiencing issues. Please try again in a few minutes.'
-        }
-        setAnalyzingCreators(prev => ({
-          ...prev,
-          [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
-        }))
-        // Remove from active requests to allow retries
-        setActiveAnalysisRequests(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(cleanUsername)
-          return newSet
-        })
-        // Handle new notification system for errors
-        handleNotificationsWithFallback(
-          result.notifications,
-          undefined,
-          errorMessage
-        )
-      }
-    } catch (error) {
-      console.error('❌ Analysis error for @' + cleanUsername + ':', error)
-      // Enhanced catch block error handling
-      let errorMessage = 'Network error occurred'
-      if (error instanceof Error) {
-        if (error.message.includes('timeout') || error.message.includes('timed out')) {
-          errorMessage = 'Request timed out. The backend may be busy processing large profiles. Please try again.'
-        } else if (error.message.includes('Cannot connect to server')) {
-          errorMessage = 'Cannot connect to server. Please check your internet connection and ensure the backend is running.'
-        } else if (error.message.includes('fetch') || error.message.includes('NetworkError')) {
-          errorMessage = 'Network connection failed. Please check your internet connection.'
-        } else {
-          errorMessage = error.message
-        }
-      }
-      setAnalyzingCreators(prev => ({
-        ...prev,
-        [cleanUsername]: { status: 'failed', progress: 0, error: errorMessage }
-      }))
-      // Remove from active requests to allow retries
-      setActiveAnalysisRequests(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(cleanUsername)
-        return newSet
-      })
-      toast.error(`Error analyzing @${cleanUsername}: ${errorMessage}`)
-    }
+  }, [searchedProfile, searchStage])
+
+  // Manual refresh function for refresh button
+  const handleRefresh = async () => {
+    console.log('🔄 Creators: Manual refresh triggered')
+    await loadUnlockedProfiles()
   }
+
+  // Handle individual creator search
   const handleSearchCreator = async () => {
     if (!searchUsername.trim()) {
       toast.error("Please enter an Instagram username")
       return
     }
+    
     const cleanUsername = searchUsername.trim().replace('@', '')
-    setIsSearchOpen(false)
+    await searchCreator(cleanUsername, { show_progress: true })
     setSearchUsername("")
-    // Start analysis
-    await startAnalysis(cleanUsername)
+    
+    // Note: Search results are automatically added via useEffect
   }
+
   const handleBulkAnalysis = async () => {
     if (!bulkUsernames.trim()) {
       toast.error("Please enter usernames for bulk analysis")
       return
     }
+    
     const usernames = bulkUsernames
       .split(/[,\n]/)
       .map(u => u.trim().replace('@', ''))
       .filter(u => u.length > 0)
+      
     if (usernames.length === 0) {
       toast.error("No valid usernames found")
       return
     }
+    
     if (usernames.length > 10) {
       toast.error("Maximum 10 usernames allowed for bulk analysis")
       return
     }
+
     setBulkLoading(true)
     toast.info(`Starting bulk analysis for ${usernames.length} creators...`)
+    
     try {
       const results = await Promise.allSettled(
-        usernames.map(username => instagramApiService.searchProfile(username))
+        usernames.map(username => 
+          creatorApiService.searchCreator(username, { force_refresh: false })
+        )
       )
+
       const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length
       const failed = results.length - successful
+
       if (successful > 0) {
         toast.success(`Successfully analyzed ${successful} creators${failed > 0 ? `, ${failed} failed` : ''}`)
-        // For now, navigate to the first successful result
-        for (let i = 0; i < results.length; i++) {
-          const result = results[i]
-          if (result.status === 'fulfilled' && result.value.success) {
-            setIsSearchOpen(false)
-            setBulkUsernames("")
-            router.push(`/analytics/${usernames[i]}`)
-            break
-          }
-        }
+        
+        // Reload the unlocked creators list
+        await loadUnlockedProfiles()
+        
+        setIsSearchOpen(false)
+        setBulkUsernames("")
       } else {
         toast.error("All bulk analyses failed. Please check the usernames and try again.")
       }
@@ -342,35 +278,14 @@ export default function CreatorsPage() {
       setBulkLoading(false)
     }
   }
+
   const formatNumber = (num: number | undefined | null) => {
     if (num === undefined || num === null || isNaN(num)) return '0'
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
     return num.toString()
   }
-  const getStatusColor = (status: 'active' | 'paused' | 'completed' | 'draft') => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-      case 'paused': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
-      case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
-      case 'draft': return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-  // Calculate real stats from unlocked creators
-  const totalFollowers = unlockedCreators.reduce((sum, creator) => sum + (creator.followers_count || 0), 0)
-  const mostDominantNiche = unlockedCreators.reduce((acc, creator) => {
-    const category = creator.business_category_name || 'Mixed'
-    acc[category] = (acc[category] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
-  const dominantNiche = Object.entries(mostDominantNiche).sort(([,a], [,b]) => b - a)[0]?.[0] || "Mixed"
-  const creatorsData = {
-    unlockedCreators: unlockedCreators.length,
-    portfolioReach: dominantNiche, // Using this field for dominant niche
-    avgEngagement: '7 days', // Using this field for credits reset
-    inCampaigns: 0 // Will be replaced with custom cards
-  }
+
   // Helper function to determine influencer tier
   const getInfluencerTier = (followerCount: number) => {
     if (followerCount >= 1000000) return 'mega';
@@ -378,6 +293,7 @@ export default function CreatorsPage() {
     if (followerCount >= 10000) return 'micro';
     return 'nano';
   };
+
   // Tier Badge Component
   function TierBadge({ tier, isExpired }: { tier: 'nano' | 'micro' | 'macro' | 'mega', isExpired?: boolean }) {
     const tierStyles = {
@@ -392,6 +308,7 @@ export default function CreatorsPage() {
       macro: 'Macro',
       mega: 'Mega'
     };
+    
     if (isExpired) {
       return (
         <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100 text-xs border border-red-300 dark:border-red-700">
@@ -399,14 +316,19 @@ export default function CreatorsPage() {
         </Badge>
       );
     }
+    
     return (
       <Badge className={`text-xs font-bold ${tierStyles[tier]}`}>
         {tierLabels[tier]}
       </Badge>
     );
   }
-  // Creator Component (vertical layout with circular images)
-  function CreatorCard({ creator }: { creator: UnlockedProfile }) {
+
+  // Enhanced Creator Component with AI insights
+  function CreatorCard({ creator }: { creator: CreatorProfile }) {
+    const tier = getInfluencerTier(creator.followers_count)
+    const hasAI = creator.ai_insights?.available
+    
     return (
       <Card className="relative overflow-hidden">
         {/* Country Flag - Top Left */}
@@ -425,58 +347,67 @@ export default function CreatorsPage() {
             />
           </div>
         )}
+
+        {/* AI Indicator - Top Right */}
+        {hasAI && (
+          <div className="absolute top-3 right-3 z-10">
+            <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-2 py-1">
+              <Brain className="h-3 w-3 mr-1" />
+              AI
+            </Badge>
+          </div>
+        )}
+
         <CardHeader className="pb-3">
           {/* Avatar */}
           <div className="flex justify-center mb-3">
-            <ProfileAvatar
-              src={creator.proxied_profile_pic_url_hd || creator.proxied_profile_pic_url || creator.profile_pic_url_hd || creator.profile_pic_url}
-              alt={creator.full_name || 'Profile'}
-              fallbackText={creator.username}
-              className="w-20 h-20 border-2 border-white dark:border-gray-900"
-            />
+            <div className="relative">
+              <ProfileAvatar
+                src={creator.proxied_profile_pic_url_hd || creator.proxied_profile_pic_url || creator.profile_pic_url_hd || creator.profile_pic_url}
+                alt={creator.full_name || 'Profile'}
+                fallbackText={creator.username}
+                className="w-20 h-20 border-2 border-white dark:border-gray-900"
+              />
+              {creator.is_verified && (
+                <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
+              )}
+            </div>
           </div>
+
           {/* Name and Username */}
           <div className="text-center space-y-1 select-none">
-            <h3 className="font-semibold text-lg">{creator.full_name}</h3>
+            <h3 className="font-semibold text-lg flex items-center justify-center gap-2">
+              {creator.full_name}
+            </h3>
             <p className="text-sm text-muted-foreground">
               @{creator.username}
             </p>
           </div>
-          {/* Content Category Badges */}
+
+          {/* Tier and AI Content Category */}
           <div className="mt-3 select-none">
-            <div className="flex flex-wrap justify-center gap-1 max-w-full">
-              {(() => {
-                const categories = [];
-                // Add business category or default
-                if (creator.business_category_name) {
-                  categories.push(creator.business_category_name);
-                } else {
-                  categories.push('Lifestyle');
-                }
-                // Add account type
-                if (creator.is_business_account) {
-                  categories.push('Business');
-                } else {
-                  categories.push('Creator');
-                }
-                // Add content focus category
-                categories.push('Social Media');
-                // Ensure we only show 3 categories
-                return categories.slice(0, 3).map((category, index) => (
-                  <Badge 
-                    key={index} 
-                    variant="outline" 
-                    className="text-xs px-2 py-1 whitespace-nowrap select-none bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
-                    style={{ maxWidth: '90px' }}
-                  >
-                    <span className="truncate">{category}</span>
-                  </Badge>
-                ));
-              })()
-              }
+            <div className="flex flex-wrap justify-center gap-2 max-w-full">
+              <TierBadge tier={tier} />
+              
+              {hasAI && creator.ai_insights?.content_category && (
+                <Badge variant="outline" className="text-xs px-2 py-1 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 border-purple-200 dark:border-purple-700">
+                  <Target className="h-3 w-3 mr-1" />
+                  {creator.ai_insights.content_category}
+                </Badge>
+              )}
+              
+              {creator.is_business_account && (
+                <Badge variant="outline" className="text-xs px-2 py-1">
+                  <Building className="h-3 w-3 mr-1" />
+                  Business
+                </Badge>
+              )}
             </div>
           </div>
         </CardHeader>
+
         <CardContent className="space-y-4 select-none">
           {/* Followers and Engagement */}
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -489,6 +420,22 @@ export default function CreatorsPage() {
               <div className="text-xs text-muted-foreground">Engagement</div>
             </div>
           </div>
+
+          {/* AI Quality Score */}
+          {hasAI && creator.ai_insights?.content_quality_score && (
+            <div className="p-2 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 rounded-md">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">AI Quality Score</span>
+                <div className="flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-yellow-500" />
+                  <span className="font-bold text-sm">
+                    {creator.ai_insights.content_quality_score.toFixed(1)}/10
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="pt-2 flex gap-2">
             <Button 
@@ -496,7 +443,6 @@ export default function CreatorsPage() {
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                // Pass existing profile data to avoid unnecessary API calls
                 router.push(`/analytics/${creator.username}?fromDashboard=true`);
               }}
             >
@@ -508,7 +454,6 @@ export default function CreatorsPage() {
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                // TODO: Implement add to list functionality
                 toast.info(`Add to list functionality coming soon for @${creator.username}`);
               }}
             >
@@ -519,6 +464,7 @@ export default function CreatorsPage() {
       </Card>
     )
   }
+
   return (
     <AuthGuard requireAuth={true}>
       <SidebarProvider
@@ -544,6 +490,9 @@ export default function CreatorsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold">Unlocked Creators</h1>
+                <p className="text-muted-foreground mt-1">
+                  AI-powered creator analytics and insights
+                </p>
               </div>
               <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
                 <SheetTrigger asChild>
@@ -577,11 +526,14 @@ export default function CreatorsPage() {
                         {searchLoading ? (
                           <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         ) : (
-                          <Plus className="h-4 w-4 mr-2" />
+                          <Brain className="h-4 w-4 mr-2" />
                         )}
                         {searchLoading ? "Analyzing..." : "Analyze & Add Creator"}
                       </Button>
                     </div>
+
+                    <Separator />
+
                     {/* Bulk Analysis */}
                     <div className="space-y-4">
                       <div>
@@ -607,85 +559,101 @@ export default function CreatorsPage() {
                         {bulkLoading ? "Processing..." : "Bulk Analyze"}
                       </Button>
                     </div>
-                    {/* Upload CSV */}
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">Upload Creator List</label>
-                        <div className="mt-2 flex items-center justify-center w-full">
-                          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                              <Download className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
-                              <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                <span className="font-semibold">Click to upload</span> CSV file
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">CSV with usernames (MAX. 100)</p>
-                            </div>
-                            <input type="file" className="hidden" accept=".csv" />
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Search Filters */}
-                    <div className="space-y-4">
-                      <label className="text-sm font-medium">Discovery Filters</label>
-                      <div className="grid gap-4">
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Categories</SelectItem>
-                            <SelectItem value="fashion">Fashion & Style</SelectItem>
-                            <SelectItem value="technology">Technology</SelectItem>
-                            <SelectItem value="fitness">Fitness & Health</SelectItem>
-                            <SelectItem value="food">Food & Cooking</SelectItem>
-                            <SelectItem value="beauty">Beauty & Skincare</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Follower Range" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="micro">Micro (1K-100K)</SelectItem>
-                            <SelectItem value="mid">Mid-tier (100K-1M)</SelectItem>
-                            <SelectItem value="macro">Macro (1M+)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={() => toast.info("Finding similar creators based on your criteria...")}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Find Similar Creators
-                      </Button>
-                    </div>
+
+                    <Separator />
+
                     {/* AI Verification Tool */}
-                    <div className="pt-6 border-t space-y-4">
+                    <div className="space-y-4">
                       <h3 className="text-sm font-medium">🔬 AI Analysis Verification</h3>
                       <AIVerificationTool />
                     </div>
                     
                     <div className="pt-4 border-t">
                       <div className="text-xs text-muted-foreground space-y-1">
-                        <p>💡 Pro tips:</p>
-                        <p>• Use @username format for best results</p>
-                        <p>• Bulk analysis supports up to 50 usernames</p>
-                        <p>• CSV upload allows up to 100 creators</p>
-                        <p>• Use AI verification to ensure complete analysis</p>
+                        <p>💡 Enhanced with AI:</p>
+                        <p>• Content category analysis (20+ categories)</p>
+                        <p>• Sentiment analysis with confidence scores</p>
+                        <p>• Language detection (20+ languages)</p>
+                        <p>• Quality scoring and insights</p>
                       </div>
                     </div>
                   </div>
                 </SheetContent>
               </Sheet>
             </div>
+
+            {/* Search Results - Show if currently searching */}
+            {(searchedProfile || searchLoading || searchError || aiAnalyzing) && (
+              <Card className="border-primary/20">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-primary" />
+                      Latest Search Results
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearSearch}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {searchLoading && (
+                    <div className="text-center py-8">
+                      <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent mb-4" />
+                      <p className="text-muted-foreground">
+                        {searching ? "Searching creator..." : aiAnalyzing ? "AI analysis in progress..." : "Loading..."}
+                      </p>
+                    </div>
+                  )}
+
+                  {searchedProfile && (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <CreatorCard creator={searchedProfile} />
+                      
+                      {/* AI Analysis Status */}
+                      {(aiAnalyzing || analysisStatus) && (
+                        <div className="space-y-4">
+                          {analysisStatus && (
+                            <AnalysisStatusCard 
+                              status={analysisStatus}
+                              onRetry={retryAnalysis}
+                            />
+                          )}
+                          
+                          {searchedProfile.ai_insights && (
+                            <AIInsightsCard 
+                              insights={searchedProfile.ai_insights}
+                              className="h-fit"
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {searchError && (
+                    <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-950 rounded-lg">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      <span className="text-sm text-red-700 dark:text-red-400">{searchError}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+            
             {/* Creators Portfolio */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between mb-4">
                   <CardTitle>Your Creator Portfolio</CardTitle>
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Brain className="h-3 w-3" />
+                    AI-Enhanced
+                  </Badge>
                 </div>
                 
                 {/* Search and Filters in one row */}
@@ -700,38 +668,15 @@ export default function CreatorsPage() {
                   
                   <Select>
                     <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Countries</SelectItem>
-                      <SelectItem value="us">United States</SelectItem>
-                      <SelectItem value="uk">United Kingdom</SelectItem>
-                      <SelectItem value="ca">Canada</SelectItem>
-                      <SelectItem value="au">Australia</SelectItem>
-                      <SelectItem value="de">Germany</SelectItem>
-                      <SelectItem value="fr">France</SelectItem>
-                      <SelectItem value="es">Spain</SelectItem>
-                      <SelectItem value="it">Italy</SelectItem>
-                      <SelectItem value="br">Brazil</SelectItem>
-                      <SelectItem value="mx">Mexico</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select>
-                    <SelectTrigger className="w-[140px]">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="fashion">Fashion & Style</SelectItem>
-                      <SelectItem value="beauty">Beauty & Skincare</SelectItem>
+                      <SelectItem value="fashion">Fashion & Beauty</SelectItem>
+                      <SelectItem value="food">Food & Drink</SelectItem>
+                      <SelectItem value="travel">Travel & Tourism</SelectItem>
                       <SelectItem value="fitness">Fitness & Health</SelectItem>
-                      <SelectItem value="food">Food & Cooking</SelectItem>
                       <SelectItem value="technology">Technology</SelectItem>
-                      <SelectItem value="travel">Travel & Adventure</SelectItem>
-                      <SelectItem value="lifestyle">Lifestyle</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                      <SelectItem value="entertainment">Entertainment</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -751,94 +696,15 @@ export default function CreatorsPage() {
                   <Button variant="outline" size="sm">
                     Clear Filters
                   </Button>
+
+                  <Button variant="outline" size="sm" onClick={handleRefresh}>
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Refresh
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Currently Analyzing Creators */}
-                  {Object.entries(analyzingCreators).map(([username, analysis]) => {
-                    // Check if this creator has been unlocked but is still in analyzing state
-                    const unlockedCreator = unlockedCreators.find(c => c.username === username);
-                    if (unlockedCreator && analysis.status === 'completed') {
-                      // Return the populated card instead of loading card
-                      return <CreatorCard key={`unlocked-completed-${username}-${unlockedCreator.id || unlockedCreator.pk}`} creator={unlockedCreator} />;
-                    }
-                    // Return skeleton card that matches real creator card layout
-                    return (
-                      <Card key={`analyzing-${username}-${analysis.status}-${analysis.progress}`} className="relative overflow-hidden animate-pulse">
-                        {/* Status Badge */}
-                        <div className="absolute top-3 left-3 z-10">
-                          <div className="w-6 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                        </div>
-                        
-                        <CardHeader className="pb-3">
-                          {/* Avatar Skeleton */}
-                          <div className="flex justify-center mb-3">
-                            <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-400 border-t-transparent" />
-                            </div>
-                          </div>
-                          
-                          {/* Name and Username Skeleton */}
-                          <div className="text-center space-y-1">
-                            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded mx-auto w-32"></div>
-                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mx-auto w-24"></div>
-                          </div>
-                          
-                          {/* Category Badges Skeleton */}
-                          <div className="mt-3 flex justify-center gap-1">
-                            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
-                            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
-                          </div>
-                        </CardHeader>
-                        
-                        <CardContent className="space-y-4">
-                          {/* Stats Skeleton */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
-                              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-1"></div>
-                              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16 mx-auto"></div>
-                            </div>
-                            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
-                              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-1"></div>
-                              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20 mx-auto"></div>
-                            </div>
-                          </div>
-                          
-                          {/* Action Buttons Skeleton */}
-                          <div className="pt-2 flex gap-2">
-                            <div className="flex-1 h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                            <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                          </div>
-                          
-                          {/* Progress indicator for analyzing status */}
-                          {analysis.status === 'analyzing' && (
-                            <div className="text-center">
-                              <div className="text-sm text-muted-foreground">Analyzing @{username}...</div>
-                              <Progress value={analysis.progress} className="h-2 mt-2" />
-                            </div>
-                          )}
-                          
-                          {/* Error state */}
-                          {analysis.status === 'failed' && (
-                            <div className="text-center">
-                              <div className="text-sm text-red-600 dark:text-red-400 mb-2">
-                                {analysis.error || 'Analysis failed'}
-                              </div>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => startAnalysis(username)}
-                                className="w-full"
-                              >
-                                Retry Analysis
-                              </Button>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Loading State */}
                   {unlockedLoading && (
                     <div className="col-span-full flex items-center justify-center py-12">
@@ -848,42 +714,52 @@ export default function CreatorsPage() {
                       </div>
                     </div>
                   )}
+                  
                   {/* Error State */}
                   {unlockedError && !unlockedLoading && (
                     <div className="col-span-full flex items-center justify-center py-12">
                       <div className="text-center space-y-4">
-                        <p className="text-red-600 dark:text-red-400">{unlockedError}</p>
-                        <Button variant="outline" onClick={() => loadUnlockedProfiles()}>
+                        <AlertCircle className="h-12 w-12 mx-auto text-red-500" />
+                        <div>
+                          <h3 className="text-lg font-semibold text-red-600">Failed to Load Creators</h3>
+                          <p className="text-muted-foreground">{unlockedError}</p>
+                        </div>
+                        <Button variant="outline" onClick={handleRefresh}>
+                          <RefreshCw className="h-4 w-4 mr-2" />
                           Try Again
                         </Button>
                       </div>
                     </div>
                   )}
+                  
                   {/* Empty State */}
-                  {!unlockedLoading && !unlockedError && creators.length === 0 && (
+                  {!unlockedLoading && !unlockedError && unlockedCreators.length === 0 && (
                     <div className="col-span-full flex items-center justify-center py-12">
                       <div className="text-center space-y-4">
                         <Users className="h-12 w-12 mx-auto text-muted-foreground" />
                         <div>
                           <h3 className="text-lg font-semibold">No unlocked creators yet</h3>
-                          <p className="text-muted-foreground">Start by searching for creators to analyze</p>
+                          <p className="text-muted-foreground">Start by searching for creators to analyze with AI</p>
                         </div>
                         <Button onClick={() => setIsSearchOpen(true)} style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
-                          <Plus className="h-4 w-4 mr-2" />
+                          <Brain className="h-4 w-4 mr-2" />
                           Add Creators
                         </Button>
                       </div>
                     </div>
                   )}
-                  {/* Existing Creators (exclude those currently being analyzed) */}
-                  {!unlockedLoading && creators
-                    .filter(creator => !analyzingCreators[creator.username])
-                    .map((creator) => (
-                    <CreatorCard key={`creator-${creator.username}-${creator.id || creator.pk}`} creator={creator} />
+                  
+                  {/* Creator Cards */}
+                  {!unlockedLoading && unlockedCreators.map((creator, index) => (
+                    <CreatorCard 
+                      key={creator.id || creator.pk || creator.username || `creator-${index}`} 
+                      creator={creator} 
+                    />
                   ))}
                 </div>
+                
                 {/* Pagination Controls */}
-                {!unlockedLoading && !unlockedError && creators.length > 0 && pagination.totalPages > 1 && (
+                {!unlockedLoading && !unlockedError && unlockedCreators.length > 0 && pagination.totalPages > 1 && (
                   <div className="flex items-center justify-between pt-6 border-t">
                     <div className="flex items-center gap-2">
                       <Button
@@ -907,7 +783,7 @@ export default function CreatorsPage() {
                       </Button>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {creators.length} creators shown
+                      {unlockedCreators.length} creators shown
                     </div>
                   </div>
                 )}

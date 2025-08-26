@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { ChartBarInteractive } from "@/components/chart-bar-interactive"
 import { ChartProfileAnalysis } from "@/components/chart-profile-analysis"
@@ -9,6 +10,7 @@ import { MetricCard } from "@/components/analytics-cards"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { UserAvatar } from "@/components/UserAvatar"
+import { SmartDiscovery } from "@/components/smart-discovery"
 import { 
   Target, 
   Users, 
@@ -17,12 +19,24 @@ import {
 } from "lucide-react"
 
 export function BrandDashboardContent() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, isPremium, isAdmin } = useAuth()
+  const router = useRouter()
   
   // Memoized user display data to prevent flash and avoid hardcoded values
   const userDisplayData = useMemo(() => {
     
     if (!user || isLoading) return null
+    
+    // Debug: Log user data to identify inconsistency
+    console.log('🔍 BrandDashboard: Current user data:', {
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      company: user.company,
+      avatar_config: user.avatar_config
+    })
     
     const getDisplayName = () => {
       if (user.first_name && user.last_name) {
@@ -68,43 +82,51 @@ export function BrandDashboardContent() {
     }
   }, [user, isLoading])
 
-  // Credit balance state
-  const [creditBalance, setCreditBalance] = useState<any>(null)
-  const [creditLoading, setCreditLoading] = useState(true)
+  // Teams overview state
+  const [teamsOverview, setTeamsOverview] = useState<any>(null)
+  const [teamsLoading, setTeamsLoading] = useState(true)
   
   // Unlocked profiles state
   const [unlockedProfilesCount, setUnlockedProfilesCount] = useState<number>(0)
   const [profilesLoading, setProfilesLoading] = useState(true)
   
+  // Active campaigns state
+  const [activeCampaignsCount, setActiveCampaignsCount] = useState<number>(0)
+  const [campaignsLoading, setCampaignsLoading] = useState(true)
+  
 
-  // Load real credit balance
+  // Load teams overview
   useEffect(() => {
-    const loadCreditBalance = async () => {
+    const loadTeamsOverview = async () => {
       if (!user) {
-        setCreditLoading(false)
+        setTeamsLoading(false)
         return
       }
 
       try {
-        const { creditsApiService } = await import('@/services/creditsApi')
-        const result = await creditsApiService.getBalance()
+        const { API_CONFIG, ENDPOINTS, getAuthHeaders } = await import('@/config/api')
+        const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.teams.overview}`, {
+          method: 'GET',
+          headers: getAuthHeaders()
+        })
         
-        console.log('🏢 BrandDashboard: Credit API Response:', result)
+        console.log('🏢 BrandDashboard: Teams Overview API Response Status:', response.status)
         
-        if (result.success && result.data) {
-          console.log('🏢 BrandDashboard: Credit Balance Data:', result.data)
-          setCreditBalance(result.data)
+        if (response.ok) {
+          const data = await response.json()
+          console.log('🏢 BrandDashboard: Teams Overview Data:', data)
+          setTeamsOverview(data)
         } else {
-          console.log('🏢 BrandDashboard: No credit data or API failed:', result.error)
+          console.log('🏢 BrandDashboard: Teams overview API failed:', response.status)
         }
       } catch (error) {
-        console.error('Failed to load credit balance:', error)
+        console.error('Failed to load teams overview:', error)
       } finally {
-        setCreditLoading(false)
+        setTeamsLoading(false)
       }
     }
 
-    loadCreditBalance()
+    loadTeamsOverview()
   }, [user])
 
   // Load unlocked profiles count
@@ -140,12 +162,61 @@ export function BrandDashboardContent() {
     loadUnlockedProfiles()
   }, [user])
 
+  // Load active campaigns count
+  useEffect(() => {
+    const loadActiveCampaigns = async () => {
+      if (!user) {
+        setCampaignsLoading(false)
+        return
+      }
+
+      try {
+        // Try to fetch campaigns from backend
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/campaigns`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          }
+        })
+        
+        console.log('🎯 BrandDashboard: Campaigns API Response:', response.status)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log('🎯 BrandDashboard: Campaigns Data:', data)
+          
+          // Count active campaigns
+          const campaigns = data.campaigns || data.data || data || []
+          const activeCount = Array.isArray(campaigns) 
+            ? campaigns.filter((campaign: any) => campaign.status === 'active').length
+            : 0
+          
+          console.log('🎯 BrandDashboard: Active Campaigns Count:', activeCount)
+          setActiveCampaignsCount(activeCount)
+        } else {
+          console.log('🎯 BrandDashboard: No campaigns endpoint or API failed:', response.status)
+          // Set to 0 if endpoint doesn't exist yet
+          setActiveCampaignsCount(0)
+        }
+      } catch (error) {
+        console.error('Failed to load active campaigns:', error)
+        // Set to 0 if there's an error (endpoint may not exist yet)
+        setActiveCampaignsCount(0)
+      } finally {
+        setCampaignsLoading(false)
+      }
+    }
+
+    loadActiveCampaigns()
+  }, [user])
+
 
   // Brand analytics data - dynamic Your Plan card
   const brandMetrics = [
     {
       title: "Active Campaigns",
-      value: "--",
+      value: campaignsLoading ? "Loading..." : activeCampaignsCount.toString(),
       change: undefined,
       icon: <Target className="h-4 w-4 text-[#5100f3]" />
     },
@@ -158,18 +229,21 @@ export function BrandDashboardContent() {
     {
       title: "Your Plan",
       value: (() => {
-        // Get plan from user profile first, then fallback to credits API
-        if (user?.role === 'premium') return 'Professional'
-        if (user?.role === 'enterprise') return 'Enterprise'
-        if (user?.role === 'standard') return 'Standard'
+        if (teamsLoading) return "Loading..."
         
-        // Fallback to credits API if available
-        if (creditLoading) return "Loading..."
-        return creditBalance?.package_name || 
-               creditBalance?.subscription_tier || 
-               creditBalance?.plan || 
-               creditBalance?.tier || 
-               "Free Plan"
+        const tier = teamsOverview?.team_info?.subscription_tier
+        
+        // Map subscription tiers to display names
+        switch (tier) {
+          case 'free':
+            return 'Free'
+          case 'standard':
+            return 'Standard'
+          case 'premium':
+            return 'Premium'
+          default:
+            return tier || 'Loading...'
+        }
       })(),
       change: undefined,
       icon: <Star className="h-4 w-4 text-[#5100f3]" />
@@ -191,7 +265,7 @@ export function BrandDashboardContent() {
       <div className="@container/main w-full max-w-full space-y-8 p-4 md:p-6">
         
         {/* Welcome Header & Analytics */}
-        <div className="grid gap-6 grid-cols-12 items-stretch">
+        <div className="grid gap-6 grid-cols-12">
           {/* Welcome Section - 30% width */}
           <div className="col-span-4">
             <Card className="@container/card h-full welcome-card">
@@ -209,9 +283,6 @@ export function BrandDashboardContent() {
                       {userDisplayData.companyName && (
                         <div className="welcome-text-brand font-bold tracking-tight">{userDisplayData.companyName}</div>
                       )}
-                      {!userDisplayData.companyName && userDisplayData.displayName && (
-                        <div className="welcome-text-brand font-bold tracking-tight">{userDisplayData.displayName}</div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -221,7 +292,7 @@ export function BrandDashboardContent() {
 
           {/* Brand Metrics Overview - 70% width */}
           <div className="col-span-8">
-            <div className="grid gap-4 grid-cols-3 h-full">
+            <div className="grid gap-4 grid-cols-3">
               {brandMetrics.slice(0, 3).map((metric, index) => (
                 <MetricCard
                   key={index}
@@ -235,13 +306,16 @@ export function BrandDashboardContent() {
           </div>
         </div>
 
-        {/* Recent Campaign Stats and Credits Consumption */}
-        <div className="grid gap-4 grid-cols-12">
-          {/* Recent Campaign Stats */}
+        {/* Smart Discovery Section */}
+        <div className="grid gap-6 grid-cols-12">
+          {/* Smart Discovery Component */}
           <div className="col-span-6">
-            <div className="h-[320px]">
-              <ChartBarInteractive />
-            </div>
+            <SmartDiscovery 
+              onDiscover={() => {
+                // Navigate to discovery page
+                router.push('/discovery')
+              }}
+            />
           </div>
           {/* Profile Analysis Chart */}
           <div className="col-span-3">
@@ -254,6 +328,23 @@ export function BrandDashboardContent() {
             <div className="h-[320px]">
               <ChartPostAnalytics />
             </div>
+          </div>
+        </div>
+
+        {/* Recent Campaign Stats Section */}
+        <div className="grid gap-6 grid-cols-12">
+          {/* Recent Campaign Stats */}
+          <div className="col-span-6">
+            <div className="h-[320px]">
+              <ChartBarInteractive />
+            </div>
+          </div>
+          {/* Future component slots */}
+          <div className="col-span-3">
+            {/* Reserved for future component */}
+          </div>
+          <div className="col-span-3">
+            {/* Reserved for future component */}
           </div>
         </div>
 
