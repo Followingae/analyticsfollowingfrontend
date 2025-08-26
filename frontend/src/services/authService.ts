@@ -264,8 +264,16 @@ class AuthService {
       }
       if (response.ok && data.access_token) {
         // Calculate expiration time (default to 15 minutes if not provided)
+        // Backend might send expires_in in seconds, or we default to 900 seconds (15 min)
         const expiresIn = data.expires_in || 900 // 15 minutes in seconds
         const expiresAt = Date.now() + (expiresIn * 1000)
+        
+        console.log('🔐 Login successful, storing tokens:', {
+          has_access_token: !!data.access_token,
+          has_refresh_token: !!data.refresh_token,
+          expires_in: expiresIn,
+          expires_at: new Date(expiresAt).toISOString()
+        })
         
         // Save token data with expiration
         const tokenData: TokenData = {
@@ -277,6 +285,12 @@ class AuthService {
         
         this.saveTokenData(tokenData)
         localStorage.setItem('user_data', JSON.stringify(data.user))
+        
+        // Also store old format for backwards compatibility during migration
+        localStorage.setItem('access_token', data.access_token)
+        if (data.refresh_token) {
+          localStorage.setItem('refresh_token', data.refresh_token)
+        }
         // Convert to expected format
         return {
           success: true,
@@ -477,11 +491,32 @@ class AuthService {
   }
   // Check if user is authenticated
   isAuthenticated(): boolean {
-    return !!this.tokenData && !this.isTokenExpired()
+    // Check new token format first
+    if (this.tokenData && !this.isTokenExpired()) {
+      return true
+    }
+    
+    // Fallback to old format for compatibility during migration
+    if (typeof window !== 'undefined') {
+      const oldToken = localStorage.getItem('access_token')
+      return !!oldToken
+    }
+    
+    return false
   }
   // Get stored token
   getToken(): string | null {
-    return this.tokenData?.access_token || null
+    // Try new token format first
+    if (this.tokenData?.access_token) {
+      return this.tokenData.access_token
+    }
+    
+    // Fallback to old format for compatibility
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('access_token')
+    }
+    
+    return null
   }
   // Get stored user data
   getStoredUser(): User | null {

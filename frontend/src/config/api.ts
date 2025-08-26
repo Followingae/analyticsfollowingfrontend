@@ -94,9 +94,26 @@ export const REQUEST_HEADERS = {
 }
 
 export const getAuthHeaders = () => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-  return token ? {
+  if (typeof window === 'undefined') return REQUEST_HEADERS;
+  
+  // Try new token format first
+  const authTokens = localStorage.getItem('auth_tokens');
+  if (authTokens) {
+    try {
+      const tokenData = JSON.parse(authTokens);
+      if (tokenData.access_token) {
+        return {
+          ...REQUEST_HEADERS,
+          'Authorization': `Bearer ${tokenData.access_token}`
+        };
+      }
+    } catch {}
+  }
+  
+  // Fallback to old format for compatibility
+  const oldToken = localStorage.getItem('access_token');
+  return oldToken ? {
     ...REQUEST_HEADERS,
-    'Authorization': `Bearer ${token}`
+    'Authorization': `Bearer ${oldToken}`
   } : REQUEST_HEADERS;
 };
