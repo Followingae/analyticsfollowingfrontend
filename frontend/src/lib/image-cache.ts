@@ -46,7 +46,6 @@ class ImageCache {
     const altProxy = process.env.NEXT_PUBLIC_CORS_ALTERNATIVE
     
     if (!apiKey && !altProxy) {
-      console.warn('No CORS proxy configured')
       return url
     }
 
@@ -110,7 +109,6 @@ class ImageCache {
     const validUrls = urls.filter(Boolean)
     const preloadPromises = validUrls.map(url => 
       this.preloadImage(url).catch(err => {
-        console.warn(`Failed to preload image: ${url}`, err)
         return this.getCachedUrl(url) // Return cached URL even if preload fails
       })
     )

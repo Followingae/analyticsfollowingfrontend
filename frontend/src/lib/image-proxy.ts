@@ -17,10 +17,6 @@ export function proxyInstagramUrl(url: string | null | undefined): string {
     url.includes('cdninstagram.com') ||
     url.includes('scontent-');
 
-  // Debug logging in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Proxy check:', { url, isInstagramUrl });
-  }
 
   if (!isInstagramUrl) {
     return url;
@@ -29,17 +25,11 @@ export function proxyInstagramUrl(url: string | null | undefined): string {
   const apiKey = process.env.NEXT_PUBLIC_CORSPROXY_API_KEY;
 
   if (!apiKey) {
-    console.warn('CORSPROXY API key not found in environment variables');
     return url; // Return original URL as fallback
   }
 
   const proxyUrl = `https://api.corsproxy.io/?url=${encodeURIComponent(url)}&key=${apiKey}`;
   
-  // Debug logging in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Proxying URL:', { original: url, proxied: proxyUrl });
-  }
-
   return proxyUrl;
 }
 
@@ -49,11 +39,6 @@ export function proxyInstagramUrl(url: string | null | undefined): string {
 export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {       
   const target = event.currentTarget;
   target.style.display = 'none';
-
-  // Optional: Log failed image URLs for debugging
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('Failed to load image:', target.src);
-  }
 };
 
 /**

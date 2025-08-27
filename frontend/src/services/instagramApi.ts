@@ -726,7 +726,6 @@ export class InstagramApiService {
    * This method now redirects to the new progressive loading approach
    */
   async getAnalytics(username: string): Promise<BasicProfileResponse> {
-    console.warn('⚠️ getAnalytics is deprecated. Use getBasicProfile() instead.')
     return this.getBasicProfile(username)
   }
   /**
@@ -764,7 +763,6 @@ export class InstagramApiService {
       }
 
     } catch (error: any) {
-      console.error('Profile fetch error:', error)
       
       if (error.message.includes('profile_not_accessible') || 
           error.message.includes('search for this profile first')) {
@@ -836,7 +834,6 @@ export class InstagramApiService {
    * @deprecated No longer available
    */
   async getHashtagAnalysis(hashtag: string): Promise<{ success: boolean; data?: any; error?: string }> {
-    console.warn('⚠️ Hashtag analysis endpoint was removed in backend cleanup')
     return {
       success: false,
       error: 'Hashtag analysis is no longer available. Use main profile endpoint instead.'
