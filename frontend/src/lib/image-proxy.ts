@@ -1,58 +1,45 @@
-import { z } from 'zod';
+/**
+ * @deprecated - MIGRATED TO CDN SYSTEM
+ * This file is deprecated and should not be used.
+ * Use CDN system instead: @/services/cdnMediaApi and @/components/ui/cdn-image
+ */
+
+import { getBestImageUrl } from './cdn-migration';
 
 /**
- * Converts Instagram CDN URLs to CORSPROXY.IO proxied URLs
- * Handles CORS issues for Instagram images
+ * @deprecated Use CDN system instead
+ * Legacy function redirects to CDN migration utility
  */
 export function proxyInstagramUrl(url: string | null | undefined): string {
-  // Handle falsy values
-  if (!url) return '';
-
-  // Only proxy Instagram CDN URLs
-  const isInstagramUrl =
-    url.startsWith('https://scontent-') ||
-    url.startsWith('https://instagram.') ||
-    url.startsWith('https://scontent.cdninstagram.com') ||
-    url.includes('.fbcdn.net') ||
-    url.includes('cdninstagram.com') ||
-    url.includes('scontent-');
-
-
-  if (!isInstagramUrl) {
-    return url;
-  }
-
-  const apiKey = process.env.NEXT_PUBLIC_CORSPROXY_API_KEY;
-
-  if (!apiKey) {
-    return url; // Return original URL as fallback
-  }
-
-  const proxyUrl = `https://api.corsproxy.io/?url=${encodeURIComponent(url)}&key=${apiKey}`;
+  console.warn(
+    '🚨 DEPRECATED: proxyInstagramUrl() is deprecated.',
+    'Use ProfileAvatar or CDNImage components from @/components/ui/cdn-image instead.',
+    '\n📖 Migration guide: /frontend/FRONTEND_MIGRATION_GUIDE.md'
+  );
   
-  return proxyUrl;
+  return getBestImageUrl(null, url);
 }
 
 /**
- * Type-safe image error handler for Instagram images
+ * @deprecated Use CDN components with automatic fallbacks instead
  */
-export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {       
+export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  console.warn(
+    '🚨 DEPRECATED: handleImageError() is deprecated.',
+    'Use CDNImage or ProfileAvatar components with automatic fallbacks.',
+    '\n📖 Migration guide: /frontend/FRONTEND_MIGRATION_GUIDE.md'
+  );
+  
   const target = event.currentTarget;
-  target.style.display = 'none';
+  target.src = 'https://cdn.following.ae/placeholders/avatar-512.webp';
 };
 
 /**
- * Zod schema for validating Instagram URLs (optional but recommended)
+ * @deprecated Instagram URLs are no longer validated as they expire
+ * CDN URLs are permanent and don't require validation
  */
-export const InstagramUrlSchema = z.string().refine(
-  (url) =>
-    url.startsWith('https://scontent-') ||
-    url.startsWith('https://instagram.') ||
-    url.startsWith('https://scontent.cdninstagram.com') ||
-    url.includes('.fbcdn.net') ||
-    url.includes('cdninstagram.com') ||
-    url.includes('scontent-'),
-  {
-    message: "Must be a valid Instagram CDN URL"
-  }
-);
+import { z } from 'zod';
+
+export const InstagramUrlSchema = z.string().refine(() => false, {
+  message: "Instagram URLs are deprecated. Use CDN system instead."
+});

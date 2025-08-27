@@ -4,13 +4,20 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Heart, MessageCircle, Calendar, Brain, TrendingUp, Languages, Smile, Meh, Frown } from "lucide-react"
 import type { PostWithAI } from "@/types/creatorTypes"
+import { CDNImage } from "@/components/ui/cdn-image"
 
 interface CompletePostsGalleryProps {
   posts: PostWithAI[]
   username: string
+  cdnPosts?: Array<{
+    mediaId: string
+    thumbnail: string
+    fullSize: string
+    available: boolean
+  }>
 }
 
-export function CompletePostsGallery({ posts, username }: CompletePostsGalleryProps) {
+export function CompletePostsGallery({ posts, username, cdnPosts }: CompletePostsGalleryProps) {
   const [selectedPost, setSelectedPost] = useState<PostWithAI | null>(null)
   const [showDetails, setShowDetails] = useState(false)
 
@@ -87,7 +94,7 @@ export function CompletePostsGallery({ posts, username }: CompletePostsGalleryPr
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {posts.map((post) => (
+          {posts.map((post, index) => {
             <div 
               key={post.post_id}
               className="group cursor-pointer rounded-lg overflow-hidden border hover:border-primary/50 transition-all duration-200 hover:shadow-lg"
@@ -98,14 +105,12 @@ export function CompletePostsGallery({ posts, username }: CompletePostsGalleryPr
             >
               {/* Post Image */}
               <div className="aspect-square relative overflow-hidden bg-muted">
-                <img
-                  src={post.media_url}
+                <CDNImage
+                  cdnUrl={cdnPosts?.[index]?.thumbnail}
+                  fallbackUrl={post.media_url}
                   alt={`Post by ${username}`}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.src = `https://via.placeholder.com/300x300/f3f4f6/9ca3af?text=Post`
-                  }}
+                  size="small"
                 />
                 
                 {/* Engagement Overlay */}
@@ -159,7 +164,8 @@ export function CompletePostsGallery({ posts, username }: CompletePostsGalleryPr
                 </div>
               </div>
             </div>
-          ))}
+          )
+          })
         </div>
 
         {/* Post Details Modal/Expanded View */}

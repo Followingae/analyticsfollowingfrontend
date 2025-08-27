@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { Loader2, CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { useProgressiveProfileLoading } from '@/hooks/useProgressiveProfileLoading'
 import type { InstagramProfile } from '@/services/instagramApi'
+import { ProfileAvatar } from '@/components/ui/cdn-image'
 
 interface ProgressiveProfileLoaderProps {
   username: string
@@ -195,10 +196,16 @@ export function ProgressiveProfileLoader({
           <Card className="bg-gray-50">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
-                <img 
-                  src={state.basicData.profile.profile_pic_url} 
-                  alt={state.basicData.profile.username}
-                  className="w-12 h-12 rounded-full"
+                <ProfileAvatar
+                  profile={{
+                    id: state.basicData.profile.id,
+                    username: state.basicData.profile.username,
+                    full_name: state.basicData.profile.full_name,
+                    profile_pic_url: state.basicData.profile.profile_pic_url,
+                    profile_pic_url_hd: state.basicData.profile.profile_pic_url_hd
+                  }}
+                  size="small"
+                  className="w-12 h-12"
                 />
                 <div>
                   <div className="font-semibold">@{state.basicData.profile.username}</div>

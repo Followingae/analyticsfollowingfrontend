@@ -18,6 +18,7 @@ import { PartnershipAssessmentCard } from "./PartnershipAssessmentCard"
 import { AdvancedAnalyticsCard } from "./AdvancedAnalyticsCard"
 import { CompletePostsGallery } from "./CompletePostsGallery"
 import { creatorApiService } from "@/services/creatorApi"
+import { useCDNMedia } from "@/hooks/useCDNMedia"
 import type { Phase1Data, Phase2Data, CompleteCreatorProfile } from "@/types/creatorTypes"
 
 interface CreatorProfilePageProps {
@@ -30,6 +31,9 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
+  
+  // Get CDN data for profile images
+  const { data: cdnData } = useCDNMedia(profile?.phase1?.profile_header?.id || '', !!profile?.phase1?.profile_header?.id)
 
   // Load Phase 1 data immediately
   const loadPhase1Data = async () => {
@@ -349,7 +353,16 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
     <div className="container mx-auto p-6 max-w-6xl space-y-6">
       {/* Phase 1: Immediate Display */}
       <div className="space-y-6">
-        <ProfileHeaderCard profileHeader={profile.phase1.profile_header} />
+        <ProfileHeaderCard 
+          profileHeader={profile.phase1.profile_header} 
+          cdnMedia={cdnData ? {
+            avatar: {
+              small: cdnData.avatar['256'],
+              large: cdnData.avatar['512'],
+              available: cdnData.avatar.available
+            }
+          } : undefined}
+        />
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">

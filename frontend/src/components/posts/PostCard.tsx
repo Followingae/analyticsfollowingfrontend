@@ -6,16 +6,21 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { InstagramPost } from '@/services/instagramApi'
 import { formatNumber } from '@/lib/utils'
-import { InstagramImage } from '@/components/ui/instagram-image'
-import { proxyInstagramUrlCached } from '@/lib/image-cache'
+import { CDNImage } from '@/components/ui/cdn-image'
+import { getBestImageUrl } from '@/lib/cdn-migration'
 import { Heart, MessageCircle, Eye, MapPin, ExternalLink, Brain, Sparkles, Languages, Clock, CheckCircle, Loader2 } from 'lucide-react'
 import { SentimentBadge, LanguageBadge } from '@/components/ui/ai-insights'
 
 interface PostCardProps {
   post: InstagramPost
+  cdnPost?: {
+    thumbnail: string
+    fullSize: string
+    available: boolean
+  }
 }
 
-export default function PostCard({ post }: PostCardProps) {
+export default function PostCard({ post, cdnPost }: PostCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   const formatDate = (dateString: string) => {
@@ -39,7 +44,7 @@ export default function PostCard({ post }: PostCardProps) {
             <div className="relative w-full h-full">
               <video
                 controls
-                poster={proxyInstagramUrlCached(post.images?.[0]?.proxied_url || post.display_url)}
+                poster={getBestImageUrl(cdnPost?.thumbnail, post.images?.[0]?.proxied_url || post.display_url)}
                 className="w-full h-full object-cover"
               >
                 <source src={post.video_url} type="video/mp4" />
@@ -50,10 +55,12 @@ export default function PostCard({ post }: PostCardProps) {
             </div>
           ) : (
             <div className="relative w-full h-full">
-              <InstagramImage
-                src={post.images?.[0]?.proxied_url || post.display_url}
+              <CDNImage
+                cdnUrl={cdnPost?.fullSize}
+                fallbackUrl={post.images?.[0]?.proxied_url || post.display_url}
                 alt={post.caption?.substring(0, 100) || `Post by ${post.shortcode}`}
                 className="w-full h-full object-cover"
+                size="large"
               />
               {post.is_carousel && (
                 <Badge className="absolute top-2 right-2 bg-black/70 text-white">

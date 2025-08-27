@@ -1,6 +1,8 @@
 /**
- * Enhanced image caching system for CORS-proxied Instagram images
- * Handles both memory and browser cache with fallback strategies
+ * @deprecated - MIGRATED TO CDN SYSTEM
+ * This caching system is no longer needed with permanent CDN URLs.
+ * Use CDN system instead: @/services/cdnMediaApi and @/components/ui/cdn-image
+ * CDN URLs are permanent and cached by Cloudflare - no client-side caching needed.
  */
 
 interface CacheEntry {
@@ -140,52 +142,43 @@ export const imageCache = new ImageCache()
 
 
 /**
- * Enhanced version of proxyInstagramUrl with caching
+ * @deprecated Use CDN system instead
  */
 export function proxyInstagramUrlCached(url: string | null | undefined): string {
-  if (!url) return ''
+  console.warn(
+    '🚨 DEPRECATED: proxyInstagramUrlCached() is deprecated.',
+    'Use CDN system with ProfileAvatar or CDNImage components.',
+    '\n📖 Migration guide: /frontend/FRONTEND_MIGRATION_GUIDE.md'
+  );
 
-  // Check if it's an Instagram URL that needs proxying
-  const isInstagramUrl =
-    url.startsWith('https://scontent-') ||
-    url.startsWith('https://instagram.') ||
-    url.startsWith('https://scontent.cdninstagram.com') ||
-    url.includes('.fbcdn.net') ||
-    url.includes('cdninstagram.com') ||
-    url.includes('scontent-')
-
-  if (!isInstagramUrl) {
-    return url
+  if (!url) return '';
+  
+  // Return placeholder for Instagram URLs
+  if (url.includes('cdninstagram.com') || url.includes('scontent-') || url.includes('.fbcdn.net')) {
+    return 'https://cdn.following.ae/placeholders/avatar-512.webp';
   }
-
-  return imageCache.getCachedUrl(url)
+  
+  return url;
 }
 
 /**
- * React hook for cached image URLs
+ * @deprecated Use CDN hooks instead
  */
 import { useEffect, useState } from 'react'
 
 export function useCachedImage(url: string | null | undefined) {
+  console.warn(
+    '🚨 DEPRECATED: useCachedImage() is deprecated.',
+    'Use useProfileWithCDN or useCDNMedia hooks instead.',
+    '\n📖 Migration guide: /frontend/FRONTEND_MIGRATION_GUIDE.md'
+  );
+
   const [cachedUrl, setCachedUrl] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!url) {
-      setCachedUrl('')
-      setIsLoading(false)
-      return
-    }
-
-    setIsLoading(true)
-    setError(null)
-
-    const cached = proxyInstagramUrlCached(url)
-    setCachedUrl(cached)
-
-    // Skip preloading to avoid CORS proxy 403 errors
-    // Just return the cached URL immediately
+    setCachedUrl(url || 'https://cdn.following.ae/placeholders/avatar-512.webp')
     setIsLoading(false)
   }, [url])
 
@@ -193,10 +186,9 @@ export function useCachedImage(url: string | null | undefined) {
 }
 
 /**
- * Utility to preload images for a page/component
- * DISABLED: Skip preloading to avoid CORS proxy 403 errors
+ * @deprecated CDN images don't need preloading - they're served via Cloudflare CDN
  */
 export function preloadPageImages(urls: (string | null | undefined)[]): Promise<void> {
-  // Skip preloading entirely to avoid CORS proxy server-side requests
+  console.warn('🚨 DEPRECATED: preloadPageImages() is no longer needed with CDN system.');
   return Promise.resolve()
 }

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { formatNumber, formatPercentage, isValidProfile } from '@/lib/utils'
-import { ProfileAvatar } from '@/components/ui/profile-avatar'
+import { ProfileAvatar } from '@/components/ui/cdn-image'
 import { creatorApiService } from '@/services/creatorApi'
 import { CreatorSearchResponse } from '@/types/creator'
 import { useCreatorSearch } from '@/hooks/useCreatorSearch'
@@ -203,9 +203,14 @@ export default function ProfileSearchTab() {
             <CardHeader>
               <div className="flex items-start gap-4">
                 <ProfileAvatar
-                  src={profile.profile_pic_url_hd || profile.profile_pic_url}
-                  alt={profile.username}
-                  fallbackText={profile.username}
+                  profile={{
+                    id: profile.id,
+                    username: profile.username,
+                    full_name: profile.full_name,
+                    profile_pic_url: profile.profile_pic_url,
+                    profile_pic_url_hd: profile.profile_pic_url_hd
+                  }}
+                  size="large"
                   size="lg"
                   className="w-20 h-20 border-4 border-white"
                 />

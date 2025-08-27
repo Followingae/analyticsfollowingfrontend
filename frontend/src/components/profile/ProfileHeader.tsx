@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { InstagramProfile } from '@/services/instagramApi'
 import { formatNumber } from '@/lib/utils'
-import { ProfileAvatar } from '@/components/ui/profile-avatar'
+import { ProfileAvatar } from '@/components/ui/cdn-image'
 import { 
   ExternalLink, 
   MapPin, 
@@ -24,9 +24,16 @@ import {
 interface ProfileHeaderProps {
   profile: InstagramProfile
   className?: string
+  cdnMedia?: {
+    avatar: {
+      small: string
+      large: string
+      available: boolean
+    }
+  }
 }
 
-export default function ProfileHeader({ profile, className = '' }: ProfileHeaderProps) {
+export default function ProfileHeader({ profile, className = '', cdnMedia }: ProfileHeaderProps) {
   const openInstagramProfile = () => {
     window.open(`https://www.instagram.com/${profile.username}/`, '_blank')
   }
@@ -47,10 +54,15 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
           {/* Profile Picture */}
           <div className="relative flex-shrink-0">
             <ProfileAvatar
-              src={profile.profile_pic_url_hd || profile.profile_pic_url}
-              alt={`${profile.username} profile picture`}
-              fallbackText={profile.username}
-              size="xl"
+              profile={{
+                id: profile.id,
+                username: profile.username,
+                full_name: profile.full_name,
+                profile_pic_url: profile.profile_pic_url,
+                profile_pic_url_hd: profile.profile_pic_url_hd
+              }}
+              cdnMedia={cdnMedia}
+              size="large"
               className="w-24 h-24 md:w-30 md:h-30 border-4 border-white"
             />
             {profile.is_verified && (

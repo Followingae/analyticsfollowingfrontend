@@ -1,14 +1,22 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Users, UserPlus, Image, TrendingUp } from "lucide-react"
-import { ProfileAvatar } from "@/components/ui/profile-avatar"
+import { ProfileAvatar } from "@/components/ui/cdn-image"
+import { CDNStatusBanner } from "@/components/ui/cdn-processing-status"
 import type { ProfileHeader } from "@/types/creatorTypes"
 
 interface ProfileHeaderCardProps {
   profileHeader: ProfileHeader
+  cdnMedia?: {
+    avatar: {
+      small: string
+      large: string
+      available: boolean
+    }
+  }
 }
 
-export function ProfileHeaderCard({ profileHeader }: ProfileHeaderCardProps) {
+export function ProfileHeaderCard({ profileHeader, cdnMedia }: ProfileHeaderCardProps) {
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
@@ -20,16 +28,27 @@ export function ProfileHeaderCard({ profileHeader }: ProfileHeaderCardProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex flex-col md:flex-row gap-6">
+    <div className="space-y-4">
+      {/* CDN Processing Status Banner */}
+      <CDNStatusBanner profileId={profileHeader.id} />
+      
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-6">
           {/* Profile Picture */}
           <div className="flex-shrink-0 flex justify-center md:justify-start">
             <div className="relative">
               <ProfileAvatar
-                src={profileHeader.profile_pic_url}
-                alt={profileHeader.full_name || profileHeader.username}
-                fallbackText={profileHeader.username}
+                profile={{
+                  id: profileHeader.id,
+                  full_name: profileHeader.full_name,
+                  username: profileHeader.username,
+                  profile_pic_url: profileHeader.profile_pic_url,
+                  profile_pic_url_hd: profileHeader.profile_pic_url
+                }}
+                cdnMedia={cdnMedia}
+                size="large"
+                showProcessing={true}
                 className="w-24 h-24 border-2 border-white dark:border-gray-900 shadow-lg"
               />
               {profileHeader.is_verified && (
@@ -107,8 +126,9 @@ export function ProfileHeaderCard({ profileHeader }: ProfileHeaderCardProps) {
               </div>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

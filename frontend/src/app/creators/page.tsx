@@ -5,7 +5,7 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { creatorApiService } from "@/services/creatorApi"
 import { useCreatorSearch } from "@/hooks/useCreatorSearch"
 import { CreatorProfile, UnlockedCreatorsResponse } from "@/types/creator"
-import { preloadPageImages } from "@/lib/image-cache"
+// CDN migration: preloadPageImages no longer needed with CDN
 import {
   Plus,
   Users,
@@ -52,7 +52,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { UserAvatar } from "@/components/UserAvatar"
-import { ProfileAvatar } from "@/components/ui/profile-avatar"
+import { ProfileAvatar } from "@/components/ui/cdn-image"
 import {
   SidebarInset,
   SidebarProvider,
@@ -175,12 +175,8 @@ export default function CreatorsPage() {
         setUnlockedError(null)
         
         // Preload images for better performance
-        if (profiles.length > 0) {
-          const imageUrls = profiles.map((profile: any) => 
-            profile.profile_pic_url_hd || profile.profile_pic_url
-          ).filter(Boolean)
-          preloadPageImages(imageUrls)
-        }
+        // CDN migration: Image preloading no longer needed
+        // CDN URLs are permanent and cached by Cloudflare
       } else {
         console.error('❌ Failed to load unlocked creators:', result.error)
         setUnlockedError(result.error || 'Failed to load unlocked creators')
@@ -363,9 +359,14 @@ export default function CreatorsPage() {
           <div className="flex justify-center mb-3">
             <div className="relative">
               <ProfileAvatar
-                src={creator.proxied_profile_pic_url_hd || creator.proxied_profile_pic_url || creator.profile_pic_url_hd || creator.profile_pic_url}
-                alt={creator.full_name || 'Profile'}
-                fallbackText={creator.username}
+                profile={{
+                  id: creator.id,
+                  username: creator.username,
+                  full_name: creator.full_name,
+                  profile_pic_url: creator.profile_pic_url,
+                  profile_pic_url_hd: creator.profile_pic_url_hd
+                }}
+                size="large"
                 className="w-20 h-20 border-2 border-white dark:border-gray-900"
               />
               {creator.is_verified && (
