@@ -52,6 +52,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
+import { AuthGuard } from "@/components/AuthGuard"
 import { creditsApiService } from "@/services/creditsApi"
 import { CreditDashboard, CreditTransaction, PricingRule } from "@/types"
 import { formatCredits, formatCreditDate, getCreditBalanceStatus } from "@/utils/creditUtils"
@@ -80,17 +81,29 @@ export default function BillingPage() {
 
         if (dashboardResult.success && dashboardResult.data) {
           setCreditDashboard(dashboardResult.data)
+        } else {
+          // Handle permission errors gracefully - don't fail the page
+          if (dashboardResult.error?.includes('403') || dashboardResult.error?.includes('permission')) {
+            console.warn('🔒 Billing: Dashboard access restricted, using fallback data')
+            setError('Some billing features require premium access')
+          } else if (dashboardResult.error?.includes('401') || dashboardResult.error?.includes('Authentication')) {
+            console.warn('🔒 Billing: Authentication issue, will redirect')
+            setError('Authentication required. Please log in again.')
+          } else {
+            setError(dashboardResult.error || 'Failed to load dashboard data')
+          }
         }
 
         if (pricingResult.success && pricingResult.data) {
           setPricing(pricingResult.data)
         }
-
-        if (!dashboardResult.success) {
-          setError(dashboardResult.error || 'Failed to load dashboard data')
-        }
       } catch (err) {
-        setError('Network error loading billing data')
+        console.error('❌ Billing: Dashboard loading error:', err)
+        if (err instanceof Error && err.message.includes('Authentication')) {
+          setError('Session expired. Please log in again.')
+        } else {
+          setError('Network error loading billing data')
+        }
       } finally {
         setLoading(false)
       }
@@ -108,9 +121,21 @@ export default function BillingPage() {
 
         if (result.success && result.data) {
           setTransactions(result.data.transactions || [])
+        } else {
+          // Handle transaction loading errors gracefully
+          if (result.error?.includes('403') || result.error?.includes('permission')) {
+            console.warn('🔒 Billing: Transactions access restricted')
+            // Don't show error for permission issues
+          } else if (result.error?.includes('401') || result.error?.includes('Authentication')) {
+            console.warn('🔒 Billing: Authentication issue loading transactions')
+            // Authentication issues will be handled by interceptor
+          } else {
+            console.error('❌ Billing: Transaction loading error:', result.error)
+          }
         }
       } catch (err) {
-        console.error('Failed to load transactions:', err)
+        console.error('❌ Billing: Failed to load transactions:', err)
+        // Don't propagate transaction loading errors to prevent logout loops
       } finally {
         setTransactionsLoading(false)
       }
@@ -273,14 +298,15 @@ export default function BillingPage() {
   }
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 66)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
+    <AuthGuard requireAuth={true}>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 66)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
@@ -900,6 +926,7 @@ export default function BillingPage() {
         actionName="purchase credits"
         message="Payment integration coming soon! Contact support for custom packages."
       />
-    </SidebarProvider>
+      </SidebarProvider>
+    </AuthGuard>
   )
 }

@@ -3,7 +3,7 @@
  * Handles all credit-related API calls including balance, transactions, pricing, and permissions
  */
 
-import { API_CONFIG } from '@/config/api'
+import { API_CONFIG, ENDPOINTS } from '@/config/api'
 
 // Types
 export interface CreditBalance {
@@ -116,13 +116,21 @@ class CreditsApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
-      const token = localStorage.getItem('access_token')
+      const { tokenManager } = await import('@/utils/tokenManager')
+      const tokenResult = await tokenManager.getValidToken()
+      
+      if (!tokenResult.isValid || !tokenResult.token) {
+        return {
+          success: false,
+          error: 'No valid authentication token available'
+        }
+      }
       
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
+          'Authorization': `Bearer ${tokenResult.token}`,
           ...options.headers,
         },
       })
@@ -173,7 +181,7 @@ class CreditsApiService {
 
   async getBalance(): Promise<ApiResponse<CreditBalance>> {
     try {
-      const response = await this.makeRequest<any>('/api/v1/credits/balance')
+      const response = await this.makeRequest<any>(ENDPOINTS.credits.balance)
       
       console.log('🔍 Raw Credits API Response:', response)
       console.log('🔍 Raw Credits API Response - Full Object:', JSON.stringify(response, null, 2))
@@ -219,11 +227,11 @@ class CreditsApiService {
   }
 
   async getWalletSummary(): Promise<ApiResponse<CreditWalletSummary>> {
-    return this.makeRequest<CreditWalletSummary>('/api/v1/credits/wallet/summary')
+    return this.makeRequest<CreditWalletSummary>(ENDPOINTS.credits.walletSummary)
   }
 
   async getDashboard(): Promise<ApiResponse<CreditDashboard>> {
-    return this.makeRequest<CreditDashboard>('/api/v1/credits/dashboard')
+    return this.makeRequest<CreditDashboard>(ENDPOINTS.credits.dashboard)
   }
 
   async createWallet(): Promise<ApiResponse<any>> {
@@ -256,7 +264,7 @@ class CreditsApiService {
     if (end_date) params.append('end_date', end_date)
 
     const queryString = params.toString()
-    const endpoint = `/api/v1/credits/transactions${queryString ? `?${queryString}` : ''}`
+    const endpoint = `${ENDPOINTS.credits.transactions}${queryString ? `?${queryString}` : ''}`
     
     return this.makeRequest(endpoint)
   }
@@ -285,7 +293,7 @@ class CreditsApiService {
     if (month) params.append('month', month.toString())
 
     const queryString = params.toString()
-    const endpoint = `/api/v1/credits/usage/monthly${queryString ? `?${queryString}` : ''}`
+    const endpoint = `${ENDPOINTS.credits.usageMonthly}${queryString ? `?${queryString}` : ''}`
     
     return this.makeRequest<MonthlyUsage>(endpoint)
   }
@@ -304,7 +312,7 @@ class CreditsApiService {
 
   // Action Permissions & Pricing
   async canPerform(actionType: string): Promise<ApiResponse<CanPerformResult>> {
-    return this.makeRequest<CanPerformResult>(`/api/v1/credits/can-perform/${actionType}`)
+    return this.makeRequest<CanPerformResult>(ENDPOINTS.credits.canPerform(actionType))
   }
 
   async getAllPricing(): Promise<ApiResponse<PricingRule[]>> {
@@ -337,7 +345,7 @@ class CreditsApiService {
 
   // Allowances & System Info
   async getAllowances(): Promise<ApiResponse<AllowanceInfo>> {
-    return this.makeRequest<AllowanceInfo>('/api/v1/credits/allowances')
+    return this.makeRequest<AllowanceInfo>(ENDPOINTS.credits.allowances)
   }
 
   async getSystemStats(): Promise<ApiResponse<SystemStats>> {

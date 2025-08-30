@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/animate-ui/radix/checkbox';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { CheckCircle, User, Search, List, ExternalLink } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext';
 import { listsApiService } from '@/services/listsApi';
 import { instagramApiService } from '@/services/instagramApi';
 
@@ -33,7 +33,7 @@ const getPathTransition = (isChecked: boolean): Transition => ({
 
 export function SetupChecklist() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useEnhancedAuth();
   const [status, setStatus] = React.useState<ChecklistStatus>({
     profileComplete: false,
     firstProfileAnalyzed: false,

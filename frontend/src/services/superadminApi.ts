@@ -593,7 +593,8 @@ export class SuperadminApiService {
       const response = await fetchWithAuth(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
-          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...options.headers,
         },
       })

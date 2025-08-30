@@ -27,7 +27,7 @@ import { toast } from "sonner"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { AuthGuard } from "@/components/AuthGuard"
-import { useAuth } from "@/contexts/AuthContext"
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { settingsApiService, type SettingsOverview, type UserProfile, type NotificationSettings, type PrivacySettings, type UserPreferences } from "@/services/settingsApi"
 import TeamContextDisplay from "@/components/team/TeamContextDisplay"
 import TeamMembersManagement from "@/components/team/TeamMembersManagement"
@@ -96,7 +96,7 @@ export default function SettingsPage() {
   
   // File upload
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { user, refreshUser, updateProfile, updateUserState } = useAuth()
+  const { user, refreshUser, updateProfile, updateUserState } = useEnhancedAuth()
   
   // Avatar configuration state
   const [avatarConfig, setAvatarConfig] = useState<{

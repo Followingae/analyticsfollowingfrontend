@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { toast } from 'sonner'
 import { GalleryVerticalEnd } from "lucide-react"
 
@@ -11,7 +11,7 @@ import { LoginForm } from "@/components/login-form"
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const { login } = useAuth()
+  const { login } = useEnhancedAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

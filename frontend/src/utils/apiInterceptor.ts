@@ -4,6 +4,8 @@
  */
 
 import { authService } from '@/services/authService'
+import { tokenManager } from '@/utils/tokenManager'
+import { waitForAuthInit } from '@/utils/authInit'
 
 interface RequestConfig {
   url: string
@@ -19,9 +21,26 @@ class ApiInterceptor {
   }> = []
 
   /**
-   * Enhanced fetch with automatic token refresh
+   * Enhanced fetch with automatic token refresh and validation
    */
   async fetch(url: string, options: RequestInit = {}): Promise<Response> {
+    // Ensure auth system is initialized before making requests
+    await waitForAuthInit()
+    
+    // Use token manager for consistent token access
+    const tokenResult = await tokenManager.getValidToken()
+    
+    if (!tokenResult.isValid || !tokenResult.token) {
+      console.warn('🔒 API Request: No valid token available for', url, 'Reason:', tokenResult.reason)
+      throw new Error('No authentication token available')
+    }
+
+    // Add token to request if not already present
+    if (!this.hasAuthHeader(options)) {
+      options = this.updateAuthHeader(options, tokenResult.token)
+      console.log('🔒 API Request: Added Authorization header for', url)
+    }
+    
     const config = { url, options }
     
     try {
@@ -32,11 +51,18 @@ class ApiInterceptor {
         return this.handle401Error(config)
       }
       
-      // If 403 (Forbidden), likely an invalid token - clear auth and redirect to login
+      // If 403 (Forbidden), check if this is a permission issue vs auth issue
       if (response.status === 403) {
-        console.log('🚫 403 Forbidden - clearing auth state and redirecting to login')
-        authService.logout()
-        throw new Error('Access forbidden. Please log in again.')
+        const responseText = await response.clone().text()
+        // Only logout if it's clearly an auth issue, not a permission issue
+        if (responseText.includes('token') || responseText.includes('expired') || responseText.includes('invalid')) {
+          console.log('🚫 403 Forbidden due to invalid token - clearing auth state')
+          authService.logout()
+          throw new Error('Authentication expired. Please log in again.')
+        } else {
+          console.log('🚫 403 Forbidden due to permissions - not logging out')
+          // Don't logout for permission issues, let the calling code handle it
+        }
       }
       
       return response
@@ -75,16 +101,22 @@ class ApiInterceptor {
       } else {
         console.log('❌ Token refresh failed, logging out')
         
-        // Refresh failed, logout user
+        // Refresh failed, logout user - but don't call logout multiple times
         this.processQueue(new Error('Token refresh failed'))
-        authService.logout()
+        if (authService.isAuthenticated()) {
+          console.log('🚪 API Interceptor: Calling logout due to token refresh failure')
+          authService.logout()
+        }
         throw new Error('Authentication failed. Please log in again.')
       }
     } catch (error) {
       console.error('❌ Token refresh error:', error)
       
       this.processQueue(error as Error)
-      authService.logout()
+      if (authService.isAuthenticated()) {
+        console.log('🚪 API Interceptor: Calling logout due to token refresh error')
+        authService.logout()
+      }
       throw new Error('Authentication failed. Please log in again.')
     } finally {
       this.isRefreshing = false

@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { toast } from 'sonner'
 import { SignUpPage } from '@/components/sign-up'
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
-  const { register } = useAuth()
+  const { register } = useEnhancedAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

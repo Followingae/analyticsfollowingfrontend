@@ -58,7 +58,9 @@
       "Bash(git push:*)",
       "Bash(true)",
       "Bash(PORT=3001 npm run start)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(start http://localhost:3002)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "additionalDirectories": [

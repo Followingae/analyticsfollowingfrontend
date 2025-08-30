@@ -494,7 +494,8 @@ export class InstagramApiService {
       const response = await fetchWithAuth(`${this.baseURL}${url}`, {
         ...options,
         headers: {
-          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...options.headers,
         },
         mode: 'cors',

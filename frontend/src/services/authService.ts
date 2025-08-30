@@ -1,4 +1,5 @@
 import { API_CONFIG, REQUEST_HEADERS, ENDPOINTS, getAuthHeaders } from '@/config/api'
+import { tokenManager } from '@/utils/tokenManager'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 export interface User {
   id: string
@@ -68,11 +69,62 @@ export interface DashboardStats {
 class AuthService {
   private baseURL: string
   private tokenData: TokenData | null = null
+  private lastLoginTime: number = 0
+  private refreshPromise: Promise<{ success: boolean; access_token?: string; error?: string }> | null = null
+  private tokenHealthStats = {
+    validationSuccesses: 0,
+    validationFailures: 0,
+    malformedTokens: 0,
+    refreshAttempts: 0,
+    refreshSuccesses: 0,
+    lastHealthCheck: Date.now()
+  }
 
   constructor() {
     this.baseURL = API_CONFIG.BASE_URL
+    
+    // Initialize TokenManager (this will clean up any invalid tokens)
+    // Note: TokenManager is a singleton, so getInstance() is safe to call
+    tokenManager // Initialize the singleton
+    
     // Load token data from localStorage on initialization
     this.loadTokenData()
+    // Log health stats periodically
+    this.startHealthMonitoring()
+  }
+
+  // Clean up any invalid tokens that might be stored
+  private cleanupInvalidTokens(): void {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      // Check auth_tokens format
+      const authTokens = localStorage.getItem('auth_tokens');
+      if (authTokens) {
+        try {
+          const tokenData = JSON.parse(authTokens);
+          if (tokenData.access_token === 'null' || 
+              tokenData.access_token === 'undefined' || 
+              typeof tokenData.access_token !== 'string' || 
+              tokenData.access_token.split('.').length !== 3) {
+            console.warn('🧹 Cleanup: Removing invalid auth_tokens');
+            localStorage.removeItem('auth_tokens');
+          }
+        } catch {
+          console.warn('🧹 Cleanup: Removing corrupted auth_tokens');
+          localStorage.removeItem('auth_tokens');
+        }
+      }
+
+      // Check old format access_token
+      const oldToken = localStorage.getItem('access_token');
+      if (oldToken && (oldToken === 'null' || oldToken === 'undefined' || oldToken.split('.').length !== 3)) {
+        console.warn('🧹 Cleanup: Removing invalid access_token');
+        localStorage.removeItem('access_token');
+      }
+    } catch (error) {
+      console.error('🧹 Cleanup: Error during token cleanup:', error);
+    }
   }
 
   private loadTokenData(): void {
@@ -94,7 +146,6 @@ class AuthService {
       const oldRefreshToken = localStorage.getItem('refresh_token')
       
       if (oldAccessToken) {
-        console.log('🔄 Migrating from old token format')
         // Create new token data with default expiration (assume expired to force refresh)
         const tokenData: TokenData = {
           access_token: oldAccessToken,
@@ -113,41 +164,97 @@ class AuthService {
   }
 
   private saveTokenData(tokenData: TokenData): void {
+    // Validate token data before storing
+    if (!tokenData.access_token || 
+        tokenData.access_token === 'null' || 
+        tokenData.access_token === 'undefined' || 
+        typeof tokenData.access_token !== 'string') {
+      console.error('🚨 CRITICAL: Attempted to store invalid token data:', {
+        access_token: tokenData.access_token,
+        tokenType: typeof tokenData.access_token,
+        tokenLength: tokenData.access_token?.length
+      });
+      return;
+    }
+
+    // Validate JWT format (should have 3 segments)
+    const segments = tokenData.access_token.split('.');
+    if (segments.length !== 3) {
+      console.error('🚨 CRITICAL: Invalid JWT format - expected 3 segments, got:', {
+        segments: segments.length,
+        token: tokenData.access_token.substring(0, 50) + '...'
+      });
+      return;
+    }
+
     this.tokenData = tokenData
     if (typeof window !== 'undefined') {
       localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
+      console.log('✅ Valid token stored successfully:', {
+        hasToken: !!tokenData.access_token,
+        tokenLength: tokenData.access_token.length,
+        segments: segments.length,
+        expiresAt: new Date(tokenData.expires_at).toISOString()
+      });
     }
   }
 
   private clearTokenData(): void {
+    console.log('🚨 AuthService: clearTokenData() called!')
+    console.trace('clearTokenData call stack:')
     this.tokenData = null
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_tokens')
-      localStorage.removeItem('access_token') // Remove old format
-      localStorage.removeItem('refresh_token') // Remove old format
-      localStorage.removeItem('user_data')
-    }
+    
+    // Use TokenManager to clear all tokens consistently
+    tokenManager.clearAllTokens()
+    
+    console.log('🚨 AuthService: All auth data cleared via TokenManager')
   }
 
   private isTokenExpired(): boolean {
-    if (!this.tokenData) return true
-    // Consider token expired if it expires in less than 5 minutes
-    const bufferTime = 5 * 60 * 1000 // 5 minutes in milliseconds
-    return Date.now() >= (this.tokenData.expires_at - bufferTime)
+    if (!this.tokenData) {
+      console.log('🔐 AuthService: isTokenExpired - no token data')
+      return true
+    }
+    // Consider token expired only if it's actually expired (no buffer for debugging)
+    const bufferTime = 0 // No buffer to prevent premature expiration
+    const isExpired = Date.now() >= (this.tokenData.expires_at - bufferTime)
+    const timeUntilExpiry = this.tokenData.expires_at - Date.now()
+    
+    console.log('🔐 AuthService: Token expiration check:', {
+      isExpired,
+      timeUntilExpiry: timeUntilExpiry / 1000 + 's',
+      expiresAt: new Date(this.tokenData.expires_at).toISOString()
+    })
+    
+    return isExpired
   }
 
   private async ensureValidToken(): Promise<boolean> {
+    console.log('🔐 AuthService: ensureValidToken() called')
+    
+    // Grace period: Skip token validation for 10 seconds after login
+    const timeSinceLogin = Date.now() - this.lastLoginTime
+    if (timeSinceLogin < 10000) { // 10 seconds
+      console.log('🔐 AuthService: Within login grace period, skipping token validation')
+      return true
+    }
+    
     if (!this.tokenData) {
-      console.log('🔐 No token data available')
+      console.log('🔐 AuthService: ensureValidToken - no token data')
       return false
     }
 
     if (this.isTokenExpired()) {
-      console.log('🔄 Token expired, attempting refresh...')
+      console.log('🔐 AuthService: Token expired, attempting refresh...')
       const refreshResult = await this.refreshToken()
+      console.log('🔐 AuthService: Refresh result:', refreshResult.success)
+      if (!refreshResult.success) {
+        console.log('🚨 AuthService: Token refresh failed, this will trigger logout!')
+      }
       return refreshResult.success
     }
 
+    console.log('🔐 AuthService: Token is valid')
     return true
   }
   // Register new user
@@ -232,50 +339,59 @@ class AuthService {
       }
     }
   }
-  // Login user
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    console.log('🔐 AuthService: login() called for:', credentials.email)
     try {
-      // First test connectivity
-      const connectTest = await this.testConnection()
-      if (!connectTest.success) {
-        return { 
-          success: false, 
-          error: `Cannot connect to backend: ${connectTest.message}` 
-        }
-      }
-      const loginUrl = `${this.baseURL}${ENDPOINTS.auth.login}`
-      // Add better CORS and error handling
-      const response = await fetch(loginUrl, {
+      console.log('🔐 AuthService: Making fetch request to:', `${this.baseURL}${ENDPOINTS.auth.login}`)
+      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.login}`, {
         method: 'POST',
         headers: REQUEST_HEADERS,
-        mode: 'cors',
-        credentials: 'omit',
         body: JSON.stringify(credentials)
       })
-      let data: any
-      const responseText = await response.text()
-      try {
-        data = JSON.parse(responseText)
-      } catch (parseError) {
-        return { 
-          success: false, 
-          error: `Server returned invalid response. Status: ${response.status}. Response: ${responseText.substring(0, 200)}...` 
+      console.log('🔐 AuthService: Fetch completed, response status:', response.status)
+
+      if (!response.ok) {
+        console.log('🔐 AuthService: Response not OK, processing error')
+        const error = await response.text()
+        return {
+          success: false,
+          error: error || `HTTP ${response.status}: ${response.statusText}`
         }
       }
-      if (response.ok && data.access_token) {
-        // Calculate expiration time (default to 15 minutes if not provided)
-        // Backend might send expires_in in seconds, or we default to 900 seconds (15 min)
-        const expiresIn = data.expires_in || 900 // 15 minutes in seconds
+
+      const data = await response.json()
+      console.log('🔐 AuthService: Response data received:', {
+        hasAccessToken: !!data.access_token,
+        hasUser: !!data.user,
+        userEmail: data.user?.email,
+        expiresIn: data.expires_in
+      })
+      
+      if (data.access_token && data.user) {
+        console.log('🔐 AuthService: Valid login response, processing...')
+        
+        // Validate access token before processing
+        if (data.access_token === 'null' || 
+            data.access_token === 'undefined' || 
+            typeof data.access_token !== 'string' || 
+            data.access_token.split('.').length !== 3) {
+          console.error('🚨 CRITICAL: Backend sent invalid access_token:', {
+            token: data.access_token,
+            tokenType: typeof data.access_token,
+            tokenLength: data.access_token?.length,
+            segments: data.access_token?.split('.').length
+          });
+          return {
+            success: false,
+            error: 'Invalid authentication token received from server'
+          };
+        }
+        
+        // Calculate expiration (default to 24 hours if not provided - backend standard)
+        const expiresIn = data.expires_in || 86400 // 24 hours in seconds
         const expiresAt = Date.now() + (expiresIn * 1000)
         
-        console.log('🔐 Login successful, storing tokens:', {
-          has_access_token: !!data.access_token,
-          has_refresh_token: !!data.refresh_token,
-          expires_in: expiresIn,
-          expires_at: new Date(expiresAt).toISOString()
-        })
-        
-        // Save token data with expiration
+        // Create token data with expiration
         const tokenData: TokenData = {
           access_token: data.access_token,
           refresh_token: data.refresh_token || '',
@@ -283,98 +399,67 @@ class AuthService {
           expires_at: expiresAt
         }
         
+        // Store both in localStorage and in-memory using TokenManager
+        tokenManager.setTokenData(tokenData)
         this.saveTokenData(tokenData)
-        localStorage.setItem('user_data', JSON.stringify(data.user))
         
-        // Also store old format for backwards compatibility during migration
-        localStorage.setItem('access_token', data.access_token)
-        if (data.refresh_token) {
-          localStorage.setItem('refresh_token', data.refresh_token)
+        // Validate user data before storing
+        if (data.user && typeof data.user === 'object') {
+          localStorage.setItem('user_data', JSON.stringify(data.user))
+        } else {
+          console.error('🚨 Invalid user data received:', data.user);
         }
-        // Convert to expected format
+        
+        // Set login grace period to prevent immediate token validation
+        this.lastLoginTime = Date.now()
+        
+        console.log('✅ AuthService: Login successful - data stored:', {
+          hasTokenData: !!this.tokenData,
+          hasUserData: !!localStorage.getItem('user_data'),
+          userEmail: data.user.email,
+          userRole: data.user.role,
+          gracePeriodUntil: new Date(this.lastLoginTime + 10000).toISOString()
+        })
+        
         return {
           success: true,
-          data: {
-            user: data.user,
-            access_token: data.access_token,
-            refresh_token: data.refresh_token,
-            token_type: data.token_type
-          }
+          data: data
         }
-      } else {
-        // Handle specific error cases
-        let errorMessage = 'Login failed'
-        if (response.status === 500) {
-          // Check for the specific datetime parsing error
-          if (data.detail && data.detail.includes("'str' object cannot be interpreted as an integer")) {
-            errorMessage = 'Backend authentication service has a bug (datetime parsing error). Please contact support - this is a known issue that needs to be fixed on the server.'
-          } else if (data.detail && data.detail.includes("Authentication failed due to server error")) {
-            errorMessage = 'Authentication service has a server error. This is a backend issue that needs to be fixed.'
-          } else {
-            errorMessage = 'Server error - authentication service is currently down. Please try again in a few minutes.'
-          }
-        } else if (response.status === 401 || response.status === 403) {
-          // NEW: Handle specific authentication error types
-          if (data.detail && typeof data.detail === 'object') {
-            if (data.detail.error === 'email_not_confirmed') {
-              errorMessage = data.detail.message || 'Please check your email and click the confirmation link before logging in.'
-              // Store email for potential resend functionality
-              if (data.detail.email) {
-                localStorage.setItem('pending_confirmation_email', data.detail.email)
-              }
-            } else if (data.detail.error === 'invalid_credentials') {
-              errorMessage = data.detail.message || 'Invalid email or password'
-            } else {
-              errorMessage = data.detail.message || 'Authentication failed'
-            }
-          } else {
-            errorMessage = data.detail || data.error || 'Invalid email or password'
-          }
-        } else if (response.status === 422) {
-          errorMessage = 'Invalid request format'
-        } else if (response.status >= 500) {
-          errorMessage = 'Backend server error - please try again later'
-        } else {
-          errorMessage = data.error || data.detail || `HTTP ${response.status}: ${response.statusText}`
-        }
-        return { 
-          success: false, 
-          error: errorMessage
-        }
+      }
+
+      return {
+        success: false,
+        error: 'Invalid response format'
       }
     } catch (error) {
-      let errorMessage = 'Network error during login'
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        errorMessage = 'Cannot connect to server. Please check your internet connection and try again.'
-      } else if (error instanceof Error) {
-        if (error.message.includes('CORS')) {
-          errorMessage = 'CORS error: Cross-origin request blocked. Please contact support.'
-        } else if (error.message.includes('NetworkError')) {
-          errorMessage = 'Network error: Cannot reach the backend server. Please check your connection.'
-        } else if (error.message.includes('ERR_CONNECTION_REFUSED')) {
-          errorMessage = 'Connection refused: Backend server is not responding. Please try again later.'
-        } else if (error.name === 'AbortError') {
-          errorMessage = 'Request timed out. Please try again.'
-        } else {
-          errorMessage = `Network error: ${error.message}`
-        }
-      }
-      return { 
-        success: false, 
-        error: errorMessage
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Login failed'
       }
     }
   }
+
+  // Register user
   // Logout user
   logout(): void {
-    console.log('🚪 Logging out user')
+    console.log('🚨 AuthService: logout() called!')
+    console.trace('logout call stack:')
     this.clearTokenData()
-    // Redirect to login page
+    
+    // Only redirect if we're not already on a login/auth page to prevent loops
     if (typeof window !== 'undefined') {
-      window.location.href = '/auth/login'
+      const currentPath = window.location.pathname
+      const isAlreadyOnAuthPage = currentPath.startsWith('/auth/') || currentPath === '/login'
+      
+      if (!isAlreadyOnAuthPage) {
+        console.log('🚪 AuthService: Redirecting to login page')
+        window.location.href = '/auth/login'
+      } else {
+        console.log('🚪 AuthService: Already on auth page, skipping redirect')
+      }
     }
   }
-  // Get current user profile
+  // Get current user profile with enhanced debugging
   async getCurrentUser(): Promise<{ success: boolean; data?: User; error?: string }> {
     // Ensure we have a valid token before making the request
     const hasValidToken = await this.ensureValidToken()
@@ -383,6 +468,7 @@ class AuthService {
     }
 
     try {
+      console.log('👤 Getting user profile from:', `${this.baseURL}${ENDPOINTS.auth.me}`)
       const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.auth.me}`, {
         method: 'GET',
         headers: {
@@ -405,7 +491,32 @@ class AuthService {
       if (response.ok && (data.success || data.email)) {
         // Handle both wrapped and direct response formats
         const userData = data.success ? data.data : data
+        
+        // 🚨 CRITICAL DEBUGGING: User Role Analysis
+        console.log('🚨 USER ROLE ANALYSIS:', {
+          email: userData.email,
+          currentRole: userData.role,
+          expectedForPremium: 'Should be: admin, premium, brand_premium, etc.',
+          issue: userData.role === 'free' ? '❌ ROLE MISMATCH: Premium user has FREE role!' : '✅ Role looks correct',
+          fullUserData: userData
+        })
+        
+        // Check for role/subscription mismatch
+        if (userData.role === 'free' && userData.email?.includes('analyticsfollowing')) {
+          console.error('🚨🚨🚨 CRITICAL ROLE ISSUE DETECTED:', {
+            problem: 'Premium user has FREE role in database',
+            user: userData.email,
+            currentRole: userData.role,
+            solution: 'Backend needs to update user role to match premium team subscription',
+            impact: 'User cannot access premium endpoints like /api/v1/creator/system/stats'
+          })
+        }
+        
         localStorage.setItem('user_data', JSON.stringify(userData))
+        
+        // Fetch team context for additional debugging
+        this.debugTeamContext()
+        
         return { success: true, data: userData }
       } else {
         return { success: false, error: data.error || data.detail || 'Failed to fetch user profile' }
@@ -424,7 +535,7 @@ class AuthService {
   }
   // Get user dashboard statistics
   async getDashboardStats(): Promise<{ success: boolean; data?: DashboardStats; error?: string }> {
-    // Ensure we have a valid token before making the request
+    // Ensure we have a valid token before making the request (with grace period protection)
     const hasValidToken = await this.ensureValidToken()
     if (!hasValidToken) {
       return { success: false, error: 'No authentication token' }
@@ -489,34 +600,65 @@ class AuthService {
       }
     }
   }
-  // Check if user is authenticated
+  // Check if user is authenticated - now uses TokenManager
   isAuthenticated(): boolean {
-    // Check new token format first
-    if (this.tokenData && !this.isTokenExpired()) {
-      return true
-    }
-    
-    // Fallback to old format for compatibility during migration
-    if (typeof window !== 'undefined') {
-      const oldToken = localStorage.getItem('access_token')
-      return !!oldToken
-    }
-    
-    return false
+    return tokenManager.isAuthenticated()
   }
-  // Get stored token
+  // Start health monitoring for token system
+  private startHealthMonitoring(): void {
+    // Log health stats every 5 minutes
+    setInterval(() => {
+      if (this.tokenHealthStats.validationSuccesses + this.tokenHealthStats.validationFailures > 0) {
+        const successRate = (this.tokenHealthStats.validationSuccesses / 
+          (this.tokenHealthStats.validationSuccesses + this.tokenHealthStats.validationFailures)) * 100
+        
+        console.log('📊 Token Health Report:', {
+          ...this.tokenHealthStats,
+          successRate: `${successRate.toFixed(1)}%`,
+          timeSinceLastCheck: `${(Date.now() - this.tokenHealthStats.lastHealthCheck) / 1000}s`
+        })
+        
+        this.tokenHealthStats.lastHealthCheck = Date.now()
+      }
+    }, 5 * 60 * 1000) // 5 minutes
+  }
+
+  // Validate JWT token format (must have 3 segments: header.payload.signature)
+  private validateTokenFormat(token: string | null): boolean {
+    if (!token) {
+      console.log('🔒 Token validation: No token provided')
+      this.tokenHealthStats.validationFailures++
+      return false
+    }
+    
+    const segments = token.split('.')
+    const isValid = segments.length === 3
+    
+    if (!isValid) {
+      this.tokenHealthStats.malformedTokens++
+      this.tokenHealthStats.validationFailures++
+      
+      console.error('🚨 MALFORMED JWT TOKEN DETECTED:', {
+        token: token.substring(0, 50) + '...',
+        segments: segments.length,
+        expected: 3,
+        timestamp: new Date().toISOString(),
+        healthStats: this.tokenHealthStats
+      })
+      
+      // Clear malformed token immediately
+      this.clearTokenData()
+    } else {
+      this.tokenHealthStats.validationSuccesses++
+      console.log('🔒 Token validation: Valid JWT format (3 segments)')
+    }
+    
+    return isValid
+  }
+
+  // Get stored token with validation - now uses TokenManager
   getToken(): string | null {
-    // Try new token format first
-    if (this.tokenData?.access_token) {
-      return this.tokenData.access_token
-    }
-    
-    // Fallback to old format for compatibility
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('access_token')
-    }
-    
-    return null
+    return tokenManager.getTokenSync()
   }
   // Get stored user data
   getStoredUser(): User | null {
@@ -531,6 +673,67 @@ class AuthService {
     }
     return null
   }
+  // Test the problematic system stats endpoint with detailed diagnostics
+  async testSystemStatsEndpoint(): Promise<void> {
+    try {
+      console.log('🔍 Testing system stats endpoint that was failing...')
+      const response = await fetchWithAuth(`${this.baseURL}/api/v1/creator/system/stats`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ System stats endpoint SUCCESS:', data)
+      } else {
+        const errorText = await response.text()
+        console.error('❌ System stats endpoint FAILED:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorResponse: errorText,
+          userRole: this.getStoredUser()?.role,
+          userEmail: this.getStoredUser()?.email,
+          possibleCause: response.status === 403 
+            ? 'User role insufficient for this endpoint. Backend expects admin/premium role.' 
+            : 'Other authentication issue'
+        })
+      }
+    } catch (error) {
+      console.error('❌ System stats test error:', error)
+    }
+  }
+
+  // Get and analyze team context for debugging role issues
+  async debugTeamContext(): Promise<void> {
+    try {
+      console.log('🏢 Fetching team context for role analysis...')
+      const response = await fetchWithAuth(`${this.baseURL}/api/v1/teams/overview`)
+      
+      if (response.ok) {
+        const teamData = await response.json()
+        console.log('🏢 TEAM CONTEXT ANALYSIS:', {
+          teamInfo: teamData,
+          hasTeam: !!teamData.team,
+          teamName: teamData.team?.name,
+          teamSubscription: teamData.team?.subscription_tier,
+          members: teamData.team?.members?.length || 0,
+          analysis: {
+            userShouldHaveRole: teamData.team?.subscription_tier === 'premium' ? 'premium/admin' : 'free',
+            currentUserEmail: this.getStoredUser()?.email,
+            roleIssue: teamData.team?.subscription_tier === 'premium' && this.getStoredUser()?.role === 'free' 
+              ? '🚨 CONFIRMED: Premium team but user has free role' 
+              : '✅ No obvious role mismatch'
+          }
+        })
+        
+        // Also test the problematic endpoint
+        await this.testSystemStatsEndpoint()
+        
+      } else {
+        console.warn('🏢 Could not fetch team context:', response.status)
+      }
+    } catch (error) {
+      console.warn('🏢 Error fetching team context:', error)
+    }
+  }
+
   // Get authorization headers for API calls
   getAuthHeaders(): Record<string, string> {
     const headers: Record<string, string> = { ...REQUEST_HEADERS }
@@ -602,38 +805,80 @@ class AuthService {
       }
     }
   }
-  // Refresh authentication token
+  // Refresh authentication token with race condition prevention
   async refreshToken(): Promise<{ success: boolean; access_token?: string; error?: string }> {
+    // Prevent multiple simultaneous refresh attempts
+    if (this.refreshPromise) {
+      console.log('🔄 Token refresh already in progress, waiting for existing request...')
+      return await this.refreshPromise
+    }
+    
     if (!this.tokenData?.refresh_token) {
       console.log('🔐 No refresh token available')
       return { success: false, error: 'No refresh token available' }
     }
 
+    // Start refresh operation
+    this.refreshPromise = this.performTokenRefresh()
+    
     try {
-      console.log('🔄 Refreshing token...')
+      const result = await this.refreshPromise
+      return result
+    } finally {
+      // Clear promise after completion
+      this.refreshPromise = null
+    }
+  }
+  
+  // Internal method to perform actual token refresh
+  private async performTokenRefresh(): Promise<{ success: boolean; access_token?: string; error?: string }> {
+    this.tokenHealthStats.refreshAttempts++
+    
+    try {
+      console.log('🔄 Refreshing token... (Attempt #' + this.tokenHealthStats.refreshAttempts + ')')
       const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.refresh}`, {
         method: 'POST',
         headers: REQUEST_HEADERS,
-        body: JSON.stringify({ refresh_token: this.tokenData.refresh_token })
+        body: JSON.stringify({ refresh_token: this.tokenData!.refresh_token })
       })
 
       const data = await response.json()
       
       if (response.ok && data.access_token) {
-        console.log('✅ Token refreshed successfully')
+        // Validate the refreshed token
+        if (data.access_token === 'null' || 
+            data.access_token === 'undefined' || 
+            typeof data.access_token !== 'string' || 
+            data.access_token.split('.').length !== 3) {
+          console.error('🚨 CRITICAL: Backend sent invalid refreshed token:', {
+            token: data.access_token,
+            tokenType: typeof data.access_token,
+            tokenLength: data.access_token?.length,
+            segments: data.access_token?.split('.').length
+          });
+          return {
+            success: false,
+            error: 'Invalid authentication token received during refresh'
+          };
+        }
         
-        // Calculate new expiration time
-        const expiresIn = data.expires_in || 900 // 15 minutes in seconds
+        this.tokenHealthStats.refreshSuccesses++
+        console.log('✅ Token refreshed successfully (Success rate: ' + 
+          (this.tokenHealthStats.refreshSuccesses / this.tokenHealthStats.refreshAttempts * 100).toFixed(1) + '%)')
+        
+        // Calculate new expiration time (default to 24 hours - backend standard)
+        const expiresIn = data.expires_in || 86400 // 24 hours in seconds
         const expiresAt = Date.now() + (expiresIn * 1000)
         
         // Update token data
         const newTokenData: TokenData = {
           access_token: data.access_token,
-          refresh_token: data.refresh_token || this.tokenData.refresh_token,
+          refresh_token: data.refresh_token || this.tokenData!.refresh_token,
           token_type: data.token_type || 'bearer',
           expires_at: expiresAt
         }
         
+        tokenManager.setTokenData(newTokenData)
         this.saveTokenData(newTokenData)
         
         return {
@@ -642,8 +887,8 @@ class AuthService {
         }
       } else {
         console.log('❌ Token refresh failed:', data.error || data.detail)
-        // Refresh token is invalid, logout user
-        this.logout()
+        // Don't logout immediately - let the user continue with current session
+        console.log('⚠️ Refresh token failed but not logging out to prevent login loops')
         return {
           success: false,
           error: data.error || data.detail || 'Token refresh failed'

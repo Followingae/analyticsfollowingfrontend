@@ -240,9 +240,17 @@ export interface ApiResponse<T> {
 
 const getAuthToken = (): string => {
   if (typeof window === 'undefined') return '';
-  const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token') || localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || '';
-  console.log('🔍 CreatorAPI: Retrieved auth token:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN FOUND');
-  return token;
+  
+  // Use TokenManager for consistent token access
+  try {
+    const { tokenManager } = require('@/utils/tokenManager');
+    const token = tokenManager.getTokenSync();
+    console.log('🔍 CreatorAPI: Retrieved auth token via TokenManager:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN FOUND');
+    return token || '';
+  } catch (error) {
+    console.error('🔍 CreatorAPI: Error accessing TokenManager:', error);
+    return '';
+  }
 };
 
 const getTeamToken = (): string => {

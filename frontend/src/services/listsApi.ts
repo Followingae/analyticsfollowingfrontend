@@ -196,7 +196,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(url, {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       })
 
       const data = await response.json()
@@ -223,7 +226,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.create}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(listData)
       })
 
@@ -250,7 +256,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.update(listId)}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(updates)
       })
 
@@ -277,7 +286,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.delete(listId)}`, {
         method: 'DELETE',
-        headers: getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       })
       
       if (!response.ok) {
@@ -295,11 +307,14 @@ export class ListsApiService {
   async addProfileToList(listId: string, profileData: AddProfileToListRequest): Promise<ApiResponse<ListItem>> {
     try {
       const url = `${API_CONFIG.BASE_URL}${ENDPOINTS.lists.addItem(listId)}`
-      console.log('Add profile request:', { url, profileData, headers: getAuthHeaders() })
+      console.log('Add profile request:', { url, profileData })
       
       const response = await fetchWithAuth(url, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(profileData)
       })
 
@@ -322,7 +337,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.removeItem(listId, itemId)}`, {
         method: 'DELETE',
-        headers: getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       })
       
       if (!response.ok) {
@@ -340,7 +358,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.bulkAdd(listId)}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(profilesData)
       })
 
@@ -361,7 +382,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.reorder(listId)}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(reorderData)
       })
       
@@ -380,7 +404,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.duplicate(listId)}`, {
         method: 'POST',
-        headers: getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       })
 
       const data = await response.json()
@@ -399,7 +426,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.profiles.availableForLists}?page=${page}&per_page=${perPage}`, {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       })
 
       const data = await response.json()
@@ -426,7 +456,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.analytics(listId)}?period=${period}`, {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       })
 
       const data = await response.json()
@@ -459,7 +492,10 @@ export class ListsApiService {
       
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/lists/templates?${queryParams.toString()}`, {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       })
 
       const data = await response.json()
@@ -483,7 +519,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/create-template`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(templateData)
       })
 
@@ -506,7 +545,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/from-template/${templateId}`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(listData)
       })
 
@@ -530,7 +572,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/share`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ collaborators, message })
       })
 
@@ -552,7 +597,10 @@ export class ListsApiService {
     try {
       const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/collaborations/${collaborationId}/respond`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(response)
       })
 
@@ -571,7 +619,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/collaborations/${collaborationId}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ permission_level })
       })
 
@@ -593,7 +644,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/collaborators`, {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       })
 
       const data = await response.json()
@@ -620,7 +674,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/export`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(exportOptions)
       })
 
@@ -645,7 +702,10 @@ export class ListsApiService {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/export-jobs/${jobId}`, {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       })
 
       const data = await response.json()

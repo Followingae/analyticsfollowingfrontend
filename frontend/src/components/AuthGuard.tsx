@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { Icons } from '@/components/ui/icons'
 import { UnauthorizedAccess } from '@/components/UnauthorizedAccess'
 import { 
@@ -31,48 +31,78 @@ export function AuthGuard({
   requireSuperAdmin = false,
   requiredRole
 }: AuthGuardProps) {
-  const { isAuthenticated, user, isLoading } = useAuth()
+  const { isAuthenticated, user, isLoading } = useEnhancedAuth()
   const router = useRouter()
   const pathname = usePathname()
+  
+  // CRITICAL FIX: Track hydration status to prevent premature redirects
+  const [isHydrated, setIsHydrated] = useState(false)
+  
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   // Public routes that don't require authentication
   const publicRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password']
   const isPublicRoute = publicRoutes.includes(pathname)
 
-  // Normalize user role
-  const userRole = user?.role ? normalizeRole(user.role) : null
+  // Use enhanced user role directly (no normalization needed)
+  const userRole = user?.role || null
 
-  console.log('🔒 AuthGuard Check:', {
-    pathname,
-    userRole: user?.role,
-    normalizedRole: userRole,
-    requireAuth,
-    requirePremium,
-    requireAdmin,
-    requireSuperAdmin,
-    requiredRole,
-    isAuthenticated,
-    isLoading
-  })
 
   useEffect(() => {
-    if (isLoading) return
+    console.log('🛡️ AuthGuard: useEffect triggered', {
+      isLoading,
+      isAuthenticated,
+      userRole,
+      pathname,
+      requireAuth,
+      isPublicRoute,
+      isHydrated
+    })
+    
+    // CRITICAL FIX: Wait for hydration to complete before making auth decisions
+    if (!isHydrated) {
+      console.log('🛡️ AuthGuard: ⏳ Not yet hydrated, waiting...')
+      return
+    }
+    
+    if (isLoading) {
+      console.log('🛡️ AuthGuard: Still loading, returning early')
+      return
+    }
+
+    // Only handle redirects if no auth requirements are specified (prevents competing redirects)
+    const hasAuthRequirements = requireAuth || requirePremium || requireAdmin || requireSuperAdmin || requiredRole
 
     // If user is authenticated and trying to access auth pages, redirect to appropriate dashboard
-    if (isAuthenticated && isPublicRoute && userRole) {
-      const redirectPath = getRedirectPath(userRole)
-      console.log('🔒 AuthGuard: Redirecting authenticated user to:', redirectPath)
+    if (isAuthenticated && isPublicRoute && userRole && !hasAuthRequirements) {
+      let redirectPath = '/dashboard'
+      if (userRole === 'super_admin' || userRole === 'admin') {
+        redirectPath = '/admin/dashboard'
+      }
+      console.log('🛡️ AuthGuard: Redirecting authenticated user from auth page to:', redirectPath)
       router.replace(redirectPath)
       return
     }
 
     // If authentication is required but user is not authenticated
     if (requireAuth && !isAuthenticated) {
-      console.log('🔒 AuthGuard: Redirecting unauthenticated user to login')
+      console.error('🛡️ AuthGuard: ❌ AUTH REQUIRED BUT USER NOT AUTHENTICATED - REDIRECTING TO LOGIN:', {
+        pathname,
+        requireAuth,
+        isAuthenticated,
+        userRole,
+        hasUser: !!user,
+        userEmail: user?.email,
+        isLoading,
+        timestamp: new Date().toISOString(),
+        stack: new Error().stack?.split('\n').slice(1, 4).join('\n')
+      })
       router.replace('/auth/login')
       return
     }
-
+    
     // If user is authenticated, check role-based permissions
     if (isAuthenticated && userRole) {
       let hasPermission = true
@@ -80,33 +110,29 @@ export function AuthGuard({
 
       // Check superadmin requirement
       if (requireSuperAdmin) {
-        hasPermission = canAccessSuperAdmin(userRole)
+        hasPermission = userRole === 'super_admin'
         if (!hasPermission) {
-          console.log('🔒 AuthGuard: SuperAdmin access denied for user role:', userRole)
           redirectPath = '/unauthorized'
         }
       }
       // Check admin requirement (if not already checking superadmin)
       else if (requireAdmin) {
-        hasPermission = canAccessAdmin(userRole)
+        hasPermission = userRole === 'super_admin' || userRole === 'admin'
         if (!hasPermission) {
-          console.log('🔒 AuthGuard: Admin access denied for user role:', userRole)
           redirectPath = '/unauthorized'
         }
       }
       // Check premium requirement
       else if (requirePremium) {
-        hasPermission = isPremiumUser(userRole)
+        hasPermission = userRole === 'brand_premium' || userRole === 'brand_enterprise' || userRole === 'super_admin' || userRole === 'admin'
         if (!hasPermission) {
-          console.log('🔒 AuthGuard: Premium access denied for user role:', userRole)
           redirectPath = '/pricing'
         }
       }
       // Check specific role requirement
       else if (requiredRole) {
-        hasPermission = isAuthorized(userRole, requiredRole)
+        hasPermission = userRole === requiredRole
         if (!hasPermission) {
-          console.log('🔒 AuthGuard: Role access denied. Required:', requiredRole, 'User has:', userRole)
           redirectPath = '/unauthorized'
         }
       }
@@ -122,15 +148,15 @@ export function AuthGuard({
         }
       }
     }
-  }, [isAuthenticated, userRole, isLoading, router, pathname, requireAuth, requirePremium, requireAdmin, requireSuperAdmin, requiredRole, isPublicRoute])
+  }, [isAuthenticated, userRole, isLoading, router, pathname, requireAuth, requirePremium, requireAdmin, requireSuperAdmin, requiredRole, isPublicRoute, isHydrated])
 
-  // Show loading spinner while checking auth
-  if (isLoading) {
+  // Show loading spinner while hydrating or checking auth
+  if (!isHydrated || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Icons.spinner className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{!isHydrated ? 'Initializing...' : 'Loading...'}</p>
         </div>
       </div>
     )
@@ -144,22 +170,22 @@ export function AuthGuard({
   // If user is authenticated, check role-based permissions
   if (isAuthenticated && userRole) {
     // Check superadmin requirement
-    if (requireSuperAdmin && !canAccessSuperAdmin(userRole)) {
+    if (requireSuperAdmin && userRole !== 'super_admin') {
       return <UnauthorizedAccess />
     }
     
     // Check admin requirement
-    if (requireAdmin && !canAccessAdmin(userRole)) {
+    if (requireAdmin && !(userRole === 'super_admin' || userRole === 'admin')) {
       return <UnauthorizedAccess />
     }
     
     // Check premium requirement
-    if (requirePremium && !isPremiumUser(userRole)) {
+    if (requirePremium && !(userRole === 'brand_premium' || userRole === 'brand_enterprise' || userRole === 'super_admin' || userRole === 'admin')) {
       return null // Will redirect to pricing in useEffect
     }
     
     // Check specific role requirement
-    if (requiredRole && !isAuthorized(userRole, requiredRole)) {
+    if (requiredRole && userRole !== requiredRole) {
       return <UnauthorizedAccess />
     }
   }

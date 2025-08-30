@@ -2,14 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { toast } from 'sonner'
 import { SignInPage } from '@/components/sign-in'
 import Image from 'next/image'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuth()
+  const { login } = useEnhancedAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -28,11 +28,11 @@ export default function LoginPage() {
     
     try {
       const success = await login(email, password)
+      
       if (success) {
         router.push('/dashboard')
       }
     } catch (error) {
-      console.error('Login error:', error)
     } finally {
       setIsLoading(false)
     }

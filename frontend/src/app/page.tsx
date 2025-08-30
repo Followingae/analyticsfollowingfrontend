@@ -1,7 +1,7 @@
 "use client"
 
-import { RoleBasedRedirect } from "@/components/UnifiedApp"
+import { UnifiedApp } from "@/components/UnifiedApp"
 
 export default function Page() {
-  return <RoleBasedRedirect />
+  return <UnifiedApp />
 }

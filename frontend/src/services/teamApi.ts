@@ -4,7 +4,7 @@
  * Updated according to FRONTEND BACKEND INTEGRATION UPDATE (August 23, 2025)
  */
 
-import { API_CONFIG, getAuthHeaders } from '@/config/api'
+import { API_CONFIG, ENDPOINTS } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { creatorApiService } from './creatorApi'
 
@@ -181,7 +181,8 @@ class TeamApiService {
       const response = await fetchWithAuth(`${this.baseURL}${url}`, {
         ...options,
         headers: {
-          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...options.headers,
         },
         mode: 'cors',
@@ -229,7 +230,7 @@ class TeamApiService {
   // Team Member Management
   async getTeamMembers(): Promise<ApiResponse<TeamMember[]>> {
     try {
-      const response = await this.makeRequest<TeamMember[]>('/api/v1/teams/members')
+      const response = await this.makeRequest<TeamMember[]>(ENDPOINTS.teams.members)
       return {
         success: true,
         data: response
@@ -248,7 +249,7 @@ class TeamApiService {
     personalMessage?: string
   ): Promise<ApiResponse<TeamInvitation>> {
     try {
-      const response = await this.makeRequest<TeamInvitation>('/api/v1/teams/invite', {
+      const response = await this.makeRequest<TeamInvitation>(ENDPOINTS.teams.invite, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -279,7 +280,7 @@ class TeamApiService {
 
   async removeTeamMember(userId: string): Promise<ApiResponse<any>> {
     try {
-      const response = await this.makeRequest<any>(`/api/v1/teams/members/${userId}`, {
+      const response = await this.makeRequest<any>(ENDPOINTS.teams.removeMember(userId), {
         method: 'DELETE'
       })
       return {
@@ -297,7 +298,7 @@ class TeamApiService {
   async getTeamInvitations(status?: 'pending' | 'accepted' | 'expired'): Promise<ApiResponse<TeamInvitation[]>> {
     try {
       const queryParam = status ? `?status=${status}` : ''
-      const response = await this.makeRequest<TeamInvitation[]>(`/api/v1/teams/invitations${queryParam}`)
+      const response = await this.makeRequest<TeamInvitation[]>(`${ENDPOINTS.teams.invitations}${queryParam}`)
       return {
         success: true,
         data: response
@@ -312,7 +313,7 @@ class TeamApiService {
 
   async cancelTeamInvitation(invitationId: string): Promise<ApiResponse<any>> {
     try {
-      const response = await this.makeRequest<any>(`/api/v1/teams/invitations/${invitationId}`, {
+      const response = await this.makeRequest<any>(ENDPOINTS.teams.cancelInvitation(invitationId), {
         method: 'DELETE'
       })
       return {
@@ -330,7 +331,7 @@ class TeamApiService {
   // Team Overview & Usage
   async getTeamOverview(): Promise<ApiResponse<TeamOverview>> {
     try {
-      const response = await this.makeRequest<TeamOverview>('/api/v1/teams/overview')
+      const response = await this.makeRequest<TeamOverview>(ENDPOINTS.teams.overview)
       return {
         success: true,
         data: response

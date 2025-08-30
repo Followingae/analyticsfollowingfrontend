@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAuth } from '@/contexts/AuthContext'
+import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,7 +19,7 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [showConnectivityTest, setShowConnectivityTest] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const { login } = useAuth()
+  const { login } = useEnhancedAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,9 +35,12 @@ export default function LoginForm() {
     
     try {
       const success = await login(email, password)
+      console.log('🔐 LoginForm: Login attempt result:', success)
       if (success) {
+        console.log('🔐 LoginForm: Login successful, redirecting to dashboard...')
         router.push('/dashboard')
       } else {
+        console.log('🔐 LoginForm: Login failed')
         setErrorMessage('Login failed. Please check your credentials and try again.')
       }
     } catch (error) {

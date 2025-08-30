@@ -24,7 +24,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { useAuth } from "@/contexts/AuthContext"
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 
 export function NavUser({
   user,
@@ -42,7 +42,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { logout } = useAuth()
+  const { logout } = useEnhancedAuth()
 
   return (
     <SidebarMenu>

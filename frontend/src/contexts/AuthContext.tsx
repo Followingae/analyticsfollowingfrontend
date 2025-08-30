@@ -1,8 +1,28 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { authService, User, DashboardStats } from '@/services/authService'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react'
+// import { authService, User, DashboardStats } from '@/services/authService'
 import { toast } from 'sonner'
+
+// TEMPORARY: Import authService with error handling
+let authService: any = null
+let User: any = null
+let DashboardStats: any = null
+let tokenManager: any = null
+
+try {
+  const authModule = require('@/services/authService')
+  authService = authModule.authService
+  User = authModule.User
+  DashboardStats = authModule.DashboardStats
+  
+  const tokenModule = require('@/utils/tokenManager')
+  tokenManager = tokenModule.tokenManager
+  
+  console.log('🔐 AuthContext: authService and tokenManager imported successfully')
+} catch (error) {
+  console.error('🚨 AuthContext: Failed to import authService or tokenManager:', error)
+}
 
 interface AuthContextType {
   user: User | null
@@ -27,118 +47,365 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  console.log('🔐 AuthProvider: Component rendering/mounting')
+  
+  // HYDRATION FIX: Initialize with null to match server-side render, then hydrate from localStorage
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isHydrated, setIsHydrated] = useState(false)
+  
+  // Debug wrapper for setUser to track all state changes
+  const debugSetUser = (newUser: User | null, reason: string = 'unknown') => {
+    console.log('🔐 AuthContext: USER STATE CHANGE:', {
+      from: user?.email || 'null',
+      to: newUser?.email || 'null',
+      reason,
+      timestamp: new Date().toISOString(),
+      stack: new Error().stack?.split('\n').slice(1, 4).join('\n')
+    })
+    setUser(newUser)
+  }
+  
+  const [isLoading, setIsLoading] = useState(false) // HOTFIX: Start with false to prevent infinite loading
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
 
-  // Initialize auth state
+  // Hydration effect - restore user state and sync with TokenManager
   useEffect(() => {
-    initializeAuth()
+    console.log('🔐 AuthProvider: Client-side hydration starting')
+    
+    try {
+      const storedUser = localStorage.getItem('user_data')
+      const storedTokens = localStorage.getItem('auth_tokens')
+      
+      console.log('🔐 AuthProvider: DETAILED Hydration check:', {
+        storedUserRaw: storedUser,
+        storedTokensRaw: storedTokens,
+        hasStoredUser: !!storedUser && storedUser !== 'null',
+        hasStoredTokens: !!storedTokens && storedTokens !== 'null',
+        authServiceReady: !!authService,
+        tokenManagerReady: !!tokenManager,
+        currentUserState: !!user,
+        userEmail: user?.email,
+        localStorageKeys: Object.keys(localStorage).filter(key => key.includes('auth') || key.includes('user'))
+      })
+      
+      if (storedUser && storedTokens && storedUser !== 'null' && storedTokens !== 'null') {
+        try {
+          const userData = JSON.parse(storedUser)
+          const tokenData = JSON.parse(storedTokens)
+          
+          console.log('🔐 AuthProvider: Parsed data validation:', {
+            userDataValid: !!(userData?.email),
+            tokenDataValid: !!(tokenData?.access_token && tokenData.access_token !== 'null'),
+            userEmail: userData?.email,
+            tokenPreview: tokenData?.access_token?.substring(0, 20) + '...',
+            tokenExpiry: tokenData?.expires_at ? new Date(tokenData.expires_at).toISOString() : 'no expiry'
+          })
+          
+          // Validate that we have valid data
+          if (userData?.email && tokenData?.access_token && tokenData.access_token !== 'null') {
+            console.log('🔐 AuthProvider: RESTORING USER after hydration:', userData.email)
+            
+            // CRITICAL FIX: Sync TokenManager with stored data during hydration
+            if (tokenManager?.setTokenData) {
+              console.log('🔐 AuthProvider: Syncing TokenManager during hydration')
+              tokenManager.setTokenData(tokenData)
+              
+              // Verify sync worked
+              const tokenManagerCheck = tokenManager.isAuthenticated?.()
+              console.log('🔐 AuthProvider: TokenManager sync result:', tokenManagerCheck)
+            }
+            
+            // Set user state
+            debugSetUser(userData, 'hydration-restore')
+            
+            console.log('🔐 AuthProvider: ✅ HYDRATION COMPLETE - USER RESTORED:', {
+              email: userData.email,
+              userStateSet: true,
+              timestamp: new Date().toISOString()
+            })
+          } else {
+            console.error('🔐 AuthProvider: ❌ INVALID STORED DATA during hydration:', {
+              hasUserEmail: !!userData?.email,
+              hasValidToken: !!(tokenData?.access_token && tokenData.access_token !== 'null'),
+              userData: userData,
+              tokenData: tokenData
+            })
+          }
+        } catch (parseError) {
+          console.error('🔐 AuthProvider: ❌ JSON PARSE ERROR during hydration:', parseError)
+        }
+      } else {
+        console.warn('🔐 AuthProvider: ❌ NO STORED AUTH DATA found during hydration:', {
+          storedUser: storedUser,
+          storedTokens: storedTokens,
+          hasUser: !!storedUser,
+          hasTokens: !!storedTokens
+        })
+      }
+    } catch (error) {
+      console.error('🔐 AuthProvider: ❌ HYDRATION ERROR:', error)
+    }
+    
+    console.log('🔐 AuthProvider: Setting isHydrated = true')
+    setIsHydrated(true)
   }, [])
 
-  const initializeAuth = async () => {
-    // Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.log('🔐 AuthContext: Auth initialization timeout - clearing loading state')
+  // Emergency timeout to prevent infinite loading
+  useEffect(() => {
+    if (!isHydrated) return
+    
+    console.log('🔐 AuthProvider: Setting up emergency timeout after hydration')
+    const emergencyTimeout = setTimeout(() => {
+      console.log('🚨 AuthProvider: EMERGENCY TIMEOUT - setting isLoading to false')
       setIsLoading(false)
-      setUser(null)
-    }, 5000) // 5 second timeout
+    }, 3000)
+    
+    return () => clearTimeout(emergencyTimeout)
+  }, [isHydrated])
 
-    try {
-      // Check if user is stored locally
-      const storedUser = authService.getStoredUser()
+  // Subscribe to token changes for real-time sync like Instagram - only after hydration
+  useEffect(() => {
+    if (!isHydrated || !tokenManager) return
+    
+    console.log('🔐 AuthContext: Setting up token change listener after hydration')
+    const unsubscribe = tokenManager.subscribe((token: string | null) => {
+      console.log('🔐 AuthContext: Token change detected:', !!token)
       
-      if (storedUser && authService.isAuthenticated()) {
-        console.log('🔐 AuthContext: Found stored user, validating against backend:', {
-          id: storedUser.id,
-          email: storedUser.email,
-          company: storedUser.company,
-          full_name: storedUser.full_name,
-          first_name: storedUser.first_name,
-          last_name: storedUser.last_name
-        })
+      if (!token) {
+        // Token was cleared, clear user state
+        console.log('🔐 AuthContext: Token cleared, clearing user state')
+        debugSetUser(null, 'token-cleared')
+        setDashboardStats(null)
+      } else {
+        // Token was updated, verify user state is consistent
+        console.log('🔐 AuthContext: Token updated, verifying user state consistency')
+        const storedUser = authService?.getStoredUser()
+        if (storedUser && (!user || user.email !== storedUser.email)) {
+          console.log('🔐 AuthContext: Syncing user state with token change')
+          debugSetUser(storedUser, 'token-sync')
+        }
+      }
+    })
+    
+    return unsubscribe
+  }, [user, isHydrated])
+
+  // Initialize auth state - only after hydration to prevent SSR issues
+  useEffect(() => {
+    if (!isHydrated) return
+    
+    console.log('🔐 AuthContext: useEffect triggered after hydration - calling initializeAuth')
+    
+    try {
+      // Set a timeout to ensure isLoading is set to false even if initializeAuth hangs
+      const timeoutId = setTimeout(() => {
+        console.log('🚨 AuthContext: TIMEOUT - forcefully setting isLoading to false')
+        setIsLoading(false)
+      }, 5000) // 5 second timeout
+      
+      initializeAuth().finally(() => {
+        clearTimeout(timeoutId) // Cancel timeout if initializeAuth completes
+      })
+    } catch (error) {
+      console.error('🚨 AuthContext: useEffect error:', error)
+      setIsLoading(false) // Ensure loading is set to false even if there's an error
+    }
+  }, [isHydrated])
+
+  const initializeAuth = async () => {
+    console.log('🔐 AuthContext: initializeAuth started')
+    try {
+      console.log('🔐 AuthContext: Checking stored user and auth status')
+      
+      let storedUser = null
+      let isAuthenticated = false
+      
+      try {
+        storedUser = authService.getStoredUser()
+        console.log('🔐 AuthContext: getStoredUser successful:', !!storedUser)
+      } catch (error) {
+        console.error('🚨 AuthContext: getStoredUser failed:', error)
+      }
+      
+      try {
+        isAuthenticated = authService.isAuthenticated()
+        console.log('🔐 AuthContext: isAuthenticated successful:', isAuthenticated)
+      } catch (error) {
+        console.error('🚨 AuthContext: isAuthenticated failed:', error)
+      }
+      
+      console.log('🔐 AuthContext: Auth check results:', {
+        hasStoredUser: !!storedUser,
+        isAuthenticated,
+        userEmail: storedUser?.email,
+        currentUserState: !!user
+      })
+      
+      if (storedUser && isAuthenticated) {
+        console.log('🔐 AuthContext: User authenticated, updating user state')
         
-        // Set stored user immediately for UI responsiveness
-        setUser(storedUser)
+        // Only update user state if we don't already have it (prevent unnecessary re-renders)
+        if (!user || user.email !== storedUser.email) {
+          debugSetUser(storedUser, 'init-auth-restore')
+        }
         
-        // Check if stored data is potentially stale (older than 1 hour)
         const lastUpdated = localStorage.getItem('user_last_updated')
         const oneHourAgo = Date.now() - (60 * 60 * 1000)
         const isStale = !lastUpdated || parseInt(lastUpdated) < oneHourAgo
         
         if (isStale) {
-          console.log('🔄 AuthContext: Stored user data is stale, force refreshing from backend')
+          console.log('🔐 AuthContext: User data is stale, refreshing...')
+          try {
+            await refreshUser()
+            localStorage.setItem('user_last_updated', Date.now().toString())
+          } catch (error) {
+            console.log('🔐 AuthContext: Refresh failed, keeping stored user')
+          }
         }
         
-        // Always validate against backend, but especially if data is stale
         try {
-          await refreshUser()
-          localStorage.setItem('user_last_updated', Date.now().toString())
-          console.log('✅ AuthContext: User data refreshed from backend')
+          console.log('🔐 AuthContext: Loading dashboard stats...')
+          await loadDashboardStats()
         } catch (error) {
-          console.log('⚠️ AuthContext: Backend validation failed, using stored data:', error)
+          console.log('🔐 AuthContext: Dashboard stats failed, ignoring')
         }
-        
-        await loadDashboardStats()
       } else {
-        setUser(null)
+        // CRITICAL FIX: Only clear user state if we're definitely not authenticated AND have no valid tokens
+        // Also check if we already have user state from hydration
+        const hasValidTokens = (() => {
+          try {
+            const tokens = localStorage.getItem('auth_tokens')
+            if (tokens && tokens !== 'null') {
+              const tokenData = JSON.parse(tokens)
+              return !!(tokenData?.access_token && tokenData.access_token !== 'null')
+            }
+          } catch (e) {}
+          return false
+        })()
+        
+        const currentlyHasUser = !!user
+        
+        if (!hasValidTokens && !storedUser && !currentlyHasUser) {
+          console.log('🔐 AuthContext: No valid authentication found, clearing user state')
+          debugSetUser(null, 'init-auth-clear')
+        } else {
+          console.log('🔐 AuthContext: Preserving authentication state:', {
+            hasValidTokens,
+            hasStoredUser: !!storedUser,
+            currentlyHasUser,
+            reason: hasValidTokens ? 'valid tokens' : currentlyHasUser ? 'current user state' : 'stored user data'
+          })
+        }
       }
     } catch (error) {
-      console.error('🔐 AuthContext: Auth initialization error:', error)
-      setUser(null)
+      console.error('🔐 AuthContext: initializeAuth error:', error)
+      // Don't clear user state on errors - could be network issues
     } finally {
-      clearTimeout(timeoutId)
+      console.log('🔐 AuthContext: initializeAuth finished, setting isLoading to false')
       setIsLoading(false)
     }
   }
 
   const loadDashboardStats = async () => {
+    console.log('🔐 AuthContext: loadDashboardStats called')
     try {
+      console.log('🔐 AuthContext: Calling authService.getDashboardStats()')
       const result = await authService.getDashboardStats()
+      console.log('🔐 AuthContext: getDashboardStats result:', { success: result.success, hasData: !!result.data, error: result.error })
+      
       if (result.success && result.data) {
+        console.log('🔐 AuthContext: Setting dashboard stats')
         setDashboardStats(result.data)
       } else if (result.error && (result.error.includes('403') || result.error.includes('401') || result.error.includes('authentication'))) {
-        // Token is invalid, clear auth state
-        console.log('🔐 AuthContext: Invalid token detected, clearing auth state')
-        authService.logout()
-        setUser(null)
+        // Log the error but don't immediately logout - could be a temporary network issue
+        console.warn('🔐 AuthContext: Dashboard stats auth error (not logging out immediately):', result.error)
+        // Only set stats to null, keep user authenticated
         setDashboardStats(null)
       }
+      console.log('🔐 AuthContext: loadDashboardStats completed')
     } catch (error) {
       console.error('🔐 AuthContext: Dashboard stats error:', error)
+      // Don't logout on network errors
     }
   }
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    console.log('🔐 AuthContext: Starting login process for:', email)
     setIsLoading(true)
     
     try {
+      console.log('🔐 AuthContext: Calling authService.login...')
       const result = await authService.login({ email, password })
+      console.log('🔐 AuthContext: authService.login completed with result:', result)
+      
+      console.log('🔐 AuthContext: Login API response:', {
+        success: result.success,
+        hasData: !!result.data,
+        hasUser: !!result.data?.user,
+        hasToken: !!result.data?.access_token,
+        error: result.error
+      })
       
       if (result.success && result.data && result.data.access_token) {
-        console.log('🔐 AuthContext: Login API user data:', {
-          id: result.data.user.id,
-          email: result.data.user.email,
-          company: result.data.user.company,
-          full_name: result.data.user.full_name,
-          first_name: result.data.user.first_name,
-          last_name: result.data.user.last_name,
-          avatar_config: result.data.user.avatar_config
+        console.log('🔐 AuthContext: Login successful, setting user data')
+        
+        const userData = result.data.user
+        console.log('🔐 AuthContext: Login user data:', {
+          id: userData.id,
+          email: userData.email,
+          role: userData.role,
+          full_name: userData.full_name
         })
         
-        console.log('🎨 AuthContext: Login avatar_config:', result.data.user.avatar_config)
-        setUser(result.data.user)
+        // Set user IMMEDIATELY
+        setUser(userData)
+        localStorage.setItem('user_last_updated', Date.now().toString())
+        
+        console.log('✅ AuthContext: User state set, authentication complete')
+        
+        // Verify data is actually stored
+        setTimeout(() => {
+          const storedUser = localStorage.getItem('user_data')
+          const storedTokens = localStorage.getItem('auth_tokens')
+          console.log('🔍 AuthContext: Post-login verification:', {
+            hasStoredUser: !!storedUser,
+            hasStoredTokens: !!storedTokens,
+            authServiceAuthenticated: authService.isAuthenticated(),
+            currentUserState: !!user
+          })
+        }, 100)
         
         // If login doesn't return avatar_config, fetch complete profile
-        if (!result.data.user.avatar_config) {
+        if (!userData.avatar_config) {
           console.log('🔄 AuthContext: Login missing avatar, fetching complete profile...')
           setTimeout(() => {
             refreshUser() // This will merge settings data with login data
           }, 500)
         }
         
-        await loadDashboardStats()
-        toast.success(`Welcome back, ${result.data.user.full_name}!`)
+        // Load dashboard stats (protected by grace period)
+        try {
+          console.log('🔐 AuthContext: Loading dashboard stats after login...')
+          await loadDashboardStats()
+          console.log('🔐 AuthContext: Dashboard stats loaded successfully')
+        } catch (error) {
+          console.warn('⚠️ AuthContext: Dashboard stats loading failed after login:', error)
+        }
+        
+        console.log('🔐 AuthContext: Login process complete, returning true')
+        
+        // Double check that data is still there
+        setTimeout(() => {
+          const stillThere = authService.isAuthenticated()
+          const stillHasUser = authService.getStoredUser()
+          console.log('🔍 AuthContext: Post-login verification (500ms later):', {
+            stillAuthenticated: stillThere,
+            stillHasUser: !!stillHasUser,
+            currentUser: user?.email
+          })
+        }, 500)
+        
+        toast.success(`Welcome back, ${userData.full_name}!`)
         return true
       } else {
         // Handle specific login errors (including email confirmation)
@@ -166,10 +433,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return false
       }
     } catch (error) {
+      console.error('🚨 AuthContext: Login error caught:', error)
       const errorMessage = error instanceof Error ? error.message : 'Login failed'
       toast.error(errorMessage)
       return false
     } finally {
+      console.log('🔐 AuthContext: Setting isLoading to false in finally block')
       setIsLoading(false)
     }
   }
@@ -197,7 +466,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         } else if (result.data.access_token) {
           // Registration successful with immediate login (if no email confirmation required)
           setUser(result.data.user)
-          await loadDashboardStats()
+          // Load dashboard stats but don't fail registration if it errors
+          try {
+            await loadDashboardStats()
+          } catch (error) {
+            console.log('⚠️ AuthContext: Dashboard stats loading failed after registration:', error)
+          }
           toast.success(`Welcome to Analytics Following, ${result.data.user.full_name}!`)
           return true
         } else {
@@ -219,10 +493,47 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const logout = () => {
+    console.log('🚨 AuthContext: logout() called!')
+    console.trace('AuthContext logout call stack:')
+    
+    // Clear context state immediately and defensively
     setUser(null)
     setDashboardStats(null)
-    authService.logout()
-    toast.success('Successfully logged out')
+    setIsLoading(false)
+    
+    try {
+      // Call authService logout (which will handle token cleanup and redirects)
+      if (authService?.logout) {
+        authService.logout()
+      }
+      
+      // Ensure TokenManager also clears tokens
+      if (tokenManager?.clearAllTokens) {
+        tokenManager.clearAllTokens()
+      }
+      
+      // Clear any remaining localStorage items defensively
+      if (typeof window !== 'undefined') {
+        const itemsToClear = ['user_data', 'auth_tokens', 'access_token', 'refresh_token', 'user_last_updated']
+        itemsToClear.forEach(item => {
+          try {
+            localStorage.removeItem(item)
+          } catch (e) {
+            console.warn(`Failed to clear ${item}:`, e)
+          }
+        })
+      }
+    } catch (error) {
+      console.error('🚨 AuthContext: Logout error:', error)
+    }
+    
+    // Only show success message if we're not redirecting
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+    const isAlreadyOnAuthPage = currentPath.startsWith('/auth/') || currentPath === '/login'
+    
+    if (isAlreadyOnAuthPage) {
+      toast.success('Successfully logged out')
+    }
   }
 
   const refreshUser = async () => {
@@ -343,9 +654,73 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
+  // INDUSTRY STANDARD: Authentication status should be based on valid tokens, not just user state
+  const isAuthenticated = useMemo(() => {
+    console.log('🔐 AuthContext: isAuthenticated check triggered:', {
+      isHydrated,
+      hasUser: !!user,
+      userEmail: user?.email,
+      timestamp: new Date().toISOString()
+    })
+    
+    // During initial hydration, be more lenient to prevent logout
+    if (!isHydrated) {
+      const result = !!user
+      console.log('🔐 AuthContext: ⏳ Not yet hydrated, using basic user state check:', result)
+      return result
+    }
+    
+    // Multi-layer validation like Instagram/Facebook (only after hydration)
+    if (!user) {
+      console.log('🔐 AuthContext: ❌ No user state, returning false')
+      return false
+    }
+    
+    try {
+      // Check if TokenManager considers us authenticated
+      const tokenManagerAuth = tokenManager?.isAuthenticated?.() ?? true // Default to true if not available
+      
+      // Check if authService considers us authenticated  
+      const serviceAuth = authService?.isAuthenticated?.() ?? true // Default to true if not available
+      
+      // All layers must agree, but be forgiving during initialization
+      const result = !!(user && tokenManagerAuth && serviceAuth)
+      
+      console.log('🔐 AuthContext: 🔍 DETAILED Authentication validation:', {
+        hasUser: !!user,
+        userEmail: user?.email,
+        tokenManagerAuth,
+        serviceAuth,
+        tokenManagerReady: !!tokenManager?.isAuthenticated,
+        serviceReady: !!authService?.isAuthenticated,
+        finalResult: result,
+        timestamp: new Date().toISOString()
+      })
+      
+      if (!result) {
+        console.error('🔐 AuthContext: ❌ AUTHENTICATION VALIDATION FAILED:', {
+          reason: !tokenManagerAuth ? 'TokenManager failed' : !serviceAuth ? 'AuthService failed' : 'Unknown',
+          hasUser: !!user,
+          tokenManagerAuth,
+          serviceAuth,
+          tokenManagerReady: !!tokenManager?.isAuthenticated,
+          serviceReady: !!authService?.isAuthenticated,
+          finalResult: result
+        })
+      } else {
+        console.log('🔐 AuthContext: ✅ Authentication validation PASSED')
+      }
+      
+      return result
+    } catch (error) {
+      console.error('🔐 AuthContext: ❌ Authentication validation ERROR:', error)
+      return !!user // Fall back to user state if validation fails
+    }
+  }, [user, isHydrated])
+
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated,
     isLoading,
     dashboardStats,
     login,

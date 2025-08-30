@@ -258,7 +258,8 @@ export class AdminProposalsApiService {
       const response = await fetchWithAuth(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
-          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...options.headers,
         },
       })
@@ -471,7 +472,8 @@ export class BrandProposalsApiService {
       const response = await fetchWithAuth(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
-          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...options.headers,
         },
       })

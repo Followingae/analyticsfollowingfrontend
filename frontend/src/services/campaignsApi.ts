@@ -3,7 +3,7 @@
  * Enhanced campaign management with deliverables, milestones, collaboration, and advanced reporting
  */
 
-import { getAuthHeaders, API_CONFIG } from '@/config/api'
+import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 
 // Enhanced Campaign Types
@@ -341,10 +341,12 @@ export class CampaignsApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
+      // fetchWithAuth automatically handles auth headers - don't add them manually
       const response = await fetchWithAuth(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
-          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...options.headers,
         },
       })

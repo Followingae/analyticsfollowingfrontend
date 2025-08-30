@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Balloons } from "@/components/ui/balloons"
 import { usePathname } from "next/navigation"
-import { useAuth } from "@/contexts/AuthContext"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { useMemo, useState, useEffect, useRef } from "react"
 import { Crown, Coins, PartyPopper } from "lucide-react"
@@ -17,8 +16,7 @@ import { teamApiService, TeamContext } from "@/services/teamApi"
 export function SiteHeader() {
   const pathname = usePathname()
   const isDashboard = pathname === '/' || pathname === '/dashboard'
-  const { user, isLoading } = useAuth()
-  const { user: enhancedUser, isBrandUser } = useEnhancedAuth()
+  const { user, isLoading, isBrandUser } = useEnhancedAuth()
   
   // Team context state (replaces individual credit balance)
   const [teamContext, setTeamContext] = useState<TeamContext | null>(null)
@@ -144,7 +142,7 @@ export function SiteHeader() {
           </div>
           
           {/* Live Team Context Display for Brand Users */}
-          {isBrandUser && enhancedUser && !contextLoading && teamContext && (
+          {isBrandUser && user && !contextLoading && teamContext && (
             <div className="flex items-center gap-2">
               {/* Team subscription tier */}
               <Badge variant="outline" className="text-xs">
@@ -155,11 +153,11 @@ export function SiteHeader() {
           )}
           
           {/* Fallback for non-team users */}
-          {isBrandUser && enhancedUser && !contextLoading && !teamContext && (
+          {isBrandUser && user && !contextLoading && !teamContext && (
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
                 <Crown className="w-3 h-3 mr-1" />
-                {enhancedUser.role?.replace('brand_', '') || 'Free'}
+                {user.role?.replace('brand_', '') || 'Free'}
               </Badge>
             </div>
           )}

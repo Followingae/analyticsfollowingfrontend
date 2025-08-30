@@ -91,6 +91,8 @@ interface EnhancedAuthProviderProps {
 }
 
 export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
+  console.log('🔐 EnhancedAuthProvider: Component rendering/mounting')
+  
   const { 
     user: basicUser, 
     isAuthenticated: basicIsAuthenticated, 
@@ -103,53 +105,67 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     updateProfile: basicUpdateProfile
   } = useAuth()
   
+  console.log('🔐 EnhancedAuthProvider: Basic auth values:', {
+    basicIsLoading,
+    basicIsAuthenticated,
+    hasBasicUser: !!basicUser
+  })
+  
   const [user, setUser] = useState<EnhancedUser | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false) // HOTFIX: Start with false due to hydration issues
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
   const [lastActivity, setLastActivity] = useState<Date>(new Date())
   const [sessionTimeout] = useState<number>(30 * 60 * 1000) // 30 minutes
+  const [sessionTimeoutEnabled, setSessionTimeoutEnabled] = useState(false) // Disable initially
+
+  // Move timeout to useEffect to avoid React warnings
 
   // Sync with basic auth context
   useEffect(() => {
-    // Safety timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.log('🔐 EnhancedAuthContext: Timeout - forcing loading to false')
-      setIsLoading(false)
-      setUser(null)
-    }, 10000) // 10 second timeout
+    console.log('🔐 EnhancedAuthContext: Syncing with BasicAuth:', {
+      basicIsLoading,
+      basicIsAuthenticated,
+      hasBasicUser: !!basicUser,
+      basicUserRole: basicUser?.role,
+      timestamp: new Date().toISOString()
+    })
 
     if (!basicIsLoading) {
-      clearTimeout(timeoutId)
       if (basicIsAuthenticated && basicUser) {
+        console.log('🔐 EnhancedAuthContext: BasicAuth is authenticated, enhancing user data')
         const enhancedUser = enhanceUserData(basicUser)
         setUser(enhancedUser)
         setDashboardStats(basicDashboardStats)
+        console.log('🔐 EnhancedAuthContext: User data set successfully:', {
+          userEmail: enhancedUser.email,
+          userRole: enhancedUser.role
+        })
       } else {
+        console.log('🔐 EnhancedAuthContext: BasicAuth not authenticated, clearing user')
         setUser(null)
         setDashboardStats(null)
       }
+      console.log('🔐 EnhancedAuthContext: Setting isLoading to false')
       setIsLoading(false)
     }
-
-    return () => clearTimeout(timeoutId)
   }, [basicUser, basicIsAuthenticated, basicIsLoading, basicDashboardStats])
 
-  // Activity tracking
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = new Date()
-      if (user && now.getTime() - lastActivity.getTime() > sessionTimeout) {
-        handleSessionTimeout()
-      }
-    }, 60000) // Check every minute
+  // Disable session timeout temporarily to fix login redirect loop
+  // useEffect(() => {
+  //   if (!sessionTimeoutEnabled) return
+  //   const interval = setInterval(() => {
+  //     const now = new Date()
+  //     if (user && now.getTime() - lastActivity.getTime() > sessionTimeout) {
+  //       handleSessionTimeout()
+  //     }
+  //   }, 60000)
+  //   return () => clearInterval(interval)
+  // }, [user, lastActivity, sessionTimeout, sessionTimeoutEnabled])
 
-    return () => clearInterval(interval)
-  }, [user, lastActivity, sessionTimeout])
-
-  const handleSessionTimeout = () => {
-    toast.warning('Session expired. Please log in again.')
-    logout()
-  }
+  // const handleSessionTimeout = () => {
+  //   toast.warning('Session expired. Please log in again.')
+  //   logout()
+  // }
 
   const updateActivity = () => {
     setLastActivity(new Date())
@@ -228,20 +244,29 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
       if (result.success && result.data) {
         setDashboardStats(result.data)
       } else if (result.error && (result.error.includes('403') || result.error.includes('401') || result.error.includes('authentication'))) {
-        // Token is invalid, clear auth state
-        console.log('🔐 EnhancedAuthContext: Invalid token detected, clearing auth state')
-        basicLogout()
-        setUser(null)
+        // Log the error but don't immediately logout - could be a temporary network issue
+        console.warn('🔐 EnhancedAuthContext: Dashboard stats auth error (not logging out immediately):', result.error)
+        // Only set stats to null, keep user authenticated
         setDashboardStats(null)
       }
     } catch (error) {
       console.error('🔐 EnhancedAuthContext: Dashboard stats error:', error)
+      // Don't logout on network errors
     }
   }
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    console.log('🚨 EnhancedAuthContext: LOGIN CALLED for:', email)
     updateActivity()
-    return await basicLogin(email, password)
+    
+    try {
+      const result = await basicLogin(email, password)
+      console.log('🚨 EnhancedAuthContext: basicLogin result:', result)
+      return result
+    } catch (error) {
+      console.error('🚨 EnhancedAuthContext: LOGIN ERROR:', error)
+      throw error
+    }
   }
 
   const register = async (email: string, password: string, fullName: string): Promise<boolean> => {
@@ -249,6 +274,14 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
   }
 
   const logout = () => {
+    console.log('🚨 EnhancedAuthContext: logout() called!')
+    console.trace('EnhancedAuthContext logout call stack:')
+    
+    // Clear enhanced auth state first
+    setUser(null)
+    setDashboardStats(null)
+    
+    // Then call basic logout
     basicLogout()
   }
 
@@ -391,7 +424,7 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
   const value: EnhancedAuthContextType = {
     user,
     isAuthenticated: basicIsAuthenticated,
-    isLoading: basicIsLoading,
+    isLoading,
     dashboardStats,
     login,
     register,

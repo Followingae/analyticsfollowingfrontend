@@ -1,4 +1,4 @@
-import { API_CONFIG, getAuthHeaders } from '@/config/api'
+import { API_CONFIG, ENDPOINTS } from '@/config/api'
 import { authService } from './authService'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 
@@ -120,7 +120,8 @@ class SettingsApiService {
       const response = await fetchWithAuth(`${this.baseURL}${url}`, {
         ...options,
         headers: {
-          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...options.headers,
         },
         mode: 'cors',
@@ -167,18 +168,18 @@ class SettingsApiService {
    * Load all settings data for page initialization
    */
   async getSettingsOverview(): Promise<ApiResponse<SettingsOverview>> {
-    return this.makeRequest<SettingsOverview>('/api/v1/settings/overview')
+    return this.makeRequest<SettingsOverview>(ENDPOINTS.settings.overview)
   }
 
   /**
    * Profile Settings
    */
   async getProfile(): Promise<ApiResponse<UserProfile>> {
-    return this.makeRequest<UserProfile>('/api/v1/settings/profile')
+    return this.makeRequest<UserProfile>(ENDPOINTS.settings.profile)
   }
 
   async updateProfile(profileData: Partial<UserProfile>): Promise<ApiResponse<UserProfile>> {
-    return this.makeRequest<UserProfile>('/api/v1/settings/profile', {
+    return this.makeRequest<UserProfile>(ENDPOINTS.settings.profile, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -191,7 +192,7 @@ class SettingsApiService {
     const formData = new FormData()
     formData.append('file', file)
 
-    return this.makeRequest<AvatarUploadResponse>('/api/v1/settings/profile/avatar', {
+    return this.makeRequest<AvatarUploadResponse>(ENDPOINTS.settings.avatar, {
       method: 'POST',
       body: formData
       // Note: Don't set Content-Type header for FormData, browser sets it automatically
@@ -202,7 +203,7 @@ class SettingsApiService {
    * Security Settings
    */
   async changePassword(passwordData: PasswordChangeRequest): Promise<ApiResponse<PasswordChangeResponse>> {
-    return this.makeRequest<PasswordChangeResponse>('/api/v1/settings/security/password', {
+    return this.makeRequest<PasswordChangeResponse>(ENDPOINTS.settings.security.password, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -212,7 +213,7 @@ class SettingsApiService {
   }
 
   async toggleTwoFactor(twoFactorData: TwoFactorRequest): Promise<ApiResponse<TwoFactorResponse>> {
-    return this.makeRequest<TwoFactorResponse>('/api/v1/settings/security/2fa', {
+    return this.makeRequest<TwoFactorResponse>(ENDPOINTS.settings.security.twoFactor, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -222,7 +223,7 @@ class SettingsApiService {
   }
 
   async updatePrivacySettings(privacyData: Partial<PrivacySettings>): Promise<ApiResponse<PrivacySettings>> {
-    return this.makeRequest<PrivacySettings>('/api/v1/settings/security/privacy', {
+    return this.makeRequest<PrivacySettings>(ENDPOINTS.settings.security.privacy, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -235,11 +236,11 @@ class SettingsApiService {
    * Notification Settings
    */
   async getNotificationSettings(): Promise<ApiResponse<NotificationSettings>> {
-    return this.makeRequest<NotificationSettings>('/api/v1/settings/notifications')
+    return this.makeRequest<NotificationSettings>(ENDPOINTS.settings.notifications)
   }
 
   async updateNotificationSettings(notificationData: Partial<NotificationSettings>): Promise<ApiResponse<NotificationSettings>> {
-    return this.makeRequest<NotificationSettings>('/api/v1/settings/notifications', {
+    return this.makeRequest<NotificationSettings>(ENDPOINTS.settings.notifications, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -252,11 +253,11 @@ class SettingsApiService {
    * User Preferences
    */
   async getPreferences(): Promise<ApiResponse<UserPreferences>> {
-    return this.makeRequest<UserPreferences>('/api/v1/settings/preferences')
+    return this.makeRequest<UserPreferences>(ENDPOINTS.settings.preferences)
   }
 
   async updatePreferences(preferencesData: Partial<UserPreferences>): Promise<ApiResponse<UserPreferences>> {
-    return this.makeRequest<UserPreferences>('/api/v1/settings/preferences', {
+    return this.makeRequest<UserPreferences>(ENDPOINTS.settings.preferences, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

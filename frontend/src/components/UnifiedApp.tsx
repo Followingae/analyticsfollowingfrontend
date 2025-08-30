@@ -14,6 +14,32 @@ export function UnifiedApp() {
   const { user, isLoading, isAuthenticated, updateActivity } = useEnhancedAuth()
   const router = useRouter()
 
+  // Handle redirects in useEffect to avoid "setState during render" error
+  useEffect(() => {
+    console.log('🚨 UnifiedApp: useEffect triggered', {
+      isLoading,
+      isAuthenticated,
+      hasUser: !!user,
+      userRole: user?.role
+    })
+    
+    if (!isLoading && (!isAuthenticated || !user)) {
+      console.log('🚨 UnifiedApp: User not authenticated, redirecting to /auth/login', {
+        isAuthenticated,
+        hasUser: !!user
+      })
+      router.push('/auth/login')
+    }
+  }, [isLoading, isAuthenticated, user, router])
+
+  console.log('🚨 UnifiedApp RENDER:', {
+    isLoading,
+    isAuthenticated,
+    hasUser: !!user,
+    userRole: user?.role,
+    timestamp: new Date().toISOString()
+  })
+
   // Track user activity
   useEffect(() => {
     const handleActivity = () => {
@@ -35,20 +61,17 @@ export function UnifiedApp() {
     }
   }, [isAuthenticated, updateActivity])
 
-  // Handle authentication redirects
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace('/auth/login')
-    }
-  }, [isAuthenticated, isLoading, router])
+  // Authentication redirects are handled by AuthGuard - no need to duplicate here
 
   // Show loading screen while auth is being determined
   if (isLoading) {
+    console.log('🚨 UnifiedApp: Showing loading screen (isLoading=true)')
     return <LoadingScreen />
   }
 
-  // Redirect if not authenticated
+  // Show loading screen for unauthenticated users (redirect handled in useEffect)
   if (!isAuthenticated || !user) {
+    console.log('🚨 UnifiedApp: No auth/user, showing loading screen while redirect happens')
     return <LoadingScreen />
   }
 
@@ -75,36 +98,4 @@ export function UnifiedApp() {
   }
 }
 
-// Auto-redirect component for role-based routing
-export function RoleBasedRedirect() {
-  const { user, isLoading, isAuthenticated } = useEnhancedAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated && user) {
-        // Determine redirect path based on role
-        switch (user.role) {
-          case 'super_admin':
-          case 'admin':
-            router.replace('/admin/dashboard')
-            break
-          
-          case 'brand_enterprise':
-          case 'brand_premium':
-          case 'brand_standard':
-          case 'brand_free':
-          default:
-            router.replace('/dashboard')
-            break
-        }
-      } else {
-        // Not authenticated - redirect to login
-        console.log('🔐 RoleBasedRedirect: Not authenticated, redirecting to login')
-        router.replace('/auth/login')
-      }
-    }
-  }, [user, isLoading, isAuthenticated, router])
-
-  return <LoadingScreen />
-}
+// REMOVED: RoleBasedRedirect function - this was causing competing redirects with AuthGuard

@@ -20,10 +20,11 @@ export function useAvatar() {
   return useQuery({
     queryKey: ['user-avatar'],
     queryFn: async (): Promise<AvatarData> => {
-      const token = localStorage.getItem('token'); // Adjust based on your auth
-      const response = await fetch('/api/v1/user/avatar', {
+      const { fetchWithAuth } = await import('@/utils/apiInterceptor');
+      const response = await fetchWithAuth('/api/v1/user/avatar', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       });
 
@@ -42,7 +43,8 @@ export function useAvatarUpload() {
 
   return useMutation({
     mutationFn: async (file: File): Promise<UploadAvatarResponse> => {
-      const token = localStorage.getItem('token');
+      const { tokenManager } = await import('@/utils/tokenManager');
+      const tokenResult = await tokenManager.getValidToken();
       const formData = new FormData();
       formData.append('file', file);
 
@@ -50,7 +52,8 @@ export function useAvatarUpload() {
         method: 'POST',
         body: formData,
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       });
 
@@ -78,11 +81,12 @@ export function useAvatarDelete() {
 
   return useMutation({
     mutationFn: async () => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/user/avatar', {
+      const { fetchWithAuth } = await import('@/utils/apiInterceptor');
+      const response = await fetchWithAuth('/api/v1/user/avatar', {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       });
 
@@ -108,10 +112,11 @@ export function useUserProfile() {
   return useQuery({
     queryKey: ['user-profile-complete'],
     queryFn: async () => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/user/profile/complete', {
+      const { fetchWithAuth } = await import('@/utils/apiInterceptor');
+      const response = await fetchWithAuth('/api/v1/user/profile/complete', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       });
 

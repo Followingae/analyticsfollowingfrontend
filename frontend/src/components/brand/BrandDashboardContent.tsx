@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/AuthContext"
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { ChartBarInteractive } from "@/components/chart-bar-interactive"
 import { ChartProfileAnalysis } from "@/components/chart-profile-analysis"
 import { ChartPostAnalytics } from "@/components/chart-post-analytics"
@@ -19,8 +19,17 @@ import {
 } from "lucide-react"
 
 export function BrandDashboardContent() {
-  const { user, isLoading, isPremium, isAdmin } = useAuth()
+  const { user, isLoading, isPremium, isAdmin } = useEnhancedAuth()
   const router = useRouter()
+
+  console.log('🚨 BrandDashboardContent RENDER:', {
+    isLoading,
+    hasUser: !!user,
+    userEmail: user?.email,
+    userRole: user?.role,
+    isPremium,
+    isAdmin
+  })
   
   // Memoized user display data to prevent flash and avoid hardcoded values
   const userDisplayData = useMemo(() => {
@@ -104,10 +113,14 @@ export function BrandDashboardContent() {
       }
 
       try {
-        const { API_CONFIG, ENDPOINTS, getAuthHeaders } = await import('@/config/api')
-        const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.teams.overview}`, {
+        const { API_CONFIG, ENDPOINTS } = await import('@/config/api')
+        const { fetchWithAuth } = await import('@/utils/apiInterceptor')
+        const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.teams.overview}`, {
           method: 'GET',
-          headers: getAuthHeaders()
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
         })
         
         console.log('🏢 BrandDashboard: Teams Overview API Response Status:', response.status)
@@ -171,12 +184,13 @@ export function BrandDashboardContent() {
       }
 
       try {
-        // Try to fetch campaigns from backend
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/campaigns`, {
+        // Try to fetch campaigns from backend using fetchWithAuth
+        const { fetchWithAuth } = await import('@/utils/apiInterceptor')
+        const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/campaigns`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            'Accept': 'application/json'
           }
         })
         
@@ -334,17 +348,10 @@ export function BrandDashboardContent() {
         {/* Recent Campaign Stats Section */}
         <div className="grid gap-6 grid-cols-12">
           {/* Recent Campaign Stats */}
-          <div className="col-span-6">
+          <div className="col-span-12">
             <div className="h-[320px]">
               <ChartBarInteractive />
             </div>
-          </div>
-          {/* Future component slots */}
-          <div className="col-span-3">
-            {/* Reserved for future component */}
-          </div>
-          <div className="col-span-3">
-            {/* Reserved for future component */}
           </div>
         </div>
 

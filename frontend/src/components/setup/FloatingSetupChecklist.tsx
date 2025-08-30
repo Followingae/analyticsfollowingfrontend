@@ -18,7 +18,7 @@ import {
   CheckSquare, 
   X 
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext';
 import { listsApiService } from '@/services/listsApi';
 import { instagramApiService } from '@/services/instagramApi';
 
@@ -44,7 +44,7 @@ const getPathTransition = (isChecked: boolean): Transition => ({
 
 export function FloatingSetupChecklist() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useEnhancedAuth();
   const [status, setStatus] = React.useState<ChecklistStatus>({
     profileComplete: false,
     firstProfileAnalyzed: false,

@@ -94,7 +94,7 @@ export function CompletePostsGallery({ posts, username, cdnPosts }: CompletePost
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {posts.map((post, index) => {
+          {posts.map((post, index) => (
             <div 
               key={post.post_id}
               className="group cursor-pointer rounded-lg overflow-hidden border hover:border-primary/50 transition-all duration-200 hover:shadow-lg"
@@ -164,8 +164,7 @@ export function CompletePostsGallery({ posts, username, cdnPosts }: CompletePost
                 </div>
               </div>
             </div>
-          )
-          })
+          ))}
         </div>
 
         {/* Post Details Modal/Expanded View */}

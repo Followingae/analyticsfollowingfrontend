@@ -47,15 +47,10 @@ class SettingsService {
 
   constructor() {
     this.baseURL = API_CONFIG.BASE_URL
-    // Load token from localStorage
-    if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('access_token')
-    }
+    // Token management now handled by TokenManager via fetchWithAuth
+    this.token = null
   }
 
-  private getAuthHeaders() {
-    return getAuthHeaders()
-  }
 
   // Get current profile settings
   async getProfile(): Promise<{ success: boolean; data?: ProfileUpdateResponse; error?: string }> {
@@ -68,7 +63,10 @@ class SettingsService {
       
       const response = await fetchWithAuth(`${this.baseURL}/api/v1/settings/profile`, {
         method: 'GET',
-        headers: this.getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       })
 
       const data = await response.json()
@@ -97,7 +95,10 @@ class SettingsService {
       
       const response = await fetchWithAuth(`${this.baseURL}/api/v1/settings/profile`, {
         method: 'PUT',
-        headers: this.getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(profileData)
       })
 
@@ -127,7 +128,10 @@ class SettingsService {
       
       const response = await fetchWithAuth(`${this.baseURL}/api/v1/settings/overview`, {
         method: 'GET',
-        headers: this.getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       })
 
       const data = await response.json()

@@ -16,7 +16,7 @@ import {
 } from "@tabler/icons-react"
 import Image from "next/image"
 import { useTheme } from "next-themes"
-import { useAuth } from "@/contexts/AuthContext"
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -124,7 +124,7 @@ function ThemeLogo() {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading } = useEnhancedAuth()
 
   // Dynamic user data - avoid hardcoded values
   const dynamicUser = React.useMemo(() => {
