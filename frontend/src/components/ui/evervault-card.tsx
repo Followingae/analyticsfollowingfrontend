@@ -101,7 +101,7 @@ export const EvervaultCard = ({
 };
 
 export const CardPattern = ({ mouseX, mouseY, randomString }: any) => {
-  const maskImage = useMotionTemplate`radial-gradient(500px at ${mouseX}px ${mouseY}px, white, transparent)`;
+  const maskImage = useMotionTemplate`radial-gradient(150px at ${mouseX}px ${mouseY}px, white, transparent)`;
   const style = { maskImage, WebkitMaskImage: maskImage };
   
   return (
@@ -118,8 +118,11 @@ export const CardPattern = ({ mouseX, mouseY, randomString }: any) => {
 
       {/* Purple gradient overlay */}
       <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-purple-500/30 to-violet-600/30 opacity-0 group-hover/card:opacity-100 transition duration-500"
-        style={style}
+        className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition duration-500"
+        style={{
+          background: 'radial-gradient(circle, rgba(81, 0, 243, 0.3) 0%, rgba(81, 0, 243, 0.1) 100%)',
+          ...style
+        }}
       />
 
       {/* Interactive names layer - no scaling */}
@@ -128,7 +131,7 @@ export const CardPattern = ({ mouseX, mouseY, randomString }: any) => {
         style={style}
       >
         <div className="w-full h-full overflow-hidden">
-          <p className="text-[11px] leading-[14px] break-all whitespace-pre-wrap text-purple-600 font-mono font-bold w-full h-full overflow-hidden">
+          <p className="text-[11px] leading-[14px] break-all whitespace-pre-wrap font-mono font-bold w-full h-full overflow-hidden" style={{color: '#5100f3'}}>
             {randomString}
           </p>
         </div>
@@ -137,51 +140,107 @@ export const CardPattern = ({ mouseX, mouseY, randomString }: any) => {
   );
 };
 
-const names = [
-  "Emma", "Liam", "Olivia", "Noah", "Ava", "Ethan", "Sophia", "Mason", "Isabella", "William",
-  "Charlotte", "James", "Amelia", "Benjamin", "Mia", "Lucas", "Harper", "Henry", "Evelyn", "Alexander",
-  "Abigail", "Michael", "Emily", "Elijah", "Elizabeth", "Daniel", "Avery", "Matthew", "Sofia", "Aiden",
-  "Ella", "Jackson", "Madison", "David", "Scarlett", "Joseph", "Victoria", "Samuel", "Aria", "Carter",
-  "Grace", "Owen", "Chloe", "Wyatt", "Camila", "John", "Penelope", "Jack", "Riley", "Luke",
-  "Layla", "Jayden", "Lillian", "Dylan", "Nora", "Grayson", "Zoey", "Levi", "Mila", "Isaac",
-  "Aubrey", "Gabriel", "Hannah", "Julian", "Lily", "Mateo", "Addison", "Anthony", "Eleanor", "Jaxon",
-  "Natalie", "Lincoln", "Luna", "Joshua", "Savannah", "Christopher", "Brooklyn", "Andrew", "Leah", "Theodore",
-  "Zoe", "Caleb", "Stella", "Ryan", "Hazel", "Asher", "Ellie", "Nathan", "Paisley", "Thomas",
-  "Audrey", "Leo", "Skylar", "Isaiah", "Violet", "Charles", "Claire", "Josiah", "Bella", "Angel",
-  "Aurora", "Colin", "Lucy", "Hunter", "Anna", "Eli", "Samantha", "Jonathan", "Caroline", "Connor",
-  "Genesis", "Landon", "Aaliyah", "Adrian", "Kennedy", "Cameron", "Kinsley", "Santiago", "Allison", "Mason",
-  "Maya", "Nolan", "Sarah", "Roman", "Madelyn", "Ford", "Adeline", "Jason", "Alexa", "Easton",
-  "Ariana", "Aaron", "Elena", "Jaxson", "Gabriella", "Miles", "Naomi", "Walker", "Alice", "Adam",
-  "Sadie", "Jeremiah", "Hailey", "Jordan", "Eva", "Nicholas", "Emilia", "Evan", "Autumn", "Wesley",
-  "Quinn", "Greyson", "Nevaeh", "Jose", "Piper", "Jace", "Ruby", "Jameson", "Serenity", "Leonardo",
-  "Willow", "Bryson", "Everly", "Axel", "Cora", "Everett", "Kaylee", "Parker", "Lydia", "Kayden",
-  "Aubree", "Miles", "Arianna", "Sawyer", "Eliana", "Jason", "Peyton", "Declan", "Melanie", "Robert",
-  "Gianna", "Carson", "Isabelle", "Maverick", "Julia", "Brayden", "Valentina", "Felix", "Nova", "Micah",
-  "Clara", "Ryder", "Vivian", "Blake", "Reagan", "Carlos", "Mackenzie", "Maxwell", "Madeline", "Coopers",
-  "Brielle", "Lorenzo", "Delilah", "Jayce", "Isla", "Kevin", "Rylee", "Luis", "Katherine", "Tristan",
-  "Josephine", "Nathaniel", "Ivy", "Colton", "Liliana", "Juan", "Remi", "Dominic", "Jade", "Devin",
-  "Maria", "Kenneth", "Ximena", "Jude", "Brynlee", "Braxton", "Harmony", "Jose", "Phoenix", "Abel",
-  "Raelynn", "Rowan", "Jordyn", "Louis", "Rose", "Kaden", "Eloise", "Bentley", "Adalynn", "Victor",
-  "Emery", "Maddox", "Leilani", "Patrick", "Adalyn", "Tucker", "Arya", "Leon", "Emersyn", "Ellis",
-  "Lexi", "Dean", "Sienna", "Paul", "Natalia", "Edward", "Paris", "Oscar", "Maggie", "George",
-  "Kinley", "Hayden", "Ana", "Damian", "Norah", "Austin", "Lyla", "Ivan", "Reese", "Mark",
-  "Paige", "Ashton", "Rachel", "Jesus", "Valerie", "Camden", "Daisy", "Timothy", "Naomi", "Ian",
-  "Jessica", "Cooper", "Eliza", "Diego", "Rebecca", "Fabian", "Gemma", "Peter", "Kaia", "Abraham",
-  "Alina", "Alex", "Mckenzie", "Richard", "Sage", "Sean", "Alyssa", "Giovanni", "Luna", "Alan",
-  "Juliana", "Kaiden", "Rosalie", "Luka", "Trinity", "Wayne", "Jasmine", "Giovanni", "Anastasia", "Brody",
-  "Zara", "Emmanuel", "Londyn", "Malcolm", "Savanna", "Myles", "Aspen", "Griffin", "Lucia", "Aidan",
-  "Lilly", "Harrison", "Ariel", "Frederick", "Cecilia", "Antonio", "Diana", "Finn", "Sydney", "Arthur"
+// Content categories, locations, influencers, and metrics for Smart Discovery animation
+const contentCategories = [
+  "Beauty", "Fashion", "Fitness", "Food", "Travel", "Tech", "Gaming", "Lifestyle", "Sports", "Music",
+  "Art", "Photography", "Business", "Education", "Health", "Wellness", "Parenting", "Automotive",
+  "Home Decor", "DIY", "Comedy", "Dance", "Skincare", "Makeup", "Luxury", "Shopping", "Reviews",
+  "Finance", "Investment", "Motivation", "Self-Care", "Cooking", "Baking", "Vegan", "Organic"
+];
+
+const uaeLocations = [
+  "Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah", "Fujairah", "Umm Al Quwain",
+  "Dubai Marina", "Downtown Dubai", "JBR", "Palm Jumeirah", "Dubai Mall", "Burj Khalifa",
+  "Sheikh Zayed Road", "Business Bay", "DIFC", "Dubai Creek", "Al Ain", "Dubai Hills",
+  "Arabian Ranches", "JLT", "Emirates Hills", "The Springs", "Motor City"
+];
+
+const saudiLocations = [
+  "Riyadh", "Jeddah", "Mecca", "Medina", "Dammam", "Khobar", "Taif", "Tabuk", "Hail",
+  "Abha", "Najran", "Jubail", "Yanbu", "King Abdulaziz City", "Qassim", "Al Kharj",
+  "Red Sea", "NEOM", "AlUla", "Diriyah", "King Abdullah City", "Thuwal", "Hafr Al Batin"
+];
+
+const influencerUsernames = [
+  "@sarah_dubai", "@ahmed_riyadh", "@fatima_lifestyle", "@omar_tech", "@layla_beauty",
+  "@khalid_fitness", "@noor_fashion", "@yusuf_travel", "@amina_food", "@hassan_sports",
+  "@zara_makeup", "@ali_gaming", "@maryam_wellness", "@abdulla_business", "@lina_art",
+  "@mohammed_luxury", "@yasmin_health", "@tariq_finance", "@rana_cooking", "@saad_tech",
+  "@hala_skincare", "@faisal_motivation", "@dina_photography", "@waleed_automotive",
+  "@reem_dance", "@majid_comedy", "@laila_parenting", "@bashar_education", "@nada_diy",
+  "@karim_investment", "@salma_organic", "@ibrahim_reviews", "@maya_vegan", "@sami_music",
+  "@leena_homedecor", "@rashid_shopping", "@amal_selfcare", "@fahad_lifestyle", "@dana_baking",
+  "@nawaf_luxury", "@ghada_wellness", "@adnan_business", "@sara_beauty", "@hamza_fitness",
+  "@noura_fashion", "@salem_travel", "@laith_gaming", "@rania_health", "@talal_finance",
+  "@aya_art", "@osama_sports", "@hind_makeup", "@badr_tech", "@widad_cooking",
+  "@nasser_motivation", "@mona_skincare", "@jad_photography", "@lama_dance", "@rami_comedy",
+  "@dima_parenting", "@mazen_automotive", "@ruba_education", "@fadi_diy", "@salam_organic",
+  "@tala_reviews", "@zaid_investment", "@rim_vegan", "@anwar_music", "@leen_homedecor",
+  "@marwan_shopping", "@haya_selfcare", "@qasim_lifestyle", "@rand_baking", "@habib_luxury",
+  "@shada_wellness", "@raed_business", "@batool_beauty", "@muntasir_fitness", "@razan_fashion",
+  "@mohannad_travel", "@sundus_gaming", "@yazed_health", "@shaima_finance", "@firas_art",
+  "@bushra_sports", "@qays_makeup", "@tamara_tech", "@layth_cooking", "@duha_motivation",
+  "@sinan_skincare", "@lara_photography", "@amjad_dance", "@hanin_comedy", "@maher_parenting",
+  "@nour_automotive", "@farah_education", "@mutaz_diy", "@huda_organic", "@ghalib_reviews",
+  "@raghad_investment", "@khalil_vegan", "@rula_music", "@nazir_homedecor", "@sana_shopping",
+  "@bilal_selfcare", "@lujain_lifestyle", "@ghassan_baking", "@rawda_luxury", "@shadi_wellness",
+  "@karam_business", "@dalal_beauty", "@musab_fitness", "@shahad_fashion", "@louay_travel",
+  "@israa_gaming", "@wael_health", "@thara_finance", "@subhi_art", "@areen_sports",
+  "@basel_makeup", "@layan_tech", "@gazi_cooking", "@nada_motivation", "@fares_skincare",
+  "@maysa_photography", "@salam_dance", "@jihan_comedy", "@murad_parenting", "@sereen_automotive",
+  "@emad_education", "@laith_diy", "@shireen_organic", "@raef_reviews", "@hadeel_investment",
+  "@moataz_vegan", "@sahar_music", "@ameer_homedecor", "@lubna_shopping", "@suhail_selfcare",
+  "@sawsan_lifestyle", "@riyad_baking", "@mayada_luxury", "@naseem_wellness", "@tareq_business",
+  "@siham_beauty", "@jihad_fitness", "@sabah_fashion", "@mazen_travel", "@wijdan_gaming",
+  "@naeem_health", "@dalia_finance", "@walid_art", "@ruwaida_sports", "@sameer_makeup",
+  "@lamar_tech", "@hazem_cooking", "@zahida_motivation", "@fayez_skincare", "@mayar_photography",
+  "@saif_dance", "@nayeli_comedy", "@mahdi_parenting", "@alia_automotive", "@maroun_education",
+  "@kifah_diy", "@najwa_organic", "@ammar_reviews", "@najla_investment", "@munir_vegan",
+  "@safaa_music", "@jamil_homedecor", "@intissar_shopping", "@samer_selfcare", "@kawther_lifestyle",
+  "@nabil_baking", "@samiha_luxury", "@fawaz_wellness", "@kamil_business", "@nihad_beauty",
+  "@motasem_fitness", "@najat_fashion", "@mohamad_travel", "@samar_gaming", "@shaker_health",
+  "@lamya_finance", "@rafiq_art", "@widad_sports", "@siraj_makeup", "@wafa_tech",
+  "@nasir_cooking", "@buthayna_motivation", "@mohsen_skincare", "@rima_photography", "@adham_dance"
+];
+
+const influencerMetrics = [
+  "2.1M Followers", "4.2% Engagement", "850K Views", "95% Reach", "3.7% CTR", "1.8M Impressions",
+  "650K Likes", "25K Comments", "180K Shares", "92% Completion Rate", "5.1% Engagement", "1.3M Followers",
+  "720K Views", "88% Reach", "2.9% CTR", "2.2M Impressions", "420K Likes", "18K Comments",
+  "95K Shares", "87% Completion Rate", "3.4% Engagement", "980K Followers", "450K Views",
+  "93% Reach", "4.7% CTR", "1.6M Impressions", "320K Likes", "12K Comments", "65K Shares",
+  "91% Completion Rate", "6.2% Engagement", "750K Followers", "380K Views", "89% Reach",
+  "3.1% CTR", "1.9M Impressions", "280K Likes", "15K Comments", "48K Shares", "94% Completion Rate",
+  "4.8% Engagement", "1.5M Followers", "690K Views", "96% Reach", "2.4% CTR", "2.5M Impressions",
+  "510K Likes", "22K Comments", "125K Shares", "88% Completion Rate", "5.7% Engagement",
+  "620K Followers", "340K Views", "85% Reach", "3.8% CTR", "1.4M Impressions", "190K Likes",
+  "8K Comments", "35K Shares", "90% Completion Rate", "7.1% Engagement", "890K Followers",
+  "520K Views", "92% Reach", "4.3% CTR", "2.1M Impressions", "365K Likes", "19K Comments",
+  "88K Shares", "86% Completion Rate", "3.9% Engagement", "1.1M Followers", "475K Views",
+  "94% Reach", "2.7% CTR", "1.7M Impressions", "240K Likes", "11K Comments", "52K Shares",
+  "89% Completion Rate", "5.3% Engagement", "780K Followers", "395K Views", "87% Reach",
+  "3.5% CTR", "1.8M Impressions", "285K Likes", "14K Comments", "67K Shares", "93% Completion Rate"
+];
+
+// Combined array with all influencer marketing elements
+const influencerData = [
+  ...contentCategories,
+  ...uaeLocations,
+  ...saudiLocations, 
+  ...influencerUsernames,
+  ...influencerMetrics
 ];
 
 export const generateRandomString = (length: number) => {
   let result = "";
-  const words = Math.ceil(length / 6); // Average name length ~6 chars
+  const avgLength = 8; // Average length for influencer data elements
+  const words = Math.ceil(length / avgLength);
   
   for (let i = 0; i < words; i++) {
-    const name = names[Math.floor(Math.random() * names.length)];
-    result += name;
+    const element = influencerData[Math.floor(Math.random() * influencerData.length)];
+    result += element;
     
-    // Add space between names, but not after the last one
+    // Add space between elements, but not after the last one
     if (i < words - 1) {
       result += " ";
     }

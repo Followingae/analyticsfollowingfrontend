@@ -1,41 +1,86 @@
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import UnicornScene from "unicornstudio-react";
 
-export const useWindowSize = () => {
-  const [windowSize, setWindowSize] = useState({
-    width: typeof window !== 'undefined' ? window.innerWidth : 0,
-    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+export const useContainerSize = () => {
+  const [containerSize, setContainerSize] = useState({
+    width: 0,
+    height: 0,
   });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleResize = () => {
-      setWindowSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
+      if (containerRef.current) {
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        setContainerSize({ width, height });
+      }
     };
 
-    window.addEventListener('resize', handleResize);
-    
-    // Call handler right away so state gets updated with initial window size
     handleResize();
 
-    // Remove event listener on cleanup
-    return () => window.removeEventListener('resize', handleResize);
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, []);
 
-  return windowSize;
+  return { containerSize, containerRef };
 };
 
-export const Component = () => {
+export const OpenAICodexAnimatedBackground = () => {
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const { width, height } = useWindowSize();
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDimensions({ width: rect.width, height: rect.height });
+        console.log('Background dimensions:', rect.width, rect.height);
+      }
+    };
+
+    // Initial measurement
+    updateDimensions();
+
+    // Set up observer
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Also listen for window resize
+    window.addEventListener('resize', updateDimensions);
+
+    // Retry after a short delay in case initial measurement failed
+    const timeout = setTimeout(updateDimensions, 100);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateDimensions);
+      clearTimeout(timeout);
+    };
+  }, []);
 
   return (
-    <div className={cn("flex flex-col items-center")}>
+    <div ref={containerRef} className="w-full h-full absolute inset-0" style={{ minHeight: '320px', minWidth: '100px' }}>
+      {dimensions.width > 0 && dimensions.height > 0 ? (
         <UnicornScene 
-        production={true} projectId="1grEuiVDSVmyvEMAYhA6" width={width} height={height} />
+          production={true} 
+          projectId="1grEuiVDSVmyvEMAYhA6" 
+          width={dimensions.width} 
+          height={dimensions.height} 
+        />
+      ) : (
+        <div className="w-full h-full bg-black flex items-center justify-center">
+          <span className="text-white text-sm">Loading animation...</span>
+        </div>
+      )}
     </div>
   );
 };

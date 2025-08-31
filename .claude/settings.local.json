@@ -60,7 +60,8 @@
       "Bash(PORT=3001 npm run start)",
       "WebSearch",
       "Bash(start http://localhost:3002)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "WebFetch(domain:21st.dev)"
     ],
     "deny": [],
     "additionalDirectories": [

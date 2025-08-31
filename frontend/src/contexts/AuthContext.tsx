@@ -678,10 +678,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     try {
       // Check if TokenManager considers us authenticated
-      const tokenManagerAuth = tokenManager?.isAuthenticated?.() ?? true // Default to true if not available
+      let tokenManagerAuth = true // Default to true if not available
+      if (tokenManager && typeof tokenManager.isAuthenticated === 'function') {
+        try {
+          tokenManagerAuth = tokenManager.isAuthenticated()
+          console.log('🔐 AuthContext: TokenManager auth check result:', tokenManagerAuth)
+        } catch (error) {
+          console.warn('🔐 AuthContext: TokenManager auth check failed:', error)
+          tokenManagerAuth = true // Default to true on error
+        }
+      } else {
+        console.log('🔐 AuthContext: TokenManager not available, defaulting to true')
+      }
       
       // Check if authService considers us authenticated  
-      const serviceAuth = authService?.isAuthenticated?.() ?? true // Default to true if not available
+      let serviceAuth = true // Default to true if not available
+      if (authService && typeof authService.isAuthenticated === 'function') {
+        try {
+          serviceAuth = authService.isAuthenticated()
+          console.log('🔐 AuthContext: AuthService auth check result:', serviceAuth)
+        } catch (error) {
+          console.warn('🔐 AuthContext: AuthService auth check failed:', error)
+          serviceAuth = true // Default to true on error
+        }
+      } else {
+        console.log('🔐 AuthContext: AuthService not available, defaulting to true')
+      }
       
       // All layers must agree, but be forgiving during initialization
       const result = !!(user && tokenManagerAuth && serviceAuth)
@@ -698,15 +720,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       })
       
       if (!result) {
-        console.error('🔐 AuthContext: ❌ AUTHENTICATION VALIDATION FAILED:', {
+        const errorDetails = {
           reason: !tokenManagerAuth ? 'TokenManager failed' : !serviceAuth ? 'AuthService failed' : 'Unknown',
           hasUser: !!user,
           tokenManagerAuth,
           serviceAuth,
           tokenManagerReady: !!tokenManager?.isAuthenticated,
           serviceReady: !!authService?.isAuthenticated,
-          finalResult: result
-        })
+          finalResult: result,
+          tokenManagerExists: !!tokenManager,
+          authServiceExists: !!authService
+        }
+        console.error('🔐 AuthContext: ❌ AUTHENTICATION VALIDATION FAILED:', errorDetails)
       } else {
         console.log('🔐 AuthContext: ✅ Authentication validation PASSED')
       }

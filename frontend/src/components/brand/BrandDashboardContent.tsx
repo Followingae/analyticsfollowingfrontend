@@ -103,6 +103,13 @@ export function BrandDashboardContent() {
   const [activeCampaignsCount, setActiveCampaignsCount] = useState<number>(0)
   const [campaignsLoading, setCampaignsLoading] = useState(true)
   
+  // Animation states for sequential loading
+  const [showWelcome, setShowWelcome] = useState(false)
+  const [showMetrics, setShowMetrics] = useState(false)
+  const [showDiscovery, setShowDiscovery] = useState(false)
+  const [showAnalytics, setShowAnalytics] = useState(false)
+  const [showCampaignStats, setShowCampaignStats] = useState(false)
+  
 
   // Load teams overview
   useEffect(() => {
@@ -225,6 +232,21 @@ export function BrandDashboardContent() {
     loadActiveCampaigns()
   }, [user])
 
+  // Sequential loading animation effect
+  useEffect(() => {
+    if (!isLoading && user) {
+      const timeouts = [
+        setTimeout(() => setShowWelcome(true), 100),        // Welcome first
+        setTimeout(() => setShowMetrics(true), 300),        // Metrics after 300ms
+        setTimeout(() => setShowDiscovery(true), 600),      // Discovery after 600ms  
+        setTimeout(() => setShowAnalytics(true), 900),      // Analytics after 900ms
+        setTimeout(() => setShowCampaignStats(true), 1200), // Campaign stats after 1200ms
+      ]
+
+      return () => timeouts.forEach(timeout => clearTimeout(timeout))
+    }
+  }, [isLoading, user])
+
 
   // Brand analytics data - dynamic Your Plan card
   const brandMetrics = [
@@ -281,7 +303,9 @@ export function BrandDashboardContent() {
         {/* Welcome Header & Analytics */}
         <div className="grid gap-6 grid-cols-12">
           {/* Welcome Section - 30% width */}
-          <div className="col-span-4">
+          <div className={`col-span-4 transition-all duration-500 ease-out ${
+            showWelcome ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}>
             <Card className="@container/card h-full welcome-card">
               <CardHeader>
                 {userDisplayData && (
@@ -308,13 +332,20 @@ export function BrandDashboardContent() {
           <div className="col-span-8">
             <div className="grid gap-4 grid-cols-3">
               {brandMetrics.slice(0, 3).map((metric, index) => (
-                <MetricCard
+                <div
                   key={index}
-                  title={metric.title}
-                  value={metric.value}
-                  change={metric.change}
-                  icon={metric.icon}
-                />
+                  className={`transition-all duration-500 ease-out ${
+                    showMetrics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                  }`}
+                  style={{ transitionDelay: `${index * 100}ms` }}
+                >
+                  <MetricCard
+                    title={metric.title}
+                    value={metric.value}
+                    change={metric.change}
+                    icon={metric.icon}
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -323,22 +354,33 @@ export function BrandDashboardContent() {
         {/* Smart Discovery Section */}
         <div className="grid gap-6 grid-cols-12">
           {/* Smart Discovery Component */}
-          <div className="col-span-6">
-            <SmartDiscovery 
-              onDiscover={() => {
-                // Navigate to discovery page
-                router.push('/discovery')
-              }}
-            />
+          <div className={`col-span-6 transition-all duration-500 ease-out ${
+            showDiscovery ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}>
+            <div className="h-[320px]">
+              <SmartDiscovery 
+                onDiscover={() => {
+                  // Navigate to discover page
+                  router.push('/discover')
+                }}
+                className="h-full"
+              />
+            </div>
           </div>
           {/* Profile Analysis Chart */}
-          <div className="col-span-3">
+          <div className={`col-span-3 transition-all duration-500 ease-out ${
+            showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+          style={{ transitionDelay: '100ms' }}>
             <div className="h-[320px]">
               <ChartProfileAnalysis />
             </div>
           </div>
           {/* Post Analytics Chart */}
-          <div className="col-span-3">
+          <div className={`col-span-3 transition-all duration-500 ease-out ${
+            showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+          style={{ transitionDelay: '200ms' }}>
             <div className="h-[320px]">
               <ChartPostAnalytics />
             </div>
@@ -348,7 +390,9 @@ export function BrandDashboardContent() {
         {/* Recent Campaign Stats Section */}
         <div className="grid gap-6 grid-cols-12">
           {/* Recent Campaign Stats */}
-          <div className="col-span-12">
+          <div className={`col-span-12 transition-all duration-500 ease-out ${
+            showCampaignStats ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}>
             <div className="h-[320px]">
               <ChartBarInteractive />
             </div>

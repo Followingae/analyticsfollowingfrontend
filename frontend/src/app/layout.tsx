@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { EnhancedAuthProvider } from "@/contexts/EnhancedAuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,6 +32,7 @@ export const metadata: Metadata = {
   description: "Professional Instagram Analytics Platform with AI-powered insights, SmartProxy integration, and comprehensive social media analytics.",
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -39,21 +41,23 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${aedFont.variable} font-sans antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AuthProvider>
-            <EnhancedAuthProvider>
-              <NotificationProvider>
-                {children}
-                <Toaster />
-              </NotificationProvider>
-            </EnhancedAuthProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <AuthProvider>
+              <EnhancedAuthProvider>
+                <NotificationProvider>
+                  {children}
+                  <Toaster />
+                </NotificationProvider>
+              </EnhancedAuthProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );
