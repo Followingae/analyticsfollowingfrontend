@@ -9,7 +9,7 @@ import { useCDNProcessingStatus, useCDNMediaRefresh } from "@/hooks/useCDNMedia"
 import { toast } from "sonner"
 
 interface CDNProcessingStatusProps {
-  profileId: string
+  username: string
   className?: string
   variant?: 'compact' | 'detailed'
   showRefreshButton?: boolean
@@ -19,17 +19,17 @@ interface CDNProcessingStatusProps {
  * Component to display CDN processing status for media assets
  */
 export function CDNProcessingStatus({
-  profileId,
+  username,
   className,
   variant = 'compact',
   showRefreshButton = true
 }: CDNProcessingStatusProps) {
-  const processingStatus = useCDNProcessingStatus(profileId)
+  const processingStatus = useCDNProcessingStatus(username)
   const refreshMutation = useCDNMediaRefresh()
 
   const handleRefresh = React.useCallback(() => {
-    refreshMutation.mutate(profileId)
-  }, [refreshMutation, profileId])
+    refreshMutation.mutate(username)
+  }, [refreshMutation, username])
 
   // Don't show anything if not processing
   if (!processingStatus.isProcessing && processingStatus.completionPercentage >= 100) {
@@ -138,17 +138,17 @@ export function InlineProcessingIndicator({
  * Global CDN status banner for when system is processing
  */
 interface CDNStatusBannerProps {
-  profileId?: string
+  username?: string
   show?: boolean
   onDismiss?: () => void
 }
 
 export function CDNStatusBanner({ 
-  profileId, 
+  username, 
   show = true,
   onDismiss 
 }: CDNStatusBannerProps) {
-  const processingStatus = useCDNProcessingStatus(profileId || '')
+  const processingStatus = useCDNProcessingStatus(username || '')
   const [dismissed, setDismissed] = React.useState(false)
 
   const handleDismiss = React.useCallback(() => {

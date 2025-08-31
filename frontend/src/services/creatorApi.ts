@@ -259,8 +259,23 @@ const getTeamToken = (): string => {
 };
 
 const createHeaders = (includeContentType: boolean = true): HeadersInit => {
+  const teamToken = getTeamToken();
+  const authToken = getAuthToken();
+  const token = teamToken || authToken;
+  
+  console.log('🔍 CreatorAPI: Creating headers with token:', {
+    hasTeamToken: !!teamToken,
+    hasAuthToken: !!authToken,
+    tokenUsed: token ? `${token.substring(0, 20)}...` : 'NO TOKEN',
+    tokenLength: token?.length || 0
+  });
+
+  if (!token) {
+    console.warn('🔍 CreatorAPI: ⚠️ No authentication token available - API calls will fail');
+  }
+  
   const headers: HeadersInit = {
-    'Authorization': `Bearer ${getTeamToken() || getAuthToken()}`,
+    'Authorization': `Bearer ${token}`,
   };
   
   if (includeContentType) {
@@ -504,20 +519,40 @@ class CreatorApiService {
     const url = `${this.baseUrl}/unlocked?${params}`;
     
     try {
+      const headers = createHeaders(false);
       console.log('🔍 CreatorAPI: Fetching unlocked creators from:', url);
-      console.log('🔍 CreatorAPI: Headers:', createHeaders(false));
+      console.log('🔍 CreatorAPI: Request headers:', headers);
       
       const response = await fetch(url, {
         method: 'GET',
-        headers: createHeaders(false)
+        headers
       });
 
       console.log('🔍 CreatorAPI: Response status:', response.status);
       console.log('🔍 CreatorAPI: Response headers:', Object.fromEntries(response.headers));
 
+      // Handle authentication errors specifically
+      if (response.status === 401 || response.status === 403) {
+        const errorText = await response.text();
+        console.error('🔍 CreatorAPI: Authentication error:', errorText);
+        return {
+          success: false,
+          error: `Authentication failed: ${errorText}. Please log in again.`
+        };
+      }
+
       return await handleResponse<UnlockedCreatorsResponse>(response);
     } catch (error) {
       console.error('🔍 CreatorAPI: Network error:', error);
+      
+      // Check if it's a network connectivity issue
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        return {
+          success: false,
+          error: 'Network connection failed. Please check your internet connection or try logging in again.'
+        };
+      }
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get unlocked creators'

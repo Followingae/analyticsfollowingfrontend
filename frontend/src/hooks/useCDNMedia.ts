@@ -4,19 +4,23 @@ import { authService } from '@/services/authService';
 import { toast } from 'sonner';
 
 /**
- * Hook to fetch CDN media for a profile
+ * Hook to fetch CDN media for a profile - now uses profile search response
+ * Note: This hook is kept for backward compatibility but now searches by username
  */
-export function useCDNMedia(profileId: string, enabled: boolean = true) {
+export function useCDNMedia(username: string, enabled: boolean = true) {
   return useQuery({
-    queryKey: ['cdn-media', profileId],
-    queryFn: async (): Promise<CDNMediaResponse> => {
+    queryKey: ['cdn-media', username],
+    queryFn: async (): Promise<CDNMediaResponse | null> => {
       const token = authService.getToken();
       if (!token) {
         throw new Error('No authentication token');
       }
-      return cdnMediaService.getCDNMedia(profileId, token);
+      
+      // Get profile with media data from main search endpoint
+      const profileData = await cdnMediaService.getProfileWithCDN(username, token);
+      return cdnMediaService.extractMediaFromProfile(profileData);
     },
-    enabled: enabled && !!profileId,
+    enabled: enabled && !!username,
     staleTime: 10 * 60 * 1000, // 10 minutes - CDN URLs are immutable
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -44,27 +48,27 @@ export function useProfileWithCDN(username: string, enabled: boolean = true) {
 }
 
 /**
- * Hook to refresh CDN media (trigger reprocessing)
+ * Hook to refresh profile data (which includes media)
  */
 export function useCDNMediaRefresh() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (profileId: string) => {
+    mutationFn: async (username: string) => {
       const token = authService.getToken();
       if (!token) {
         throw new Error('No authentication token');
       }
-      return cdnMediaService.refreshCDNMedia(profileId, token);
+      return cdnMediaService.refreshProfileData(username, token);
     },
-    onSuccess: (data, profileId) => {
-      toast.success('CDN media refresh initiated');
+    onSuccess: (data, username) => {
+      toast.success('Profile data refresh initiated');
       // Invalidate both CDN media and profile queries
-      queryClient.invalidateQueries({ queryKey: ['cdn-media', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['cdn-media', username] });
       queryClient.invalidateQueries({ queryKey: ['profile-with-cdn'] });
     },
     onError: (error: Error) => {
-      toast.error(`Failed to refresh media: ${error.message}`);
+      toast.error(`Failed to refresh profile: ${error.message}`);
     },
   });
 }
@@ -94,8 +98,8 @@ export function useOptimalImageUrl(
 /**
  * Hook to check CDN processing status
  */
-export function useCDNProcessingStatus(profileId: string) {
-  const { data: cdnData, isLoading, error } = useCDNMedia(profileId);
+export function useCDNProcessingStatus(username: string) {
+  const { data: cdnData, isLoading, error } = useCDNMedia(username);
 
   if (isLoading || error || !cdnData) {
     return {
@@ -120,10 +124,10 @@ export function useCDNProcessingStatus(profileId: string) {
  * Custom hook for progressive image loading with CDN migration
  */
 export function useProgressiveImageLoading(
-  profileId: string | undefined,
+  username: string | undefined,
   originalImageUrl: string | undefined | null
 ) {
-  const { data: cdnData, isLoading: cdnLoading } = useCDNMedia(profileId || '', !!profileId);
+  const { data: cdnData, isLoading: cdnLoading } = useCDNMedia(username || '', !!username);
 
   // Determine the best image URL to use
   const imageUrl = useOptimalImageUrl(

@@ -64,40 +64,85 @@ class CDNMediaService {
   private baseUrl = API_CONFIG.BASE_URL;
 
   /**
-   * Get CDN media URLs for a profile
+   * Extract media data from profile response (media is included in main search response)
    */
-  async getCDNMedia(profileId: string, token: string): Promise<CDNMediaResponse> {
-    const response = await fetch(`${this.baseUrl}/api/v1/creators/ig/${profileId}/media`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch CDN media: ${response.status}`);
+  extractMediaFromProfile(profileData: any): CDNMediaResponse | null {
+    if (!profileData?.profile) {
+      return null;
     }
 
-    return response.json();
+    const profile = profileData.profile;
+    
+    // Check if media object exists in profile response
+    if (profile.media) {
+      return {
+        profile_id: profile.id,
+        avatar: {
+          256: profile.media.avatar?.['256'] || profile.profile_pic_url || '',
+          512: profile.media.avatar?.['512'] || profile.profile_pic_url_hd || '',
+          available: profile.media.avatar?.available || false,
+          placeholder: profile.media.avatar?.placeholder || false
+        },
+        posts: profile.media.posts || [],
+        processing_status: profile.media.processing_status || {
+          queued: false,
+          total_assets: 0,
+          completed_assets: 0,
+          completion_percentage: 100
+        },
+        cdn_info: profile.media.cdn_info || {
+          base_url: 'https://cdn.following.ae',
+          cache_ttl: '86400',
+          immutable_urls: true
+        }
+      };
+    }
+
+    // Fallback: create media structure from basic profile data
+    return {
+      profile_id: profile.id,
+      avatar: {
+        256: profile.profile_pic_url || '',
+        512: profile.profile_pic_url_hd || '',
+        available: !!profile.profile_pic_url,
+        placeholder: !profile.profile_pic_url
+      },
+      posts: [],
+      processing_status: {
+        queued: false,
+        total_assets: 0,
+        completed_assets: 0,
+        completion_percentage: 100
+      },
+      cdn_info: {
+        base_url: 'https://cdn.following.ae',
+        cache_ttl: '86400',
+        immutable_urls: true
+      }
+    };
   }
 
   /**
-   * Refresh CDN media for a profile (optional endpoint)
+   * Refresh profile data (which includes media) using force_refresh
    */
-  async refreshCDNMedia(profileId: string, token: string): Promise<{ success: boolean; message: string }> {
-    const response = await fetch(`${this.baseUrl}/api/v1/creators/ig/${profileId}/media/refresh`, {
+  async refreshProfileData(username: string, token: string): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${this.baseUrl}/api/v1/creator/search/${username}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ 
+        force_refresh: true,
+        include_posts: true 
+      }),
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to refresh CDN media: ${response.status}`);
+      throw new Error(`Failed to refresh profile data: ${response.status}`);
     }
 
-    return response.json();
+    return { success: true, message: 'Profile data refreshed successfully' };
   }
 
   /**
@@ -126,11 +171,11 @@ class CDNMediaService {
         throw new Error('Profile ID not found in response');
       }
 
-      // Step 2: Get CDN URLs (NEW endpoint)
-      try {
-        const cdnData = await this.getCDNMedia(profile.id, token);
-
-        // Return profile with CDN URLs
+      // Step 2: Extract media data from profile response (already included)
+      const cdnData = this.extractMediaFromProfile(profileData);
+      
+      if (cdnData) {
+        // Return profile with structured media data
         return {
           ...profileData,
           cdnMedia: {
@@ -148,10 +193,25 @@ class CDNMediaService {
             processing: cdnData.processing_status,
           },
         };
-      } catch (cdnError) {
-        // Fallback: Return profile without CDN data if CDN fetch fails
-        console.warn('CDN data fetch failed, falling back to original profile:', cdnError);
-        return profileData;
+      } else {
+        // Return profile with basic avatar URLs from profile data
+        return {
+          ...profileData,
+          cdnMedia: {
+            avatar: {
+              small: profile.profile_pic_url || '',
+              large: profile.profile_pic_url_hd || '',
+              available: !!profile.profile_pic_url,
+            },
+            posts: [],
+            processing: {
+              queued: false,
+              total_assets: 0,
+              completed_assets: 0,
+              completion_percentage: 100
+            },
+          },
+        };
       }
     } catch (error) {
       console.error('Profile/CDN fetch failed:', error);

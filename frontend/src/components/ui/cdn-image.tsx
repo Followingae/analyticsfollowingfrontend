@@ -10,7 +10,7 @@ interface CDNImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallbackUrl?: string | null
   size?: 'small' | 'large'
   showProcessing?: boolean
-  profileId?: string
+  username?: string
 }
 
 /**
@@ -21,7 +21,7 @@ export function CDNImage({
   fallbackUrl,
   size = 'large',
   showProcessing = false,
-  profileId,
+  username,
   className,
   alt,
   ...props
@@ -29,8 +29,8 @@ export function CDNImage({
   const optimalUrl = useOptimalImageUrl(cdnUrl, fallbackUrl, size)
   const [hasError, setHasError] = React.useState(false)
   
-  // Get processing status if profileId is provided
-  const processingStatus = useCDNProcessingStatus(profileId || '')
+  // Get processing status if username is provided
+  const processingStatus = useCDNProcessingStatus(username || '')
 
   const handleError = React.useCallback(() => {
     setHasError(true)
@@ -134,7 +134,7 @@ export function ProfileAvatar({
         fallbackUrl={fallbackUrl}
         size={imageSize}
         showProcessing={showProcessing}
-        profileId={profile.id}
+        username={profile.username}
         alt={profile.full_name || profile.username || 'Profile'}
         className="w-full h-full"
       />

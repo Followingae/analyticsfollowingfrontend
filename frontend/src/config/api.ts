@@ -26,6 +26,9 @@ export const ENDPOINTS = {
     
     // Background Processing
     scheduleAnalysis: (username: string) => `/api/v1/creator/${username}/schedule-analysis`, // POST - Schedule analysis
+    
+    // Unlocked creators
+    unlocked: '/api/v1/creator/unlocked', // GET - List all unlocked creators
   },
 
   // Legacy Profile Endpoints (Deprecated - use creator endpoints above)
@@ -79,7 +82,6 @@ export const ENDPOINTS = {
     verifyEmail: (token: string) => `/api/v1/auth/verify-email/${token}`,
     me: '/api/v1/auth/me',
     logout: '/api/v1/auth/logout',
-    unlockedProfiles: '/api/v1/auth/unlocked-profiles',
   },
 
   // Credits & Financial Management

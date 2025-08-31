@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { creatorApiService } from "@/services/creatorApi"
 import { useCreatorSearch } from "@/hooks/useCreatorSearch"
 import { CreatorProfile, UnlockedCreatorsResponse } from "@/types/creator"
@@ -134,6 +135,9 @@ export default function CreatorsPage() {
     hasNext: false
   })
   const router = useRouter()
+  
+  // Authentication state
+  const { isAuthenticated, isLoading: authLoading } = useEnhancedAuth()
 
   // Creator search hook for new search functionality
   const {
@@ -150,27 +154,31 @@ export default function CreatorsPage() {
     clearSearch
   } = useCreatorSearch()
 
-  // Load unlocked profiles from backend using working authService API
+  // Load unlocked profiles from backend using creatorApiService
   const loadUnlockedProfiles = async (page: number = 1) => {
     setUnlockedLoading(true)
     setUnlockedError(null)
     try {
-      // Import authService dynamically to avoid issues
-      const { authService } = await import('@/services/authService')
-      const result = await authService.getUnlockedProfiles()
+      // Use the correct creatorApiService with proper pagination
+      const { creatorApiService } = await import('@/services/creatorApi')
+      const result = await creatorApiService.getUnlockedCreators({
+        page,
+        page_size: 20
+      })
 
-      console.log('🔍 Creators: Auth service result:', result)
+      console.log('🔍 Creators: Creator API service result:', result)
 
       if (result.success && result.data) {
-        // Convert the data to match CreatorProfile format and update with deduplication
-        const profiles = Array.isArray(result.data) ? result.data : []
-        updateUnlockedCreators(profiles, 'replace')
+        // Use the creators array from the API response
+        const profiles = result.data.creators || []
+        updateUnlockedCreators(profiles, page === 1 ? 'replace' : 'append')
         
-        // Since authService doesn't have pagination, set basic pagination
+        // Update pagination based on API response
+        const paginationInfo = result.data.pagination || {}
         setPagination({
-          page: 1,
-          totalPages: 1,
-          hasNext: false
+          page: paginationInfo.page || 1,
+          totalPages: paginationInfo.total_pages || 1,
+          hasNext: paginationInfo.has_more || false
         })
         setUnlockedError(null)
         
@@ -189,10 +197,21 @@ export default function CreatorsPage() {
     }
   }
 
-  // Load data on component mount
+  // Load data on component mount, but only when authenticated
   useEffect(() => {
-    loadUnlockedProfiles()
-  }, [])
+    console.log('🔍 Creators: Auth status:', { isAuthenticated, authLoading })
+    
+    // Only load unlocked profiles if user is authenticated and not loading
+    if (isAuthenticated && !authLoading) {
+      console.log('🔍 Creators: User is authenticated, loading unlocked profiles')
+      loadUnlockedProfiles()
+    } else if (!authLoading && !isAuthenticated) {
+      console.log('🔍 Creators: User is not authenticated, skipping API call')
+      // Clear any existing data when not authenticated
+      setUnlockedProfiles([])
+      setUnlockedError('Please log in to view unlocked creators')
+    }
+  }, [isAuthenticated, authLoading])
 
   // Automatically add search results to the list when they complete
   useEffect(() => {

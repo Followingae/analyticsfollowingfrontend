@@ -33,7 +33,7 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
   
   // Get CDN data for profile images
-  const { data: cdnData } = useCDNMedia(profile?.phase1?.profile_header?.id || '', !!profile?.phase1?.profile_header?.id)
+  const { data: cdnData } = useCDNMedia(username, true)
 
   // Load Phase 1 data immediately
   const loadPhase1Data = async () => {

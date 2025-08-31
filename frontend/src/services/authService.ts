@@ -912,7 +912,7 @@ class AuthService {
       return { success: false, error: 'Failed to load unlocked creators: No authentication token' }
     }
     try {
-      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.auth.unlockedProfiles}`, {
+      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.creator.unlocked}`, {
         method: 'GET',
         headers: {
           ...REQUEST_HEADERS,
