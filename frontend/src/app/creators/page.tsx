@@ -139,7 +139,7 @@ export default function CreatorsPage() {
   // Authentication state
   const { isAuthenticated, isLoading: authLoading } = useEnhancedAuth()
 
-  // Creator search hook for new search functionality
+  // Creator search hook for simple flow search functionality
   const {
     profile: searchedProfile,
     loading: searchLoading,
@@ -147,10 +147,8 @@ export default function CreatorsPage() {
     aiAnalyzing,
     aiComplete,
     error: searchError,
-    analysisStatus,
     stage: searchStage,
     searchCreator,
-    retryAnalysis,
     clearSearch
   } = useCreatorSearch()
 
@@ -208,7 +206,7 @@ export default function CreatorsPage() {
     } else if (!authLoading && !isAuthenticated) {
       console.log('🔍 Creators: User is not authenticated, skipping API call')
       // Clear any existing data when not authenticated
-      setUnlockedProfiles([])
+      setUnlockedCreators([])
       setUnlockedError('Please log in to view unlocked creators')
     }
   }, [isAuthenticated, authLoading])
@@ -227,7 +225,7 @@ export default function CreatorsPage() {
     await loadUnlockedProfiles()
   }
 
-  // Handle individual creator search
+  // Handle individual creator search with simple flow
   const handleSearchCreator = async () => {
     if (!searchUsername.trim()) {
       toast.error("Please enter an Instagram username")
@@ -235,10 +233,13 @@ export default function CreatorsPage() {
     }
     
     const cleanUsername = searchUsername.trim().replace('@', '')
+    console.log('🚀 Creators: Starting simple flow search for:', cleanUsername)
+    
     await searchCreator(cleanUsername, { show_progress: true })
     setSearchUsername("")
     
     // Note: Search results are automatically added via useEffect
+    // Simple flow provides complete data with AI analysis in single call
   }
 
   const handleBulkAnalysis = async () => {
@@ -635,22 +636,11 @@ export default function CreatorsPage() {
                       <CreatorCard creator={searchedProfile} />
                       
                       {/* AI Analysis Status */}
-                      {(aiAnalyzing || analysisStatus) && (
-                        <div className="space-y-4">
-                          {analysisStatus && (
-                            <AnalysisStatusCard 
-                              status={analysisStatus}
-                              onRetry={retryAnalysis}
-                            />
-                          )}
-                          
-                          {searchedProfile.ai_insights && (
-                            <AIInsightsCard 
-                              insights={searchedProfile.ai_insights}
-                              className="h-fit"
-                            />
-                          )}
-                        </div>
+                      {searchedProfile.ai_insights && (
+                        <AIInsightsCard 
+                          insights={searchedProfile.ai_insights}
+                          className="h-fit"
+                        />
                       )}
                     </div>
                   )}

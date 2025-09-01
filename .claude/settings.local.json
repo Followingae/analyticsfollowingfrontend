@@ -61,7 +61,9 @@
       "WebSearch",
       "Bash(start http://localhost:3002)",
       "Bash(dir:*)",
-      "WebFetch(domain:21st.dev)"
+      "WebFetch(domain:21st.dev)",
+      "Bash(kill:*)",
+      "Bash(netstat:*)"
     ],
     "deny": [],
     "additionalDirectories": [

@@ -307,6 +307,63 @@ export interface NotificationResponse {
   detailed_search: SearchNotification
 }
 
+// NEW: Simple Flow Response Structure
+export interface SimpleFlowResponse {
+  success: boolean;
+  profile: {
+    // Core Profile Data
+    username: string;
+    full_name: string;
+    biography: string;
+    followers_count: number;
+    following_count: number;
+    posts_count: number;
+    is_verified: boolean;
+
+    // CDN URLs (following.ae) - NEVER Instagram direct URLs
+    profile_pic_url: string;        // CDN 256px (primary)
+    profile_pic_url_hd: string;     // CDN 512px (HD)
+    cdn_urls: {
+      avatar_256: string;           // CDN avatar URLs
+      avatar_512: string;
+    };
+
+    // Posts with AI Analysis + CDN URLs
+    posts: Array<{
+      id: string;
+      caption: string;
+      likes_count: number;
+      comments_count: number;
+      display_url: string;          // CDN URL (256px)
+      cdn_urls?: {                  // All CDN sizes
+        "256": string;
+        "512": string;
+      };
+
+      // Complete AI Analysis
+      ai_analysis: {
+        content_category: string;    // Fashion, Tech, Travel, etc.
+        category_confidence: number; // 0.0-1.0
+        sentiment: string;          // positive/negative/neutral
+        sentiment_score: number;    // -1.0 to +1.0
+        language_code: string;      // ISO language code
+        language_confidence: number; // 0.0-1.0
+      };
+    }>;
+
+    // AI Profile Aggregates
+    ai_analysis: {
+      primary_content_type: string;           // Main content category
+      content_distribution: object;          // {"Fashion": 0.4, "Travel": 0.3}
+      avg_sentiment_score: number;           // Average sentiment
+      language_distribution: object;         // {"en": 0.8, "ar": 0.2}
+      content_quality_score: number;         // 0.0-1.0 quality score
+      analysis_completed: boolean;           // AI analysis status
+    };
+  };
+  message: string;
+}
+
 // Main API response structure - Updated for team authentication system
 export interface ProfileResponse {
   success: boolean
@@ -583,7 +640,7 @@ export class InstagramApiService {
   /**
    * NEW: Step 1 - Get Basic Profile Data (Progressive Loading)
    * Uses: GET /api/v1/team/instagram/profile/{username}/basic
-   * Purpose: Immediate basic data response (1-3 seconds)
+   * Purpose: Immediate basic data response (no frontend timeout)
    * Returns: Basic profile info without AI insights
    */
   async getBasicProfile(username: string): Promise<BasicProfileResponse> {
@@ -595,7 +652,7 @@ export class InstagramApiService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ force_refresh: false })
-      }, 0, 10000) // 10 second timeout for complete data
+      }) // No timeout - let backend handle timing
       
       // Validate response structure
       if (!response) {
@@ -637,7 +694,7 @@ export class InstagramApiService {
   /**
    * NEW: Step 2 - Check AI Processing Status (Progressive Loading)  
    * Uses: GET /api/v1/team/instagram/profile/{username}/status
-   * Purpose: Poll to check if AI analysis is complete
+   * Purpose: Poll to check if AI analysis is complete (no frontend timeout)
    */
   async getProfileStatus(username: string): Promise<{ success: boolean; data?: { analysis_status: 'processing' | 'completed'; estimated_completion?: number }; error?: string }> {
     try {
@@ -651,7 +708,7 @@ export class InstagramApiService {
         }
       }>(ENDPOINTS.creator.status(username), {
         method: 'GET'
-      }, 0, 3000) // 3 second timeout for status check
+      }) // No timeout - let backend handle timing
       
       return {
         success: true,
@@ -668,14 +725,14 @@ export class InstagramApiService {
   /**
    * NEW: Step 3 - Get Detailed Profile Data with AI Insights (Progressive Loading)
    * Uses: GET /api/v1/team/instagram/profile/{username}/detailed
-   * Purpose: Complete data with AI insights when ready
+   * Purpose: Complete data with AI insights when ready (no frontend timeout)
    */
   async getDetailedProfile(username: string): Promise<BasicProfileResponse> {
     try {
       // FIXED: Use new creator detailed endpoint with GET method
       const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.creator.detailed(username), {
         method: 'GET'
-      }, 0, 10000) // 10 second timeout for detailed data
+      }) // No timeout - let backend handle timing
       
       // Validate response structure
       if (!response) {
@@ -743,7 +800,7 @@ export class InstagramApiService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ force_refresh: false })
-      }, 0, 10000)
+      }) // No timeout - let backend handle timing
       
       if (!response) {
         throw new Error('Empty response received from backend')
@@ -1340,6 +1397,54 @@ export class InstagramApiService {
     }
   }
 
+  /**
+   * 🚀 NEW: Simple Flow Profile Search (Single-Stage)
+   * Uses: POST /api/v1/simple/creator/search/{username}
+   * Returns: Complete data with AI analysis and CDN URLs in one response
+   * Purpose: Single API call with no frontend timeout - backend handles timing
+   */
+  async getProfileSimple(username: string): Promise<ApiResponse<SimpleFlowResponse>> {
+    try {
+      const response = await this.makeRequest<SimpleFlowResponse>(
+        `/api/v1/simple/creator/search/${username}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }
+        // No timeout - let backend handle timing
+      );
+
+      if (!response || !response.profile) {
+        throw new Error('No profile data received');
+      }
+
+      return {
+        success: true,
+        data: response
+      };
+    } catch (error: any) {
+      console.error('Simple profile search error:', error);
+      
+      if (error instanceof TeamUsageLimitError) {
+        return {
+          success: false,
+          error: `Team ${error.usageType} limit exceeded. Used: ${error.currentUsage}/${error.limit}, Available: ${error.available}. Consider upgrading your ${error.tier} plan.`
+        }
+      }
+      if (error instanceof TeamAccessError) {
+        return {
+          success: false,
+          error: error.message
+        }
+      }
+      
+      return {
+        success: false,
+        error: error.message || 'Failed to search creator'
+      };
+    }
+  }
+
   // Legacy compatibility methods - all redirect to main getProfile
   async getDecodoOnlyAnalysis(username: string): Promise<CompleteProfileResponse> {
     return this.getProfile(username)
@@ -1360,7 +1465,7 @@ export class InstagramApiService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ force_refresh: false })
-      }, 0, 120000) // 2 minutes timeout for AI analysis
+      }) // No timeout - let backend handle timing
       
       if (!response) {
         throw new Error('Empty response received from backend')
