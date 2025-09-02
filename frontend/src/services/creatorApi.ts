@@ -3,6 +3,8 @@
  * Comprehensive replacement for Instagram API with AI-powered insights
  */
 
+import { UsageStatsResponse } from '@/types/creator';
+
 // Base API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 const API_VERSION = '/api/v1';
@@ -245,10 +247,10 @@ const getAuthToken = (): string => {
   try {
     const { tokenManager } = require('@/utils/tokenManager');
     const token = tokenManager.getTokenSync();
-    console.log('🔍 CreatorAPI: Retrieved auth token via TokenManager:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN FOUND');
+
     return token || '';
   } catch (error) {
-    console.error('🔍 CreatorAPI: Error accessing TokenManager:', error);
+
     return '';
   }
 };
@@ -262,16 +264,9 @@ const createHeaders = (includeContentType: boolean = true): HeadersInit => {
   const teamToken = getTeamToken();
   const authToken = getAuthToken();
   const token = teamToken || authToken;
-  
-  console.log('🔍 CreatorAPI: Creating headers with token:', {
-    hasTeamToken: !!teamToken,
-    hasAuthToken: !!authToken,
-    tokenUsed: token ? `${token.substring(0, 20)}...` : 'NO TOKEN',
-    tokenLength: token?.length || 0
-  });
 
   if (!token) {
-    console.warn('🔍 CreatorAPI: ⚠️ No authentication token available - API calls will fail');
+    throw new Error('No authentication token found');
   }
   
   const headers: HeadersInit = {
@@ -318,7 +313,8 @@ class CreatorApiService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = `${API_BASE_URL}${API_VERSION}/creator`;
+    // ✅ CORRECTED: Use Simple Flow endpoints
+    this.baseUrl = `${API_BASE_URL}${API_VERSION}/simple/creator`;
   }
 
   /**
@@ -520,21 +516,21 @@ class CreatorApiService {
     
     try {
       const headers = createHeaders(false);
-      console.log('🔍 CreatorAPI: Fetching unlocked creators from:', url);
-      console.log('🔍 CreatorAPI: Request headers:', headers);
+
+
       
       const response = await fetch(url, {
         method: 'GET',
         headers
       });
 
-      console.log('🔍 CreatorAPI: Response status:', response.status);
-      console.log('🔍 CreatorAPI: Response headers:', Object.fromEntries(response.headers));
+
+
 
       // Handle authentication errors specifically
       if (response.status === 401 || response.status === 403) {
         const errorText = await response.text();
-        console.error('🔍 CreatorAPI: Authentication error:', errorText);
+
         return {
           success: false,
           error: `Authentication failed: ${errorText}. Please log in again.`
@@ -543,7 +539,7 @@ class CreatorApiService {
 
       return await handleResponse<UnlockedCreatorsResponse>(response);
     } catch (error) {
-      console.error('🔍 CreatorAPI: Network error:', error);
+
       
       // Check if it's a network connectivity issue
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
@@ -585,14 +581,23 @@ class CreatorApiService {
    */
   async getUsageStats(): Promise<ApiResponse<UsageStatsResponse>> {
     const url = `${this.baseUrl}/system/stats`;
+
     
     try {
+      const headers = createHeaders(false);
+
+      
       const response = await fetch(url, {
         method: 'GET',
-        headers: createHeaders(false)
+        headers
       });
 
-      return await handleResponse<UsageStatsResponse>(response);
+
+
+      
+      const result = await handleResponse<UsageStatsResponse>(response);
+
+      return result;
     } catch (error) {
       return {
         success: false,
@@ -687,7 +692,7 @@ export default creatorApiService;
  * @deprecated Use creatorApiService.searchCreator() instead
  */
 export const searchProfile = (username: string) => {
-  console.warn('searchProfile is deprecated. Use creatorApiService.searchCreator() instead.');
+
   return creatorApiService.searchCreator(username);
 };
 
@@ -695,6 +700,6 @@ export const searchProfile = (username: string) => {
  * @deprecated Use creatorApiService.getUnlockedCreators() instead
  */
 export const getUnlockedProfiles = (page: number = 1, pageSize: number = 20) => {
-  console.warn('getUnlockedProfiles is deprecated. Use creatorApiService.getUnlockedCreators() instead.');
+
   return creatorApiService.getUnlockedCreators({ page, page_size: pageSize });
 };

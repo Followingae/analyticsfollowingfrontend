@@ -56,7 +56,7 @@ export function AccessStatus({
           setPricing(result.data)
         }
       } catch (error) {
-        console.error('Failed to load pricing:', error)
+
       } finally {
         setPricingLoading(false)
       }
@@ -195,7 +195,7 @@ export function AccessUpgradePrompt({ username, onUnlock, isUnlocking }: {
           setPricing(result.data)
         }
       } catch (error) {
-        console.error('Failed to load pricing:', error)
+
       } finally {
         setPricingLoading(false)
       }

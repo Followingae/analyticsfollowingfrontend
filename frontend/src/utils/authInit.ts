@@ -28,9 +28,9 @@ export async function initializeAuth(): Promise<void> {
   try {
     await initPromise
     isInitialized = true
-    console.log('✅ Authentication system initialized successfully')
+
   } catch (error) {
-    console.error('❌ Authentication initialization failed:', error)
+
     initPromise = null
     throw error
   }
@@ -43,7 +43,7 @@ async function performInitialization(): Promise<void> {
   // Wait a moment for cleanup to complete
   await new Promise(resolve => setTimeout(resolve, 10))
   
-  console.log('🔧 TokenManager initialized and ready')
+
 }
 
 /**
@@ -75,7 +75,7 @@ if (typeof window !== 'undefined') {
   // Use setTimeout to avoid blocking the main thread
   setTimeout(() => {
     initializeAuth().catch(error => {
-      console.error('Auto-initialization failed:', error)
+
     })
   }, 0)
 }

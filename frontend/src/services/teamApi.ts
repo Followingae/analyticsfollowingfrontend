@@ -373,7 +373,7 @@ class TeamApiService {
           posts: stats.usage_limits.posts_limit || 0
         },
         remaining_capacity: {
-          profiles: stats.usage_limits.remaining_profiles || 0,
+          profiles: Math.max(0, (stats.usage_limits.profiles_limit || 0) - (stats.usage_limits.profiles_used || 0)),
           emails: 0, // TODO: Add email remaining if needed
           posts: Math.max(0, (stats.usage_limits.posts_limit || 0) - (stats.usage_limits.posts_used || 0))
         },
@@ -429,7 +429,7 @@ class TeamApiService {
           posts: stats.usage_limits.posts_used || 0
         },
         remaining_capacity: {
-          profiles: stats.usage_limits.remaining_profiles || 0,
+          profiles: Math.max(0, (stats.usage_limits.profiles_limit || 0) - (stats.usage_limits.profiles_used || 0)),
           emails: 0, // TODO: Add email remaining if needed
           posts: Math.max(0, (stats.usage_limits.posts_limit || 0) - (stats.usage_limits.posts_used || 0))
         },

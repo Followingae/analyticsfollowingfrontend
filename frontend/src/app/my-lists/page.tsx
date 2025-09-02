@@ -194,7 +194,7 @@ export default function MyListsPage() {
       const templatesResponse = await listsApiService.getListTemplates()
       setTemplates(templatesResponse)
     } catch (err) {
-      console.error("Failed to load templates:", err)
+
     }
   }
 
@@ -226,7 +226,7 @@ export default function MyListsPage() {
       
       loadLists()
     } catch (err: any) {
-      console.error("Create list error:", err)
+
       toast.error(err.response?.data?.detail || "Failed to create list")
     }
   }
@@ -336,7 +336,7 @@ export default function MyListsPage() {
       setListPerformance(performance)
       setActivityLog(activity)
     } catch (err) {
-      console.error("Failed to load analytics:", err)
+
     }
   }
 

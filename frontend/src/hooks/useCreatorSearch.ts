@@ -152,13 +152,6 @@ export function useCreatorSearch(): CreatorSearchState & CreatorSearchActions {
         toast.success(`Found @${cleanUsername} with complete AI analysis!`, { id: 'creator-search' });
       }
 
-      console.log('🚀 Simple Flow Success:', {
-        username: cleanUsername,
-        hasAI: !!simpleFlowData.profile.ai_analysis?.analysis_completed,
-        postsCount: simpleFlowData.profile.posts?.length || 0,
-        cdnUrls: !!simpleFlowData.profile.cdn_urls
-      });
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Search failed';
       

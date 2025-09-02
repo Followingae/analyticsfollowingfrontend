@@ -59,7 +59,7 @@ class SettingsService {
     }
 
     try {
-      console.log('📱 Fetching profile settings')
+
       
       const response = await fetchWithAuth(`${this.baseURL}/api/v1/settings/profile`, {
         method: 'GET',
@@ -70,7 +70,7 @@ class SettingsService {
       })
 
       const data = await response.json()
-      console.log('📡 Profile settings response:', data)
+
 
       if (response.ok) {
         return { success: true, data }
@@ -78,7 +78,7 @@ class SettingsService {
         return { success: false, error: data.detail || 'Failed to fetch profile' }
       }
     } catch (error) {
-      console.error('❌ Profile fetch error:', error)
+
       return { success: false, error: 'Network error' }
     }
   }
@@ -90,8 +90,8 @@ class SettingsService {
     }
 
     try {
-      console.log('💾 Updating profile settings:', profileData)
-      console.log('🎨 Avatar config being sent:', profileData.avatar_config)
+
+
       
       const response = await fetchWithAuth(`${this.baseURL}/api/v1/settings/profile`, {
         method: 'PUT',
@@ -103,8 +103,8 @@ class SettingsService {
       })
 
       const data = await response.json()
-      console.log('📡 Profile update response:', data)
-      console.log('🎨 Avatar config in response:', data.avatar_config)
+
+
 
       if (response.ok) {
         return { success: true, data }
@@ -112,7 +112,7 @@ class SettingsService {
         return { success: false, error: data.detail || 'Failed to update profile' }
       }
     } catch (error) {
-      console.error('❌ Profile update error:', error)
+
       return { success: false, error: 'Network error' }
     }
   }
@@ -124,7 +124,7 @@ class SettingsService {
     }
 
     try {
-      console.log('📱 Fetching settings overview')
+
       
       const response = await fetchWithAuth(`${this.baseURL}/api/v1/settings/overview`, {
         method: 'GET',
@@ -135,7 +135,7 @@ class SettingsService {
       })
 
       const data = await response.json()
-      console.log('📡 Settings overview response:', data)
+
 
       if (response.ok) {
         return { success: true, data }
@@ -143,7 +143,7 @@ class SettingsService {
         return { success: false, error: data.detail || 'Failed to fetch settings' }
       }
     } catch (error) {
-      console.error('❌ Settings overview error:', error)
+
       return { success: false, error: 'Network error' }
     }
   }

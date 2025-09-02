@@ -45,7 +45,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           }))
         )
       } catch (error) {
-        console.error('Failed to load notifications from localStorage:', error)
+
       }
     }
   }, [])

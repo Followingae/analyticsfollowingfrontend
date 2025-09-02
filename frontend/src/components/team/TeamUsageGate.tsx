@@ -60,7 +60,7 @@ export function TeamUsageGate({
           setCanPerform(false)
         }
       } catch (err) {
-        console.error('Failed to load team context:', err)
+
         setError('Failed to check team permissions')
         setCanPerform(false)
       } finally {

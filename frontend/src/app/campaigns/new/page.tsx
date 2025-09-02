@@ -150,10 +150,10 @@ export default function NewCampaignPage() {
         const result = await teamApiService.getTeamContext()
         if (result.success && result.data) {
           setTeamContext(result.data)
-          console.log('🏢 Team context loaded for campaign creation:', result.data)
+
         }
       } catch (error) {
-        console.error('Error loading team context:', error)
+
         toast.error('Failed to load team information')
       } finally {
         setLoadingTeam(false)
@@ -188,7 +188,7 @@ export default function NewCampaignPage() {
         toast.error(result.error || "Failed to create campaign")
       }
     } catch (error) {
-      console.error('Campaign creation error:', error)
+
       toast.error("Failed to create campaign")
     } finally {
       setIsLoading(false)

@@ -28,7 +28,7 @@ export function useProfileAccess(): UseProfileAccessResult {
     setIsUnlocking(true)
     
     try {
-      console.log('🔓 Attempting to unlock profile:', username)
+
       
       // Call the main profile endpoint which grants 30-day access
       const result = await instagramApiService.getProfile(username)
@@ -48,7 +48,7 @@ export function useProfileAccess(): UseProfileAccessResult {
             `🎉 Profile unlocked! Full access granted ${expirationText}`
           )
           
-          console.log('✅ Profile successfully unlocked:', {
+
             username,
             hasAccess,
             expiresInDays
@@ -62,7 +62,7 @@ export function useProfileAccess(): UseProfileAccessResult {
             duration: 4000
           })
           
-          console.warn('⚠️ Profile fetch succeeded but no access granted:', username)
+
           return result.data
         }
       } else {
@@ -92,11 +92,11 @@ export function useProfileAccess(): UseProfileAccessResult {
           }
         })
         
-        console.error('❌ Profile unlock failed:', result.error)
+
         return null
       }
     } catch (error) {
-      console.error('❌ Profile unlock error:', error)
+
       
       toast.error('Network error', {
         description: 'Unable to connect to the server. Please check your connection.',

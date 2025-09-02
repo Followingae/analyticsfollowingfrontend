@@ -19,13 +19,13 @@ export function SimpleFlowExample() {
 
       if (response.success && response.data) {
         setProfile(response.data.profile);
-        console.log('✅ AI Analysis:', response.data.profile.ai_analysis);
-        console.log('✅ CDN URLs:', response.data.profile.cdn_urls);
-        console.log('✅ Posts with AI:', response.data.profile.posts.length);
+
+
+
       }
 
     } catch (error) {
-      console.error('❌ Search failed:', error);
+
     } finally {
       setLoading(false);
     }

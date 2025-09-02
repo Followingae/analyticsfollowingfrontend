@@ -74,18 +74,18 @@ export function SiteHeader() {
 
         // If no stored context, try to fetch from API
         const result = await teamApiService.getTeamContext()
-        console.log('🎯 SiteHeader: Team Context API Response:', result)
+
         
         if (result.success && result.data) {
-          console.log('🎯 SiteHeader: Team Context Data:', result.data)
+
           setTeamContext(result.data)
           teamApiService.updateTeamContext(result.data)
         } else {
-          console.log('🎯 SiteHeader: No team context or API failed:', result.error)
+
           setTeamContext(null)
         }
       } catch (error) {
-        console.error('Failed to load team context:', error)
+
         setTeamContext(null)
       } finally {
         setContextLoading(false)

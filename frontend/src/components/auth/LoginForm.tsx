@@ -35,16 +35,16 @@ export default function LoginForm() {
     
     try {
       const success = await login(email, password)
-      console.log('🔐 LoginForm: Login attempt result:', success)
+
       if (success) {
-        console.log('🔐 LoginForm: Login successful, redirecting to dashboard...')
+
         router.push('/dashboard')
       } else {
-        console.log('🔐 LoginForm: Login failed')
+
         setErrorMessage('Login failed. Please check your credentials and try again.')
       }
     } catch (error) {
-      console.error('Login error:', error)
+
       setErrorMessage('An unexpected error occurred. Please try again.')
     } finally {
       setIsLoading(false)

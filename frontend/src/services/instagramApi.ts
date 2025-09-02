@@ -1101,7 +1101,7 @@ export class InstagramApiService {
    * Returns mock data to prevent 404 errors
    */
   async detectPartialDataIssues(): Promise<{ success: boolean; data?: any; error?: string }> {
-    console.warn('detectPartialDataIssues: This endpoint has been removed from the backend')
+
     return { 
       success: true, 
       data: {
@@ -1423,7 +1423,7 @@ export class InstagramApiService {
         data: response
       };
     } catch (error: any) {
-      console.error('Simple profile search error:', error);
+
       
       if (error instanceof TeamUsageLimitError) {
         return {
@@ -1485,7 +1485,7 @@ export class InstagramApiService {
         status: response.ai_insights?.ai_processing_status || 'not_available'
       }
     } catch (error: any) {
-      console.error('Basic profile fetch error:', error)
+
       
       if (error.message.includes('profile_not_accessible') || 
           error.message.includes('search for this profile first')) {

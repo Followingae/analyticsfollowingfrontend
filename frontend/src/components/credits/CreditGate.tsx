@@ -60,7 +60,7 @@ export function CreditGate({
           setError(result.error)
         }
       } catch (err) {
-        console.error('Failed to load credit permissions:', err)
+
         setError('Failed to check credit permissions')
         setCanPerform(false)
       } finally {

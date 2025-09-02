@@ -62,7 +62,7 @@ class DiscoveryApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
-      console.log(`🔗 Discovery API request: ${this.baseURL}${url}`)
+
       
       const response = await fetchWithAuth(`${this.baseURL}${url}`, {
         ...options,
@@ -91,7 +91,7 @@ class DiscoveryApiService {
       }
 
       const data = await response.json()
-      console.log(`✅ Discovery API response received`)
+
       
       return {
         success: true,
@@ -99,7 +99,7 @@ class DiscoveryApiService {
         message: data.message
       }
     } catch (error) {
-      console.error(`❌ Discovery API error:`, error)
+
       
       return {
         success: false,

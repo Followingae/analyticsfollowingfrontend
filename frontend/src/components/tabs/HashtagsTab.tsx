@@ -30,10 +30,10 @@ export default function HashtagsTab() {
       // }
       
       // Temporary placeholder - remove when backend is ready
-      console.log('Hashtag analysis feature will be implemented when backend endpoints are available')
+
       setHashtagData(null) // Show empty state
     } catch (err) {
-      console.error('Hashtag analysis failed:', err)
+
     } finally {
       setLoading(false)
     }

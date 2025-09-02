@@ -64,7 +64,7 @@ export function AIVerificationTool({ className }: AIVerificationToolProps) {
       }
 
     } catch (error: any) {
-      console.error('Verification error:', error)
+
       setError(error.message || 'Failed to verify AI analysis')
       toast.error('Verification failed')
     } finally {
@@ -89,7 +89,7 @@ export function AIVerificationTool({ className }: AIVerificationToolProps) {
         throw new Error(result.error || 'Failed to trigger analysis')
       }
     } catch (error: any) {
-      console.error('Analysis trigger error:', error)
+
       toast.error(error.message || 'Failed to trigger analysis')
     } finally {
       setTriggeringAnalysis(false)

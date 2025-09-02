@@ -79,7 +79,7 @@ export default function CreatorsPage() {
 
   // Robust deduplication utility
   const deduplicateProfiles = (profiles: CreatorProfile[]): CreatorProfile[] => {
-    console.log('🔧 Creators: Deduplicating profiles, input count:', profiles.length)
+
     
     const seen = new Set<string>()
     const deduplicated = profiles.filter(profile => {
@@ -103,17 +103,17 @@ export default function CreatorsPage() {
         return true
       }
       
-      console.log('🔧 Creators: Removing duplicate profile:', primaryId)
+
       return false
     })
     
-    console.log('🔧 Creators: Deduplication complete, output count:', deduplicated.length)
+
     return deduplicated
   }
 
   // Centralized function to update creators list with deduplication
   const updateUnlockedCreators = (newProfiles: CreatorProfile[], operation: 'replace' | 'add' = 'replace') => {
-    console.log('🔧 Creators: Updating creators list, operation:', operation, 'new profiles:', newProfiles.length)
+
     
     setUnlockedCreators(prev => {
       let updatedProfiles: CreatorProfile[]
@@ -164,7 +164,7 @@ export default function CreatorsPage() {
         page_size: 20
       })
 
-      console.log('🔍 Creators: Creator API service result:', result)
+
 
       if (result.success && result.data) {
         // Use the creators array from the API response
@@ -184,11 +184,11 @@ export default function CreatorsPage() {
         // CDN migration: Image preloading no longer needed
         // CDN URLs are permanent and cached by Cloudflare
       } else {
-        console.error('❌ Failed to load unlocked creators:', result.error)
+
         setUnlockedError(result.error || 'Failed to load unlocked creators')
       }
     } catch (error) {
-      console.error('❌ Error loading unlocked creators:', error)
+
       setUnlockedError('Network error while loading creators')
     } finally {
       setUnlockedLoading(false)
@@ -197,14 +197,14 @@ export default function CreatorsPage() {
 
   // Load data on component mount, but only when authenticated
   useEffect(() => {
-    console.log('🔍 Creators: Auth status:', { isAuthenticated, authLoading })
+
     
     // Only load unlocked profiles if user is authenticated and not loading
     if (isAuthenticated && !authLoading) {
-      console.log('🔍 Creators: User is authenticated, loading unlocked profiles')
+
       loadUnlockedProfiles()
     } else if (!authLoading && !isAuthenticated) {
-      console.log('🔍 Creators: User is not authenticated, skipping API call')
+
       // Clear any existing data when not authenticated
       setUnlockedCreators([])
       setUnlockedError('Please log in to view unlocked creators')
@@ -214,14 +214,14 @@ export default function CreatorsPage() {
   // Automatically add search results to the list when they complete
   useEffect(() => {
     if (searchedProfile && searchStage === 'complete') {
-      console.log('🔧 Creators: Auto-adding search result:', searchedProfile.username)
+
       updateUnlockedCreators([searchedProfile], 'add')
     }
   }, [searchedProfile, searchStage])
 
   // Manual refresh function for refresh button
   const handleRefresh = async () => {
-    console.log('🔄 Creators: Manual refresh triggered')
+
     await loadUnlockedProfiles()
   }
 
@@ -233,7 +233,7 @@ export default function CreatorsPage() {
     }
     
     const cleanUsername = searchUsername.trim().replace('@', '')
-    console.log('🚀 Creators: Starting simple flow search for:', cleanUsername)
+
     
     await searchCreator(cleanUsername, { show_progress: true })
     setSearchUsername("")
@@ -288,7 +288,7 @@ export default function CreatorsPage() {
         toast.error("All bulk analyses failed. Please check the usernames and try again.")
       }
     } catch (error) {
-      console.error('Bulk analysis error:', error)
+
       toast.error("Bulk analysis failed. Please try again.")
     } finally {
       setBulkLoading(false)
@@ -384,7 +384,8 @@ export default function CreatorsPage() {
                   username: creator.username,
                   full_name: creator.full_name,
                   profile_pic_url: creator.profile_pic_url,
-                  profile_pic_url_hd: creator.profile_pic_url_hd
+                  profile_pic_url_hd: creator.profile_pic_url_hd,
+                  cdn_urls: creator.cdn_urls
                 }}
                 size="large"
                 className="w-20 h-20 border-2 border-white dark:border-gray-900"

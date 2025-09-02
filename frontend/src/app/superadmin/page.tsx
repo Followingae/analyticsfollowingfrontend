@@ -175,7 +175,7 @@ export default function SuperadminPage() {
         setUsers(result.data.users || [])
       }
     } catch (error) {
-      console.error('Failed to load users:', error)
+
     }
   }
 
@@ -195,7 +195,7 @@ export default function SuperadminPage() {
         setSuspiciousActivities(activitiesResult.data.activities || [])
       }
     } catch (error) {
-      console.error('Failed to load security data:', error)
+
     }
   }
 

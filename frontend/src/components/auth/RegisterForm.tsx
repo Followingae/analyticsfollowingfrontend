@@ -47,7 +47,7 @@ export default function RegisterForm() {
         router.push('/dashboard')
       }
     } catch (error) {
-      console.error('Registration error:', error)
+
     } finally {
       setIsLoading(false)
     }

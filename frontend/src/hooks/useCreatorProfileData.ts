@@ -33,7 +33,7 @@ export function useCreatorProfileData(): [UseCreatorProfileDataState, UseCreator
 
   // Load Phase 1 data (immediate display)
   const loadPhase1Data = useCallback(async (username: string) => {
-    console.log('🚀 useCreatorProfileData: Loading Phase 1 for:', username)
+
     
     try {
       const response = await creatorApiService.searchCreator(username, {
@@ -92,7 +92,7 @@ export function useCreatorProfileData(): [UseCreatorProfileDataState, UseCreator
           error: null
         })
 
-        console.log('✅ useCreatorProfileData: Phase 1 loaded, analysis status:', response.data.stage)
+
 
         // If not complete, start polling for Phase 2
         if (response.data.stage !== 'complete') {
@@ -106,7 +106,7 @@ export function useCreatorProfileData(): [UseCreatorProfileDataState, UseCreator
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Network error'
-      console.error('❌ useCreatorProfileData: Phase 1 error:', error)
+
       updateState({
         isLoading: false,
         error: errorMessage
@@ -138,16 +138,16 @@ export function useCreatorProfileData(): [UseCreatorProfileDataState, UseCreator
           }))
 
           if (analysisStatus === 'completed') {
-            console.log('🎉 useCreatorProfileData: Analysis complete!')
+
             stopPolling()
             await loadPhase2Data(username, state.profile!)
           } else if (analysisStatus === 'error') {
-            console.error('❌ useCreatorProfileData: Analysis failed')
+
             stopPolling()
           }
         }
       } catch (error) {
-        console.error('❌ useCreatorProfileData: Polling error:', error)
+
         // Continue polling on network errors
       }
     }
@@ -161,7 +161,7 @@ export function useCreatorProfileData(): [UseCreatorProfileDataState, UseCreator
         clearInterval(intervalId)
         setPollingInterval(null)
         updateState({ isPolling: false })
-        console.log('⏰ useCreatorProfileData: Polling timeout')
+
       }
     }, 10 * 60 * 1000)
   }, [pollingInterval, updateState, state.profile])
@@ -169,7 +169,7 @@ export function useCreatorProfileData(): [UseCreatorProfileDataState, UseCreator
   // Load Phase 2 data (detailed analytics)
   const loadPhase2Data = useCallback(async (username: string, currentProfile: CompleteCreatorProfile) => {
     try {
-      console.log('🧠 useCreatorProfileData: Loading Phase 2 data...')
+
       
       // Get detailed analytics
       const [detailedResponse, postsResponse] = await Promise.all([
@@ -264,10 +264,10 @@ export function useCreatorProfileData(): [UseCreatorProfileDataState, UseCreator
           }
         })
 
-        console.log('✅ useCreatorProfileData: Phase 2 data loaded successfully')
+
       }
     } catch (error) {
-      console.error('❌ useCreatorProfileData: Phase 2 error:', error)
+
     }
   }, [updateState])
 

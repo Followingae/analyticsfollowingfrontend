@@ -115,7 +115,7 @@ export function TeamContextDisplay({
           teamApiService.updateTeamContext(result.data)
         }
       } catch (error) {
-        console.error('Failed to load team context:', error)
+
       } finally {
         setLoading(false)
       }

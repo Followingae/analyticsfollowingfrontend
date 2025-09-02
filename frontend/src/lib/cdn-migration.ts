@@ -10,7 +10,7 @@ import { cdnMediaService } from '@/services/cdnMediaApi'
  * Legacy function kept for compatibility during migration
  */
 export function proxyInstagramUrl(url: string | null | undefined): string {
-  console.warn('proxyInstagramUrl is deprecated. Use CDN system instead.')
+
   
   if (!url) return ''
   
@@ -33,7 +33,7 @@ export function proxyInstagramUrl(url: string | null | undefined): string {
  * Legacy function kept for compatibility during migration
  */
 export function proxyInstagramUrlCached(url: string | null | undefined): string {
-  console.warn('proxyInstagramUrlCached is deprecated. Use CDN system instead.')
+
   return proxyInstagramUrl(url)
 }
 
@@ -42,7 +42,7 @@ export function proxyInstagramUrlCached(url: string | null | undefined): string 
  * Legacy error handler kept for compatibility
  */
 export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
-  console.warn('handleImageError is deprecated. Use CDN components with automatic fallbacks.')
+
   const target = event.currentTarget
   const placeholders = cdnMediaService.getPlaceholderUrls()
   target.src = placeholders.avatar.large
@@ -54,7 +54,7 @@ export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) 
 export function flagLegacyImageUsage(componentName: string, url?: string) {
   if (process.env.NODE_ENV === 'development') {
     if (url && cdnMediaService.isInstagramUrl(url)) {
-      console.warn(
+
         `🚨 Legacy image usage detected in ${componentName}:`,
         'Instagram URL found. Consider migrating to CDN system.',
         '\n📖 See: /frontend/FRONTEND_MIGRATION_GUIDE.md'

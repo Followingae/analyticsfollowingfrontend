@@ -79,7 +79,7 @@ export function FloatingSetupChecklist() {
             firstProfileAnalyzed = profileCount > 0;
           }
         } catch (error) {
-          console.log('Could not check profile analysis status');
+
         }
 
         // 3. Check first list creation
@@ -90,7 +90,7 @@ export function FloatingSetupChecklist() {
             firstListCreated = listsResult.data.length > 0;
           }
         } catch (error) {
-          console.log('Could not check lists status');
+
         }
 
         setStatus({
@@ -101,7 +101,7 @@ export function FloatingSetupChecklist() {
         });
 
       } catch (error) {
-        console.error('Failed to load checklist status:', error);
+
         setStatus(prev => ({ ...prev, loading: false }));
       }
     };

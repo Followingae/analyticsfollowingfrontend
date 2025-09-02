@@ -28,7 +28,7 @@ export const EvervaultCard = ({
       const linesNeeded = Math.ceil((height - 8) / 14); // Account for padding
       const totalNames = Math.floor(namesPerLine * linesNeeded * 2.5); // Increased density to fill the box
       
-      console.log('Dynamic sizing:', { width, height, namesPerLine, linesNeeded, totalNames });
+
       
       return generateRandomString(Math.max(totalNames * 8, 2500)); // 8 chars per name avg (including spaces) - higher minimum
     };

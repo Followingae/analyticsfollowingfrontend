@@ -91,7 +91,7 @@ interface EnhancedAuthProviderProps {
 }
 
 export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
-  console.log('🔐 EnhancedAuthProvider: Component rendering/mounting')
+
   
   const { 
     user: basicUser, 
@@ -105,12 +105,6 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     updateProfile: basicUpdateProfile
   } = useAuth()
   
-  console.log('🔐 EnhancedAuthProvider: Basic auth values:', {
-    basicIsLoading,
-    basicIsAuthenticated,
-    hasBasicUser: !!basicUser
-  })
-  
   const [user, setUser] = useState<EnhancedUser | null>(null)
   const [isLoading, setIsLoading] = useState(false) // HOTFIX: Start with false due to hydration issues
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
@@ -122,30 +116,19 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
   // Sync with basic auth context
   useEffect(() => {
-    console.log('🔐 EnhancedAuthContext: Syncing with BasicAuth:', {
-      basicIsLoading,
-      basicIsAuthenticated,
-      hasBasicUser: !!basicUser,
-      basicUserRole: basicUser?.role,
-      timestamp: new Date().toISOString()
-    })
 
     if (!basicIsLoading) {
       if (basicIsAuthenticated && basicUser) {
-        console.log('🔐 EnhancedAuthContext: BasicAuth is authenticated, enhancing user data')
+
         const enhancedUser = enhanceUserData(basicUser)
         setUser(enhancedUser)
         setDashboardStats(basicDashboardStats)
-        console.log('🔐 EnhancedAuthContext: User data set successfully:', {
-          userEmail: enhancedUser.email,
-          userRole: enhancedUser.role
-        })
       } else {
-        console.log('🔐 EnhancedAuthContext: BasicAuth not authenticated, clearing user')
+
         setUser(null)
         setDashboardStats(null)
       }
-      console.log('🔐 EnhancedAuthContext: Setting isLoading to false')
+
       setIsLoading(false)
     }
   }, [basicUser, basicIsAuthenticated, basicIsLoading, basicDashboardStats])
@@ -173,17 +156,17 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
 
   const enhanceUserData = (basicUser: User): EnhancedUser => {
-    console.log('🔧 EnhancedAuth: Raw user data from backend:', basicUser)
-    console.log('🔧 EnhancedAuth: Raw user data - Full Object:', JSON.stringify(basicUser, null, 2))
-    console.log('🔧 EnhancedAuth: User role field:', basicUser.role)
-    console.log('🔧 EnhancedAuth: Looking for subscription fields:')
-    console.log('  - basicUser.subscription_tier:', (basicUser as any).subscription_tier)
-    console.log('  - basicUser.plan:', (basicUser as any).plan)
-    console.log('  - basicUser.tier:', (basicUser as any).tier)
-    console.log('  - basicUser.package_name:', (basicUser as any).package_name)
-    console.log('  - basicUser.credit_packages:', (basicUser as any).credit_packages)
-    console.log('  - basicUser.subscription:', (basicUser as any).subscription)
-    console.log('  - basicUser.monthly_credits:', (basicUser as any).monthly_credits)
+
+
+
+
+
+
+
+
+
+
+
     
     // Map basic user roles to enhanced roles with strict role separation
     let role: UserRole
@@ -192,39 +175,31 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
       case 'superadmin':
         // CRITICAL: Only actual admins get admin access
         role = 'super_admin' // Treat backend 'admin' as 'super_admin'
-        console.log('🔧 EnhancedAuth: ⚠️ ADMIN USER DETECTED - Granting super_admin access')
+
         break
       case 'premium':
         // FIXED: Premium users are BRAND users, not admin users
         role = 'brand_premium'
-        console.log('🔧 EnhancedAuth: ✅ Premium user mapped to brand_premium (NO admin access)')
+
         break
       case 'standard':
         role = 'brand_standard'
-        console.log('🔧 EnhancedAuth: ✅ Standard user mapped to brand_standard')
+
         break
       case 'enterprise':
         role = 'brand_enterprise'
-        console.log('🔧 EnhancedAuth: ✅ Enterprise user mapped to brand_enterprise')
+
         break
       case 'free':
       default:
         role = 'brand_free'
-        console.log('🔧 EnhancedAuth: ✅ Free user mapped to brand_free')
+
         break
     }
-    
-    console.log('🔧 EnhancedAuth: ROLE MAPPING RESULT:', {
-      original: basicUser.role,
-      mapped: role,
-      isAdmin: role === 'super_admin' || role === 'admin',
-      isBrand: role.startsWith('brand_'),
-      warningLevel: role === 'super_admin' ? 'CRITICAL - ADMIN ACCESS' : 'NORMAL'
-    })
 
     // Validate that premium users don't get admin permissions
     if (basicUser.role === 'premium' && (role === 'super_admin' || role === 'admin')) {
-      console.error('🚨 SECURITY ALERT: Premium user was about to get admin access! Forcing to brand_premium')
+
       role = 'brand_premium'
     }
 
@@ -245,26 +220,26 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
         setDashboardStats(result.data)
       } else if (result.error && (result.error.includes('403') || result.error.includes('401') || result.error.includes('authentication'))) {
         // Log the error but don't immediately logout - could be a temporary network issue
-        console.warn('🔐 EnhancedAuthContext: Dashboard stats auth error (not logging out immediately):', result.error)
+
         // Only set stats to null, keep user authenticated
         setDashboardStats(null)
       }
     } catch (error) {
-      console.error('🔐 EnhancedAuthContext: Dashboard stats error:', error)
+
       // Don't logout on network errors
     }
   }
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    console.log('🚨 EnhancedAuthContext: LOGIN CALLED for:', email)
+
     updateActivity()
     
     try {
       const result = await basicLogin(email, password)
-      console.log('🚨 EnhancedAuthContext: basicLogin result:', result)
+
       return result
     } catch (error) {
-      console.error('🚨 EnhancedAuthContext: LOGIN ERROR:', error)
+
       throw error
     }
   }
@@ -274,7 +249,7 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
   }
 
   const logout = () => {
-    console.log('🚨 EnhancedAuthContext: logout() called!')
+
     console.trace('EnhancedAuthContext logout call stack:')
     
     // Clear enhanced auth state first

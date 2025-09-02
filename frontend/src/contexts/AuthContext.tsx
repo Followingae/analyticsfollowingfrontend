@@ -19,9 +19,9 @@ try {
   const tokenModule = require('@/utils/tokenManager')
   tokenManager = tokenModule.tokenManager
   
-  console.log('🔐 AuthContext: authService and tokenManager imported successfully')
+
 } catch (error) {
-  console.error('🚨 AuthContext: Failed to import authService or tokenManager:', error)
+
 }
 
 interface AuthContextType {
@@ -47,7 +47,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  console.log('🔐 AuthProvider: Component rendering/mounting')
+
   
   // HYDRATION FIX: Initialize with null to match server-side render, then hydrate from localStorage
   const [user, setUser] = useState<User | null>(null)
@@ -55,13 +55,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   
   // Debug wrapper for setUser to track all state changes
   const debugSetUser = (newUser: User | null, reason: string = 'unknown') => {
-    console.log('🔐 AuthContext: USER STATE CHANGE:', {
-      from: user?.email || 'null',
-      to: newUser?.email || 'null',
-      reason,
-      timestamp: new Date().toISOString(),
-      stack: new Error().stack?.split('\n').slice(1, 4).join('\n')
-    })
     setUser(newUser)
   }
   
@@ -70,83 +63,47 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Hydration effect - restore user state and sync with TokenManager
   useEffect(() => {
-    console.log('🔐 AuthProvider: Client-side hydration starting')
+
     
     try {
       const storedUser = localStorage.getItem('user_data')
       const storedTokens = localStorage.getItem('auth_tokens')
-      
-      console.log('🔐 AuthProvider: DETAILED Hydration check:', {
-        storedUserRaw: storedUser,
-        storedTokensRaw: storedTokens,
-        hasStoredUser: !!storedUser && storedUser !== 'null',
-        hasStoredTokens: !!storedTokens && storedTokens !== 'null',
-        authServiceReady: !!authService,
-        tokenManagerReady: !!tokenManager,
-        currentUserState: !!user,
-        userEmail: user?.email,
-        localStorageKeys: Object.keys(localStorage).filter(key => key.includes('auth') || key.includes('user'))
-      })
       
       if (storedUser && storedTokens && storedUser !== 'null' && storedTokens !== 'null') {
         try {
           const userData = JSON.parse(storedUser)
           const tokenData = JSON.parse(storedTokens)
           
-          console.log('🔐 AuthProvider: Parsed data validation:', {
-            userDataValid: !!(userData?.email),
-            tokenDataValid: !!(tokenData?.access_token && tokenData.access_token !== 'null'),
-            userEmail: userData?.email,
-            tokenPreview: tokenData?.access_token?.substring(0, 20) + '...',
-            tokenExpiry: tokenData?.expires_at ? new Date(tokenData.expires_at).toISOString() : 'no expiry'
-          })
-          
           // Validate that we have valid data
           if (userData?.email && tokenData?.access_token && tokenData.access_token !== 'null') {
-            console.log('🔐 AuthProvider: RESTORING USER after hydration:', userData.email)
+
             
             // CRITICAL FIX: Sync TokenManager with stored data during hydration
             if (tokenManager?.setTokenData) {
-              console.log('🔐 AuthProvider: Syncing TokenManager during hydration')
+
               tokenManager.setTokenData(tokenData)
               
               // Verify sync worked
               const tokenManagerCheck = tokenManager.isAuthenticated?.()
-              console.log('🔐 AuthProvider: TokenManager sync result:', tokenManagerCheck)
+
             }
             
             // Set user state
             debugSetUser(userData, 'hydration-restore')
-            
-            console.log('🔐 AuthProvider: ✅ HYDRATION COMPLETE - USER RESTORED:', {
-              email: userData.email,
-              userStateSet: true,
-              timestamp: new Date().toISOString()
-            })
           } else {
-            console.error('🔐 AuthProvider: ❌ INVALID STORED DATA during hydration:', {
-              hasUserEmail: !!userData?.email,
-              hasValidToken: !!(tokenData?.access_token && tokenData.access_token !== 'null'),
-              userData: userData,
-              tokenData: tokenData
-            })
+            // Invalid data, skip hydration
           }
         } catch (parseError) {
-          console.error('🔐 AuthProvider: ❌ JSON PARSE ERROR during hydration:', parseError)
+          // Parse error occurred
         }
       } else {
-        console.warn('🔐 AuthProvider: ❌ NO STORED AUTH DATA found during hydration:', {
-          storedUser: storedUser,
-          storedTokens: storedTokens,
-          hasUser: !!storedUser,
-          hasTokens: !!storedTokens
-        })
+        // No stored data found
       }
     } catch (error) {
-      console.error('🔐 AuthProvider: ❌ HYDRATION ERROR:', error)
+
     }
     
-    console.log('🔐 AuthProvider: Setting isHydrated = true')
+
     setIsHydrated(true)
   }, [])
 
@@ -154,9 +111,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     if (!isHydrated) return
     
-    console.log('🔐 AuthProvider: Setting up emergency timeout after hydration')
+
     const emergencyTimeout = setTimeout(() => {
-      console.log('🚨 AuthProvider: EMERGENCY TIMEOUT - setting isLoading to false')
+
       setIsLoading(false)
     }, 3000)
     
@@ -167,21 +124,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     if (!isHydrated || !tokenManager) return
     
-    console.log('🔐 AuthContext: Setting up token change listener after hydration')
+
     const unsubscribe = tokenManager.subscribe((token: string | null) => {
-      console.log('🔐 AuthContext: Token change detected:', !!token)
+
       
       if (!token) {
         // Token was cleared, clear user state
-        console.log('🔐 AuthContext: Token cleared, clearing user state')
+
         debugSetUser(null, 'token-cleared')
         setDashboardStats(null)
       } else {
         // Token was updated, verify user state is consistent
-        console.log('🔐 AuthContext: Token updated, verifying user state consistency')
+
         const storedUser = authService?.getStoredUser()
         if (storedUser && (!user || user.email !== storedUser.email)) {
-          console.log('🔐 AuthContext: Syncing user state with token change')
+
           debugSetUser(storedUser, 'token-sync')
         }
       }
@@ -194,12 +151,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     if (!isHydrated) return
     
-    console.log('🔐 AuthContext: useEffect triggered after hydration - calling initializeAuth')
+
     
     try {
       // Set a timeout to ensure isLoading is set to false even if initializeAuth hangs
       const timeoutId = setTimeout(() => {
-        console.log('🚨 AuthContext: TIMEOUT - forcefully setting isLoading to false')
+
         setIsLoading(false)
       }, 5000) // 5 second timeout
       
@@ -207,42 +164,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
         clearTimeout(timeoutId) // Cancel timeout if initializeAuth completes
       })
     } catch (error) {
-      console.error('🚨 AuthContext: useEffect error:', error)
+
       setIsLoading(false) // Ensure loading is set to false even if there's an error
     }
   }, [isHydrated])
 
   const initializeAuth = async () => {
-    console.log('🔐 AuthContext: initializeAuth started')
+
     try {
-      console.log('🔐 AuthContext: Checking stored user and auth status')
+
       
       let storedUser = null
       let isAuthenticated = false
       
       try {
         storedUser = authService.getStoredUser()
-        console.log('🔐 AuthContext: getStoredUser successful:', !!storedUser)
+
       } catch (error) {
-        console.error('🚨 AuthContext: getStoredUser failed:', error)
+
       }
       
       try {
         isAuthenticated = authService.isAuthenticated()
-        console.log('🔐 AuthContext: isAuthenticated successful:', isAuthenticated)
+
       } catch (error) {
-        console.error('🚨 AuthContext: isAuthenticated failed:', error)
+        // Error checking authentication
       }
       
-      console.log('🔐 AuthContext: Auth check results:', {
-        hasStoredUser: !!storedUser,
-        isAuthenticated,
-        userEmail: storedUser?.email,
-        currentUserState: !!user
-      })
-      
       if (storedUser && isAuthenticated) {
-        console.log('🔐 AuthContext: User authenticated, updating user state')
+
         
         // Only update user state if we don't already have it (prevent unnecessary re-renders)
         if (!user || user.email !== storedUser.email) {
@@ -254,20 +204,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const isStale = !lastUpdated || parseInt(lastUpdated) < oneHourAgo
         
         if (isStale) {
-          console.log('🔐 AuthContext: User data is stale, refreshing...')
+
           try {
             await refreshUser()
             localStorage.setItem('user_last_updated', Date.now().toString())
           } catch (error) {
-            console.log('🔐 AuthContext: Refresh failed, keeping stored user')
+
           }
         }
         
         try {
-          console.log('🔐 AuthContext: Loading dashboard stats...')
+
           await loadDashboardStats()
         } catch (error) {
-          console.log('🔐 AuthContext: Dashboard stats failed, ignoring')
+
         }
       } else {
         // CRITICAL FIX: Only clear user state if we're definitely not authenticated AND have no valid tokens
@@ -286,98 +236,72 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const currentlyHasUser = !!user
         
         if (!hasValidTokens && !storedUser && !currentlyHasUser) {
-          console.log('🔐 AuthContext: No valid authentication found, clearing user state')
+
           debugSetUser(null, 'init-auth-clear')
         } else {
-          console.log('🔐 AuthContext: Preserving authentication state:', {
-            hasValidTokens,
-            hasStoredUser: !!storedUser,
-            currentlyHasUser,
-            reason: hasValidTokens ? 'valid tokens' : currentlyHasUser ? 'current user state' : 'stored user data'
-          })
+          // Other auth states
         }
       }
     } catch (error) {
-      console.error('🔐 AuthContext: initializeAuth error:', error)
+
       // Don't clear user state on errors - could be network issues
     } finally {
-      console.log('🔐 AuthContext: initializeAuth finished, setting isLoading to false')
+
       setIsLoading(false)
     }
   }
 
   const loadDashboardStats = async () => {
-    console.log('🔐 AuthContext: loadDashboardStats called')
+
     try {
-      console.log('🔐 AuthContext: Calling authService.getDashboardStats()')
+
       const result = await authService.getDashboardStats()
-      console.log('🔐 AuthContext: getDashboardStats result:', { success: result.success, hasData: !!result.data, error: result.error })
+
       
       if (result.success && result.data) {
-        console.log('🔐 AuthContext: Setting dashboard stats')
+
         setDashboardStats(result.data)
       } else if (result.error && (result.error.includes('403') || result.error.includes('401') || result.error.includes('authentication'))) {
         // Log the error but don't immediately logout - could be a temporary network issue
-        console.warn('🔐 AuthContext: Dashboard stats auth error (not logging out immediately):', result.error)
+
         // Only set stats to null, keep user authenticated
         setDashboardStats(null)
       }
-      console.log('🔐 AuthContext: loadDashboardStats completed')
+
     } catch (error) {
-      console.error('🔐 AuthContext: Dashboard stats error:', error)
+
       // Don't logout on network errors
     }
   }
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    console.log('🔐 AuthContext: Starting login process for:', email)
+
     setIsLoading(true)
     
     try {
-      console.log('🔐 AuthContext: Calling authService.login...')
+
       const result = await authService.login({ email, password })
-      console.log('🔐 AuthContext: authService.login completed with result:', result)
-      
-      console.log('🔐 AuthContext: Login API response:', {
-        success: result.success,
-        hasData: !!result.data,
-        hasUser: !!result.data?.user,
-        hasToken: !!result.data?.access_token,
-        error: result.error
-      })
       
       if (result.success && result.data && result.data.access_token) {
-        console.log('🔐 AuthContext: Login successful, setting user data')
+
         
         const userData = result.data.user
-        console.log('🔐 AuthContext: Login user data:', {
-          id: userData.id,
-          email: userData.email,
-          role: userData.role,
-          full_name: userData.full_name
-        })
         
         // Set user IMMEDIATELY
         setUser(userData)
         localStorage.setItem('user_last_updated', Date.now().toString())
         
-        console.log('✅ AuthContext: User state set, authentication complete')
+
         
         // Verify data is actually stored
         setTimeout(() => {
           const storedUser = localStorage.getItem('user_data')
           const storedTokens = localStorage.getItem('auth_tokens')
-          console.log('🔍 AuthContext: Post-login verification:', {
-            hasStoredUser: !!storedUser,
-            hasStoredTokens: !!storedTokens,
-            authServiceAuthenticated: authService.isAuthenticated(),
-            currentUserState: !!user
-          })
         }, 100)
         
         // If login doesn't return avatar_config, fetch complete profile
         if (!userData.avatar_config) {
-          console.log('🔄 AuthContext: Login missing avatar, fetching complete profile...')
+
           setTimeout(() => {
             refreshUser() // This will merge settings data with login data
           }, 500)
@@ -385,24 +309,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
         
         // Load dashboard stats (protected by grace period)
         try {
-          console.log('🔐 AuthContext: Loading dashboard stats after login...')
+
           await loadDashboardStats()
-          console.log('🔐 AuthContext: Dashboard stats loaded successfully')
+
         } catch (error) {
-          console.warn('⚠️ AuthContext: Dashboard stats loading failed after login:', error)
+
         }
         
-        console.log('🔐 AuthContext: Login process complete, returning true')
+
         
         // Double check that data is still there
         setTimeout(() => {
           const stillThere = authService.isAuthenticated()
           const stillHasUser = authService.getStoredUser()
-          console.log('🔍 AuthContext: Post-login verification (500ms later):', {
-            stillAuthenticated: stillThere,
-            stillHasUser: !!stillHasUser,
-            currentUser: user?.email
-          })
         }, 500)
         
         toast.success(`Welcome back, ${userData.full_name}!`)
@@ -433,12 +352,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return false
       }
     } catch (error) {
-      console.error('🚨 AuthContext: Login error caught:', error)
+
       const errorMessage = error instanceof Error ? error.message : 'Login failed'
       toast.error(errorMessage)
       return false
     } finally {
-      console.log('🔐 AuthContext: Setting isLoading to false in finally block')
+
       setIsLoading(false)
     }
   }
@@ -470,7 +389,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           try {
             await loadDashboardStats()
           } catch (error) {
-            console.log('⚠️ AuthContext: Dashboard stats loading failed after registration:', error)
+
           }
           toast.success(`Welcome to Analytics Following, ${result.data.user.full_name}!`)
           return true
@@ -493,7 +412,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const logout = () => {
-    console.log('🚨 AuthContext: logout() called!')
+
     console.trace('AuthContext logout call stack:')
     
     // Clear context state immediately and defensively
@@ -519,12 +438,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           try {
             localStorage.removeItem(item)
           } catch (e) {
-            console.warn(`Failed to clear ${item}:`, e)
+
           }
         })
       }
     } catch (error) {
-      console.error('🚨 AuthContext: Logout error:', error)
+
     }
     
     // Only show success message if we're not redirecting
@@ -539,7 +458,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = async () => {
     try {
       // Try to get complete user profile from settings API first (has avatar data)
-      console.log('🔄 AuthContext: Refreshing user - trying settings API first...')
+
       
       let result;
       try {
@@ -548,14 +467,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const settingsResult = await settingsApiService.getProfile()
         
         if (settingsResult.success && settingsResult.data) {
-          console.log('✅ AuthContext: Got complete profile from settings API')
+
           result = settingsResult
         } else {
-          console.log('🔄 AuthContext: Settings API failed, falling back to auth API')
+
           result = await authService.getCurrentUser()
         }
       } catch (error) {
-        console.log('🔄 AuthContext: Settings API not available, using auth API')
+
         result = await authService.getCurrentUser()
       }
       
@@ -568,16 +487,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (currentUser) {
           // Preserve avatar_config if backend doesn't have it
           if (!result.data.avatar_config && currentUser.avatar_config) {
-            console.log('🎨 AuthContext: Preserving local avatar_config:', currentUser.avatar_config)
+
             mergedUserData.avatar_config = currentUser.avatar_config
           }
           
           // Debug avatar handling
-          console.log('🎨 AuthContext: Avatar data comparison:', {
-            backend_avatar: result.data.avatar_config,
-            local_avatar: currentUser.avatar_config,
-            will_preserve: !result.data.avatar_config && currentUser.avatar_config
-          })
           
           // Preserve other fields if backend returns null/empty
           if (!result.data.company && currentUser.company) {
@@ -594,14 +508,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
         
-        console.log('🔄 AuthContext: Refreshed user data merged:', mergedUserData)
+
         setUser(mergedUserData)
         localStorage.setItem('user_data', JSON.stringify(mergedUserData))
       } else {
-        console.log('🔄 AuthContext: Failed to refresh user:', result.error)
+
       }
     } catch (error) {
-      console.error('🔄 AuthContext: Error refreshing user:', error)
+
     }
   }
 
@@ -656,23 +570,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // INDUSTRY STANDARD: Authentication status should be based on valid tokens, not just user state
   const isAuthenticated = useMemo(() => {
-    console.log('🔐 AuthContext: isAuthenticated check triggered:', {
-      isHydrated,
-      hasUser: !!user,
-      userEmail: user?.email,
-      timestamp: new Date().toISOString()
-    })
     
     // During initial hydration, be more lenient to prevent logout
     if (!isHydrated) {
       const result = !!user
-      console.log('🔐 AuthContext: ⏳ Not yet hydrated, using basic user state check:', result)
+
       return result
     }
     
     // Multi-layer validation like Instagram/Facebook (only after hydration)
     if (!user) {
-      console.log('🔐 AuthContext: ❌ No user state, returning false')
+
       return false
     }
     
@@ -682,13 +590,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (tokenManager && typeof tokenManager.isAuthenticated === 'function') {
         try {
           tokenManagerAuth = tokenManager.isAuthenticated()
-          console.log('🔐 AuthContext: TokenManager auth check result:', tokenManagerAuth)
+
         } catch (error) {
-          console.warn('🔐 AuthContext: TokenManager auth check failed:', error)
+
           tokenManagerAuth = true // Default to true on error
         }
       } else {
-        console.log('🔐 AuthContext: TokenManager not available, defaulting to true')
+
       }
       
       // Check if authService considers us authenticated  
@@ -696,28 +604,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (authService && typeof authService.isAuthenticated === 'function') {
         try {
           serviceAuth = authService.isAuthenticated()
-          console.log('🔐 AuthContext: AuthService auth check result:', serviceAuth)
+
         } catch (error) {
-          console.warn('🔐 AuthContext: AuthService auth check failed:', error)
+
           serviceAuth = true // Default to true on error
         }
       } else {
-        console.log('🔐 AuthContext: AuthService not available, defaulting to true')
+
       }
       
       // All layers must agree, but be forgiving during initialization
       const result = !!(user && tokenManagerAuth && serviceAuth)
-      
-      console.log('🔐 AuthContext: 🔍 DETAILED Authentication validation:', {
-        hasUser: !!user,
-        userEmail: user?.email,
-        tokenManagerAuth,
-        serviceAuth,
-        tokenManagerReady: !!tokenManager?.isAuthenticated,
-        serviceReady: !!authService?.isAuthenticated,
-        finalResult: result,
-        timestamp: new Date().toISOString()
-      })
       
       if (!result) {
         const errorDetails = {
@@ -731,14 +628,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
           tokenManagerExists: !!tokenManager,
           authServiceExists: !!authService
         }
-        console.error('🔐 AuthContext: ❌ AUTHENTICATION VALIDATION FAILED:', errorDetails)
+
       } else {
-        console.log('🔐 AuthContext: ✅ Authentication validation PASSED')
+
       }
       
       return result
     } catch (error) {
-      console.error('🔐 AuthContext: ❌ Authentication validation ERROR:', error)
+
       return !!user // Fall back to user state if validation fails
     }
   }, [user, isHydrated])

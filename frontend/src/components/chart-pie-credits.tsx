@@ -44,7 +44,7 @@ export function ChartPieCredits() {
         const planCreditsResult = await creditsApiService.getTotalPlanCredits()
         
         if (planCreditsResult.success && planCreditsResult.data) {
-          console.log('📊 ChartPieCredits: Total Plan Credits Response:', planCreditsResult.data)
+
           
           // Map the new response to our credit balance format
           const planData = planCreditsResult.data
@@ -60,15 +60,15 @@ export function ChartPieCredits() {
             wallet_status: 'active' as const
           }
           
-          console.log('📊 ChartPieCredits: Mapped Credit Data:', mappedCreditBalance)
+
           setCreditBalance(mappedCreditBalance)
           setError(null)
         } else {
-          console.log('📊 ChartPieCredits: Plan Credits API failed, trying balance API fallback')
+
           // Fallback to balance endpoint
           const balanceResult = await creditsApiService.getBalance()
           if (balanceResult.success && balanceResult.data) {
-            console.log('📊 ChartPieCredits: Balance API Fallback:', balanceResult.data)
+
             setCreditBalance(balanceResult.data)
             setError(null)
           } else {
@@ -76,7 +76,7 @@ export function ChartPieCredits() {
           }
         }
       } catch (err) {
-        console.error('📊 ChartPieCredits: Error loading credits:', err)
+
         setError('Network error loading credits')
       } finally {
         setLoading(false)

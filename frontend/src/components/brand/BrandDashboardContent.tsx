@@ -21,31 +21,11 @@ import {
 export function BrandDashboardContent() {
   const { user, isLoading, isPremium, isAdmin } = useEnhancedAuth()
   const router = useRouter()
-
-  console.log('🚨 BrandDashboardContent RENDER:', {
-    isLoading,
-    hasUser: !!user,
-    userEmail: user?.email,
-    userRole: user?.role,
-    isPremium,
-    isAdmin
-  })
   
   // Memoized user display data to prevent flash and avoid hardcoded values
   const userDisplayData = useMemo(() => {
     
     if (!user || isLoading) return null
-    
-    // Debug: Log user data to identify inconsistency
-    console.log('🔍 BrandDashboard: Current user data:', {
-      id: user.id,
-      email: user.email,
-      full_name: user.full_name,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      company: user.company,
-      avatar_config: user.avatar_config
-    })
     
     const getDisplayName = () => {
       if (user.first_name && user.last_name) {
@@ -130,17 +110,18 @@ export function BrandDashboardContent() {
           }
         })
         
-        console.log('🏢 BrandDashboard: Teams Overview API Response Status:', response.status)
+
         
         if (response.ok) {
           const data = await response.json()
-          console.log('🏢 BrandDashboard: Teams Overview Data:', data)
+
+
           setTeamsOverview(data)
         } else {
-          console.log('🏢 BrandDashboard: Teams overview API failed:', response.status)
+
         }
       } catch (error) {
-        console.error('Failed to load teams overview:', error)
+
       } finally {
         setTeamsLoading(false)
       }
@@ -164,19 +145,19 @@ export function BrandDashboardContent() {
           page_size: 1 // We only need the count, so fetch minimal data
         })
         
-        console.log('🏢 BrandDashboard: Unlocked Profiles Response:', result)
+
         
         if (result.success && result.data) {
           // Use total_count from pagination info for accurate count
           const count = result.data.pagination?.total_count || result.data.creators?.length || 0
-          console.log('🏢 BrandDashboard: Unlocked Profiles Count:', count)
+
           setUnlockedProfilesCount(count)
         } else {
-          console.log('🏢 BrandDashboard: No unlocked profiles or API failed:', result.error)
+
           setUnlockedProfilesCount(0)
         }
       } catch (error) {
-        console.error('Failed to load unlocked profiles:', error)
+
         setUnlockedProfilesCount(0)
       } finally {
         setProfilesLoading(false)
@@ -205,11 +186,11 @@ export function BrandDashboardContent() {
           }
         })
         
-        console.log('🎯 BrandDashboard: Campaigns API Response:', response.status)
+
         
         if (response.ok) {
           const data = await response.json()
-          console.log('🎯 BrandDashboard: Campaigns Data:', data)
+
           
           // Count active campaigns
           const campaigns = data.campaigns || data.data || data || []
@@ -217,15 +198,15 @@ export function BrandDashboardContent() {
             ? campaigns.filter((campaign: any) => campaign.status === 'active').length
             : 0
           
-          console.log('🎯 BrandDashboard: Active Campaigns Count:', activeCount)
+
           setActiveCampaignsCount(activeCount)
         } else {
-          console.log('🎯 BrandDashboard: No campaigns endpoint or API failed:', response.status)
+
           // Set to 0 if endpoint doesn't exist yet
           setActiveCampaignsCount(0)
         }
       } catch (error) {
-        console.error('Failed to load active campaigns:', error)
+
         // Set to 0 if there's an error (endpoint may not exist yet)
         setActiveCampaignsCount(0)
       } finally {
@@ -272,6 +253,8 @@ export function BrandDashboardContent() {
         if (teamsLoading) return "Loading..."
         
         const tier = teamsOverview?.team_info?.subscription_tier
+        
+
         
         // Map subscription tiers to display names
         switch (tier) {

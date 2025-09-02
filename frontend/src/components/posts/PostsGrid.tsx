@@ -47,7 +47,7 @@ export default function PostsGrid({ username }: PostsGridProps) {
         setError(result.error || 'Failed to load posts')
       }
     } catch (err) {
-      console.error('Posts loading error:', err)
+
       setError(err instanceof Error ? err.message : 'An error occurred while loading posts')
     } finally {
       setLoading(false)

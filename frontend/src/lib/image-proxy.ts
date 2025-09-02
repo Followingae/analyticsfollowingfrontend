@@ -11,7 +11,7 @@ import { getBestImageUrl } from './cdn-migration';
  * Legacy function redirects to CDN migration utility
  */
 export function proxyInstagramUrl(url: string | null | undefined): string {
-  console.warn(
+
     '🚨 DEPRECATED: proxyInstagramUrl() is deprecated.',
     'Use ProfileAvatar or CDNImage components from @/components/ui/cdn-image instead.',
     '\n📖 Migration guide: /frontend/FRONTEND_MIGRATION_GUIDE.md'
@@ -24,7 +24,7 @@ export function proxyInstagramUrl(url: string | null | undefined): string {
  * @deprecated Use CDN components with automatic fallbacks instead
  */
 export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
-  console.warn(
+
     '🚨 DEPRECATED: handleImageError() is deprecated.',
     'Use CDNImage or ProfileAvatar components with automatic fallbacks.',
     '\n📖 Migration guide: /frontend/FRONTEND_MIGRATION_GUIDE.md'

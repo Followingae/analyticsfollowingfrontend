@@ -80,7 +80,7 @@ class CampaignService {
         data
       }
     } catch (error) {
-      console.error('Campaign API Error:', error)
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'An unknown error occurred'

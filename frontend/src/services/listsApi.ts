@@ -307,7 +307,7 @@ export class ListsApiService {
   async addProfileToList(listId: string, profileData: AddProfileToListRequest): Promise<ApiResponse<ListItem>> {
     try {
       const url = `${API_CONFIG.BASE_URL}${ENDPOINTS.lists.addItem(listId)}`
-      console.log('Add profile request:', { url, profileData })
+
       
       const response = await fetchWithAuth(url, {
         method: 'POST',
@@ -319,8 +319,8 @@ export class ListsApiService {
       })
 
       const data = await response.json()
-      console.log('Add profile response:', { status: response.status, data })
-      console.log('Full error details:', JSON.stringify(data, null, 2))
+
+
       
       if (!response.ok) {
         return { success: false, error: data.detail || data.error || 'Failed to add profile to list' }
@@ -328,7 +328,7 @@ export class ListsApiService {
 
       return { success: true, data: data }
     } catch (error) {
-      console.error('Network error in addProfileToList:', error)
+
       return { success: false, error: 'Network error while adding profile to list' }
     }
   }

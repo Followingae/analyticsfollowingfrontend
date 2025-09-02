@@ -7,7 +7,7 @@ const loadBalloons = async () => {
     const balloonsModule = await import("balloons-js")
     return balloonsModule
   } catch (error) {
-    console.warn("Failed to load balloons-js:", error)
+
     return null
   }
 }
@@ -73,7 +73,7 @@ const Balloons = React.forwardRef<HTMLDivElement, BalloonsProps>(
           onLaunch()
         }
       } catch (error) {
-        console.warn("Failed to launch balloons animation:", error)
+
       }
     }, [type, text, fontSize, color, onLaunch, balloonsModule])
 

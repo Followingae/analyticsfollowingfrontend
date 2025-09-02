@@ -151,7 +151,7 @@ export function useProgressiveProfileLoading(): [ProgressiveLoadingState, Progre
           })
         }
       } catch (error: any) {
-        console.error('Polling error:', error)
+
         // Continue polling on errors - might be temporary
       }
     }

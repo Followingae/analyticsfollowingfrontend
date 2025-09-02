@@ -43,7 +43,7 @@ export default function RegisterPage() {
         router.push('/dashboard')
       }
     } catch (error) {
-      console.error('Registration error:', error)
+
     } finally {
       setIsLoading(false)
     }

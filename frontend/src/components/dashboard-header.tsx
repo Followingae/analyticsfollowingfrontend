@@ -47,7 +47,7 @@ export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderPr
           setCreditBalance(result.data)
         }
       } catch (error) {
-        console.error('Failed to load credit balance:', error)
+
       } finally {
         setLoading(false)
       }

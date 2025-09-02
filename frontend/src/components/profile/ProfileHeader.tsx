@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { InstagramProfile } from '@/services/instagramApi'
+import { InstagramProfileCDN } from '@/services/instagramCdnApi'
 import { formatNumber } from '@/lib/utils'
 import { ProfileAvatar } from '@/components/ui/cdn-image'
 import { 
@@ -22,18 +22,11 @@ import {
 } from 'lucide-react'
 
 interface ProfileHeaderProps {
-  profile: InstagramProfile
+  profile: InstagramProfileCDN
   className?: string
-  cdnMedia?: {
-    avatar: {
-      small: string
-      large: string
-      available: boolean
-    }
-  }
 }
 
-export default function ProfileHeader({ profile, className = '', cdnMedia }: ProfileHeaderProps) {
+export default function ProfileHeader({ profile, className = '' }: ProfileHeaderProps) {
   const openInstagramProfile = () => {
     window.open(`https://www.instagram.com/${profile.username}/`, '_blank')
   }
@@ -59,9 +52,9 @@ export default function ProfileHeader({ profile, className = '', cdnMedia }: Pro
                 username: profile.username,
                 full_name: profile.full_name,
                 profile_pic_url: profile.profile_pic_url,
-                profile_pic_url_hd: profile.profile_pic_url_hd
+                profile_pic_url_hd: profile.profile_pic_url_hd,
+                cdn_urls: profile.cdn_urls
               }}
-              cdnMedia={cdnMedia}
               size="large"
               className="w-24 h-24 md:w-30 md:h-30 border-4 border-white"
             />

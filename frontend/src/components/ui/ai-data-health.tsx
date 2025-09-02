@@ -67,7 +67,7 @@ export function AIDataHealthMonitor({ username }: { username?: string }) {
 
       setLastRefresh(new Date())
     } catch (error) {
-      console.error('Failed to check data health:', error)
+
       addNotification({
         title: 'Health Check Failed',
         message: 'Unable to check AI data health status',
@@ -100,7 +100,7 @@ export function AIDataHealthMonitor({ username }: { username?: string }) {
         throw new Error(result.error)
       }
     } catch (error) {
-      console.error('Repair failed:', error)
+
       addNotification({
         title: 'Repair Failed',
         message: 'Unable to repair partial data issues',

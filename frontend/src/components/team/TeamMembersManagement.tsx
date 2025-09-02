@@ -91,7 +91,7 @@ export function TeamMembersManagement({
       }
 
     } catch (error) {
-      console.error('Failed to fetch team data:', error)
+
       setError('Failed to load team information')
     } finally {
       setLoading(false)

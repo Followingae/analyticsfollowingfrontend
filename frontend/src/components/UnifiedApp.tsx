@@ -16,29 +16,10 @@ export function UnifiedApp() {
 
   // Handle redirects in useEffect to avoid "setState during render" error
   useEffect(() => {
-    console.log('🚨 UnifiedApp: useEffect triggered', {
-      isLoading,
-      isAuthenticated,
-      hasUser: !!user,
-      userRole: user?.role
-    })
-    
     if (!isLoading && (!isAuthenticated || !user)) {
-      console.log('🚨 UnifiedApp: User not authenticated, redirecting to /auth/login', {
-        isAuthenticated,
-        hasUser: !!user
-      })
       router.push('/auth/login')
     }
   }, [isLoading, isAuthenticated, user, router])
-
-  console.log('🚨 UnifiedApp RENDER:', {
-    isLoading,
-    isAuthenticated,
-    hasUser: !!user,
-    userRole: user?.role,
-    timestamp: new Date().toISOString()
-  })
 
   // Track user activity
   useEffect(() => {
@@ -65,13 +46,13 @@ export function UnifiedApp() {
 
   // Show loading screen while auth is being determined
   if (isLoading) {
-    console.log('🚨 UnifiedApp: Showing loading screen (isLoading=true)')
+
     return <LoadingScreen />
   }
 
   // Show loading screen for unauthenticated users (redirect handled in useEffect)
   if (!isAuthenticated || !user) {
-    console.log('🚨 UnifiedApp: No auth/user, showing loading screen while redirect happens')
+
     return <LoadingScreen />
   }
 

@@ -217,7 +217,7 @@ export default function CampaignsPage() {
 
   const handleExportCampaign = (campaign: Campaign, format: 'pdf' | 'excel') => {
     // Add export logic here
-    console.log(`Exporting ${campaign.name} as ${format}`)
+
   }
 
   return (

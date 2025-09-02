@@ -56,10 +56,10 @@ class TokenManager {
           const tokenData = JSON.parse(authTokens)
           if (this.isValidTokenData(tokenData)) {
             this.tokenData = tokenData
-            console.log('✅ TokenManager: Loaded valid token from storage')
+
           }
         } catch (error) {
-          console.warn('🧹 TokenManager: Removing corrupted auth_tokens')
+
           localStorage.removeItem('auth_tokens')
         }
       }
@@ -72,13 +72,13 @@ class TokenManager {
           token_type: 'bearer',
           expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
         }
-        console.log('✅ TokenManager: Loaded legacy token')
+
         // Migrate to new format
         this.saveTokenData(this.tokenData)
         localStorage.removeItem('access_token')
       }
     } catch (error) {
-      console.error('❌ TokenManager: Initialization error:', error)
+
       this.clearAllTokens()
     }
   }
@@ -112,17 +112,17 @@ class TokenManager {
     // Clean auth_tokens
     const authTokens = localStorage.getItem('auth_tokens')
     if (authTokens && (authTokens === 'null' || authTokens === 'undefined' || authTokens === '')) {
-      console.warn('🧹 TokenManager: Removing literal null/empty from auth_tokens')
+
       localStorage.removeItem('auth_tokens')
     } else if (authTokens) {
       try {
         const parsed = JSON.parse(authTokens)
         if (parsed && (parsed.access_token === 'null' || parsed.access_token === 'undefined' || parsed.access_token === '')) {
-          console.warn('🧹 TokenManager: Removing auth_tokens with null access_token')
+
           localStorage.removeItem('auth_tokens')
         }
       } catch (e) {
-        console.warn('🧹 TokenManager: Removing corrupted auth_tokens')
+
         localStorage.removeItem('auth_tokens')
       }
     }
@@ -130,14 +130,14 @@ class TokenManager {
     // Clean legacy token
     const oldToken = localStorage.getItem('access_token')
     if (oldToken && (oldToken === 'null' || oldToken === 'undefined' || oldToken === '' || !this.isValidJWT(oldToken))) {
-      console.warn('🧹 TokenManager: Removing invalid legacy token:', { token: oldToken, length: oldToken?.length })
+
       localStorage.removeItem('access_token')
     }
 
     // Clean any other potential token storage locations
     const refreshToken = localStorage.getItem('refresh_token')
     if (refreshToken && (refreshToken === 'null' || refreshToken === 'undefined' || refreshToken === '')) {
-      console.warn('🧹 TokenManager: Removing invalid refresh_token')
+
       localStorage.removeItem('refresh_token')
     }
   }
@@ -150,7 +150,7 @@ class TokenManager {
     if (this.tokenData && this.isValidJWT(this.tokenData.access_token)) {
       // Check if token is expired
       if (this.tokenData.expires_at && Date.now() > this.tokenData.expires_at) {
-        console.log('🔄 TokenManager: Token expired, refreshing...')
+
         return await this.refreshToken()
       }
 
@@ -162,11 +162,11 @@ class TokenManager {
 
     // No valid token, try to refresh
     if (this.tokenData?.refresh_token) {
-      console.log('🔄 TokenManager: No valid access token, refreshing...')
+
       return await this.refreshToken()
     }
 
-    console.warn('⚠️ TokenManager: No valid token or refresh token available')
+
     return {
       isValid: false,
       token: null,
@@ -179,7 +179,7 @@ class TokenManager {
    */
   private async refreshToken(): Promise<TokenValidationResult> {
     if (this.isRefreshing && this.refreshPromise) {
-      console.log('🔄 TokenManager: Refresh already in progress, waiting...')
+
       return await this.refreshPromise
     }
 
@@ -239,14 +239,14 @@ class TokenManager {
 
       this.setTokenData(newTokenData)
 
-      console.log('✅ TokenManager: Token refreshed successfully')
+
       return {
         isValid: true,
         token: newTokenData.access_token
       }
 
     } catch (error) {
-      console.error('❌ TokenManager: Token refresh failed:', error)
+
       this.clearAllTokens()
       this.notifySubscribers(null)
       
@@ -263,14 +263,14 @@ class TokenManager {
    */
   setTokenData(tokenData: TokenData): void {
     if (!this.isValidTokenData(tokenData)) {
-      console.error('❌ TokenManager: Attempted to set invalid token data')
+
       return
     }
 
     this.tokenData = tokenData
     this.saveTokenData(tokenData)
     this.notifySubscribers(tokenData.access_token)
-    console.log('✅ TokenManager: Token data set successfully')
+
   }
 
   /**
@@ -283,7 +283,7 @@ class TokenManager {
       localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
       localStorage.setItem('user_last_updated', Date.now().toString())
     } catch (error) {
-      console.error('❌ TokenManager: Failed to save token data:', error)
+
     }
   }
 
@@ -300,7 +300,7 @@ class TokenManager {
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('user_data')
       localStorage.removeItem('user_last_updated')
-      console.log('🧹 TokenManager: All tokens cleared')
+
     }
   }
 
@@ -322,7 +322,7 @@ class TokenManager {
       try {
         callback(token)
       } catch (error) {
-        console.error('❌ TokenManager: Subscriber error:', error)
+
       }
     })
   }

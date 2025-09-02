@@ -41,13 +41,13 @@ export function ChartPostAnalytics() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        console.log('🔍 Post Analytics: Calling Team Context API...')
+
         const result = await teamApiService.getTeamContext()
-        console.log('🔍 Post Analytics: Team Context result:', result)
+
         
         if (result.success && result.data) {
           const teamData = result.data
-          console.log('🔍 Post Analytics: Team context data:', teamData)
+
           
           // Extract post data from team context
           const postsUsed = teamData.current_usage?.posts || 0
@@ -66,12 +66,12 @@ export function ChartPostAnalytics() {
             fill: "#5100f3"
           }])
           
-          console.log('🔍 Post Analytics: Set usage data:', { used: postsUsed, limit: postsLimit, remaining: postsRemaining })
+
         } else {
-          console.log('🔍 Post Analytics: No team context data or API failed:', result.error)
+
         }
       } catch (error) {
-        console.error('🔍 Post Analytics: Exception occurred:', error)
+
       } finally {
         setLoading(false)
       }

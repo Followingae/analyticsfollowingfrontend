@@ -84,10 +84,10 @@ export default function BillingPage() {
         } else {
           // Handle permission errors gracefully - don't fail the page
           if (dashboardResult.error?.includes('403') || dashboardResult.error?.includes('permission')) {
-            console.warn('🔒 Billing: Dashboard access restricted, using fallback data')
+
             setError('Some billing features require premium access')
           } else if (dashboardResult.error?.includes('401') || dashboardResult.error?.includes('Authentication')) {
-            console.warn('🔒 Billing: Authentication issue, will redirect')
+
             setError('Authentication required. Please log in again.')
           } else {
             setError(dashboardResult.error || 'Failed to load dashboard data')
@@ -98,7 +98,7 @@ export default function BillingPage() {
           setPricing(pricingResult.data)
         }
       } catch (err) {
-        console.error('❌ Billing: Dashboard loading error:', err)
+
         if (err instanceof Error && err.message.includes('Authentication')) {
           setError('Session expired. Please log in again.')
         } else {
@@ -124,17 +124,17 @@ export default function BillingPage() {
         } else {
           // Handle transaction loading errors gracefully
           if (result.error?.includes('403') || result.error?.includes('permission')) {
-            console.warn('🔒 Billing: Transactions access restricted')
+
             // Don't show error for permission issues
           } else if (result.error?.includes('401') || result.error?.includes('Authentication')) {
-            console.warn('🔒 Billing: Authentication issue loading transactions')
+
             // Authentication issues will be handled by interceptor
           } else {
-            console.error('❌ Billing: Transaction loading error:', result.error)
+
           }
         }
       } catch (err) {
-        console.error('❌ Billing: Failed to load transactions:', err)
+
         // Don't propagate transaction loading errors to prevent logout loops
       } finally {
         setTransactionsLoading(false)

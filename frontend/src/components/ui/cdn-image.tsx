@@ -85,21 +85,18 @@ export function CDNImage({
 }
 
 /**
- * Profile avatar component using CDN system
+ * Profile avatar component using new CDN API structure
  */
 interface ProfileAvatarProps {
   profile: {
     id?: string
     full_name?: string
     username?: string
-    profile_pic_url?: string
-    profile_pic_url_hd?: string
-  }
-  cdnMedia?: {
-    avatar: {
-      small: string
-      large: string
-      available: boolean
+    profile_pic_url?: string | null // CDN 256px avatar
+    profile_pic_url_hd?: string | null // CDN 512px HD avatar
+    cdn_urls?: {
+      avatar_256?: string
+      avatar_512?: string
     }
   }
   size?: 'small' | 'large' | number
@@ -109,7 +106,6 @@ interface ProfileAvatarProps {
 
 export function ProfileAvatar({ 
   profile, 
-  cdnMedia, 
   size = 'large', 
   showProcessing = false,
   className 
@@ -121,11 +117,14 @@ export function ProfileAvatar({
       : 'w-12 h-12'
   
   const imageSize = typeof size === 'string' ? size : 'large'
-  const cdnUrl = cdnMedia?.avatar?.available 
-    ? (imageSize === 'large' ? cdnMedia.avatar.large : cdnMedia.avatar.small)
-    : null
   
-  const fallbackUrl = profile.profile_pic_url_hd || profile.profile_pic_url
+  // Use new CDN API structure
+  const cdnUrl = imageSize === 'large' 
+    ? (profile.profile_pic_url_hd || profile.cdn_urls?.avatar_512)
+    : (profile.profile_pic_url || profile.cdn_urls?.avatar_256)
+  
+  // CDN exclusive - use placeholder if no CDN URL available
+  const fallbackUrl = cdnUrl || '/placeholder-avatar.png'
 
   return (
     <div className={cn("relative rounded-full overflow-hidden", sizeClass, className)}>
@@ -143,18 +142,18 @@ export function ProfileAvatar({
 }
 
 /**
- * Post thumbnail component using CDN system
+ * Post thumbnail component using new CDN API structure
  */
 interface PostThumbnailProps {
   post: {
     id?: string
-    mediaId?: string
-    thumbnail_url?: string
-  }
-  cdnPost?: {
-    thumbnail: string
-    fullSize: string
-    available: boolean
+    media_type?: 'photo' | 'video' | 'carousel'
+    display_url?: string | null // CDN 256px thumbnail
+    cdn_urls?: {
+      256?: string // 256px thumbnail
+      512?: string // 512px thumbnail  
+    }
+    cdn_available?: boolean
   }
   size?: 'small' | 'large'
   className?: string
@@ -163,19 +162,22 @@ interface PostThumbnailProps {
 
 export function PostThumbnail({ 
   post, 
-  cdnPost, 
   size = 'small',
   className,
   alt = 'Post'
 }: PostThumbnailProps) {
-  const cdnUrl = cdnPost?.available 
-    ? (size === 'large' ? cdnPost.fullSize : cdnPost.thumbnail)
-    : null
+  // Use new CDN API structure
+  const cdnUrl = size === 'large' 
+    ? (post.cdn_urls?.['512'] || post.display_url)
+    : (post.display_url || post.cdn_urls?.['256'])
+  
+  // CDN exclusive - use placeholder if CDN not available
+  const fallbackUrl = (post.cdn_available && cdnUrl) ? cdnUrl : '/placeholder-post.png'
 
   return (
     <CDNImage
-      cdnUrl={cdnUrl}
-      fallbackUrl={post.thumbnail_url}
+      cdnUrl={fallbackUrl}
+      fallbackUrl="/placeholder-post.png"
       size={size}
       alt={alt}
       className={cn("rounded-lg", className)}

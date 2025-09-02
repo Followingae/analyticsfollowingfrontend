@@ -56,7 +56,7 @@ export class ProfessionalAINotifications {
       this.handleAnalysisResponse(response, username)
       
     } catch (error) {
-      console.error('Error handling profile analysis:', error)
+
       this.showTemporaryNotification({
         title: 'AI Analysis',
         message: 'AI analysis will be available shortly...',
@@ -90,7 +90,7 @@ export class ProfessionalAINotifications {
         }
       }
     } catch (error) {
-      console.error('Analysis trigger failed:', error)
+
       // Return safe default response
       return {
         success: false,
@@ -122,7 +122,7 @@ export class ProfessionalAINotifications {
     
     // Safety check - ensure frontend_actions exists
     if (!frontend_actions) {
-      console.warn('No frontend_actions in AI analysis response, using defaults')
+
       return
     }
     
@@ -174,7 +174,7 @@ export class ProfessionalAINotifications {
     
     // Safety checks for required properties
     if (!completion_status) {
-      console.warn('No completion_status in AI analysis response')
+
       this.showTemporaryNotification({
         title: 'AI Analysis',
         message: message || 'Analysis status unavailable',
@@ -259,7 +259,7 @@ export class ProfessionalAINotifications {
         const response = await this.triggerProfileAnalysis(username)
         this.handleAnalysisResponse(response, username)
       } catch (error) {
-        console.error(`Retry ${retryCount + 1} failed:`, error)
+
         this.scheduleRetryAnalysis(username, retryCount + 1)
       }
     }, delay)
@@ -278,7 +278,7 @@ export class ProfessionalAINotifications {
    */
   private pollAnalysisCompletion(username: string): void {
     // REMOVED: This polling was causing repeated calls to /api/v1/ai/fix/profile/{username}
-    console.warn('pollAnalysisCompletion: Polling disabled to prevent API spam. Use notification system instead.')
+
     return
     
     // // Clear any existing interval for this username
@@ -333,7 +333,7 @@ export class ProfessionalAINotifications {
     //     }
     //     
     //   } catch (error) {
-    //     console.error('Progress tracking error:', error)
+
     //     // Continue polling with generic message
     //     this.updateNotification({
     //       title: 'AI Processing',

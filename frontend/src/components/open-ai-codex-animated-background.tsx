@@ -41,7 +41,7 @@ export const OpenAICodexAnimatedBackground = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         setDimensions({ width: rect.width, height: rect.height });
-        console.log('Background dimensions:', rect.width, rect.height);
+
       }
     };
 

@@ -152,7 +152,7 @@ export default function ProposalsPage() {
         setPipelineSummary(result.data)
       }
     } catch (error) {
-      console.error('Failed to load pipeline summary:', error)
+
     }
   }
 

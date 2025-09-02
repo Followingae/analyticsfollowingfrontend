@@ -52,9 +52,9 @@ export default function ProfileSearchTab() {
     try {
       // TODO: Implement batch analysis API when backend endpoints are ready
       // await batchApiService.batchAnalysis(usernames)
-      console.log('Batch analysis feature will be implemented when backend endpoints are available')
+
     } catch (err) {
-      console.error('Batch analysis failed:', err)
+
     } finally {
       setBatchLoading(false)
     }

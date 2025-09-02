@@ -38,7 +38,7 @@ const ROLE_LEVELS: Record<string, number> = {
  */
 export const isAuthorized = (userRole: string, requiredRole: string): boolean => {
   if (!userRole || !requiredRole) {
-    console.warn('🔒 Role Auth: Missing role data:', { userRole, requiredRole })
+
     return false
   }
 
@@ -47,7 +47,7 @@ export const isAuthorized = (userRole: string, requiredRole: string): boolean =>
   
   const authorized = userLevel >= requiredLevel
   
-  console.log('🔒 Role Auth Check:', {
+
     userRole,
     requiredRole,
     userLevel,
@@ -67,7 +67,7 @@ export const canAccessSuperAdmin = (userRole: string): boolean => {
   const allowedRoles = ['superadmin', 'super_admin']
   const canAccess = allowedRoles.includes(userRole)
   
-  console.log('🔒 SuperAdmin Access Check:', {
+
     userRole,
     allowedRoles,
     canAccess
@@ -85,7 +85,7 @@ export const canAccessAdmin = (userRole: string): boolean => {
   const allowedRoles = ['superadmin', 'super_admin', 'admin']
   const canAccess = allowedRoles.includes(userRole)
   
-  console.log('🔒 Admin Access Check:', {
+
     userRole,
     allowedRoles,
     canAccess
@@ -103,7 +103,7 @@ export const isPremiumUser = (userRole: string): boolean => {
   const premiumRoles = ['premium', 'brand_premium', 'superadmin', 'super_admin', 'admin']
   const isPremium = premiumRoles.includes(userRole)
   
-  console.log('🔒 Premium Access Check:', {
+
     userRole,
     premiumRoles,
     isPremium
@@ -121,7 +121,7 @@ export const isBrandUser = (userRole: string): boolean => {
   const brandRoles = ['premium', 'brand_premium', 'standard', 'brand_standard', 'free', 'brand_free']
   const isBrand = brandRoles.includes(userRole)
   
-  console.log('🔒 Brand User Check:', {
+
     userRole,
     brandRoles,
     isBrand
@@ -166,7 +166,7 @@ export const normalizeRole = (backendRole: string): string => {
   
   const normalized = roleMap[backendRole] || backendRole
   
-  console.log('🔒 Role Normalization:', {
+
     backendRole,
     normalized
   })
@@ -183,7 +183,7 @@ export const normalizeRole = (backendRole: string): string => {
 export const requireRole = (userRole: string, requiredRole: string, resourceName = 'resource'): void => {
   if (!isAuthorized(userRole, requiredRole)) {
     const error = `Access denied to ${resourceName}. Required: ${requiredRole}, User has: ${userRole}`
-    console.error('🔒 Authorization Error:', error)
+
     throw new Error(error)
   }
 }

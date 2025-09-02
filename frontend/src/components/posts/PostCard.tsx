@@ -4,23 +4,17 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { InstagramPost } from '@/services/instagramApi'
+import { InstagramPostCDN } from '@/services/instagramCdnApi'
 import { formatNumber } from '@/lib/utils'
-import { CDNImage } from '@/components/ui/cdn-image'
-import { getBestImageUrl } from '@/lib/cdn-migration'
+import { PostThumbnail } from '@/components/ui/cdn-image'
 import { Heart, MessageCircle, Eye, MapPin, ExternalLink, Brain, Sparkles, Languages, Clock, CheckCircle, Loader2 } from 'lucide-react'
 import { SentimentBadge, LanguageBadge } from '@/components/ui/ai-insights'
 
 interface PostCardProps {
-  post: InstagramPost
-  cdnPost?: {
-    thumbnail: string
-    fullSize: string
-    available: boolean
-  }
+  post: InstagramPostCDN
 }
 
-export default function PostCard({ post, cdnPost }: PostCardProps) {
+export default function PostCard({ post }: PostCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   const formatDate = (dateString: string) => {
@@ -32,7 +26,7 @@ export default function PostCard({ post, cdnPost }: PostCardProps) {
   }
 
   const openInstagramPost = () => {
-    window.open(`https://www.instagram.com/p/${post.shortcode}/`, '_blank')
+    window.open(`https://www.instagram.com/p/${post.id}/`, '_blank')
   }
 
   return (
@@ -40,31 +34,30 @@ export default function PostCard({ post, cdnPost }: PostCardProps) {
       <div className="relative">
         {/* Main Media */}
         <div className="relative aspect-square bg-gray-100">
-          {post.is_video ? (
+          {post.media_type === 'video' ? (
             <div className="relative w-full h-full">
-              <video
-                controls
-                poster={getBestImageUrl(cdnPost?.thumbnail, post.images?.[0]?.proxied_url || post.display_url)}
+              {/* Video poster using CDN thumbnail */}
+              <PostThumbnail
+                post={post}
+                size="large"
                 className="w-full h-full object-cover"
-              >
-                <source src={post.video_url} type="video/mp4" />
-              </video>
+                alt={post.caption?.substring(0, 100) || `Post ${post.id}`}
+              />
               <Badge className="absolute top-2 right-2 bg-black/70 text-white">
                 Video
               </Badge>
             </div>
           ) : (
             <div className="relative w-full h-full">
-              <CDNImage
-                cdnUrl={cdnPost?.fullSize}
-                fallbackUrl={post.images?.[0]?.proxied_url || post.display_url}
-                alt={post.caption?.substring(0, 100) || `Post by ${post.shortcode}`}
-                className="w-full h-full object-cover"
+              <PostThumbnail
+                post={post}
                 size="large"
+                className="w-full h-full object-cover"
+                alt={post.caption?.substring(0, 100) || `Post ${post.id}`}
               />
-              {post.is_carousel && (
+              {post.media_type === 'carousel' && (
                 <Badge className="absolute top-2 right-2 bg-black/70 text-white">
-{post.carousel_media_count}
+                  Carousel
                 </Badge>
               )}
             </div>

@@ -67,7 +67,7 @@ export function AIStatusIndicator({
           setPricing(result.data)
         }
       } catch (error) {
-        console.error('Failed to load AI insights pricing:', error)
+
       } finally {
         setPricingLoading(false)
       }
@@ -165,7 +165,7 @@ export function AIStatusIndicator({
   //           }
   //         }
   //       } catch (error) {
-  //         console.error('Failed to refresh AI status:', error)
+
   //       }
   //     }, 3000)
 

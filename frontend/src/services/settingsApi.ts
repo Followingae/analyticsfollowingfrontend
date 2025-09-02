@@ -115,7 +115,7 @@ class SettingsApiService {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout)
 
     try {
-      console.log(`🔗 Settings API request: ${this.baseURL}${url}`)
+
       
       const response = await fetchWithAuth(`${this.baseURL}${url}`, {
         ...options,
@@ -145,7 +145,7 @@ class SettingsApiService {
       }
 
       const data = await response.json()
-      console.log(`✅ Settings API response received`)
+
       
       return {
         success: true,
@@ -154,7 +154,7 @@ class SettingsApiService {
       }
     } catch (error) {
       clearTimeout(timeoutId)
-      console.error(`❌ Settings API error:`, error)
+
       
       return {
         success: false,

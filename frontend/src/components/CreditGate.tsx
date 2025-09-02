@@ -126,12 +126,12 @@ function CreditConsumptionWrapper({
   const handleCreditConsumption = async () => {
     try {
       // TODO: Implement actual credit consumption API call
-      console.log(`Consuming ${cost} credits for action: ${action}`)
+
       
       setShowConfirm(false)
       onSuccess?.()
     } catch (error) {
-      console.error('Failed to consume credits:', error)
+
     }
   }
 

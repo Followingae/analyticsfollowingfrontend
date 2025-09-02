@@ -41,13 +41,13 @@ export function ChartProfileAnalysis() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        console.log('🔍 Profile Analysis: Calling Team Context API...')
+
         const result = await teamApiService.getTeamContext()
-        console.log('🔍 Profile Analysis: Team Context result:', result)
+
         
         if (result.success && result.data) {
           const teamData = result.data
-          console.log('🔍 Profile Analysis: Team context data:', teamData)
+
           
           // Extract profile data from team context
           const profilesUsed = teamData.current_usage?.profiles || 0
@@ -66,12 +66,12 @@ export function ChartProfileAnalysis() {
             fill: "#5100f3"
           }])
           
-          console.log('🔍 Profile Analysis: Set usage data:', { used: profilesUsed, limit: profilesLimit, remaining: profilesRemaining })
+
         } else {
-          console.log('🔍 Profile Analysis: No team context data or API failed:', result.error)
+
         }
       } catch (error) {
-        console.error('🔍 Profile Analysis: Exception occurred:', error)
+
       } finally {
         setLoading(false)
       }

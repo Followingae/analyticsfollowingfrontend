@@ -48,7 +48,7 @@ export default function DiscoveryTab() {
         setCreators([])
       }
     } catch (err) {
-      console.error('Discovery failed:', err)
+
       setCreators([])
     } finally {
       setLoading(false)
@@ -232,7 +232,8 @@ export default function DiscoveryTab() {
                           username: creator.username,
                           full_name: creator.full_name,
                           profile_pic_url: creator.profile_pic_url,
-                          profile_pic_url_hd: creator.profile_pic_url_hd
+                          profile_pic_url_hd: creator.profile_pic_url_hd,
+                          cdn_urls: creator.cdn_urls
                         }}
                         size="large"
                         className="border-2 border-gray-200"

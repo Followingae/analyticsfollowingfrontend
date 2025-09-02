@@ -114,8 +114,12 @@ export interface CreatorProfile {
   is_business_account: boolean;
   business_category_name?: string;
   engagement_rate: number;
-  profile_pic_url: string;
-  profile_pic_url_hd: string;
+  profile_pic_url: string | null; // CDN 256px avatar
+  profile_pic_url_hd: string | null; // CDN 512px HD avatar
+  cdn_urls?: {
+    avatar_256?: string;
+    avatar_512?: string;
+  };
   proxied_profile_pic_url?: string;
   proxied_profile_pic_url_hd?: string;
   external_url?: string;
@@ -148,6 +152,13 @@ export interface CreatorPost {
     thumbnail_src: string;
     video_url?: string;
   };
+  // CDN URLs for posts
+  display_url: string | null; // CDN 256px thumbnail
+  cdn_urls?: {
+    256?: string; // 256px thumbnail
+    512?: string; // 512px thumbnail
+  };
+  cdn_available: boolean;
   
   // AI analysis results
   ai_analysis?: PostAIAnalysis;

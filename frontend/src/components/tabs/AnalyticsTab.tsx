@@ -47,7 +47,7 @@ export default function AnalyticsTab() {
         setSentimentData(null) // Remove mock data, wait for backend implementation
       }
     } catch (err) {
-      console.error('Analytics failed:', err)
+
     } finally {
       setLoading(false)
     }

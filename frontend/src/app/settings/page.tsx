@@ -114,11 +114,11 @@ export default function SettingsPage() {
   const loadSettings = async () => {
     setLoading(true)
     try {
-      console.log('🔄 Loading settings overview...')
+
       const result = await settingsApiService.getSettingsOverview()
       
       if (result.success && result.data) {
-        console.log('✅ Settings loaded successfully')
+
         setSettings(result.data)
         
         // Initialize form data
@@ -127,11 +127,11 @@ export default function SettingsPage() {
         setPrivacySettings(result.data.privacy)
         setPreferences(result.data.preferences)
       } else {
-        console.error('❌ Failed to load settings:', result.error)
+
         toast.error(result.error || 'Failed to load settings')
       }
     } catch (error) {
-      console.error('❌ Settings loading error:', error)
+
       toast.error('Failed to load settings')
     } finally {
       setLoading(false)
@@ -157,7 +157,7 @@ export default function SettingsPage() {
         setTeamContext(null)
       }
     } catch (error) {
-      console.log('Team features not available:', error)
+
       setTeamContext(null)
     } finally {
       setTeamContextLoading(false)
@@ -167,11 +167,11 @@ export default function SettingsPage() {
   const saveProfile = async () => {
     setSaving(true)
     try {
-      console.log('💾 Saving profile...', profileData)
+
       const success = await updateProfile(profileData)
       
       if (success) {
-        console.log('✅ Profile saved successfully via AuthContext')
+
         
         // Use a small delay to ensure auth context state has been updated
         setTimeout(() => {
@@ -190,10 +190,10 @@ export default function SettingsPage() {
           }
         }, 100)
       } else {
-        console.error('❌ Failed to save profile via AuthContext')
+
       }
     } catch (error) {
-      console.error('❌ Profile save error:', error)
+
       toast.error('Failed to save profile')
     } finally {
       setSaving(false)
@@ -202,57 +202,57 @@ export default function SettingsPage() {
 
   const saveNotifications = async (updates: Partial<NotificationSettings>) => {
     try {
-      console.log('🔔 Saving notifications...', updates)
+
       const result = await settingsApiService.updateNotificationSettings(updates)
       
       if (result.success && result.data) {
-        console.log('✅ Notifications saved successfully')
+
         setNotificationSettings(result.data)
         toast.success(result.message || 'Notification preferences updated')
       } else {
-        console.error('❌ Failed to save notifications:', result.error)
+
         toast.error(result.error || 'Failed to update notifications')
       }
     } catch (error) {
-      console.error('❌ Notifications save error:', error)
+
       toast.error('Failed to update notifications')
     }
   }
 
   const savePrivacy = async (updates: Partial<PrivacySettings>) => {
     try {
-      console.log('🔒 Saving privacy settings...', updates)
+
       const result = await settingsApiService.updatePrivacySettings(updates)
       
       if (result.success && result.data) {
-        console.log('✅ Privacy settings saved successfully')
+
         setPrivacySettings(result.data)
         toast.success(result.message || 'Privacy settings updated')
       } else {
-        console.error('❌ Failed to save privacy settings:', result.error)
+
         toast.error(result.error || 'Failed to update privacy settings')
       }
     } catch (error) {
-      console.error('❌ Privacy settings save error:', error)
+
       toast.error('Failed to update privacy settings')
     }
   }
 
   const savePreferences = async (updates: Partial<UserPreferences>) => {
     try {
-      console.log('⚙️ Saving preferences...', updates)
+
       const result = await settingsApiService.updatePreferences(updates)
       
       if (result.success && result.data) {
-        console.log('✅ Preferences saved successfully')
+
         setPreferences(result.data)
         toast.success(result.message || 'Preferences updated')
       } else {
-        console.error('❌ Failed to save preferences:', result.error)
+
         toast.error(result.error || 'Failed to update preferences')
       }
     } catch (error) {
-      console.error('❌ Preferences save error:', error)
+
       toast.error('Failed to update preferences')
     }
   }
@@ -271,11 +271,11 @@ export default function SettingsPage() {
 
     setSaving(true)
     try {
-      console.log('🔐 Changing password...')
+
       const result = await settingsApiService.changePassword(passwordData)
       
       if (result.success && result.data) {
-        console.log('✅ Password changed successfully')
+
         toast.success(result.message || 'Password updated successfully')
         
         // Clear password form
@@ -291,11 +291,11 @@ export default function SettingsPage() {
           // Could redirect to login or handle re-auth here
         }
       } else {
-        console.error('❌ Failed to change password:', result.error)
+
         toast.error(result.error || 'Failed to change password')
       }
     } catch (error) {
-      console.error('❌ Password change error:', error)
+
       toast.error('Failed to change password')
     } finally {
       setSaving(false)
@@ -314,11 +314,11 @@ export default function SettingsPage() {
 
     setSaving(true)
     try {
-      console.log('📷 Uploading avatar...', file.name)
+
       const result = await settingsApiService.uploadAvatar(file)
       
       if (result.success && result.data) {
-        console.log('✅ Avatar uploaded successfully')
+
         setProfileData(prev => ({
           ...prev,
           profile_picture_url: result.data!.profile_picture_url
@@ -326,11 +326,11 @@ export default function SettingsPage() {
         toast.success(result.message || 'Avatar updated successfully')
         await refreshUser() // Update auth context
       } else {
-        console.error('❌ Failed to upload avatar:', result.error)
+
         toast.error(result.error || 'Failed to upload avatar')
       }
     } catch (error) {
-      console.error('❌ Avatar upload error:', error)
+
       toast.error('Failed to upload avatar')
     } finally {
       setSaving(false)
@@ -343,7 +343,7 @@ export default function SettingsPage() {
 
   const handleAvatarConfigChange = async (config: { variant: string; colorScheme: string; colors: string[]; seed?: string }) => {
     try {
-      console.log('🎨 Updating avatar config:', config)
+
       
       // Save to backend first
       const updatedProfileData = {
@@ -355,11 +355,11 @@ export default function SettingsPage() {
       
       if (success) {
         toast.success('Avatar updated successfully')
-        console.log('✅ Avatar config saved to backend')
+
         
         // Force backend update again to overwrite any issues
         setTimeout(async () => {
-          console.log('🔄 Force updating backend again...')
+
           await updateProfile(updatedProfileData)
         }, 100)
         
@@ -370,13 +370,13 @@ export default function SettingsPage() {
         
         // DON'T refresh user data - it's reverting our changes!
         // The backend /auth/me is still returning old data despite successful saves
-        console.log('✅ Avatar updated - NOT calling refreshUser to avoid reversion')
+
         
       } else {
         toast.error('Failed to save avatar changes')
       }
     } catch (error) {
-      console.error('❌ Avatar config update error:', error)
+
       toast.error('Failed to update avatar')
     }
   }

@@ -60,21 +60,21 @@ export function SetupChecklist() {
         // 2. Check first profile analysis (using service method)
         let firstProfileAnalyzed = false;
         try {
-          console.log('🔍 Checklist: Calling instagramApiService.getUnlockedProfiles()');
+
           const unlockedResult = await instagramApiService.getUnlockedProfiles(1, 5);
           
-          console.log('🔍 Checklist: Service result:', unlockedResult);
+
           
           if (unlockedResult.success && unlockedResult.data) {
             const profileCount = unlockedResult.data.profiles?.length || 0;
-            console.log('🔍 Checklist: Profile count from service:', profileCount);
-            console.log('🔍 Checklist: Profiles array:', unlockedResult.data.profiles);
+
+
             firstProfileAnalyzed = profileCount > 0;
           } else {
-            console.log('🔍 Checklist: Service failed or no data:', unlockedResult.error);
+
           }
         } catch (error) {
-          console.error('🔍 Checklist: Could not check profile analysis status:', error);
+
         }
 
         // 3. Check first list creation
@@ -85,7 +85,7 @@ export function SetupChecklist() {
             firstListCreated = listsResult.data.length > 0;
           }
         } catch (error) {
-          console.log('Could not check lists status');
+
         }
 
         setStatus({
@@ -96,7 +96,7 @@ export function SetupChecklist() {
         });
 
       } catch (error) {
-        console.error('Failed to load checklist status:', error);
+
         setStatus(prev => ({ ...prev, loading: false }));
       }
     };
@@ -137,7 +137,7 @@ export function SetupChecklist() {
             firstProfileAnalyzed = profileCount > 0;
           }
         } catch (error) {
-          console.log('Could not check profile analysis status');
+
         }
 
         let firstListCreated = false;
@@ -147,7 +147,7 @@ export function SetupChecklist() {
             firstListCreated = listsResult.data.length > 0;
           }
         } catch (error) {
-          console.log('Could not check lists status');
+
         }
 
         setStatus({
@@ -157,7 +157,7 @@ export function SetupChecklist() {
           loading: false,
         });
       } catch (error) {
-        console.error('Failed to refresh checklist status:', error);
+
         setStatus(prev => ({ ...prev, loading: false }));
       }
     };

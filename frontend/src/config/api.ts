@@ -8,33 +8,33 @@ export const API_CONFIG = {
 }
 
 export const ENDPOINTS = {
-  // Creator Search System - Robust Implementation
+  // Instagram Profile System - CDN Integration
+  instagram: {
+    // Primary Instagram Profile Endpoint with CDN URLs
+    profile: (username: string) => `/api/instagram/profile/${username}`, // GET - Instagram profile with CDN images
+  },
+
+  // Creator Search System - Simple Flow (CORRECTED ENDPOINTS)
   creator: {
-    // Core Search Endpoints
-    search: (username: string) => `/api/v1/creator/search/${username}`, // POST - Main creator search
-    get: (username: string) => `/api/v1/creator/${username}`, // GET - Get existing creator data
+    // ✅ CORRECTED: Simple Flow Endpoints
+    get: (username: string) => `/api/v1/simple/creator/${username}`, // GET - Get existing creator profile
+    search: (username: string) => `/api/v1/simple/creator/search/${username}`, // POST - Search new creator
+    
+    // Legacy endpoints (may still be used by some components)
     detailed: (username: string) => `/api/v1/creator/${username}/detailed`, // GET - Get detailed analytics
-    
-    // Posts & Content
     posts: (username: string) => `/api/v1/creator/${username}/posts`, // GET - Get creator posts with AI
-    
-    // Analysis Status
     status: (username: string) => `/api/v1/creator/${username}/status`, // GET - Check AI analysis status
-    
-    // Refresh & Updates
     refresh: (username: string) => `/api/v1/creator/${username}/refresh`, // POST - Force refresh
-    
-    // Background Processing
     scheduleAnalysis: (username: string) => `/api/v1/creator/${username}/schedule-analysis`, // POST - Schedule analysis
     
     // Unlocked creators
     unlocked: '/api/v1/creator/unlocked', // GET - List all unlocked creators
   },
 
-  // Legacy Profile Endpoints (Deprecated - use creator endpoints above)
+  // Legacy Profile Endpoints (Updated to use correct simple flow endpoints)
   profile: {
-    basic: (username: string) => `/api/v1/creator/search/${username}`,
-    search: (username: string) => `/api/v1/creator/search/${username}`,
+    basic: (username: string) => `/api/v1/simple/creator/${username}`, // ✅ CORRECTED
+    search: (username: string) => `/api/v1/simple/creator/search/${username}`, // ✅ CORRECTED  
     analytics: (username: string) => `/api/v1/creator/${username}/detailed`,
     posts: (username: string) => `/api/v1/creator/${username}/posts`,
     full: (username: string) => `/api/v1/creator/${username}/detailed`,
@@ -146,6 +146,6 @@ export const getAuthHeaders = () => {
   }
   
   // No valid token found
-  console.warn('⚠️ TokenManager: No valid authentication token found');
+
   return REQUEST_HEADERS;
 };

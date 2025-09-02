@@ -152,7 +152,7 @@ export default function CampaignsPage() {
         setDashboardData(result.data)
       }
     } catch (error) {
-      console.error('Failed to load dashboard:', error)
+
     }
   }
 
@@ -164,7 +164,7 @@ export default function CampaignsPage() {
         setTemplates(result.data.templates || [])
       }
     } catch (error) {
-      console.error('Failed to load templates:', error)
+
     }
   }
 

@@ -214,7 +214,7 @@ class CDNMediaService {
         };
       }
     } catch (error) {
-      console.error('Profile/CDN fetch failed:', error);
+
       throw error;
     }
   }

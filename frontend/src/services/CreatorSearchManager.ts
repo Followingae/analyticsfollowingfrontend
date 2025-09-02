@@ -173,7 +173,7 @@ export class CreatorSearchManager {
           setTimeout(poll, 5000); // Poll every 5 seconds
         }
       } catch (error) {
-        console.error('AI polling error:', error);
+
         setTimeout(poll, 10000); // Retry in 10 seconds on error
       }
     };
@@ -208,7 +208,7 @@ export class CreatorSearchManager {
           setTimeout(poll, 5000);
         }
       } catch (error) {
-        console.error('CDN polling error:', error);
+
         setTimeout(poll, 10000);
       }
     };
@@ -228,12 +228,12 @@ export class CreatorSearchManager {
 
   private showAIInsights(insights: any): void {
     // Implementation handled by parent component
-    console.log('AI Insights available:', insights);
+
   }
 
   private loadCDNImages(profileId: string): void {
     // CDN images are permanent and cached by Cloudflare
-    console.log('Loading CDN images for profile:', profileId);
+
   }
 
   private hideLoadingIndicators(): void {
@@ -268,7 +268,7 @@ export class CreatorSearchManager {
   }
 
   private updateImages(cdnData: any): void {
-    console.log('Updating images with CDN data:', cdnData);
+
   }
 
   private showAITimeout(): void {
@@ -296,7 +296,7 @@ export class CreatorSearchManager {
       const { tokenManager } = require('@/utils/tokenManager');
       return tokenManager.getTokenSync() || '';
     } catch (error) {
-      console.error('Error accessing TokenManager:', error);
+
       return '';
     }
   }

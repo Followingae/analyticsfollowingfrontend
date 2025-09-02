@@ -41,7 +41,7 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
     setError(null)
     
     try {
-      console.log('🚀 CreatorProfile: Loading Phase 1 data for:', username)
+
       
       // Call the main creator search endpoint (POST /api/v1/creator/search/{username})
       const response = await creatorApiService.searchCreator(username, {
@@ -51,7 +51,7 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
       })
 
       if (response.success && response.data) {
-        console.log('✅ CreatorProfile: Phase 1 data loaded successfully')
+
         
         // Map the response to our Phase1Data structure
         const phase1Data: Phase1Data = {
@@ -110,7 +110,7 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Network error loading profile'
-      console.error('❌ CreatorProfile: Phase 1 error:', err)
+
       setError(errorMsg)
       onError?.(errorMsg)
     } finally {
@@ -126,14 +126,14 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
 
     const pollForCompletion = async () => {
       try {
-        console.log('🔄 CreatorProfile: Checking analysis status...')
+
         
         // Check status endpoint (GET /api/v1/creator/{username}/status)
         const statusResponse = await creatorApiService.getAnalysisStatus(username)
         
         if (statusResponse.success && statusResponse.data) {
           const status = statusResponse.data.status
-          console.log('📊 CreatorProfile: Analysis status:', status)
+
           
           setProfile(prev => prev ? {
             ...prev,
@@ -142,19 +142,19 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
           } : null)
 
           if (status === 'completed') {
-            console.log('🎉 CreatorProfile: Analysis complete! Loading Phase 2 data...')
+
             clearInterval(pollingInterval!)
             setPollingInterval(null)
             await loadPhase2Data()
           } else if (status === 'error') {
-            console.error('❌ CreatorProfile: Analysis failed')
+
             clearInterval(pollingInterval!)
             setPollingInterval(null)
             setProfile(prev => prev ? { ...prev, analysis_status: 'error' } : null)
           }
         }
       } catch (err) {
-        console.error('❌ CreatorProfile: Polling error:', err)
+
         // Continue polling on errors - might be temporary
       }
     }
@@ -168,7 +168,7 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
       if (intervalId) {
         clearInterval(intervalId)
         setPollingInterval(null)
-        console.log('⏰ CreatorProfile: Polling timeout - stopping')
+
       }
     }, 5 * 60 * 1000)
   }
@@ -176,13 +176,13 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
   // Load Phase 2 data (detailed analytics)
   const loadPhase2Data = async () => {
     try {
-      console.log('🧠 CreatorProfile: Loading Phase 2 data...')
+
       
       // Get detailed analytics (GET /api/v1/creator/{username}/detailed)
       const detailedResponse = await creatorApiService.getDetailedAnalysis(username)
       
       if (detailedResponse.success && detailedResponse.data) {
-        console.log('✅ CreatorProfile: Phase 2 data loaded successfully')
+
         
         // Get all posts with AI analysis
         const postsResponse = await creatorApiService.getCreatorPosts(username, {
@@ -274,10 +274,10 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
           analysis_status: 'completed'
         } : null)
       } else {
-        console.error('❌ CreatorProfile: Failed to load Phase 2 data:', detailedResponse.error)
+
       }
     } catch (err) {
-      console.error('❌ CreatorProfile: Phase 2 error:', err)
+
     }
   }
 

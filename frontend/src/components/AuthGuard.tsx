@@ -51,24 +51,15 @@ export function AuthGuard({
 
 
   useEffect(() => {
-    console.log('🛡️ AuthGuard: useEffect triggered', {
-      isLoading,
-      isAuthenticated,
-      userRole,
-      pathname,
-      requireAuth,
-      isPublicRoute,
-      isHydrated
-    })
     
     // CRITICAL FIX: Wait for hydration to complete before making auth decisions
     if (!isHydrated) {
-      console.log('🛡️ AuthGuard: ⏳ Not yet hydrated, waiting...')
+
       return
     }
     
     if (isLoading) {
-      console.log('🛡️ AuthGuard: Still loading, returning early')
+
       return
     }
 
@@ -81,24 +72,13 @@ export function AuthGuard({
       if (userRole === 'super_admin' || userRole === 'admin') {
         redirectPath = '/admin/dashboard'
       }
-      console.log('🛡️ AuthGuard: Redirecting authenticated user from auth page to:', redirectPath)
+
       router.replace(redirectPath)
       return
     }
 
     // If authentication is required but user is not authenticated
     if (requireAuth && !isAuthenticated) {
-      console.error('🛡️ AuthGuard: ❌ AUTH REQUIRED BUT USER NOT AUTHENTICATED - REDIRECTING TO LOGIN:', {
-        pathname,
-        requireAuth,
-        isAuthenticated,
-        userRole,
-        hasUser: !!user,
-        userEmail: user?.email,
-        isLoading,
-        timestamp: new Date().toISOString(),
-        stack: new Error().stack?.split('\n').slice(1, 4).join('\n')
-      })
       router.replace('/auth/login')
       return
     }

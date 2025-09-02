@@ -52,11 +52,11 @@ export function ChartBarInteractive() {
   React.useEffect(() => {
     const loadCampaigns = async () => {
       try {
-        console.log('📊 Campaign Chart: Loading campaigns...')
+
         
         // Try current campaign first
         const currentResponse = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/current`)
-        console.log('📊 Current campaign response:', currentResponse.status)
+
         
         if (currentResponse.ok) {
           const currentData = await currentResponse.json()
@@ -69,7 +69,7 @@ export function ChartBarInteractive() {
         
         // Fallback to campaigns list
         const campaignsResponse = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns`)
-        console.log('📊 Campaigns list response:', campaignsResponse.status)
+
         
         if (campaignsResponse.ok) {
           const campaignsData = await campaignsResponse.json()
@@ -87,7 +87,7 @@ export function ChartBarInteractive() {
         }
         
       } catch (error) {
-        console.error('📊 Campaign Chart: Error loading campaigns:', error)
+
       } finally {
         setLoading(false)
       }
@@ -99,9 +99,9 @@ export function ChartBarInteractive() {
   // Load campaign analytics data
   const loadCampaignAnalytics = async (campaignId: string) => {
     try {
-      console.log('📊 Campaign Chart: Loading analytics for campaign:', campaignId)
+
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/analytics?period=30d`)
-      console.log('📊 Analytics response:', response.status)
+
       
       if (response.ok) {
         const analyticsData = await response.json()
@@ -115,11 +115,11 @@ export function ChartBarInteractive() {
             clicks: day.clicks
           }))
           setChartData(transformedData)
-          console.log('📊 Campaign Chart: Analytics loaded:', transformedData.length, 'days')
+
         }
       }
     } catch (error) {
-      console.error('📊 Campaign Chart: Analytics error:', error)
+
     }
   }
 
