@@ -92,9 +92,9 @@ export function CDNProcessingStatus({
             variant="outline" 
             size="sm"
             onClick={handleRefresh}
-            disabled={refreshMutation.isPending}
+            disabled={false}
           >
-            <RefreshCw className={cn("w-3 h-3 mr-1", refreshMutation.isPending && "animate-spin")} />
+            <RefreshCw className="w-3 h-3 mr-1" />
             Refresh
           </Button>
         )}
@@ -158,18 +158,38 @@ export function InlineProcessingIndicator({
  * Global CDN status banner for when system is processing
  */
 interface CDNStatusBannerProps {
-  username?: string
+  profileId?: string
   show?: boolean
   onDismiss?: () => void
 }
 
 export function CDNStatusBanner({ 
-  username, 
+  profileId, 
   show = true,
   onDismiss 
 }: CDNStatusBannerProps) {
-  const processingStatus = useCDNProcessingStatus(username || '')
+  const { data: cdnData, isLoading, error } = useCDNMedia(profileId)
   const [dismissed, setDismissed] = React.useState(false)
+  
+  const processingStatus = React.useMemo(() => {
+    if (isLoading || error || !cdnData) {
+      return {
+        isProcessing: false,
+        completionPercentage: 0,
+        totalAssets: 0,
+        completedAssets: 0,
+        isQueued: false,
+      }
+    }
+    
+    return {
+      isProcessing: cdnData.processing_status.queued,
+      completionPercentage: cdnData.processing_status.completion_percentage,
+      totalAssets: cdnData.processing_status.total_assets,
+      completedAssets: cdnData.processing_status.completed_assets,
+      isQueued: cdnData.processing_status.queued,
+    }
+  }, [cdnData, isLoading, error])
 
   const handleDismiss = React.useCallback(() => {
     setDismissed(true)

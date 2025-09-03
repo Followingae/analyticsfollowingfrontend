@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Users, UserPlus, Image, TrendingUp } from "lucide-react"
 import { ProfileImage } from "@/components/ProfileImage"
+import { ProfileAvatar } from "@/components/ui/profile-avatar"
 import { CDNStatusBanner } from "@/components/ui/cdn-processing-status"
 import type { ProfileHeader } from "@/types/creatorTypes"
 
@@ -42,16 +43,10 @@ export function ProfileHeaderCard({ profileHeader, cdnMedia }: ProfileHeaderCard
           <div className="flex-shrink-0 flex justify-center md:justify-start">
             <div className="relative">
               <ProfileAvatar
-                profile={{
-                  id: profileHeader.id,
-                  full_name: profileHeader.full_name,
-                  username: profileHeader.username,
-                  profile_pic_url: profileHeader.profile_pic_url,
-                  profile_pic_url_hd: profileHeader.profile_pic_url
-                }}
-                cdnMedia={cdnMedia}
-                size="large"
-                showProcessing={true}
+                src={cdnMedia?.avatar?.available ? cdnMedia.avatar.large : profileHeader.profile_pic_url}
+                alt={`${profileHeader.full_name} profile picture`}
+                fallbackText={profileHeader.full_name}
+                size="xl"
                 className="w-24 h-24 border-2 border-white dark:border-gray-900 shadow-lg"
               />
               {profileHeader.is_verified && (

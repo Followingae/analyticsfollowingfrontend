@@ -440,7 +440,7 @@ export default function CreatorsPage() {
           {/* AI Quality Score */}
           {hasAI && creator.ai_insights?.content_quality_score && (
             <div className="p-2 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 rounded-md">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-muted-foreground">AI Quality Score</span>
                 <div className="flex items-center gap-1">
                   <Sparkles className="h-3 w-3 text-yellow-500" />
@@ -448,6 +448,23 @@ export default function CreatorsPage() {
                     {creator.ai_insights.content_quality_score.toFixed(1)}/10
                   </span>
                 </div>
+              </div>
+              <Progress value={creator.ai_insights.content_quality_score * 10} className="h-1 mt-1" />
+            </div>
+          )}
+          
+          {/* AI Sentiment Score */}
+          {hasAI && creator.ai_insights?.average_sentiment && (
+            <div className="p-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900 dark:to-emerald-900 rounded-md">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Sentiment</span>
+                <Badge 
+                  variant={creator.ai_insights.average_sentiment > 0.1 ? 'default' : creator.ai_insights.average_sentiment < -0.1 ? 'destructive' : 'secondary'}
+                  className="text-xs"
+                >
+                  {creator.ai_insights.average_sentiment > 0.1 ? 'Positive' : 
+                   creator.ai_insights.average_sentiment < -0.1 ? 'Negative' : 'Neutral'}
+                </Badge>
               </div>
             </div>
           )}

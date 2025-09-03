@@ -226,6 +226,58 @@ export interface UsageStats {
   };
 }
 
+// NEW: Step 2 AI Analysis Response Types
+export interface ProfileAISummary {
+  primary_content_type: string | null;
+  content_distribution: Record<string, number> | null;
+  avg_sentiment_score: number | null;
+  language_distribution: Record<string, number> | null;
+  content_quality_score: number | null;
+  profile_analyzed_at: string | null;
+}
+
+export interface PostAIAnalysisDetailed {
+  content_category: string;
+  category_confidence: number;
+  sentiment: 'positive' | 'negative' | 'neutral';
+  sentiment_score: number;
+  sentiment_confidence: number;
+  language_code: string;
+  language_confidence: number;
+  analyzed_at: string;
+}
+
+export interface PostAnalysisItem {
+  post_id: string;
+  instagram_post_id: string;
+  caption: string;
+  likes_count: number;
+  comments_count: number;
+  engagement_rate: number;
+  ai_analysis: PostAIAnalysisDetailed;
+  created_at: string;
+}
+
+export interface AIStatistics {
+  total_posts: number;
+  analyzed_posts: number;
+  analysis_completion_rate: number;
+  avg_sentiment_score: number;
+  sentiment_distribution: {
+    positive: number;
+    negative: number;
+    neutral: number;
+  };
+}
+
+export interface ProfileAIAnalysisResponse {
+  success: boolean;
+  username: string;
+  profile_ai_summary: ProfileAISummary;
+  posts_analysis: PostAnalysisItem[];
+  ai_statistics: AIStatistics;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -391,6 +443,28 @@ class CreatorApiService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get detailed analysis'
+      };
+    }
+  }
+
+  /**
+   * 🚀 NEW: AI ANALYSIS DATA - Step 2 Complete AI Analysis
+   * Comprehensive AI analysis data with profile summary and post analysis
+   */
+  async getProfileAIAnalysis(username: string): Promise<ApiResponse<ProfileAIAnalysisResponse>> {
+    const url = `${this.baseUrl}/${username}/ai-analysis`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: createHeaders(false)
+      });
+
+      return await handleResponse<ProfileAIAnalysisResponse>(response);
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get AI analysis data'
       };
     }
   }
