@@ -36,6 +36,23 @@ export interface PostAIAnalysis {
   analysis_version: string;
 }
 
+// ✅ Profile interface matching backend specification for /api/v1/simple/creator/unlocked
+export interface Profile {
+  id: string;
+  username: string;
+  full_name: string | null;
+  biography: string | null;
+  followers_count: number;
+  following_count: number;
+  posts_count: number;
+  verified: boolean;
+  is_private: boolean;
+  profile_pic_url: string | null;
+  unlocked_at: string;  // ISO timestamp
+  credits_spent: number;
+  // Additional analytics fields...
+}
+
 export interface CreatorProfile {
   id: string;
   username: string;
@@ -156,13 +173,13 @@ export interface PostsResponse {
 
 export interface UnlockedCreatorsResponse {
   success: boolean;
-  creators: CreatorProfile[];
+  profiles: Profile[];  // ✅ CORRECTED: Backend returns 'profiles' of type Profile
   pagination: {
-    page: number;
-    page_size: number;
-    total_count: number;
+    current_page: number;  // ✅ CORRECTED: Backend uses 'current_page'
     total_pages: number;
-    has_more: boolean;
+    total_items: number;   // ✅ CORRECTED: Backend uses 'total_items'
+    has_next: boolean;
+    has_previous: boolean;
   };
   filters_applied?: {
     search?: string;

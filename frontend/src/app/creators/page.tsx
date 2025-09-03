@@ -5,7 +5,7 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { creatorApiService } from "@/services/creatorApi"
 import { useCreatorSearch } from "@/hooks/useCreatorSearch"
-import { CreatorProfile, UnlockedCreatorsResponse } from "@/types/creator"
+import { CreatorProfile, Profile, UnlockedCreatorsResponse } from "@/services/creatorApi"
 // CDN migration: preloadPageImages no longer needed with CDN
 import {
   Plus,
@@ -163,19 +163,46 @@ export default function CreatorsPage() {
         page_size: 20
       })
 
-
+      console.log('🎯 Creators page unlocked creators API response:', {
+        success: result.success,
+        data_keys: result.data ? Object.keys(result.data) : [],
+        pagination: result.data?.pagination,
+        profiles_count: result.data?.profiles?.length,
+        total_items: result.data?.pagination?.total_items,
+        error: result.error
+      })
 
       if (result.success && result.data) {
-        // Use the creators array from the API response
-        const profiles = result.data.creators || []
+        // ✅ CORRECTED: Use the profiles array from the API response
+        const backendProfiles = result.data.profiles || []
+        
+        // Adapt backend Profile format to frontend CreatorProfile format
+        const profiles: CreatorProfile[] = backendProfiles.map(profile => ({
+          id: profile.id,
+          username: profile.username,
+          full_name: profile.full_name || '',
+          biography: profile.biography || '',
+          followers_count: profile.followers_count,
+          following_count: profile.following_count,
+          posts_count: profile.posts_count,
+          is_verified: profile.verified,
+          is_business: false, // Not provided by unlocked endpoint
+          engagement_rate: 0, // Will be calculated later or from additional field
+          profile_pic_url: profile.profile_pic_url || '',
+          profile_pic_url_hd: profile.profile_pic_url || '', // Use same URL for HD
+          created_at: profile.unlocked_at,
+          updated_at: profile.unlocked_at,
+          ai_insights: undefined // Not available in unlocked list
+        }))
+        
         updateUnlockedCreators(profiles, page === 1 ? 'replace' : 'append')
         
-        // Update pagination based on API response
+        // ✅ CORRECTED: Update pagination based on backend API response format
         const paginationInfo = result.data.pagination || {}
         setPagination({
-          page: paginationInfo.page || 1,
+          page: paginationInfo.current_page || 1,
           totalPages: paginationInfo.total_pages || 1,
-          hasNext: paginationInfo.has_more || false
+          hasNext: paginationInfo.has_next || false
         })
         setUnlockedError(null)
         

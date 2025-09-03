@@ -142,16 +142,23 @@ export function BrandDashboardContent() {
         const { creatorApiService } = await import('@/services/creatorApi')
         const result = await creatorApiService.getUnlockedCreators({
           page: 1,
-          page_size: 1 // We only need the count, so fetch minimal data
+          page_size: 10 // Get a reasonable sample to ensure pagination works
         })
         
-
+        console.log('🔍 Dashboard unlocked creators API response:', {
+          success: result.success,
+          data_keys: result.data ? Object.keys(result.data) : [],
+          pagination: result.data?.pagination,
+          profiles_count: result.data?.profiles?.length,
+          total_items: result.data?.pagination?.total_items,
+          error: result.error
+        })
         
         if (result.success && result.data) {
-          // Use total_count from pagination info for accurate count
-          const count = result.data.pagination?.total_count || result.data.creators?.length || 0
-
-          setUnlockedProfilesCount(count)
+          // ✅ Get TOTAL unlocked creators count from pagination
+          const totalUnlockedCount = result.data.pagination?.total_items || 0
+          console.log('📊 Dashboard - Total Unlocked Creators:', totalUnlockedCount)
+          setUnlockedProfilesCount(totalUnlockedCount)
         } else {
 
           setUnlockedProfilesCount(0)
