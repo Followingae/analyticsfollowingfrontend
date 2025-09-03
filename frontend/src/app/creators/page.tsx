@@ -53,7 +53,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { UserAvatar } from "@/components/UserAvatar"
-import { ProfileAvatar } from "@/components/ui/cdn-image"
+import { ProfileImage } from "@/components/ProfileImage"
 import {
   SidebarInset,
   SidebarProvider,
@@ -139,18 +139,17 @@ export default function CreatorsPage() {
   // Authentication state
   const { isAuthenticated, isLoading: authLoading } = useEnhancedAuth()
 
-  // Creator search hook for simple flow search functionality
-  const {
-    profile: searchedProfile,
-    loading: searchLoading,
-    searching,
-    aiAnalyzing,
-    aiComplete,
-    error: searchError,
-    stage: searchStage,
-    searchCreator,
-    clearSearch
-  } = useCreatorSearch()
+  // Modern React Query based creator search
+  const [searchedProfile, setSearchedProfile] = useState<any>(null)
+  
+  const creatorSearchMutation = useCreatorSearch({
+    onSuccess: (data) => {
+      setSearchedProfile(data.profile)
+    },
+    onError: (error) => {
+      console.error('Search failed:', error)
+    }
+  })
 
   // Load unlocked profiles from backend using creatorApiService
   const loadUnlockedProfiles = async (page: number = 1) => {
@@ -213,11 +212,10 @@ export default function CreatorsPage() {
 
   // Automatically add search results to the list when they complete
   useEffect(() => {
-    if (searchedProfile && searchStage === 'complete') {
-
+    if (searchedProfile && !creatorSearchMutation.isPending) {
       updateUnlockedCreators([searchedProfile], 'add')
     }
-  }, [searchedProfile, searchStage])
+  }, [searchedProfile, creatorSearchMutation.isPending])
 
   // Manual refresh function for refresh button
   const handleRefresh = async () => {
@@ -225,7 +223,7 @@ export default function CreatorsPage() {
     await loadUnlockedProfiles()
   }
 
-  // Handle individual creator search with simple flow
+  // Handle individual creator search with modern React Query
   const handleSearchCreator = async () => {
     if (!searchUsername.trim()) {
       toast.error("Please enter an Instagram username")
@@ -233,13 +231,14 @@ export default function CreatorsPage() {
     }
     
     const cleanUsername = searchUsername.trim().replace('@', '')
-
     
-    await searchCreator(cleanUsername, { show_progress: true })
-    setSearchUsername("")
-    
-    // Note: Search results are automatically added via useEffect
-    // Simple flow provides complete data with AI analysis in single call
+    try {
+      await creatorSearchMutation.mutateAsync(cleanUsername)
+      setSearchUsername("")
+      toast.success(`Found profile for @${cleanUsername}!`)
+    } catch (error) {
+      toast.error("Search failed. Please try again.")
+    }
   }
 
   const handleBulkAnalysis = async () => {
@@ -378,17 +377,12 @@ export default function CreatorsPage() {
           {/* Avatar */}
           <div className="flex justify-center mb-3">
             <div className="relative">
-              <ProfileAvatar
-                profile={{
-                  id: creator.id,
-                  username: creator.username,
-                  full_name: creator.full_name,
-                  profile_pic_url: creator.profile_pic_url,
-                  profile_pic_url_hd: creator.profile_pic_url_hd,
-                  cdn_urls: creator.cdn_urls
-                }}
-                size="large"
-                className="w-20 h-20 border-2 border-white dark:border-gray-900"
+              <ProfileImage
+                profileId={creator.username}
+                originalUrl={creator.profile_pic_url}
+                alt={creator.username}
+                size="lg"
+                className="border-2 border-white dark:border-gray-900"
               />
               {creator.is_verified && (
                 <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1">
@@ -543,14 +537,14 @@ export default function CreatorsPage() {
                       <Button 
                         className="w-full"
                         onClick={handleSearchCreator}
-                        disabled={searchLoading || !searchUsername.trim()}
+                        disabled={creatorSearchMutation.isPending || !searchUsername.trim()}
                       >
-                        {searchLoading ? (
+                        {creatorSearchMutation.isPending ? (
                           <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         ) : (
                           <Brain className="h-4 w-4 mr-2" />
                         )}
-                        {searchLoading ? "Analyzing..." : "Analyze & Add Creator"}
+                        {creatorSearchMutation.isPending ? "Analyzing..." : "Analyze & Add Creator"}
                       </Button>
                     </div>
 
@@ -605,7 +599,7 @@ export default function CreatorsPage() {
             </div>
 
             {/* Search Results - Show if currently searching */}
-            {(searchedProfile || searchLoading || searchError || aiAnalyzing) && (
+            {(searchedProfile || creatorSearchMutation.isPending || creatorSearchMutation.isError) && (
               <Card className="border-primary/20">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -616,18 +610,18 @@ export default function CreatorsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={clearSearch}
+                      onClick={() => setSearchedProfile(null)}
                     >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {searchLoading && (
+                  {creatorSearchMutation.isPending && (
                     <div className="text-center py-8">
                       <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent mb-4" />
                       <p className="text-muted-foreground">
-                        {searching ? "Searching creator..." : aiAnalyzing ? "AI analysis in progress..." : "Loading..."}
+                        Analyzing creator with AI insights...
                       </p>
                     </div>
                   )}
@@ -646,10 +640,12 @@ export default function CreatorsPage() {
                     </div>
                   )}
 
-                  {searchError && (
+                  {creatorSearchMutation.isError && (
                     <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-950 rounded-lg">
                       <AlertCircle className="h-4 w-4 text-red-500" />
-                      <span className="text-sm text-red-700 dark:text-red-400">{searchError}</span>
+                      <span className="text-sm text-red-700 dark:text-red-400">
+                        {creatorSearchMutation.error?.message || 'Search failed'}
+                      </span>
                     </div>
                   )}
                 </CardContent>

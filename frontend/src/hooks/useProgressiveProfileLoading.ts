@@ -11,13 +11,8 @@ export interface ProgressiveLoadingState {
   isLoadingBasic: boolean
   isLoadingDetailed: boolean
   
-  // Status states
-  aiStatus: 'pending' | 'processing' | 'completed' | 'error' | null
-  aiProgress?: {
-    completed: number
-    total: number
-    percentage: number
-  }
+  // Status states (simplified - no polling needed)
+  aiStatus: 'completed' | 'error' | null
   
   // Messages
   message: string
@@ -29,8 +24,6 @@ export interface ProgressiveLoadingState {
 
 export interface ProgressiveLoadingActions {
   loadProfile: (username: string) => Promise<void>
-  pollForDetailedData: (username: string) => Promise<void>
-  stopPolling: () => void
   reset: () => void
 }
 
@@ -46,7 +39,7 @@ export function useProgressiveProfileLoading(): [ProgressiveLoadingState, Progre
     dataStage: 'none'
   })
 
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
+  // ❌ REMOVED: No polling needed
 
   const updateState = useCallback((updates: Partial<ProgressiveLoadingState>) => {
     setState(prev => ({ ...prev, ...updates }))
@@ -54,144 +47,51 @@ export function useProgressiveProfileLoading(): [ProgressiveLoadingState, Progre
 
   const loadProfile = useCallback(async (username: string) => {
     updateState({
+      basicData: null,
+      detailedData: null,
       isLoadingBasic: true,
+      isLoadingDetailed: false,
       error: null,
-      message: 'Loading profile...',
+      message: 'Loading complete profile data...',
       dataStage: 'none'
     })
 
     try {
-      // Step 1: Get basic data
-      const basicResponse = await instagramApiService.getBasicProfile(username)
+      // Single API call gets everything immediately
+      const response = await instagramApiService.getBasicProfile(username)
       
-      if (basicResponse.success && basicResponse.data) {
+      if (response.success && response.data) {
         updateState({
-          basicData: basicResponse.data,
+          basicData: response.data,
+          detailedData: response.data, // Same data - complete from single call
           isLoadingBasic: false,
-          dataStage: 'basic',
-          message: 'Basic profile data loaded. AI analysis in progress...',
-          aiStatus: 'processing'
+          isLoadingDetailed: false,
+          dataStage: 'detailed',
+          aiStatus: 'completed',
+          message: 'Complete profile with AI insights loaded!'
         })
-
-        // Automatically start polling for detailed data
-        pollForDetailedData(username)
       } else {
         updateState({
           isLoadingBasic: false,
-          error: basicResponse.error || 'Failed to load basic profile data',
+          isLoadingDetailed: false,
+          error: response.error || 'Failed to load profile data',
           message: ''
         })
       }
     } catch (error: any) {
       updateState({
         isLoadingBasic: false,
+        isLoadingDetailed: false,
         error: error.message || 'Failed to load profile',
         message: ''
       })
     }
   }, [updateState])
 
-  const pollForDetailedData = useCallback(async (username: string) => {
-    // Clear any existing polling
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-    }
-
-    updateState({
-      isLoadingDetailed: true,
-      aiStatus: 'processing'
-    })
-
-    const poll = async () => {
-      try {
-        // Check AI processing status
-        const statusResponse = await instagramApiService.getProfileStatus(username)
-        
-        if (statusResponse.success && statusResponse.data) {
-          const { analysis_status, progress } = statusResponse.data
-          
-          updateState({
-            aiStatus: analysis_status,
-            aiProgress: progress,
-            message: analysis_status === 'completed' 
-              ? 'Analysis complete! Loading detailed insights...'
-              : 'AI analysis in progress...'
-          })
-
-          if (analysis_status === 'completed') {
-            // Get detailed data
-            const detailedResponse = await instagramApiService.getDetailedProfile(username)
-            
-            if (detailedResponse.success && detailedResponse.data) {
-              updateState({
-                detailedData: detailedResponse.data,
-                isLoadingDetailed: false,
-                dataStage: 'detailed',
-                aiStatus: 'completed',
-                message: 'Complete profile analysis with AI insights available!'
-              })
-              
-              // Stop polling
-              if (pollingInterval) {
-                clearInterval(pollingInterval)
-                setPollingInterval(null)
-              }
-            } else {
-              updateState({
-                error: detailedResponse.error || 'Failed to load detailed data',
-                isLoadingDetailed: false,
-                aiStatus: 'error'
-              })
-            }
-          }
-        } else {
-          updateState({
-            aiStatus: 'error',
-            error: statusResponse.error || 'Failed to check AI status'
-          })
-        }
-      } catch (error: any) {
-
-        // Continue polling on errors - might be temporary
-      }
-    }
-
-    // Initial status check
-    await poll()
-
-    // Set up polling interval (every 5 seconds)
-    const intervalId = setInterval(poll, 5000)
-    setPollingInterval(intervalId)
-
-    // Auto-stop after 5 minutes
-    setTimeout(() => {
-      if (intervalId) {
-        clearInterval(intervalId)
-        setPollingInterval(null)
-        updateState({
-          isLoadingDetailed: false,
-          aiStatus: 'error',
-          error: 'AI analysis timeout - please try refreshing the page'
-        })
-      }
-    }, 5 * 60 * 1000) // 5 minutes
-  }, [pollingInterval, updateState])
-
-  const stopPolling = useCallback(() => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      setPollingInterval(null)
-    }
-    updateState({
-      isLoadingDetailed: false
-    })
-  }, [pollingInterval, updateState])
+  // ❌ REMOVED: pollForDetailedData - no polling needed with single API call
+  // ❌ REMOVED: stopPolling - no polling needed
 
   const reset = useCallback(() => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      setPollingInterval(null)
-    }
     setState({
       basicData: null,
       detailedData: null,
@@ -202,14 +102,12 @@ export function useProgressiveProfileLoading(): [ProgressiveLoadingState, Progre
       error: null,
       dataStage: 'none'
     })
-  }, [pollingInterval])
+  }, [])
 
   return [
     state,
     {
       loadProfile,
-      pollForDetailedData,
-      stopPolling,
       reset
     }
   ]

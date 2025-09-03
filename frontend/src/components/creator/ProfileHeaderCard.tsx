@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Users, UserPlus, Image, TrendingUp } from "lucide-react"
-import { ProfileAvatar } from "@/components/ui/cdn-image"
+import { ProfileImage } from "@/components/ProfileImage"
 import { CDNStatusBanner } from "@/components/ui/cdn-processing-status"
 import type { ProfileHeader } from "@/types/creatorTypes"
 
@@ -23,7 +23,10 @@ export function ProfileHeaderCard({ profileHeader, cdnMedia }: ProfileHeaderCard
     return num.toString()
   }
 
-  const formatEngagementRate = (rate: number) => {
+  const formatEngagementRate = (rate: number | undefined | null) => {
+    if (typeof rate !== 'number' || isNaN(rate)) {
+      return 'N/A'
+    }
     return `${rate.toFixed(2)}%`
   }
 

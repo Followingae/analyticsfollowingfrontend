@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Heart, MessageCircle, Calendar, Brain, TrendingUp, Languages, Smile, Meh, Frown } from "lucide-react"
 import type { PostWithAI } from "@/types/creatorTypes"
-import { CDNImage } from "@/components/ui/cdn-image"
+// TEMP: Commented out problematic import
 
 interface CompletePostsGalleryProps {
   posts: PostWithAI[]

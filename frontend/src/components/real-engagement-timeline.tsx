@@ -64,7 +64,7 @@ export function RealEngagementTimeline({
           month: 'short', 
           day: 'numeric' 
         }),
-        engagement_rate: parseFloat(post.engagement_rate.toFixed(2)),
+        engagement_rate: parseFloat((post.engagement_rate || 0).toFixed(2)),
         likes: post.likes,
         comments: post.comments,
         is_video: post.is_video,

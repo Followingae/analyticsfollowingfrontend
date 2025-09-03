@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { Loader2, CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { useProgressiveProfileLoading } from '@/hooks/useProgressiveProfileLoading'
 import type { InstagramProfile } from '@/services/instagramApi'
-import { ProfileAvatar } from '@/components/ui/cdn-image'
+// TEMP: Commented out problematic import
 
 interface ProgressiveProfileLoaderProps {
   username: string

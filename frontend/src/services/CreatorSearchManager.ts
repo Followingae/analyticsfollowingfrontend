@@ -36,32 +36,26 @@ export class CreatorSearchManager {
   }
 
   /**
-   * Main search function implementing database-first strategy
+   * Main search function using single API call - no polling needed
    */
   async searchCreator(username: string): Promise<void> {
     try {
-      // Stage 1: Always returns immediately (~100-300ms)
+      // Single API call returns everything immediately
       this.callbacks.onStateChange?.(UI_STATES.LOADING);
       
       const searchResponse = await this.callSearchAPI(username);
 
-      // Immediate UI update with available data
+      // Complete data is available immediately - no polling needed
       this.updateUI(searchResponse);
-
-      // Handle different scenarios based on data source
-      switch (searchResponse.data_source) {
-        case 'database_complete':
-          this.handleCompleteProfile(searchResponse);
-          break;
-
-        case 'database_processing':
-          this.handleExistingProfileWithProcessing(searchResponse);
-          break;
-
-        case 'instagram_fresh':
-          this.handleFreshProfile(searchResponse);
-          break;
+      this.showCompleteProfile(searchResponse.profile);
+      
+      // AI analysis and CDN images are included in the response
+      if (searchResponse.profile.ai_insights) {
+        this.showAIInsights(searchResponse.profile.ai_insights);
       }
+      
+      this.callbacks.onStateChange?.(UI_STATES.COMPLETE);
+      toast.success('Complete profile with AI insights loaded!');
 
     } catch (error) {
       this.handleError(error instanceof Error ? error.message : 'Search failed');
@@ -69,16 +63,30 @@ export class CreatorSearchManager {
   }
 
   /**
-   * Call the search API
+   * Call the search API using the corrected endpoint
    */
   private async callSearchAPI(username: string): Promise<SearchResponse> {
-    const result = await creatorApiService.searchCreator(username.trim().replace('@', ''));
-    
-    if (!result.success || !result.data) {
-      throw new Error(result.error || 'Failed to search creator');
+    // Use the single POST endpoint that returns everything immediately
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/simple/creator/search/${username.trim().replace('@', '')}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.getAuthToken()}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
-    return result.data;
+    const data = await response.json();
+    
+    if (!data.success || !data.profile) {
+      throw new Error(data.error || 'Failed to search creator');
+    }
+
+    return data;
   }
 
   /**
@@ -89,132 +97,11 @@ export class CreatorSearchManager {
     toast.success(`Found @${searchResponse.profile.username}!`);
   }
 
-  /**
-   * Scenario 1: Profile Already Exists (Database Complete)
-   * Response time: ~100-300ms - No polling needed!
-   */
-  private handleCompleteProfile(data: SearchResponse): void {
-    // Profile exists with complete AI analysis
-    this.showCompleteProfile(data.profile);
-    this.showAIInsights(data.profile.ai_insights);
-    this.loadCDNImages(data.profile.id);
-    this.hideLoadingIndicators();
-    
-    this.callbacks.onStateChange?.(UI_STATES.COMPLETE);
-    toast.success('Complete profile with AI insights loaded!');
-  }
+  // ❌ REMOVED: Complex scenario handling no longer needed - single response has everything
 
-  /**
-   * Scenario 2: Profile Exists But AI Incomplete
-   */
-  private handleExistingProfileWithProcessing(data: SearchResponse): void {
-    // Profile exists but AI analysis missing/incomplete
-    this.showBasicProfile(data.profile);
-    this.loadCDNImages(data.profile.id); // CDN likely ready
+  // ❌ REMOVED: AI polling no longer needed - single API call returns everything
 
-    if (data.ai_analysis?.status === 'processing') {
-      this.showAIProcessing(data.ai_analysis.estimated_completion || 0);
-      this.startAIPolling(data.profile.username);
-    }
-
-    this.callbacks.onStateChange?.(UI_STATES.AI_PROCESSING);
-  }
-
-  /**
-   * Scenario 3: Fresh Profile (New Instagram Fetch)
-   */
-  private handleFreshProfile(data: SearchResponse): void {
-    // Brand new profile, everything processing
-    this.showBasicProfile(data.profile);
-    this.showAIProcessing(data.ai_analysis?.estimated_completion || 0);
-    this.showCDNProcessing();
-
-    // Start both polling processes
-    this.startAIPolling(data.profile.username);
-    this.startCDNPolling(data.profile.id);
-
-    this.callbacks.onStateChange?.(UI_STATES.AI_PROCESSING);
-  }
-
-  /**
-   * Start AI analysis polling
-   */
-  private async startAIPolling(username: string): Promise<void> {
-    const maxAttempts = 24; // 2 minutes max (24 × 5 seconds)
-    let attempts = 0;
-
-    const poll = async () => {
-      if (attempts++ >= maxAttempts) {
-        this.showAITimeout();
-        return;
-      }
-
-      try {
-        const status = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/creator/${username}/status`, {
-          headers: { 'Authorization': `Bearer ${this.getAuthToken()}` }
-        });
-        const statusData: AnalysisStatus = await status.json();
-
-        if (statusData.status === 'completed') {
-          // Get complete AI analysis
-          const detailed = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/creator/${username}/detailed`, {
-            headers: { 'Authorization': `Bearer ${this.getAuthToken()}` }
-          });
-          const completeData = await detailed.json();
-
-          this.showAIInsights(completeData.profile.ai_insights);
-          this.hideAIProcessing();
-          this.callbacks.onStateChange?.(UI_STATES.COMPLETE);
-          
-          toast.success('AI analysis completed! Enhanced insights are now available.');
-        } else {
-          // Update progress and continue polling
-          this.updateAIProgress(statusData.completion_percentage || 0);
-          setTimeout(poll, 5000); // Poll every 5 seconds
-        }
-      } catch (error) {
-
-        setTimeout(poll, 10000); // Retry in 10 seconds on error
-      }
-    };
-
-    poll();
-  }
-
-  /**
-   * Start CDN polling for image processing
-   */
-  private async startCDNPolling(profileId: string): Promise<void> {
-    const maxAttempts = 12; // 1 minute max (12 × 5 seconds)
-    let attempts = 0;
-
-    const poll = async () => {
-      if (attempts++ >= maxAttempts) {
-        this.showCDNFallback();
-        return;
-      }
-
-      try {
-        const cdn = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/creators/ig/${profileId}/media`, {
-          headers: { 'Authorization': `Bearer ${this.getAuthToken()}` }
-        });
-        const cdnData = await cdn.json();
-
-        if (cdnData.processing_status?.completion_percentage >= 80) {
-          this.updateImages(cdnData);
-          this.hideCDNProcessing();
-        } else {
-          this.updateCDNProgress(cdnData.processing_status?.completion_percentage || 0);
-          setTimeout(poll, 5000);
-        }
-      } catch (error) {
-
-        setTimeout(poll, 10000);
-      }
-    };
-
-    poll();
-  }
+  // ❌ REMOVED: CDN polling no longer needed - images included in main response
 
   // UI Helper Methods
   private showCompleteProfile(profile: CreatorProfile): void {

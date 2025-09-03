@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { InstagramPostCDN } from '@/services/instagramCdnApi'
 import { formatNumber } from '@/lib/utils'
-import { PostThumbnail } from '@/components/ui/cdn-image'
+// TEMP: Commented out problematic import
 import { Heart, MessageCircle, Eye, MapPin, ExternalLink, Brain, Sparkles, Languages, Clock, CheckCircle, Loader2 } from 'lucide-react'
 import { SentimentBadge, LanguageBadge } from '@/components/ui/ai-insights'
 

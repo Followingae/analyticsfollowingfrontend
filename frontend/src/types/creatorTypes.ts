@@ -16,8 +16,9 @@ export interface ProfileHeader {
   followers_count: number
   following_count: number
   posts_count: number
-  engagement_rate: number
-  category_name: string
+  engagement_rate?: number | null  // Optional since new API might not provide it initially
+  category_name?: string  // Also making this optional since it might not always be present
+  id?: string  // Adding id field that's referenced in ProfileHeaderCard
 }
 
 export interface QuickMetrics {

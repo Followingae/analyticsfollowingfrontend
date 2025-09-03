@@ -23,12 +23,12 @@ export const ENDPOINTS = {
     // Legacy endpoints (may still be used by some components)
     detailed: (username: string) => `/api/v1/creator/${username}/detailed`, // GET - Get detailed analytics
     posts: (username: string) => `/api/v1/creator/${username}/posts`, // GET - Get creator posts with AI
-    status: (username: string) => `/api/v1/creator/${username}/status`, // GET - Check AI analysis status
+    // ❌ REMOVED: status endpoint no longer exists
     refresh: (username: string) => `/api/v1/creator/${username}/refresh`, // POST - Force refresh
     scheduleAnalysis: (username: string) => `/api/v1/creator/${username}/schedule-analysis`, // POST - Schedule analysis
     
-    // Unlocked creators
-    unlocked: '/api/v1/creator/unlocked', // GET - List all unlocked creators
+    // Unlocked creators (CORRECTED)
+    unlocked: '/api/v1/simple/creator/unlocked', // GET - List all unlocked creators
   },
 
   // Legacy Profile Endpoints (Updated to use correct simple flow endpoints)

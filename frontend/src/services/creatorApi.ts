@@ -395,27 +395,6 @@ class CreatorApiService {
     }
   }
 
-  /**
-   * 📊 ANALYSIS STATUS - Check AI Progress
-   * Use for polling while waiting for analysis completion
-   */
-  async getAnalysisStatus(username: string): Promise<ApiResponse<AnalysisStatus>> {
-    const url = `${this.baseUrl}/${username}/status`;
-    
-    try {
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: createHeaders(false)
-      });
-
-      return await handleResponse<AnalysisStatus>(response);
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get analysis status'
-      };
-    }
-  }
 
   /**
    * 🔄 REFRESH CREATOR DATA - Force refresh from Instagram
@@ -606,75 +585,6 @@ class CreatorApiService {
     }
   }
 
-  /**
-   * 🔄 COMPREHENSIVE CREATOR SEARCH WITH POLLING
-   * Complete workflow with automatic AI analysis waiting
-   */
-  async searchCreatorComplete(
-    username: string,
-    onProgress?: (status: AnalysisStatus) => void,
-    maxWaitTime: number = 300000 // 5 minutes max
-  ): Promise<ApiResponse<DetailedResponse>> {
-    try {
-      // Step 1: Initial search
-      const searchResult = await this.searchCreator(username);
-      if (!searchResult.success || !searchResult.data) {
-        return { success: false, error: searchResult.error };
-      }
-
-      // Step 2: If already complete, get detailed data
-      if (searchResult.data.stage === 'complete') {
-        return await this.getDetailedAnalysis(username);
-      }
-
-      // Step 3: Poll for completion
-      const startTime = Date.now();
-      const pollInterval = 30000; // 30 seconds
-
-      return new Promise((resolve) => {
-        const poll = async () => {
-          const elapsed = Date.now() - startTime;
-          
-          if (elapsed > maxWaitTime) {
-            resolve({
-              success: false,
-              error: 'AI analysis timeout - taking longer than expected'
-            });
-            return;
-          }
-
-          const statusResult = await this.getAnalysisStatus(username);
-          if (!statusResult.success || !statusResult.data) {
-            resolve({ success: false, error: statusResult.error });
-            return;
-          }
-
-          onProgress?.(statusResult.data);
-
-          if (statusResult.data.status === 'completed') {
-            const detailedResult = await this.getDetailedAnalysis(username);
-            resolve(detailedResult);
-          } else if (statusResult.data.status === 'failed') {
-            resolve({
-              success: false,
-              error: 'AI analysis failed'
-            });
-          } else {
-            // Continue polling
-            setTimeout(poll, pollInterval);
-          }
-        };
-
-        setTimeout(poll, pollInterval);
-      });
-
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Comprehensive search failed'
-      };
-    }
-  }
 }
 
 // ========================================

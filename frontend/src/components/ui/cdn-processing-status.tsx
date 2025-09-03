@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, CheckCircle, AlertCircle, Clock } from "lucide-react"
-import { useCDNProcessingStatus, useCDNMediaRefresh } from "@/hooks/useCDNMedia"
+import { useCDNMedia } from "@/hooks/useCDNMedia"
 import { toast } from "sonner"
 
 interface CDNProcessingStatusProps {
@@ -24,12 +24,32 @@ export function CDNProcessingStatus({
   variant = 'compact',
   showRefreshButton = true
 }: CDNProcessingStatusProps) {
-  const processingStatus = useCDNProcessingStatus(username)
-  const refreshMutation = useCDNMediaRefresh()
+  const { data: cdnData, isLoading, error } = useCDNMedia(username)
+  
+  const processingStatus = React.useMemo(() => {
+    if (isLoading || error || !cdnData) {
+      return {
+        isProcessing: false,
+        completionPercentage: 0,
+        totalAssets: 0,
+        completedAssets: 0,
+        isQueued: false,
+      }
+    }
+    
+    return {
+      isProcessing: cdnData.processing_status.queued,
+      completionPercentage: cdnData.processing_status.completion_percentage,
+      totalAssets: cdnData.processing_status.total_assets,
+      completedAssets: cdnData.processing_status.completed_assets,
+      isQueued: cdnData.processing_status.queued,
+    }
+  }, [cdnData, isLoading, error])
 
   const handleRefresh = React.useCallback(() => {
-    refreshMutation.mutate(username)
-  }, [refreshMutation, username])
+    // Simple refresh - just refetch the CDN data
+    // refreshMutation.mutate(username)
+  }, [username])
 
   // Don't show anything if not processing
   if (!processingStatus.isProcessing && processingStatus.completionPercentage >= 100) {

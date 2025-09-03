@@ -691,36 +691,8 @@ export class InstagramApiService {
     }
   }
 
-  /**
-   * NEW: Step 2 - Check AI Processing Status (Progressive Loading)  
-   * Uses: GET /api/v1/team/instagram/profile/{username}/status
-   * Purpose: Poll to check if AI analysis is complete (no frontend timeout)
-   */
-  async getProfileStatus(username: string): Promise<{ success: boolean; data?: { analysis_status: 'processing' | 'completed'; estimated_completion?: number }; error?: string }> {
-    try {
-      const response = await this.makeRequest<{ 
-        analysis_status: 'processing' | 'completed'
-        estimated_completion?: number
-        progress?: {
-          completed: number
-          total: number
-          percentage: number
-        }
-      }>(ENDPOINTS.creator.status(username), {
-        method: 'GET'
-      }) // No timeout - let backend handle timing
-      
-      return {
-        success: true,
-        data: response
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || 'Failed to get profile status'
-      }
-    }
-  }
+  // ❌ REMOVED: getProfileStatus - status endpoint no longer exists
+  // Backend team: Single POST call returns everything immediately
 
   /**
    * NEW: Step 3 - Get Detailed Profile Data with AI Insights (Progressive Loading)
@@ -837,40 +809,8 @@ export class InstagramApiService {
     }
   }
 
-  /**
-   * NEW: Get Detailed Profile Data When Ready (with polling)
-   * Call this after getProfile() to get AI insights when available
-   * This method handles polling automatically
-   */
-  async getDetailedProfileWhenReady(username: string, maxWaitTime: number = 60000): Promise<BasicProfileResponse> {
-    const startTime = Date.now()
-    const pollInterval = 5000 // 5 seconds
-
-    while (Date.now() - startTime < maxWaitTime) {
-      try {
-        // Check status first
-        const statusResponse = await this.getProfileStatus(username)
-        
-        if (statusResponse.success && statusResponse.data?.analysis_status === 'completed') {
-          // AI is ready, get detailed data
-          return await this.getDetailedProfile(username)
-        }
-        
-        // Still processing, wait before next poll
-        await new Promise(resolve => setTimeout(resolve, pollInterval))
-        
-      } catch (error) {
-        // Continue polling on errors (might be temporary)
-        await new Promise(resolve => setTimeout(resolve, pollInterval))
-      }
-    }
-
-    // Timeout reached, return basic data
-    return {
-      success: false,
-      error: 'AI analysis timeout - basic data is available but detailed insights are still processing'
-    }
-  }
+  // ❌ REMOVED: getDetailedProfileWhenReady - polling no longer needed
+  // Backend team: Single POST call returns complete data immediately
   /**
    * Legacy method - now redirects to main getProfile method
    * @deprecated Use getProfile instead
@@ -984,13 +924,13 @@ export class InstagramApiService {
   }
 
   /**
-   * NEW: Get unlocked profiles for creators page
-   * Uses: GET /api/v1/auth/unlocked-profiles
+   * CORRECTED: Get unlocked profiles for creators page
+   * Uses: GET /api/v1/simple/creator/unlocked (per backend team)
    */
   async getUnlockedProfiles(page: number = 1, pageSize: number = 20): Promise<UnlockedProfilesApiResponse> {
     try {
       const response = await this.makeRequest<UnlockedProfilesResponse>(
-        `/api/v1/auth/unlocked-profiles?page=${page}&page_size=${pageSize}`,
+        `/api/v1/simple/creator/unlocked?page=${page}&page_size=${pageSize}`,
         { method: 'GET' }
       )
       return {

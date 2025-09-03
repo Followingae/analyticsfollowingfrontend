@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { formatNumber, formatPercentage, isValidProfile } from '@/lib/utils'
-import { ProfileAvatar } from '@/components/ui/cdn-image'
+import { ProfileImage } from '@/components/ProfileImage'
 import { creatorApiService } from '@/services/creatorApi'
 import { CreatorSearchResponse } from '@/types/creator'
 import { useCreatorSearch } from '@/hooks/useCreatorSearch'
@@ -18,15 +18,16 @@ import { AnalysisStatusCard } from '@/components/ai-insights/AnalysisStatusCard'
 
 export default function ProfileSearchTab() {
   const [username, setUsername] = useState('')
-  const { 
-    profile, 
-    loading, 
-    error, 
-    analysisStatus, 
-    searchCreator, 
-    retryAnalysis, 
-    clearSearch 
-  } = useCreatorSearch()
+  const [searchResult, setSearchResult] = useState<any>(null)
+  
+  const creatorSearchMutation = useCreatorSearch({
+    onSuccess: (data) => {
+      setSearchResult(data) // Store full response including cached field
+    },
+    onError: (error) => {
+      console.error('Search failed:', error)
+    }
+  })
   const [batchUsernames, setBatchUsernames] = useState('')
   const [batchLoading, setBatchLoading] = useState(false)
   const [useSmartProxy, setUseSmartProxy] = useState(false)
@@ -36,10 +37,11 @@ export default function ProfileSearchTab() {
     if (!username.trim()) return
     
     const cleanUsername = username.trim().replace('@', '')
-    await searchCreator(cleanUsername, {
-      force_refresh: false,
-      show_progress: true
-    })
+    try {
+      await creatorSearchMutation.mutateAsync(cleanUsername)
+    } catch (error) {
+      // Error is handled by onError callback
+    }
   }
 
   const handleBatchSearch = async () => {
@@ -93,10 +95,10 @@ export default function ProfileSearchTab() {
             </div>
             <Button 
               onClick={handleSearch} 
-              disabled={loading || !username.trim()}
+              disabled={creatorSearchMutation.isPending || !username.trim()}
               className="px-6"
             >
-              {loading ? (
+              {creatorSearchMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   Searching...
@@ -123,7 +125,7 @@ export default function ProfileSearchTab() {
           </div>
 
           {/* Loading State with Progress */}
-          {loading && (
+          {creatorSearchMutation.isPending && (
             <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
               <div className="flex items-center gap-3 mb-3">
                 <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
@@ -176,56 +178,73 @@ export default function ProfileSearchTab() {
       </Card>
 
       {/* Error Message */}
-      {error && (
+      {creatorSearchMutation.isError && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
             <div className="text-red-700">
-              <strong>Error:</strong> {error}
+              <strong>Error:</strong> {creatorSearchMutation.error?.message || 'Search failed'}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Analysis Status Card */}
-      {analysisStatus && (
-        <AnalysisStatusCard 
-          status={analysisStatus}
-          onRetry={retryAnalysis}
-          className="mb-6"
-        />
+      {/* 2-Step Serving Status Message */}
+      {searchResult && (
+        <Card className={`border-0 ${searchResult.cached ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {searchResult.cached ? (
+                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+                ) : (
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                )}
+                <div>
+                  <h3 className={`font-semibold ${searchResult.cached ? 'text-green-800' : 'text-blue-800'}`}>
+                    {searchResult.cached ? 'Profile Analysis Complete' : 'Profile Data Fetched'}
+                  </h3>
+                  <p className={`text-sm ${searchResult.cached ? 'text-green-700' : 'text-blue-700'}`}>
+                    {searchResult.cached 
+                      ? 'Complete data served from database • AI analysis available'
+                      : 'Basic data fetched • Background processing queued'
+                    }
+                  </p>
+                </div>
+              </div>
+              <Badge variant={searchResult.cached ? "default" : "secondary"}>
+                {searchResult.cached ? "Database" : "Fresh Data"}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Profile Results */}
-      {profile && (
+      {searchResult?.profile && (
         <div className="space-y-6">
           {/* Profile Overview */}
           <Card className="border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-start gap-4">
-                <ProfileAvatar
-                  profile={{
-                    id: profile.id,
-                    username: profile.username,
-                    full_name: profile.full_name,
-                    profile_pic_url: profile.profile_pic_url,
-                    profile_pic_url_hd: profile.profile_pic_url_hd
-                  }}
-                  size="large"
+                <ProfileImage
+                  profileId={searchResult.profile.username} // Using username as profileId per guide
+                  originalUrl={searchResult.profile.profile_pic_url}
+                  alt={searchResult.profile.username}
                   size="lg"
-                  className="w-20 h-20 border-4 border-white"
+                  className="border-4 border-white"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <CardTitle className="text-2xl">{profile.full_name}</CardTitle>
-                    {profile.is_verified && (
+                    <CardTitle className="text-2xl">{searchResult.profile.full_name}</CardTitle>
+                    {searchResult.profile.is_verified && (
                       <Badge className="bg-blue-500">Verified</Badge>
                     )}
                   </div>
                   <CardDescription className="text-gray-600 mb-3">
-                    @{profile.username}
+                    @{searchResult.profile.username}
                   </CardDescription>
                   <p className="text-sm text-gray-700 mb-4">
-                    {profile.biography}
+                    {searchResult.profile.biography}
                   </p>
                   {/* TODO: Add external_url to backend response if available */}
                 </div>
@@ -235,25 +254,25 @@ export default function ProfileSearchTab() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">
-                    {formatNumber(profile.followers_count)}
+                    {formatNumber(searchResult.profile.followers_count)}
                   </div>
                   <div className="text-sm text-gray-600">Followers</div>
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
-                    {formatNumber(profile.following_count || 0)}
+                    {formatNumber(searchResult.profile.following_count || 0)}
                   </div>
                   <div className="text-sm text-gray-600">Following</div>
                 </div>
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600">
-                    {formatNumber(profile.posts_count || 0)}
+                    {formatNumber(searchResult.profile.posts_count || 0)}
                   </div>
                   <div className="text-sm text-gray-600">Posts</div>
                 </div>
                 <div className="text-center p-4 bg-orange-50 rounded-lg">
                   <div className="text-2xl font-bold text-orange-600">
-                    {profile.engagement_rate ? `${(profile.engagement_rate * 100).toFixed(1)}%` : 'N/A'}
+                    {searchResult.profile.engagement_rate ? `${(searchResult.profile.engagement_rate * 100).toFixed(1)}%` : 'N/A'}
                   </div>
                   <div className="text-sm text-gray-600">Engagement</div>
                 </div>
@@ -272,12 +291,12 @@ export default function ProfileSearchTab() {
                       Profile Unlocked!
                     </h3>
                     <p className="text-green-700 dark:text-green-300">
-                      @{profile.username} is now available for detailed analytics
+                      @{searchResult.profile.username} is now available for detailed analytics
                     </p>
                   </div>
                 </div>
                 <Button 
-                  onClick={() => router.push(`/analytics/${profile.username}`)}
+                  onClick={() => router.push(`/analytics/${searchResult.profile.username}`)}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <BarChart3 className="w-4 h-4 mr-2" />
@@ -299,16 +318,16 @@ export default function ProfileSearchTab() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Posts Count</span>
-                  <span className="font-semibold">{formatNumber(profile.posts_count || 0)}</span>
+                  <span className="font-semibold">{formatNumber(searchResult.profile.posts_count || 0)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Engagement Rate</span>
-                  <span className="font-semibold">{profile.engagement_rate ? `${(profile.engagement_rate * 100).toFixed(1)}%` : 'N/A'}</span>
+                  <span className="font-semibold">{searchResult.profile.engagement_rate ? `${(searchResult.profile.engagement_rate * 100).toFixed(1)}%` : 'N/A'}</span>
                 </div>
-                {profile.ai_insights?.content_quality_score && (
+                {searchResult.profile.ai_analysis?.primary_content_type && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Content Quality</span>
-                    <span className="font-semibold">{profile.ai_insights.content_quality_score.toFixed(1)}/10</span>
+                    <span className="text-gray-600">Content Type</span>
+                    <span className="font-semibold">{searchResult.profile.ai_analysis.primary_content_type}</span>
                   </div>
                 )}
               </CardContent>
@@ -322,47 +341,27 @@ export default function ProfileSearchTab() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {profile.ai_insights?.available ? (
+                {searchResult.cached && searchResult.profile.ai_analysis ? (
                   <div className="space-y-4">
-                    {/* Primary content category */}
-                    {profile.ai_insights.content_category && (
+                    {/* Primary content type */}
+                    {searchResult.profile.ai_analysis.primary_content_type && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Primary Content</span>
                         <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                          {profile.ai_insights.content_category}
+                          {searchResult.profile.ai_analysis.primary_content_type}
                         </Badge>
                       </div>
                     )}
                     
                     {/* Sentiment score */}
-                    {profile.ai_insights.average_sentiment !== undefined && (
+                    {searchResult.profile.ai_analysis.avg_sentiment_score !== undefined && searchResult.profile.ai_analysis.avg_sentiment_score !== null && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Avg Sentiment</span>
                         <span className={`font-semibold ${
-                          profile.ai_insights.average_sentiment > 0.1 ? 'text-green-600' :
-                          profile.ai_insights.average_sentiment < -0.1 ? 'text-red-600' : 'text-gray-600'
+                          searchResult.profile.ai_analysis.avg_sentiment_score > 0.1 ? 'text-green-600' :
+                          searchResult.profile.ai_analysis.avg_sentiment_score < -0.1 ? 'text-red-600' : 'text-gray-600'
                         }`}>
-                          {Math.round(((profile.ai_insights.average_sentiment + 1) / 2) * 100)}% positive
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* Quality score */}
-                    {profile.ai_insights.content_quality_score !== undefined && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">AI Quality Score</span>
-                        <span className="font-semibold text-purple-600">
-                          {profile.ai_insights.content_quality_score.toFixed(1)}/10
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* Analysis date */}
-                    {profile.ai_insights.last_analyzed && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Last AI Analysis</span>
-                        <span className="text-sm text-gray-500">
-                          {new Date(profile.ai_insights.last_analyzed).toLocaleDateString()}
+                          {Math.round(((searchResult.profile.ai_analysis.avg_sentiment_score + 1) / 2) * 100)}% positive
                         </span>
                       </div>
                     )}
@@ -370,26 +369,50 @@ export default function ProfileSearchTab() {
                 ) : (
                   <div className="text-center py-4 text-muted-foreground">
                     <Brain className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">AI insights processing...</p>
-                    <p className="text-xs">Analysis will appear here once complete</p>
+                    <p className="text-sm">
+                      {searchResult.cached ? 'No AI analysis available' : 'AI analysis will be processed in background'}
+                    </p>
+                    <p className="text-xs">
+                      {searchResult.cached ? 'This profile has not been analyzed yet' : 'Check back later for detailed insights'}
+                    </p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* AI Insights Section */}
-          {profile.ai_insights?.available && (
+          {/* AI Insights Section - Only show for cached profiles with AI data */}
+          {searchResult.cached && searchResult.profile.ai_analysis && (
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Content Intelligence</h3>
                 <p className="text-gray-600">Advanced AI-powered analysis of content patterns and quality</p>
               </div>
 
-              <AIInsightsCard 
-                insights={profile.ai_insights}
-                className="border-0 bg-white/80 backdrop-blur-sm"
-              />
+              <Card className="border-0 bg-white/80 backdrop-blur-sm">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    {searchResult.profile.ai_analysis.primary_content_type && (
+                      <div className="text-center">
+                        <h4 className="font-medium mb-2">Primary Content Type</h4>
+                        <Badge className="bg-blue-100 text-blue-800 px-4 py-2">
+                          {searchResult.profile.ai_analysis.primary_content_type}
+                        </Badge>
+                      </div>
+                    )}
+                    
+                    {searchResult.profile.ai_analysis.avg_sentiment_score !== null && (
+                      <div className="text-center">
+                        <h4 className="font-medium mb-2">Content Sentiment</h4>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {Math.round(((searchResult.profile.ai_analysis.avg_sentiment_score + 1) / 2) * 100)}%
+                        </div>
+                        <p className="text-sm text-gray-600">Positive sentiment score</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 

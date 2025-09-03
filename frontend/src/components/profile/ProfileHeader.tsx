@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { InstagramProfileCDN } from '@/services/instagramCdnApi'
 import { formatNumber } from '@/lib/utils'
-import { ProfileAvatar } from '@/components/ui/cdn-image'
+// TEMP: Commented out problematic import
 import { 
   ExternalLink, 
   MapPin, 
