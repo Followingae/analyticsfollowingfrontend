@@ -49,7 +49,7 @@ function analyzeSentiment(score: number): SentimentAnalysis {
       color: '#6B7280',
       icon: <Meh className="w-4 h-4" />,
       description: 'Balanced content sentiment',
-      bgColor: 'bg-gray-50 dark:bg-gray-950',
+      bgColor: 'bg-muted/50 dark:bg-gray-950',
       textColor: 'text-gray-700 dark:text-gray-300'
     }
   } else if (score >= -0.6) {
@@ -231,7 +231,7 @@ export function SentimentIndicator({
               />
               {/* Score indicator dot */}
               <div
-                className="absolute top-0 w-2 h-2 bg-white border-2 rounded-full transform -translate-y-0.5 -translate-x-1"
+                className="absolute top-0 w-2 h-2 bg-background border-2 rounded-full transform -translate-y-0.5 -translate-x-1"
                 style={{
                   left: `${progressValue}%`,
                   borderColor: analysis.color
@@ -250,7 +250,7 @@ export function SentimentIndicator({
                 <p className="text-xs text-muted-foreground">Negative</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 font-semibold">
+                <p className="text-sm text-muted-foreground font-semibold">
                   {Math.abs(sentimentScore) <= 0.2 ? '●' : '○'}
                 </p>
                 <p className="text-xs text-muted-foreground">Neutral</p>

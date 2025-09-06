@@ -79,7 +79,7 @@ export default function DiscoveryTab() {
   return (
     <div className="space-y-6">
       {/* Hashtag Discovery */}
-      <Card className="border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-background/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Hash className="w-5 h-5" />
@@ -123,7 +123,7 @@ export default function DiscoveryTab() {
 
           {/* Filters */}
           {showFilters && (
-            <Card className="bg-gray-50">
+            <Card className="bg-muted/50">
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
@@ -180,7 +180,7 @@ export default function DiscoveryTab() {
       </Card>
 
       {/* Trending Niches */}
-      <Card className="border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-background/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
@@ -200,7 +200,7 @@ export default function DiscoveryTab() {
               >
                 <CardContent className="p-4 text-center">
                   <div className="text-lg font-semibold text-gray-800">{niche.name}</div>
-                  <div className="text-sm text-gray-600">{niche.count} creators</div>
+                  <div className="text-sm text-muted-foreground">{niche.count} creators</div>
                   <Badge variant="secondary" className="mt-2 text-green-600">
                     {niche.growth}
                   </Badge>
@@ -213,7 +213,7 @@ export default function DiscoveryTab() {
 
       {/* Creator Results */}
       {creators.length > 0 && (
-        <Card className="border-0 bg-white/80 backdrop-blur-sm">
+        <Card className="border-0 bg-background/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
@@ -236,7 +236,7 @@ export default function DiscoveryTab() {
                           cdn_urls: creator.cdn_urls
                         }}
                         size="large"
-                        className="border-2 border-gray-200"
+                        className="border-2 border-border"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -247,27 +247,27 @@ export default function DiscoveryTab() {
                             <Badge className="bg-blue-500 text-xs">✓</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600">@{creator.username}</p>
+                        <p className="text-sm text-muted-foreground">@{creator.username}</p>
                       </div>
                     </div>
                     
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Followers</span>
+                        <span className="text-muted-foreground">Followers</span>
                         <span className="font-medium">{formatNumber(creator.followers_count)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Engagement</span>
+                        <span className="text-muted-foreground">Engagement</span>
                         <span className="font-medium">{creator.engagement_rate ? `${(creator.engagement_rate * 100).toFixed(1)}%` : 'N/A'}</span>
                       </div>
                       {creator.ai_insights?.content_category && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Category</span>
+                          <span className="text-muted-foreground">Category</span>
                           <Badge variant="outline" className="text-xs">{creator.ai_insights.content_category}</Badge>
                         </div>
                       )}
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Posts</span>
+                        <span className="text-muted-foreground">Posts</span>
                         <span className="font-medium">{formatNumber(creator.posts_count)}</span>
                       </div>
                     </div>

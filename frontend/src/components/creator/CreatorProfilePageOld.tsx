@@ -85,9 +85,9 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
   // Determine influencer tier
   const getInfluencerTier = (followerCount: number) => {
     if (followerCount >= 1000000) return { tier: 'mega', color: 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900' }
-    if (followerCount >= 100000) return { tier: 'macro', color: 'bg-[#5100f3] text-white' }
-    if (followerCount >= 10000) return { tier: 'micro', color: 'bg-[#d3ff02] text-black' }
-    return { tier: 'nano', color: 'bg-gray-100 text-black border' }
+    if (followerCount >= 100000) return { tier: 'macro', color: 'bg-[hsl(var(--primary))] text-white' }
+    if (followerCount >= 10000) return { tier: 'micro', color: 'bg-[#d3ff02] text-foreground' }
+    return { tier: 'nano', color: 'bg-gray-100 text-foreground border' }
   }
       })
 

@@ -60,7 +60,7 @@ function SubscriptionUpgradePrompt({ requiredTier, currentTier, feature }: Subsc
       case 'brand_free':
         return {
           name: 'Free',
-          color: 'bg-gray-500',
+          color: 'bg-muted/500',
           description: 'Basic features for getting started',
           price: '$0/month'
         }
@@ -88,7 +88,7 @@ function SubscriptionUpgradePrompt({ requiredTier, currentTier, feature }: Subsc
       default:
         return {
           name: 'Unknown',
-          color: 'bg-gray-500',
+          color: 'bg-muted/500',
           description: '',
           price: ''
         }

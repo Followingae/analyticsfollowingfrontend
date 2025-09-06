@@ -212,7 +212,7 @@ export default function CampaignsPage() {
       case 'high': return 'text-orange-600 dark:text-orange-400'
       case 'medium': return 'text-yellow-600 dark:text-yellow-400'
       case 'low': return 'text-green-600 dark:text-green-400'
-      default: return 'text-gray-600 dark:text-gray-400'
+      default: return 'text-muted-foreground dark:text-gray-400'
     }
   }
 
@@ -348,7 +348,7 @@ export default function CampaignsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
-                    <Activity className="h-4 w-4 text-[#5100f3]" />
+                    <Activity className="h-4 w-4 text-[hsl(var(--primary))]" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{activeCampaigns.length}</div>
@@ -357,7 +357,7 @@ export default function CampaignsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
-                    <DollarSign className="h-4 w-4 text-[#5100f3]" />
+                    <DollarSign className="h-4 w-4 text-[hsl(var(--primary))]" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{formatCurrency(totalBudget)}</div>
@@ -366,7 +366,7 @@ export default function CampaignsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Avg Completion</CardTitle>
-                    <Target className="h-4 w-4 text-[#5100f3]" />
+                    <Target className="h-4 w-4 text-[hsl(var(--primary))]" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{avgCompletion.toFixed(1)}%</div>
@@ -375,7 +375,7 @@ export default function CampaignsPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Budget Utilization</CardTitle>
-                    <PieChart className="h-4 w-4 text-[#5100f3]" />
+                    <PieChart className="h-4 w-4 text-[hsl(var(--primary))]" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">

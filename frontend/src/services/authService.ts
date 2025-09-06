@@ -1,6 +1,7 @@
 import { API_CONFIG, REQUEST_HEADERS, ENDPOINTS, getAuthHeaders } from '@/config/api'
 import { tokenManager } from '@/utils/tokenManager'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { requestCache, CACHE_KEYS } from '@/utils/requestCache'
 export interface User {
   id: string
   email: string
@@ -479,44 +480,47 @@ class AuthService {
       }
     }
   }
-  // Get user dashboard statistics
+  // Get user dashboard statistics (FIXED: Now with caching to prevent duplicates)
   async getDashboardStats(): Promise<{ success: boolean; data?: DashboardStats; error?: string }> {
-    // Ensure we have a valid token before making the request (with grace period protection)
-    const hasValidToken = await this.ensureValidToken()
-    if (!hasValidToken) {
-      return { success: false, error: 'No authentication token' }
-    }
-    try {
-      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.auth.dashboard}`, {
-        method: 'GET',
-        headers: {
-          ...REQUEST_HEADERS,
-          'Authorization': `Bearer ${this.tokenData!.access_token}`
+    // Use cache to prevent duplicate requests
+    return requestCache.get(
+      CACHE_KEYS.DASHBOARD_STATS,
+      async () => {
+        // Ensure we have a valid token before making the request (with grace period protection)
+        const hasValidToken = await this.ensureValidToken()
+        if (!hasValidToken) {
+          return { success: false, error: 'No authentication token' }
         }
-      })
-      let data: any
-      const responseText = await response.text()
-      try {
-        data = JSON.parse(responseText)
-      } catch (parseError) {
-        return { 
-          success: false, 
-          error: `Invalid JSON response: ${responseText.substring(0, 200)}...` 
+        
+        const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.auth.dashboard}`, {
+          method: 'GET',
+          headers: {
+            ...REQUEST_HEADERS,
+            'Authorization': `Bearer ${this.tokenData!.access_token}`
+          }
+        })
+        
+        let data: any
+        const responseText = await response.text()
+        try {
+          data = JSON.parse(responseText)
+        } catch (parseError) {
+          return { 
+            success: false, 
+            error: `Invalid JSON response: ${responseText.substring(0, 200)}...` 
+          }
         }
-      }
-      if (response.ok) {
-        // Handle both wrapped and direct response formats
-        const dashboardData = data.success ? data.data : data
-        return { success: true, data: dashboardData }
-      } else {
-        return { success: false, error: data.error || data.detail || 'Failed to fetch dashboard stats' }
-      }
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Network error fetching dashboard' 
-      }
-    }
+        
+        if (response.ok) {
+          // Handle both wrapped and direct response formats
+          const dashboardData = data.success ? data.data : data
+          return { success: true, data: dashboardData }
+        } else {
+          return { success: false, error: data.error || data.detail || 'Failed to fetch dashboard stats' }
+        }
+      },
+      2 * 60 * 1000 // Cache for 2 minutes
+    )
   }
   // Get user search history
   async getSearchHistory(): Promise<{ success: boolean; data?: any[]; error?: string }> {

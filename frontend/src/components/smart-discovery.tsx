@@ -29,19 +29,9 @@ export function SmartDiscovery({
         </div>
       </div>
       
-      {/* Subtle radial gradient overlay for better text readability */}
-      <div 
-        className="absolute inset-0 z-10 transition-all duration-700 ease-out rounded-xl"
-        style={{
-          background: 'radial-gradient(circle at center, rgba(0, 0, 0, 0.3) 40%, rgba(0, 0, 0, 0.1) 70%, transparent 85%)'
-        }}
-      />
-      <div 
-        className="absolute inset-0 z-10 opacity-0 group-hover:opacity-100 transition-all duration-700 ease-out rounded-xl"
-        style={{
-          background: 'radial-gradient(circle at center, rgba(255, 255, 255, 0.4) 40%, rgba(255, 255, 255, 0.1) 70%, transparent 85%)'
-        }}
-      />
+      {/* Adaptive gradient overlay for better text readability in both light and dark modes */}
+      <div className="absolute inset-0 z-10 bg-background/20 dark:bg-background/40 transition-all duration-700 ease-out rounded-xl" />
+      <div className="absolute inset-0 z-10 opacity-0 group-hover:opacity-100 bg-background/30 dark:bg-background/60 transition-all duration-700 ease-out rounded-xl" />
       
       
       
@@ -50,8 +40,8 @@ export function SmartDiscovery({
         <div className="text-center">
         
         {/* Content with large font styles */}
-        <h1 className="text-white group-hover:text-black font-black text-4xl md:text-5xl relative z-10 transition-colors duration-700 ease-out tracking-tight leading-tight">Creator Discovery</h1>
-        <p className="text-white/80 group-hover:text-black/80 text-lg mt-2 whitespace-pre-line mb-6 relative z-10 transition-colors duration-700 ease-out">AI-powered insights to find the right voices instantly</p>
+        <h1 className="text-white dark:text-foreground group-hover:text-foreground font-black text-4xl md:text-5xl relative z-10 transition-colors duration-700 ease-out tracking-tight leading-tight">Creator Discovery</h1>
+        <p className="text-white/80 dark:text-foreground/80 group-hover:text-foreground/80 text-lg mt-2 whitespace-pre-line mb-6 relative z-10 transition-colors duration-700 ease-out">AI-powered insights to find the right voices instantly</p>
         <Button
           onClick={onDiscover}
           variant="outline"

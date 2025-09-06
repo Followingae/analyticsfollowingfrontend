@@ -37,7 +37,7 @@ export function PostAIBadges({
       case 'neutral':
         return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100';
+        return 'bg-muted/50 text-gray-700 border-border hover:bg-gray-100';
     }
   };
 

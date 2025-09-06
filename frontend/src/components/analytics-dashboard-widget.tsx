@@ -51,10 +51,10 @@ const comparisonData = [
 ]
 
 const distributionData = [
-  { name: "Photos", value: 45, color: "#0088FE" },
-  { name: "Videos", value: 30, color: "#00C49F" },
-  { name: "Stories", value: 15, color: "#FFBB28" },
-  { name: "Reels", value: 10, color: "#FF8042" },
+  { name: "Photos", value: 45, color: "hsl(var(--chart-1))" },
+  { name: "Videos", value: 30, color: "hsl(var(--chart-2))" },
+  { name: "Stories", value: 15, color: "hsl(var(--chart-3))" },
+  { name: "Reels", value: 10, color: "hsl(var(--chart-4))" },
 ]
 
 const chartConfig = {
@@ -227,7 +227,7 @@ export function AnalyticsDashboardWidget({
                   <div className="space-y-1">
                     <div className="text-2xl font-bold">{metric.value}</div>
                     <div className={`flex items-center gap-1 text-sm ${
-                      metric.change > 0 ? 'text-green-600' : 'text-red-600'
+                      metric.change > 0 ? 'text-success' : 'text-destructive'
                     }`}>
                       {metric.change > 0 ? (
                         <TrendingUp className="h-3 w-3" />
@@ -280,25 +280,25 @@ export function AnalyticsDashboardWidget({
             
             {/* Trend Insights */}
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                  <TrendingUp className="h-4 w-4 text-success" />
+                  <span className="text-sm font-medium text-success-foreground">
                     Positive Trend
                   </span>
                 </div>
-                <p className="text-sm text-green-600 dark:text-green-300">
+                <p className="text-sm text-success">
                   Engagement rate increased by 24% over the last quarter
                 </p>
               </div>
-              <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="p-4 bg-info/10 border border-info/20 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <Target className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  <Target className="h-4 w-4 text-info" />
+                  <span className="text-sm font-medium text-info-foreground">
                     Goal Progress
                   </span>
                 </div>
-                <p className="text-sm text-blue-600 dark:text-blue-300">
+                <p className="text-sm text-info">
                   82% progress toward quarterly engagement target
                 </p>
                 <Progress value={82} className="mt-2 h-2" />
@@ -320,7 +320,7 @@ export function AnalyticsDashboardWidget({
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      fill="#8884d8"
+                      fill="hsl(var(--primary))"
                     >
                       {distributionData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />

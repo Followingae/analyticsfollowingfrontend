@@ -27,7 +27,7 @@ export const description = "An interactive bar chart"
 const chartConfig = {
   reach: {
     label: "Reach",
-    color: "#5100f3",
+    color: "hsl(var(--primary))",
   },
   views: {
     label: "Views", 
@@ -137,7 +137,7 @@ export function ChartBarInteractive() {
       <Card className="py-0">
         <CardContent className="flex items-center justify-center h-[320px]">
           <div className="flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#5100f3] border-t-transparent"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[hsl(var(--primary))] border-t-transparent"></div>
             <div className="text-sm text-muted-foreground">Loading campaign data...</div>
           </div>
         </CardContent>

@@ -79,7 +79,7 @@ export function AdminDashboard() {
       case 'financial': return 'text-green-500'
       case 'proposal': return 'text-purple-500'
       case 'system': return 'text-orange-500'
-      default: return 'text-gray-500'
+      default: return 'text-muted-foreground'
     }
   }
 

@@ -158,7 +158,7 @@ export default function NotificationsPage() {
                 <Card>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2">
-                      <Settings className="h-4 w-4 text-gray-600" />
+                      <Settings className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm font-medium">Today</p>
                         <p className="text-2xl font-bold">

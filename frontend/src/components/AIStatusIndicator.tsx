@@ -45,8 +45,8 @@ export function AIStatusIndicator({
       case 'not_available':
       default:
         return {
-          icon: <Brain className="h-5 w-5 text-gray-500" />,
-          badge: <Badge variant="outline" className="text-gray-600">Not Available</Badge>,
+          icon: <Brain className="h-5 w-5 text-muted-foreground" />,
+          badge: <Badge variant="outline" className="text-muted-foreground">Not Available</Badge>,
           color: 'gray'
         }
     }
@@ -139,11 +139,11 @@ export function AIStatusIndicator({
                 </div>
                 <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">Processing</div>
               </div>
-              <div className="text-center p-3 bg-gray-100 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800">
+              <div className="text-center p-3 bg-gray-100 dark:bg-gray-900/50 rounded-lg border border-border dark:border-gray-800">
                 <div className="text-xl font-bold text-gray-700 dark:text-gray-300">
                   ⏳ {progress?.pending_posts || progress?.pending || '~'}
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400 font-medium">Pending</div>
+                <div className="text-xs text-muted-foreground dark:text-gray-400 font-medium">Pending</div>
               </div>
             </div>
             
@@ -261,17 +261,17 @@ export function AIStatusIndicator({
             
             {/* Features Preview */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 w-full max-w-lg">
-              <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg border">
+              <div className="text-center p-3 bg-background/50 dark:bg-gray-800/50 rounded-lg border">
                 <div className="text-lg mb-1">📊</div>
                 <div className="text-xs font-medium text-gray-700 dark:text-gray-300">20+ Categories</div>
                 <div className="text-xs text-muted-foreground">Fashion, Tech, Travel...</div>
               </div>
-              <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg border">
+              <div className="text-center p-3 bg-background/50 dark:bg-gray-800/50 rounded-lg border">
                 <div className="text-lg mb-1">😊</div>
                 <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Sentiment Scores</div>
                 <div className="text-xs text-muted-foreground">Positive/Neutral/Negative</div>
               </div>
-              <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg border">
+              <div className="text-center p-3 bg-background/50 dark:bg-gray-800/50 rounded-lg border">
                 <div className="text-lg mb-1">🌐</div>
                 <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Language Detection</div>
                 <div className="text-xs text-muted-foreground">20+ Languages</div>

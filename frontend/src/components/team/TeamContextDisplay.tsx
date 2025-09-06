@@ -245,7 +245,7 @@ export function TeamContextDisplay({
             <div className={`flex items-center gap-2 p-2 rounded-md ${
               teamContext.user_permissions.can_analyze_profiles 
                 ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
-                : 'bg-gray-50 text-gray-500 dark:bg-gray-900 dark:text-gray-400'
+                : 'bg-muted/50 text-muted-foreground dark:bg-gray-900 dark:text-gray-400'
             }`}>
               <CheckCircle className="h-3 w-3" />
               <span>Analyze Profiles</span>
@@ -254,7 +254,7 @@ export function TeamContextDisplay({
             <div className={`flex items-center gap-2 p-2 rounded-md ${
               teamContext.user_permissions.can_unlock_emails 
                 ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
-                : 'bg-gray-50 text-gray-500 dark:bg-gray-900 dark:text-gray-400'
+                : 'bg-muted/50 text-muted-foreground dark:bg-gray-900 dark:text-gray-400'
             }`}>
               <CheckCircle className="h-3 w-3" />
               <span>Unlock Emails</span>
@@ -263,7 +263,7 @@ export function TeamContextDisplay({
             <div className={`flex items-center gap-2 p-2 rounded-md ${
               teamContext.user_permissions.can_analyze_posts 
                 ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
-                : 'bg-gray-50 text-gray-500 dark:bg-gray-900 dark:text-gray-400'
+                : 'bg-muted/50 text-muted-foreground dark:bg-gray-900 dark:text-gray-400'
             }`}>
               <CheckCircle className="h-3 w-3" />
               <span>Analyze Posts</span>
@@ -272,7 +272,7 @@ export function TeamContextDisplay({
             <div className={`flex items-center gap-2 p-2 rounded-md ${
               teamContext.user_permissions.can_manage_team 
                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                : 'bg-gray-50 text-gray-500 dark:bg-gray-900 dark:text-gray-400'
+                : 'bg-muted/50 text-muted-foreground dark:bg-gray-900 dark:text-gray-400'
             }`}>
               <Crown className="h-3 w-3" />
               <span>Manage Team</span>

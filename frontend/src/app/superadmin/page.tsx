@@ -266,7 +266,7 @@ export default function SuperadminPage() {
       case 'healthy': return 'text-green-600 dark:text-green-400'
       case 'warning': return 'text-yellow-600 dark:text-yellow-400'
       case 'critical': return 'text-red-600 dark:text-red-400'
-      default: return 'text-gray-600 dark:text-gray-400'
+      default: return 'text-muted-foreground dark:text-gray-400'
     }
   }
 
@@ -368,7 +368,7 @@ export default function SuperadminPage() {
                   </Button>
                   <Dialog open={isBroadcastOpen} onOpenChange={setIsBroadcastOpen}>
                     <DialogTrigger asChild>
-                      <Button style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                      <Button style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }} className="hover:opacity-90">
                         <Bell className="h-4 w-4 mr-2" />
                         Broadcast Message
                       </Button>
@@ -428,7 +428,7 @@ export default function SuperadminPage() {
                         <Button variant="outline" onClick={() => setIsBroadcastOpen(false)}>
                           Cancel
                         </Button>
-                        <Button onClick={handleBroadcastMessage} style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                        <Button onClick={handleBroadcastMessage} style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }} className="hover:opacity-90">
                           <Bell className="h-4 w-4 mr-2" />
                           Broadcast
                         </Button>
@@ -455,7 +455,7 @@ export default function SuperadminPage() {
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                          <Users className="h-4 w-4 text-[#5100f3]" />
+                          <Users className="h-4 w-4 text-[hsl(var(--primary))]" />
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{formatNumber(systemStats.total_users)}</div>
@@ -464,7 +464,7 @@ export default function SuperadminPage() {
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
-                          <Activity className="h-4 w-4 text-[#5100f3]" />
+                          <Activity className="h-4 w-4 text-[hsl(var(--primary))]" />
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{formatNumber(systemStats.active_campaigns)}</div>
@@ -473,7 +473,7 @@ export default function SuperadminPage() {
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Credits in Circulation</CardTitle>
-                          <DollarSign className="h-4 w-4 text-[#5100f3]" />
+                          <DollarSign className="h-4 w-4 text-[hsl(var(--primary))]" />
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{formatNumber(systemStats.total_credits_in_circulation)}</div>
@@ -482,7 +482,7 @@ export default function SuperadminPage() {
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">System Health</CardTitle>
-                          <Server className="h-4 w-4 text-[#5100f3]" />
+                          <Server className="h-4 w-4 text-[hsl(var(--primary))]" />
                         </CardHeader>
                         <CardContent>
                           <div className="text-2xl font-bold">{systemStats.system_health_score}/100</div>

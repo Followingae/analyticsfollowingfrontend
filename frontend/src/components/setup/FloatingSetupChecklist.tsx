@@ -212,8 +212,8 @@ export function FloatingSetupChecklist() {
               size="lg"
               className="h-14 w-14 rounded-full shadow-lg border-2 bg-transparent"
               style={{ 
-                backgroundColor: '#5100f3', 
-                borderColor: '#5100f3',
+                backgroundColor: 'hsl(var(--primary))', 
+                borderColor: 'hsl(var(--primary))',
                 color: 'white'
               }}
             >
@@ -251,7 +251,7 @@ export function FloatingSetupChecklist() {
                   className="h-2 rounded-full transition-all duration-500 ease-in-out" 
                   style={{ 
                     width: `${progressPercentage}%`,
-                    backgroundColor: '#5100f3'
+                    backgroundColor: 'hsl(var(--primary))'
                   }}
                 />
               </div>
@@ -276,7 +276,7 @@ export function FloatingSetupChecklist() {
                       className={`text-left w-full text-sm font-medium transition-colors ${
                         item.completed 
                           ? 'text-muted-foreground cursor-default' 
-                          : 'text-[#5100f3] hover:text-[#5100f3]/80 cursor-pointer'
+                          : 'text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))]/80 cursor-pointer'
                       }`}
                     >
                       <div className="flex items-center gap-2">

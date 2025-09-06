@@ -142,9 +142,9 @@ export function InlineProcessingIndicator({
       <div className="text-center text-white">
         <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1" />
         <div className="text-xs">Processing...</div>
-        <div className="w-16 bg-white/20 rounded-full h-1 mt-1">
+        <div className="w-16 bg-background/20 rounded-full h-1 mt-1">
           <div 
-            className="bg-white h-1 rounded-full transition-all duration-300"
+            className="bg-background h-1 rounded-full transition-all duration-300"
             style={{ width: `${completionPercentage}%` }}
           />
         </div>

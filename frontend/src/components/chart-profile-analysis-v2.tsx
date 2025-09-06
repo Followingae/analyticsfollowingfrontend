@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useMemo } from "react"
 import {
   Label,
   PolarGrid,
@@ -12,91 +12,78 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
-import { teamApiService } from "@/services/teamApi"
+import { useSubscriptionData, useProfilesRemaining, useSubscriptionTier } from "@/stores/userStore"
 
 const chartConfig = {
   visitors: {
     label: "Used",
   },
   safari: {
-    label: "Post Analytics",
+    label: "Profile Analysis",
     color: "hsl(var(--primary))",
   },
 } satisfies ChartConfig
 
-export function ChartPostAnalytics() {
-  const [chartData, setChartData] = useState([
-    { browser: "safari", visitors: 0, fill: "hsl(var(--primary))" },
-  ])
-  const [usageData, setUsageData] = useState<{used: number, limit: number, remaining: number} | null>(null)
-  const [loading, setLoading] = useState(true)
+export function ChartProfileAnalysisV2() {
+  // SINGLE SOURCE OF TRUTH: Use Zustand store (no API calls needed)
+  const subscription = useSubscriptionData()
+  const profilesRemaining = useProfilesRemaining()
+  const subscriptionTier = useSubscriptionTier()
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
+  const chartData = useMemo(() => [
+    { browser: "safari", visitors: profilesRemaining, fill: "hsl(var(--primary))" }
+  ], [profilesRemaining])
 
-        const result = await teamApiService.getTeamContext()
-
-        
-        if (result.success && result.data) {
-          const teamData = result.data
-
-          
-          // Extract post data from team context
-          const postsUsed = teamData.current_usage?.posts || 0
-          const postsLimit = teamData.monthly_limits?.posts || 0
-          const postsRemaining = teamData.remaining_capacity?.posts || (postsLimit - postsUsed)
-          
-          setUsageData({
-            used: postsUsed,
-            limit: postsLimit,
-            remaining: postsRemaining
-          })
-          
-          setChartData([{
-            browser: "safari",
-            visitors: postsRemaining,
-            fill: "hsl(var(--primary))"
-          }])
-          
-
-        } else {
-
-        }
-      } catch (error) {
-
-      } finally {
-        setLoading(false)
-      }
+  const usageData = useMemo(() => {
+    if (!subscription) return null
+    
+    return {
+      used: subscription.usage.profiles,
+      limit: subscription.limits.profiles,
+      remaining: profilesRemaining,
+      tier: subscriptionTier,
+      tierDisplay: subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1)
     }
+  }, [subscription, profilesRemaining, subscriptionTier])
 
-    loadData()
-  }, [])
+  // Calculate percentage for the radial chart
+  const getEndAngle = () => {
+    if (!usageData || usageData.limit === 0) return 0
+    return (usageData.remaining / usageData.limit) * 360
+  }
+
+  // Calculate percentage for badge
+  const getPercentage = () => {
+    if (!usageData || usageData.limit === 0) return 0
+    return Math.round((usageData.remaining / usageData.limit) * 100)
+  }
+
+  const isLoading = !subscription
 
   return (
     <Card className="flex flex-col relative">
       {/* Usage Badge */}
-      {!loading && (
+      {!isLoading && usageData && (
         <Badge 
           variant="outline" 
-          className="absolute top-3 right-3 z-20 text-xs text-muted-foreground border-border bg-muted/50"
+          className="absolute top-3 right-3 z-20 text-xs text-muted-foreground border-border bg-muted/30"
         >
-          {usageData && usageData.limit > 0 
-            ? `${Math.round((usageData.remaining / usageData.limit) * 100)}% available`
+          {usageData.remaining > 0 
+            ? `${getPercentage()}% available`
             : "0% available"
           }
         </Badge>
       )}
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">Post Analytics</CardTitle>
-        <div className="text-xs text-muted-foreground">5 credits per analysis</div>
+        <CardTitle className="text-sm font-medium">Profile Unlocks</CardTitle>
+        <div className="text-xs text-muted-foreground">
+          {isLoading ? "Loading..." : `${usageData?.tierDisplay || 'Free'} tier • ${usageData?.limit || 0}/month`}
+        </div>
       </CardHeader>
       <CardContent className="p-1">
         <ChartContainer
@@ -106,10 +93,7 @@ export function ChartPostAnalytics() {
           <RadialBarChart
             data={chartData}
             startAngle={0}
-            endAngle={usageData && usageData.limit > 0 
-              ? (usageData.remaining / usageData.limit) * 360 
-              : 0
-            }
+            endAngle={getEndAngle()}
             innerRadius={80}
             outerRadius={110}
           >
@@ -137,14 +121,14 @@ export function ChartPostAnalytics() {
                           y={viewBox.cy}
                           className="fill-foreground text-4xl font-bold"
                         >
-                          {loading ? "..." : (usageData?.remaining || 0).toLocaleString()}
+                          {isLoading ? "..." : (usageData?.remaining || 0).toLocaleString()}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          {loading ? "Loading" : "remaining"}
+                          {isLoading ? "Loading" : "remaining"}
                         </tspan>
                       </text>
                     )

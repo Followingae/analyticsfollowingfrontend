@@ -47,9 +47,9 @@ export function MetricCard({ title, value, change, icon, loading }: MetricCardPr
           <Badge 
             variant="outline" 
             className={`text-xs ${
-              change > 0 ? "text-green-600 border-green-200 bg-green-50" : 
-              change < 0 ? "text-red-600 border-red-200 bg-red-50" : 
-              "text-gray-600 border-gray-200 bg-gray-50"
+              change > 0 ? "text-success border-success/20 bg-success/10" : 
+              change < 0 ? "text-destructive border-destructive/20 bg-destructive/10" : 
+              "text-muted-foreground border-border bg-muted/50"
             }`}
           >
             {change > 0 ? (
@@ -116,7 +116,7 @@ export function EngagementCard({ title, metrics, loading }: EngagementCardProps)
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Heart className="h-4 w-4 text-red-500" />
+              <Heart className="h-4 w-4 text-destructive" />
               <span className="text-sm">Likes</span>
             </div>
             <span className="text-sm font-medium">{((metrics.likes / total) * 100).toFixed(1)}%</span>
@@ -127,7 +127,7 @@ export function EngagementCard({ title, metrics, loading }: EngagementCardProps)
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4 text-blue-500" />
+              <MessageCircle className="h-4 w-4 text-info" />
               <span className="text-sm">Comments</span>
             </div>
             <span className="text-sm font-medium">{((metrics.comments / total) * 100).toFixed(1)}%</span>
@@ -138,7 +138,7 @@ export function EngagementCard({ title, metrics, loading }: EngagementCardProps)
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Share className="h-4 w-4 text-green-500" />
+              <Share className="h-4 w-4 text-success" />
               <span className="text-sm">Shares</span>
             </div>
             <span className="text-sm font-medium">{((metrics.shares / total) * 100).toFixed(1)}%</span>
@@ -149,7 +149,7 @@ export function EngagementCard({ title, metrics, loading }: EngagementCardProps)
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-purple-500" />
+              <Target className="h-4 w-4 text-primary" />
               <span className="text-sm">Saves</span>
             </div>
             <span className="text-sm font-medium">{((metrics.saves / total) * 100).toFixed(1)}%</span>

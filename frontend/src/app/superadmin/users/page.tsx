@@ -266,7 +266,7 @@ export default function SuperadminUsersPage() {
                   </Button>
                   <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
                     <DialogTrigger asChild>
-                      <Button style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                      <Button style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }} className="hover:opacity-90">
                         <UserPlus className="h-4 w-4 mr-2" />
                         Create User
                       </Button>
@@ -353,7 +353,7 @@ export default function SuperadminUsersPage() {
                         <Button variant="outline" onClick={() => setIsCreateUserOpen(false)}>
                           Cancel
                         </Button>
-                        <Button onClick={handleCreateUser} style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                        <Button onClick={handleCreateUser} style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }} className="hover:opacity-90">
                           <UserPlus className="h-4 w-4 mr-2" />
                           Create User
                         </Button>

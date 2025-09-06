@@ -276,7 +276,7 @@ export default function ProposalsPage() {
       case 'high': return 'text-red-600 dark:text-red-400'
       case 'medium': return 'text-yellow-600 dark:text-yellow-400'
       case 'low': return 'text-green-600 dark:text-green-400'
-      default: return 'text-gray-600 dark:text-gray-400'
+      default: return 'text-muted-foreground dark:text-gray-400'
     }
   }
 
@@ -347,7 +347,7 @@ export default function ProposalsPage() {
                 
                 <Dialog open={isCreatingProposal} onOpenChange={setIsCreatingProposal}>
                   <DialogTrigger asChild>
-                    <Button style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                    <Button style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }} className="hover:opacity-90">
                       <Plus className="h-4 w-4 mr-2" />
                       Create Proposal
                     </Button>
@@ -506,7 +506,7 @@ export default function ProposalsPage() {
                       }}>
                         Cancel
                       </Button>
-                      <Button onClick={handleCreateProposal} style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                      <Button onClick={handleCreateProposal} style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }} className="hover:opacity-90">
                         Create Proposal
                       </Button>
                     </div>
@@ -586,7 +586,7 @@ export default function ProposalsPage() {
                       <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-600">{pipelineSummary.draft_proposals}</div>
+                            <div className="text-2xl font-bold text-muted-foreground">{pipelineSummary.draft_proposals}</div>
                             <div className="text-sm text-muted-foreground">Draft</div>
                           </div>
                           <div className="text-center">
@@ -741,7 +741,7 @@ export default function ProposalsPage() {
                                       <Button 
                                         size="sm" 
                                         onClick={() => handleSendProposal(proposal.id)}
-                                        style={{ backgroundColor: '#5100f3', color: 'white' }} 
+                                        style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }} 
                                         className="hover:opacity-90"
                                       >
                                         <Send className="h-4 w-4 mr-1" />

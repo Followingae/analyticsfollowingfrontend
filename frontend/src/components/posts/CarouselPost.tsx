@@ -122,7 +122,7 @@ export default function CarouselPost({ post, className = '' }: CarouselPostProps
                   key={index}
                   onClick={() => goToImage(index)}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentIndex ? 'bg-white' : 'bg-white/50'
+                    index === currentIndex ? 'bg-background' : 'bg-background/50'
                   }`}
                 />
               ))}
@@ -174,7 +174,7 @@ export default function CarouselPost({ post, className = '' }: CarouselPostProps
 
       <CardContent className="p-4">
         {/* Engagement Metrics */}
-        <div className="flex items-center gap-4 mb-3 text-sm text-gray-600">
+        <div className="flex items-center gap-4 mb-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Heart className="w-4 h-4" />
             <span>{formatNumber(post.likes_count)}</span>
@@ -218,7 +218,7 @@ export default function CarouselPost({ post, className = '' }: CarouselPostProps
         )}
 
         {/* Location and Date */}
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           {post.location && (
             <div className="flex items-center gap-1">
               <MapPin className="w-3 h-3" />
@@ -294,7 +294,7 @@ function SinglePostView({ post, className }: CarouselPostProps) {
 
       <CardContent className="p-4">
         {/* Same content as carousel version */}
-        <div className="flex items-center gap-4 mb-3 text-sm text-gray-600">
+        <div className="flex items-center gap-4 mb-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Heart className="w-4 h-4" />
             <span>{formatNumber(post.likes_count)}</span>
@@ -335,7 +335,7 @@ function SinglePostView({ post, className }: CarouselPostProps) {
           </div>
         )}
 
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           {post.location && (
             <div className="flex items-center gap-1">
               <MapPin className="w-3 h-3" />

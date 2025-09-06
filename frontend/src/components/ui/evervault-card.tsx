@@ -131,7 +131,7 @@ export const CardPattern = ({ mouseX, mouseY, randomString }: any) => {
         style={style}
       >
         <div className="w-full h-full overflow-hidden">
-          <p className="text-[11px] leading-[14px] break-all whitespace-pre-wrap font-mono font-bold w-full h-full overflow-hidden" style={{color: '#5100f3'}}>
+          <p className="text-[11px] leading-[14px] break-all whitespace-pre-wrap font-mono font-bold w-full h-full overflow-hidden" style={{color: 'hsl(var(--primary))'}}>
             {randomString}
           </p>
         </div>

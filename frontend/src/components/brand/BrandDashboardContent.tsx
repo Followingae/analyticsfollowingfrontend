@@ -3,9 +3,10 @@
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
+import { useDashboardData } from "@/hooks/useDashboardData"
 import { ChartBarInteractive } from "@/components/chart-bar-interactive"
-import { ChartProfileAnalysis } from "@/components/chart-profile-analysis"
-import { ChartPostAnalytics } from "@/components/chart-post-analytics"
+import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
+import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
 import { MetricCard } from "@/components/analytics-cards"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
@@ -19,8 +20,19 @@ import {
 } from "lucide-react"
 
 export function BrandDashboardContent() {
-  const { user, isLoading, isPremium, isAdmin } = useEnhancedAuth()
+  const { user, isPremium, isAdmin } = useEnhancedAuth()
   const router = useRouter()
+  
+  // FIXED: Use centralized dashboard data hook to prevent duplicate API calls
+  const {
+    teamsOverview,
+    teamsLoading,
+    unlockedProfilesCount,
+    profilesLoading,
+    activeCampaignsCount,
+    campaignsLoading,
+    isLoading
+  } = useDashboardData()
   
   // Memoized user display data to prevent flash and avoid hardcoded values
   const userDisplayData = useMemo(() => {
@@ -71,158 +83,12 @@ export function BrandDashboardContent() {
     }
   }, [user, isLoading])
 
-  // Teams overview state
-  const [teamsOverview, setTeamsOverview] = useState<any>(null)
-  const [teamsLoading, setTeamsLoading] = useState(true)
-  
-  // Unlocked profiles state
-  const [unlockedProfilesCount, setUnlockedProfilesCount] = useState<number>(0)
-  const [profilesLoading, setProfilesLoading] = useState(true)
-  
-  // Active campaigns state
-  const [activeCampaignsCount, setActiveCampaignsCount] = useState<number>(0)
-  const [campaignsLoading, setCampaignsLoading] = useState(true)
-  
   // Animation states for sequential loading
   const [showWelcome, setShowWelcome] = useState(false)
   const [showMetrics, setShowMetrics] = useState(false)
   const [showDiscovery, setShowDiscovery] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [showCampaignStats, setShowCampaignStats] = useState(false)
-  
-
-  // Load teams overview
-  useEffect(() => {
-    const loadTeamsOverview = async () => {
-      if (!user) {
-        setTeamsLoading(false)
-        return
-      }
-
-      try {
-        const { API_CONFIG, ENDPOINTS } = await import('@/config/api')
-        const { fetchWithAuth } = await import('@/utils/apiInterceptor')
-        const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.teams.overview}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        })
-        
-
-        
-        if (response.ok) {
-          const data = await response.json()
-
-
-          setTeamsOverview(data)
-        } else {
-
-        }
-      } catch (error) {
-
-      } finally {
-        setTeamsLoading(false)
-      }
-    }
-
-    loadTeamsOverview()
-  }, [user])
-
-  // Load unlocked profiles count
-  useEffect(() => {
-    const loadUnlockedProfiles = async () => {
-      if (!user) {
-        setProfilesLoading(false)
-        return
-      }
-
-      try {
-        const { creatorApiService } = await import('@/services/creatorApi')
-        const result = await creatorApiService.getUnlockedCreators({
-          page: 1,
-          page_size: 10 // Get a reasonable sample to ensure pagination works
-        })
-        
-        console.log('🔍 Dashboard unlocked creators API response:', {
-          success: result.success,
-          data_keys: result.data ? Object.keys(result.data) : [],
-          pagination: result.data?.pagination,
-          profiles_count: result.data?.profiles?.length,
-          total_items: result.data?.pagination?.total_items,
-          error: result.error
-        })
-        
-        if (result.success && result.data) {
-          // ✅ Get TOTAL unlocked creators count from pagination
-          const totalUnlockedCount = result.data.pagination?.total_items || 0
-          console.log('📊 Dashboard - Total Unlocked Creators:', totalUnlockedCount)
-          setUnlockedProfilesCount(totalUnlockedCount)
-        } else {
-
-          setUnlockedProfilesCount(0)
-        }
-      } catch (error) {
-
-        setUnlockedProfilesCount(0)
-      } finally {
-        setProfilesLoading(false)
-      }
-    }
-
-    loadUnlockedProfiles()
-  }, [user])
-
-  // Load active campaigns count
-  useEffect(() => {
-    const loadActiveCampaigns = async () => {
-      if (!user) {
-        setCampaignsLoading(false)
-        return
-      }
-
-      try {
-        // Try to fetch campaigns from backend using fetchWithAuth
-        const { fetchWithAuth } = await import('@/utils/apiInterceptor')
-        const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/campaigns`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        })
-        
-
-        
-        if (response.ok) {
-          const data = await response.json()
-
-          
-          // Count active campaigns
-          const campaigns = data.campaigns || data.data || data || []
-          const activeCount = Array.isArray(campaigns) 
-            ? campaigns.filter((campaign: any) => campaign.status === 'active').length
-            : 0
-          
-
-          setActiveCampaignsCount(activeCount)
-        } else {
-
-          // Set to 0 if endpoint doesn't exist yet
-          setActiveCampaignsCount(0)
-        }
-      } catch (error) {
-
-        // Set to 0 if there's an error (endpoint may not exist yet)
-        setActiveCampaignsCount(0)
-      } finally {
-        setCampaignsLoading(false)
-      }
-    }
-
-    loadActiveCampaigns()
-  }, [user])
 
   // Sequential loading animation effect
   useEffect(() => {
@@ -246,13 +112,13 @@ export function BrandDashboardContent() {
       title: "Active Campaigns",
       value: campaignsLoading ? "Loading..." : activeCampaignsCount.toString(),
       change: undefined,
-      icon: <Target className="h-4 w-4 text-[#5100f3]" />
+      icon: <Target className="h-4 w-4 text-primary" />
     },
     {
       title: "Total Creators",
       value: profilesLoading ? "Loading..." : unlockedProfilesCount.toString(),
       change: undefined,
-      icon: <Users className="h-4 w-4 text-[#5100f3]" />
+      icon: <Users className="h-4 w-4 text-primary" />
     },
     {
       title: "Your Plan",
@@ -276,13 +142,13 @@ export function BrandDashboardContent() {
         }
       })(),
       change: undefined,
-      icon: <Star className="h-4 w-4 text-[#5100f3]" />
+      icon: <Star className="h-4 w-4 text-primary" />
     },
     {
       title: "Campaign ROI",
       value: "--",
       change: undefined,
-      icon: <TrendingUp className="h-4 w-4 text-[#5100f3]" />
+      icon: <TrendingUp className="h-4 w-4 text-primary" />
     }
   ]
 
@@ -367,16 +233,16 @@ export function BrandDashboardContent() {
           }`}
           style={{ transitionDelay: '100ms' }}>
             <div className="h-[320px]">
-              <ChartProfileAnalysis />
+              <ChartProfileAnalysisV2 />
             </div>
           </div>
-          {/* Post Analytics Chart */}
+          {/* Remaining Credits Chart */}
           <div className={`col-span-3 transition-all duration-500 ease-out ${
             showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
           style={{ transitionDelay: '200ms' }}>
             <div className="h-[320px]">
-              <ChartPostAnalytics />
+              <ChartRemainingCreditsV2 />
             </div>
           </div>
         </div>

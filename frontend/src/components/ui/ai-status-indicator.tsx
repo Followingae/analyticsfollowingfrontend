@@ -128,9 +128,9 @@ export function AIStatusIndicator({
       default:
         return {
           icon: Brain,
-          color: 'text-gray-600',
-          bgColor: 'bg-gray-50 dark:bg-gray-950',
-          borderColor: 'border-gray-200 dark:border-gray-800',
+          color: 'text-muted-foreground',
+          bgColor: 'bg-muted/50 dark:bg-gray-950',
+          borderColor: 'border-border dark:border-gray-800',
           title: 'AI Analysis Available',
           message: 'Start AI analysis to get detailed insights'
         }
@@ -261,10 +261,10 @@ export function AIInsightsDisplay({ insights, compact = false }: AIInsightsDispl
   }
 
   const getSentimentColor = (score?: number | null) => {
-    if (score === null || score === undefined) return 'text-gray-600'
+    if (score === null || score === undefined) return 'text-muted-foreground'
     if (score > 0.1) return 'text-green-600'
     if (score < -0.1) return 'text-red-600'
-    return 'text-gray-600'
+    return 'text-muted-foreground'
   }
 
   if (compact) {

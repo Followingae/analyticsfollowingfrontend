@@ -647,33 +647,33 @@ class CreatorApiService {
   }
 
   /**
-   * 📊 USAGE STATISTICS - Team usage statistics and limits
+   * 📊 USAGE STATISTICS - Team usage statistics and limits (FIXED: Now with caching)
    */
   async getUsageStats(): Promise<ApiResponse<UsageStatsResponse>> {
-    const url = `${this.baseUrl}/system/stats`;
-
+    // Import requestCache dynamically to prevent circular imports
+    const { requestCache, CACHE_KEYS } = await import('@/utils/requestCache')
     
-    try {
-      const headers = createHeaders(false);
-
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers
-      });
-
-
-
-      
-      const result = await handleResponse<UsageStatsResponse>(response);
-
-      return result;
-    } catch (error) {
+    return requestCache.get(
+      CACHE_KEYS.SYSTEM_STATS,
+      async () => {
+        const url = `${this.baseUrl}/system/stats`;
+        const headers = createHeaders(false);
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers
+        });
+        
+        const result = await handleResponse<UsageStatsResponse>(response);
+        return result;
+      },
+      3 * 60 * 1000 // Cache for 3 minutes
+    ).catch((error) => {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get usage stats'
       };
-    }
+    });
   }
 
 }

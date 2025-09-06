@@ -42,12 +42,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0]
     return (
-      <div className="bg-white p-3 rounded-lg border shadow-lg">
+      <div className="bg-background p-3 rounded-lg border shadow-lg">
         <p className="font-semibold text-gray-900">{data.name}</p>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           {(data.value * 100).toFixed(1)}% of content
         </p>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           {data.payload.postCount} posts analyzed
         </p>
       </div>

@@ -71,7 +71,7 @@ export default function ProfileSearchTab() {
   return (
     <div className="space-y-6">
       {/* Search Section */}
-      <Card className="border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-background/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="w-5 h-5" />
@@ -144,7 +144,7 @@ export default function ProfileSearchTab() {
       </Card>
 
       {/* Batch Analysis */}
-      <Card className="border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-background/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -223,7 +223,7 @@ export default function ProfileSearchTab() {
       {searchResult?.profile && (
         <div className="space-y-6">
           {/* Profile Overview */}
-          <Card className="border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="border-0 bg-background/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-start gap-4">
                 <ProfileImage
@@ -240,7 +240,7 @@ export default function ProfileSearchTab() {
                       <Badge className="bg-blue-500">Verified</Badge>
                     )}
                   </div>
-                  <CardDescription className="text-gray-600 mb-3">
+                  <CardDescription className="text-muted-foreground mb-3">
                     @{searchResult.profile.username}
                   </CardDescription>
                   <p className="text-sm text-gray-700 mb-4">
@@ -256,25 +256,25 @@ export default function ProfileSearchTab() {
                   <div className="text-2xl font-bold text-blue-600">
                     {formatNumber(searchResult.profile.followers_count)}
                   </div>
-                  <div className="text-sm text-gray-600">Followers</div>
+                  <div className="text-sm text-muted-foreground">Followers</div>
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
                     {formatNumber(searchResult.profile.following_count || 0)}
                   </div>
-                  <div className="text-sm text-gray-600">Following</div>
+                  <div className="text-sm text-muted-foreground">Following</div>
                 </div>
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600">
                     {formatNumber(searchResult.profile.posts_count || 0)}
                   </div>
-                  <div className="text-sm text-gray-600">Posts</div>
+                  <div className="text-sm text-muted-foreground">Posts</div>
                 </div>
                 <div className="text-center p-4 bg-orange-50 rounded-lg">
                   <div className="text-2xl font-bold text-orange-600">
                     {searchResult.profile.engagement_rate ? `${(searchResult.profile.engagement_rate * 100).toFixed(1)}%` : 'N/A'}
                   </div>
-                  <div className="text-sm text-gray-600">Engagement</div>
+                  <div className="text-sm text-muted-foreground">Engagement</div>
                 </div>
               </div>
             </CardContent>
@@ -308,7 +308,7 @@ export default function ProfileSearchTab() {
 
           {/* Analytics Cards */}
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="border-0 bg-white/80 backdrop-blur-sm">
+            <Card className="border-0 bg-background/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Heart className="w-5 h-5" />
@@ -317,23 +317,23 @@ export default function ProfileSearchTab() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Posts Count</span>
+                  <span className="text-muted-foreground">Posts Count</span>
                   <span className="font-semibold">{formatNumber(searchResult.profile.posts_count || 0)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Engagement Rate</span>
+                  <span className="text-muted-foreground">Engagement Rate</span>
                   <span className="font-semibold">{searchResult.profile.engagement_rate ? `${(searchResult.profile.engagement_rate * 100).toFixed(1)}%` : 'N/A'}</span>
                 </div>
                 {searchResult.profile.ai_analysis?.primary_content_type && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Content Type</span>
+                    <span className="text-muted-foreground">Content Type</span>
                     <span className="font-semibold">{searchResult.profile.ai_analysis.primary_content_type}</span>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-white/80 backdrop-blur-sm">
+            <Card className="border-0 bg-background/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Brain className="w-5 h-5" />
@@ -346,7 +346,7 @@ export default function ProfileSearchTab() {
                     {/* Primary content type */}
                     {searchResult.profile.ai_analysis.primary_content_type && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Primary Content</span>
+                        <span className="text-muted-foreground">Primary Content</span>
                         <Badge variant="outline" className="bg-blue-50 text-blue-700">
                           {searchResult.profile.ai_analysis.primary_content_type}
                         </Badge>
@@ -356,10 +356,10 @@ export default function ProfileSearchTab() {
                     {/* Sentiment score */}
                     {searchResult.profile.ai_analysis.avg_sentiment_score !== undefined && searchResult.profile.ai_analysis.avg_sentiment_score !== null && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Avg Sentiment</span>
+                        <span className="text-muted-foreground">Avg Sentiment</span>
                         <span className={`font-semibold ${
                           searchResult.profile.ai_analysis.avg_sentiment_score > 0.1 ? 'text-green-600' :
-                          searchResult.profile.ai_analysis.avg_sentiment_score < -0.1 ? 'text-red-600' : 'text-gray-600'
+                          searchResult.profile.ai_analysis.avg_sentiment_score < -0.1 ? 'text-red-600' : 'text-muted-foreground'
                         }`}>
                           {Math.round(((searchResult.profile.ai_analysis.avg_sentiment_score + 1) / 2) * 100)}% positive
                         </span>
@@ -386,10 +386,10 @@ export default function ProfileSearchTab() {
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Content Intelligence</h3>
-                <p className="text-gray-600">Advanced AI-powered analysis of content patterns and quality</p>
+                <p className="text-muted-foreground">Advanced AI-powered analysis of content patterns and quality</p>
               </div>
 
-              <Card className="border-0 bg-white/80 backdrop-blur-sm">
+              <Card className="border-0 bg-background/80 backdrop-blur-sm">
                 <CardContent className="pt-6">
                   <div className="space-y-4">
                     {searchResult.profile.ai_analysis.primary_content_type && (
@@ -407,7 +407,7 @@ export default function ProfileSearchTab() {
                         <div className="text-2xl font-bold text-blue-600">
                           {Math.round(((searchResult.profile.ai_analysis.avg_sentiment_score + 1) / 2) * 100)}%
                         </div>
-                        <p className="text-sm text-gray-600">Positive sentiment score</p>
+                        <p className="text-sm text-muted-foreground">Positive sentiment score</p>
                       </div>
                     )}
                   </div>
@@ -418,7 +418,7 @@ export default function ProfileSearchTab() {
 
           {/* Audience Insights & Competitor Analysis */}
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="border-0 bg-white/80 backdrop-blur-sm">
+            <Card className="border-0 bg-background/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
@@ -432,7 +432,7 @@ export default function ProfileSearchTab() {
               </CardContent>
             </Card>
             
-            <Card className="border-0 bg-white/80 backdrop-blur-sm">
+            <Card className="border-0 bg-background/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="w-5 h-5" />

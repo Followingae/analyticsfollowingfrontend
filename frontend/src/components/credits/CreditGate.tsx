@@ -171,7 +171,7 @@ export function CreditGate({
         </CardHeader>
         <CardContent className="space-y-4">
           {pricing && (
-            <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-background dark:bg-gray-900 rounded-lg">
               <div className="flex items-center gap-2">
                 <span className="text-lg">{getActionIcon(actionType)}</span>
                 <div>
@@ -199,7 +199,7 @@ export function CreditGate({
             <Badge variant="outline" className={
               (permission?.current_balance || 0) === 0 
                 ? "bg-red-50 text-red-700 border-red-200" 
-                : "bg-gray-50 text-gray-700 border-gray-200"
+                : "bg-muted/50 text-gray-700 border-border"
             }>
               {formatCredits(permission?.current_balance || 0)} credits
             </Badge>

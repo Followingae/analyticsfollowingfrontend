@@ -93,7 +93,7 @@ export function DashboardNotificationsFixed() {
         <CardDescription className="text-xs">
           Latest 7 notifications • <button 
             onClick={() => router.push('/notifications')}
-            className="text-blue-600 hover:underline"
+            className="text-primary hover:underline"
           >
             View all
           </button>
@@ -125,7 +125,7 @@ export function DashboardNotificationsFixed() {
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                          <div className="w-2 h-2 bg-primary rounded-full" />
                         )}
                         <button
                           onClick={(e) => {

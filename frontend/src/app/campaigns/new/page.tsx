@@ -118,7 +118,7 @@ const objectives = [
 ]
 
 const priorities = [
-  { value: "low" as const, label: "Low", color: "bg-gray-50 text-gray-600" },
+  { value: "low" as const, label: "Low", color: "bg-muted/50 text-muted-foreground" },
   { value: "medium" as const, label: "Medium", color: "bg-yellow-50 text-yellow-700" },
   { value: "high" as const, label: "High", color: "bg-orange-50 text-orange-700" },
   { value: "critical" as const, label: "Critical", color: "bg-red-50 text-red-700" },
@@ -229,8 +229,8 @@ export default function NewCampaignPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-[#5100f3]" />
-                <Badge variant="secondary" className="bg-[#5100f3]/10 text-[#5100f3] border-[#5100f3]/20">
+                <Sparkles className="h-5 w-5 text-[hsl(var(--primary))]" />
+                <Badge variant="secondary" className="bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] border-[hsl(var(--primary))]/20">
                   {teamContext?.subscription_tier || 'Loading...'}
                 </Badge>
               </div>
@@ -244,8 +244,8 @@ export default function NewCampaignPage() {
                 <Card className="border-2 border-dashed border-muted-foreground/25">
                   <CardHeader>
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-[#5100f3]/10 rounded-lg">
-                        <Briefcase className="h-5 w-5 text-[#5100f3]" />
+                      <div className="p-2 bg-[hsl(var(--primary))]/10 rounded-lg">
+                        <Briefcase className="h-5 w-5 text-[hsl(var(--primary))]" />
                       </div>
                       <div>
                         <CardTitle>Team Information</CardTitle>

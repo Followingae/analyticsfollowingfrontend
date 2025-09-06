@@ -339,9 +339,9 @@ export default function CreatorsPage() {
   // Tier Badge Component
   function TierBadge({ tier, isExpired }: { tier: 'nano' | 'micro' | 'macro' | 'mega', isExpired?: boolean }) {
     const tierStyles = {
-      nano: "bg-white text-black border border-gray-300 dark:bg-gray-100 dark:text-black dark:border-gray-200",
-      micro: "text-black border" + " " + "bg-[#d3ff02] border-[#d3ff02] dark:bg-[#d3ff02] dark:border-[#d3ff02] dark:text-black",
-      macro: "text-white border ring-2" + " " + "bg-[#5100f3] border-[#5100f3] ring-[#5100f3]/30 dark:bg-[#5100f3] dark:border-[#5100f3] dark:ring-[#5100f3]/30", 
+      nano: "bg-background text-foreground border border-gray-300 dark:bg-gray-100 dark:text-foreground dark:border-border",
+      micro: "text-foreground border" + " " + "bg-[#d3ff02] border-[#d3ff02] dark:bg-[#d3ff02] dark:border-[#d3ff02] dark:text-foreground",
+      macro: "text-white border ring-2" + " " + "bg-[hsl(var(--primary))] border-[hsl(var(--primary))] ring-[hsl(var(--primary))]/30 dark:bg-[hsl(var(--primary))] dark:border-[hsl(var(--primary))] dark:ring-[hsl(var(--primary))]/30", 
       mega: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 border-2 border-yellow-500 ring-2 ring-yellow-400/60 animate-pulse [animation-duration:7s] dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-300 dark:border-yellow-400 dark:ring-yellow-300/60"
     };
     const tierLabels = {
@@ -792,7 +792,7 @@ export default function CreatorsPage() {
                           <h3 className="text-lg font-semibold">No unlocked creators yet</h3>
                           <p className="text-muted-foreground">Start by searching for creators to analyze with AI</p>
                         </div>
-                        <Button onClick={() => setIsSearchOpen(true)} style={{ backgroundColor: '#5100f3', color: 'white' }} className="hover:opacity-90">
+                        <Button onClick={() => setIsSearchOpen(true)} style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }} className="hover:opacity-90">
                           <Brain className="h-4 w-4 mr-2" />
                           Add Creators
                         </Button>

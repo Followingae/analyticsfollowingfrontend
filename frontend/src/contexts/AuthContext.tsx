@@ -213,12 +213,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
         
-        try {
-
-          await loadDashboardStats()
-        } catch (error) {
-
-        }
+        // FIXED: Don't load dashboard stats during initialization to prevent duplicate calls
+        // Let individual components load their own data when needed
+        // await loadDashboardStats() - REMOVED
       } else {
         // CRITICAL FIX: Only clear user state if we're definitely not authenticated AND have no valid tokens
         // Also check if we already have user state from hydration
@@ -307,14 +304,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }, 500)
         }
         
-        // Load dashboard stats (protected by grace period)
-        try {
-
-          await loadDashboardStats()
-
-        } catch (error) {
-
-        }
+        // FIXED: Don't load dashboard stats in login - let components load their own data
+        // This prevents duplicate API calls on login
+        // await loadDashboardStats() - REMOVED
         
 
         
@@ -385,12 +377,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         } else if (result.data.access_token) {
           // Registration successful with immediate login (if no email confirmation required)
           setUser(result.data.user)
-          // Load dashboard stats but don't fail registration if it errors
-          try {
-            await loadDashboardStats()
-          } catch (error) {
-
-          }
+          // FIXED: Don't load dashboard stats on registration to prevent duplicate calls
+          // await loadDashboardStats() - REMOVED
           toast.success(`Welcome to Analytics Following, ${result.data.user.full_name}!`)
           return true
         } else {

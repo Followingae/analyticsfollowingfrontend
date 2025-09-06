@@ -41,7 +41,7 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
   }
 
   return (
-    <Card className={`border-0 bg-white/80 backdrop-blur-sm ${className}`}>
+    <Card className={`border-0 bg-background/80 backdrop-blur-sm ${className}`}>
       <CardHeader>
         <div className="flex flex-col md:flex-row items-start gap-6">
           {/* Profile Picture */}
@@ -73,7 +73,7 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
                   {profile.full_name}
                 </CardTitle>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-lg text-gray-600">@{profile.username}</span>
+                  <span className="text-lg text-muted-foreground">@{profile.username}</span>
                   {profile.is_verified && (
                     <Badge className="bg-blue-500 text-white">
                       <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -155,7 +155,7 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
 
             {/* Last Updated */}
             {profile.last_refreshed && (
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted-foreground">
                 <Calendar className="w-3 h-3 inline mr-1" />
                 Last updated: {formatDate(profile.last_refreshed)}
               </div>
@@ -171,7 +171,7 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
             <div className="text-2xl font-bold text-blue-600">
               {formatNumber(profile.followers_count)}
             </div>
-            <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+            <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
               <Users className="w-3 h-3" />
               Followers
             </div>
@@ -181,14 +181,14 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
             <div className="text-2xl font-bold text-green-600">
               {formatNumber(profile.following_count || 0)}
             </div>
-            <div className="text-sm text-gray-600">Following</div>
+            <div className="text-sm text-muted-foreground">Following</div>
           </div>
 
           <div className="text-center p-4 bg-purple-50 rounded-lg">
             <div className="text-2xl font-bold text-purple-600">
               {formatNumber(profile.posts_count || 0)}
             </div>
-            <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+            <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
               <Grid3x3 className="w-3 h-3" />
               Posts
             </div>
@@ -198,7 +198,7 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
             <div className="text-2xl font-bold text-orange-600">
               {profile.engagement_rate?.toFixed(1) || '0.0'}%
             </div>
-            <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+            <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
               <Heart className="w-3 h-3" />
               Engagement
             </div>
@@ -208,7 +208,7 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
             <div className="text-2xl font-bold text-yellow-600">
               {profile.influence_score?.toFixed(1) || '0.0'}
             </div>
-            <div className="text-sm text-gray-600 flex items-center justify-center gap-1">
+            <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
               <Star className="w-3 h-3" />
               Influence
             </div>
@@ -218,46 +218,46 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
         {/* Additional Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           {profile.avg_likes && (
-            <div className="text-center p-3 bg-gray-50 rounded">
+            <div className="text-center p-3 bg-muted/50 rounded">
               <div className="font-semibold text-gray-800">
                 {formatNumber(profile.avg_likes)}
               </div>
-              <div className="text-gray-600">Avg Likes</div>
+              <div className="text-muted-foreground">Avg Likes</div>
             </div>
           )}
 
           {profile.avg_comments && (
-            <div className="text-center p-3 bg-gray-50 rounded">
+            <div className="text-center p-3 bg-muted/50 rounded">
               <div className="font-semibold text-gray-800">
                 {formatNumber(profile.avg_comments)}
               </div>
-              <div className="text-gray-600">Avg Comments</div>
+              <div className="text-muted-foreground">Avg Comments</div>
             </div>
           )}
 
           {profile.content_quality_score && (
-            <div className="text-center p-3 bg-gray-50 rounded">
+            <div className="text-center p-3 bg-muted/50 rounded">
               <div className="font-semibold text-gray-800">
                 {profile.content_quality_score.toFixed(1)}/10
               </div>
-              <div className="text-gray-600">Content Quality</div>
+              <div className="text-muted-foreground">Content Quality</div>
             </div>
           )}
 
           {profile.data_quality_score && (
-            <div className="text-center p-3 bg-gray-50 rounded">
+            <div className="text-center p-3 bg-muted/50 rounded">
               <div className="font-semibold text-gray-800">
                 {profile.data_quality_score.toFixed(1)}/10
               </div>
-              <div className="text-gray-600">Data Quality</div>
+              <div className="text-muted-foreground">Data Quality</div>
             </div>
           )}
         </div>
 
         {/* Features Badges */}
         {(profile.has_ar_effects || profile.has_clips || profile.has_guides || profile.has_channel) && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="text-sm text-gray-600 mb-2">Features:</div>
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="text-sm text-muted-foreground mb-2">Features:</div>
             <div className="flex flex-wrap gap-2">
               {profile.has_ar_effects && (
                 <Badge variant="outline" className="text-xs">AR Effects</Badge>

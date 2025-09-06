@@ -117,18 +117,18 @@ export function ChartPieCredits() {
     }
     
     const status = getCreditBalanceStatus(creditBalance)
-    let fillColor = "#5100f3" // Brand color default
+    let fillColor = "hsl(var(--primary))" // Brand color default
     
     switch (status.status) {
       case 'critical':
       case 'empty':
-        fillColor = "#5100f3" // Brand color
+        fillColor = "hsl(var(--primary))" // Brand color
         break
       case 'low':
-        fillColor = "#5100f3" // Brand color
+        fillColor = "hsl(var(--primary))" // Brand color
         break
       case 'healthy':
-        fillColor = "#5100f3" // Brand color
+        fillColor = "hsl(var(--primary))" // Brand color
         break
     }
     

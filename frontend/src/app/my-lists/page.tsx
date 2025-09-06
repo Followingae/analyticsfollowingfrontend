@@ -132,7 +132,7 @@ export default function MyListsPage() {
   // Form states
   const [newListName, setNewListName] = useState("")
   const [newListDescription, setNewListDescription] = useState("")
-  const [selectedColor, setSelectedColor] = useState("#5100f3")
+  const [selectedColor, setSelectedColor] = useState("hsl(var(--primary))")
   const [searchResults, setSearchResults] = useState<UnlockedProfile[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [creatorSearchQuery, setCreatorSearchQuery] = useState("")
@@ -222,7 +222,7 @@ export default function MyListsPage() {
       setIsCreatingList(false)
       setNewListName("")
       setNewListDescription("")
-      setSelectedColor("#5100f3")
+      setSelectedColor("hsl(var(--primary))")
       
       loadLists()
     } catch (err: any) {
@@ -249,7 +249,7 @@ export default function MyListsPage() {
       setSelectedTemplate("")
       setNewListName("")
       setNewListDescription("")
-      setSelectedColor("#5100f3")
+      setSelectedColor("hsl(var(--primary))")
       
       loadLists()
     } catch (err: any) {
@@ -274,7 +274,7 @@ export default function MyListsPage() {
       setSelectedList(null)
       setNewListName("")
       setNewListDescription("")
-      setSelectedColor("#5100f3")
+      setSelectedColor("hsl(var(--primary))")
       
       loadLists()
     } catch (err: any) {
@@ -491,7 +491,7 @@ export default function MyListsPage() {
                           <div className="flex items-center gap-3">
                             <div
                               className="w-4 h-4 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: list.color || '#5100f3' }}
+                              style={{ backgroundColor: list.color || 'hsl(var(--primary))' }}
                             />
                             <div className="min-w-0 flex-1">
                               <CardTitle className="text-lg truncate">{list.name}</CardTitle>
@@ -514,7 +514,7 @@ export default function MyListsPage() {
                                   setSelectedList(list)
                                   setNewListName(list.name)
                                   setNewListDescription(list.description || "")
-                                  setSelectedColor(list.color || "#5100f3")
+                                  setSelectedColor(list.color || "hsl(var(--primary))")
                                   setIsEditingList(true)
                                 }}
                               >
@@ -617,7 +617,7 @@ export default function MyListsPage() {
                         {colorOptions.slice(0, 6).map(color => (
                           <button
                             key={color}
-                            className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-[#5100f3]' : 'border-gray-300 hover:border-gray-400'} transition-colors`}
+                            className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-[hsl(var(--primary))]' : 'border-gray-300 hover:border-gray-400'} transition-colors`}
                             style={{ backgroundColor: color }}
                             onClick={() => setSelectedColor(color)}
                           />
@@ -629,7 +629,7 @@ export default function MyListsPage() {
                     <Button variant="outline" onClick={() => setIsCreatingList(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={createList} style={{ backgroundColor: '#5100f3', color: 'white' }}>
+                    <Button onClick={createList} style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }}>
                       Create List
                     </Button>
                   </div>
@@ -669,7 +669,7 @@ export default function MyListsPage() {
                         {colorOptions.slice(0, 6).map(color => (
                           <button
                             key={color}
-                            className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-[#5100f3]' : 'border-gray-300 hover:border-gray-400'} transition-colors`}
+                            className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-[hsl(var(--primary))]' : 'border-gray-300 hover:border-gray-400'} transition-colors`}
                             style={{ backgroundColor: color }}
                             onClick={() => setSelectedColor(color)}
                           />
@@ -681,7 +681,7 @@ export default function MyListsPage() {
                     <Button variant="outline" onClick={() => setIsEditingList(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={updateList} style={{ backgroundColor: '#5100f3', color: 'white' }}>
+                    <Button onClick={updateList} style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }}>
                       Update List
                     </Button>
                   </div>

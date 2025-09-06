@@ -128,7 +128,7 @@ export function AccessStatus({
               <Zap className="h-4 w-4 mr-2" />
               Unlock 30-Day Access
               {pricing && (
-                <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-white/30">
+                <Badge variant="secondary" className="ml-2 bg-background/20 text-white border-white/30">
                   {formatCredits(pricing.credits_per_action)} credits
                 </Badge>
               )}

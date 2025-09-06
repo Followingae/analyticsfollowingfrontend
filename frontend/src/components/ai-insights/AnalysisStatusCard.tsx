@@ -53,7 +53,7 @@ export function AnalysisStatusCard({ status, onRetry, className }: AnalysisStatu
       case 'not_found':
         return 'bg-yellow-50 text-yellow-600 border-yellow-200';
       default:
-        return 'bg-gray-50 text-gray-600 border-gray-200';
+        return 'bg-muted/50 text-muted-foreground border-border';
     }
   };
 

@@ -227,7 +227,7 @@ export function SetupChecklist() {
             className="h-2 rounded-full transition-all duration-500 ease-in-out" 
             style={{ 
               width: `${progressPercentage}%`,
-              backgroundColor: '#5100f3'
+              backgroundColor: 'hsl(var(--primary))'
             }}
           />
         </div>
@@ -253,7 +253,7 @@ export function SetupChecklist() {
                     className={`text-left w-full text-sm font-medium transition-colors ${
                       item.completed 
                         ? 'text-muted-foreground cursor-default' 
-                        : 'text-[#5100f3] hover:text-[#5100f3]/80 cursor-pointer'
+                        : 'text-[hsl(var(--primary))] hover:text-[hsl(var(--primary))]/80 cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -295,8 +295,8 @@ export function SetupChecklist() {
             animate={{ opacity: 1, y: 0 }}
             className="mt-4 p-3 rounded-lg border"
             style={{ 
-              backgroundColor: '#5100f3', 
-              borderColor: '#5100f3',
+              backgroundColor: 'hsl(var(--primary))', 
+              borderColor: 'hsl(var(--primary))',
               color: 'white'
             }}
           >

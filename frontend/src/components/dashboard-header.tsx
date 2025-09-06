@@ -69,14 +69,14 @@ export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderPr
   const getCreditBadgeProps = () => {
     if (loading) {
       return {
-        className: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100",
+        className: "bg-muted text-muted-foreground",
         text: "Loading..."
       }
     }
 
     if (!creditBalance) {
       return {
-        className: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100",
+        className: "bg-muted text-muted-foreground",
         text: "No data"
       }
     }
@@ -88,18 +88,18 @@ export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderPr
       case 'critical':
       case 'empty':
         return {
-          className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100 animate-pulse",
+          className: "bg-destructive/10 text-destructive animate-pulse",
           text: creditText
         }
       case 'low':
         return {
-          className: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100",
+          className: "bg-warning/10 text-warning",
           text: creditText
         }
       case 'healthy':
       default:
         return {
-          className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
+          className: "bg-success/10 text-success",
           text: creditText
         }
     }

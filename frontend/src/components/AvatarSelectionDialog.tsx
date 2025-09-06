@@ -30,7 +30,7 @@ const AVATAR_VARIANTS = [
   { value: "beam-3", label: "Face Soft" },
 ] as const
 
-const BRAND_COLORS = ["#d3ff02", "#5100f3", "#c9a7f9", "#0a1221"]
+const BRAND_COLORS = ["#d3ff02", "hsl(var(--primary))", "#c9a7f9", "#0a1221"]
 
 interface AvatarSelectionDialogProps {
   currentAvatarConfig?: {

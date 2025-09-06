@@ -15,8 +15,10 @@ export const useSystemStats = () => {
       
       return response.json()
     },
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 60 * 1000, // 1 minute
-    refetchInterval: 60 * 1000 // Auto-refresh every minute
+    staleTime: 5 * 60 * 1000, // FIXED: 5 minutes (was 30 seconds)
+    gcTime: 15 * 60 * 1000, // FIXED: 15 minutes (was 1 minute)
+    refetchInterval: false, // FIXED: Disable auto-refresh to prevent excessive calls
+    refetchOnWindowFocus: false, // FIXED: Prevent refetch on window focus
+    retry: 1, // FIXED: Only retry once on failure
   })
 }

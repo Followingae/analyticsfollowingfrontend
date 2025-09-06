@@ -1,6 +1,10 @@
-
 @import "tailwindcss";
 @import "tw-animate-css";
+
+/* ============================================================================
+   ANALYTICS FOLLOWING - COMPREHENSIVE DESIGN SYSTEM
+   Modern OKLCH color space with light/dark mode support
+   ============================================================================ */
 
 /* AED Custom Font for Currency Display */
 .aed-currency {
@@ -10,12 +14,125 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================================
+   DESIGN SYSTEM VARIABLES - LIGHT MODE (DEFAULT)
+   ============================================================================ */
+:root {
+  --background: oklch(1.0000 0 0);
+  --foreground: oklch(0.2686 0 0);
+  --card: oklch(1.0000 0 0);
+  --card-foreground: oklch(0.2686 0 0);
+  --popover: oklch(1.0000 0 0);
+  --popover-foreground: oklch(0.2686 0 0);
+  --primary: oklch(0.4718 0.2853 280.0726);
+  --primary-foreground: oklch(1.0000 0 0);
+  --secondary: oklch(0.9670 0.0029 264.5419);
+  --secondary-foreground: oklch(0.4461 0.0263 256.8018);
+  --muted: oklch(0.9846 0.0017 247.8389);
+  --muted-foreground: oklch(0.5510 0.0234 264.3637);
+  --accent: oklch(0.9530 0.0248 301.0746);
+  --accent-foreground: oklch(0.2129 0.1186 286.5048);
+  --destructive: oklch(0.6368 0.2078 25.3313);
+  --destructive-foreground: oklch(1.0000 0 0);
+  --success: oklch(0.6493 0.1705 146.2436);
+  --success-foreground: oklch(1.0000 0 0);
+  --warning: oklch(0.7804 0.1593 83.2781);
+  --warning-foreground: oklch(0.2686 0 0);
+  --info: oklch(0.6493 0.2019 258.8431);
+  --info-foreground: oklch(1.0000 0 0);
+  --border: oklch(0.9276 0.0058 264.5313);
+  --input: oklch(0.9276 0.0058 264.5313);
+  --ring: oklch(0.4718 0.2853 280.0726);
+  --chart-1: oklch(0.4718 0.2853 280.0726);
+  --chart-2: oklch(0.3845 0.2312 280.8418);
+  --chart-3: oklch(0.3135 0.1867 282.2025);
+  --chart-4: oklch(0.2205 0.1288 285.0194);
+  --chart-5: oklch(0.1460 0.0823 290.6831);
+  --sidebar: oklch(0.9846 0.0017 247.8389);
+  --sidebar-foreground: oklch(0.2686 0 0);
+  --sidebar-primary: oklch(0.4718 0.2853 280.0726);
+  --sidebar-primary-foreground: oklch(1.0000 0 0);
+  --sidebar-accent: oklch(0.9530 0.0248 301.0746);
+  --sidebar-accent-foreground: oklch(0.2129 0.1186 286.5048);
+  --sidebar-border: oklch(0.9276 0.0058 264.5313);
+  --sidebar-ring: oklch(0.4718 0.2853 280.0726);
+  --font-sans: Inter, sans-serif;
+  --font-serif: Source Serif 4, serif;
+  --font-mono: JetBrains Mono, monospace;
+  --radius: 0.375rem;
+  --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
+  --shadow: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
+  --shadow-md: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 2px 4px -2px hsl(0 0% 0% / 0.10);
+  --shadow-lg: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 4px 6px -2px hsl(0 0% 0% / 0.10);
+  --shadow-xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 8px 10px -2px hsl(0 0% 0% / 0.10);
+  --shadow-2xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.25);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+/* ============================================================================
+   DESIGN SYSTEM VARIABLES - DARK MODE
+   ============================================================================ */
+.dark {
+  --background: oklch(0.1344 0 0);
+  --foreground: oklch(0.9219 0 0);
+  --card: oklch(0.2046 0 0);
+  --card-foreground: oklch(0.9219 0 0);
+  --popover: oklch(0.2686 0 0);
+  --popover-foreground: oklch(0.9219 0 0);
+  --primary: oklch(0.9354 0.2254 121.4851);
+  --primary-foreground: oklch(0 0 0);
+  --secondary: oklch(0.2478 0 0);
+  --secondary-foreground: oklch(0.9219 0 0);
+  --muted: oklch(0.2686 0 0);
+  --muted-foreground: oklch(0.7155 0 0);
+  --accent: oklch(0.3333 0.0660 145.1646);
+  --accent-foreground: oklch(0.9647 0.0027 286.3500);
+  --destructive: oklch(0.7176 0.2281 31.6814);
+  --destructive-foreground: oklch(1.0000 0 0);
+  --success: oklch(0.7493 0.1905 156.2436);
+  --success-foreground: oklch(0.1344 0 0);
+  --warning: oklch(0.8304 0.1793 93.2781);
+  --warning-foreground: oklch(0.1344 0 0);
+  --info: oklch(0.7493 0.2219 268.8431);
+  --info-foreground: oklch(1.0000 0 0);
+  --border: oklch(0.3715 0 0);
+  --input: oklch(0.3715 0 0);
+  --ring: oklch(0.9354 0.2254 121.4851);
+  --chart-1: oklch(0.9354 0.2254 121.4851);
+  --chart-2: oklch(0.7559 0.1873 123.8282);
+  --chart-3: oklch(0.8109 0.2311 135.5862);
+  --chart-4: oklch(0.7044 0.2021 143.9334);
+  --chart-5: oklch(0.3333 0.0660 145.1646);
+  --sidebar: oklch(0.1684 0 0);
+  --sidebar-foreground: oklch(0.9219 0 0);
+  --sidebar-primary: oklch(0.9354 0.2254 121.4851);
+  --sidebar-primary-foreground: oklch(1.0000 0 0);
+  --sidebar-accent: oklch(0.3333 0.0660 145.1646);
+  --sidebar-accent-foreground: oklch(0.9219 0 0);
+  --sidebar-border: oklch(0.3715 0 0);
+  --sidebar-ring: oklch(0.9354 0.2254 121.4851);
+  --font-sans: Inter, sans-serif;
+  --font-serif: Source Serif 4, serif;
+  --font-mono: JetBrains Mono, monospace;
+  --radius: 0.375rem;
+  --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
+  --shadow: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
+  --shadow-md: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 2px 4px -2px hsl(0 0% 0% / 0.10);
+  --shadow-lg: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 4px 6px -2px hsl(0 0% 0% / 0.10);
+  --shadow-xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 8px 10px -2px hsl(0 0% 0% / 0.10);
+  --shadow-2xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.25);
+}
+
+/* ============================================================================
+   TAILWIND CSS v4 INLINE THEME CONFIGURATION
+   Maps CSS variables to Tailwind utilities
+   ============================================================================ */
 @theme inline {
-  --font-family-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -31,6 +148,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -47,156 +165,125 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --shadow-2xs: var(--shadow-2xs);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow: var(--shadow);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-2xl: var(--shadow-2xl);
+
+  /* Animation keyframes for smooth transitions */
   @keyframes fadeSlideIn {
-  to {
-    opacity: 1;
-    filter: blur(0px);
-    transform: translateY(0px);
+    to {
+      opacity: 1;
+      filter: blur(0px);
+      transform: translateY(0px);
     }
   }
+  
   @keyframes slideRightIn {
-  to {
-    opacity: 1;
-    filter: blur(0px);
-    transform: translateX(0px);
+    to {
+      opacity: 1;
+      filter: blur(0px);
+      transform: translateX(0px);
     }
   }
+  
   @keyframes testimonialIn {
-  to {
-    opacity: 1;
-    filter: blur(0px);
-    transform: translateY(0px) scale(1);
+    to {
+      opacity: 1;
+      filter: blur(0px);
+      transform: translateY(0px) scale(1);
+    }
+  }
+  
+  @keyframes fade-up {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slide-right {
+    to {
+      opacity: 1;
+      transform: translateX(0);
     }
   }
 }
 
-:root {
-  --radius: 0.625rem;
-
-  /* Default: Custom Ilias Ism theme (dark mode is default) */
-  --gradient: #d3ff02;
-
-  --background: hsl(75, 65%, 4.08%);
-  --foreground: hsl(75, 10%, 97.55%);
-
-  --muted: hsl(75, 50%, 15.3%);
-  --muted-foreground: hsl(75, 10%, 55.1%);
-
-  --popover: hsl(75, 45%, 6.63%);
-  --popover-foreground: hsl(75, 10%, 97.55%);
-
-  --card: hsl(75, 45%, 6.63%);
-  --card-foreground: hsl(75, 10%, 97.55%);
-
-  --border: hsl(75, 50%, 15.3%);
-  --input: hsl(75, 50%, 15.3%);
-
-  --primary: hsl(75, 100%, 51%);
-  --primary-foreground: hsl(75, 10%, 5.1%);
-
-  --secondary: hsl(75, 50%, 15.3%);
-  --secondary-foreground: hsl(75, 10%, 97.55%);
-
-  --accent: hsl(75, 50%, 15.3%);
-  --accent-foreground: hsl(75, 10%, 97.55%);
-
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(75, 10%, 97.55%);
-
-  --ring: hsl(75, 100%, 51%);
-
-  /* Chart colors using the custom palette */
-  --chart-1: hsl(75, 100%, 51%);
-  --chart-2: hsl(75, 80%, 45%);
-  --chart-3: hsl(75, 60%, 40%);
-  --chart-4: hsl(75, 40%, 35%);
-  --chart-5: hsl(75, 20%, 30%);
-
-  /* Sidebar colors */
-  --sidebar: hsl(75, 45%, 6.63%);
-  --sidebar-foreground: hsl(75, 10%, 97.55%);
-  --sidebar-primary: hsl(75, 100%, 51%);
-  --sidebar-primary-foreground: hsl(75, 10%, 5.1%);
-  --sidebar-accent: hsl(75, 50%, 15.3%);
-  --sidebar-accent-foreground: hsl(75, 10%, 97.55%);
-  --sidebar-border: hsl(75, 50%, 15.3%);
-  --sidebar-ring: hsl(75, 100%, 51%);
-}
-
-/* Light mode: Official shadcn/ui Default theme */
-html:not(.dark) {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.906 0.204 125.93);
-  --chart-2: oklch(0.846 0.184 125.93);
-  --chart-3: oklch(0.786 0.164 125.93);
-  --chart-4: oklch(0.946 0.144 125.93);
-  --chart-5: oklch(0.726 0.124 125.93);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
+/* ============================================================================
+   BASE LAYER STYLES
+   Global element styling with design system colors
+   ============================================================================ */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  
+  html {
+    @apply scroll-smooth;
+  }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Improved focus styles */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+  
+  /* Better selection colors */
+  ::selection {
+    @apply bg-primary/10 text-primary-foreground;
   }
 }
+
+/* ============================================================================
+   COMPONENT-SPECIFIC STYLES
+   ============================================================================ */
 
 /* Welcome Section Custom Typography */
 .welcome-text-primary {
   font-size: clamp(1.25rem, 2.5vw, 2rem);
   line-height: 1.1;
+  color: hsl(var(--muted-foreground));
 }
 
 .welcome-text-brand {
   font-size: clamp(1.75rem, 3.5vw, 2.75rem);
   line-height: 1;
+  color: hsl(var(--foreground));
+  font-weight: 700;
 }
 
 /* Welcome Card Minimal Styling */
 .welcome-card {
   border: none;
   box-shadow: none;
+  background: hsl(var(--card));
 }
 
-.dark {
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-primary: hsl(224.3 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(240 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-border: hsl(240 3.7% 15.9%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
-}
+/* ============================================================================
+   ANIMATION CLASSES
+   Consistent animation system across all components
+   ============================================================================ */
 
-/* Sign-in component animations */
+/* Base animation classes */
 .animate-element {
   animation: fade-up 0.8s ease-out forwards;
   opacity: 0;
@@ -215,79 +302,38 @@ html:not(.dark) {
   transform: translateY(20px);
 }
 
-.animate-delay-50 {
-  animation-delay: 0.05s;
-}
+/* Animation delay classes - comprehensive set */
+.animate-delay-50 { animation-delay: 0.05s; }
+.animate-delay-100 { animation-delay: 0.1s; }
+.animate-delay-150 { animation-delay: 0.15s; }
+.animate-delay-200 { animation-delay: 0.2s; }
+.animate-delay-250 { animation-delay: 0.25s; }
+.animate-delay-300 { animation-delay: 0.3s; }
+.animate-delay-350 { animation-delay: 0.35s; }
+.animate-delay-400 { animation-delay: 0.4s; }
+.animate-delay-450 { animation-delay: 0.45s; }
+.animate-delay-500 { animation-delay: 0.5s; }
+.animate-delay-550 { animation-delay: 0.55s; }
+.animate-delay-600 { animation-delay: 0.6s; }
+.animate-delay-650 { animation-delay: 0.65s; }
+.animate-delay-700 { animation-delay: 0.7s; }
+.animate-delay-750 { animation-delay: 0.75s; }
+.animate-delay-800 { animation-delay: 0.8s; }
+.animate-delay-850 { animation-delay: 0.85s; }
+.animate-delay-900 { animation-delay: 0.9s; }
+.animate-delay-950 { animation-delay: 0.95s; }
+.animate-delay-1000 { animation-delay: 1s; }
+.animate-delay-1100 { animation-delay: 1.1s; }
+.animate-delay-1200 { animation-delay: 1.2s; }
+.animate-delay-1300 { animation-delay: 1.3s; }
+.animate-delay-1400 { animation-delay: 1.4s; }
+.animate-delay-1500 { animation-delay: 1.5s; }
+.animate-delay-1600 { animation-delay: 1.6s; }
 
-.animate-delay-100 {
-  animation-delay: 0.1s;
-}
-
-.animate-delay-200 {
-  animation-delay: 0.2s;
-}
-
-.animate-delay-300 {
-  animation-delay: 0.3s;
-}
-
-.animate-delay-400 {
-  animation-delay: 0.4s;
-}
-
-.animate-delay-500 {
-  animation-delay: 0.5s;
-}
-
-.animate-delay-600 {
-  animation-delay: 0.6s;
-}
-
-.animate-delay-700 {
-  animation-delay: 0.7s;
-}
-
-.animate-delay-800 {
-  animation-delay: 0.8s;
-}
-
-.animate-delay-900 {
-  animation-delay: 0.9s;
-}
-
-.animate-delay-1000 {
-  animation-delay: 1s;
-}
-
-.animate-delay-1200 {
-  animation-delay: 1.2s;
-}
-
-.animate-delay-1400 {
-  animation-delay: 1.4s;
-}
-
-.animate-delay-1600 {
-  animation-delay: 1.6s;
-}
-
-.animate-delay-1100 {
-  animation-delay: 1.1s;
-}
-
-@keyframes fade-up {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slide-right {
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
+/* ============================================================================
+   CUSTOM FORM ELEMENTS
+   Enhanced form styling with design system colors
+   ============================================================================ */
 
 /* Custom checkbox styling */
 .custom-checkbox {
@@ -295,7 +341,7 @@ html:not(.dark) {
   width: 1rem;
   height: 1rem;
   border: 2px solid hsl(var(--border));
-  border-radius: 0.25rem;
+  border-radius: calc(var(--radius) - 2px);
   background-color: transparent;
   cursor: pointer;
   position: relative;
@@ -314,7 +360,120 @@ html:not(.dark) {
   top: -1px;
   width: 4px;
   height: 8px;
-  border: solid white;
+  border: solid hsl(var(--primary-foreground));
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
+}
+
+.custom-checkbox:hover {
+  border-color: hsl(var(--primary));
+}
+
+.custom-checkbox:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   Common patterns used across the application
+   ============================================================================ */
+
+/* Glass morphism effect */
+.glass-effect {
+  background: hsl(var(--background) / 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border) / 0.2);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced shadows with design system */
+.shadow-soft {
+  box-shadow: var(--shadow-sm);
+}
+
+.shadow-medium {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-strong {
+  box-shadow: var(--shadow-lg);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN HELPERS
+   Mobile-first responsive design utilities
+   ============================================================================ */
+
+/* Safe area padding for mobile devices */
+.safe-area-padding {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+/* Container queries support */
+@container (min-width: 768px) {
+  .container-md\:text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   Optimized for printing and PDF generation
+   ============================================================================ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-friendly {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ============================================================================
+   REDUCED MOTION SUPPORT
+   Respect user preferences for reduced motion
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================================
+   HIGH CONTRAST SUPPORT
+   Enhanced accessibility for high contrast mode
+   ============================================================================ */
+@media (prefers-contrast: high) {
+  :root {
+    --border: oklch(0.5 0 0);
+    --ring: oklch(0.3 0 0);
+  }
+  
+  .dark {
+    --border: oklch(0.7 0 0);
+    --ring: oklch(0.8 0 0);
+  }
 }

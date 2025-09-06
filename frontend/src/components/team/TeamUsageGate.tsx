@@ -187,7 +187,7 @@ export function TeamUsageGate({
       <CardContent className="space-y-4">
         {teamContext && (
           <>
-            <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-background dark:bg-gray-900 rounded-lg">
               <div className="flex items-center gap-2">
                 <span className="text-lg">{getUsageIcon()}</span>
                 <div>

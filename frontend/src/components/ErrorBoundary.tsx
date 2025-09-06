@@ -54,16 +54,16 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               <CardTitle className="text-red-600">Something went wrong</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-4">
+              <p className="text-muted-foreground mb-4">
                 The application encountered an unexpected error. This has been logged for investigation.
               </p>
               
               {this.state.error && (
                 <details className="mb-4">
-                  <summary className="cursor-pointer text-sm font-medium text-gray-600">
+                  <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
                     🔍 Error Details (Click to expand)
                   </summary>
-                  <div className="mt-2 p-3 bg-gray-50 rounded text-xs font-mono">
+                  <div className="mt-2 p-3 bg-muted/50 rounded text-xs font-mono">
                     <div className="mb-2">
                       <strong>Error:</strong> {this.state.error.message}
                     </div>

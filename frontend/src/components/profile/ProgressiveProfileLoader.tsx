@@ -96,7 +96,7 @@ export function ProgressiveProfileLoader({
           {/* Step 1: Basic Data */}
           <div className="flex items-center gap-3">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-              state.dataStage === 'none' ? 'bg-gray-200 text-gray-500' :
+              state.dataStage === 'none' ? 'bg-gray-200 text-muted-foreground' :
               state.isLoadingBasic ? 'bg-blue-100 text-blue-600' :
               'bg-green-100 text-green-600'
             }`}>
@@ -105,7 +105,7 @@ export function ProgressiveProfileLoader({
             </div>
             <div className="flex-1">
               <div className="font-medium">Basic Profile Data</div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-muted-foreground">
                 {state.isLoadingBasic ? 'Loading...' :
                  state.dataStage !== 'none' ? 'Loaded (1-3 seconds)' :
                  'Pending'}
@@ -116,7 +116,7 @@ export function ProgressiveProfileLoader({
           {/* Step 2: AI Analysis */}
           <div className="flex items-center gap-3">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-              state.aiStatus === null ? 'bg-gray-200 text-gray-500' :
+              state.aiStatus === null ? 'bg-gray-200 text-muted-foreground' :
               state.aiStatus === 'processing' ? 'bg-blue-100 text-blue-600' :
               state.aiStatus === 'completed' ? 'bg-green-100 text-green-600' :
               'bg-red-100 text-red-600'
@@ -126,7 +126,7 @@ export function ProgressiveProfileLoader({
             </div>
             <div className="flex-1">
               <div className="font-medium">AI Content Analysis</div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-muted-foreground">
                 {state.aiStatus === 'processing' ? 'Analyzing content...' :
                  state.aiStatus === 'completed' ? 'Analysis complete' :
                  state.aiStatus === 'error' ? 'Analysis failed' :
@@ -144,7 +144,7 @@ export function ProgressiveProfileLoader({
           {/* Step 3: Detailed Data */}
           <div className="flex items-center gap-3">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-              state.dataStage !== 'detailed' ? 'bg-gray-200 text-gray-500' :
+              state.dataStage !== 'detailed' ? 'bg-gray-200 text-muted-foreground' :
               state.isLoadingDetailed ? 'bg-blue-100 text-blue-600' :
               'bg-green-100 text-green-600'
             }`}>
@@ -153,7 +153,7 @@ export function ProgressiveProfileLoader({
             </div>
             <div className="flex-1">
               <div className="font-medium">Detailed Insights</div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-muted-foreground">
                 {state.isLoadingDetailed ? 'Loading detailed data...' :
                  state.dataStage === 'detailed' ? 'Complete with AI insights' :
                  'Waiting for AI analysis'}
@@ -193,7 +193,7 @@ export function ProgressiveProfileLoader({
 
         {/* Profile Data Preview */}
         {state.basicData?.profile && (
-          <Card className="bg-gray-50">
+          <Card className="bg-muted/50">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
                 <ProfileAvatar
@@ -209,8 +209,8 @@ export function ProgressiveProfileLoader({
                 />
                 <div>
                   <div className="font-semibold">@{state.basicData.profile.username}</div>
-                  <div className="text-sm text-gray-600">{state.basicData.profile.full_name}</div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-muted-foreground">{state.basicData.profile.full_name}</div>
+                  <div className="text-sm text-muted-foreground">
                     {state.basicData.profile.followers_count.toLocaleString()} followers
                   </div>
                 </div>
@@ -221,7 +221,7 @@ export function ProgressiveProfileLoader({
                   <div className="text-sm font-medium text-green-600">
                     ✓ AI Insights Available
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     Content category: {state.detailedData.profile.ai_primary_content_type || 'Analyzing...'}
                   </div>
                 </div>

@@ -67,7 +67,7 @@ export default function PostsGrid({ username }: PostsGridProps) {
         <CardContent className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-            <p className="text-gray-600">Loading posts...</p>
+            <p className="text-muted-foreground">Loading posts...</p>
           </div>
         </CardContent>
       </Card>
@@ -99,7 +99,7 @@ export default function PostsGrid({ username }: PostsGridProps) {
         <CardContent className="py-12 text-center">
           <Grid3x3 className="w-12 h-12 mx-auto mb-4 text-gray-400" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No Posts Found</h3>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             No posts are available for @{username} yet.
           </p>
         </CardContent>
@@ -117,7 +117,7 @@ export default function PostsGrid({ username }: PostsGridProps) {
   return (
     <div className="space-y-6">
       {/* Posts Analytics Header */}
-      <Card className="border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-background/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Grid3x3 className="w-5 h-5" />
@@ -130,30 +130,30 @@ export default function PostsGrid({ username }: PostsGridProps) {
               <div className="text-2xl font-bold text-blue-600">
                 {posts.length}
               </div>
-              <div className="text-sm text-gray-600">Posts Loaded</div>
+              <div className="text-sm text-muted-foreground">Posts Loaded</div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
                 {totalLikes.toLocaleString()}
               </div>
-              <div className="text-sm text-gray-600">Total Likes</div>
+              <div className="text-sm text-muted-foreground">Total Likes</div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
                 {totalComments.toLocaleString()}
               </div>
-              <div className="text-sm text-gray-600">Total Comments</div>
+              <div className="text-sm text-muted-foreground">Total Comments</div>
             </div>
             <div className="text-center p-4 bg-orange-50 rounded-lg">
               <div className="text-2xl font-bold text-orange-600">
                 {avgEngagement.toFixed(1)}%
               </div>
-              <div className="text-sm text-gray-600">Avg Engagement</div>
+              <div className="text-sm text-muted-foreground">Avg Engagement</div>
             </div>
           </div>
 
           {pagination && (
-            <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+            <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
               <div>
                 Showing {posts.length} of {pagination.total.toLocaleString()} posts
               </div>
@@ -201,9 +201,9 @@ export default function PostsGrid({ username }: PostsGridProps) {
 
       {/* End of Posts Message */}
       {pagination && !pagination.has_more && posts.length > 0 && (
-        <Card className="border-gray-200 bg-gray-50">
+        <Card className="border-border bg-muted/50">
           <CardContent className="py-6 text-center">
-            <div className="text-gray-600">
+            <div className="text-muted-foreground">
               ✅ All {pagination.total.toLocaleString()} posts loaded
             </div>
           </CardContent>

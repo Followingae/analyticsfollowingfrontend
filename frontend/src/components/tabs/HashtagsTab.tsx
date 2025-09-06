@@ -99,7 +99,7 @@ export default function HashtagsTab() {
       case 'easy': return 'bg-green-500'
       case 'medium': return 'bg-yellow-500'
       case 'hard': return 'bg-red-500'
-      default: return 'bg-gray-500'
+      default: return 'bg-muted/500'
     }
   }
 
@@ -112,7 +112,7 @@ export default function HashtagsTab() {
   return (
     <div className="space-y-6">
       {/* Single Hashtag Analysis */}
-      <Card className="border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-background/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Hash className="w-5 h-5" />
@@ -152,25 +152,25 @@ export default function HashtagsTab() {
                 <div className="text-2xl font-bold text-blue-600">
                   {formatNumber((hashtagData as any)?.posts_count || 1250000)}
                 </div>
-                <div className="text-sm text-gray-600">Total Posts</div>
+                <div className="text-sm text-muted-foreground">Total Posts</div>
               </div>
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">
                   {formatNumber((hashtagData as any)?.avg_engagement || 3500)}
                 </div>
-                <div className="text-sm text-gray-600">Avg Engagement</div>
+                <div className="text-sm text-muted-foreground">Avg Engagement</div>
               </div>
               <div className="text-center p-4 bg-purple-50 rounded-lg">
                 <div className="text-2xl font-bold text-purple-600">
                   {(hashtagData as any)?.difficulty_score || 6.8}/10
                 </div>
-                <div className="text-sm text-gray-600">Difficulty</div>
+                <div className="text-sm text-muted-foreground">Difficulty</div>
               </div>
               <div className="text-center p-4 bg-orange-50 rounded-lg">
                 <div className="text-2xl font-bold text-orange-600">
                   {(hashtagData as any)?.growth_rate || 12}%
                 </div>
-                <div className="text-sm text-gray-600">Growth Rate</div>
+                <div className="text-sm text-muted-foreground">Growth Rate</div>
               </div>
             </div>
           )}
@@ -178,7 +178,7 @@ export default function HashtagsTab() {
       </Card>
 
       {/* Hashtag Opportunities */}
-      <Card className="border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-background/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="w-5 h-5" />
@@ -250,15 +250,15 @@ export default function HashtagsTab() {
                   
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Posts</span>
+                      <span className="text-muted-foreground">Posts</span>
                       <span className="font-medium">{formatNumber(opportunity.posts_count)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Avg Engagement</span>
+                      <span className="text-muted-foreground">Avg Engagement</span>
                       <span className="font-medium">{formatNumber(opportunity.avg_engagement)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Competition</span>
+                      <span className="text-muted-foreground">Competition</span>
                       <span className="font-medium">{opportunity.competition_level}/10</span>
                     </div>
                   </div>
@@ -351,7 +351,7 @@ export default function HashtagsTab() {
       </Card>
 
       {/* Quick Hashtag Sets */}
-      <Card className="border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-background/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />

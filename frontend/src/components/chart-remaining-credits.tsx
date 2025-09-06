@@ -12,56 +12,49 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
-import { calculateRemainingProfiles, getTierDisplayName } from "@/utils/subscriptionUtils"
+import { formatResetTime } from "@/utils/subscriptionUtils"
 
 const chartConfig = {
   visitors: {
-    label: "Used",
+    label: "Credits",
   },
   safari: {
-    label: "Profile Analysis",
+    label: "Remaining Credits",
     color: "hsl(var(--primary))",
   },
 } satisfies ChartConfig
 
-export function ChartProfileAnalysis() {
+export function ChartRemainingCredits() {
   const { user } = useEnhancedAuth()
   const [chartData, setChartData] = useState([
     { browser: "safari", visitors: 0, fill: "hsl(var(--primary))" },
   ])
-  const [usageData, setUsageData] = useState<{
-    used: number, 
-    limit: number, 
-    remaining: number, 
-    tier: string,
-    tierDisplay: string
-  } | null>(null)
+  const [creditsData, setCreditsData] = useState<{balance: number, maxCredits: number} | null>(null)
   const [loading, setLoading] = useState(true)
+  const [resetTime, setResetTime] = useState<string>("")
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadCreditsData = async () => {
       if (!user) {
         setLoading(false)
         return
       }
 
       try {
-        // Use request cache to prevent duplicate dashboard calls
+        // Use request cache to prevent duplicate calls
         const { requestCache, CACHE_KEYS } = await import('@/utils/requestCache')
         
-        const data = await requestCache.get(
-          CACHE_KEYS.DASHBOARD_STATS,
+        const creditsResponse = await requestCache.get(
+          'credits-balance',
           async () => {
             const { fetchWithAuth } = await import('@/utils/apiInterceptor')
-            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/dashboard`, {
+            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/credits/balance`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
@@ -70,88 +63,89 @@ export function ChartProfileAnalysis() {
             })
             
             if (!response.ok) {
-              throw new Error(`Dashboard API failed: ${response.status}`)
+              throw new Error(`Credits API failed: ${response.status}`)
             }
             
             return response.json()
           },
-          2 * 60 * 1000 // Cache for 2 minutes
+          1 * 60 * 1000 // Cache for 1 minute
         )
 
-        console.log('Dashboard API response for profiles:', data)
         
         // Handle both wrapped and direct response formats
-        const dashboardData = data.success ? data.data : data
+        const creditsInfo = creditsResponse.success ? creditsResponse.data : creditsResponse
+        const currentBalance = creditsInfo?.current_balance || creditsInfo?.balance || 0
         
-        // Get subscription tier from user data or dashboard data
-        const subscriptionTier = user?.role || dashboardData?.team?.subscription_tier || dashboardData?.subscription_tier
+        // Set a reasonable max for the chart visualization
+        // You might want to adjust this based on your subscription tiers
+        const maxCredits = Math.max(currentBalance * 1.5, 1000)
         
-        // Get actual usage from dashboard
-        const monthlyUsage = dashboardData?.team?.monthly_usage || dashboardData?.monthly_usage
-        const profilesUsed = monthlyUsage?.profiles_used || monthlyUsage?.profiles || 0
-        
-        // FIXED: Use dynamic subscription rules instead of static dashboard limits
-        const profileData = calculateRemainingProfiles(subscriptionTier, profilesUsed)
-        
-        setUsageData({
-          used: profilesUsed,
-          limit: profileData.limit,
-          remaining: profileData.remaining,
-          tier: profileData.tier,
-          tierDisplay: profileData.tierDisplay
+        setCreditsData({
+          balance: currentBalance,
+          maxCredits: maxCredits
         })
         
         setChartData([{
           browser: "safari",
-          visitors: profileData.remaining,
+          visitors: currentBalance,
           fill: "hsl(var(--primary))"
         }])
-        
-        console.log('🔥 Profile unlocks calculated with dynamic subscription:', {
-          user_role: user?.role,
-          dashboard_subscription_tier: dashboardData?.team?.subscription_tier || dashboardData?.subscription_tier,
-          resolved_subscription_tier: subscriptionTier,
-          normalized_tier: profileData.tier,
-          tier_display: profileData.tierDisplay,
-          subscription_limit: profileData.limit,
-          profiles_used: profilesUsed,
-          profiles_remaining: profileData.remaining
-        })
       } catch (error) {
-        console.warn('Error loading profile data:', error)
-        setUsageData({ 
-          used: 0, 
-          limit: 0, 
-          remaining: 0, 
-          tier: 'free', 
-          tierDisplay: 'Free' 
-        })
+        console.warn('Error loading credits:', error)
+        setCreditsData({ balance: 0, maxCredits: 1000 })
       } finally {
         setLoading(false)
       }
     }
 
-    loadData()
+    loadCreditsData()
   }, [user])
+
+  // Update reset timer every minute
+  useEffect(() => {
+    const updateResetTime = () => {
+      setResetTime(formatResetTime())
+    }
+    
+    // Update immediately
+    updateResetTime()
+    
+    // Then update every minute
+    const interval = setInterval(updateResetTime, 60000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  // Calculate percentage for the radial chart
+  const getEndAngle = () => {
+    if (!creditsData || creditsData.maxCredits === 0) return 0
+    return (creditsData.balance / creditsData.maxCredits) * 360
+  }
+
+  // Calculate percentage for badge
+  const getPercentage = () => {
+    if (!creditsData || creditsData.maxCredits === 0) return 0
+    return Math.round((creditsData.balance / creditsData.maxCredits) * 100)
+  }
 
   return (
     <Card className="flex flex-col relative">
-      {/* Usage Badge */}
-      {!loading && (
+      {/* Credits Badge */}
+      {!loading && creditsData && (
         <Badge 
           variant="outline" 
           className="absolute top-3 right-3 z-20 text-xs text-muted-foreground border-border bg-muted/50"
         >
-          {usageData && usageData.limit > 0 
-            ? `${Math.round((usageData.remaining / usageData.limit) * 100)}% available`
-            : "0% available"
+          {creditsData.balance > 0 
+            ? `${getPercentage()}% of max`
+            : "0 credits"
           }
         </Badge>
       )}
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">Profile Unlocks</CardTitle>
+        <CardTitle className="text-sm font-medium">Remaining Credits</CardTitle>
         <div className="text-xs text-muted-foreground">
-          {loading ? "Loading..." : `${usageData?.tierDisplay || 'Free'} tier • ${usageData?.limit || 0}/month`}
+          {loading ? "Loading..." : resetTime || "Real-time balance"}
         </div>
       </CardHeader>
       <CardContent className="p-1">
@@ -162,10 +156,7 @@ export function ChartProfileAnalysis() {
           <RadialBarChart
             data={chartData}
             startAngle={0}
-            endAngle={usageData && usageData.limit > 0 
-              ? (usageData.remaining / usageData.limit) * 360 
-              : 0
-            }
+            endAngle={getEndAngle()}
             innerRadius={80}
             outerRadius={110}
           >
@@ -193,14 +184,14 @@ export function ChartProfileAnalysis() {
                           y={viewBox.cy}
                           className="fill-foreground text-4xl font-bold"
                         >
-                          {loading ? "..." : (usageData?.remaining || 0).toLocaleString()}
+                          {loading ? "..." : (creditsData?.balance || 0).toLocaleString()}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          {loading ? "Loading" : "remaining"}
+                          {loading ? "Loading" : "credits"}
                         </tspan>
                       </text>
                     )

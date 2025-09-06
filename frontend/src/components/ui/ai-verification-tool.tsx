@@ -101,7 +101,7 @@ export function AIVerificationTool({ className }: AIVerificationToolProps) {
       case 'healthy': return 'text-green-600'
       case 'degraded': return 'text-yellow-600'
       case 'offline': return 'text-red-600'
-      default: return 'text-gray-600'
+      default: return 'text-muted-foreground'
     }
   }
 

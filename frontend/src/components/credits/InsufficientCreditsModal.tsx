@@ -92,7 +92,7 @@ export function InsufficientCreditsModal({
               
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Credits Available</span>
-                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                <Badge variant="outline" className="bg-muted/50 text-gray-700 border-border">
                   {formatCredits(creditsAvailable)} credits
                 </Badge>
               </div>

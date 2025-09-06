@@ -12,7 +12,7 @@ export function BoringAvatar({
   name, 
   size = 40, 
   variant = "beam", 
-  colors = ["#d3ff02", "#5100f3", "#c9a7f9", "#0a1221"],
+  colors = ["#d3ff02", "hsl(var(--primary))", "#c9a7f9", "#0a1221"],
   square = false 
 }: BoringAvatarProps) {
   return (

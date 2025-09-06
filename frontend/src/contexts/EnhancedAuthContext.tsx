@@ -213,22 +213,8 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     }
   }
 
-  const loadDashboardStats = async () => {
-    try {
-      const result = await authService.getDashboardStats()
-      if (result.success && result.data) {
-        setDashboardStats(result.data)
-      } else if (result.error && (result.error.includes('403') || result.error.includes('401') || result.error.includes('authentication'))) {
-        // Log the error but don't immediately logout - could be a temporary network issue
-
-        // Only set stats to null, keep user authenticated
-        setDashboardStats(null)
-      }
-    } catch (error) {
-
-      // Don't logout on network errors
-    }
-  }
+  // REMOVED: loadDashboardStats function to prevent duplicate calls
+  // Dashboard stats are now handled by individual components that need them
 
   const login = async (email: string, password: string): Promise<boolean> => {
 
@@ -299,7 +285,8 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
   }
 
   const refreshDashboard = async () => {
-    await loadDashboardStats()
+    // FIXED: No longer loading dashboard stats here to prevent duplicates
+    // Individual components should handle their own data refreshing
   }
 
   const updateProfile = async (profileData: any): Promise<boolean> => {

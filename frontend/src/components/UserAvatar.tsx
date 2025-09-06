@@ -75,7 +75,7 @@ export function UserAvatar({
           name={avatarConfig?.seed || userName}
           size={size}
           variant="beam"
-          colors={avatarConfig?.colors || ["#d3ff02", "#5100f3", "#c9a7f9", "#0a1221"]}
+          colors={avatarConfig?.colors || ["#d3ff02", "hsl(var(--primary))", "#c9a7f9", "#0a1221"]}
         />
       </div>
     )

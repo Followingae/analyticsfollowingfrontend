@@ -17,7 +17,7 @@ export function LanguageAnalysisCard({ languageAnalysis }: LanguageAnalysisCardP
     if (score >= 70) return { text: 'Highly Multilingual', color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900' }
     if (score >= 40) return { text: 'Moderately Multilingual', color: 'text-yellow-600', bgColor: 'bg-yellow-100 dark:bg-yellow-900' }
     if (score >= 20) return { text: 'Limited Multilingual', color: 'text-orange-600', bgColor: 'bg-orange-100 dark:bg-orange-900' }
-    return { text: 'Primarily Monolingual', color: 'text-gray-600', bgColor: 'bg-gray-100 dark:bg-gray-900' }
+    return { text: 'Primarily Monolingual', color: 'text-muted-foreground', bgColor: 'bg-gray-100 dark:bg-gray-900' }
   }
 
   const multilingualLevel = getMultilingualLevel(languageAnalysis.multilingual_score)

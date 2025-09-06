@@ -73,7 +73,7 @@ export default function PostCard({ post }: PostCardProps) {
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                    index === currentImageIndex ? 'bg-background' : 'bg-background/50'
                   }`}
                 />
               ))}
@@ -93,7 +93,7 @@ export default function PostCard({ post }: PostCardProps) {
 
       <CardContent className="p-4">
         {/* Engagement Metrics */}
-        <div className="flex items-center gap-4 mb-3 text-sm text-gray-600">
+        <div className="flex items-center gap-4 mb-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Heart className="w-4 h-4" />
             <span>{formatNumber(post.likes_count)}</span>
@@ -137,7 +137,7 @@ export default function PostCard({ post }: PostCardProps) {
         )}
 
         {/* Location and Date */}
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           {post.location && (
             <div className="flex items-center gap-1">
               <MapPin className="w-3 h-3" />
@@ -214,8 +214,8 @@ export default function PostCard({ post }: PostCardProps) {
           {/* No AI Analysis Available */}
           {!(post.ai_analysis?.has_ai_analysis || post.ai_content_category) && 
            !(post.ai_analysis?.ai_processing_status === 'pending' || post.ai_analysis_status === 'pending') && (
-            <div className="p-2 bg-gray-50 dark:bg-gray-950/30 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+            <div className="p-2 bg-muted/50 dark:bg-gray-950/30 rounded-lg border border-border dark:border-gray-700">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground dark:text-gray-400">
                 <Brain className="w-3 h-3 opacity-50" />
                 <span>AI analysis not available for this post</span>
               </div>

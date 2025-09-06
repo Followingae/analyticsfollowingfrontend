@@ -56,7 +56,7 @@ export function SimpleFlowExample() {
         />
         <div>
           <h1 className="text-2xl font-bold">{profile.full_name}</h1>
-          <p className="text-gray-600">@{profile.username}</p>
+          <p className="text-muted-foreground">@{profile.username}</p>
           <p className="mt-2">{profile.biography}</p>
         </div>
       </div>
@@ -90,7 +90,7 @@ export function SimpleFlowExample() {
 
           {/* Primary Content Type */}
           <div className="mb-4">
-            <label className="text-sm text-gray-600">Primary Content Category</label>
+            <label className="text-sm text-muted-foreground">Primary Content Category</label>
             <p className="font-medium text-lg">
               {profile.ai_analysis.primary_content_type || 'Not analyzed'}
             </p>
@@ -98,7 +98,7 @@ export function SimpleFlowExample() {
 
           {/* Sentiment Analysis */}
           <div className="mb-4">
-            <label className="text-sm text-gray-600">Average Sentiment</label>
+            <label className="text-sm text-muted-foreground">Average Sentiment</label>
             <div className="flex items-center gap-2 mt-1">
               <div className="w-32 bg-gray-200 rounded-full h-3">
                 <div
@@ -117,7 +117,7 @@ export function SimpleFlowExample() {
 
           {/* Content Quality Score */}
           <div className="mb-4">
-            <label className="text-sm text-gray-600">Content Quality Score</label>
+            <label className="text-sm text-muted-foreground">Content Quality Score</label>
             <div className="flex items-center gap-2 mt-1">
               <div className="w-32 bg-gray-200 rounded-full h-3">
                 <div
@@ -136,7 +136,7 @@ export function SimpleFlowExample() {
           {/* Content Distribution */}
           {profile.ai_analysis.content_distribution && (
             <div>
-              <label className="text-sm text-gray-600">Content Distribution</label>
+              <label className="text-sm text-muted-foreground">Content Distribution</label>
               <div className="mt-2 space-y-1">
                 {Object.entries(profile.ai_analysis.content_distribution).map(([category, percentage]) => (
                   <div key={category} className="flex justify-between">
@@ -181,7 +181,7 @@ export function SimpleFlowExample() {
       {/* Reset Button */}
       <button 
         onClick={() => setProfile(null)}
-        className="bg-gray-500 text-white px-4 py-2 rounded"
+        className="bg-muted/500 text-white px-4 py-2 rounded"
       >
         Search Another Profile
       </button>

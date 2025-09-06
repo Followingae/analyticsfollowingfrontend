@@ -73,11 +73,11 @@ export default function AnalyticsTab() {
           <Card key={kpi.title} className="border-0">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-medium text-gray-600">{kpi.title}</h3>
+                <h3 className="text-sm font-medium text-muted-foreground">{kpi.title}</h3>
               </div>
               <div className="text-2xl font-bold text-gray-900 mb-2">
                 {kpi.format === 'percentage' ? `${kpi.value.toFixed(1)}%` : kpi.value.toFixed(1)}
-                {kpi.max && <span className="text-sm text-gray-500">/{kpi.max}</span>}
+                {kpi.max && <span className="text-sm text-muted-foreground">/{kpi.max}</span>}
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
@@ -123,7 +123,7 @@ export default function AnalyticsTab() {
                   {sentimentMetrics.map((metric) => (
                     <div key={metric.name}>
                       <div className="flex justify-between mb-1">
-                        <span className="text-sm text-gray-600">{metric.name}</span>
+                        <span className="text-sm text-muted-foreground">{metric.name}</span>
                         <span className="text-sm font-medium">{metric.value.toFixed(1)}/10</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
@@ -165,19 +165,19 @@ export default function AnalyticsTab() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between">
-              <span className="text-gray-600">Followers</span>
+              <span className="text-muted-foreground">Followers</span>
               <span className="font-semibold">{formatNumber(analyticsData.profile.followers_count)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Posts Count</span>
+              <span className="text-muted-foreground">Posts Count</span>
               <span className="font-semibold">{formatNumber(analyticsData.profile.posts_count || 0)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Content Quality</span>
+              <span className="text-muted-foreground">Content Quality</span>
               <span className="font-semibold">{(analyticsData.profile.content_quality_score || 0).toFixed(1)}/10</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Influence Score</span>
+              <span className="text-muted-foreground">Influence Score</span>
               <span className="font-semibold">{(analyticsData.profile.influence_score || 0).toFixed(1)}/10</span>
             </div>
           </CardContent>
@@ -206,17 +206,17 @@ export default function AnalyticsTab() {
       case 'performance':
         return renderPerformanceAnalytics()
       case 'engagement':
-        return <div className="text-center py-8 text-gray-500">Engagement module coming soon...</div>
+        return <div className="text-center py-8 text-muted-foreground">Engagement module coming soon...</div>
       case 'content':
-        return <div className="text-center py-8 text-gray-500">Content strategy module coming soon...</div>
+        return <div className="text-center py-8 text-muted-foreground">Content strategy module coming soon...</div>
       case 'audience':
-        return <div className="text-center py-8 text-gray-500">Audience quality module coming soon...</div>
+        return <div className="text-center py-8 text-muted-foreground">Audience quality module coming soon...</div>
       case 'growth':
-        return <div className="text-center py-8 text-gray-500">Growth intelligence module coming soon...</div>
+        return <div className="text-center py-8 text-muted-foreground">Growth intelligence module coming soon...</div>
       case 'posts':
-        return <div className="text-center py-8 text-gray-500">Posts matrix module coming soon...</div>
+        return <div className="text-center py-8 text-muted-foreground">Posts matrix module coming soon...</div>
       case 'optimization':
-        return <div className="text-center py-8 text-gray-500">AI optimization module coming soon...</div>
+        return <div className="text-center py-8 text-muted-foreground">AI optimization module coming soon...</div>
       default:
         return renderExecutiveSummary()
     }
@@ -225,7 +225,7 @@ export default function AnalyticsTab() {
   return (
     <div className="space-y-6">
       {/* Search Section */}
-      <Card className="border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="border-0 bg-background/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5" />
@@ -276,7 +276,7 @@ export default function AnalyticsTab() {
       {analyticsData && (
         <>
           {/* Module Navigation */}
-          <Card className="border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="border-0 bg-background/80 backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
                 {modules.map((module) => {
@@ -299,7 +299,7 @@ export default function AnalyticsTab() {
           </Card>
 
           {/* Current Module Content */}
-          <Card className="border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="border-0 bg-background/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 {React.createElement(modules.find(m => m.id === activeModule)?.icon || BarChart3, { className: "w-5 h-5" })}
@@ -326,11 +326,11 @@ export default function AnalyticsTab() {
               {modules.slice(0, 6).map((module) => {
                 const Icon = module.icon
                 return (
-                  <div key={module.id} className="flex items-center gap-3 p-4 bg-white/60 rounded-lg">
+                  <div key={module.id} className="flex items-center gap-3 p-4 bg-background/60 rounded-lg">
                     <Icon className="w-8 h-8 text-blue-600" />
                     <div>
                       <h3 className="font-semibold text-gray-800">{module.name}</h3>
-                      <p className="text-sm text-gray-600">Advanced insights</p>
+                      <p className="text-sm text-muted-foreground">Advanced insights</p>
                     </div>
                   </div>
                 )

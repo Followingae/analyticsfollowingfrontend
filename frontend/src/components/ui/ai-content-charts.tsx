@@ -33,15 +33,15 @@ interface AIContentChartsProps {
   compact?: boolean
 }
 
-// Color palettes for charts
+// Color palettes for charts using design system
 const CONTENT_COLORS = [
-  "#8B5CF6", "#EC4899", "#3B82F6", "#10B981", "#F59E0B", 
-  "#EF4444", "#06B6D4", "#84CC16", "#F97316", "#6366F1"
+  "hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--success))", "hsl(var(--warning))", 
+  "hsl(var(--destructive))", "hsl(var(--info))", "hsl(var(--muted))", "hsl(var(--primary)/0.8)", "hsl(var(--primary)/0.6)"
 ]
 
 const LANGUAGE_COLORS = [
-  "#6366F1", "#8B5CF6", "#EC4899", "#EF4444", "#F59E0B",
-  "#10B981", "#06B6D4", "#84CC16", "#F97316", "#3B82F6"
+  "hsl(var(--primary))", "hsl(var(--primary)/0.8)", "hsl(var(--primary)/0.6)", "hsl(var(--secondary))", "hsl(var(--accent))",
+  "hsl(var(--success))", "hsl(var(--info))", "hsl(var(--warning))", "hsl(var(--destructive))", "hsl(var(--muted))"
 ]
 
 export function AIContentCharts({ 
@@ -96,9 +96,9 @@ export function AIContentCharts({
 
   // Sentiment visualization data
   const sentimentData = sentimentScore !== null && sentimentScore !== undefined ? [
-    { name: 'Positive', value: sentimentScore > 0 ? Math.abs(sentimentScore) * 100 : 0, color: '#10B981' },
-    { name: 'Neutral', value: Math.abs(sentimentScore) < 0.1 ? 50 : 0, color: '#6B7280' },
-    { name: 'Negative', value: sentimentScore < 0 ? Math.abs(sentimentScore) * 100 : 0, color: '#EF4444' }
+    { name: 'Positive', value: sentimentScore > 0 ? Math.abs(sentimentScore) * 100 : 0, color: 'hsl(var(--success))' },
+    { name: 'Neutral', value: Math.abs(sentimentScore) < 0.1 ? 50 : 0, color: 'hsl(var(--muted-foreground))' },
+    { name: 'Negative', value: sentimentScore < 0 ? Math.abs(sentimentScore) * 100 : 0, color: 'hsl(var(--destructive))' }
   ].filter(item => item.value > 0) : []
 
   if (compact) {
@@ -109,7 +109,7 @@ export function AIContentCharts({
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Tag className="h-4 w-4 text-blue-600" />
+                <Tag className="h-4 w-4 text-primary" />
                 Content Mix
               </CardTitle>
             </CardHeader>
@@ -190,7 +190,7 @@ export function AIContentCharts({
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <PieIcon className="h-5 w-5 text-blue-600" />
+                    <PieIcon className="h-5 w-5 text-primary" />
                     Content Category Distribution
                   </CardTitle>
                   <CardDescription>
@@ -207,7 +207,7 @@ export function AIContentCharts({
                         labelLine={false}
                         label={({ name, value }) => `${name}: ${value}%`}
                         outerRadius={80}
-                        fill="#8884d8"
+                        fill="hsl(var(--primary))"
                         dataKey="value"
                       >
                         {contentData.map((entry, index) => (
@@ -238,7 +238,7 @@ export function AIContentCharts({
                       <XAxis type="number" domain={[0, 100]} />
                       <YAxis type="category" dataKey="name" width={80} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="value" fill="#3B82F6" radius={[0, 4, 4, 0]}>
+                      <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]}>
                         {contentData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
@@ -348,13 +348,13 @@ export function AIContentCharts({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Tag className="h-5 w-5 text-blue-600" />
+                  <Tag className="h-5 w-5 text-primary" />
                   Primary Focus
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600 mb-2">
+                  <div className="text-2xl font-bold text-primary mb-2">
                     {primaryContentType || 'Mixed Content'}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -377,7 +377,7 @@ export function AIContentCharts({
                   <div className="text-center">
                     <div className={`text-2xl font-bold mb-2 ${
                       sentimentScore > 0.1 ? 'text-green-600' : 
-                      sentimentScore < -0.1 ? 'text-red-600' : 'text-gray-600'
+                      sentimentScore < -0.1 ? 'text-red-600' : 'text-muted-foreground'
                     }`}>
                       {sentimentScore > 0.1 ? 'Positive' : 
                        sentimentScore < -0.1 ? 'Negative' : 'Neutral'}
@@ -440,8 +440,8 @@ export function AIContentCharts({
                     <Area 
                       type="monotone" 
                       dataKey="value" 
-                      stroke="#10B981" 
-                      fill="#10B981" 
+                      stroke="hsl(var(--success))" 
+                      fill="hsl(var(--success))" 
                       fillOpacity={0.6} 
                     />
                   </AreaChart>

@@ -121,7 +121,7 @@ export function AIDataHealthMonitor({ username }: { username?: string }) {
   }, [])
 
   const getHealthColor = () => {
-    if (!healthStatus || healthStatus.health_percentage === undefined || healthStatus.health_percentage === null) return 'text-gray-500'
+    if (!healthStatus || healthStatus.health_percentage === undefined || healthStatus.health_percentage === null) return 'text-muted-foreground'
     if (healthStatus.health_percentage >= 95) return 'text-green-600'
     if (healthStatus.health_percentage >= 85) return 'text-yellow-600'
     return 'text-red-600'
@@ -147,7 +147,7 @@ export function AIDataHealthMonitor({ username }: { username?: string }) {
       case 'down':
         return 'text-red-600'
       default:
-        return 'text-gray-600'
+        return 'text-muted-foreground'
     }
   }
 
@@ -227,10 +227,10 @@ export function AIDataHealthMonitor({ username }: { username?: string }) {
             
             <Card className="p-4">
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-gray-600" />
+                <Users className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Total Profiles</p>
-                  <p className="text-lg font-bold text-gray-600">
+                  <p className="text-lg font-bold text-muted-foreground">
                     {healthStatus.total_profiles || 0}
                   </p>
                 </div>

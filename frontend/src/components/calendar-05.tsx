@@ -19,7 +19,7 @@ export default function Calendar05() {
         day_selected: "bg-black text-white hover:bg-black hover:text-white focus:bg-black focus:text-white",
         day_range_start: "bg-black text-white hover:bg-black hover:text-white",
         day_range_end: "bg-black text-white hover:bg-black hover:text-white", 
-        day_range_middle: "bg-black/20 text-black hover:bg-black/20"
+        day_range_middle: "bg-black/20 text-foreground hover:bg-black/20"
       }}
     />
   )

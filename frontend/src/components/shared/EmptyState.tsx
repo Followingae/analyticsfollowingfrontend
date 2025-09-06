@@ -71,7 +71,7 @@ export function EmptyState({
           onClick={action.onClick} 
           variant={action.variant || 'default'}
           style={action.variant !== 'outline' && action.variant !== 'ghost' && action.variant !== 'secondary' ? 
-            { backgroundColor: '#5100f3', color: 'white' } : undefined}
+            { backgroundColor: 'hsl(var(--primary))', color: 'white' } : undefined}
           className={action.variant !== 'outline' && action.variant !== 'ghost' && action.variant !== 'secondary' ? 
             "hover:opacity-90" : undefined}
         >
