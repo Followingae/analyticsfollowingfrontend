@@ -8,7 +8,7 @@ import { ChartBarInteractive } from "@/components/chart-bar-interactive"
 import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
 import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
 import { MetricCard } from "@/components/analytics-cards"
-import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
+import { DashboardSkeleton } from "@/components/ui/enhanced-skeleton"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { UserAvatar } from "@/components/UserAvatar"
 import { SmartDiscovery } from "@/components/smart-discovery"
@@ -23,7 +23,7 @@ export function BrandDashboardContent() {
   const { user, isPremium, isAdmin } = useEnhancedAuth()
   const router = useRouter()
   
-  // FIXED: Use centralized dashboard data hook to prevent duplicate API calls
+  // Use standard dashboard data hook
   const {
     teamsOverview,
     teamsLoading,

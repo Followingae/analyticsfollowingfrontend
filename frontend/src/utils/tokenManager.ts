@@ -26,10 +26,22 @@ class TokenManager {
   private isRefreshing: boolean = false
   private refreshPromise: Promise<TokenValidationResult> | null = null
   private subscribers: ((token: string | null) => void)[] = []
+  
+  // Enhanced session management
+  private sessionTimeout?: NodeJS.Timeout
+  private lastActivity: number = Date.now()
+  private readonly SESSION_TIMEOUT = 30 * 60 * 1000 // 30 minutes
+  private readonly ACTIVITY_CHECK_INTERVAL = 60 * 1000 // 1 minute
+  private readonly TOKEN_REFRESH_BUFFER = 5 * 60 * 1000 // 5 minutes before expiry
+  
+  // Request deduplication for authentication
+  private pendingRequests = new Map<string, Promise<any>>()
 
   private constructor() {
     // Private constructor for singleton
     this.initializeFromStorage()
+    this.setupSessionManagement()
+    this.setupActivityTracking()
   }
 
   static getInstance(): TokenManager {
@@ -343,10 +355,233 @@ class TokenManager {
   }
 
   /**
-   * Check if user is authenticated
+   * Setup session management with single timeout check
+   */
+  private setupSessionManagement(): void {
+    if (typeof window === 'undefined') return
+
+    // Use single timeout instead of infinite interval
+    this.scheduleNextSessionCheck()
+  }
+
+  /**
+   * Schedule next session check (non-recursive)
+   */
+  private scheduleNextSessionCheck(): void {
+    if (this.sessionTimeout) {
+      clearTimeout(this.sessionTimeout)
+    }
+
+    // Only schedule if we have active token data
+    if (!this.tokenData) return
+
+    const now = Date.now()
+    const timeSinceActivity = now - this.lastActivity
+    const timeToSessionTimeout = this.SESSION_TIMEOUT - timeSinceActivity
+    const timeToTokenExpiry = this.tokenData.expires_at ? this.tokenData.expires_at - now : Infinity
+
+    // Check which event happens first
+    const nextCheckIn = Math.min(
+      Math.max(timeToSessionTimeout, 0),
+      Math.max(timeToTokenExpiry - this.TOKEN_REFRESH_BUFFER, 0),
+      this.ACTIVITY_CHECK_INTERVAL // Fallback to 1 minute max
+    )
+
+    if (nextCheckIn <= 0) {
+      // Handle immediately
+      this.handleSessionCheck()
+      return
+    }
+
+    this.sessionTimeout = setTimeout(() => {
+      this.handleSessionCheck()
+    }, nextCheckIn)
+  }
+
+  /**
+   * Handle session check and schedule next one if needed
+   */
+  private handleSessionCheck(): void {
+    const now = Date.now()
+
+    // Check session timeout
+    if (this.tokenData && now - this.lastActivity > this.SESSION_TIMEOUT) {
+      console.log('🕐 Session timeout - clearing tokens')
+      this.clearAllTokens()
+      return
+    }
+
+    // Check token refresh
+    if (this.tokenData && this.tokenData.expires_at) {
+      const timeToExpiry = this.tokenData.expires_at - now
+      if (timeToExpiry > 0 && timeToExpiry < this.TOKEN_REFRESH_BUFFER) {
+        console.log('🔄 Proactive token refresh - expires soon')
+        this.refreshToken().catch(console.error)
+      }
+    }
+
+    // Schedule next check only if still have active session
+    if (this.tokenData) {
+      this.scheduleNextSessionCheck()
+    }
+  }
+
+  /**
+   * Setup activity tracking to extend session
+   */
+  private setupActivityTracking(): void {
+    if (typeof window === 'undefined') return
+
+    const updateActivity = () => {
+      this.lastActivity = Date.now()
+    }
+
+    // Track user activity
+    const events = ['click', 'keydown', 'scroll', 'mousemove', 'touchstart']
+    events.forEach(event => {
+      document.addEventListener(event, updateActivity, { passive: true })
+    })
+
+    // Track navigation
+    window.addEventListener('beforeunload', updateActivity)
+  }
+
+  /**
+   * Deduplicated API request to prevent multiple auth calls
+   */
+  private async deduplicateRequest<T>(
+    key: string,
+    requestFn: () => Promise<T>
+  ): Promise<T> {
+    // Return existing promise if request is in progress
+    if (this.pendingRequests.has(key)) {
+      console.log(`🔄 Joining existing auth request: ${key}`)
+      return this.pendingRequests.get(key)!
+    }
+
+    // Create new request
+    const promise = requestFn().finally(() => {
+      this.pendingRequests.delete(key)
+    })
+
+    this.pendingRequests.set(key, promise)
+    return promise
+  }
+
+  /**
+   * Enhanced token validation with preemptive refresh
+   */
+  async getValidTokenWithRefresh(): Promise<TokenValidationResult> {
+    return this.deduplicateRequest('getValidToken', async () => {
+      // Update activity timestamp
+      this.lastActivity = Date.now()
+
+      // Check if we have a valid token
+      if (this.tokenData && this.isValidJWT(this.tokenData.access_token)) {
+        // Check if token expires soon and refresh proactively
+        const timeToExpiry = this.tokenData.expires_at ? 
+          this.tokenData.expires_at - Date.now() : 0
+
+        if (timeToExpiry > this.TOKEN_REFRESH_BUFFER) {
+          return {
+            isValid: true,
+            token: this.tokenData.access_token
+          }
+        } else {
+          console.log('🔄 Token expires soon, refreshing proactively')
+          return await this.refreshToken()
+        }
+      }
+
+      // No valid token, try to refresh
+      if (this.tokenData?.refresh_token) {
+        return await this.refreshToken()
+      }
+
+      return {
+        isValid: false,
+        token: null,
+        reason: 'No valid token available'
+      }
+    })
+  }
+
+  /**
+   * Check if user session is active (not timed out)
+   */
+  isSessionActive(): boolean {
+    if (!this.tokenData) return false
+    return Date.now() - this.lastActivity < this.SESSION_TIMEOUT
+  }
+
+  /**
+   * Get session information
+   */
+  getSessionInfo(): {
+    isActive: boolean
+    lastActivity: Date
+    timeToExpiry?: number
+    timeToTimeout: number
+  } {
+    const timeToTimeout = this.SESSION_TIMEOUT - (Date.now() - this.lastActivity)
+    const timeToExpiry = this.tokenData?.expires_at ? 
+      this.tokenData.expires_at - Date.now() : undefined
+
+    return {
+      isActive: this.isSessionActive(),
+      lastActivity: new Date(this.lastActivity),
+      timeToExpiry: timeToExpiry && timeToExpiry > 0 ? timeToExpiry : undefined,
+      timeToTimeout: Math.max(0, timeToTimeout)
+    }
+  }
+
+
+  /**
+   * Check if user is authenticated with session validation
    */
   isAuthenticated(): boolean {
-    return this.getTokenSync() !== null
+    return this.getTokenSync() !== null && this.isSessionActive()
+  }
+
+  /**
+   * Clear all tokens and clean up timers
+   */
+  clearAllTokens(): void {
+    this.tokenData = null
+    this.lastActivity = 0
+    this.pendingRequests.clear()
+    this.notifySubscribers(null)
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_tokens')
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('user_data')
+      localStorage.removeItem('user_last_updated')
+    }
+
+    // Clean up timeout
+    if (this.sessionTimeout) {
+      clearTimeout(this.sessionTimeout)
+      this.sessionTimeout = undefined
+    }
+  }
+
+  /**
+   * Cleanup resources when done
+   */
+  destroy(): void {
+    this.clearAllTokens()
+    this.subscribers.length = 0
+  }
+
+  /**
+   * Extend session and reschedule check
+   */
+  extendSession(): void {
+    this.lastActivity = Date.now()
+    // Reschedule session check with new activity time
+    this.scheduleNextSessionCheck()
   }
 }
 

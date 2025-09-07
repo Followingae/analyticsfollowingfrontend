@@ -20,11 +20,11 @@ import {
 export const description = "An interactive pie chart with center label"
 
 const chartData = [
-  { category: "Fashion", visitors: 275, fill: "var(--color-fashion)" },
-  { category: "Technology", visitors: 200, fill: "var(--color-technology)" },
-  { category: "Fitness", visitors: 187, fill: "var(--color-fitness)" },
-  { category: "Food", visitors: 173, fill: "var(--color-food)" },
-  { category: "Travel", visitors: 90, fill: "var(--color-travel)" },
+  { category: "Fashion", visitors: 275, fill: "hsl(var(--chart-1))" },
+  { category: "Technology", visitors: 200, fill: "hsl(var(--chart-2))" },
+  { category: "Fitness", visitors: 187, fill: "hsl(var(--chart-3))" },
+  { category: "Food", visitors: 173, fill: "hsl(var(--chart-4))" },
+  { category: "Travel", visitors: 90, fill: "hsl(var(--chart-5))" },
 ]
 
 const chartConfig = {

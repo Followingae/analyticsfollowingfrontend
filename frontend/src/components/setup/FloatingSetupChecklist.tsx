@@ -106,18 +106,43 @@ export function FloatingSetupChecklist() {
       }
     };
 
-    loadChecklistStatus();
+    const setupPolling = async () => {
+      // Initial load
+      await loadChecklistStatus();
+      
+      // Set up intelligent polling
+      const { pollingManager, POLLING_CONFIGS } = await import('@/utils/pollingManager');
+      
+      pollingManager.startPolling(
+        'setup-checklist',
+        async () => {
+          await loadChecklistStatus();
+          return true; // Always return success for checklist polling
+        },
+        POLLING_CONFIGS.SETUP_STATUS
+      );
+      
+      return () => {
+        pollingManager.stopPolling('setup-checklist');
+      };
+    };
 
-    // Set up interval to recheck status
-    const interval = setInterval(loadChecklistStatus, 30000);
-    return () => clearInterval(interval);
+    let cleanup: (() => void) | undefined;
+
+    setupPolling().then(cleanupFn => {
+      cleanup = cleanupFn;
+    });
+    
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [user]);
 
   const setupItems = [
     {
       id: 'profile',
       label: 'Complete your profile setup',
-      icon: <User className="h-4 w-4" />,
+      icon: <User className="h-4 w-4" style={{ color: 'hsl(var(--chart-1))' }} />,
       completed: status.profileComplete,
       action: () => {
         router.push('/settings');
@@ -127,7 +152,7 @@ export function FloatingSetupChecklist() {
     {
       id: 'analysis',
       label: 'Analyze your first Creator',
-      icon: <Search className="h-4 w-4" />,
+      icon: <Search className="h-4 w-4" style={{ color: 'hsl(var(--chart-2))' }} />,
       completed: status.firstProfileAnalyzed,
       action: () => {
         const searchInput = document.querySelector('[data-search-input]') as HTMLInputElement;
@@ -143,7 +168,7 @@ export function FloatingSetupChecklist() {
     {
       id: 'list',
       label: 'Create your first list',
-      icon: <List className="h-4 w-4" />,
+      icon: <List className="h-4 w-4" style={{ color: 'hsl(var(--chart-3))' }} />,
       completed: status.firstListCreated,
       action: () => {
         router.push('/my-lists');

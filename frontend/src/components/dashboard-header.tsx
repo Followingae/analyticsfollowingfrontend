@@ -38,26 +38,52 @@ export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderPr
   const [creditBalance, setCreditBalance] = useState<CreditBalance | null>(null)
   const [loading, setLoading] = useState(true)
   
-  // Load credit balance
+  // Load credit balance with intelligent polling
   useEffect(() => {
-    const loadBalance = async () => {
+    const loadBalance = async (): Promise<boolean> => {
       try {
         const result = await creditsApiService.getBalance()
         if (result.success && result.data) {
           setCreditBalance(result.data)
+          setLoading(false)
+          return true // Success
         }
+        return false // Failed
       } catch (error) {
-
+        console.error('Failed to load credit balance:', error)
+        return false // Failed
       } finally {
         setLoading(false)
       }
     }
 
-    loadBalance()
+    const setupPolling = async () => {
+      // Initial load
+      await loadBalance()
+      
+      // Set up intelligent polling with exponential backoff
+      const { pollingManager, POLLING_CONFIGS } = await import('@/utils/pollingManager')
+      
+      pollingManager.startPolling(
+        'credit-balance',
+        loadBalance,
+        POLLING_CONFIGS.CREDITS
+      )
+      
+      return () => {
+        pollingManager.stopPolling('credit-balance')
+      }
+    }
+
+    let cleanup: (() => void) | undefined
+
+    setupPolling().then(cleanupFn => {
+      cleanup = cleanupFn
+    })
     
-    // Set up periodic refresh every 5 minutes
-    const interval = setInterval(loadBalance, 5 * 60 * 1000)
-    return () => clearInterval(interval)
+    return () => {
+      if (cleanup) cleanup()
+    }
   }, [])
 
   // Handle credit badge click

@@ -23,11 +23,11 @@ const chartData = [{ month: "january", used: 950, remaining: 250 }]
 const chartConfig = {
   used: {
     label: "Used Credits",
-    color: "var(--chart-1)",
+    color: "hsl(var(--chart-1))",
   },
   remaining: {
     label: "Remaining Credits",
-    color: "var(--chart-2)",
+    color: "hsl(var(--chart-2))",
   },
 } satisfies ChartConfig
 

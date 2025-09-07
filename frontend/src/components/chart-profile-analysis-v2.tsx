@@ -25,7 +25,7 @@ const chartConfig = {
   },
   safari: {
     label: "Profile Analysis",
-    color: "hsl(var(--primary))",
+    color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig
 
@@ -36,7 +36,7 @@ export function ChartProfileAnalysisV2() {
   const subscriptionTier = useSubscriptionTier()
 
   const chartData = useMemo(() => [
-    { browser: "safari", visitors: profilesRemaining, fill: "hsl(var(--primary))" }
+    { browser: "safari", visitors: profilesRemaining, fill: "hsl(var(--chart-1))" }
   ], [profilesRemaining])
 
   const usageData = useMemo(() => {

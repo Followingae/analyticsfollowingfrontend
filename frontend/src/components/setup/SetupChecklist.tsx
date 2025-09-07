@@ -170,14 +170,14 @@ export function SetupChecklist() {
     {
       id: 'profile',
       label: 'Complete your profile setup',
-      icon: <User className="h-4 w-4" />,
+      icon: <User className="h-4 w-4" style={{ color: 'hsl(var(--chart-1))' }} />,
       completed: status.profileComplete,
       action: () => router.push('/settings'),
     },
     {
       id: 'analysis',
       label: 'Analyze your first Creator',
-      icon: <Search className="h-4 w-4" />,
+      icon: <Search className="h-4 w-4" style={{ color: 'hsl(var(--chart-2))' }} />,
       completed: status.firstProfileAnalyzed,
       action: () => {
         // Focus the search input on the current page
@@ -193,7 +193,7 @@ export function SetupChecklist() {
     {
       id: 'list',
       label: 'Create your first list',
-      icon: <List className="h-4 w-4" />,
+      icon: <List className="h-4 w-4" style={{ color: 'hsl(var(--chart-3))' }} />,
       completed: status.firstListCreated,
       action: () => router.push('/my-lists'),
     },

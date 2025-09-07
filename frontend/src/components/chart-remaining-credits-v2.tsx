@@ -26,7 +26,7 @@ const chartConfig = {
   },
   safari: {
     label: "Remaining Credits",
-    color: "hsl(var(--primary))",
+    color: "hsl(var(--chart-2))",
   },
 } satisfies ChartConfig
 
@@ -108,7 +108,7 @@ export function ChartRemainingCreditsV2() {
   }, [])
 
   const chartData = useMemo(() => [
-    { browser: "safari", visitors: creditsData?.balance || 0, fill: "hsl(var(--primary))" }
+    { browser: "safari", visitors: creditsData?.balance || 0, fill: "hsl(var(--chart-2))" }
   ], [creditsData?.balance])
 
   // Calculate percentage for the radial chart

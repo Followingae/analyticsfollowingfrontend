@@ -592,9 +592,15 @@ class AuthService {
     return isValid
   }
 
-  // Get stored token with validation - now uses TokenManager
+  // Get stored token with validation - now uses enhanced TokenManager
   getToken(): string | null {
     return tokenManager.getTokenSync()
+  }
+
+  // Get valid token with automatic refresh
+  async getValidToken(): Promise<string | null> {
+    const result = await tokenManager.getValidTokenWithRefresh()
+    return result.isValid ? result.token : null
   }
   // Get stored user data
   getStoredUser(): User | null {

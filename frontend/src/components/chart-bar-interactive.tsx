@@ -27,11 +27,11 @@ export const description = "An interactive bar chart"
 const chartConfig = {
   reach: {
     label: "Reach",
-    color: "hsl(var(--primary))",
+    color: "hsl(var(--chart-1))",
   },
   views: {
     label: "Views", 
-    color: "var(--chart-2)",
+    color: "hsl(var(--chart-2))",
   },
 } satisfies ChartConfig
 
