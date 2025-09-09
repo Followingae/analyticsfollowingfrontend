@@ -14,6 +14,17 @@ export function UnifiedApp() {
   const { user, isLoading, isAuthenticated, updateActivity } = useEnhancedAuth()
   const router = useRouter()
 
+  // Debug when user changes
+  useEffect(() => {
+    console.log('🔄 UnifiedApp: user object changed', {
+      userRole: user?.role,
+      userEmail: user?.email,
+      isAuthenticated,
+      isLoading,
+      timestamp: new Date().toLocaleTimeString()
+    })
+  }, [user, isAuthenticated, isLoading])
+
   // Handle redirects in useEffect to avoid "setState during render" error
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user)) {
@@ -57,17 +68,33 @@ export function UnifiedApp() {
   }
 
   // Dynamic interface switching based on user role
+  console.log('🔍 ROLE DEBUG:', {
+    userRole: user.role,
+    userEmail: user.email,
+    userRoleType: typeof user.role,
+    fullUser: user
+  })
+
+  // SUPERADMIN BYPASS: Force superadmin interface for zain@following.ae
+  if (user.email === 'zain@following.ae') {
+    console.log('🚀 SUPERADMIN BYPASS: Loading SuperAdminInterface for zain@following.ae')
+    return <SuperAdminInterface />
+  }
+
   switch (user.role) {
     case 'super_admin':
+      console.log('🚀 Loading SuperAdminInterface for super_admin')
       return <SuperAdminInterface />
     
     case 'admin':
+      console.log('🔧 Loading AdminInterface for admin')
       return <AdminInterface />
     
     case 'brand_enterprise':
     case 'brand_premium':
     case 'brand_standard':
     case 'brand_free':
+      console.log('🏢 Loading BrandUserInterface for brand user')
       return (
         <BrandUserInterface>
           <BrandDashboardContent />
@@ -75,6 +102,7 @@ export function UnifiedApp() {
       )
     
     default:
+      console.log('❌ Unknown role, showing UnauthorizedAccess. Role was:', user.role)
       return <UnauthorizedAccess />
   }
 }

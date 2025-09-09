@@ -32,7 +32,8 @@ export default function LoginPage() {
     try {
       const success = await login(email, password)
       if (success) {
-        router.push('/dashboard')
+        // Use role-based routing instead of hardcoded dashboard
+        router.push('/')
       } else {
         setErrorMessage('Login failed. Please check your credentials and try again.')
       }

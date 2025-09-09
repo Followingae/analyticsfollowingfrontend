@@ -113,14 +113,35 @@ export function FloatingSetupChecklist() {
       // Set up intelligent polling
       const { pollingManager, POLLING_CONFIGS } = await import('@/utils/pollingManager');
       
-      pollingManager.startPolling(
-        'setup-checklist',
-        async () => {
-          await loadChecklistStatus();
-          return true; // Always return success for checklist polling
-        },
-        POLLING_CONFIGS.SETUP_STATUS
-      );
+      // SMART POLLING: Only poll if setup is NOT complete
+      const isSetupComplete = status.profileComplete && status.firstProfileAnalyzed && status.firstListCreated;
+      
+      if (!isSetupComplete) {
+        pollingManager.startPolling(
+          'setup-checklist',
+          async () => {
+            await loadChecklistStatus();
+            
+            // Check if setup is now complete and stop polling if so
+            const currentStatus = status;
+            const nowComplete = currentStatus.profileComplete && 
+                                currentStatus.firstProfileAnalyzed && 
+                                currentStatus.firstListCreated;
+            
+            if (nowComplete) {
+              console.log('🎉 Setup complete! Stopping setup checklist polling.');
+              pollingManager.stopPolling('setup-checklist');
+              return false; // Stop polling
+            }
+            
+            return true; // Continue polling
+          },
+          {
+            ...POLLING_CONFIGS.SETUP_STATUS,
+            maxRetries: 20, // Stop after reasonable attempts
+          }
+        );
+      }
       
       return () => {
         pollingManager.stopPolling('setup-checklist');

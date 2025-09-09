@@ -104,63 +104,53 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
     const systemManagement = [
       {
         title: "Dashboard",
-        url: "/superadmin",
+        url: "/admin",
         icon: IconDashboard,
       },
       {
         title: "User Management",
-        url: "/superadmin/users",
+        url: "/admin/users",
         icon: IconUsers,
       },
       {
-        title: "System Health",
-        url: "/superadmin/system",
-        icon: IconServer,
+        title: "Security & System Health",
+        url: "/admin/security",
+        icon: IconShield,
       },
       {
-        title: "Security Center",
-        url: "/superadmin/security",
-        icon: IconShield,
+        title: "Analytics & Reports",
+        url: "/admin/analytics",
+        icon: IconChartBar,
       }
     ]
 
     const platformOversight = [
       {
-        title: "Analytics & Reports",
-        url: "/superadmin/analytics",
-        icon: IconChartBar,
-      },
-      {
-        title: "Database Management",
-        url: "/superadmin/database",
+        title: "Influencer Database",
+        url: "/admin/influencers",
         icon: IconDatabase,
       },
       {
-        title: "Billing & Plans",
-        url: "/superadmin/billing",
-        icon: IconCreditCard,
+        title: "Proposal Management",
+        url: "/admin/proposals",
+        icon: IconFileText,
       },
       {
-        title: "Content Moderation",
-        url: "/superadmin/moderation",
-        icon: IconFileText,
+        title: "Credits & Billing",
+        url: "/admin/credits",
+        icon: IconCreditCard,
       }
     ]
 
     const communications = [
       {
         title: "System Notifications",
-        url: "/superadmin/notifications",
+        url: "/admin/notifications",
         icon: IconBell,
       },
       {
-        title: "Broadcast Messages",
-        url: "/superadmin/broadcast",
-        icon: IconMail,
-      },
-      {
         title: "Activity Logs",
-        url: "/superadmin/logs",
+        url: "/admin/logs",
         icon: IconActivity,
       }
     ]
@@ -168,18 +158,13 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
     const administration = [
       {
         title: "Platform Settings",
-        url: "/superadmin/settings",
+        url: "/admin/settings",
         icon: IconSettings,
       },
       {
         title: "Access Control",
-        url: "/superadmin/access",
+        url: "/admin/access",
         icon: IconLock,
-      },
-      {
-        title: "System Reports",
-        url: "/superadmin/reports",
-        icon: IconReport,
       }
     ]
 

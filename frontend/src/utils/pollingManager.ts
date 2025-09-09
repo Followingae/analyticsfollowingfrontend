@@ -242,20 +242,20 @@ if (typeof document !== 'undefined') {
   })
 }
 
-// Standard polling configurations
+// Standard polling configurations - MUCH MORE REASONABLE
 export const POLLING_CONFIGS = {
-  /** For credit balance updates - less critical */
+  /** For credit balance updates - very infrequent, user-driven */
   CREDITS: {
-    initialInterval: 5 * 60 * 1000, // 5 minutes
-    maxInterval: 15 * 60 * 1000, // 15 minutes
+    initialInterval: 30 * 60 * 1000, // 30 minutes (was 5 minutes - ridiculous!)
+    maxInterval: 60 * 60 * 1000, // 1 hour max
     backoffMultiplier: 1.2,
     resetOnSuccess: true
   },
   
-  /** For setup checklist - moderate frequency */
+  /** For setup checklist - only when user is actively using the app */
   SETUP_STATUS: {
-    initialInterval: 2 * 60 * 1000, // 2 minutes  
-    maxInterval: 10 * 60 * 1000, // 10 minutes
+    initialInterval: 15 * 60 * 1000, // 15 minutes (was 2 minutes - way too aggressive!)
+    maxInterval: 30 * 60 * 1000, // 30 minutes max
     backoffMultiplier: 1.3,
     resetOnSuccess: true
   },

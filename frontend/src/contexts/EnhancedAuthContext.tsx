@@ -116,15 +116,22 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
   // Sync with basic auth context
   useEffect(() => {
+    console.log('🔄 ENHANCED AUTH SYNC:', {
+      basicIsLoading,
+      basicIsAuthenticated,
+      basicUserRole: basicUser?.role,
+      basicUserEmail: basicUser?.email
+    })
 
     if (!basicIsLoading) {
       if (basicIsAuthenticated && basicUser) {
-
+        console.log('✅ ENHANCED AUTH: Converting basic user to enhanced user')
         const enhancedUser = enhanceUserData(basicUser)
+        console.log('✅ ENHANCED AUTH: Setting enhanced user with role:', enhancedUser.role)
         setUser(enhancedUser)
         setDashboardStats(basicDashboardStats)
       } else {
-
+        console.log('❌ ENHANCED AUTH: Clearing user (not authenticated or no user)')
         setUser(null)
         setDashboardStats(null)
       }
@@ -171,11 +178,12 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     // Map basic user roles to enhanced roles with strict role separation
     let role: UserRole
     switch (basicUser.role?.toLowerCase()) {
+      case 'super_admin':
       case 'admin':
       case 'superadmin':
         // CRITICAL: Only actual admins get admin access
-        role = 'super_admin' // Treat backend 'admin' as 'super_admin'
-
+        role = 'super_admin' // Treat backend 'admin' and 'super_admin' as 'super_admin'
+        console.log('🚀 ROLE MAPPING: Backend role', basicUser.role, '→ Frontend role', role)
         break
       case 'premium':
         // FIXED: Premium users are BRAND users, not admin users

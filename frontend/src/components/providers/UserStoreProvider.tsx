@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { useUserStore } from '@/stores/userStore'
 
@@ -11,16 +11,19 @@ import { useUserStore } from '@/stores/userStore'
 export function UserStoreProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useEnhancedAuth()
   const { loadUser, clearUser, isLoading: storeLoading } = useUserStore()
+  const hasLoadedRef = useRef(false)
 
   useEffect(() => {
     // Wait for auth context to finish loading
     if (authLoading) return
 
-    if (isAuthenticated && !storeLoading) {
+    if (isAuthenticated && !storeLoading && !hasLoadedRef.current) {
       console.log('🚀 UserStoreProvider: Loading user data (SINGLE CALL)')
+      hasLoadedRef.current = true
       loadUser() // Single API call to /api/v1/auth/dashboard
-    } else if (!isAuthenticated) {
+    } else if (!isAuthenticated && hasLoadedRef.current) {
       console.log('🧹 UserStoreProvider: Clearing user data')
+      hasLoadedRef.current = false
       clearUser()
     }
   }, [isAuthenticated, authLoading, storeLoading]) // FIXED: Removed function dependencies

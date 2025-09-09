@@ -2,6 +2,8 @@ import { API_CONFIG, REQUEST_HEADERS, ENDPOINTS, getAuthHeaders } from '@/config
 import { tokenManager } from '@/utils/tokenManager'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { requestCache, CACHE_KEYS } from '@/utils/requestCache'
+import { UserRole } from '@/types/auth'
+
 export interface User {
   id: string
   email: string
@@ -12,7 +14,7 @@ export interface User {
   job_title?: string
   phone_number?: string
   bio?: string
-  role: 'free' | 'premium' | 'admin'
+  role: UserRole
   status: string
   created_at: string
   last_login?: string

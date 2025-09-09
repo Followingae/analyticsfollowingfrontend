@@ -64,14 +64,51 @@ export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderPr
       // Set up intelligent polling with exponential backoff
       const { pollingManager, POLLING_CONFIGS } = await import('@/utils/pollingManager')
       
+      // SMART CREDIT POLLING: Only when user is active
+      let lastActivity = Date.now()
+      let userActive = true
+      
+      // Track user activity
+      const updateActivity = () => {
+        lastActivity = Date.now()
+        if (!userActive) {
+          userActive = true
+          console.log('🔄 User active - resuming credit polling')
+        }
+      }
+      
+      // Activity listeners
+      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart']
+      events.forEach(event => {
+        document.addEventListener(event, updateActivity, { passive: true })
+      })
+      
       pollingManager.startPolling(
         'credit-balance',
-        loadBalance,
-        POLLING_CONFIGS.CREDITS
+        async () => {
+          // Check if user has been inactive for more than 10 minutes
+          const inactiveTime = Date.now() - lastActivity
+          if (inactiveTime > 10 * 60 * 1000) {
+            userActive = false
+            console.log('😴 User inactive - skipping credit polling')
+            return true // Skip this cycle but keep polling active
+          }
+          
+          await loadBalance()
+          return true
+        },
+        {
+          ...POLLING_CONFIGS.CREDITS,
+          maxRetries: 5, // Don't retry indefinitely
+        }
       )
       
       return () => {
         pollingManager.stopPolling('credit-balance')
+        // Clean up activity listeners
+        events.forEach(event => {
+          document.removeEventListener(event, updateActivity)
+        })
       }
     }
 
