@@ -23,7 +23,7 @@ export function UserStoreProvider({ children }: { children: React.ReactNode }) {
       console.log('🧹 UserStoreProvider: Clearing user data')
       clearUser()
     }
-  }, [isAuthenticated, authLoading, storeLoading, loadUser, clearUser])
+  }, [isAuthenticated, authLoading, storeLoading]) // FIXED: Removed function dependencies
 
   return <>{children}</>
 }

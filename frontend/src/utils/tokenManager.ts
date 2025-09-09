@@ -300,10 +300,12 @@ class TokenManager {
   }
 
   /**
-   * Clear all token data
+   * Clear all token data and clean up timers
    */
   clearAllTokens(): void {
     this.tokenData = null
+    this.lastActivity = 0
+    this.pendingRequests.clear()
     this.notifySubscribers(null)
 
     if (typeof window !== 'undefined') {
@@ -312,7 +314,12 @@ class TokenManager {
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('user_data')
       localStorage.removeItem('user_last_updated')
+    }
 
+    // Clean up timeout to prevent infinite recursion
+    if (this.sessionTimeout) {
+      clearTimeout(this.sessionTimeout)
+      this.sessionTimeout = undefined
     }
   }
 
@@ -408,7 +415,7 @@ class TokenManager {
     if (this.tokenData && now - this.lastActivity > this.SESSION_TIMEOUT) {
       console.log('🕐 Session timeout - clearing tokens')
       this.clearAllTokens()
-      return
+      return // CRITICAL: Don't schedule another check after clearing tokens
     }
 
     // Check token refresh
@@ -420,8 +427,8 @@ class TokenManager {
       }
     }
 
-    // Schedule next check only if still have active session
-    if (this.tokenData) {
+    // CRITICAL FIX: Only schedule next check if we still have active session AND timeout not cleared
+    if (this.tokenData && this.sessionTimeout !== undefined) {
       this.scheduleNextSessionCheck()
     }
   }
@@ -543,29 +550,6 @@ class TokenManager {
     return this.getTokenSync() !== null && this.isSessionActive()
   }
 
-  /**
-   * Clear all tokens and clean up timers
-   */
-  clearAllTokens(): void {
-    this.tokenData = null
-    this.lastActivity = 0
-    this.pendingRequests.clear()
-    this.notifySubscribers(null)
-
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_tokens')
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      localStorage.removeItem('user_data')
-      localStorage.removeItem('user_last_updated')
-    }
-
-    // Clean up timeout
-    if (this.sessionTimeout) {
-      clearTimeout(this.sessionTimeout)
-      this.sessionTimeout = undefined
-    }
-  }
 
   /**
    * Cleanup resources when done

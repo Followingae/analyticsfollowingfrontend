@@ -80,6 +80,7 @@ interface UserStore {
   isAuthenticated: boolean
   error: string | null
   lastUpdated: Date | null
+  lastLoadTime: number | null
 
   // Actions
   loadUser: () => Promise<void>
@@ -101,13 +102,27 @@ export const useUserStore = create<UserStore>()(
       isAuthenticated: false,
       error: null,
       lastUpdated: null,
+      lastLoadTime: null,
 
       // Load user data from the new dashboard endpoint
       loadUser: async () => {
-        const { isLoading } = get()
-        if (isLoading) return // Prevent multiple simultaneous calls
-
-        set({ isLoading: true, error: null })
+        const { isLoading, lastLoadTime } = get()
+        const now = Date.now()
+        
+        // Prevent multiple simultaneous calls
+        if (isLoading) {
+          console.log('🚫 UserStore: loadUser blocked - already loading')
+          return
+        }
+        
+        // Prevent rapid successive calls (less than 1 second apart)
+        if (lastLoadTime && (now - lastLoadTime) < 1000) {
+          console.log('🚫 UserStore: loadUser blocked - called too recently:', now - lastLoadTime, 'ms ago')
+          return
+        }
+        
+        console.log('🎯 UserStore: loadUser called - proceeding with dashboard fetch')
+        set({ isLoading: true, error: null, lastLoadTime: now })
 
         try {
           // Import dynamically to avoid circular dependencies
@@ -150,6 +165,8 @@ export const useUserStore = create<UserStore>()(
             error: null,
             lastUpdated: new Date()
           })
+          
+          console.log('✅ UserStore: Dashboard loaded successfully')
 
         } catch (error) {
           console.error('Failed to load user data:', error)
@@ -164,6 +181,8 @@ export const useUserStore = create<UserStore>()(
             error: error instanceof Error ? error.message : 'Failed to load user data',
             lastUpdated: null
           })
+          
+          console.log('❌ UserStore: Dashboard load failed:', error)
         }
       },
 
@@ -178,7 +197,8 @@ export const useUserStore = create<UserStore>()(
           isAuthenticated: false,
           isLoading: false,
           error: null,
-          lastUpdated: null
+          lastUpdated: null,
+          lastLoadTime: null
         })
       },
 

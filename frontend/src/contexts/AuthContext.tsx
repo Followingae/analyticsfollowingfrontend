@@ -640,8 +640,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     refreshDashboard,
     updateProfile,
     updateUserState,
-    isPremium: authService.isPremiumUser(),
-    isAdmin: authService.isAdmin()
+    isPremium: authService?.isPremiumUser?.() ?? false,
+    isAdmin: authService?.isAdmin?.() ?? false
   }
 
   return (

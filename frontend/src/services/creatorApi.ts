@@ -465,7 +465,45 @@ class CreatorApiService {
   }
 
   /**
-   * 🚀 NEW: AI ANALYSIS DATA - Step 2 Complete AI Analysis
+   * 🚀 NEW: COMPREHENSIVE AI ANALYSIS - Enhanced 10-Model Analysis
+   * Complete AI analysis with all 10 models including advanced insights
+   */
+  async getComprehensiveAIAnalysis(username: string): Promise<ApiResponse<import('@/types/creator').ComprehensiveAIAnalysisResponse>> {
+    const url = `${this.baseUrl}/${username}/comprehensive-ai-analysis`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${this.getStoredToken()}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      return {
+        success: true,
+        data: data,
+        message: 'Comprehensive AI analysis retrieved successfully'
+      };
+    } catch (error) {
+      console.error('❌ Comprehensive AI Analysis Error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch comprehensive AI analysis',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * 🚀 LEGACY: AI ANALYSIS DATA - Step 2 Complete AI Analysis
    * Comprehensive AI analysis data with profile summary and post analysis
    */
   async getProfileAIAnalysis(username: string): Promise<ApiResponse<ProfileAIAnalysisResponse>> {

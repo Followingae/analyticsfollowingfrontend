@@ -63,7 +63,8 @@
       "Bash(dir:*)",
       "WebFetch(domain:21st.dev)",
       "Bash(kill:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Read(//c/**)"
     ],
     "deny": [],
     "additionalDirectories": [

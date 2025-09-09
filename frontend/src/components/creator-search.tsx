@@ -1,19 +1,22 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Search, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Search, Loader2, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useCreatorSearch } from '@/hooks/useCreatorSearch'
 import { ProfileCard } from './profile-card'
+import { EnhancedProfileDetail } from './enhanced-profile-detail'
 import type { ProfileSearchResponse } from '@/types/api'
 
 export const CreatorSearch: React.FC = () => {
   const [username, setUsername] = useState('')
   const [searchResult, setSearchResult] = useState<ProfileSearchResponse | null>(null)
+  const [viewMode, setViewMode] = useState<'compact' | 'detailed'>('compact')
 
   const creatorSearch = useCreatorSearch({
     onSuccess: (data) => {
@@ -91,17 +94,58 @@ export const CreatorSearch: React.FC = () => {
         )}
 
         {searchResult && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <Alert>
               <AlertDescription className="flex items-center justify-between">
                 <span>{searchResult.message}</span>
-                <Badge variant="outline">
-                  {searchResult.cached ? "Served from Database" : "New Profile Fetched"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">
+                    {searchResult.cached ? "Database" : "Fresh Data"}
+                  </Badge>
+                  {searchResult.profile.ai_analysis && (
+                    <Badge className="bg-purple-100 text-purple-800">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Enhanced AI
+                    </Badge>
+                  )}
+                </div>
               </AlertDescription>
             </Alert>
             
-            <ProfileCard profile={searchResult.profile} showAI={true} />
+            {/* View Mode Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold">@{searchResult.profile.username}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {searchResult.profile.followers_count.toLocaleString()} followers
+                </p>
+              </div>
+              
+              <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'compact' | 'detailed')}>
+                <TabsList>
+                  <TabsTrigger value="compact">Compact</TabsTrigger>
+                  <TabsTrigger value="detailed">
+                    <Sparkles className="h-4 w-4 mr-1" />
+                    Detailed
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            {/* Results Display */}
+            {viewMode === 'compact' ? (
+              <ProfileCard profile={searchResult.profile} showAI={true} />
+            ) : (
+              <EnhancedProfileDetail 
+                profile={searchResult.profile}
+                showAdvancedAI={true}
+                isUnlocked={!!searchResult.profile.access_granted_at}
+                onUnlock={(username) => {
+                  console.log('Unlock requested for:', username)
+                  // TODO: Implement unlock functionality
+                }}
+              />
+            )}
           </div>
         )}
       </CardContent>

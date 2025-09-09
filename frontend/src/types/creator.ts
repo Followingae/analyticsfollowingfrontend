@@ -55,11 +55,114 @@ export type LanguageCode =
 export type SubscriptionTier = 'free' | 'standard' | 'premium';
 
 // ========================================
-// AI INSIGHTS INTERFACES
+// ENHANCED AI ANALYSIS INTERFACES
 // ========================================
 
 /**
- * Comprehensive AI insights for creator profiles
+ * Audience Quality Assessment (Advanced AI Model)
+ */
+export interface AudienceQualityAssessment {
+  authenticity_score: number; // 0-100
+  fake_follower_percentage: number; // 0-100
+  bot_detection_score: number; // 0-100
+  engagement_authenticity: number; // 0-100
+}
+
+/**
+ * Visual Content Analysis (Advanced AI Model)
+ */
+export interface VisualContentAnalysis {
+  aesthetic_score: number; // 0-100
+  professional_quality_score: number; // 0-100
+  dominant_colors: Array<{
+    color: string;
+    percentage: number;
+  }>;
+}
+
+/**
+ * Audience Insights (Advanced AI Model)
+ */
+export interface AudienceInsights {
+  demographic_insights: Record<string, any>;
+  audience_demographics: Record<string, any>;
+  geographic_analysis: Record<string, any>;
+}
+
+/**
+ * Trend Detection Analysis (Advanced AI Model)
+ */
+export interface TrendDetection {
+  viral_potential: {
+    overall_viral_score: number; // 0-100
+  };
+  engagement_trend_direction: string; // 'increasing' | 'decreasing' | 'stable'
+  trending_hashtags: Array<{
+    hashtag: string;
+    frequency: number;
+  }>;
+}
+
+/**
+ * Fraud Detection Analysis (Advanced AI Model)
+ */
+export interface FraudDetectionAnalysis {
+  fraud_assessment: {
+    risk_level: string; // 'low' | 'medium' | 'high'
+    bot_likelihood_percentage: number; // 0-100
+  };
+  red_flags: string[];
+}
+
+/**
+ * Behavioral Patterns Analysis (Advanced AI Model)
+ */
+export interface BehavioralPatternsAnalysis {
+  lifecycle_analysis: {
+    current_stage: string; // 'growth' | 'maturity' | 'decline'
+  };
+  behavioral_insights: Record<string, any>;
+}
+
+/**
+ * Comprehensive Insights Summary
+ */
+export interface ComprehensiveInsights {
+  overall_authenticity_score: number; // 0-100
+  content_quality_rating: number; // 0-100
+  engagement_trend: string; // 'positive' | 'negative' | 'stable'
+  fraud_risk_level: string; // 'low' | 'medium' | 'high'
+  lifecycle_stage: string; // 'growth' | 'maturity' | 'decline'
+}
+
+/**
+ * Enhanced AI Analysis (New 10-Model Structure)
+ */
+export interface EnhancedAIAnalysis {
+  // Core AI (existing 3 models)
+  primary_content_type: string;
+  content_distribution: Record<string, number>;
+  avg_sentiment_score: number;
+  language_distribution: Record<string, number>;
+  top_3_categories: Array<{
+    category: string;
+    percentage: number;
+  }>;
+
+  // Advanced AI (7 new models)
+  audience_quality_assessment: AudienceQualityAssessment;
+  visual_content_analysis: VisualContentAnalysis;
+  audience_insights: AudienceInsights;
+  trend_detection: TrendDetection;
+  fraud_detection_analysis: FraudDetectionAnalysis;
+  behavioral_patterns_analysis: BehavioralPatternsAnalysis;
+
+  // Comprehensive insights summary
+  comprehensive_insights: ComprehensiveInsights;
+}
+
+/**
+ * Legacy AI insights for creator profiles (maintained for backwards compatibility)
  */
 export interface AIInsights {
   available: boolean;
@@ -129,8 +232,11 @@ export interface CreatorProfile {
   access_granted_at?: string;
   days_remaining?: number;
   
-  // AI-powered insights
+  // AI-powered insights (legacy)
   ai_insights?: AIInsights;
+  
+  // Enhanced AI analysis (new 10-model structure)
+  ai_analysis?: EnhancedAIAnalysis;
 }
 
 /**
@@ -221,6 +327,47 @@ export interface AnalysisStatusResponse {
   completion_percentage?: number;
   estimated_completion?: number;
   last_analyzed?: string;
+}
+
+/**
+ * Comprehensive AI Analysis Response
+ * GET /api/v1/simple/creator/{username}/comprehensive-ai-analysis
+ */
+export interface ComprehensiveAIAnalysisResponse {
+  success: boolean;
+  profile_id: string;
+  username: string;
+
+  core_ai_analysis: {
+    sentiment_analysis: Record<string, any>;
+    language_detection: Record<string, any>;
+    content_categorization: Record<string, any>;
+  };
+
+  advanced_ai_analysis: {
+    audience_quality_assessment: AudienceQualityAssessment;
+    visual_content_analysis: VisualContentAnalysis;
+    audience_insights: AudienceInsights;
+    trend_detection: TrendDetection;
+    advanced_nlp_analysis: Record<string, any>;
+    fraud_detection_analysis: FraudDetectionAnalysis;
+    behavioral_patterns_analysis: BehavioralPatternsAnalysis;
+  };
+
+  comprehensive_insights: {
+    overall_authenticity_score: number;
+    fake_follower_percentage: number;
+    content_aesthetic_score: number;
+    fraud_risk_level: string;
+    viral_potential_score: number;
+    user_lifecycle_stage: string;
+  };
+
+  analysis_metadata: {
+    models_success_rate: number;
+    comprehensive_analysis_version: string;
+    ai_completion_rate: number;
+  };
 }
 
 /**
