@@ -12,6 +12,7 @@ export interface ProfileHeader {
   username: string
   full_name: string
   profile_pic_url: string
+  cdn_url_512?: string | null
   is_verified: boolean
   followers_count: number
   following_count: number
@@ -39,6 +40,7 @@ export interface ContactInfo {
 export interface RecentPostPreview {
   post_id: string
   thumbnail_url: string
+  cdn_url_512?: string | null
   likes_count: number
   comments_count: number
   posted_at: string
@@ -108,6 +110,7 @@ export interface PartnershipPotential {
 export interface PostWithAI {
   post_id: string
   media_url: string
+  cdn_url_512?: string | null
   caption: string
   likes_count: number
   comments_count: number

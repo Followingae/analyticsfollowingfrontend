@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { CheckCircle2, Users, MessageCircle, ImageIcon } from 'lucide-react'
-import { useCDNMedia } from '@/hooks/useCDNMedia'
 import { ProfileImageWithFallback } from './profile-image-with-fallback'
 
 interface ProfileCardProps {
@@ -19,6 +18,7 @@ interface ProfileCardProps {
     posts_count: number
     is_verified: boolean
     profile_pic_url: string | null
+    cdn_url_512?: string | null
     ai_analysis?: {
       primary_content_type: string | null
       avg_sentiment_score: number | null
@@ -28,9 +28,8 @@ interface ProfileCardProps {
 }
 
 export const ProfileCard: React.FC<ProfileCardProps> = ({ profile, showAI = false }) => {
-  // Get profile ID from username (you'll need to implement this mapping)
-  const profileId = profile.username // This should be the UUID, not username
-  const cdnMedia = useCDNMedia(profileId)
+  // Use only CDN URL with placeholder fallback
+  const profileImageUrl = profile.profile_pic_url || '/placeholder-avatar.webp'
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
@@ -55,11 +54,11 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ profile, showAI = fals
       <CardHeader>
         <CardTitle className="flex items-center gap-3">
           <ProfileImageWithFallback
-            src={cdnMedia.data?.avatar?.["256"]}
+            src={profileImageUrl}
             fallback={profile.profile_pic_url}
             alt={profile.username}
             className="h-12 w-12"
-            isPlaceholder={cdnMedia.data?.avatar?.placeholder}
+            isPlaceholder={false}
           />
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
@@ -118,25 +117,6 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ profile, showAI = fals
           </>
         )}
 
-        {/* CDN Image Processing Status */}
-        {cdnMedia.data?.processing_status && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Image Processing</span>
-              <Badge variant={cdnMedia.data.processing_status.queued ? "secondary" : "default"}>
-                {cdnMedia.data.processing_status.completion_percentage}% Complete
-              </Badge>
-            </div>
-            {cdnMedia.data.processing_status.queued && (
-              <div className="w-full bg-secondary rounded-full h-2">
-                <div 
-                  className="bg-primary h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${cdnMedia.data.processing_status.completion_percentage}%` }}
-                />
-              </div>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   )

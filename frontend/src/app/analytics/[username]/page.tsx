@@ -1,53 +1,26 @@
 "use client"
 
-import { useParams } from "next/navigation"
-import { AuthGuard } from "@/components/AuthGuard"
-import { CreatorProfilePage } from "@/components/creator/CreatorProfilePage"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
-import ErrorBoundary from "@/components/ErrorBoundary"
+import { useParams, useRouter } from "next/navigation"
+import { useEffect } from "react"
 
-export default function CreatorAnalyticsPage() {
+export default function AnalyticsRedirect() {
   const params = useParams()
+  const router = useRouter()
   const username = params.username as string
 
-  if (!username) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Invalid Username</h1>
-          <p className="text-muted-foreground dark:text-gray-400 mt-2">
-            Please provide a valid Instagram username to analyze.
-          </p>
-        </div>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (username) {
+      // Redirect to the new analytics dashboard
+      router.replace(`/creator-analytics/${username}`)
+    }
+  }, [username, router])
 
   return (
-    <AuthGuard requireAuth={true}>
-      <ErrorBoundary>
-        <SidebarProvider
-          style={
-            {
-              "--sidebar-width": "calc(var(--spacing) * 66)",
-              "--header-height": "calc(var(--spacing) * 12)",
-            } as React.CSSProperties
-          }
-        >
-          <AppSidebar />
-          <SidebarInset>
-            <SiteHeader />
-            <div className="flex-1 overflow-auto p-6">
-              <CreatorProfilePage username={username} />
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
-      </ErrorBoundary>
-    </AuthGuard>
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center space-y-4">
+        <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <p className="text-muted-foreground">Redirecting to enhanced analytics dashboard...</p>
+      </div>
+    </div>
   )
 }

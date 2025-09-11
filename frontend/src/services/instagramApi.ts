@@ -128,7 +128,8 @@ export interface InstagramProfile {
   biography: string
   external_url: string
   profile_pic_url: string
-  profile_pic_url_hd: string
+  cdn_url_512?: string | null // CDN 512px profile picture URL (preferred)
+  profile_pic_url_hd?: string
   category?: string // Original Instagram category
   
   // Statistics (ALL from Decodo)
@@ -197,6 +198,7 @@ export interface InstagramPost {
   is_carousel?: boolean
   carousel_media_count?: number
   display_url: string
+  cdn_url_512?: string | null // CDN 512px thumbnail URL (preferred)
   video_url?: string
   caption: string
   hashtags: string[]
@@ -321,11 +323,12 @@ export interface SimpleFlowResponse {
     is_verified: boolean;
 
     // CDN URLs (following.ae) - NEVER Instagram direct URLs
-    profile_pic_url: string;        // CDN 256px (primary)
-    profile_pic_url_hd: string;     // CDN 512px (HD)
-    cdn_urls: {
-      avatar_256: string;           // CDN avatar URLs
-      avatar_512: string;
+    profile_pic_url: string;        // Original/fallback profile picture URL
+    cdn_url_512?: string | null;    // CDN 512px profile picture URL (preferred)
+    profile_pic_url_hd?: string;    // Legacy HD URL (deprecated)
+    cdn_urls?: {
+      avatar_256?: string;          // CDN avatar URLs
+      avatar_512?: string;
     };
 
     // Posts with AI Analysis + CDN URLs
@@ -490,7 +493,8 @@ export interface UnlockedProfile {
   username: string
   full_name: string
   profile_pic_url: string
-  profile_pic_url_hd: string
+  cdn_url_512?: string | null // CDN 512px profile picture URL (preferred)
+  profile_pic_url_hd?: string
   followers_count: number
   following_count: number
   posts_count: number
@@ -842,10 +846,8 @@ export class InstagramApiService {
    * Uses new profile_images array for HD images when available
    */
   getProfileImage(profile: InstagramProfile): string {
-    const images = profile.profile_images || []
-    const hdImage = images.find(img => img.type === 'hd')
-    const standardImage = images.find(img => img.type === 'standard')
-    const imageUrl = hdImage?.url || standardImage?.url || profile.profile_pic_url
+    // Prefer CDN URL, then fall back to original profile picture
+    const imageUrl = profile.cdn_url_512 || profile.profile_pic_url
     if (!imageUrl) return ''
     return imageUrl
   }
@@ -854,8 +856,8 @@ export class InstagramApiService {
    * Uses new post_images array
    */
   getPostImage(post: InstagramPost): string {
-    const images = post.post_images || []
-    const imageUrl = images[0]?.url || post.display_url
+    // Prefer CDN URL, then fall back to display URL
+    const imageUrl = post.cdn_url_512 || post.display_url
     if (!imageUrl) return ''
     return imageUrl
   }

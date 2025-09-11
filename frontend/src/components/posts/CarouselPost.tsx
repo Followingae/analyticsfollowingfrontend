@@ -264,7 +264,7 @@ function SinglePostView({ post, className }: CarouselPostProps) {
             <div className="relative w-full h-full">
               <video
                 controls
-                poster={proxyInstagramUrl(post.display_url)}
+                poster={proxyInstagramUrl(post.cdn_url_512 || post.display_url)}
                 className="w-full h-full object-cover"
               >
                 <source src={post.video_url} type="video/mp4" />
@@ -276,7 +276,7 @@ function SinglePostView({ post, className }: CarouselPostProps) {
             </div>
           ) : (
             <InstagramImage
-              src={post.display_url}
+              src={post.cdn_url_512 || post.display_url}
               alt={post.caption?.substring(0, 100) || `Post by ${post.shortcode}`}
               className="w-full h-full object-cover"
             />

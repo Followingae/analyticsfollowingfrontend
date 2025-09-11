@@ -8,16 +8,9 @@ import type { ProfileHeader } from "@/types/creatorTypes"
 
 interface ProfileHeaderCardProps {
   profileHeader: ProfileHeader
-  cdnMedia?: {
-    avatar: {
-      small: string
-      large: string
-      available: boolean
-    }
-  }
 }
 
-export function ProfileHeaderCard({ profileHeader, cdnMedia }: ProfileHeaderCardProps) {
+export function ProfileHeaderCard({ profileHeader }: ProfileHeaderCardProps) {
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
@@ -43,7 +36,7 @@ export function ProfileHeaderCard({ profileHeader, cdnMedia }: ProfileHeaderCard
           <div className="flex-shrink-0 flex justify-center md:justify-start">
             <div className="relative">
               <ProfileAvatar
-                src={cdnMedia?.avatar?.available ? cdnMedia.avatar.large : profileHeader.profile_pic_url}
+                src={profileHeader.profile_pic_url || '/placeholder-avatar.webp'}
                 alt={`${profileHeader.full_name} profile picture`}
                 fallbackText={profileHeader.full_name}
                 size="xl"

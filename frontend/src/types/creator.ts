@@ -217,8 +217,9 @@ export interface CreatorProfile {
   is_business_account: boolean;
   business_category_name?: string;
   engagement_rate: number;
-  profile_pic_url: string | null; // CDN 256px avatar
-  profile_pic_url_hd: string | null; // CDN 512px HD avatar
+  profile_pic_url: string | null; // Original/fallback profile picture URL
+  cdn_url_512: string | null; // CDN 512px profile picture URL (preferred)
+  profile_pic_url_hd?: string | null; // Legacy HD URL (deprecated)
   cdn_urls?: {
     avatar_256?: string;
     avatar_512?: string;
@@ -259,7 +260,9 @@ export interface CreatorPost {
     video_url?: string;
   };
   // CDN URLs for posts
-  display_url: string | null; // CDN 256px thumbnail
+  thumbnail_url: string | null; // Original/fallback thumbnail URL
+  cdn_url_512: string | null; // CDN 512px thumbnail URL (preferred)
+  display_url?: string | null; // Legacy display URL (deprecated)
   cdn_urls?: {
     256?: string; // 256px thumbnail
     512?: string; // 512px thumbnail

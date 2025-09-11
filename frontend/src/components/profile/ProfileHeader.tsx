@@ -47,15 +47,10 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
           {/* Profile Picture */}
           <div className="relative flex-shrink-0">
             <ProfileAvatar
-              profile={{
-                id: profile.id,
-                username: profile.username,
-                full_name: profile.full_name,
-                profile_pic_url: profile.profile_pic_url,
-                profile_pic_url_hd: profile.profile_pic_url_hd,
-                cdn_urls: profile.cdn_urls
-              }}
-              size="large"
+              src={profile.profile_pic_url || '/placeholder-avatar.webp'}
+              alt={profile.username}
+              fallbackText={profile.username}
+              size="xl"
               className="w-24 h-24 md:w-30 md:h-30 border-4 border-white"
             />
             {profile.is_verified && (

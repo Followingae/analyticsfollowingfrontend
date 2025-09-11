@@ -1,6 +1,6 @@
 // API Response Interfaces - Based on COMPREHENSIVE_FRONTEND_INTEGRATION_GUIDE.md
 
-// 1. Profile Search/Analysis Response
+// 1. Profile Search/Analysis Response (Updated for new API structure)
 export interface ProfileSearchResponse {
   success: boolean
   profile: {
@@ -12,9 +12,14 @@ export interface ProfileSearchResponse {
     posts_count: number
     is_verified: boolean
     profile_pic_url: string | null
-    ai_analysis?: {
+    ai_analysis: {
+      available: boolean  // NEW: indicates if AI data exists
       primary_content_type: string | null
+      content_distribution: Record<string, number> | null
       avg_sentiment_score: number | null
+      language_distribution: Record<string, number> | null
+      content_quality_score: number | null
+      profile_analyzed_at: string | null
     }
   }
   message: string

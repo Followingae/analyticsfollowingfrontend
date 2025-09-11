@@ -68,11 +68,20 @@ export function RecentPostsPreview({ recentPosts, username }: RecentPostsPreview
               {/* Post Thumbnail */}
               <div className="aspect-square relative overflow-hidden bg-muted">
                 <img
-                  src={post.thumbnail_url}
+                  src={post.cdn_url_512 || post.thumbnail_url}
                   alt={`Post by ${username}`}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
+                    
+                    // If CDN URL fails, try original thumbnail
+                    if (post.cdn_url_512 && target.src === post.cdn_url_512 && !target.dataset.triedOriginal) {
+                      target.dataset.triedOriginal = 'true'
+                      target.src = post.thumbnail_url
+                      return
+                    }
+                    
+                    // Final fallback to placeholder
                     target.src = `https://via.placeholder.com/300x300/f3f4f6/9ca3af?text=${username}`
                   }}
                 />

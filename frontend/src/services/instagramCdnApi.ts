@@ -18,8 +18,9 @@ export interface InstagramProfileCDN {
   is_private?: boolean
   is_business?: boolean
   // CDN Profile Picture URLs
-  profile_pic_url: string | null // 256px avatar
-  profile_pic_url_hd: string | null // 512px HD avatar
+  profile_pic_url: string | null // Original/fallback profile picture URL
+  cdn_url_512: string | null // CDN 512px profile picture URL (preferred)
+  profile_pic_url_hd?: string | null // Legacy HD URL (deprecated)
   cdn_urls?: {
     avatar_256?: string
     avatar_512?: string
@@ -36,7 +37,9 @@ export interface InstagramPostCDN {
   likes_count?: number
   comments_count?: number
   // CDN Thumbnail URLs
-  display_url: string | null // Primary 256px thumbnail
+  thumbnail_url: string | null // Original/fallback thumbnail URL
+  cdn_url_512: string | null // CDN 512px thumbnail URL (preferred)
+  display_url?: string | null // Legacy display URL (deprecated)
   cdn_urls?: {
     256?: string // 256px thumbnail
     512?: string // 512px thumbnail
@@ -116,41 +119,31 @@ class InstagramCdnApiService {
   /**
    * Get profile picture URL with CDN fallback
    */
-  getProfilePictureUrl(profile: InstagramProfileCDN, size: '256' | '512' = '256'): string {
-    if (size === '512') {
-      return profile.profile_pic_url_hd || profile.cdn_urls?.avatar_512 || '/placeholder-avatar.png'
-    } else {
-      return profile.profile_pic_url || profile.cdn_urls?.avatar_256 || '/placeholder-avatar.png'
-    }
+  getProfilePictureUrl(profile: InstagramProfileCDN, size: '256' | '512' = '512'): string {
+    // Prefer cdn_url_512 for all sizes, with fallback to original
+    return profile.cdn_url_512 || profile.profile_pic_url || '/placeholder-avatar.png'
   }
 
   /**
    * Get post thumbnail URL with CDN fallback
    */
-  getPostThumbnailUrl(post: InstagramPostCDN, size: '256' | '512' = '256'): string {
-    if (!post.cdn_available) {
-      return '/placeholder-post.png'
-    }
-
-    if (size === '512') {
-      return post.cdn_urls?.['512'] || post.display_url || '/placeholder-post.png'
-    } else {
-      return post.display_url || post.cdn_urls?.['256'] || '/placeholder-post.png'
-    }
+  getPostThumbnailUrl(post: InstagramPostCDN, size: '256' | '512' = '512'): string {
+    // Prefer cdn_url_512 for all sizes, with fallback to original
+    return post.cdn_url_512 || post.thumbnail_url || '/placeholder-post.png'
   }
 
   /**
    * Check if profile has valid CDN images
    */
   hasValidCdnImages(profile: InstagramProfileCDN): boolean {
-    return !!(profile.profile_pic_url || profile.profile_pic_url_hd)
+    return !!(profile.cdn_url_512 || profile.profile_pic_url)
   }
 
   /**
    * Check if post has valid CDN images  
    */
   postHasValidCdnImages(post: InstagramPostCDN): boolean {
-    return post.cdn_available && !!(post.display_url || post.cdn_urls?.['256'] || post.cdn_urls?.['512'])
+    return !!(post.cdn_url_512 || post.thumbnail_url)
   }
 }
 

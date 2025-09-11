@@ -503,7 +503,7 @@ export default function CreatorsPage() {
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                router.push(`/analytics/${creator.username}?fromDashboard=true`);
+                router.push(`/creator-analytics/${creator.username}`);
               }}
             >
               <BarChart3 className="h-4 w-4 mr-2" />
