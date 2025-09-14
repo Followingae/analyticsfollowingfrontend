@@ -21,12 +21,12 @@ interface UserAvatarProps {
   fallbackText?: string
   showBoringAvatar?: boolean
 }
-export function UserAvatar({ 
-  user, 
-  size = 40, 
+export function UserAvatar({
+  user,
+  size = 40,
   className,
   fallbackText,
-  showBoringAvatar = true 
+  showBoringAvatar = true
 }: UserAvatarProps) {
   // Get user name for boring-avatars seed
   const getUserName = () => {
@@ -66,7 +66,7 @@ export function UserAvatar({
       </Avatar>
     )
   }
-  // Use boring-avatars if enabled
+  // Use boring-avatars
   if (showBoringAvatar) {
     const avatarConfig = user?.avatar_config
     return (
@@ -75,7 +75,7 @@ export function UserAvatar({
           name={avatarConfig?.seed || userName}
           size={size}
           variant="beam"
-          colors={avatarConfig?.colors || ["#d3ff02", "hsl(var(--primary))", "#c9a7f9", "#0a1221"]}
+          colors={["#d3ff02", "hsl(var(--primary))", "#c9a7f9", "#0a1221"]}
         />
       </div>
     )

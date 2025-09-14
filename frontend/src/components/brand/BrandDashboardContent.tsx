@@ -4,11 +4,12 @@ import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { useDashboardData } from "@/hooks/useDashboardData"
+import { useUserStore, useSubscriptionData, useTeamData } from "@/stores/userStore"
 import { ChartBarInteractive } from "@/components/chart-bar-interactive"
 import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
 import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
 import { MetricCard } from "@/components/analytics-cards"
-import { DashboardSkeleton } from "@/components/ui/enhanced-skeleton"
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { UserAvatar } from "@/components/UserAvatar"
 import { SmartDiscovery } from "@/components/smart-discovery"
@@ -20,10 +21,10 @@ import {
 } from "lucide-react"
 
 export function BrandDashboardContent() {
-  const { user, isPremium, isAdmin } = useEnhancedAuth()
+  const { isPremium, isAdmin } = useEnhancedAuth()
   const router = useRouter()
   
-  // Use standard dashboard data hook
+  // Use both dashboard data and user store for comprehensive data
   const {
     teamsOverview,
     teamsLoading,
@@ -33,6 +34,11 @@ export function BrandDashboardContent() {
     campaignsLoading,
     isLoading
   } = useDashboardData()
+  
+  // Get all user data from UserStore (including avatar) for consistency
+  const subscription = useSubscriptionData()
+  const team = useTeamData()
+  const { isLoading: userStoreLoading, user } = useUserStore()
   
   // Memoized user display data to prevent flash and avoid hardcoded values
   const userDisplayData = useMemo(() => {
@@ -116,18 +122,36 @@ export function BrandDashboardContent() {
     },
     {
       title: "Total Creators",
-      value: profilesLoading ? "Loading..." : unlockedProfilesCount.toString(),
+      value: (() => {
+        if (profilesLoading) return "Loading..."
+        
+        
+        return unlockedProfilesCount.toString()
+      })(),
       change: undefined,
       icon: <Users className="h-4 w-4 text-primary" />
     },
     {
       title: "Your Plan",
       value: (() => {
-        if (teamsLoading) return "Loading..."
+        if (userStoreLoading || teamsLoading) return "Loading..."
         
-        const tier = teamsOverview?.team_info?.subscription_tier
+        // Priority order: team subscription > individual subscription > teams overview fallback
+        let tier = null
         
-
+        // First try: team subscription tier (most reliable)
+        if (team?.subscription_tier) {
+          tier = team.subscription_tier
+        }
+        // Second try: individual subscription tier
+        else if (subscription?.tier) {
+          tier = subscription.tier
+        }
+        // Fallback: teams overview data
+        else if (teamsOverview?.team_info?.subscription_tier) {
+          tier = teamsOverview.team_info.subscription_tier
+        }
+        
         
         // Map subscription tiers to display names
         switch (tier) {
@@ -137,6 +161,8 @@ export function BrandDashboardContent() {
             return 'Standard'
           case 'premium':
             return 'Premium'
+          case 'enterprise':
+            return 'Enterprise'
           default:
             return tier || 'Loading...'
         }
@@ -253,7 +279,7 @@ export function BrandDashboardContent() {
           <div className={`col-span-12 transition-all duration-500 ease-out ${
             showCampaignStats ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}>
-            <div className="h-[320px]">
+            <div className="w-full">
               <ChartBarInteractive />
             </div>
           </div>

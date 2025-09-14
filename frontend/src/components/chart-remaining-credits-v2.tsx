@@ -26,7 +26,7 @@ const chartConfig = {
   },
   safari: {
     label: "Remaining Credits",
-    color: "hsl(var(--chart-2))",
+    color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig
 
@@ -108,7 +108,7 @@ export function ChartRemainingCreditsV2() {
   }, [])
 
   const chartData = useMemo(() => [
-    { browser: "safari", visitors: creditsData?.balance || 0, fill: "hsl(var(--chart-2))" }
+    { browser: "safari", visitors: creditsData?.balance || 0, fill: "oklch(0.4718 0.2853 280.0726)" }
   ], [creditsData?.balance])
 
   // Calculate percentage for the radial chart
@@ -162,7 +162,12 @@ export function ChartRemainingCreditsV2() {
               className="first:fill-muted last:fill-background"
               polarRadius={[86, 74]}
             />
-            <RadialBar dataKey="visitors" background cornerRadius={10} />
+            <RadialBar 
+              dataKey="visitors" 
+              background={{ fill: "hsl(var(--muted))" }} 
+              cornerRadius={10} 
+              fill="oklch(0.4718 0.2853 280.0726)" 
+            />
             <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
               <Label
                 content={({ viewBox }) => {

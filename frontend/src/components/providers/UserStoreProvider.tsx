@@ -9,9 +9,10 @@ import { useUserStore } from '@/stores/userStore'
  * Loads user data ONCE after authentication is confirmed
  */
 export function UserStoreProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading: authLoading } = useEnhancedAuth()
-  const { loadUser, clearUser, isLoading: storeLoading } = useUserStore()
+  const { isAuthenticated, isLoading: authLoading, refreshUser } = useEnhancedAuth()
+  const { loadUser, clearUser, isLoading: storeLoading, user: storeUser } = useUserStore()
   const hasLoadedRef = useRef(false)
+  const lastStoreUserRef = useRef(null)
 
   useEffect(() => {
     // Wait for auth context to finish loading
@@ -27,6 +28,9 @@ export function UserStoreProvider({ children }: { children: React.ReactNode }) {
       clearUser()
     }
   }, [isAuthenticated, authLoading, storeLoading]) // FIXED: Removed function dependencies
+
+  // REMOVED: No longer need to trigger AuthContext refresh
+  // AuthContext now uses dashboard API directly and stays in sync
 
   return <>{children}</>
 }

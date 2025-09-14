@@ -58,7 +58,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(newUser)
   }
   
-  const [isLoading, setIsLoading] = useState(false) // HOTFIX: Start with false to prevent infinite loading
+  const [isLoading, setIsLoading] = useState(true) // Start with true to prevent flash of unauthenticated state
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
 
   // Hydration effect - restore user state and sync with TokenManager
@@ -101,10 +101,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (error) {
 
+    } finally {
+      // Always complete hydration and stop loading
+      setIsHydrated(true)
+      setIsLoading(false)
     }
-    
-
-    setIsHydrated(true)
   }, [])
 
   // Emergency timeout to prevent infinite loading
@@ -199,18 +200,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
           debugSetUser(storedUser, 'init-auth-restore')
         }
         
-        const lastUpdated = localStorage.getItem('user_last_updated')
-        const oneHourAgo = Date.now() - (60 * 60 * 1000)
-        const isStale = !lastUpdated || parseInt(lastUpdated) < oneHourAgo
+        // CRITICAL FIX: Always refresh user data on page load to ensure role sync
+        // The backend team confirmed this is needed for role synchronization
+        console.log('🔄 AuthContext: Refreshing user data to sync with backend role')
         
-        if (isStale) {
-
-          try {
-            await refreshUser()
-            localStorage.setItem('user_last_updated', Date.now().toString())
-          } catch (error) {
-
-          }
+        try {
+          await refreshUser()
+          localStorage.setItem('user_last_updated', Date.now().toString())
+        } catch (error) {
+          console.error('❌ AuthContext: Failed to refresh user on init:', error)
         }
         
         // FIXED: Don't load dashboard stats during initialization to prevent duplicate calls
@@ -445,65 +443,82 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshUser = async () => {
     try {
-      // Try to get complete user profile from settings API first (has avatar data)
-
+      console.log('🔄 AuthContext.refreshUser: Getting complete user data from dashboard API')
       
-      let result;
-      try {
-        // Import settingsApiService dynamically to get complete profile data
-        const { settingsApiService } = await import('@/services/settingsApi')
-        const settingsResult = await settingsApiService.getProfile()
-        
-        if (settingsResult.success && settingsResult.data) {
-
-          result = settingsResult
-        } else {
-
-          result = await authService.getCurrentUser()
+      // CRITICAL FIX: Use dashboard API to get complete user data including role
+      // This is the same API UserStore uses, ensuring consistency
+      const { fetchWithAuth } = await import('@/utils/apiInterceptor')
+      
+      const response = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/dashboard`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
         }
-      } catch (error) {
+      )
 
-        result = await authService.getCurrentUser()
+      if (!response.ok) {
+        throw new Error(`Dashboard API failed: ${response.status}`)
       }
+
+      const dashboardData = await response.json()
       
-      if (result.success && result.data) {
+      if (dashboardData.user) {
+        console.log('✅ AuthContext.refreshUser: Got complete user data with role:', {
+          role: dashboardData.user.role,
+          email: dashboardData.user.email
+        })
         
         // Preserve local user data if backend returns null/empty values
         const currentUser = authService.getStoredUser()
-        const mergedUserData = { ...result.data }
+        const mergedUserData = { ...dashboardData.user }
         
         if (currentUser) {
           // Preserve avatar_config if backend doesn't have it
-          if (!result.data.avatar_config && currentUser.avatar_config) {
-
+          if (!dashboardData.user.avatar_config && currentUser.avatar_config) {
+            console.log('🔄 AuthContext: Preserving avatar_config from current user')
             mergedUserData.avatar_config = currentUser.avatar_config
           }
           
-          // Debug avatar handling
-          
           // Preserve other fields if backend returns null/empty
-          if (!result.data.company && currentUser.company) {
+          if (!dashboardData.user.company && currentUser.company) {
             mergedUserData.company = currentUser.company
           }
-          if (!result.data.full_name && currentUser.full_name) {
+          if (!dashboardData.user.full_name && currentUser.full_name) {
             mergedUserData.full_name = currentUser.full_name
           }
-          if (!result.data.first_name && currentUser.first_name) {
+          if (!dashboardData.user.first_name && currentUser.first_name) {
             mergedUserData.first_name = currentUser.first_name
           }
-          if (!result.data.last_name && currentUser.last_name) {
+          if (!dashboardData.user.last_name && currentUser.last_name) {
             mergedUserData.last_name = currentUser.last_name
           }
         }
         
-
+        console.log('🔄 AuthContext: Setting user with complete data including role:', mergedUserData.role)
         setUser(mergedUserData)
         localStorage.setItem('user_data', JSON.stringify(mergedUserData))
+        localStorage.setItem('user_last_updated', Date.now().toString())
       } else {
-
+        console.error('❌ AuthContext.refreshUser: No user data in dashboard response')
       }
     } catch (error) {
-
+      console.error('❌ AuthContext.refreshUser: Failed to get dashboard data:', error)
+      
+      // Fallback to basic profile API if dashboard API fails
+      try {
+        const result = await authService.getCurrentUser()
+        if (result.success && result.data) {
+          console.log('🔄 AuthContext: Fallback to basic profile data (may not have role)')
+          setUser(result.data)
+          localStorage.setItem('user_data', JSON.stringify(result.data))
+        }
+      } catch (fallbackError) {
+        console.error('❌ AuthContext.refreshUser: Fallback also failed:', fallbackError)
+      }
     }
   }
 

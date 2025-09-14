@@ -343,34 +343,63 @@ export default function SettingsPage() {
 
   const handleAvatarConfigChange = async (config: { variant: string; colorScheme: string; colors: string[]; seed?: string }) => {
     try {
+      console.log('🎨 AVATAR CHANGE: Starting avatar change with config:', config)
 
-      
-      // Save to backend first
+      // Update local state immediately
+      setAvatarConfig(config)
+      console.log('🎨 AVATAR CHANGE: Updated local avatarConfig state')
+
+      // Save to backend
       const updatedProfileData = {
         ...profileData,
         avatar_config: config
       }
-      
+      console.log('🎨 AVATAR CHANGE: Calling updateProfile with:', updatedProfileData)
+
       const success = await updateProfile(updatedProfileData)
-      
+      console.log('🎨 AVATAR CHANGE: updateProfile result:', success)
+
       if (success) {
         toast.success('Avatar updated successfully')
+        console.log('🎨 AVATAR CHANGE: Success! Calling refreshUser()')
 
-        
-        // Force backend update again to overwrite any issues
-        setTimeout(async () => {
+        // Refresh user data to sync all components
+        await refreshUser()
+        console.log('🎨 AVATAR CHANGE: refreshUser() completed')
 
-          await updateProfile(updatedProfileData)
-        }, 100)
+        // Also trigger user store refresh to sync dashboard components
+        const userStoreModule = await import('@/stores/userStore')
+        const { loadUser: storeLoadUser } = userStoreModule.useUserStore.getState()
+        await storeLoadUser()
+        console.log('🎨 AVATAR CHANGE: userStore.loadUser() completed')
+
+        // Small delay to ensure all components update
+        await new Promise(resolve => setTimeout(resolve, 100))
         
         // Update all local state
         setAvatarConfig(config)
         setProfileData(updatedProfileData)
         updateUserState({ avatar_config: config })
         
-        // DON'T refresh user data - it's reverting our changes!
-        // The backend /auth/me is still returning old data despite successful saves
-
+        // Also update UserStore to ensure dashboard persistence
+        const { useUserStore } = await import('@/stores/userStore')
+        const { updateUser, loadUser } = useUserStore.getState()
+        if (updateUser) {
+          updateUser({ avatar_config: config })
+        }
+        
+        // Force UserStore refresh with cache-busting after a short delay
+        setTimeout(async () => {
+          // Clear any cached data first
+          const { requestCache } = await import('@/utils/requestCache')
+          requestCache.clear()
+          
+          // Now load fresh data with cache busting
+          loadUser(true)
+        }, 500)
+        
+        // DON'T refresh AuthContext user data immediately - it may revert our changes!
+        // But UserStore refresh should work since both use dashboard API
         
       } else {
         toast.error('Failed to save avatar changes')

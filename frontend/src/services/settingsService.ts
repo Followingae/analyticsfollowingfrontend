@@ -54,10 +54,6 @@ class SettingsService {
 
   // Get current profile settings
   async getProfile(): Promise<{ success: boolean; data?: ProfileUpdateResponse; error?: string }> {
-    if (!this.token) {
-      return { success: false, error: 'No authentication token' }
-    }
-
     try {
 
       
@@ -85,14 +81,7 @@ class SettingsService {
 
   // Update profile settings
   async updateProfile(profileData: ProfileUpdateRequest): Promise<{ success: boolean; data?: ProfileUpdateResponse; error?: string }> {
-    if (!this.token) {
-      return { success: false, error: 'No authentication token' }
-    }
-
     try {
-
-
-      
       const response = await fetchWithAuth(`${this.baseURL}/api/v1/settings/profile`, {
         method: 'PUT',
         headers: {
@@ -119,10 +108,6 @@ class SettingsService {
 
   // Get complete settings overview
   async getSettingsOverview(): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!this.token) {
-      return { success: false, error: 'No authentication token' }
-    }
-
     try {
 
       

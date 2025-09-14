@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { MagnetLines } from '@/components/ui/magnet-lines';
 
 // --- HELPER COMPONENTS (ICONS) ---
 
@@ -33,7 +32,7 @@ interface SignUpPageProps {
 // --- SUB-COMPONENTS ---
 
 const GlassInputWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="rounded-2xl border border-border bg-foreground/5 backdrop-blur-sm transition-colors focus-within:border-violet-400/70 focus-within:bg-violet-500/10">
+  <div className="rounded-2xl border border-border bg-foreground/5 backdrop-blur-sm transition-colors focus-within:border-foreground/50 focus-within:bg-foreground/10">
     {children}
   </div>
 );
@@ -55,7 +54,7 @@ const TestimonialCard = ({ testimonial, delay }: { testimonial: Testimonial, del
 // --- MAIN COMPONENT ---
 
 export const SignUpPage: React.FC<SignUpPageProps> = ({
-  title = <span className="font-light text-foreground tracking-tighter">Join Us</span>,
+  title = "Join Analytics Following",
   description = "Create your account and start your analytics journey with us",
   testimonials = [],
   onSignUp,
@@ -119,20 +118,20 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
                 <input type="checkbox" name="terms" className="custom-checkbox mt-0.5" required />
                 <span className="text-foreground/90">
                   I agree to the{' '}
-                  <a href="#" className="text-violet-400 hover:underline transition-colors">Terms of Service</a>
+                  <a href="#" className="text-muted-foreground hover:underline transition-colors">Terms of Service</a>
                   {' '}and{' '}
-                  <a href="#" className="text-violet-400 hover:underline transition-colors">Privacy Policy</a>
+                  <a href="#" className="text-muted-foreground hover:underline transition-colors">Privacy Policy</a>
                 </span>
               </div>
 
-              <button type="submit" className="animate-element animate-delay-800 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
+              <button type="submit" className="animate-element animate-delay-800 w-full rounded-2xl bg-foreground py-4 font-medium text-background hover:bg-foreground/90 transition-colors">
                 Create Account
               </button>
             </form>
 
 
             <p className="animate-element animate-delay-900 text-center text-sm text-muted-foreground">
-              Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); onSignInRedirect?.(); }} className="text-violet-400 hover:underline transition-colors">Sign In</a>
+              Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); onSignInRedirect?.(); }} className="text-foreground hover:underline transition-colors">Sign In</a>
             </p>
           </div>
         </div>
@@ -140,18 +139,17 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
 
       {/* Right column: magnet lines animation + testimonials */}
       <section className="hidden md:block flex-1 relative p-16">
-        <div className="animate-slide-right animate-delay-300 absolute inset-16 rounded-3xl flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 overflow-hidden p-8">
-          <MagnetLines
-            rows={14}
-            columns={10}
-            containerSize="100%"
-            lineColor="#8b5cf6"
-            lineWidth="8px"
-            lineHeight="45px"
-            baseAngle={45}
-            className=""
-            style={{ opacity: 1 }}
-          />
+        <div className="animate-slide-right animate-delay-300 absolute inset-16 rounded-3xl flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 overflow-hidden">
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover rounded-3xl"
+          >
+            <source src="/abstract-green-gradient-glass-background-following-influencers-platform.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
         </div>
         
         <div className="absolute bottom-6 right-6">

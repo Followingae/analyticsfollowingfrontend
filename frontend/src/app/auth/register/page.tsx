@@ -59,7 +59,7 @@ export default function RegisterPage() {
       title={
         <span className="font-light text-foreground tracking-tighter">
           Join{' '}
-          <span className="font-semibold bg-gradient-to-r from-violet-400 to-purple-500 bg-clip-text text-transparent">
+          <span className="font-semibold">
             Analytics Following
           </span>
         </span>

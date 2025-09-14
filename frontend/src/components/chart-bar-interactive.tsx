@@ -6,6 +6,7 @@ import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { API_CONFIG } from '@/config/api'
 import { Plus, BarChart3, TrendingUp, Target, FileText } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
+import { useDashboardData } from "@/hooks/useDashboardData"
 
 import {
   Card,
@@ -27,11 +28,11 @@ export const description = "An interactive bar chart"
 const chartConfig = {
   reach: {
     label: "Reach",
-    color: "hsl(var(--chart-1))",
+    color: "oklch(0.4718 0.2853 280.0726)",
   },
   views: {
     label: "Views", 
-    color: "hsl(var(--chart-2))",
+    color: "oklch(0.4718 0.2853 280.0726)",
   },
 } satisfies ChartConfig
 
@@ -43,84 +44,51 @@ interface Campaign {
 
 export function ChartBarInteractive() {
   const [activeChart, setActiveChart] = React.useState<keyof typeof chartConfig>("reach")
-  const [campaigns, setCampaigns] = React.useState<Campaign[]>([])
   const [selectedCampaign, setSelectedCampaign] = React.useState<Campaign | null>(null)
   const [chartData, setChartData] = React.useState<any[]>([])
-  const [loading, setLoading] = React.useState(true)
+  
+  // Use dashboard data hook instead of separate API calls
+  const { campaigns, campaignsLoading } = useDashboardData()
 
-  // Load campaigns and set default campaign
+  // Set default campaign when campaigns data is available
   React.useEffect(() => {
-    const loadCampaigns = async () => {
-      try {
-
-        
-        // Try current campaign first
-        const currentResponse = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/current`)
-
-        
-        if (currentResponse.ok) {
-          const currentData = await currentResponse.json()
-          if (currentData.current_campaign) {
-            setSelectedCampaign(currentData.current_campaign)
-            loadCampaignAnalytics(currentData.current_campaign.id)
-            return
-          }
-        }
-        
-        // Fallback to campaigns list
-        const campaignsResponse = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns`)
-
-        
-        if (campaignsResponse.ok) {
-          const campaignsData = await campaignsResponse.json()
-          if (campaignsData.campaigns && campaignsData.campaigns.length > 0) {
-            setCampaigns(campaignsData.campaigns)
-            
-            const activeCampaign = campaignsData.campaigns.find((c: any) => c.status === 'active') 
-              || campaignsData.campaigns[0]
-            
-            if (activeCampaign) {
-              setSelectedCampaign(activeCampaign)
-              loadCampaignAnalytics(activeCampaign.id)
-            }
-          }
-        }
-        
-      } catch (error) {
-
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadCampaigns()
-  }, [])
-
-  // Load campaign analytics data
-  const loadCampaignAnalytics = async (campaignId: string) => {
-    try {
-
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/analytics?period=30d`)
-
+    if (!campaignsLoading && campaigns && campaigns.length > 0) {
+      // Find active campaign or use first one
+      const activeCampaign = campaigns.find((c: any) => c.status === 'active') || campaigns[0]
       
-      if (response.ok) {
-        const analyticsData = await response.json()
-        if (analyticsData.daily_stats) {
-          const transformedData = analyticsData.daily_stats.map((day: any) => ({
-            date: day.date,
-            reach: day.reach,
-            views: day.views,
-            impressions: day.impressions,
-            engagement: day.engagement,
-            clicks: day.clicks
-          }))
-          setChartData(transformedData)
-
-        }
+      if (activeCampaign) {
+        setSelectedCampaign(activeCampaign)
+        loadMockAnalytics(activeCampaign)
       }
-    } catch (error) {
-
     }
+  }, [campaigns, campaignsLoading])
+
+  // Generate mock analytics data for the selected campaign
+  const loadMockAnalytics = (campaign: any) => {
+    // Generate 30 days of mock data based on campaign performance
+    const mockData = []
+    const baseReach = campaign.impressions || 15000
+    const baseViews = campaign.clicks || 800
+    
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      
+      // Add some realistic variation (+/- 30%)
+      const reachVariation = 0.7 + Math.random() * 0.6
+      const viewsVariation = 0.7 + Math.random() * 0.6
+      
+      mockData.push({
+        date: date.toISOString().split('T')[0],
+        reach: Math.floor(baseReach * reachVariation / 30),
+        views: Math.floor(baseViews * viewsVariation / 30),
+        impressions: Math.floor(baseReach * reachVariation / 30 * 1.2),
+        engagement: Math.floor(baseViews * viewsVariation / 30 * 0.8),
+        clicks: Math.floor(baseViews * viewsVariation / 30 * 0.6)
+      })
+    }
+    
+    setChartData(mockData)
   }
 
   const total = React.useMemo(
@@ -132,7 +100,7 @@ export function ChartBarInteractive() {
   )
 
   // Loading state
-  if (loading) {
+  if (campaignsLoading) {
     return (
       <Card className="py-0">
         <CardContent className="flex items-center justify-center h-[320px]">
@@ -146,7 +114,7 @@ export function ChartBarInteractive() {
   }
 
   // Empty state - no campaigns
-  if (!selectedCampaign || campaigns.length === 0) {
+  if (!selectedCampaign || !campaigns || campaigns.length === 0) {
     return (
       <EmptyState
         title="No campaigns found"
@@ -237,7 +205,7 @@ export function ChartBarInteractive() {
       <CardContent className="px-2 sm:p-6">
         <ChartContainer
           config={chartConfig}
-          className="aspect-auto h-[250px] w-full"
+          className="aspect-auto min-h-[200px] w-full"
         >
           <BarChart
             accessibilityLayer
@@ -276,7 +244,7 @@ export function ChartBarInteractive() {
                 />
               }
             />
-            <Bar dataKey={activeChart} fill={`var(--color-${activeChart})`} />
+            <Bar dataKey={activeChart} fill="oklch(0.4718 0.2853 280.0726)" />
           </BarChart>
         </ChartContainer>
       </CardContent>

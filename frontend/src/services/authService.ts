@@ -471,11 +471,10 @@ class AuthService {
         return { success: false, error: data.error || data.detail || 'Failed to fetch user profile' }
       }
     } catch (error) {
-      // If fetchWithAuth throws, it means all retry attempts failed
-      if (error instanceof Error && error.message.includes('Authentication failed')) {
-
-        this.logout()
-      }
+      // FIXED: Don't logout here - let API interceptor handle auth failures
+      // The API interceptor is better positioned to determine if logout is needed
+      console.log('❌ AuthService.getCurrentUser: Error fetching user, but not forcing logout')
+      
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Network error fetching user' 

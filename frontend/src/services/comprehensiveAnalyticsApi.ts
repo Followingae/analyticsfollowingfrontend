@@ -77,10 +77,13 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getEnhancedProfile(username: string): Promise<EnhancedProfileResponse> {
     try {
+      console.log('🔍 Attempting to fetch enhanced profile for username:', username)
+
       // ✅ Use the REAL working endpoint with authentication
       const response = await apiClient.get(`/search/creator/${username}`)
-      
+
       if (!response.ok) {
+        console.warn(`⚠️ Enhanced profile API returned ${response.status} for ${username}`)
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       
@@ -116,7 +119,7 @@ export class ComprehensiveAnalyticsApiService {
         message: 'Profile loaded successfully with real data'
       }
     } catch (error) {
-      console.error('Error fetching enhanced profile:', error)
+      console.error('❌ Error fetching enhanced profile:', error)
       throw error
     }
   }

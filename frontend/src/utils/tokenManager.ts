@@ -30,7 +30,7 @@ class TokenManager {
   // Enhanced session management
   private sessionTimeout?: NodeJS.Timeout
   private lastActivity: number = Date.now()
-  private readonly SESSION_TIMEOUT = 30 * 60 * 1000 // 30 minutes
+  private readonly SESSION_TIMEOUT = 24 * 60 * 60 * 1000 // 24 hours (much longer to prevent logout on refresh)
   private readonly ACTIVITY_CHECK_INTERVAL = 60 * 1000 // 1 minute
   private readonly TOKEN_REFRESH_BUFFER = 5 * 60 * 1000 // 5 minutes before expiry
   
@@ -411,19 +411,23 @@ class TokenManager {
   private handleSessionCheck(): void {
     const now = Date.now()
 
-    // Check session timeout
-    if (this.tokenData && now - this.lastActivity > this.SESSION_TIMEOUT) {
-      console.log('🕐 Session timeout - clearing tokens')
-      this.clearAllTokens()
-      return // CRITICAL: Don't schedule another check after clearing tokens
-    }
+    // DISABLED: Session timeout check during navigation debugging
+    // The 24-hour session timeout might be interfering with navigation
+    // if (this.tokenData && now - this.lastActivity > this.SESSION_TIMEOUT) {
+    //   console.log('🕐 Session timeout - clearing tokens (after 24 hours)')
+    //   this.clearAllTokens()
+    //   return // CRITICAL: Don't schedule another check after clearing tokens
+    // }
 
-    // Check token refresh
+    // Only do proactive token refresh, but don't force logout on session timeout
     if (this.tokenData && this.tokenData.expires_at) {
       const timeToExpiry = this.tokenData.expires_at - now
       if (timeToExpiry > 0 && timeToExpiry < this.TOKEN_REFRESH_BUFFER) {
         console.log('🔄 Proactive token refresh - expires soon')
-        this.refreshToken().catch(console.error)
+        this.refreshToken().catch((error) => {
+          console.warn('Token refresh failed during proactive refresh:', error)
+          // Don't clear tokens here - let API calls handle auth failures
+        })
       }
     }
 

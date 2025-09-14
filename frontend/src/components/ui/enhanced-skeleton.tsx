@@ -82,9 +82,8 @@ const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
       }
     }
 
-    const shimmerClass = shimmer 
-      ? 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent' 
-      : ''
+    // Remove problematic shimmer effect that responds to mouse movement
+    const shimmerClass = ''
 
     // Render multiple lines for text variant
     if (variant === 'text' && lines > 1) {
@@ -213,8 +212,8 @@ const SkeletonChart = React.forwardRef<HTMLDivElement, {
             <Skeleton 
               key={i}
               className={`w-8 bg-muted-foreground/20`}
-              style={{ height: `${20 + Math.random() * 60}%` }}
-              speed="slow"
+              style={{ height: `${40 + (i * 10)}%` }}
+              speed="normal"
             />
           ))}
         </div>
@@ -232,8 +231,8 @@ const SkeletonChart = React.forwardRef<HTMLDivElement, {
             <Skeleton 
               key={i}
               className={`flex-1 bg-muted-foreground/20`}
-              style={{ height: `${30 + Math.random() * 50}%` }}
-              speed="slow"
+              style={{ height: `${50 + (i * 8)}%` }}
+              speed="normal"
             />
           ))}
         </div>
@@ -246,7 +245,7 @@ const SkeletonChart = React.forwardRef<HTMLDivElement, {
     ),
     area: (
       <div className="h-48 bg-muted rounded-lg relative overflow-hidden">
-        <Skeleton className="absolute inset-0 bg-gradient-to-t from-muted-foreground/10 to-muted-foreground/30" speed="slow" />
+        <Skeleton className="absolute inset-0 bg-muted-foreground/20" speed="normal" />
       </div>
     )
   }

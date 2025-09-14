@@ -54,14 +54,16 @@ class ApiInterceptor {
       // If 403 (Forbidden), check if this is a permission issue vs auth issue
       if (response.status === 403) {
         const responseText = await response.clone().text()
-        // Only logout if it's clearly an auth issue, not a permission issue
-        if (responseText.includes('token') || responseText.includes('expired') || responseText.includes('invalid')) {
-
+        console.log('⚠️  API Interceptor: 403 Forbidden received, checking if auth-related')
+        
+        // Be VERY conservative - only logout if it's explicitly a token issue
+        if (responseText.includes('token expired') || responseText.includes('invalid token') || responseText.includes('authentication failed')) {
+          console.log('🚪 API Interceptor: 403 is auth-related, logging out')
           authService.logout()
           throw new Error('Authentication expired. Please log in again.')
         } else {
-
-          // Don't logout for permission issues, let the calling code handle it
+          console.log('⚠️  API Interceptor: 403 is permission-related, not auth issue')
+          // Don't logout for general permission issues, let the calling code handle it
         }
       }
       
@@ -85,12 +87,12 @@ class ApiInterceptor {
     this.isRefreshing = true
 
     try {
-
+      console.log('🔄 API Interceptor: Attempting token refresh for 401 error')
       
       const refreshResult = await authService.refreshToken()
       
       if (refreshResult.success && refreshResult.access_token) {
-
+        console.log('✅ API Interceptor: Token refresh successful')
         
         // Process failed queue with new token
         this.processQueue(null)
@@ -99,25 +101,35 @@ class ApiInterceptor {
         const updatedOptions = this.updateAuthHeader(config.options, refreshResult.access_token)
         return fetch(config.url, updatedOptions)
       } else {
-
+        console.log('❌ API Interceptor: Token refresh failed, but NOT forcing logout immediately')
         
-        // Refresh failed, logout user - but don't call logout multiple times
+        // CRITICAL FIX: Don't logout immediately on refresh failure
+        // This could be a temporary network issue or server problem
         this.processQueue(new Error('Token refresh failed'))
-        if (authService.isAuthenticated()) {
-
-          authService.logout()
-        }
-        throw new Error('Authentication failed. Please log in again.')
+        
+        // Instead of logout, throw error to let calling code handle it
+        throw new Error('Authentication token expired. Please refresh the page or log in again.')
       }
     } catch (error) {
-
+      console.log('❌ API Interceptor: Exception during token refresh:', error)
       
       this.processQueue(error as Error)
-      if (authService.isAuthenticated()) {
-
+      
+      // CRITICAL FIX: Only logout if this is definitely an auth failure
+      // Check if the error indicates a permanent auth failure vs temporary network issue
+      const errorMessage = error instanceof Error ? error.message : ''
+      const isPermanentAuthFailure = errorMessage.includes('invalid_grant') || 
+                                    errorMessage.includes('invalid_token') ||
+                                    errorMessage.includes('unauthorized')
+      
+      if (isPermanentAuthFailure && authService.isAuthenticated()) {
+        console.log('🚪 API Interceptor: Permanent auth failure detected, logging out')
         authService.logout()
+      } else {
+        console.log('⚠️  API Interceptor: Temporary error, not logging out')
       }
-      throw new Error('Authentication failed. Please log in again.')
+      
+      throw new Error('Authentication failed. Please refresh the page or log in again.')
     } finally {
       this.isRefreshing = false
     }

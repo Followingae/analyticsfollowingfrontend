@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { MagnetLines } from '@/components/ui/magnet-lines';
 
 // --- HELPER COMPONENTS (ICONS) ---
 
@@ -36,7 +35,7 @@ interface SignInPageProps {
 // --- SUB-COMPONENTS ---
 
 const GlassInputWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="rounded-2xl border border-border bg-foreground/5 backdrop-blur-sm transition-colors focus-within:border-violet-400/70 focus-within:bg-violet-500/10">
+  <div className="rounded-2xl border border-border bg-foreground/5 backdrop-blur-sm transition-colors focus-within:border-foreground/50 focus-within:bg-foreground/10">
     {children}
   </div>
 );
@@ -106,13 +105,13 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               </div>
 
               <div className="animate-element animate-delay-500 flex items-center justify-end text-sm">
-                <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-violet-400 transition-colors">Reset password</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-muted-foreground transition-colors">Reset password</a>
               </div>
 
               <button 
                 type="submit" 
                 disabled={isLoading}
-                className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="animate-element animate-delay-600 w-full rounded-2xl bg-foreground py-4 font-medium text-background hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading && (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent"></div>
@@ -123,7 +122,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
 
 
             <p className="animate-element animate-delay-700 text-center text-sm text-muted-foreground">
-              New to our platform? <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-violet-400 hover:underline transition-colors">Create Account</a>
+              New to our platform? <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-foreground hover:underline transition-colors">Create Account</a>
             </p>
           </div>
         </div>
@@ -131,18 +130,17 @@ export const SignInPage: React.FC<SignInPageProps> = ({
 
       {/* Right column: magnet lines animation + testimonials */}
       <section className="hidden md:block flex-1 relative p-16">
-        <div className="animate-slide-right animate-delay-300 absolute inset-16 rounded-3xl flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 overflow-hidden p-8">
-          <MagnetLines
-            rows={14}
-            columns={10}
-            containerSize="100%"
-            lineColor="#8b5cf6"
-            lineWidth="8px"
-            lineHeight="45px"
-            baseAngle={45}
-            className=""
-            style={{ opacity: 1 }}
-          />
+        <div className="animate-slide-right animate-delay-300 absolute inset-16 rounded-3xl flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 overflow-hidden">
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover rounded-3xl"
+          >
+            <source src="/abstract-green-gradient-glass-background-following-influencers-platform.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
         </div>
         
         <div className="absolute bottom-6 right-6">

@@ -256,14 +256,14 @@ export function FloatingSetupChecklist() {
             <Button
               variant="default"
               size="lg"
-              className="h-14 w-14 rounded-full shadow-lg border-2 bg-transparent"
+              className="h-14 w-14 rounded-full shadow-lg border-2"
               style={{ 
-                backgroundColor: 'hsl(var(--primary))', 
-                borderColor: 'hsl(var(--primary))',
+                backgroundColor: 'oklch(0.4718 0.2853 280.0726)', 
+                borderColor: 'oklch(0.4718 0.2853 280.0726)',
                 color: 'white'
               }}
             >
-              <CheckSquare className="h-6 w-6" />
+              <CheckSquare className="h-6 w-6" style={{ color: 'white' }} />
             </Button>
           </motion.div>
         </PopoverTrigger>

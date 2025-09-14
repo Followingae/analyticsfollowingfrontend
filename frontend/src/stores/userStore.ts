@@ -83,7 +83,7 @@ interface UserStore {
   lastLoadTime: number | null
 
   // Actions
-  loadUser: () => Promise<void>
+  loadUser: (bustCache?: boolean) => Promise<void>
   clearUser: () => void
   updateUser: (userData: Partial<User>) => void
   setLoading: (loading: boolean) => void
@@ -105,7 +105,7 @@ export const useUserStore = create<UserStore>()(
       lastLoadTime: null,
 
       // Load user data from the new dashboard endpoint
-      loadUser: async () => {
+      loadUser: async (bustCache = false) => {
         const { isLoading, lastLoadTime } = get()
         const now = Date.now()
         
@@ -128,8 +128,11 @@ export const useUserStore = create<UserStore>()(
           // Import dynamically to avoid circular dependencies
           const { fetchWithAuth } = await import('@/utils/apiInterceptor')
           
+          const dashboardUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/dashboard`
+          const url = bustCache ? `${dashboardUrl}?_t=${Date.now()}` : dashboardUrl
+          
           const response = await fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/dashboard`,
+            url,
             {
               method: 'GET',
               headers: {
@@ -147,12 +150,28 @@ export const useUserStore = create<UserStore>()(
           
           console.log('🎯 Global User Store - Dashboard API Response:', {
             user_role: data.user?.role,
+            user_avatar_config: data.user?.avatar_config,
             subscription_tier: data.subscription?.tier,
             subscription_limits: data.subscription?.limits,
             subscription_usage: data.subscription?.usage,
             team_tier: data.team?.subscription_tier,
             is_team_subscription: data.subscription?.is_team_subscription
           })
+
+          console.log('🎯 UserStore: Full user object from dashboard API:', data.user)
+
+          // CRITICAL FIX: Sync fresh data back to localStorage for AuthContext
+          if (data.user && typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('user_data', JSON.stringify(data.user))
+              console.log('🔄 UserStore: Updated localStorage with fresh user data:', {
+                role: data.user.role,
+                email: data.user.email
+              })
+            } catch (error) {
+              console.error('Failed to update localStorage:', error)
+            }
+          }
 
           // SINGLE SOURCE OF TRUTH: Use the new structured response
           set({

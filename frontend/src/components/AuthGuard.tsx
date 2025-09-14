@@ -51,15 +51,26 @@ export function AuthGuard({
 
 
   useEffect(() => {
+    console.log('🛡️  AuthGuard effect running:', {
+      isHydrated,
+      isLoading,
+      isAuthenticated,
+      userRole,
+      pathname,
+      requireAuth,
+      requirePremium,
+      requireAdmin,
+      requireSuperAdmin
+    })
     
     // CRITICAL FIX: Wait for hydration to complete before making auth decisions
     if (!isHydrated) {
-
+      console.log('⏳ AuthGuard: Waiting for hydration to complete')
       return
     }
     
     if (isLoading) {
-
+      console.log('⏳ AuthGuard: Waiting for auth loading to complete')
       return
     }
 
@@ -73,12 +84,14 @@ export function AuthGuard({
         redirectPath = '/admin/dashboard'
       }
 
+      console.log('🔄 AuthGuard: Redirecting authenticated user from auth page to', redirectPath)
       router.replace(redirectPath)
       return
     }
 
     // If authentication is required but user is not authenticated
     if (requireAuth && !isAuthenticated) {
+      console.log('🔒 AuthGuard: Auth required but user not authenticated, redirecting to login')
       router.replace('/auth/login')
       return
     }
@@ -120,14 +133,18 @@ export function AuthGuard({
       // Redirect if permission denied
       if (!hasPermission) {
         if (redirectPath === '/unauthorized') {
+          console.log('❌ AuthGuard: Permission denied, showing unauthorized component')
           // Don't redirect for unauthorized, show component instead
           return
         } else {
+          console.log('❌ AuthGuard: Permission denied, redirecting to', redirectPath)
           router.replace(redirectPath)
           return
         }
       }
     }
+    
+    console.log('✅ AuthGuard: All checks passed, allowing access to', pathname)
   }, [isAuthenticated, userRole, isLoading, router, pathname, requireAuth, requirePremium, requireAdmin, requireSuperAdmin, requiredRole, isPublicRoute, isHydrated])
 
   // Show loading spinner while hydrating or checking auth

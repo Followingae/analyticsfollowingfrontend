@@ -177,7 +177,14 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     
     // Map basic user roles to enhanced roles with strict role separation
     let role: UserRole
-    switch (basicUser.role?.toLowerCase()) {
+    
+    // CRITICAL: Don't downgrade existing premium users to free
+    // If user doesn't have role data, preserve existing enhanced role if available
+    if (!basicUser.role && user && user.role !== 'brand_free') {
+      console.log('🛡️ ROLE PROTECTION: Preserving existing role', user.role, 'user has no role data yet')
+      role = user.role
+    } else {
+      switch (basicUser.role?.toLowerCase()) {
       case 'super_admin':
       case 'admin':
       case 'superadmin':
@@ -188,21 +195,32 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
       case 'premium':
         // FIXED: Premium users are BRAND users, not admin users
         role = 'brand_premium'
-
+        console.log('🚀 ROLE MAPPING: Backend role', basicUser.role, '→ Frontend role', role)
         break
       case 'standard':
         role = 'brand_standard'
-
+        console.log('🚀 ROLE MAPPING: Backend role', basicUser.role, '→ Frontend role', role)
         break
       case 'enterprise':
         role = 'brand_enterprise'
-
+        console.log('🚀 ROLE MAPPING: Backend role', basicUser.role, '→ Frontend role', role)
         break
       case 'free':
-      default:
         role = 'brand_free'
-
+        console.log('🚀 ROLE MAPPING: Backend role', basicUser.role, '→ Frontend role', role)
         break
+      default:
+        // CRITICAL FIX: Don't default to 'brand_free' if no role data
+        // This was causing premium users to appear as free on refresh
+        if (user && user.role) {
+          console.log('🛡️ ROLE PROTECTION: No backend role data, preserving existing role', user.role)
+          role = user.role
+        } else {
+          console.log('⚠️  ROLE FALLBACK: No role data available, defaulting to brand_free')
+          role = 'brand_free'
+        }
+        break
+      }
     }
 
     // Validate that premium users don't get admin permissions

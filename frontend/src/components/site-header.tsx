@@ -105,16 +105,6 @@ export function SiteHeader() {
     }
   }, [user, isBrandUser])
 
-  const getCurrentDate = () => {
-    const today = new Date()
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    const dayName = days[today.getDay()]
-    const day = today.getDate().toString().padStart(2, '0')
-    const month = (today.getMonth() + 1).toString().padStart(2, '0')
-    const year = today.getFullYear()
-    
-    return `${dayName}, ${day}/${month}/${year}`
-  }
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -137,9 +127,6 @@ export function SiteHeader() {
           </div>
         )}
         <div className="ml-auto flex items-center gap-3">
-          <div className="text-sm text-muted-foreground font-medium">
-            {getCurrentDate()}
-          </div>
           
           {/* Live Team Context Display for Brand Users */}
           {isBrandUser && user && !contextLoading && teamContext && (
