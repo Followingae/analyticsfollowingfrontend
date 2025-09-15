@@ -70,7 +70,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw]">
       {/* Left column: sign-in form */}
-      <section className="flex-1 flex items-center justify-center p-8">
+      <section className="flex-[3] flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="flex flex-col gap-6">
             {/* Logo aligned with left side */}
@@ -129,8 +129,8 @@ export const SignInPage: React.FC<SignInPageProps> = ({
       </section>
 
       {/* Right column: magnet lines animation + testimonials */}
-      <section className="hidden md:block flex-1 relative p-16">
-        <div className="animate-slide-right animate-delay-300 absolute inset-16 rounded-3xl flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 overflow-hidden">
+      <section className="hidden md:block flex-[2] relative p-4">
+        <div className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 overflow-hidden">
           <video 
             autoPlay 
             loop 

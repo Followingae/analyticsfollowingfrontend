@@ -202,7 +202,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         
         // CRITICAL FIX: Always refresh user data on page load to ensure role sync
         // The backend team confirmed this is needed for role synchronization
-        console.log('🔄 AuthContext: Refreshing user data to sync with backend role')
         
         try {
           await refreshUser()
@@ -399,7 +398,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = () => {
 
-    console.trace('AuthContext logout call stack:')
     
     // Clear context state immediately and defensively
     setUser(null)
@@ -443,7 +441,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshUser = async () => {
     try {
-      console.log('🔄 AuthContext.refreshUser: Getting complete user data from dashboard API')
       
       // CRITICAL FIX: Use dashboard API to get complete user data including role
       // This is the same API UserStore uses, ensuring consistency
@@ -467,10 +464,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const dashboardData = await response.json()
       
       if (dashboardData.user) {
-        console.log('✅ AuthContext.refreshUser: Got complete user data with role:', {
-          role: dashboardData.user.role,
-          email: dashboardData.user.email
-        })
         
         // Preserve local user data if backend returns null/empty values
         const currentUser = authService.getStoredUser()
@@ -479,7 +472,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (currentUser) {
           // Preserve avatar_config if backend doesn't have it
           if (!dashboardData.user.avatar_config && currentUser.avatar_config) {
-            console.log('🔄 AuthContext: Preserving avatar_config from current user')
             mergedUserData.avatar_config = currentUser.avatar_config
           }
           
@@ -498,7 +490,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
         
-        console.log('🔄 AuthContext: Setting user with complete data including role:', mergedUserData.role)
         setUser(mergedUserData)
         localStorage.setItem('user_data', JSON.stringify(mergedUserData))
         localStorage.setItem('user_last_updated', Date.now().toString())
@@ -512,7 +503,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         const result = await authService.getCurrentUser()
         if (result.success && result.data) {
-          console.log('🔄 AuthContext: Fallback to basic profile data (may not have role)')
           setUser(result.data)
           localStorage.setItem('user_data', JSON.stringify(result.data))
         }

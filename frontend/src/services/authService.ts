@@ -189,7 +189,6 @@ class AuthService {
 
   private clearTokenData(): void {
 
-    console.trace('clearTokenData call stack:')
     this.tokenData = null
     
     // Use TokenManager to clear all tokens consistently
@@ -405,7 +404,6 @@ class AuthService {
   // Logout user
   logout(): void {
 
-    console.trace('logout call stack:')
     this.clearTokenData()
     
     // Only redirect if we're not already on a login/auth page to prevent loops

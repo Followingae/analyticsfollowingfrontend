@@ -92,7 +92,6 @@ export const useComprehensiveAIAnalysis = (
     refetch: query.refetch,
     invalidate: () => {
       // This would need to be implemented with query client
-      console.log('Invalidating comprehensive AI analysis cache for', username)
     },
     
     // Metadata

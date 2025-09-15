@@ -50,14 +50,12 @@ class RequestCache {
 
     // Force refresh bypasses cache
     if (options.forceRefresh) {
-      console.log(`🔄 Force refresh for ${key}`)
       this.cache.delete(key)
       return this.fetchAndCache(key, fetcher, ttl, now)
     }
 
     // Return cached data if still valid
     if (entry && now - entry.timestamp < entry.ttl) {
-      console.log(`🎯 Cache HIT for ${key} (age: ${Math.round((now - entry.timestamp) / 1000)}s)`)
       entry.hitCount++
       this.stats.totalHits++
       return entry.data
@@ -65,12 +63,10 @@ class RequestCache {
 
     // If there's already a request in progress, return that promise
     if (entry?.promise) {
-      console.log(`🔄 Request in progress for ${key}, joining...`)
       return entry.promise
     }
 
     // Cache miss - fetch new data
-    console.log(`🚀 Cache MISS for ${key}, fetching...`)
     this.stats.totalMisses++
     return this.fetchAndCache(key, fetcher, ttl, now)
   }
@@ -92,7 +88,6 @@ class RequestCache {
           errorCount: 0,
           promise: undefined
         })
-        console.log(`✅ Cached successful response for ${key}`)
         return data
       })
       .catch((error) => {
@@ -106,7 +101,6 @@ class RequestCache {
           existingEntry.promise = undefined
           // Keep stale data on error if available
           if (existingEntry.data) {
-            console.log(`🔄 Keeping stale data for ${key} due to error`)
             return existingEntry.data
           }
         } else {
@@ -148,17 +142,14 @@ class RequestCache {
       }
     }
     
-    console.log(`🗑️ Invalidated ${invalidated} cache entries matching pattern: ${pattern}`)
     return invalidated
   }
 
   invalidate(key: string): void {
-    console.log(`🗑️ Invalidating cache for ${key}`)
     this.cache.delete(key)
   }
 
   clear(): void {
-    console.log('🧹 Clearing all cache')
     this.cache.clear()
     this.stats = {
       totalHits: 0,
@@ -183,7 +174,6 @@ class RequestCache {
     }
     
     if (cleaned > 0) {
-      console.log(`🧹 Cleaned up ${cleaned} expired cache entries`)
     }
   }
 
@@ -200,7 +190,6 @@ class RequestCache {
       this.cache.delete(key)
     }
     
-    console.log(`🗑️ Evicted ${toRemove} oldest cache entries`)
   }
 
   /**
@@ -255,7 +244,6 @@ class RequestCache {
       }
     }
     
-    console.log(`🧹 Force cleaned ${cleaned} cache entries`)
     
     // Reset stats
     this.stats = {

@@ -111,6 +111,13 @@ export default function SettingsPage() {
     loadTeamContext()
   }, [])
 
+  // Initialize avatar config from user data
+  useEffect(() => {
+    if (user?.avatar_config && !avatarConfig) {
+      setAvatarConfig(user.avatar_config)
+    }
+  }, [user?.avatar_config, avatarConfig])
+
   const loadSettings = async () => {
     setLoading(true)
     try {
@@ -167,8 +174,13 @@ export default function SettingsPage() {
   const saveProfile = async () => {
     setSaving(true)
     try {
+      // Include avatar_config in profile data to prevent it from being overwritten
+      const profileDataWithAvatar = {
+        ...profileData,
+        avatar_config: avatarConfig || user?.avatar_config
+      }
 
-      const success = await updateProfile(profileData)
+      const success = await updateProfile(profileDataWithAvatar)
       
       if (success) {
 
@@ -343,69 +355,40 @@ export default function SettingsPage() {
 
   const handleAvatarConfigChange = async (config: { variant: string; colorScheme: string; colors: string[]; seed?: string }) => {
     try {
-      console.log('🎨 AVATAR CHANGE: Starting avatar change with config:', config)
-
-      // Update local state immediately
+      // Update local state immediately for UI responsiveness
       setAvatarConfig(config)
-      console.log('🎨 AVATAR CHANGE: Updated local avatarConfig state')
 
       // Save to backend
       const updatedProfileData = {
         ...profileData,
         avatar_config: config
       }
-      console.log('🎨 AVATAR CHANGE: Calling updateProfile with:', updatedProfileData)
 
       const success = await updateProfile(updatedProfileData)
-      console.log('🎨 AVATAR CHANGE: updateProfile result:', success)
 
       if (success) {
-        toast.success('Avatar updated successfully')
-        console.log('🎨 AVATAR CHANGE: Success! Calling refreshUser()')
-
-        // Refresh user data to sync all components
-        await refreshUser()
-        console.log('🎨 AVATAR CHANGE: refreshUser() completed')
-
-        // Also trigger user store refresh to sync dashboard components
-        const userStoreModule = await import('@/stores/userStore')
-        const { loadUser: storeLoadUser } = userStoreModule.useUserStore.getState()
-        await storeLoadUser()
-        console.log('🎨 AVATAR CHANGE: userStore.loadUser() completed')
-
-        // Small delay to ensure all components update
-        await new Promise(resolve => setTimeout(resolve, 100))
-        
-        // Update all local state
-        setAvatarConfig(config)
+        // Update local profile data
         setProfileData(updatedProfileData)
+
+        // Update auth context user state
         updateUserState({ avatar_config: config })
-        
-        // Also update UserStore to ensure dashboard persistence
+
+        // Update UserStore for dashboard persistence
         const { useUserStore } = await import('@/stores/userStore')
-        const { updateUser, loadUser } = useUserStore.getState()
+        const { updateUser } = useUserStore.getState()
         if (updateUser) {
           updateUser({ avatar_config: config })
         }
-        
-        // Force UserStore refresh with cache-busting after a short delay
-        setTimeout(async () => {
-          // Clear any cached data first
-          const { requestCache } = await import('@/utils/requestCache')
-          requestCache.clear()
-          
-          // Now load fresh data with cache busting
-          loadUser(true)
-        }, 500)
-        
-        // DON'T refresh AuthContext user data immediately - it may revert our changes!
-        // But UserStore refresh should work since both use dashboard API
-        
+
+        toast.success('Avatar updated successfully')
       } else {
+        // Revert local state on failure
+        setAvatarConfig(user?.avatar_config || null)
         toast.error('Failed to save avatar changes')
       }
     } catch (error) {
-
+      // Revert local state on error
+      setAvatarConfig(user?.avatar_config || null)
       toast.error('Failed to update avatar')
     }
   }

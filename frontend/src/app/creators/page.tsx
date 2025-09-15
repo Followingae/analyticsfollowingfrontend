@@ -62,6 +62,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { AIVerificationTool } from "@/components/ui/ai-verification-tool"
 import { AIInsightsCard } from "@/components/ai-insights/AIInsightsCard"
 import { AnalysisStatusCard } from "@/components/ai-insights/AnalysisStatusCard"
+import { ModernCreatorCard, CreatorGridCard } from "@/components/creator-cards"
 import ReactCountryFlag from "react-country-flag"
 import { getCountryCode } from "@/lib/countryUtils"
 
@@ -163,14 +164,6 @@ export default function CreatorsPage() {
         page_size: 20
       })
 
-      console.log('🎯 Creators page unlocked creators API response:', {
-        success: result.success,
-        data_keys: result.data ? Object.keys(result.data) : [],
-        pagination: result.data?.pagination,
-        profiles_count: result.data?.profiles?.length,
-        total_items: result.data?.pagination?.total_items,
-        error: result.error
-      })
 
       if (result.success && result.data) {
         // ✅ CORRECTED: Use the profiles array from the API response
@@ -366,164 +359,6 @@ export default function CreatorsPage() {
     );
   }
 
-  // Enhanced Creator Component with AI insights
-  function CreatorCard({ creator }: { creator: CreatorProfile }) {
-    const tier = getInfluencerTier(creator.followers_count)
-    const hasAI = creator.ai_insights?.available
-    
-    return (
-      <Card className="relative overflow-hidden">
-        {/* Country Flag - Top Left */}
-        {creator.country_block && (
-          <div className="absolute top-3 left-3 z-10">
-            <ReactCountryFlag 
-              countryCode={getCountryCode(creator.country_block)}
-              svg 
-              style={{
-                width: '24px',
-                height: '18px',
-                borderRadius: '2px',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
-              }}
-              title={creator.country_block}
-            />
-          </div>
-        )}
-
-        {/* AI Indicator - Top Right */}
-        {hasAI && (
-          <div className="absolute top-3 right-3 z-10">
-            <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-2 py-1">
-              <Brain className="h-3 w-3 mr-1" />
-              AI
-            </Badge>
-          </div>
-        )}
-
-        <CardHeader className="pb-3">
-          {/* Avatar */}
-          <div className="flex justify-center mb-3">
-            <div className="relative">
-              <ProfileImage
-                profileId={creator.username}
-                originalUrl={creator.profile_pic_url}
-                alt={creator.username}
-                size="lg"
-                className="border-2 border-white dark:border-gray-900"
-              />
-              {creator.is_verified && (
-                <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1">
-                  <CheckCircle className="h-4 w-4 text-white" />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Name and Username */}
-          <div className="text-center space-y-1 select-none">
-            <h3 className="font-semibold text-lg flex items-center justify-center gap-2">
-              {creator.full_name}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              @{creator.username}
-            </p>
-          </div>
-
-          {/* Tier and AI Content Category */}
-          <div className="mt-3 select-none">
-            <div className="flex flex-wrap justify-center gap-2 max-w-full">
-              <TierBadge tier={tier} />
-              
-              {hasAI && creator.ai_insights?.content_category && (
-                <Badge variant="outline" className="text-xs px-2 py-1 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 border-purple-200 dark:border-purple-700">
-                  <Target className="h-3 w-3 mr-1" />
-                  {creator.ai_insights.content_category}
-                </Badge>
-              )}
-              
-              {creator.is_business_account && (
-                <Badge variant="outline" className="text-xs px-2 py-1">
-                  <Building className="h-3 w-3 mr-1" />
-                  Business
-                </Badge>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-4 select-none">
-          {/* Followers and Engagement */}
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="text-center p-2 bg-muted rounded-md">
-              <div className="text-lg font-bold">{formatNumber(creator.followers_count)}</div>
-              <div className="text-xs text-muted-foreground">Followers</div>
-            </div>
-            <div className="text-center p-2 bg-muted rounded-md">
-              <div className="text-lg font-bold">{creator.engagement_rate ? `${creator.engagement_rate.toFixed(2)}%` : 'N/A'}</div>
-              <div className="text-xs text-muted-foreground">Engagement</div>
-            </div>
-          </div>
-
-          {/* AI Quality Score */}
-          {hasAI && creator.ai_insights?.content_quality_score && (
-            <div className="p-2 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 rounded-md">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">AI Quality Score</span>
-                <div className="flex items-center gap-1">
-                  <Sparkles className="h-3 w-3 text-yellow-500" />
-                  <span className="font-bold text-sm">
-                    {creator.ai_insights.content_quality_score.toFixed(1)}/10
-                  </span>
-                </div>
-              </div>
-              <Progress value={creator.ai_insights.content_quality_score * 10} className="h-1 mt-1" />
-            </div>
-          )}
-          
-          {/* AI Sentiment Score */}
-          {hasAI && creator.ai_insights?.average_sentiment && (
-            <div className="p-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900 dark:to-emerald-900 rounded-md">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Sentiment</span>
-                <Badge 
-                  variant={creator.ai_insights.average_sentiment > 0.1 ? 'default' : creator.ai_insights.average_sentiment < -0.1 ? 'destructive' : 'secondary'}
-                  className="text-xs"
-                >
-                  {creator.ai_insights.average_sentiment > 0.1 ? 'Positive' : 
-                   creator.ai_insights.average_sentiment < -0.1 ? 'Negative' : 'Neutral'}
-                </Badge>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="pt-2 flex gap-2">
-            <Button 
-              className="flex-1" 
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/creator-analytics/${creator.username}`);
-              }}
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              View Analytics
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                toast.info(`Add to list functionality coming soon for @${creator.username}`);
-              }}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
 
   return (
     <AuthGuard requireAuth={true}>
@@ -672,7 +507,7 @@ export default function CreatorsPage() {
 
                   {searchedProfile && (
                     <div className="grid gap-4 md:grid-cols-2">
-                      <CreatorCard creator={searchedProfile} />
+                      <ModernCreatorCard creator={searchedProfile} />
                       
                       {/* AI Analysis Status */}
                       {searchedProfile.ai_insights && (
@@ -755,7 +590,7 @@ export default function CreatorsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {/* Loading State */}
                   {unlockedLoading && (
                     <div className="col-span-full flex items-center justify-center py-12">
@@ -802,9 +637,9 @@ export default function CreatorsPage() {
                   
                   {/* Creator Cards */}
                   {!unlockedLoading && unlockedCreators.map((creator, index) => (
-                    <CreatorCard 
-                      key={creator.id || creator.pk || creator.username || `creator-${index}`} 
-                      creator={creator} 
+                    <CreatorGridCard
+                      key={creator.id || creator.pk || creator.username || `creator-${index}`}
+                      creator={creator}
                     />
                   ))}
                 </div>

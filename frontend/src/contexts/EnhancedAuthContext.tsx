@@ -116,22 +116,13 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
   // Sync with basic auth context
   useEffect(() => {
-    console.log('🔄 ENHANCED AUTH SYNC:', {
-      basicIsLoading,
-      basicIsAuthenticated,
-      basicUserRole: basicUser?.role,
-      basicUserEmail: basicUser?.email
-    })
 
     if (!basicIsLoading) {
       if (basicIsAuthenticated && basicUser) {
-        console.log('✅ ENHANCED AUTH: Converting basic user to enhanced user')
         const enhancedUser = enhanceUserData(basicUser)
-        console.log('✅ ENHANCED AUTH: Setting enhanced user with role:', enhancedUser.role)
         setUser(enhancedUser)
         setDashboardStats(basicDashboardStats)
       } else {
-        console.log('❌ ENHANCED AUTH: Clearing user (not authenticated or no user)')
         setUser(null)
         setDashboardStats(null)
       }
@@ -181,7 +172,6 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     // CRITICAL: Don't downgrade existing premium users to free
     // If user doesn't have role data, preserve existing enhanced role if available
     if (!basicUser.role && user && user.role !== 'brand_free') {
-      console.log('🛡️ ROLE PROTECTION: Preserving existing role', user.role, 'user has no role data yet')
       role = user.role
     } else {
       switch (basicUser.role?.toLowerCase()) {
@@ -190,33 +180,26 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
       case 'superadmin':
         // CRITICAL: Only actual admins get admin access
         role = 'super_admin' // Treat backend 'admin' and 'super_admin' as 'super_admin'
-        console.log('🚀 ROLE MAPPING: Backend role', basicUser.role, '→ Frontend role', role)
         break
       case 'premium':
         // FIXED: Premium users are BRAND users, not admin users
         role = 'brand_premium'
-        console.log('🚀 ROLE MAPPING: Backend role', basicUser.role, '→ Frontend role', role)
         break
       case 'standard':
         role = 'brand_standard'
-        console.log('🚀 ROLE MAPPING: Backend role', basicUser.role, '→ Frontend role', role)
         break
       case 'enterprise':
         role = 'brand_enterprise'
-        console.log('🚀 ROLE MAPPING: Backend role', basicUser.role, '→ Frontend role', role)
         break
       case 'free':
         role = 'brand_free'
-        console.log('🚀 ROLE MAPPING: Backend role', basicUser.role, '→ Frontend role', role)
         break
       default:
         // CRITICAL FIX: Don't default to 'brand_free' if no role data
         // This was causing premium users to appear as free on refresh
         if (user && user.role) {
-          console.log('🛡️ ROLE PROTECTION: No backend role data, preserving existing role', user.role)
           role = user.role
         } else {
-          console.log('⚠️  ROLE FALLBACK: No role data available, defaulting to brand_free')
           role = 'brand_free'
         }
         break
@@ -262,7 +245,6 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
   const logout = () => {
 
-    console.trace('EnhancedAuthContext logout call stack:')
     
     // Clear enhanced auth state first
     setUser(null)

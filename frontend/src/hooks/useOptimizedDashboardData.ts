@@ -144,7 +144,6 @@ export const useOptimizedDashboardData = () => {
         errors: results.filter(r => !r.success).map(r => ({ id: r.id, error: r.error }))
       }
 
-      console.log('📊 Dashboard batch completed:', processedData.batchStats)
       
       return processedData
 

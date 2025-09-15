@@ -58,7 +58,6 @@ export const enableSafeMode = (): void => {
 export const disableSafeMode = (): void => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('safe_mode')
-    console.log('🚀 Safe mode disabled - all features enabled')
   }
 }
 
@@ -68,7 +67,6 @@ export const disableSafeMode = (): void => {
 export const safePolling = {
   start: (id: string, callback: () => Promise<boolean>, config?: any) => {
     if (SAFE_MODE_CONFIG.DISABLE_POLLING || isSafeMode()) {
-      console.log(`⚠️ Polling disabled in safe mode: ${id}`)
       return
     }
     // Original polling logic here
@@ -76,7 +74,6 @@ export const safePolling = {
   
   stop: (id: string) => {
     // Always allow stopping
-    console.log(`⏹️ Stopping polling: ${id}`)
   }
 }
 
@@ -94,7 +91,6 @@ export const safeCache = {
   },
   
   clear: () => {
-    console.log('🧹 Cache cleared (safe mode)')
   }
 }
 

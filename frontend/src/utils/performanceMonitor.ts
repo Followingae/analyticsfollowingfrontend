@@ -213,22 +213,15 @@ class PerformanceMonitor {
   logPerformanceSummary(): void {
     const report = this.getPerformanceReport()
     
-    console.group('🚀 Frontend Performance Report')
-    console.log(`📊 API Calls: ${report.apiCalls.total} (${report.overview.successRate * 100}% success)`)
-    console.log(`⚡ Average Response: ${report.overview.averageResponseTime}ms`)
-    console.log(`🎯 Cache Hit Rate: ${report.overview.cacheHitRate * 100}%`)
-    console.log(`⚠️  Slow Calls: ${report.apiCalls.slowCalls}`)
-    console.log(`💾 From Cache: ${report.apiCalls.fromCache}`)
+    // Performance report logging disabled for production
     
     if (report.warnings.length > 0) {
       console.group('⚠️ Performance Warnings')
-      report.warnings.forEach(warning => console.warn(warning))
       console.groupEnd()
     }
     
     console.group('📈 Top Endpoints')
     report.topEndpoints.slice(0, 5).forEach(endpoint => {
-      console.log(`${endpoint.url}: ${endpoint.callCount} calls, ${endpoint.averageTime}ms avg`)
     })
     console.groupEnd()
     
@@ -326,7 +319,6 @@ class PerformanceMonitor {
 
   private checkPerformanceThresholds(metric: ApiMetric): void {
     if (metric.duration > this.thresholds.slowApiCall) {
-      console.warn(`🐌 Slow API call: ${metric.url} took ${metric.duration}ms`)
     }
 
     // Check request frequency
@@ -335,7 +327,6 @@ class PerformanceMonitor {
     ).length
 
     if (recentCalls > this.thresholds.tooManyRequests) {
-      console.warn(`🔥 Too many requests to ${metric.url}: ${recentCalls} in last minute`)
     }
   }
 

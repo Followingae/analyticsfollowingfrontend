@@ -111,17 +111,14 @@ export const useUserStore = create<UserStore>()(
         
         // Prevent multiple simultaneous calls
         if (isLoading) {
-          console.log('🚫 UserStore: loadUser blocked - already loading')
           return
         }
         
         // Prevent rapid successive calls (less than 1 second apart)
         if (lastLoadTime && (now - lastLoadTime) < 1000) {
-          console.log('🚫 UserStore: loadUser blocked - called too recently:', now - lastLoadTime, 'ms ago')
           return
         }
         
-        console.log('🎯 UserStore: loadUser called - proceeding with dashboard fetch')
         set({ isLoading: true, error: null, lastLoadTime: now })
 
         try {
@@ -148,26 +145,12 @@ export const useUserStore = create<UserStore>()(
 
           const data: DashboardData = await response.json()
           
-          console.log('🎯 Global User Store - Dashboard API Response:', {
-            user_role: data.user?.role,
-            user_avatar_config: data.user?.avatar_config,
-            subscription_tier: data.subscription?.tier,
-            subscription_limits: data.subscription?.limits,
-            subscription_usage: data.subscription?.usage,
-            team_tier: data.team?.subscription_tier,
-            is_team_subscription: data.subscription?.is_team_subscription
-          })
 
-          console.log('🎯 UserStore: Full user object from dashboard API:', data.user)
 
           // CRITICAL FIX: Sync fresh data back to localStorage for AuthContext
           if (data.user && typeof window !== 'undefined') {
             try {
               localStorage.setItem('user_data', JSON.stringify(data.user))
-              console.log('🔄 UserStore: Updated localStorage with fresh user data:', {
-                role: data.user.role,
-                email: data.user.email
-              })
             } catch (error) {
               console.error('Failed to update localStorage:', error)
             }
@@ -185,7 +168,6 @@ export const useUserStore = create<UserStore>()(
             lastUpdated: new Date()
           })
           
-          console.log('✅ UserStore: Dashboard loaded successfully')
 
         } catch (error) {
           console.error('Failed to load user data:', error)
@@ -201,13 +183,11 @@ export const useUserStore = create<UserStore>()(
             lastUpdated: null
           })
           
-          console.log('❌ UserStore: Dashboard load failed:', error)
         }
       },
 
       // Clear user data on logout
       clearUser: () => {
-        console.log('🧹 Clearing user store')
         set({
           user: null,
           subscription: null,

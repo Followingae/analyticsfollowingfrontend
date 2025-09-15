@@ -26,7 +26,6 @@ export const useDashboardData = () => {
           
           // Don't throw on auth errors - let API interceptor handle them
           if (response.status === 401 || response.status === 403) {
-            console.log('⚠️  Teams API: Auth error, returning null data')
             return null
           }
           
@@ -34,12 +33,6 @@ export const useDashboardData = () => {
         }
         
         const data = await response.json()
-        console.log('🎯 Teams Overview API Success:', {
-          data_structure: Object.keys(data || {}),
-          team_info: data.team_info ? Object.keys(data.team_info) : 'no team_info',
-          subscription_tier: data.team_info?.subscription_tier,
-          raw_data: data
-        })
         
         return data
       } catch (error) {
@@ -48,7 +41,6 @@ export const useDashboardData = () => {
         // For auth-related errors, return null instead of throwing
         if (error instanceof Error && 
            (error.message.includes('Authentication') || error.message.includes('token'))) {
-          console.log('⚠️  Teams API: Auth exception, returning null data')
           return null
         }
         
@@ -86,18 +78,12 @@ export const useDashboardData = () => {
           // For auth-related errors, return fallback data
           if (result.error && 
              (result.error.includes('Authentication') || result.error.includes('token'))) {
-            console.log('⚠️  Profiles API: Auth error, returning fallback data')
             return { count: 0, profiles: [] }
           }
           
           throw new Error(result.error || 'Failed to fetch unlocked profiles')
         }
         
-        console.log('🎯 Unlocked Profiles API Success:', {
-          total_items: result.data?.pagination?.total_items,
-          profiles_length: result.data?.profiles?.length,
-          result_structure: Object.keys(result.data || {})
-        })
         
         // Handle different pagination response formats
         const totalItems = result.data?.pagination?.total_items 
@@ -105,12 +91,6 @@ export const useDashboardData = () => {
           || result.data?.profiles?.length 
           || 0
         
-        console.log('🔧 Total Items Calculation:', {
-          pagination_total_items: result.data?.pagination?.total_items,
-          pagination_total_count: result.data?.pagination?.total_count,
-          profiles_array_length: result.data?.profiles?.length,
-          final_count: totalItems
-        })
         
         return {
           count: totalItems,
@@ -122,7 +102,6 @@ export const useDashboardData = () => {
         // For auth-related errors, return fallback data instead of throwing
         if (error instanceof Error && 
            (error.message.includes('Authentication') || error.message.includes('token'))) {
-          console.log('⚠️  Profiles API: Auth exception, returning fallback data')
           return { count: 0, profiles: [] }
         }
         
@@ -149,7 +128,6 @@ export const useDashboardData = () => {
       try {
         const { fetchWithAuth } = await import('@/utils/apiInterceptor')
         const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/campaigns`
-        console.log('🚀 Campaigns API: Making request to:', apiUrl)
 
         const response = await fetchWithAuth(apiUrl, {
           method: 'GET',
@@ -164,7 +142,6 @@ export const useDashboardData = () => {
           
           // Don't throw on auth errors - let API interceptor handle them
           if (response.status === 401 || response.status === 403) {
-            console.log('⚠️  Campaigns API: Auth error, returning fallback data')
             return { activeCount: 0, campaigns: [] }
           }
           
@@ -178,7 +155,6 @@ export const useDashboardData = () => {
           ? campaigns.filter((campaign: any) => campaign.status === 'active').length
           : 0
 
-        console.log('🎯 Campaigns API Success:', { activeCount, campaignsLength: campaigns.length })
         
         return {
           activeCount,
@@ -190,7 +166,6 @@ export const useDashboardData = () => {
         // For auth-related errors, return fallback data instead of throwing
         if (error instanceof Error && 
            (error.message.includes('Authentication') || error.message.includes('token'))) {
-          console.log('⚠️  Campaigns API: Auth exception, returning fallback data')
           return { activeCount: 0, campaigns: [] }
         }
         

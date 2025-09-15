@@ -387,18 +387,15 @@ class TokenManager {
     const timeToSessionTimeout = this.SESSION_TIMEOUT - timeSinceActivity
     const timeToTokenExpiry = this.tokenData.expires_at ? this.tokenData.expires_at - now : Infinity
 
-    // Check which event happens first
-    const nextCheckIn = Math.min(
-      Math.max(timeToSessionTimeout, 0),
-      Math.max(timeToTokenExpiry - this.TOKEN_REFRESH_BUFFER, 0),
-      this.ACTIVITY_CHECK_INTERVAL // Fallback to 1 minute max
+    // Check which event happens first, but ensure minimum 1 second delay
+    const nextCheckIn = Math.max(
+      1000, // Minimum 1 second to prevent infinite recursion
+      Math.min(
+        Math.max(timeToSessionTimeout, 1000),
+        Math.max(timeToTokenExpiry - this.TOKEN_REFRESH_BUFFER, 1000),
+        this.ACTIVITY_CHECK_INTERVAL // Fallback to 1 minute max
+      )
     )
-
-    if (nextCheckIn <= 0) {
-      // Handle immediately
-      this.handleSessionCheck()
-      return
-    }
 
     this.sessionTimeout = setTimeout(() => {
       this.handleSessionCheck()
@@ -409,6 +406,11 @@ class TokenManager {
    * Handle session check and schedule next one if needed
    */
   private handleSessionCheck(): void {
+    // Prevent multiple concurrent session checks
+    if (!this.tokenData) {
+      return // No token data, stop the chain
+    }
+
     const now = Date.now()
 
     // DISABLED: Session timeout check during navigation debugging
@@ -420,10 +422,9 @@ class TokenManager {
     // }
 
     // Only do proactive token refresh, but don't force logout on session timeout
-    if (this.tokenData && this.tokenData.expires_at) {
+    if (this.tokenData.expires_at) {
       const timeToExpiry = this.tokenData.expires_at - now
       if (timeToExpiry > 0 && timeToExpiry < this.TOKEN_REFRESH_BUFFER) {
-        console.log('🔄 Proactive token refresh - expires soon')
         this.refreshToken().catch((error) => {
           console.warn('Token refresh failed during proactive refresh:', error)
           // Don't clear tokens here - let API calls handle auth failures
@@ -431,9 +432,14 @@ class TokenManager {
       }
     }
 
-    // CRITICAL FIX: Only schedule next check if we still have active session AND timeout not cleared
+    // CRITICAL FIX: Only schedule next check if we still have active session
+    // Use setTimeout to prevent immediate recursion
     if (this.tokenData && this.sessionTimeout !== undefined) {
-      this.scheduleNextSessionCheck()
+      setTimeout(() => {
+        if (this.tokenData) { // Double-check token still exists
+          this.scheduleNextSessionCheck()
+        }
+      }, 100) // Small delay to break the call stack
     }
   }
 
@@ -466,7 +472,6 @@ class TokenManager {
   ): Promise<T> {
     // Return existing promise if request is in progress
     if (this.pendingRequests.has(key)) {
-      console.log(`🔄 Joining existing auth request: ${key}`)
       return this.pendingRequests.get(key)!
     }
 
@@ -499,7 +504,6 @@ class TokenManager {
             token: this.tokenData.access_token
           }
         } else {
-          console.log('🔄 Token expires soon, refreshing proactively')
           return await this.refreshToken()
         }
       }

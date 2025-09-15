@@ -49,7 +49,6 @@ export class BatchManager {
     }
     
     this.pendingBatches.get(batchId)!.push(request)
-    console.log(`📦 Added ${request.id} to batch ${batchId} (priority: ${request.priority})`)
   }
 
   /**
@@ -65,17 +64,14 @@ export class BatchManager {
   ): Promise<BatchResult[]> {
     // Return existing batch if already running
     if (this.activeBatches.has(batchId)) {
-      console.log(`⏳ Batch ${batchId} already running, joining...`)
       return this.activeBatches.get(batchId)!
     }
 
     const requests = this.pendingBatches.get(batchId) || []
     if (requests.length === 0) {
-      console.log(`📦 Batch ${batchId} is empty`)
       return []
     }
 
-    console.log(`🚀 Executing batch ${batchId} with ${requests.length} requests`)
 
     const {
       maxConcurrency = 4,
@@ -119,7 +115,6 @@ export class BatchManager {
       stats.batchEndTime = Date.now()
       stats.totalDuration = stats.batchEndTime - stats.batchStartTime
 
-      console.log(`✅ Batch ${batchId} completed in ${stats.totalDuration}ms (${stats.successfulRequests}/${stats.totalRequests} successful)`)
       
       return results
 
@@ -168,7 +163,6 @@ export class BatchManager {
         })
 
         stats.successfulRequests++
-        console.log(`✅ ${request.id} completed in ${duration}ms`)
 
       } catch (error) {
         const duration = Date.now() - startTime
@@ -185,7 +179,6 @@ export class BatchManager {
 
         // Retry if configured
         if (request.retryConfig && request.retryConfig.maxRetries > 0) {
-          console.log(`🔄 Retrying ${request.id}...`)
           // Simple retry implementation
           try {
             await new Promise(resolve => setTimeout(resolve, request.retryConfig!.delay))
@@ -256,7 +249,6 @@ export class BatchManager {
   cancelBatch(batchId: string): void {
     this.activeBatches.delete(batchId)
     this.pendingBatches.delete(batchId)
-    console.log(`🛑 Cancelled batch: ${batchId}`)
   }
 
   /**
@@ -265,7 +257,6 @@ export class BatchManager {
   clearAll(): void {
     this.pendingBatches.clear()
     this.activeBatches.clear()
-    console.log('🧹 Cleared all batches')
   }
 
   /**

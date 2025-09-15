@@ -72,7 +72,6 @@ class OptimizedApiInterceptor {
         return response
       } catch (error) {
         // Cache miss or error - continue with regular request
-        console.log(`Cache miss for ${finalCacheKey}, executing request`)
       }
     }
 
@@ -109,7 +108,6 @@ class OptimizedApiInterceptor {
     
     // Return existing promise if request is in progress
     if (this.pendingRequests.has(requestKey)) {
-      console.log(`🔄 Joining existing request: ${requestKey}`)
       return this.pendingRequests.get(requestKey)!
     }
 

@@ -66,7 +66,6 @@ class PollingManager {
     this.instances.set(id, instance)
     this.scheduleNext(instance)
 
-    console.log(`📊 Started intelligent polling: ${id} (interval: ${fullConfig.initialInterval}ms)`)
   }
 
   /**
@@ -80,7 +79,6 @@ class PollingManager {
         clearTimeout(instance.timeoutId)
       }
       this.instances.delete(id)
-      console.log(`⏹️ Stopped polling: ${id}`)
     }
   }
 
@@ -95,7 +93,6 @@ class PollingManager {
         instance.timeoutId = undefined
       }
     })
-    console.log('⏸️ Paused all polling')
   }
 
   /**
@@ -108,7 +105,6 @@ class PollingManager {
         this.scheduleNext(instance)
       }
     })
-    console.log('▶️ Resumed all polling')
   }
 
   /**
@@ -118,7 +114,6 @@ class PollingManager {
     const instance = this.instances.get(id)
     if (instance) {
       instance.currentInterval = Math.min(newInterval, instance.config.maxInterval)
-      console.log(`🔄 Updated polling interval for ${id}: ${instance.currentInterval}ms`)
     }
   }
 
@@ -174,7 +169,6 @@ class PollingManager {
     }
 
     try {
-      console.log(`🔍 Polling: ${instance.id} (attempt ${instance.retryCount + 1})`)
       
       const success = await instance.callback()
       
@@ -185,7 +179,6 @@ class PollingManager {
           instance.retryCount = 0
         }
         instance.lastSuccess = Date.now()
-        console.log(`✅ Polling success: ${instance.id}`)
       } else {
         // Failed - increase interval with exponential backoff
         instance.retryCount++
@@ -193,7 +186,6 @@ class PollingManager {
           instance.currentInterval * instance.config.backoffMultiplier,
           instance.config.maxInterval
         )
-        console.log(`❌ Polling failed: ${instance.id} (next attempt in ${instance.currentInterval}ms)`)
       }
     } catch (error) {
       console.error(`💥 Polling error: ${instance.id}`, error)
@@ -224,7 +216,6 @@ class PollingManager {
       }
     })
     this.instances.clear()
-    console.log('🧹 Cleaned up all polling instances')
   }
 }
 

@@ -110,13 +110,11 @@ export async function withRetry<T>(
     stats.attempts = attempt
 
     try {
-      console.log(`🔄 Attempt ${attempt}/${fullConfig.maxRetries + 1}`)
       
       const result = await fn()
       stats.succeeded = true
       
       if (attempt > 1) {
-        console.log(`✅ Succeeded after ${attempt} attempts (total delay: ${stats.totalDelay}ms)`)
       }
       
       return result
@@ -125,11 +123,9 @@ export async function withRetry<T>(
       lastError = error
       stats.lastError = error
       
-      console.log(`❌ Attempt ${attempt} failed:`, error)
       
       // Check if we should retry
       if (!shouldRetry(error, attempt, fullConfig)) {
-        console.log(`🛑 Not retrying: ${error.message || error}`)
         break
       }
       
@@ -138,7 +134,6 @@ export async function withRetry<T>(
         const delay = calculateDelay(attempt, fullConfig)
         stats.totalDelay += delay
         
-        console.log(`⏳ Retrying in ${delay}ms...`)
         
         // Call retry callback if provided
         if (fullConfig.onRetry) {
@@ -224,7 +219,6 @@ export class RetryManager {
     if (controller) {
       controller.abort()
       this.activeRetries.delete(id)
-      console.log(`🛑 Cancelled retry: ${id}`)
     }
   }
 
@@ -236,7 +230,6 @@ export class RetryManager {
       controller.abort()
     }
     this.activeRetries.clear()
-    console.log('🛑 Cancelled all retries')
   }
 
   /**
