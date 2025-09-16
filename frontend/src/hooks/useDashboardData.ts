@@ -23,12 +23,34 @@ export const useDashboardData = () => {
         
         if (!response.ok) {
           console.error('🚨 Teams Overview API Error:', response.status, response.statusText)
-          
+
           // Don't throw on auth errors - let API interceptor handle them
           if (response.status === 401 || response.status === 403) {
             return null
           }
-          
+
+          // Handle 404 - team management endpoints might not be implemented yet
+          if (response.status === 404) {
+            console.warn('⚠️ Team management endpoints not implemented yet, returning default data')
+            return {
+              team_name: 'Personal Account',
+              user_role: 'owner',
+              subscription_tier: 'free',
+              subscription_status: 'active',
+              monthly_limits: { profiles: 5, emails: 0, posts: 0 },
+              current_usage: { profiles: 0, emails: 0, posts: 0 },
+              remaining_capacity: { profiles: 5, emails: 0, posts: 0 },
+              user_permissions: {
+                can_analyze_profiles: true,
+                can_unlock_emails: false,
+                can_analyze_posts: false,
+                can_manage_team: false,
+                can_invite_members: false,
+                can_view_billing: false
+              }
+            }
+          }
+
           throw new Error(`Failed to fetch teams overview: ${response.statusText}`)
         }
         

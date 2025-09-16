@@ -13,7 +13,7 @@ export const useCreatorSearch = (options?: UseCreatorSearchOptions) => {
 
   return useMutation({
     mutationFn: async (username: string): Promise<ProfileSearchResponse> => {
-      const response = await api.post(`/simple/creator/search/${username}`)
+      const response = await api.get(`/search/creator/${username}`)
       
       if (!response.ok) {
         throw new Error(`Search failed: ${response.statusText}`)

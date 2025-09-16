@@ -54,7 +54,7 @@ export default function LoginPage() {
           Welcome
         </span>
       }
-      description="Access your dashboard with AI-powered Instagram analytics, discovery, and growth insights"
+      description="Influencer marketing, from discovery to results"
       testimonials={[
         {
           avatarSrc: "/followinglogo.svg",

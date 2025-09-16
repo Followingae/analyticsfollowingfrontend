@@ -17,23 +17,25 @@ interface CacheStats {
 
 class RequestCache {
   private cache = new Map<string, CacheEntry<any>>()
-  private readonly defaultTtl = 2 * 60 * 1000 // 2 minutes (reduced from 5)
-  private readonly maxCacheSize = 50 // Reduced from 100 to prevent memory leaks
+  private readonly defaultTtl = 5 * 60 * 1000 // 5 minutes - AGGRESSIVE CACHING
+  private readonly maxCacheSize = 100 // Increased cache size for aggressive caching
   private stats: CacheStats = {
     totalHits: 0,
     totalMisses: 0,
     totalErrors: 0,
     memoryUsage: 0
   }
-  
+
   // Auto-cleanup timer
   private cleanupTimer?: NodeJS.Timeout
+  // Request deduplication - track ongoing requests
+  private pendingRequests = new Map<string, Promise<any>>()
 
   constructor() {
-    // Run cleanup every 2 minutes to prevent memory buildup
+    // Run cleanup every 5 minutes for aggressive caching
     this.cleanupTimer = setInterval(() => {
       this.cleanupExpired()
-    }, 2 * 60 * 1000)
+    }, 5 * 60 * 1000)
   }
 
   async get<T>(
@@ -43,6 +45,8 @@ class RequestCache {
     options: {
       forceRefresh?: boolean
       retryOnError?: boolean
+      retryAttempts?: number
+      retryDelay?: number
     } = {}
   ): Promise<T> {
     const now = Date.now()
@@ -51,33 +55,117 @@ class RequestCache {
     // Force refresh bypasses cache
     if (options.forceRefresh) {
       this.cache.delete(key)
-      return this.fetchAndCache(key, fetcher, ttl, now)
+      this.pendingRequests.delete(key)
+      return this.fetchAndCache(key, fetcher, ttl, now, options)
     }
 
-    // Return cached data if still valid
+    // Return cached data if still valid (aggressive caching)
     if (entry && now - entry.timestamp < entry.ttl) {
       entry.hitCount++
       this.stats.totalHits++
+      console.log(`✅ Cache HIT for ${key} (age: ${Math.round((now - entry.timestamp) / 1000)}s)`)
       return entry.data
     }
 
-    // If there's already a request in progress, return that promise
-    if (entry?.promise) {
-      return entry.promise
+    // REQUEST DEDUPLICATION - Check if same request is already in progress
+    const pendingRequest = this.pendingRequests.get(key)
+    if (pendingRequest) {
+      console.log(`🔄 Request DEDUPLICATION for ${key} - returning existing promise`)
+      return pendingRequest
     }
 
     // Cache miss - fetch new data
     this.stats.totalMisses++
-    return this.fetchAndCache(key, fetcher, ttl, now)
+    console.log(`❌ Cache MISS for ${key} - fetching new data`)
+    return this.fetchAndCache(key, fetcher, ttl, now, options)
   }
 
   private async fetchAndCache<T>(
     key: string,
     fetcher: () => Promise<T>,
     ttl: number,
-    now: number
+    now: number,
+    options: {
+      retryAttempts?: number
+      retryDelay?: number
+      retryOnError?: boolean
+    } = {}
   ): Promise<T> {
-    const promise = fetcher()
+    const maxRetries = options.retryAttempts || 3
+    const baseDelay = options.retryDelay || 1000
+
+    // Retry wrapper with exponential backoff
+    const fetchWithRetry = async (attempt: number = 1): Promise<T> => {
+      try {
+        console.log(`🔄 Fetch attempt ${attempt}/${maxRetries} for ${key}`)
+        const data = await fetcher()
+        console.log(`✅ Fetch SUCCESS for ${key} on attempt ${attempt}`)
+        return data
+      } catch (error: any) {
+        const errorMessage = error?.message || 'Unknown error'
+        console.error(`❌ Fetch attempt ${attempt}/${maxRetries} failed for ${key}:`, errorMessage)
+
+        // Handle specific error codes - don't retry client errors
+        if (errorMessage.includes('402') ||
+            errorMessage.includes('PAYMENT_REQUIRED') ||
+            errorMessage.includes('401') ||
+            errorMessage.includes('403') ||
+            errorMessage.includes('404')) {
+          console.log(`🚫 Not retrying ${key} - client error: ${errorMessage}`)
+          throw error
+        }
+
+        // Retry logic for server errors (500) and timeouts
+        // DON'T retry on 60+ second timeouts - they indicate backend processing time issues
+        const isLongTimeout = errorMessage.includes('60') || errorMessage.includes('timeout after 60')
+
+        if (attempt < maxRetries && !isLongTimeout && (
+          errorMessage.includes('500') ||
+          errorMessage.includes('timeout') ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('fetch')
+        )) {
+          const delay = baseDelay * Math.pow(2, attempt - 1) // Exponential backoff: 1s, 2s, 4s
+          console.log(`⏳ Retrying ${key} in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+          return fetchWithRetry(attempt + 1)
+        }
+
+        // For 60+ second timeouts, provide helpful error message
+        if (isLongTimeout) {
+          console.log(`🚫 Not retrying ${key} - 60+ second timeout indicates backend processing issue`)
+          throw new Error('Request timeout: The backend is taking too long to process this request. Please try again in a few minutes.')
+        }
+
+        // Handle 10+ second timeouts with fallback data
+        const isLongRequest = errorMessage.includes('10') || errorMessage.includes('timeout after 10')
+        if (isLongRequest) {
+          console.log(`⚠️ 10+ second timeout for ${key} - providing fallback data`)
+
+          // Return fallback data for common endpoints
+          if (key.includes('unlocked-profiles')) {
+            return {
+              profiles: [],
+              pagination: { total_items: 0, page: 1, page_size: 10, total_pages: 0 }
+            }
+          }
+
+          if (key.includes('system-stats')) {
+            return {
+              total_users: 0,
+              total_profiles_analyzed: 0,
+              total_api_calls_today: 0,
+              system_health: 'degraded'
+            }
+          }
+        }
+
+        throw error
+      }
+    }
+
+    // Create the promise with retry logic
+    const promise = fetchWithRetry()
       .then((data) => {
         // Store successful result
         this.cache.set(key, {
@@ -88,19 +176,29 @@ class RequestCache {
           errorCount: 0,
           promise: undefined
         })
+
+        // Remove from pending requests
+        this.pendingRequests.delete(key)
+
+        console.log(`💾 Cached successful result for ${key} (TTL: ${ttl / 1000}s)`)
         return data
       })
       .catch((error) => {
-        console.error(`❌ Request failed for ${key}:`, error)
+        console.error(`❌ All retry attempts failed for ${key}:`, error?.message)
         this.stats.totalErrors++
-        
+
+        // Remove from pending requests
+        this.pendingRequests.delete(key)
+
         // Update error count for existing entry or remove failed request
         const existingEntry = this.cache.get(key)
         if (existingEntry) {
           existingEntry.errorCount++
           existingEntry.promise = undefined
-          // Keep stale data on error if available
-          if (existingEntry.data) {
+
+          // GRACEFUL ERROR HANDLING - return stale data if available
+          if (existingEntry.data && options.retryOnError) {
+            console.log(`🔄 Returning stale data for ${key} due to error`)
             return existingEntry.data
           }
         } else {
@@ -108,6 +206,9 @@ class RequestCache {
         }
         throw error
       })
+
+    // Add to pending requests for deduplication
+    this.pendingRequests.set(key, promise)
 
     // Store the promise temporarily to prevent duplicate requests
     const existingEntry = this.cache.get(key)

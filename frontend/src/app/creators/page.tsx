@@ -60,9 +60,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { AIVerificationTool } from "@/components/ui/ai-verification-tool"
-import { AIInsightsCard } from "@/components/ai-insights/AIInsightsCard"
-import { AnalysisStatusCard } from "@/components/ai-insights/AnalysisStatusCard"
-import { ModernCreatorCard, CreatorGridCard } from "@/components/creator-cards"
+import { CreatorGridCard } from "@/components/creator-cards"
 import ReactCountryFlag from "react-country-flag"
 import { getCountryCode } from "@/lib/countryUtils"
 
@@ -77,6 +75,7 @@ export default function CreatorsPage() {
   const [unlockedCreators, setUnlockedCreators] = useState<CreatorProfile[]>([])
   const [unlockedLoading, setUnlockedLoading] = useState(true)
   const [unlockedError, setUnlockedError] = useState<string | null>(null)
+  const [analyzingCreators, setAnalyzingCreators] = useState<Set<string>>(new Set())
 
   // Robust deduplication utility
   const deduplicateProfiles = (profiles: CreatorProfile[]): CreatorProfile[] => {
@@ -141,12 +140,7 @@ export default function CreatorsPage() {
   const { isAuthenticated, isLoading: authLoading } = useEnhancedAuth()
 
   // Modern React Query based creator search
-  const [searchedProfile, setSearchedProfile] = useState<any>(null)
-  
   const creatorSearchMutation = useCreatorSearch({
-    onSuccess: (data) => {
-      setSearchedProfile(data.profile)
-    },
     onError: (error) => {
       console.error('Search failed:', error)
     }
@@ -230,12 +224,6 @@ export default function CreatorsPage() {
     }
   }, [isAuthenticated, authLoading])
 
-  // Automatically add search results to the list when they complete
-  useEffect(() => {
-    if (searchedProfile && !creatorSearchMutation.isPending) {
-      updateUnlockedCreators([searchedProfile], 'add')
-    }
-  }, [searchedProfile, creatorSearchMutation.isPending])
 
   // Manual refresh function for refresh button
   const handleRefresh = async () => {
@@ -249,14 +237,88 @@ export default function CreatorsPage() {
       toast.error("Please enter an Instagram username")
       return
     }
-    
+
     const cleanUsername = searchUsername.trim().replace('@', '')
-    
+
+    // Add creator to analyzing set
+    setAnalyzingCreators(prev => new Set([...prev, cleanUsername]))
+
+    // Create a placeholder creator and add it to the list immediately
+    const placeholderCreator: CreatorProfile = {
+      id: `temp-${cleanUsername}`,
+      username: cleanUsername,
+      full_name: cleanUsername,
+      biography: '',
+      followers_count: 0,
+      following_count: 0,
+      posts_count: 0,
+      is_verified: false,
+      is_business: false,
+      engagement_rate: 0,
+      profile_pic_url: '',
+      profile_pic_url_hd: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ai_insights: undefined
+    }
+
+    // Add placeholder to the beginning of the list
+    updateUnlockedCreators([placeholderCreator], 'add')
+
     try {
-      await creatorSearchMutation.mutateAsync(cleanUsername)
+      const result = await creatorSearchMutation.mutateAsync(cleanUsername)
+
+      // Remove from analyzing set
+      setAnalyzingCreators(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(cleanUsername)
+        return newSet
+      })
+
+      // Replace placeholder with real data
+      setUnlockedCreators(prev => {
+        const filtered = prev.filter(c => c.id !== `temp-${cleanUsername}`)
+
+        // Convert API response to CreatorProfile format
+        const creatorProfile: CreatorProfile = {
+          id: result.profile.username, // Use username as ID
+          username: result.profile.username,
+          full_name: result.profile.full_name || '',
+          biography: result.profile.biography || '',
+          followers_count: result.profile.followers_count,
+          following_count: result.profile.following_count,
+          posts_count: result.profile.posts_count,
+          is_verified: result.profile.is_verified,
+          is_business: false, // Not provided by search endpoint
+          engagement_rate: 0, // Will be calculated later or from additional field
+          profile_pic_url: result.profile.profile_pic_url || '',
+          profile_pic_url_hd: result.profile.profile_pic_url || '', // Use same URL for HD
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          ai_insights: result.profile.ai_analysis?.available ? {
+            available: true,
+            content_quality_score: result.profile.ai_analysis.content_quality_score || 0,
+            primary_content_type: result.profile.ai_analysis.primary_content_type || '',
+            avg_sentiment_score: result.profile.ai_analysis.avg_sentiment_score || 0
+          } : undefined
+        }
+
+        return deduplicateProfiles([creatorProfile, ...filtered])
+      })
+
       setSearchUsername("")
       toast.success(`Found profile for @${cleanUsername}!`)
     } catch (error) {
+      // Remove from analyzing set on error
+      setAnalyzingCreators(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(cleanUsername)
+        return newSet
+      })
+
+      // Remove placeholder on error
+      setUnlockedCreators(prev => prev.filter(c => c.id !== `temp-${cleanUsername}`))
+
       toast.error("Search failed. Please try again.")
     }
   }
@@ -384,9 +446,9 @@ export default function CreatorsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Unlocked Creators</h1>
+                <h1 className="text-3xl font-bold">Creators</h1>
                 <p className="text-muted-foreground mt-1">
-                  AI-powered creator analytics and insights
+                  Discover and analyze Instagram creators for your campaigns
                 </p>
               </div>
               <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
@@ -421,9 +483,9 @@ export default function CreatorsPage() {
                         {creatorSearchMutation.isPending ? (
                           <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         ) : (
-                          <Brain className="h-4 w-4 mr-2" />
+                          <Search className="h-4 w-4 mr-2" />
                         )}
-                        {creatorSearchMutation.isPending ? "Analyzing..." : "Analyze & Add Creator"}
+                        {creatorSearchMutation.isPending ? "Searching..." : "Search & Add Creator"}
                       </Button>
                     </div>
 
@@ -451,7 +513,7 @@ export default function CreatorsPage() {
                         ) : (
                           <BarChart3 className="h-4 w-4 mr-2" />
                         )}
-                        {bulkLoading ? "Processing..." : "Bulk Analyze"}
+                        {bulkLoading ? "Processing..." : "Bulk Search"}
                       </Button>
                     </div>
 
@@ -459,17 +521,17 @@ export default function CreatorsPage() {
 
                     {/* AI Verification Tool */}
                     <div className="space-y-4">
-                      <h3 className="text-sm font-medium">🔬 AI Analysis Verification</h3>
+                      <h3 className="text-sm font-medium">📊 Analysis Tools</h3>
                       <AIVerificationTool />
                     </div>
                     
                     <div className="pt-4 border-t">
                       <div className="text-xs text-muted-foreground space-y-1">
-                        <p>💡 Enhanced with AI:</p>
+                        <p>📊 Comprehensive analysis:</p>
                         <p>• Content category analysis (20+ categories)</p>
-                        <p>• Sentiment analysis with confidence scores</p>
-                        <p>• Language detection (20+ languages)</p>
-                        <p>• Quality scoring and insights</p>
+                        <p>• Audience sentiment and engagement patterns</p>
+                        <p>• Multi-language content detection</p>
+                        <p>• Performance scoring and insights</p>
                       </div>
                     </div>
                   </div>
@@ -477,59 +539,6 @@ export default function CreatorsPage() {
               </Sheet>
             </div>
 
-            {/* Search Results - Show if currently searching */}
-            {(searchedProfile || creatorSearchMutation.isPending || creatorSearchMutation.isError) && (
-              <Card className="border-primary/20">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-primary" />
-                      Latest Search Results
-                    </CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSearchedProfile(null)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {creatorSearchMutation.isPending && (
-                    <div className="text-center py-8">
-                      <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent mb-4" />
-                      <p className="text-muted-foreground">
-                        Analyzing creator with AI insights...
-                      </p>
-                    </div>
-                  )}
-
-                  {searchedProfile && (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <ModernCreatorCard creator={searchedProfile} />
-                      
-                      {/* AI Analysis Status */}
-                      {searchedProfile.ai_insights && (
-                        <AIInsightsCard 
-                          insights={searchedProfile.ai_insights}
-                          className="h-fit"
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  {creatorSearchMutation.isError && (
-                    <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-950 rounded-lg">
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                      <span className="text-sm text-red-700 dark:text-red-400">
-                        {creatorSearchMutation.error?.message || 'Search failed'}
-                      </span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
             
             {/* Creators Portfolio */}
             <Card>
@@ -537,8 +546,8 @@ export default function CreatorsPage() {
                 <div className="flex items-center justify-between mb-4">
                   <CardTitle>Your Creator Portfolio</CardTitle>
                   <Badge variant="secondary" className="flex items-center gap-1">
-                    <Brain className="h-3 w-3" />
-                    AI-Enhanced
+                    <BarChart3 className="h-3 w-3" />
+                    Analytics
                   </Badge>
                 </div>
                 
@@ -625,10 +634,10 @@ export default function CreatorsPage() {
                         <Users className="h-12 w-12 mx-auto text-muted-foreground" />
                         <div>
                           <h3 className="text-lg font-semibold">No unlocked creators yet</h3>
-                          <p className="text-muted-foreground">Start by searching for creators to analyze with AI</p>
+                          <p className="text-muted-foreground">Start by searching for creators to build your portfolio</p>
                         </div>
-                        <Button onClick={() => setIsSearchOpen(true)} style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }} className="hover:opacity-90">
-                          <Brain className="h-4 w-4 mr-2" />
+                        <Button onClick={() => setIsSearchOpen(true)}>
+                          <Search className="h-4 w-4 mr-2" />
                           Add Creators
                         </Button>
                       </div>
@@ -640,6 +649,7 @@ export default function CreatorsPage() {
                     <CreatorGridCard
                       key={creator.id || creator.pk || creator.username || `creator-${index}`}
                       creator={creator}
+                      isAnalyzing={analyzingCreators.has(creator.username)}
                     />
                   ))}
                 </div>

@@ -69,36 +69,28 @@ function SidebarProvider({
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
-  // This is the internal state of the sidebar.
-  // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen)
-  const open = openProp ?? _open
+  // FIXED: Always keep sidebar expanded - disable collapse functionality
+  const open = true // Force sidebar to always be open
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
-      const openState = typeof value === "function" ? value(open) : value
-      if (setOpenProp) {
-        setOpenProp(openState)
-      } else {
-        _setOpen(openState)
-      }
-
-      // This sets the cookie to keep the sidebar state.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      // Do nothing - sidebar size should never change
+      return
     },
-    [setOpenProp, open]
+    []
   )
 
-  // Helper to toggle the sidebar.
+  // Helper to toggle the sidebar - disabled for desktop, only works on mobile
   const toggleSidebar = React.useCallback(() => {
-    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
-  }, [isMobile, setOpen, setOpenMobile])
+    return isMobile ? setOpenMobile((open) => !open) : undefined // No toggle on desktop
+  }, [isMobile, setOpenMobile])
 
-  // Adds a keyboard shortcut to toggle the sidebar.
+  // Disable keyboard shortcut for sidebar toggle on desktop
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
-        (event.metaKey || event.ctrlKey)
+        (event.metaKey || event.ctrlKey) &&
+        isMobile // Only allow toggle on mobile
       ) {
         event.preventDefault()
         toggleSidebar()
@@ -107,11 +99,10 @@ function SidebarProvider({
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [toggleSidebar])
+  }, [toggleSidebar, isMobile])
 
-  // We add a state so that we can do data-state="expanded" or "collapsed".
-  // This makes it easier to style the sidebar with Tailwind classes.
-  const state = open ? "expanded" : "collapsed"
+  // Sidebar is always expanded on desktop
+  const state = "expanded"
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
@@ -258,7 +249,7 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, isMobile } = useSidebar()
 
   return (
     <Button
@@ -269,7 +260,10 @@ function SidebarTrigger({
       className={cn("size-7", className)}
       onClick={(event) => {
         onClick?.(event)
-        toggleSidebar()
+        // Only allow toggle on mobile - desktop sidebar size should never change
+        if (isMobile) {
+          toggleSidebar()
+        }
       }}
       {...props}
     >
@@ -697,6 +691,7 @@ function SidebarMenuSubButton({
     />
   )
 }
+
 
 export {
   Sidebar,

@@ -34,13 +34,15 @@ interface CreatorGridCardProps {
   onAnalyticsClick?: (creator: CreatorProfile) => void
   onAddClick?: (creator: CreatorProfile) => void
   showAddButton?: boolean
+  isAnalyzing?: boolean
 }
 
 export function CreatorGridCard({
   creator,
   onAnalyticsClick,
   onAddClick,
-  showAddButton = false
+  showAddButton = false,
+  isAnalyzing = false
 }: CreatorGridCardProps) {
   const router = useRouter()
 
@@ -66,6 +68,10 @@ export function CreatorGridCard({
     if (onAnalyticsClick) {
       onAnalyticsClick(creator)
     } else {
+      if (!creator.username) {
+        toast.error('Creator username is missing')
+        return
+      }
       const analyticsUrl = `/creator-analytics/${creator.username}`
       router.push(analyticsUrl)
     }
@@ -116,13 +122,25 @@ export function CreatorGridCard({
     )
   }
 
+  const handleCardClick = () => {
+    if (!creator.username) {
+      toast.error('Creator username is missing')
+      return
+    }
+    const analyticsUrl = `/creator-analytics/${creator.username}`
+    router.push(analyticsUrl)
+  }
+
   return (
-    <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-white via-white to-gray-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/30 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+    <Card
+      className="group relative overflow-hidden border-0 bg-gradient-to-br from-white via-white to-gray-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/30 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+      onClick={handleCardClick}
+    >
       {/* Hover gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
       {/* Background decorative elements */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:from-primary/10 transition-colors duration-500" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:from-primary/10 transition-colors duration-500 pointer-events-none" />
 
       {/* Country flag */}
       {creator.country_block && (
@@ -203,8 +221,15 @@ export function CreatorGridCard({
           </div>
         </div>
 
-        {/* AI Quality Score */}
-        {hasAI && creator.ai_insights?.content_quality_score && (
+        {/* AI Quality Score or Loading State */}
+        {isAnalyzing ? (
+          <div className="p-3 bg-muted/50 rounded-md border">
+            <div className="flex items-center justify-center gap-2">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+              <span className="text-xs text-muted-foreground">Processing</span>
+            </div>
+          </div>
+        ) : hasAI && creator.ai_insights?.content_quality_score && (
           <div className="p-2 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-md border border-purple-200 dark:border-purple-800">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-muted-foreground">AI Score</span>

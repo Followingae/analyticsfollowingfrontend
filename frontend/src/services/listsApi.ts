@@ -191,7 +191,7 @@ export interface ListsPaginatedResponse {
 export class ListsApiService {
   // Core List Management
   async getAllLists(): Promise<ApiResponse<List[] | ListsPaginatedResponse>> {
-    const url = `${API_CONFIG.BASE_URL}${ENDPOINTS.lists.getAll}`
+    const url = `${API_CONFIG.BASE_URL}${ENDPOINTS.lists.list}`
     
     try {
       const response = await fetchWithAuth(url, {

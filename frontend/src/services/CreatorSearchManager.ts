@@ -6,6 +6,9 @@
 import { toast } from 'sonner';
 import { creatorApiService } from '@/services/creatorApi';
 import { CreatorProfile, AnalysisStatus, SearchResponse } from '@/types/creator';
+import { requestCache } from '@/utils/requestCache';
+import { sequencedFetch, REQUEST_PRIORITIES } from '@/utils/requestSequencer';
+import { API_CONFIG } from '@/config/api';
 
 // UI State Management as per guide
 export const UI_STATES = {
@@ -67,8 +70,8 @@ export class CreatorSearchManager {
    */
   private async callSearchAPI(username: string): Promise<SearchResponse> {
     // Use the single POST endpoint that returns everything immediately
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/simple/creator/search/${username.trim().replace('@', '')}`, {
-      method: 'POST',
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/search/creator/${username.trim().replace('@', '')}`, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,
         'Content-Type': 'application/json'

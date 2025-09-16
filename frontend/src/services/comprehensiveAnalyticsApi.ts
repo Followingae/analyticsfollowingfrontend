@@ -14,58 +14,126 @@ import {
   AnalyticsDashboardData
 } from '@/types/comprehensiveAnalytics'
 import { api as apiClient } from '@/lib/api'
+import { requestCache } from '@/utils/requestCache'
 
-// Real profile data structure from backend
+// Real profile data structure from backend (comprehensive spec)
 interface BackendProfileData {
   success: boolean
   profile: {
+    // Basic Profile Information
     username: string
-    full_name: string
-    biography: string
+    full_name: string | null
+    biography: string | null
+    profile_pic_url: string | null
+    external_url: string | null
+    is_verified: boolean
+    is_business_account: boolean
+    category: string | null
+
+    // Follower Metrics
     followers_count: number
     following_count: number
     posts_count: number
     engagement_rate: number
-    profile_pic_url: string
-    ai_insights?: {
-      primary_content_type: string
-      content_distribution: Record<string, number>
-      sentiment_analysis: {
-        avg_sentiment_score: number
-        sentiment_distribution: Record<string, number>
-      }
-      language_analysis: {
-        primary_language: string
-        language_distribution: Record<string, number>
-      }
-      top_3_categories: Array<{
-        category: string
-        percentage: number
-        confidence: number
-      }>
-      content_quality_score: number
-      comprehensive_analysis_version?: string
-      comprehensive_analyzed_at?: string
-      models_success_rate?: number
-    }
+
+    // AI Content Intelligence
+    ai_primary_content_type: string | null
+    ai_content_quality_score: number | null
+    ai_content_distribution: Record<string, number> | null
+
+    // Language & Demographics
+    ai_language_distribution: Record<string, number> | null
+    ai_audience_insights: {
+      age_distribution?: Record<string, number>
+      gender_breakdown?: Record<string, number>
+      geographic_distribution?: Record<string, number>
+      interest_categories?: Record<string, number>
+      engagement_patterns?: Record<string, any>
+      quality_score?: number
+    } | null
+
+    // Audience Quality & Authenticity
+    ai_fraud_detection: {
+      bot_detection_score?: number
+      fake_follower_percentage?: number
+      engagement_authenticity?: number
+      authenticity_score?: number
+      growth_pattern?: string
+      risk_score?: number
+    } | null
+
+    // Behavioral Analysis
+    ai_behavioral_patterns: {
+      posting_frequency?: string
+      optimal_posting_times?: Record<string, number>
+      engagement_velocity?: number
+      user_lifecycle_analysis?: any
+      community_interaction_patterns?: any
+      growth_pattern?: string
+      response_rate?: string
+      community_health?: string
+    } | null
+
+    // Visual Content Analysis
+    ai_visual_content: {
+      color_palette?: string[]
+      composition_quality?: number
+      visual_consistency?: number
+      brand_aesthetic_score?: number
+      image_quality_score?: number
+      quality_score?: number
+      brand_consistency?: string
+    } | null
+
+    // Sentiment & Language
+    ai_avg_sentiment_score: number | null
+
+    // Advanced Text Analysis
+    ai_advanced_nlp: {
+      topic_modeling?: any
+      keyword_extraction?: string[]
+      writing_style_analysis?: any
+      readability_scores?: Record<string, number>
+      brand_voice_consistency?: number
+    } | null
+
+    // Trend Analysis
+    ai_trend_detection: {
+      trending_topics?: string[]
+      viral_content_prediction?: number
+      hashtag_effectiveness?: Record<string, number>
+      content_performance_patterns?: any
+      market_trend_alignment?: number
+    } | null
   }
   posts?: Array<{
+    // Individual Post Data
     id: string
+    instagram_post_id: string
     caption: string
+    thumbnail_url: string
+    display_url: string
+    is_video: boolean
+    posted_at: string
+    created_at: string
+
+    // Per-Post Metrics
     likes_count: number
     comments_count: number
     engagement_rate: number
-    display_url: string
-    cdn_thumbnail_url: string
-    taken_at: string
-    ai_analysis?: {
-      content_category: string
-      category_confidence: number
-      sentiment: string
-      sentiment_score: number
-      language_code: string
-      analyzed_at: string
-    }
+    video_view_count?: number
+
+    // Per-Post AI Analysis
+    ai_content_category: string | null
+    ai_category_confidence: number | null
+    ai_sentiment: string | null
+    ai_sentiment_score: number | null
+    ai_sentiment_confidence: number | null
+    ai_language_code: string | null
+    ai_language_confidence: number | null
+
+    // Complete Post Analysis
+    ai_analysis_raw: any | null
   }>
 }
 
@@ -78,45 +146,44 @@ export class ComprehensiveAnalyticsApiService {
   async getEnhancedProfile(username: string): Promise<EnhancedProfileResponse> {
     try {
       console.log('🔍 Attempting to fetch enhanced profile for username:', username)
+      console.log('🔍 Username type:', typeof username, 'Length:', username?.length)
+      console.log('🔍 Making request to:', `/search/creator/${username}`)
 
-      // ✅ Use the REAL working endpoint with authentication
-      const response = await apiClient.get(`/search/creator/${username}`)
+      // Clean the username - remove @ symbol and trim whitespace
+      const cleanUsername = username.replace('@', '').trim()
+      console.log('🔍 Clean username:', cleanUsername)
+
+      // Fresh API: Use the primary creator search endpoint
+      const response = await apiClient.get(`/search/creator/${cleanUsername}`)
 
       if (!response.ok) {
-        console.warn(`⚠️ Enhanced profile API returned ${response.status} for ${username}`)
+        console.warn(`⚠️ Enhanced profile API returned ${response.status} for ${cleanUsername}`)
+        console.log('🔍 Response details:', response.status, response.statusText)
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       
       const data: BackendProfileData = await response.json()
-      
+      console.log('🔍 Raw backend response:', JSON.stringify(data, null, 2))
+
       if (!data.success || !data.profile) {
+        console.error('🔍 Invalid response structure:', { success: data.success, hasProfile: !!data.profile })
         throw new Error('Invalid response structure from backend')
       }
-      
-      // Transform real backend data to enhanced profile format
+
+      console.log('🔍 Profile fields available:', Object.keys(data.profile))
+      console.log('🔍 AI analysis fields:', {
+        ai_analysis: !!data.profile.ai_analysis,
+        ai_content_distribution: !!data.profile.ai_content_distribution,
+        ai_fraud_detection: !!data.profile.ai_fraud_detection,
+        ai_audience_insights: !!data.profile.ai_audience_insights,
+        ai_behavioral_patterns: !!data.profile.ai_behavioral_patterns
+      })
+
+      // Return the comprehensive backend data structure directly
       return {
         success: data.success,
-        profile: {
-          username: data.profile.username,
-          full_name: data.profile.full_name,
-          biography: data.profile.biography,
-          followers_count: data.profile.followers_count,
-          following_count: data.profile.following_count,
-          posts_count: data.profile.posts_count,
-          is_verified: false, // Will be available in backend response if needed
-          profile_pic_url: data.profile.profile_pic_url, // Real CDN URL
-          
-          // Transform real AI insights data
-          ai_primary_content_type: data.profile.ai_insights?.primary_content_type,
-          ai_content_distribution: data.profile.ai_insights?.content_distribution,
-          ai_avg_sentiment_score: data.profile.ai_insights?.sentiment_analysis?.avg_sentiment_score,
-          ai_content_quality_score: data.profile.ai_insights?.content_quality_score,
-          ai_language_distribution: data.profile.ai_insights?.language_analysis?.language_distribution,
-          ai_top_3_categories: data.profile.ai_insights?.top_3_categories?.map(cat => cat.category),
-          ai_top_10_categories: data.profile.ai_insights?.top_3_categories?.map(cat => cat.category), // Extend if backend provides top 10
-          ai_profile_analyzed_at: data.profile.ai_insights?.comprehensive_analyzed_at
-        },
-        message: 'Profile loaded successfully with real data'
+        profile: data.profile, // Use the full comprehensive profile structure
+        message: 'Profile loaded successfully with comprehensive data'
       }
     } catch (error) {
       console.error('❌ Error fetching enhanced profile:', error)
@@ -188,59 +255,20 @@ export class ComprehensiveAnalyticsApiService {
         }
       }
 
-      // Fallback: Try posts-specific endpoint if available
-      try {
-        const postsResponse = await apiClient.get(`/instagram/profile/${username}/posts`, {
-          params: {
-            limit: options?.limit || 20,
-            offset: options?.offset || 0
-          }
-        })
-        
-        if (postsResponse.ok) {
-          const postsData = await postsResponse.json()
-          return postsData
-        }
-      } catch (postsError) {
-        console.log('Posts endpoint not available, using profile data only')
-      }
+      // Posts are now included in the main search endpoint, so we use that data
+      // No need for a separate posts endpoint call
 
-      // Final fallback: Create minimal posts structure from profile insights
-      const fallbackPosts = [{
-        id: 'profile_summary',
-        media_type: 'photo' as const,
-        caption: 'Real profile analysis available - posts being processed',
-        timestamp: new Date().toISOString(),
-        like_count: Math.floor((profileData.profile.followers_count || 0) * (profileData.profile.engagement_rate || 0.03)),
-        comment_count: Math.floor((profileData.profile.followers_count || 0) * (profileData.profile.engagement_rate || 0.03) * 0.1),
-        
-        ai_content_category: profileData.profile.ai_insights?.primary_content_type,
-        ai_sentiment_score: profileData.profile.ai_insights?.sentiment_analysis?.avg_sentiment_score,
-        ai_language_code: profileData.profile.ai_insights?.language_analysis?.primary_language,
-        ai_category_confidence: profileData.profile.ai_insights?.top_3_categories?.[0]?.confidence,
-        ai_sentiment_confidence: 0.9,
-        ai_language_confidence: 0.95,
-        ai_analyzed_at: profileData.profile.ai_insights?.comprehensive_analyzed_at,
-        ai_analysis_raw: profileData.profile.ai_insights ? {
-          primary_content: profileData.profile.ai_insights.primary_content_type,
-          sentiment: profileData.profile.ai_insights.sentiment_analysis?.avg_sentiment_score,
-          language: profileData.profile.ai_insights.language_analysis?.primary_language
-        } : null,
-        
-        display_url: profileData.profile.profile_pic_url,
-        engagement_rate: profileData.profile.engagement_rate
-      }]
-
+      // No fallback data - only return real posts from API
       return {
         success: true,
-        posts: fallbackPosts,
+        posts: [],
         pagination: {
-          total: 1,
+          total: 0,
           limit: options?.limit || 20,
           offset: options?.offset || 0,
           has_more: false
         },
-        message: 'Profile analysis loaded - individual posts processing in background'
+        message: 'No posts data available'
       }
     } catch (error) {
       console.error('Error fetching post analytics:', error)
@@ -253,7 +281,7 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getComprehensiveAnalysis(username: string): Promise<ComprehensiveAnalysisResponse> {
     try {
-      // ✅ Use real API endpoint
+      // Fresh API: Use real API endpoint
       const response = await apiClient.get(`/search/creator/${username}`)
       
       if (!response.ok) {
@@ -364,7 +392,7 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getContentPerformance(username: string): Promise<ContentPerformanceResponse> {
     try {
-      const response = await apiClient.get(`/instagram/profile/${username}`)
+      const response = await apiClient.get(`/search/creator/${username}`)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -380,40 +408,19 @@ export class ComprehensiveAnalyticsApiService {
           growth_rate: 5.2 - (index * 1.1)
         })) || [],
         
-        sentiment_timeline: Array.from({ length: 30 }, (_, i) => ({
-          date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          sentiment_score: (data.ai_analysis?.avg_sentiment_score || 0) + (Math.random() - 0.5) * 0.4,
-          post_count: Math.floor(Math.random() * 3) + 1
-        })),
+        sentiment_timeline: [], // No mock data - require real API data
         
-        recommendations: [
-          {
-            recommendation_type: 'content_type' as const,
-            suggestion: `Focus more on ${data.ai_analysis?.primary_content_type} content - it performs 23% better`,
-            expected_improvement: 23.5,
-            confidence: 0.87
-          },
-          {
-            recommendation_type: 'posting_time' as const,
-            suggestion: 'Post between 6-8 PM for maximum engagement',
-            expected_improvement: 15.2,
-            confidence: 0.92
-          }
-        ],
+        recommendations: [], // No mock recommendations - require real API data
         
         engagement_prediction: data.ai_analysis?.top_3_categories?.map(cat => ({
           content_type: cat,
-          predicted_engagement_rate: 0.04 + Math.random() * 0.02,
+          predicted_engagement_rate: data.engagement_rate || 0,
           confidence_interval: [0.03, 0.07] as [number, number]
         })) || [],
         
         optimal_posting: {
-          best_times: [
-            { day: 'Monday', time: '18:00', expected_reach: 15000 },
-            { day: 'Wednesday', time: '19:00', expected_reach: 18000 },
-            { day: 'Friday', time: '17:00', expected_reach: 22000 }
-          ],
-          content_mix_recommendation: data.ai_analysis?.content_distribution || { 'Photos': 60, 'Videos': 40 }
+          best_times: [], // No mock data - require real API data
+          content_mix_recommendation: data.ai_analysis?.content_distribution || {}
         }
       }
 
@@ -433,7 +440,7 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getSafetyAnalysis(username: string): Promise<SafetyAnalysisResponse> {
     try {
-      const response = await apiClient.get(`/instagram/profile/${username}`)
+      const response = await apiClient.get(`/search/creator/${username}`)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -527,7 +534,7 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getAnalysisStatus(username: string): Promise<AnalysisStatusResponse> {
     try {
-      const response = await apiClient.get(`/instagram/profile/${username}`)
+      const response = await apiClient.get(`/search/creator/${username}`)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -615,41 +622,66 @@ export class ComprehensiveAnalyticsApiService {
   }
 
   /**
-   * Get complete analytics dashboard data using REAL endpoint
+   * Get complete analytics dashboard data using REAL endpoint with aggressive caching
    */
-  async getCompleteDashboardData(username: string): Promise<AnalyticsDashboardData> {
-    try {
-      // ✅ REAL API call to working endpoint  
-      const profileResponse = await this.getEnhancedProfile(username)
-      
-      // Use the profile data to build comprehensive analytics
-      const [
-        postsResponse,
-        comprehensiveResponse,
-        performanceResponse,
-        safetyResponse,
-        competitiveResponse,
-        statusResponse
-      ] = await Promise.allSettled([
-        this.getPostAnalytics(username, { limit: 50, include_ai: true }),
-        this.getComprehensiveAnalysis(username),
-        this.getContentPerformance(username),
-        this.getSafetyAnalysis(username),
-        this.getCompetitiveIntelligence(username),
-        this.getAnalysisStatus(username)
-      ])
+  async getCompleteDashboardData(username: string, options: { forceRefresh?: boolean } = {}): Promise<any> {
+    const cleanUsername = username.replace('@', '').trim()
+    const cacheKey = `creator-analytics-${cleanUsername}`
 
-      return {
-        profile: profileResponse.profile,
-        posts: postsResponse.status === 'fulfilled' ? postsResponse.value.posts : [],
-        comprehensive_analysis: comprehensiveResponse.status === 'fulfilled' ? comprehensiveResponse.value.analysis : null,
-        performance: performanceResponse.status === 'fulfilled' ? performanceResponse.value.performance : null,
-        safety: safetyResponse.status === 'fulfilled' ? safetyResponse.value.safety : null,
-        competitive: competitiveResponse.status === 'fulfilled' ? competitiveResponse.value.competitive : null,
-        status: statusResponse.status === 'fulfilled' ? statusResponse.value.status : null
-      }
+    console.log('🔍 getCompleteDashboardData called with:', { username, cleanUsername, options })
+
+    try {
+      const result = await requestCache.get(
+        cacheKey,
+        async () => {
+          console.log('🔍 Making API call with sequencing and retry logic')
+
+          // Fresh API: SINGLE API CALL with comprehensive retry and error handling
+          const response = await apiClient.get(`/search/creator/${cleanUsername}`)
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+
+          const data: BackendProfileData = await response.json()
+
+          if (!data.success || !data.profile) {
+            throw new Error('Invalid response structure from backend')
+          }
+
+          console.log('✅ Received complete data from backend:', {
+            hasProfile: !!data.profile,
+            hasPosts: !!data.posts && data.posts.length > 0,
+            hasAIData: !!data.profile.ai_primary_content_type,
+            postsCount: data.posts?.length || 0,
+            engagement: data.profile.engagement_rate
+          })
+
+          // Return the comprehensive data structure
+          return {
+            profile: data.profile,
+            posts: data.posts || [],
+            analytics_summary: {
+              total_engagement: data.profile.engagement_rate || 0,
+              avg_likes: data.posts ? data.posts.reduce((sum, post) => sum + (post.likes_count || 0), 0) / data.posts.length : 0,
+              avg_comments: data.posts ? data.posts.reduce((sum, post) => sum + (post.comments_count || 0), 0) / data.posts.length : 0
+            }
+          }
+        },
+        5 * 60 * 1000, // 5 minute aggressive cache
+        {
+          forceRefresh: options.forceRefresh,
+          retryAttempts: 3,
+          retryDelay: 1000,
+          retryOnError: true // Return stale data on error if available
+        }
+      )
+
+      console.log('🔍 requestCache.get completed successfully')
+      return result
+
     } catch (error) {
-      console.error('Error fetching complete dashboard data:', error)
+      console.error('🔍 getCompleteDashboardData error:', error)
       throw error
     }
   }

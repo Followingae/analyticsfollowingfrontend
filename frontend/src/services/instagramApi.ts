@@ -2,6 +2,8 @@ import { API_CONFIG, ENDPOINTS, REQUEST_HEADERS, getAuthHeaders } from '@/config
 import { authService } from './authService'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { TeamUsageLimitError, TeamAccessError, teamApiService } from './teamApi'
+import { requestCache } from '@/utils/requestCache'
+import { sequencedFetch, REQUEST_PRIORITIES } from '@/utils/requestSequencer'
 /**
  * PRODUCTION READY API INTERFACES
  * Updated according to FRONTEND_HANDOVER.md (July 31, 2025)
@@ -547,7 +549,7 @@ export class InstagramApiService {
     customTimeout?: number
   ): Promise<T> {
     const controller = new AbortController()
-    const timeoutMs = customTimeout || this.timeout
+    const timeoutMs = customTimeout || this.timeout || 30000 // 30s fallback
     const timeoutId = setTimeout(() => {
       controller.abort()
     }, timeoutMs)
@@ -649,13 +651,12 @@ export class InstagramApiService {
    */
   async getBasicProfile(username: string): Promise<BasicProfileResponse> {
     try {
-      // NEW BACKEND: Using creator search endpoint with POST method and team token
+      // Fresh API: Using creator search endpoint with GET method
       const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.creator.search(username), {
-        method: 'POST',
+        method: 'GET', // Fresh API uses GET method
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ force_refresh: false })
+        }
       }) // No timeout - let backend handle timing
       
       // Validate response structure
@@ -763,49 +764,73 @@ export class InstagramApiService {
     return this.getBasicProfile(username)
   }
   /**
-   * NEW: Progressive Profile Loading - Complete 3-Step Process
-   * Implements the full progressive loading flow with polling
-   * This method orchestrates the entire process automatically
+   * NEW: Progressive Profile Loading with aggressive caching and request sequencing
+   * Implements optimized loading with request deduplication and retry logic
    */
   async getProfile(username: string): Promise<BasicProfileResponse> {
-    try {
-      // Direct API call - avoid calling getBasicProfile to prevent recursion
-      const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.creator.search(username), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ force_refresh: false })
-      }) // No timeout - let backend handle timing
-      
-      if (!response) {
-        throw new Error('Empty response received from backend')
-      }
-      if (!response.profile) {
-        throw new Error('No profile data received from backend')
-      }
+    const cleanUsername = username.replace('@', '').trim()
+    const cacheKey = `profile-${cleanUsername}`
 
-      // Store team context if present
-      if (response.team_context) {
-        teamApiService.updateTeamContext(response.team_context)
-      }
+    try {
+      // Use aggressive caching with request sequencing
+      const result = await requestCache.get(
+        cacheKey,
+        async () => {
+          // Use request sequencer to prevent concurrent duplicate calls
+          return sequencedFetch(
+            `profile-search-${cleanUsername}`,
+            async () => {
+              console.log(`🔍 Making sequenced API call for profile: ${cleanUsername}`)
+
+              const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.creator.search(cleanUsername), {
+                method: 'GET', // Fresh API uses GET method
+                headers: {
+                  'Content-Type': 'application/json'
+                }
+              })
+
+              if (!response) {
+                throw new Error('Empty response received from backend')
+              }
+              if (!response.profile) {
+                throw new Error('No profile data received from backend')
+              }
+
+              // Store team context if present
+              if (response.team_context) {
+                teamApiService.updateTeamContext(response.team_context)
+              }
+
+              return response
+            },
+            REQUEST_PRIORITIES.HIGH // High priority for profile searches
+          )
+        },
+        API_CONFIG.CACHE_DURATION, // 5 minute cache
+        {
+          retryAttempts: API_CONFIG.CACHE_RETRY_ATTEMPTS,
+          retryDelay: API_CONFIG.CACHE_RETRY_DELAY,
+          retryOnError: true // Return stale data on error
+        }
+      )
 
       return {
         success: true,
-        data: response,
-        status: response.ai_insights?.ai_processing_status || 'not_available'
+        data: result,
+        status: result.ai_insights?.ai_processing_status || 'not_available'
       }
 
     } catch (error: any) {
-      
-      if (error.message.includes('profile_not_accessible') || 
+      console.error(`❌ Profile fetch failed for ${cleanUsername}:`, error.message)
+
+      if (error.message.includes('profile_not_accessible') ||
           error.message.includes('search for this profile first')) {
         return {
           success: false,
           error: 'Please search for this profile first to unlock access'
         }
       }
-      
+
       return {
         success: false,
         error: error.message || 'Failed to get profile'
@@ -926,20 +951,45 @@ export class InstagramApiService {
   }
 
   /**
-   * CORRECTED: Get unlocked profiles for creators page
+   * CORRECTED: Get unlocked profiles for creators page with aggressive caching
    * Uses: GET /api/v1/simple/creator/unlocked (per backend team)
    */
   async getUnlockedProfiles(page: number = 1, pageSize: number = 20): Promise<UnlockedProfilesApiResponse> {
+    const cacheKey = `unlocked-profiles-${page}-${pageSize}`
+
     try {
-      const response = await this.makeRequest<UnlockedProfilesResponse>(
-        `/api/v1/simple/creator/unlocked?page=${page}&page_size=${pageSize}`,
-        { method: 'GET' }
+      const result = await requestCache.get(
+        cacheKey,
+        async () => {
+          return sequencedFetch(
+            `unlocked-profiles-${page}`,
+            async () => {
+              console.log(`🔍 Fetching unlocked profiles page ${page}`)
+
+              const response = await this.makeRequest<UnlockedProfilesResponse>(
+                `${ENDPOINTS.creator.unlocked}?page=${page}&page_size=${pageSize}`,
+                { method: 'GET' }
+              )
+
+              return response
+            },
+            REQUEST_PRIORITIES.NORMAL // Normal priority for unlocked profiles
+          )
+        },
+        API_CONFIG.CACHE_DURATION, // 5 minute cache
+        {
+          retryAttempts: API_CONFIG.CACHE_RETRY_ATTEMPTS,
+          retryDelay: API_CONFIG.CACHE_RETRY_DELAY,
+          retryOnError: true
+        }
       )
+
       return {
         success: true,
-        data: response
+        data: result
       }
     } catch (error: any) {
+      console.error(`❌ Failed to load unlocked profiles:`, error.message)
       return {
         success: false,
         error: error.message || 'Failed to load unlocked profiles'
@@ -1341,16 +1391,16 @@ export class InstagramApiService {
 
   /**
    * 🚀 NEW: Simple Flow Profile Search (Single-Stage)
-   * Uses: POST /api/v1/simple/creator/search/{username}
+   * Uses: GET /api/v1/search/creator/{username}
    * Returns: Complete data with AI analysis and CDN URLs in one response
    * Purpose: Single API call with no frontend timeout - backend handles timing
    */
   async getProfileSimple(username: string): Promise<ApiResponse<SimpleFlowResponse>> {
     try {
       const response = await this.makeRequest<SimpleFlowResponse>(
-        `/api/v1/simple/creator/search/${username}`,
+        `/api/v1/search/creator/${username}`,
         {
-          method: 'POST',
+          method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         }
         // No timeout - let backend handle timing
@@ -1402,11 +1452,10 @@ export class InstagramApiService {
     try {
       // Direct API call to avoid recursion with getProfile
       const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.creator.search(username), {
-        method: 'POST',
+        method: 'GET', // Fresh API uses GET method
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ force_refresh: false })
+        }
       }) // No timeout - let backend handle timing
       
       if (!response) {

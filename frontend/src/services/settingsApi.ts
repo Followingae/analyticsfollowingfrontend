@@ -112,7 +112,7 @@ class SettingsApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout)
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout || 30000)
 
     try {
 
@@ -168,7 +168,9 @@ class SettingsApiService {
    * Load all settings data for page initialization
    */
   async getSettingsOverview(): Promise<ApiResponse<SettingsOverview>> {
-    return this.makeRequest<SettingsOverview>(ENDPOINTS.settings.overview)
+    // Note: /settings/overview doesn't exist, using profile as fallback
+    console.warn('⚠️ settings/overview endpoint does not exist, using profile data')
+    return this.makeRequest<SettingsOverview>(ENDPOINTS.settings.profile)
   }
 
   /**
@@ -189,21 +191,27 @@ class SettingsApiService {
   }
 
   async uploadAvatar(file: File): Promise<ApiResponse<AvatarUploadResponse>> {
-    const formData = new FormData()
+    // Note: /settings/avatar doesn't exist yet
+    console.warn('⚠️ settings/avatar endpoint does not exist')
+    return { success: false, error: 'Avatar upload not implemented yet' }
+
+    /* const formData = new FormData()
     formData.append('file', file)
 
     return this.makeRequest<AvatarUploadResponse>(ENDPOINTS.settings.avatar, {
       method: 'POST',
       body: formData
       // Note: Don't set Content-Type header for FormData, browser sets it automatically
-    })
+    }) */
   }
 
   /**
    * Security Settings
    */
   async changePassword(passwordData: PasswordChangeRequest): Promise<ApiResponse<PasswordChangeResponse>> {
-    return this.makeRequest<PasswordChangeResponse>(ENDPOINTS.settings.security.password, {
+    console.warn('⚠️ settings/security endpoints do not exist')
+    return { success: false, error: 'Password change not implemented yet' }
+    /* return this.makeRequest<PasswordChangeResponse>(ENDPOINTS.settings.security.password, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
