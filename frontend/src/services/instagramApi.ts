@@ -1398,7 +1398,7 @@ export class InstagramApiService {
   async getProfileSimple(username: string): Promise<ApiResponse<SimpleFlowResponse>> {
     try {
       const response = await this.makeRequest<SimpleFlowResponse>(
-        `/api/v1/search/creator/${username}`,
+        `/search/creator/${username}`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }

@@ -70,7 +70,7 @@ export class CreatorSearchManager {
    */
   private async callSearchAPI(username: string): Promise<SearchResponse> {
     // Use the single POST endpoint that returns everything immediately
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/search/creator/${username.trim().replace('@', '')}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/search/creator/${username.trim().replace('@', '')}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${this.getAuthToken()}`,

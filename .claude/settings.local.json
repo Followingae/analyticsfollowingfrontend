@@ -71,7 +71,10 @@
       "mcp__shadcn__list_items_in_registries",
       "mcp__shadcn__get_add_command_for_items",
       "Bash(where npx)",
-      "mcp__shadcn__get_item_examples_from_registries"
+      "mcp__shadcn__get_item_examples_from_registries",
+      "Bash(start http://localhost:3001/creator-analytics/foode.ae)",
+      "Bash(start http://localhost:3002/creator-analytics/foode.ae)",
+      "Bash(start http://localhost:3001/auth/login)"
     ],
     "deny": [],
     "additionalDirectories": [

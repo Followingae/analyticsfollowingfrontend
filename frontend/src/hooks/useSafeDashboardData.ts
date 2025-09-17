@@ -66,7 +66,7 @@ export const useSafeDashboardData = () => {
       
       try {
         const { fetchWithAuth } = await import('@/utils/apiInterceptor')
-        const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/campaigns`)
+        const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/campaigns`)
         
         if (response.ok) {
           const data = await response.json()

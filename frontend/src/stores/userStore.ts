@@ -1,6 +1,7 @@
 // stores/userStore.ts
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { isDemoMode, demoLog, getDemoConfig } from '@/utils/demoMode'
 
 // Types based on the new dashboard API response structure
 export interface User {
@@ -108,39 +109,127 @@ export const useUserStore = create<UserStore>()(
       loadUser: async (bustCache = false) => {
         const { isLoading, lastLoadTime } = get()
         const now = Date.now()
-        
+
         // Prevent multiple simultaneous calls
         if (isLoading) {
           return
         }
-        
+
         // Prevent rapid successive calls (less than 1 second apart)
         if (lastLoadTime && (now - lastLoadTime) < 1000) {
           return
         }
-        
+
         set({ isLoading: true, error: null, lastLoadTime: now })
+
+        // DEMO MODE: Return mock dashboard data
+        if (isDemoMode()) {
+          demoLog('UserStore loadUser called in demo mode')
+
+          const demoConfig = getDemoConfig()
+          const mockDashboardData = {
+            user: {
+              id: 'demo-user-id',
+              email: demoConfig.demoUser.email,
+              full_name: demoConfig.demoUser.name,
+              company: demoConfig.demoUser.company,
+              role: 'premium' as const,
+              status: 'active',
+              created_at: new Date().toISOString(),
+              avatar_config: {
+                variant: 'marble',
+                colorScheme: 'blue',
+                colors: ['#3B82F6', '#1E40AF']
+              }
+            },
+            subscription: {
+              tier: 'premium' as const,
+              limits: { profiles: 2000, emails: 2000, posts: 2000 },
+              usage: { profiles: 450, emails: 320, posts: 1200 },
+              is_team_subscription: true
+            },
+            team: {
+              subscription_tier: 'premium',
+              monthly_limits: { profiles: 2000, emails: 2000, posts: 2000 },
+              monthly_usage: { profiles: 450, emails: 320, posts: 1200 }
+            },
+            stats: {
+              total_searches: 1250,
+              searches_this_month: 87
+            }
+          }
+
+          set({
+            user: mockDashboardData.user,
+            subscription: mockDashboardData.subscription,
+            team: mockDashboardData.team,
+            stats: mockDashboardData.stats,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+            lastUpdated: new Date()
+          })
+
+          demoLog('Demo dashboard data loaded successfully')
+          return
+        }
 
         try {
           // Import dynamically to avoid circular dependencies
           const { fetchWithAuth } = await import('@/utils/apiInterceptor')
           
-          const dashboardUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/dashboard`
+          const dashboardUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/auth/dashboard`
           const url = bustCache ? `${dashboardUrl}?_t=${Date.now()}` : dashboardUrl
-          
-          const response = await fetchWithAuth(
-            url,
-            {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              }
-            }
-          )
 
-          if (!response.ok) {
-            throw new Error(`Dashboard API failed: ${response.status} ${response.statusText}`)
+          console.log('🔍 UserStore: Dashboard API URL:', url)
+          console.log('🔍 UserStore: Base URL env var:', process.env.NEXT_PUBLIC_API_BASE_URL)
+
+          // Add retry logic for database timeout issues
+          let response: Response
+          const maxRetries = 3
+
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+              console.log(`🔍 UserStore: Dashboard API attempt ${attempt}/${maxRetries}`)
+
+              response = await fetchWithAuth(
+                url,
+                {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                  },
+                  // Add timeout to prevent hanging requests
+                  signal: AbortSignal.timeout(10000) // 10 second timeout
+                }
+              )
+
+              if (response.ok) {
+                console.log('🔍 UserStore: Dashboard API succeeded')
+                break
+              } else if (response.status >= 500 && attempt < maxRetries) {
+                // Server error - retry with exponential backoff
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
+                console.log(`🔍 UserStore: Server error ${response.status}, retrying in ${delay}ms`)
+                await new Promise(resolve => setTimeout(resolve, delay))
+                continue
+              } else {
+                throw new Error(`Dashboard API failed: ${response.status} ${response.statusText}`)
+              }
+            } catch (error: any) {
+              if (error.name === 'TimeoutError' || error.message?.includes('timeout')) {
+                if (attempt < maxRetries) {
+                  const delay = Math.min(2000 * attempt, 5000)
+                  console.log(`🔍 UserStore: Timeout error, retrying in ${delay}ms`)
+                  await new Promise(resolve => setTimeout(resolve, delay))
+                  continue
+                } else {
+                  throw new Error(`Dashboard API timeout after ${maxRetries} attempts`)
+                }
+              }
+              throw error
+            }
           }
 
           const data: DashboardData = await response.json()

@@ -151,7 +151,16 @@ export function ModernCreatorCard({
           <div className="flex items-center gap-3">
             <div className="relative">
               <Avatar className="h-12 w-12 border-2 border-white dark:border-gray-800 shadow-md">
-                <AvatarImage src={creator.profile_pic_url} alt={creator.username} />
+                <AvatarImage
+                  src={creator.profile_pic_url || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
+                  alt={creator.username}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (!target.src.includes('cdn.following.ae')) {
+                      target.src = `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`;
+                    }
+                  }}
+                />
                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10">
                   {creator.full_name?.charAt(0) || creator.username?.charAt(0)}
                 </AvatarFallback>
@@ -225,7 +234,16 @@ export function ModernCreatorCard({
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-xl scale-110 opacity-30 group-hover:opacity-50 transition-opacity duration-300" />
             <Avatar className="relative h-20 w-20 border-4 border-white dark:border-gray-800 shadow-lg">
-              <AvatarImage src={creator.profile_pic_url} alt={creator.username} />
+              <AvatarImage
+                src={creator.profile_pic_url || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
+                alt={creator.username}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (!target.src.includes('cdn.following.ae')) {
+                    target.src = `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`;
+                  }
+                }}
+              />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-lg font-semibold">
                 {creator.full_name?.charAt(0) || creator.username?.charAt(0)}
               </AvatarFallback>

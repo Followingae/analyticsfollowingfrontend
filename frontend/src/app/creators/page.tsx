@@ -164,6 +164,7 @@ export default function CreatorsPage() {
         const backendProfiles = result.data.profiles || []
         
         // Adapt backend Profile format to frontend CreatorProfile format
+        // Enhanced profile mapping with fallbacks for missing data
         const profiles: CreatorProfile[] = backendProfiles.map(profile => ({
           id: profile.id,
           username: profile.username,
@@ -175,8 +176,13 @@ export default function CreatorsPage() {
           is_verified: profile.verified,
           is_business: false, // Not provided by unlocked endpoint
           engagement_rate: 0, // Will be calculated later or from additional field
-          profile_pic_url: profile.profile_pic_url || '',
-          profile_pic_url_hd: profile.profile_pic_url || '', // Use same URL for HD
+          // Enhanced profile picture handling - try multiple sources
+          profile_pic_url: profile.profile_pic_url ||
+                          `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
+                          '',
+          profile_pic_url_hd: profile.profile_pic_url ||
+                             `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
+                             '', // Use same URL for HD
           created_at: profile.unlocked_at,
           updated_at: profile.unlocked_at,
           ai_insights: undefined // Not available in unlocked list
@@ -279,7 +285,7 @@ export default function CreatorsPage() {
       setUnlockedCreators(prev => {
         const filtered = prev.filter(c => c.id !== `temp-${cleanUsername}`)
 
-        // Convert API response to CreatorProfile format
+        // Convert API response to CreatorProfile format with enhanced profile picture handling
         const creatorProfile: CreatorProfile = {
           id: result.profile.username, // Use username as ID
           username: result.profile.username,
@@ -291,8 +297,13 @@ export default function CreatorsPage() {
           is_verified: result.profile.is_verified,
           is_business: false, // Not provided by search endpoint
           engagement_rate: 0, // Will be calculated later or from additional field
-          profile_pic_url: result.profile.profile_pic_url || '',
-          profile_pic_url_hd: result.profile.profile_pic_url || '', // Use same URL for HD
+          // Enhanced profile picture handling - try multiple sources
+          profile_pic_url: result.profile.profile_pic_url ||
+                          `https://cdn.following.ae/profiles/ig/${result.profile.username}/profile_picture.webp` ||
+                          '',
+          profile_pic_url_hd: result.profile.profile_pic_url ||
+                             `https://cdn.following.ae/profiles/ig/${result.profile.username}/profile_picture.webp` ||
+                             '', // Use same URL for HD
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           ai_insights: result.profile.ai_analysis?.available ? {

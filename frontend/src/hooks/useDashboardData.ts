@@ -149,7 +149,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       try {
         const { fetchWithAuth } = await import('@/utils/apiInterceptor')
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/campaigns`
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/campaigns`
 
         const response = await fetchWithAuth(apiUrl, {
           method: 'GET',

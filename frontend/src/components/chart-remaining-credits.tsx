@@ -54,7 +54,7 @@ export function ChartRemainingCredits() {
           'credits-balance',
           async () => {
             const { fetchWithAuth } = await import('@/utils/apiInterceptor')
-            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/credits/balance`, {
+            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/credits/balance`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',

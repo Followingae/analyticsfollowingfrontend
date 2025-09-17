@@ -126,7 +126,7 @@ class CDNMediaService {
    * Refresh profile data (which includes media) using force_refresh
    */
   async refreshProfileData(username: string, token: string): Promise<{ success: boolean; message: string }> {
-    const response = await fetch(`${this.baseUrl}/api/v1/creator/search/${username}`, {
+    const response = await fetch(`${this.baseUrl}/creator/search/${username}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

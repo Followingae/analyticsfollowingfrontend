@@ -220,7 +220,7 @@ class TokenManager {
    */
   private async performTokenRefresh(): Promise<TokenValidationResult> {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/refresh`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

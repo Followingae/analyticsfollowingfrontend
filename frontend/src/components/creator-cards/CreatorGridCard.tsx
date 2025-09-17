@@ -176,7 +176,16 @@ export function CreatorGridCard({
           <div className="relative mx-auto w-fit">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-lg scale-110 opacity-20 group-hover:opacity-40 transition-opacity duration-300" />
             <Avatar className="relative h-16 w-16 border-3 border-white dark:border-gray-800 shadow-md">
-              <AvatarImage src={creator.profile_pic_url} alt={creator.username} />
+              <AvatarImage
+                src={creator.profile_pic_url || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
+                alt={creator.username}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (!target.src.includes('cdn.following.ae')) {
+                    target.src = `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`;
+                  }
+                }}
+              />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-sm font-semibold">
                 {creator.full_name?.charAt(0) || creator.username?.charAt(0)}
               </AvatarFallback>

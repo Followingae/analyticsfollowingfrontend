@@ -15,6 +15,9 @@ export default function CreatorAnalyticsPage() {
   const router = useRouter()
   const username = params.username as string
 
+  console.log('🔍 CreatorAnalyticsPage route params:', params)
+  console.log('🔍 Extracted username:', username)
+
   return (
     <AuthGuard requireAuth={true}>
       <SidebarProvider

@@ -4,6 +4,7 @@
  */
 
 import { UsageStatsResponse } from '@/types/creator';
+import { isDemoMode, demoLog } from '@/utils/demoMode';
 
 // Base API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
@@ -398,8 +399,15 @@ class CreatorApiService {
       analysis_depth?: 'standard' | 'detailed';
     } = {}
   ): Promise<ApiResponse<SearchResponse>> {
+    // DEMO MODE: Return mock search results if available
+    if (isDemoMode()) {
+      demoLog('searchCreator called in demo mode', { username })
+      // TODO: Return mock search results when ready
+      throw new Error('Demo search data not implemented yet. Mock creator search will be added here.')
+    }
+
     const url = `${this.baseUrl}/search/${username}`;
-    
+
     try {
       const response = await fetch(url, {
         method: 'POST',
@@ -620,6 +628,7 @@ class CreatorApiService {
     if (options.category) params.append('category', options.category);
     if (options.min_followers) params.append('min_followers', String(options.min_followers));
 
+    // Use the same endpoint pattern as analytics for consistency
     const url = `${this.baseUrl}/unlocked?${params}`;
     
     try {

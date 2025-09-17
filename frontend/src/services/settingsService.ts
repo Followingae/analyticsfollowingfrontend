@@ -57,7 +57,7 @@ class SettingsService {
     try {
 
       
-      const response = await fetchWithAuth(`${this.baseURL}/api/v1/settings/profile`, {
+      const response = await fetchWithAuth(`${this.baseURL}/settings/profile`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ class SettingsService {
   // Update profile settings
   async updateProfile(profileData: ProfileUpdateRequest): Promise<{ success: boolean; data?: ProfileUpdateResponse; error?: string }> {
     try {
-      const response = await fetchWithAuth(`${this.baseURL}/api/v1/settings/profile`, {
+      const response = await fetchWithAuth(`${this.baseURL}/settings/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -111,7 +111,7 @@ class SettingsService {
     try {
 
       
-      const response = await fetchWithAuth(`${this.baseURL}/api/v1/settings/overview`, {
+      const response = await fetchWithAuth(`${this.baseURL}/settings/overview`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

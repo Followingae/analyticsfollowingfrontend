@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -38,6 +38,9 @@ interface ModernAnalyticsDashboardProps {
   username: string
 }
 
+// Add component initialization logging
+console.log('🚀 ModernAnalyticsDashboard component loaded/imported')
+
 interface DashboardData {
   profile?: {
     // Basic profile data
@@ -48,86 +51,65 @@ interface DashboardData {
     following_count: number
     posts_count: number
     is_verified: boolean
-    is_business: boolean
+    is_business_account?: boolean
     profile_pic_url: string
     external_url?: string
     engagement_rate: number
 
-    // AI Content Intelligence
-    ai_content_analysis: {
-      content_quality_score: number
+    // Complete AI Analysis Object from backend verification
+    ai_analysis?: {
+      // OVERVIEW DATA - Basic profile info + AI content classification
       primary_content_type: string
       content_distribution: Record<string, number>
+      content_quality_score: number
+
+      // AUDIENCE DATA - Demographics, authenticity, fraud detection
+      audience_quality_assessment: any
+      fraud_detection_analysis: any
+      audience_insights: any
       language_distribution: Record<string, number>
+
+      // ENGAGEMENT DATA - Behavioral patterns, trends
+      behavioral_patterns_analysis: any
+      trend_detection: any
       avg_sentiment_score: number
-    }
 
-    // Audience Quality Analytics
-    ai_audience_quality: {
-      authenticity_score: number
-      bot_detection_score: number
-      fake_follower_percentage: number
-      engagement_consistency: number
-      likes_comments_ratio: number
-    }
+      // CONTENT DATA - Visual analysis, NLP insights
+      visual_content_analysis: any
+      advanced_nlp_analysis: any
+      top_3_categories: any
+      top_10_categories: any
 
-    // Demographics & Insights
-    ai_audience_insights: {
-      age_groups: Record<string, number>
-      gender_split: Record<string, number>
-      geographic_reach: string
-      peak_engagement_hours: string
-      audience_loyalty: number
-    }
-
-    // Trend & Performance Analytics
-    ai_trend_detection: {
-      viral_potential_score: number
-      content_freshness: number
-      consistency_score: number
-      high_performing_posts: number
-      optimization_potential: number
-    }
-
-    // Advanced Text Analysis
-    ai_advanced_nlp: {
-      vocabulary_richness: number
-      text_complexity: number
-      top_keywords: Array<{word: string, count: number}>
-      content_themes: string[]
-      avg_caption_length: number
-      emojis_used: number
-    }
-
-    // Visual Content Analysis
-    ai_visual_content: {
-      aesthetic_score: number
-      professional_quality: number
-      images_processed: number
-      dominant_colors: Array<{color: string, percentage: number}>
-      faces_detected: number
-      brand_logos: number
-    }
-
-    // Fraud Detection
-    ai_fraud_detection: {
-      trust_score: number
-      risk_level: string
-      fraud_score: number
-      bot_likelihood: number
-    }
-
-    // Behavioral Patterns
-    ai_behavioral_patterns: {
-      posting_consistency: number
-      content_strategy_maturity: number
-      audience_building_effectiveness: number
-      current_stage: string
-      growth_indicators: string[]
+      // SUMMARY INSIGHTS
+      comprehensive_insights: {
+        overall_authenticity_score: number
+        fraud_risk_level: string
+        engagement_trend: string
+        lifecycle_stage: string
+        content_quality_rating: number
+      }
     }
   }
-  posts?: any[]
-  analytics_summary?: any
+  posts?: Array<{
+    id: string
+    cdn_thumbnail_url?: string
+    display_url?: string
+    media_url?: string
+    like_count?: number
+    comment_count?: number
+    engagement_rate?: number
+    ai_analysis?: {
+      content_category: string
+      sentiment: string
+      language_code: string
+      category_confidence: number
+    }
+  }>
+  analytics_summary?: {
+    total_posts_analyzed: number
+    ai_completion_rate: number
+    posts_with_ai: number
+  }
 }
 
 interface DashboardStatus {
@@ -137,7 +119,12 @@ interface DashboardStatus {
 }
 
 export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardProps) {
-  console.log('🔍 ModernAnalyticsDashboard rendered with username:', username)
+  // Only log on username change, not on every render
+  const prevUsernameRef = useRef<string>()
+  if (prevUsernameRef.current !== username && process.env.NODE_ENV === 'development') {
+    console.log('🚀 ModernAnalyticsDashboard username changed:', username)
+    prevUsernameRef.current = username
+  }
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
   const [data, setData] = useState<DashboardData | null>(null)
@@ -148,22 +135,30 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
   })
   const loadingRef = useRef(false)
 
-  const loadDashboardData = async (forceRefresh = false) => {
-    console.log('🔍 loadDashboardData called with:', { username, forceRefresh, isLoadingRef: loadingRef.current })
+  const loadDashboardData = useCallback(async (forceRefresh = false) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 loadDashboardData called with:', { username, forceRefresh, isLoadingRef: loadingRef.current })
+    }
     // Prevent multiple simultaneous calls using ref
     if (loadingRef.current && !forceRefresh) {
-      console.log('🔍 Skipping API call - already loading (ref check)')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Skipping API call - already loading (ref check)')
+      }
       return
     }
 
     loadingRef.current = true
 
     try {
-      console.log('🔍 Starting API call to getCompleteDashboardData')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Starting API call to getCompleteDashboardData')
+      }
       setStatus(prev => ({ ...prev, loading: true, error: null }))
 
       const result = await comprehensiveAnalyticsApi.getCompleteDashboardData(username, { forceRefresh })
-      console.log('🔍 API call completed with result:', result)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 API call completed with result:', result)
+      }
 
       setData(result)
       setStatus({
@@ -178,7 +173,9 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
       // Handle specific error types
       let errorMessage = 'Failed to load analytics data'
       if (error instanceof Error) {
-        console.log('🔍 Error message:', error.message)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔍 Error message:', error.message)
+        }
         if (error.message.includes('PAYMENT_REQUIRED')) {
           errorMessage = 'This profile requires unlocking to view analytics. Please unlock it first.'
         } else if (error.message.includes('HTTP error! status: 404')) {
@@ -190,7 +187,9 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
         }
       }
 
-      console.log('🔍 Setting error status:', errorMessage)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Setting error status:', errorMessage)
+      }
       setStatus({
         loading: false,
         error: errorMessage,
@@ -199,26 +198,38 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
     } finally {
       loadingRef.current = false
     }
-  }
+  }, [username])
 
   useEffect(() => {
-    console.log('🔍 useEffect triggered with username:', username)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 ModernAnalyticsDashboard useEffect triggered with username:', username)
+      console.log('🔍 Current component mount status:', {
+        hasUsername: !!username,
+        usernameValue: username,
+        loadingRefCurrent: loadingRef.current
+      })
+    }
+
     let isCancelled = false
 
     const loadData = async () => {
       if (username && !isCancelled) {
-        console.log('🔍 Starting 2-second delay before API call')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔍 Starting 2-second delay before API call for username:', username)
+        }
         // Add delay to let other API calls complete first
         // This prevents database connection conflicts from AuthContext, UserStore, SiteHeader, etc.
         await new Promise(resolve => setTimeout(resolve, 2000))
 
         if (!isCancelled) {
-          console.log('🔍 Delay complete, calling loadDashboardData')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔍 Delay complete, calling loadDashboardData for username:', username)
+          }
           await loadDashboardData()
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.log('🔍 Effect was cancelled during delay')
         }
-      } else {
+      } else if (process.env.NODE_ENV === 'development') {
         console.log('🔍 Skipping data load - no username or cancelled:', { username, isCancelled })
       }
     }
@@ -237,7 +248,7 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
       isCancelled = true
       loadingRef.current = false
     }
-  }, [username])
+  }, [username, loadDashboardData])
 
   // Helper to format numbers elegantly
   const formatNumber = (num: number) => {
@@ -270,6 +281,19 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
   const profile = data.profile
   const posts = data.posts || []
   const analytics = data.analytics_summary || {}
+
+  // Debug: Log what AI analysis data is available for rendering
+  console.log('🎯 ModernAnalyticsDashboard - Profile data received:', {
+    username: profile.username,
+    hasAiAnalysis: !!profile.ai_analysis,
+    aiAnalysisFields: profile.ai_analysis ? Object.keys(profile.ai_analysis) : [],
+    hasContentDistribution: !!profile.ai_analysis?.content_distribution,
+    hasAudienceInsights: !!profile.ai_analysis?.audience_insights,
+    hasBehavioralPatterns: !!profile.ai_analysis?.behavioral_patterns_analysis,
+    hasVisualContent: !!profile.ai_analysis?.visual_content_analysis,
+    contentDistributionPreview: profile.ai_analysis?.content_distribution,
+    postsCount: posts.length
+  })
 
   const engagementTrend = getEngagementTrend(profile.engagement_rate || 0)
 
@@ -307,10 +331,10 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                   </div>
 
                   {/* Business Category */}
-                  {profile.ai_content_analysis?.primary_content_type && (
+                  {profile.ai_analysis?.primary_content_type && (
                     <div className="flex items-center gap-2">
                       <Target className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">{profile.ai_content_analysis.primary_content_type}</span>
+                      <span className="text-sm font-medium">{profile.ai_analysis.primary_content_type}</span>
                     </div>
                   )}
 
@@ -320,7 +344,7 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                   )}
 
                   {/* Contact Information for Business Accounts */}
-                  {profile.is_business && (profile.business_email || profile.business_phone) && (
+                  {profile.is_business_account && (profile.business_email || profile.business_phone) && (
                     <div className="space-y-1">
                       {profile.business_email && (
                         <p className="text-sm text-muted-foreground">📧 {profile.business_email}</p>
@@ -415,7 +439,7 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-lg font-bold mb-1">
-                      {profile.ai_content_analysis?.primary_content_type || 'Mixed'} Expert
+                      {profile.ai_analysis?.primary_content_type || 'Mixed'} Expert
                     </div>
                     <p className="text-xs text-muted-foreground">Niche Authority</p>
                   </div>
@@ -427,7 +451,8 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-lg font-bold mb-1">
-                      {profile.ai_fraud_detection?.trust_score ? `${Math.round(profile.ai_fraud_detection.trust_score)}/100` : 'N/A'}
+                      {profile.ai_analysis?.comprehensive_insights?.overall_authenticity_score ?
+                        `${Math.round(profile.ai_analysis.comprehensive_insights.overall_authenticity_score)}/100` : 'N/A'}
                     </div>
                     <p className="text-xs text-muted-foreground">Brand Safety</p>
                   </div>
@@ -463,7 +488,7 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                     <MetricCard
                       icon={Award}
                       label="Quality Score"
-                      value={profile.ai_content_analysis?.content_quality_score ? `${profile.ai_content_analysis.content_quality_score.toFixed(1)}/100` : 'N/A'}
+                      value={profile.ai_analysis?.content_quality_score ? `${profile.ai_analysis.content_quality_score.toFixed(1)}/100` : 'N/A'}
                       trend="Excellent"
                       positive
                     />
@@ -489,15 +514,15 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Account Type</span>
-                    <Badge variant={profile.is_business ? "default" : "secondary"}>
-                      {profile.is_business ? 'Business' : 'Personal'}
+                    <Badge variant={profile.is_business_account ? "default" : "secondary"}>
+                      {profile.is_business_account ? 'Business' : 'Personal'}
                     </Badge>
                   </div>
 
-                  {profile.ai_content_analysis?.primary_content_type && (
+                  {profile.ai_analysis?.primary_content_type && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Content Focus</span>
-                      <Badge variant="outline">{profile.ai_content_analysis.primary_content_type}</Badge>
+                      <Badge variant="outline">{profile.ai_analysis.primary_content_type}</Badge>
                     </div>
                   )}
 
@@ -531,73 +556,92 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
 
           {/* Audience Tab */}
           <TabsContent value="audience" className="space-y-6">
-            {/* Audience Quality Analytics */}
-            {profile.ai_audience_quality && (
+            {/* Audience Quality Analytics from comprehensive backend data */}
+            {profile.ai_analysis?.audience_quality_assessment && (
               <Card>
                 <CardHeader>
                   <CardTitle>🎯 Audience Quality Analytics</CardTitle>
-                  <CardDescription>Comprehensive audience authenticity and engagement analysis</CardDescription>
+                  <CardDescription>Comprehensive audience authenticity and engagement analysis from AI models</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_audience_quality.authenticity_score.toFixed(1)}/100
+                      {profile.ai_analysis.comprehensive_insights?.overall_authenticity_score?.toFixed(1) || 'N/A'}/100
                     </div>
-                    <p className="text-sm text-muted-foreground">Authenticity Score</p>
+                    <p className="text-sm text-muted-foreground">Overall Authenticity</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_audience_quality.fake_follower_percentage.toFixed(1)}%
+                      {profile.ai_analysis.fraud_detection_analysis?.fake_follower_percentage?.toFixed(1) || 'N/A'}%
                     </div>
                     <p className="text-sm text-muted-foreground">Fake Followers</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_audience_quality.bot_detection_score.toFixed(1)}%
+                      {profile.ai_analysis.fraud_detection_analysis?.bot_likelihood?.toFixed(1) || 'N/A'}%
                     </div>
                     <p className="text-sm text-muted-foreground">Bot Activity</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_audience_quality.engagement_consistency.toFixed(1)}%
+                      {profile.ai_analysis.comprehensive_insights?.engagement_trend || 'N/A'}
                     </div>
-                    <p className="text-sm text-muted-foreground">Engagement Consistency</p>
+                    <p className="text-sm text-muted-foreground">Engagement Trend</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_audience_quality.likes_comments_ratio.toFixed(1)}
+                      {profile.ai_analysis.comprehensive_insights?.fraud_risk_level || 'N/A'}
                     </div>
-                    <p className="text-sm text-muted-foreground">Likes/Comments Ratio</p>
+                    <p className="text-sm text-muted-foreground">Risk Level</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_audience_insights?.audience_loyalty || 'N/A'}
+                      {profile.ai_analysis.comprehensive_insights?.lifecycle_stage || 'N/A'}
                     </div>
-                    <p className="text-sm text-muted-foreground">Audience Loyalty</p>
+                    <p className="text-sm text-muted-foreground">Lifecycle Stage</p>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Demographics */}
-            {profile.ai_audience_insights && (
+            {/* Show audience insights if not available */}
+            {!profile.ai_analysis?.audience_quality_assessment && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>🎯 Audience Quality Analytics</CardTitle>
+                  <CardDescription>Comprehensive audience analysis</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Audience quality data not available</p>
+                    <p className="text-sm text-muted-foreground mt-2">AI analysis may still be in progress</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Demographics from comprehensive backend data */}
+            {profile.ai_analysis?.audience_insights && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>👥 Age Groups</CardTitle>
-                    <CardDescription>Audience age distribution</CardDescription>
+                    <CardDescription>Audience age distribution from AI analysis</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {Object.entries(profile.ai_audience_insights.age_groups).map(([age, percentage]) => (
-                        <div key={age} className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>{age}</span>
-                            <span className="font-medium">{percentage}%</span>
+                      {profile.ai_analysis.audience_insights.age_distribution ?
+                        Object.entries(profile.ai_analysis.audience_insights.age_distribution).map(([age, percentage]) => (
+                          <div key={age} className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span>{age}</span>
+                              <span className="font-medium">{percentage}%</span>
+                            </div>
+                            <Progress value={percentage as number} className="h-2" />
                           </div>
-                          <Progress value={percentage as number} className="h-2" />
-                        </div>
-                      ))}
+                        )) : (
+                          <p className="text-muted-foreground text-center py-4">Age data not available</p>
+                        )}
                     </div>
                   </CardContent>
                 </Card>
@@ -605,19 +649,22 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                 <Card>
                   <CardHeader>
                     <CardTitle>⚧ Gender Split</CardTitle>
-                    <CardDescription>Audience gender distribution</CardDescription>
+                    <CardDescription>Audience gender distribution from AI analysis</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {Object.entries(profile.ai_audience_insights.gender_split).map(([gender, percentage]) => (
-                        <div key={gender} className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="capitalize">{gender}</span>
-                            <span className="font-medium">{percentage}%</span>
+                      {profile.ai_analysis.audience_insights.gender_breakdown ?
+                        Object.entries(profile.ai_analysis.audience_insights.gender_breakdown).map(([gender, percentage]) => (
+                          <div key={gender} className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="capitalize">{gender}</span>
+                              <span className="font-medium">{percentage}%</span>
+                            </div>
+                            <Progress value={percentage as number} className="h-2" />
                           </div>
-                          <Progress value={percentage as number} className="h-2" />
-                        </div>
-                      ))}
+                        )) : (
+                          <p className="text-muted-foreground text-center py-4">Gender data not available</p>
+                        )}
                     </div>
                   </CardContent>
                 </Card>
@@ -670,9 +717,8 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                 </Card>
               )}
 
-              {/* Demographics */}
-              {/* Demographics */}
-              {profile.ai_content_analysis?.language_distribution && Object.keys(profile.ai_content_analysis.language_distribution).length > 0 ? (
+              {/* Language Distribution from backend ai_analysis */}
+              {profile.ai_analysis?.language_distribution && Object.keys(profile.ai_analysis.language_distribution).length > 0 ? (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -682,7 +728,7 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {Object.entries(profile.ai_content_analysis.language_distribution).slice(0, 5).map(([lang, percentage]) => (
+                      {Object.entries(profile.ai_analysis.language_distribution).slice(0, 5).map(([lang, percentage]) => (
                         <div key={lang} className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="capitalize">{lang}</span>
@@ -721,44 +767,38 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                 <CardContent className="space-y-4">
                   <div className="text-center p-6 bg-muted/50 rounded-lg border">
                     <div className="text-4xl font-bold mb-2">
-                      {profile.ai_fraud_detection?.trust_score
-                        ? Math.round(profile.ai_fraud_detection.trust_score)
+                      {profile.ai_analysis?.comprehensive_insights?.overall_authenticity_score
+                        ? Math.round(profile.ai_analysis.comprehensive_insights.overall_authenticity_score)
                         : 'N/A'
                       }
-                      {profile.ai_fraud_detection?.trust_score && <span className="text-lg">/100</span>}
+                      {profile.ai_analysis?.comprehensive_insights?.overall_authenticity_score && <span className="text-lg">/100</span>}
                     </div>
                     <p className="text-sm text-muted-foreground">Audience Quality Score</p>
-                    {profile.ai_fraud_detection?.trust_score && (
+                    {profile.ai_analysis?.comprehensive_insights?.overall_authenticity_score && (
                       <Badge className="mt-2" variant="outline">
-                        {profile.ai_fraud_detection.trust_score > 80 ? 'Premium' :
-                         profile.ai_fraud_detection.trust_score > 60 ? 'Good' : 'Standard'} Audience
+                        {profile.ai_analysis.comprehensive_insights.overall_authenticity_score > 80 ? 'Premium' :
+                         profile.ai_analysis.comprehensive_insights.overall_authenticity_score > 60 ? 'Good' : 'Standard'} Audience
                       </Badge>
                     )}
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Authenticity Score</span>
+                      <span className="text-sm text-muted-foreground">Risk Level</span>
                       <span className="text-sm font-medium">
-                        {profile.ai_fraud_detection?.authenticity_score
-                          ? `${Math.round(profile.ai_fraud_detection.authenticity_score * 100)}%`
-                          : 'N/A'
-                        }
+                        {profile.ai_analysis?.comprehensive_insights?.fraud_risk_level || 'N/A'}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Fake Followers</span>
+                      <span className="text-sm text-muted-foreground">Engagement Trend</span>
                       <span className="text-sm font-medium">
-                        {profile.ai_fraud_detection?.fake_follower_percentage
-                          ? `${Math.round(profile.ai_fraud_detection.fake_follower_percentage * 100)}%`
-                          : 'N/A'
-                        }
+                        {profile.ai_analysis?.comprehensive_insights?.engagement_trend || 'N/A'}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Growth Pattern</span>
+                      <span className="text-sm text-muted-foreground">Lifecycle Stage</span>
                       <span className="text-sm font-medium">
-                        {profile.ai_fraud_detection?.growth_pattern || profile.ai_behavioral_patterns?.growth_pattern || 'N/A'}
+                        {profile.ai_analysis?.comprehensive_insights?.lifecycle_stage || 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -769,96 +809,134 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
 
           {/* Engagement Tab */}
           <TabsContent value="engagement" className="space-y-6">
-            {/* Trend & Performance Analytics */}
-            {profile.ai_trend_detection && (
+            {/* Trend & Performance Analytics from comprehensive backend data */}
+            {profile.ai_analysis?.trend_detection && (
               <Card>
                 <CardHeader>
                   <CardTitle>📈 Trend & Performance Analytics</CardTitle>
-                  <CardDescription>Viral potential, content freshness, and optimization insights</CardDescription>
+                  <CardDescription>Viral potential, trends, and engagement insights from AI analysis</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_trend_detection.viral_potential_score.toFixed(1)}/100
+                      {profile.ai_analysis.trend_detection.viral_content_prediction?.toFixed(1) || 'N/A'}/100
                     </div>
                     <p className="text-sm text-muted-foreground">Viral Potential</p>
                     <Badge className="mt-2" variant="outline">
-                      {profile.ai_trend_detection.viral_potential_score > 80 ? 'High' :
-                       profile.ai_trend_detection.viral_potential_score > 60 ? 'Medium' : 'Low'}
+                      {(profile.ai_analysis.trend_detection.viral_content_prediction || 0) > 80 ? 'High' :
+                       (profile.ai_analysis.trend_detection.viral_content_prediction || 0) > 60 ? 'Medium' : 'Low'}
                     </Badge>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_trend_detection.content_freshness.toFixed(0)}/100
+                      {profile.ai_analysis.trend_detection.market_trend_alignment?.toFixed(0) || 'N/A'}/100
                     </div>
-                    <p className="text-sm text-muted-foreground">Content Freshness</p>
+                    <p className="text-sm text-muted-foreground">Market Alignment</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_trend_detection.consistency_score.toFixed(0)}/100
+                      {profile.ai_analysis.comprehensive_insights?.engagement_trend || 'N/A'}
                     </div>
-                    <p className="text-sm text-muted-foreground">Consistency Score</p>
+                    <p className="text-sm text-muted-foreground">Engagement Trend</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_trend_detection.high_performing_posts}
+                      {profile.ai_analysis.trend_detection.trending_topics?.length || 0}
                     </div>
-                    <p className="text-sm text-muted-foreground">High-Performing Posts</p>
+                    <p className="text-sm text-muted-foreground">Trending Topics</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_trend_detection.optimization_potential.toFixed(1)}x
+                      {profile.ai_analysis.comprehensive_insights?.content_quality_rating?.toFixed(1) || 'N/A'}/100
                     </div>
-                    <p className="text-sm text-muted-foreground">Optimization Potential</p>
+                    <p className="text-sm text-muted-foreground">Content Quality</p>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Behavioral Patterns */}
-            {profile.ai_behavioral_patterns && (
+            {/* Show trend data not available message */}
+            {!profile.ai_analysis?.trend_detection && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>📈 Trend & Performance Analytics</CardTitle>
+                  <CardDescription>Trend analysis and performance insights</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Trend analysis data not available</p>
+                    <p className="text-sm text-muted-foreground mt-2">AI analysis may still be in progress</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Behavioral Patterns from comprehensive backend data */}
+            {profile.ai_analysis?.behavioral_patterns_analysis && (
               <Card>
                 <CardHeader>
                   <CardTitle>📊 Behavioral Patterns</CardTitle>
-                  <CardDescription>Content strategy, posting consistency, and audience building effectiveness</CardDescription>
+                  <CardDescription>Content strategy, posting patterns, and audience engagement from AI analysis</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Posting Consistency</span>
-                      <span className="text-sm font-medium">{profile.ai_behavioral_patterns.posting_consistency}/100</span>
+                      <span className="text-sm text-muted-foreground">Posting Frequency</span>
+                      <span className="text-sm font-medium">
+                        {profile.ai_analysis.behavioral_patterns_analysis.posting_frequency || 'N/A'}
+                      </span>
                     </div>
-                    <Progress value={profile.ai_behavioral_patterns.posting_consistency} className="h-2" />
 
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Content Strategy Maturity</span>
-                      <span className="text-sm font-medium">{profile.ai_behavioral_patterns.content_strategy_maturity}/100</span>
+                      <span className="text-sm text-muted-foreground">Engagement Velocity</span>
+                      <span className="text-sm font-medium">
+                        {profile.ai_analysis.behavioral_patterns_analysis.engagement_velocity?.toFixed(1) || 'N/A'}
+                      </span>
                     </div>
-                    <Progress value={profile.ai_behavioral_patterns.content_strategy_maturity} className="h-2" />
 
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Audience Building Effectiveness</span>
-                      <span className="text-sm font-medium">{profile.ai_behavioral_patterns.audience_building_effectiveness}/100</span>
+                      <span className="text-sm text-muted-foreground">Community Health</span>
+                      <span className="text-sm font-medium">
+                        {profile.ai_analysis.behavioral_patterns_analysis.community_health || 'N/A'}
+                      </span>
                     </div>
-                    <Progress value={profile.ai_behavioral_patterns.audience_building_effectiveness} className="h-2" />
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Current Stage</span>
-                      <Badge variant="outline">{profile.ai_behavioral_patterns.current_stage}</Badge>
+                      <span className="text-sm text-muted-foreground">Lifecycle Stage</span>
+                      <Badge variant="outline">{profile.ai_analysis.comprehensive_insights?.lifecycle_stage || 'N/A'}</Badge>
                     </div>
 
-                    <div>
-                      <span className="text-sm text-muted-foreground">Growth Indicators</span>
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {profile.ai_behavioral_patterns.growth_indicators.map((indicator, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {indicator}
-                          </Badge>
-                        ))}
-                      </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Growth Pattern</span>
+                      <span className="text-sm font-medium">
+                        {profile.ai_analysis.behavioral_patterns_analysis.growth_pattern || 'N/A'}
+                      </span>
                     </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Response Rate</span>
+                      <span className="text-sm font-medium">
+                        {profile.ai_analysis.behavioral_patterns_analysis.response_rate || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Show behavioral patterns not available message */}
+            {!profile.ai_analysis?.behavioral_patterns_analysis && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>📊 Behavioral Patterns</CardTitle>
+                  <CardDescription>Content strategy and behavioral insights</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Behavioral patterns data not available</p>
+                    <p className="text-sm text-muted-foreground mt-2">AI analysis may still be in progress</p>
                   </div>
                 </CardContent>
               </Card>
@@ -948,30 +1026,30 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
 
           {/* Content Tab */}
           <TabsContent value="content" className="space-y-6">
-            {/* Content Analysis Overview */}
-            {profile.ai_content_analysis && (
+            {/* Content Analysis Overview from comprehensive backend data */}
+            {profile.ai_analysis && (
               <Card>
                 <CardHeader>
                   <CardTitle>🤖 AI Content Intelligence</CardTitle>
-                  <CardDescription>Comprehensive content analysis and insights</CardDescription>
+                  <CardDescription>Comprehensive content analysis and insights from 10-model AI system</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_content_analysis.content_quality_score.toFixed(1)}/100
+                      {profile.ai_analysis.content_quality_score?.toFixed(1) || 'N/A'}/100
                     </div>
                     <p className="text-sm text-muted-foreground">Content Quality Score</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_content_analysis.primary_content_type}
+                      {profile.ai_analysis.primary_content_type || 'N/A'}
                     </div>
                     <p className="text-sm text-muted-foreground">Primary Content Type</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_content_analysis.avg_sentiment_score > 0.1 ? 'Positive' :
-                       profile.ai_content_analysis.avg_sentiment_score < -0.1 ? 'Negative' : 'Neutral'}
+                      {profile.ai_analysis.avg_sentiment_score > 0.1 ? 'Positive' :
+                       profile.ai_analysis.avg_sentiment_score < -0.1 ? 'Negative' : 'Neutral'}
                     </div>
                     <p className="text-sm text-muted-foreground">Sentiment</p>
                   </div>
@@ -979,58 +1057,90 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
               </Card>
             )}
 
-            {/* Advanced Text Analysis */}
-            {profile.ai_advanced_nlp && (
+            {/* Show content analysis not available message */}
+            {!profile.ai_analysis && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>🤖 AI Content Intelligence</CardTitle>
+                  <CardDescription>Comprehensive content analysis and insights</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">AI content analysis data not available</p>
+                    <p className="text-sm text-muted-foreground mt-2">AI analysis may still be in progress</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Advanced Text Analysis from comprehensive backend data */}
+            {profile.ai_analysis?.advanced_nlp_analysis && (
               <Card>
                 <CardHeader>
                   <CardTitle>🔍 Advanced Text Analysis</CardTitle>
-                  <CardDescription>Vocabulary richness, complexity, and keyword insights</CardDescription>
+                  <CardDescription>NLP insights, readability, and writing style analysis</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Vocabulary Richness</span>
-                      <span className="text-sm font-medium">{profile.ai_advanced_nlp.vocabulary_richness.toFixed(1)}%</span>
+                      <span className="text-sm text-muted-foreground">Brand Voice Consistency</span>
+                      <span className="text-sm font-medium">
+                        {profile.ai_analysis.advanced_nlp_analysis.brand_voice_consistency?.toFixed(1) || 'N/A'}%
+                      </span>
                     </div>
-                    <Progress value={profile.ai_advanced_nlp.vocabulary_richness} className="h-2" />
+                    {profile.ai_analysis.advanced_nlp_analysis.brand_voice_consistency && (
+                      <Progress value={profile.ai_analysis.advanced_nlp_analysis.brand_voice_consistency} className="h-2" />
+                    )}
 
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Text Complexity</span>
-                      <span className="text-sm font-medium">{profile.ai_advanced_nlp.text_complexity.toFixed(1)}/100</span>
-                    </div>
-                    <Progress value={profile.ai_advanced_nlp.text_complexity} className="h-2" />
-
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Avg Caption Length</span>
-                      <span className="text-sm font-medium">{profile.ai_advanced_nlp.avg_caption_length} chars</span>
+                      <span className="text-sm text-muted-foreground">Writing Style</span>
+                      <span className="text-sm font-medium">
+                        {profile.ai_analysis.advanced_nlp_analysis.writing_style_analysis?.style || 'N/A'}
+                      </span>
                     </div>
 
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Emojis Used</span>
-                      <span className="text-sm font-medium">{profile.ai_advanced_nlp.emojis_used}</span>
+                    <div>
+                      <span className="text-sm text-muted-foreground">Readability Scores</span>
+                      <div className="mt-2 space-y-1">
+                        {profile.ai_analysis.advanced_nlp_analysis.readability_scores ?
+                          Object.entries(profile.ai_analysis.advanced_nlp_analysis.readability_scores).map(([metric, score]) => (
+                            <div key={metric} className="flex justify-between text-xs">
+                              <span className="capitalize">{metric.replace('_', ' ')}</span>
+                              <span>{score}</span>
+                            </div>
+                          )) : (
+                            <span className="text-xs text-muted-foreground">Not available</span>
+                          )}
+                      </div>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div>
-                      <span className="text-sm text-muted-foreground">Top Keywords</span>
+                      <span className="text-sm text-muted-foreground">Keywords Extracted</span>
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {profile.ai_advanced_nlp.top_keywords.slice(0, 10).map((keyword, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {keyword.word} ({keyword.count})
-                          </Badge>
-                        ))}
+                        {profile.ai_analysis.advanced_nlp_analysis.keyword_extraction ?
+                          profile.ai_analysis.advanced_nlp_analysis.keyword_extraction.slice(0, 10).map((keyword, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {keyword}
+                            </Badge>
+                          )) : (
+                            <span className="text-xs text-muted-foreground">Not available</span>
+                          )}
                       </div>
                     </div>
 
                     <div>
-                      <span className="text-sm text-muted-foreground">Content Themes</span>
+                      <span className="text-sm text-muted-foreground">Topic Modeling</span>
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {profile.ai_advanced_nlp.content_themes.map((theme, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {theme}
-                          </Badge>
-                        ))}
+                        {profile.ai_analysis.advanced_nlp_analysis.topic_modeling ?
+                          Object.keys(profile.ai_analysis.advanced_nlp_analysis.topic_modeling).slice(0, 5).map((topic, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {topic}
+                            </Badge>
+                          )) : (
+                            <span className="text-xs text-muted-foreground">Not available</span>
+                          )}
                       </div>
                     </div>
                   </div>
@@ -1038,56 +1148,59 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
               </Card>
             )}
 
-            {/* Visual Content Analysis */}
-            {profile.ai_visual_content && (
+            {/* Visual Content Analysis from comprehensive backend data */}
+            {profile.ai_analysis?.visual_content_analysis && (
               <Card>
                 <CardHeader>
                   <CardTitle>🖼️ Visual Content Analysis</CardTitle>
-                  <CardDescription>Aesthetic quality, colors, and visual elements analysis</CardDescription>
+                  <CardDescription>Aesthetic quality, composition, and visual elements analysis</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_visual_content.aesthetic_score}/100
+                      {profile.ai_analysis.visual_content_analysis.brand_aesthetic_score?.toFixed(0) || 'N/A'}/100
                     </div>
-                    <p className="text-sm text-muted-foreground">Aesthetic Score</p>
+                    <p className="text-sm text-muted-foreground">Brand Aesthetic</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_visual_content.professional_quality}/100
+                      {profile.ai_analysis.visual_content_analysis.composition_quality?.toFixed(0) || 'N/A'}/100
                     </div>
-                    <p className="text-sm text-muted-foreground">Professional Quality</p>
+                    <p className="text-sm text-muted-foreground">Composition Quality</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_visual_content.images_processed}
+                      {profile.ai_analysis.visual_content_analysis.image_quality_score?.toFixed(0) || 'N/A'}/100
                     </div>
-                    <p className="text-sm text-muted-foreground">Images Processed</p>
+                    <p className="text-sm text-muted-foreground">Image Quality</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_visual_content.faces_detected}
+                      {profile.ai_analysis.visual_content_analysis.visual_consistency?.toFixed(0) || 'N/A'}/100
                     </div>
-                    <p className="text-sm text-muted-foreground">Faces Detected</p>
+                    <p className="text-sm text-muted-foreground">Visual Consistency</p>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg border">
                     <div className="text-2xl font-bold mb-2">
-                      {profile.ai_visual_content.brand_logos}
+                      {profile.ai_analysis.visual_content_analysis.brand_consistency || 'N/A'}
                     </div>
-                    <p className="text-sm text-muted-foreground">Brand Logos</p>
+                    <p className="text-sm text-muted-foreground">Brand Consistency</p>
                   </div>
                   <div className="col-span-2 lg:col-span-1">
-                    <div className="text-sm text-muted-foreground mb-2">Dominant Colors</div>
+                    <div className="text-sm text-muted-foreground mb-2">Color Palette</div>
                     <div className="flex gap-1">
-                      {profile.ai_visual_content.dominant_colors.slice(0, 3).map((colorData, index) => (
-                        <div key={index} className="flex flex-col items-center">
-                          <div
-                            className="w-8 h-8 rounded-full border-2 border-border"
-                            style={{ backgroundColor: colorData.color }}
-                          />
-                          <span className="text-xs mt-1">{colorData.percentage}%</span>
-                        </div>
-                      ))}
+                      {profile.ai_analysis.visual_content_analysis.color_palette ?
+                        profile.ai_analysis.visual_content_analysis.color_palette.slice(0, 3).map((color, index) => (
+                          <div key={index} className="flex flex-col items-center">
+                            <div
+                              className="w-8 h-8 rounded-full border-2 border-border"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="text-xs mt-1 capitalize">{color}</span>
+                          </div>
+                        )) : (
+                          <span className="text-xs text-muted-foreground">Not available</span>
+                        )}
                     </div>
                   </div>
                 </CardContent>
@@ -1095,8 +1208,8 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Content Distribution */}
-              {profile.ai_content_analysis?.content_distribution && Object.keys(profile.ai_content_analysis.content_distribution).length > 0 ? (
+              {/* Content Distribution from comprehensive backend data */}
+              {profile.ai_analysis?.content_distribution && Object.keys(profile.ai_analysis.content_distribution).length > 0 ? (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -1106,7 +1219,7 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {Object.entries(profile.ai_content_analysis.content_distribution)
+                      {Object.entries(profile.ai_analysis.content_distribution)
                         .sort(([,a], [,b]) => (b as number) - (a as number))
                         .slice(0, 5)
                         .map(([category, percentage]) => (
@@ -1202,8 +1315,14 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
           <TabsContent value="posts" className="space-y-6">
             {posts.length > 0 ? (
               <div className="space-y-6">
-                <div>
+                <div className="flex justify-between items-center">
                   <h3 className="text-lg font-semibold">Recent Posts ({posts.length})</h3>
+                  {analytics && (
+                    <div className="flex gap-4 text-sm text-muted-foreground">
+                      <span>AI Analyzed: {analytics.posts_with_ai || 0}</span>
+                      <span>Completion: {analytics.ai_completion_rate || 0}%</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -1211,6 +1330,42 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
                     <PostCard key={post.id || index} post={post} />
                   ))}
                 </div>
+
+                {/* Posts Analytics Summary */}
+                {analytics && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>📊 Posts Analytics Summary</CardTitle>
+                      <CardDescription>Comprehensive analysis across all posts</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="text-center p-4 bg-muted/50 rounded-lg border">
+                        <div className="text-2xl font-bold mb-2">
+                          {analytics.total_posts_analyzed || 0}
+                        </div>
+                        <p className="text-sm text-muted-foreground">Posts Analyzed</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted/50 rounded-lg border">
+                        <div className="text-2xl font-bold mb-2">
+                          {analytics.ai_completion_rate || 0}%
+                        </div>
+                        <p className="text-sm text-muted-foreground">AI Analysis Complete</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted/50 rounded-lg border">
+                        <div className="text-2xl font-bold mb-2">
+                          {analytics.posts_with_ai || 0}
+                        </div>
+                        <p className="text-sm text-muted-foreground">With AI Insights</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted/50 rounded-lg border">
+                        <div className="text-2xl font-bold mb-2">
+                          {posts.filter(p => p.ai_analysis?.content_category).length}
+                        </div>
+                        <p className="text-sm text-muted-foreground">Categorized</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             ) : (
               <Card>
@@ -1256,9 +1411,10 @@ function PostCard({ post }: { post: any }) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="aspect-square bg-muted relative">
-        {post.display_url || post.media_url ? (
+        {/* Use CDN URL first, fallback to display_url */}
+        {post.cdn_thumbnail_url || post.display_url || post.media_url ? (
           <img
-            src={post.display_url || post.media_url}
+            src={post.cdn_thumbnail_url || post.display_url || post.media_url}
             alt="Post"
             className="w-full h-full object-cover"
           />
@@ -1268,19 +1424,61 @@ function PostCard({ post }: { post: any }) {
           </div>
         )}
 
+        {/* AI Analysis badges */}
+        <div className="absolute top-2 left-2 space-y-1">
+          {post.ai_analysis?.content_category && (
+            <Badge variant="secondary" className="text-xs bg-black/70 text-white border-0">
+              {post.ai_analysis.content_category}
+            </Badge>
+          )}
+          {post.ai_analysis?.sentiment && (
+            <Badge
+              variant="outline"
+              className={`text-xs border-0 ${
+                post.ai_analysis.sentiment === 'positive' ? 'bg-green-500/70 text-white' :
+                post.ai_analysis.sentiment === 'negative' ? 'bg-red-500/70 text-white' :
+                'bg-gray-500/70 text-white'
+              }`}
+            >
+              {post.ai_analysis.sentiment}
+            </Badge>
+          )}
+        </div>
+
+        {/* Language indicator */}
+        {post.ai_analysis?.language_code && (
+          <div className="absolute top-2 right-2">
+            <Badge variant="outline" className="text-xs bg-blue-500/70 text-white border-0">
+              {post.ai_analysis.language_code.toUpperCase()}
+            </Badge>
+          </div>
+        )}
+
         {/* Engagement overlay */}
         <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-          <div className="text-white text-center space-y-1">
-            {post.like_count && (
-              <div className="flex items-center gap-1">
-                <Heart className="h-4 w-4" />
-                <span className="text-sm">{formatPostNumber(post.like_count)}</span>
+          <div className="text-white text-center space-y-2">
+            <div className="flex justify-center gap-4">
+              {post.like_count && (
+                <div className="flex items-center gap-1">
+                  <Heart className="h-4 w-4" />
+                  <span className="text-sm">{formatPostNumber(post.like_count)}</span>
+                </div>
+              )}
+              {post.comment_count && (
+                <div className="flex items-center gap-1">
+                  <MessageCircle className="h-4 w-4" />
+                  <span className="text-sm">{formatPostNumber(post.comment_count)}</span>
+                </div>
+              )}
+            </div>
+            {post.engagement_rate && (
+              <div className="text-xs">
+                Engagement: {post.engagement_rate.toFixed(1)}%
               </div>
             )}
-            {post.comment_count && (
-              <div className="flex items-center gap-1">
-                <MessageCircle className="h-4 w-4" />
-                <span className="text-sm">{formatPostNumber(post.comment_count)}</span>
+            {post.ai_analysis?.category_confidence && (
+              <div className="text-xs">
+                Confidence: {Math.round(post.ai_analysis.category_confidence * 100)}%
               </div>
             )}
           </div>

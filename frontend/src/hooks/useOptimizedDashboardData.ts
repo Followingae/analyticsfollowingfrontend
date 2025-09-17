@@ -100,7 +100,7 @@ export const useOptimizedDashboardData = () => {
           
           return withRetry(
             async () => {
-              const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/campaigns`, {
+              const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/campaigns`, {
                 method: 'GET',
                 headers: {
                   'Content-Type': 'application/json',
