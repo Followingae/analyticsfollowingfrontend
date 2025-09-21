@@ -4,7 +4,6 @@
  */
 
 import { UsageStatsResponse } from '@/types/creator';
-import { isDemoMode, demoLog } from '@/utils/demoMode';
 
 // Base API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
@@ -399,13 +398,6 @@ class CreatorApiService {
       analysis_depth?: 'standard' | 'detailed';
     } = {}
   ): Promise<ApiResponse<SearchResponse>> {
-    // DEMO MODE: Return mock search results if available
-    if (isDemoMode()) {
-      demoLog('searchCreator called in demo mode', { username })
-      // TODO: Return mock search results when ready
-      throw new Error('Demo search data not implemented yet. Mock creator search will be added here.')
-    }
-
     const url = `${this.baseUrl}/search/${username}`;
 
     try {
@@ -651,6 +643,15 @@ class CreatorApiService {
         return {
           success: false,
           error: `Authentication failed: ${errorText}. Please log in again.`
+        };
+      }
+
+      // Handle 404 - endpoint might not be implemented yet
+      if (response.status === 404) {
+        console.warn('⚠️ Unlocked creators endpoint not found, returning empty response')
+        return {
+          success: false,
+          error: 'Not Found'
         };
       }
 

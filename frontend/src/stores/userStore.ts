@@ -1,7 +1,6 @@
 // stores/userStore.ts
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { isDemoMode, demoLog, getDemoConfig } from '@/utils/demoMode'
 
 // Types based on the new dashboard API response structure
 export interface User {
@@ -121,58 +120,6 @@ export const useUserStore = create<UserStore>()(
         }
 
         set({ isLoading: true, error: null, lastLoadTime: now })
-
-        // DEMO MODE: Return mock dashboard data
-        if (isDemoMode()) {
-          demoLog('UserStore loadUser called in demo mode')
-
-          const demoConfig = getDemoConfig()
-          const mockDashboardData = {
-            user: {
-              id: 'demo-user-id',
-              email: demoConfig.demoUser.email,
-              full_name: demoConfig.demoUser.name,
-              company: demoConfig.demoUser.company,
-              role: 'premium' as const,
-              status: 'active',
-              created_at: new Date().toISOString(),
-              avatar_config: {
-                variant: 'marble',
-                colorScheme: 'blue',
-                colors: ['#3B82F6', '#1E40AF']
-              }
-            },
-            subscription: {
-              tier: 'premium' as const,
-              limits: { profiles: 2000, emails: 2000, posts: 2000 },
-              usage: { profiles: 450, emails: 320, posts: 1200 },
-              is_team_subscription: true
-            },
-            team: {
-              subscription_tier: 'premium',
-              monthly_limits: { profiles: 2000, emails: 2000, posts: 2000 },
-              monthly_usage: { profiles: 450, emails: 320, posts: 1200 }
-            },
-            stats: {
-              total_searches: 1250,
-              searches_this_month: 87
-            }
-          }
-
-          set({
-            user: mockDashboardData.user,
-            subscription: mockDashboardData.subscription,
-            team: mockDashboardData.team,
-            stats: mockDashboardData.stats,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-            lastUpdated: new Date()
-          })
-
-          demoLog('Demo dashboard data loaded successfully')
-          return
-        }
 
         try {
           // Import dynamically to avoid circular dependencies

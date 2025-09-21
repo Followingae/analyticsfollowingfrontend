@@ -3,7 +3,6 @@ import { tokenManager } from '@/utils/tokenManager'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { requestCache, CACHE_KEYS } from '@/utils/requestCache'
 import { UserRole } from '@/types/auth'
-import { isDemoMode, demoLog, getDemoConfig } from '@/utils/demoMode'
 
 export interface User {
   id: string
@@ -322,56 +321,6 @@ class AuthService {
     }
   }
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // DEMO MODE: Handle demo login
-    if (isDemoMode()) {
-      demoLog('Demo mode login attempt', { email: credentials.email })
-
-      const demoConfig = getDemoConfig()
-      if (credentials.email === demoConfig.demoUser.email && credentials.password === demoConfig.demoUser.password) {
-        demoLog('Demo login successful')
-
-        const demoUser = {
-          id: 'demo-user-id',
-          email: credentials.email,
-          full_name: demoConfig.demoUser.name,
-          company: demoConfig.demoUser.company,
-          role: 'premium' as UserRole,
-          status: 'active',
-          created_at: new Date().toISOString()
-        }
-
-        const demoToken = 'demo.eyJzdWIiOiJkZW1vLXVzZXIiLCJlbWFpbCI6InRlc3RAYnJhbmQuY29tIiwicm9sZSI6InByZW1pdW0ifQ.demo-signature'
-
-        // Store token exactly like real login
-        const tokenData: TokenData = {
-          access_token: demoToken,
-          refresh_token: '',
-          token_type: 'bearer',
-          expires_at: Date.now() + (86400 * 1000) // 24 hours
-        }
-
-        tokenManager.setTokenData(tokenData)
-        this.saveTokenData(tokenData)
-        localStorage.setItem('user_data', JSON.stringify(demoUser))
-        this.lastLoginTime = Date.now()
-
-        return {
-          success: true,
-          data: {
-            user: demoUser,
-            access_token: demoToken,
-            token_type: 'Bearer',
-            message: 'Demo login successful'
-          }
-        }
-      } else {
-        return {
-          success: false,
-          error: 'Invalid demo credentials. Use test@brand.com / 12345'
-        }
-      }
-    }
-
     try {
 
       const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.login}`, {

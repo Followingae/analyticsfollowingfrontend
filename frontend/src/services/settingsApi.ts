@@ -217,7 +217,7 @@ class SettingsApiService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(passwordData)
-    })
+    }) */
   }
 
   async toggleTwoFactor(twoFactorData: TwoFactorRequest): Promise<ApiResponse<TwoFactorResponse>> {

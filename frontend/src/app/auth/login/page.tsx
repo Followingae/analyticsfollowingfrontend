@@ -54,7 +54,7 @@ export default function LoginPage() {
           Welcome
         </span>
       }
-      description="Influencer marketing, from discovery to results"
+      description=""
       testimonials={[
         {
           avatarSrc: "/followinglogo.svg",

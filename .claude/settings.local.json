@@ -74,7 +74,10 @@
       "mcp__shadcn__get_item_examples_from_registries",
       "Bash(start http://localhost:3001/creator-analytics/foode.ae)",
       "Bash(start http://localhost:3002/creator-analytics/foode.ae)",
-      "Bash(start http://localhost:3001/auth/login)"
+      "Bash(start http://localhost:3001/auth/login)",
+      "mcp__shadcn__view_items_in_registries",
+      "Bash(findstr:*)",
+      "WebFetch(domain:cdn.following.ae)"
     ],
     "deny": [],
     "additionalDirectories": [

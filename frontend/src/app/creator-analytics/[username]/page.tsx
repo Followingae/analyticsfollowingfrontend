@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { CreatorAnalyticsDashboard } from '@/components/analytics/CreatorAnalyticsDashboard'
+import { ComprehensiveCreatorDashboard } from '@/components/analytics/ComprehensiveCreatorDashboard'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { SiteHeader } from '@/components/site-header'
@@ -48,7 +48,7 @@ export default function CreatorAnalyticsPage() {
                 <p className="text-muted-foreground text-sm">Creator Analytics</p>
               </div>
             </div>
-            <CreatorAnalyticsDashboard username={username} />
+            <ComprehensiveCreatorDashboard username={username} />
           </div>
         </SidebarInset>
       </SidebarProvider>

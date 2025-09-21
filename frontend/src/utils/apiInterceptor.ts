@@ -6,7 +6,6 @@
 import { authService } from '@/services/authService'
 import { tokenManager } from '@/utils/tokenManager'
 import { waitForAuthInit } from '@/utils/authInit'
-import { isDemoMode, demoLog } from '@/utils/demoMode'
 
 interface RequestConfig {
   url: string
@@ -25,14 +24,6 @@ class ApiInterceptor {
    * Enhanced fetch with automatic token refresh and validation
    */
   async fetch(url: string, options: RequestInit = {}): Promise<Response> {
-    // DEMO MODE: Skip token validation, allow all requests
-    if (isDemoMode()) {
-      demoLog('API interceptor bypassed in demo mode', { url })
-      // Just add demo token header and proceed
-      options = this.updateAuthHeader(options, 'demo.token.signature')
-      return fetch(url, options)
-    }
-
     // Ensure auth system is initialized before making requests
     await waitForAuthInit()
 

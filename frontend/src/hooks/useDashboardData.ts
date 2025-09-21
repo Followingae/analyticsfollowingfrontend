@@ -96,13 +96,19 @@ export const useDashboardData = () => {
         
         if (!result.success) {
           console.error('🚨 Unlocked Profiles API Error:', result.error)
-          
+
           // For auth-related errors, return fallback data
-          if (result.error && 
+          if (result.error &&
              (result.error.includes('Authentication') || result.error.includes('token'))) {
             return { count: 0, profiles: [] }
           }
-          
+
+          // Handle 404 - unlocked profiles endpoint might not be implemented yet
+          if (result.error && result.error.includes('Not Found')) {
+            console.warn('⚠️ Unlocked profiles endpoint not found, returning empty data')
+            return { count: 0, profiles: [] }
+          }
+
           throw new Error(result.error || 'Failed to fetch unlocked profiles')
         }
         

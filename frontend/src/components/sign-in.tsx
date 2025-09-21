@@ -58,7 +58,7 @@ const TestimonialCard = ({ testimonial, delay }: { testimonial: Testimonial, del
 
 export const SignInPage: React.FC<SignInPageProps> = ({
   title = <span className="font-light text-foreground tracking-tighter">Welcome</span>,
-  description = "Access your account and continue your journey with us",
+  description = "",
   testimonials = [],
   isLoading = false,
   onSignIn,
@@ -82,7 +82,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               />
             </div>
             <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">{title}</h1>
-            <p className="animate-element animate-delay-200 text-muted-foreground">{description}</p>
+            {description && <p className="animate-element animate-delay-200 text-muted-foreground">{description}</p>}
 
             <form className="space-y-5" onSubmit={onSignIn}>
               <div className="animate-element animate-delay-300">

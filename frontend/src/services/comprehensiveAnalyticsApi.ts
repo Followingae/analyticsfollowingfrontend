@@ -15,7 +15,6 @@ import {
 } from '@/types/comprehensiveAnalytics'
 import { api as apiClient } from '@/lib/api'
 import { requestCache } from '@/utils/requestCache'
-import { isDemoMode, demoLog } from '@/utils/demoMode'
 
 // Real profile data structure from backend (comprehensive spec)
 // Based on verification: GET /api/v1/search/creator/{username}
@@ -141,13 +140,6 @@ export class ComprehensiveAnalyticsApiService {
    * ✅ REAL API: GET /api/search/creator/{username}
    */
   async getEnhancedProfile(username: string): Promise<EnhancedProfileResponse> {
-    // DEMO MODE: Return mock data if available
-    if (isDemoMode()) {
-      demoLog('getEnhancedProfile called in demo mode', { username })
-      // TODO: Return mock profile data when ready
-      throw new Error('Demo data not implemented yet. Mock profile data will be added here.')
-    }
-
     try {
       console.log('🔍 Attempting to fetch enhanced profile for username:', username)
       console.log('🔍 Username type:', typeof username, 'Length:', username?.length)
@@ -689,14 +681,6 @@ export class ComprehensiveAnalyticsApiService {
    * Get complete analytics dashboard data using REAL endpoint with aggressive caching
    */
   async getCompleteDashboardData(username: string, options: { forceRefresh?: boolean } = {}): Promise<any> {
-    // DEMO MODE: Return mock data if available
-    if (isDemoMode()) {
-      demoLog('getCompleteDashboardData called in demo mode', { username })
-      // TODO: Return mock dashboard data when ready
-      // For now, return null to indicate no mock data available yet
-      throw new Error('Demo data not implemented yet. Mock data will be added here.')
-    }
-
     const cleanUsername = username.replace('@', '').trim()
     const cacheKey = `creator-analytics-${cleanUsername}`
 
