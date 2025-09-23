@@ -75,6 +75,34 @@ export default function CreatorsPage() {
   const [bulkLoading, setBulkLoading] = useState(false)
   const [analyzingCreators, setAnalyzingCreators] = useState<Set<string>>(new Set())
   const [currentPage, setCurrentPage] = useState(1)
+  const router = useRouter()
+
+  // Authentication state - moved before React Query
+  const { isAuthenticated, isLoading: authLoading, user } = useEnhancedAuth()
+
+  // Transform backend Profile format to frontend CreatorProfile format
+  const transformProfile = (profile: any): CreatorProfile => ({
+    id: profile.id,
+    username: profile.username,
+    full_name: profile.full_name || '',
+    biography: profile.biography || '',
+    followers_count: profile.followers_count,
+    following_count: profile.following_count,
+    posts_count: profile.posts_count,
+    is_verified: profile.verified,
+    is_business: false, // Not provided by unlocked endpoint
+    engagement_rate: 0, // Will be calculated later or from additional field
+    // Enhanced profile picture handling - try multiple sources
+    profile_pic_url: profile.profile_pic_url ||
+                    `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
+                    '',
+    profile_pic_url_hd: profile.profile_pic_url ||
+                       `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
+                       '', // Use same URL for HD
+    created_at: profile.unlocked_at,
+    updated_at: profile.unlocked_at,
+    ai_insights: undefined // Not available in unlocked list
+  })
 
   // React Query for unlocked creators with pagination
   const unlockedCreatorsQuery = useQuery({
@@ -143,10 +171,7 @@ export default function CreatorsPage() {
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
   }
-  const router = useRouter()
-  
-  // Authentication state
-  const { isAuthenticated, isLoading: authLoading, user } = useEnhancedAuth()
+  // Router already declared above
 
   // Modern React Query based creator search
   const creatorSearchMutation = useCreatorSearch({
@@ -155,29 +180,6 @@ export default function CreatorsPage() {
     }
   })
 
-  // Transform backend Profile format to frontend CreatorProfile format
-  const transformProfile = (profile: any): CreatorProfile => ({
-    id: profile.id,
-    username: profile.username,
-    full_name: profile.full_name || '',
-    biography: profile.biography || '',
-    followers_count: profile.followers_count,
-    following_count: profile.following_count,
-    posts_count: profile.posts_count,
-    is_verified: profile.verified,
-    is_business: false, // Not provided by unlocked endpoint
-    engagement_rate: 0, // Will be calculated later or from additional field
-    // Enhanced profile picture handling - try multiple sources
-    profile_pic_url: profile.profile_pic_url ||
-                    `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
-                    '',
-    profile_pic_url_hd: profile.profile_pic_url ||
-                       `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
-                       '', // Use same URL for HD
-    created_at: profile.unlocked_at,
-    updated_at: profile.unlocked_at,
-    ai_insights: undefined // Not available in unlocked list
-  })
 
   // Manual refresh function for refresh button
   const handleRefresh = async () => {
