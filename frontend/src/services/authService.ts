@@ -321,13 +321,17 @@ class AuthService {
     }
   }
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    try {
+    // Use request deduplication to prevent multiple simultaneous login attempts
+    const cacheKey = `login:${credentials.email}`
 
-      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.login}`, {
-        method: 'POST',
-        headers: REQUEST_HEADERS,
-        body: JSON.stringify(credentials)
-      })
+    return requestCache.get(cacheKey, async () => {
+      try {
+
+        const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.login}`, {
+          method: 'POST',
+          headers: REQUEST_HEADERS,
+          body: JSON.stringify(credentials)
+        })
 
 
       if (!response.ok) {
@@ -391,12 +395,13 @@ class AuthService {
         success: false,
         error: 'Invalid response format'
       }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Login failed'
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Login failed'
+        }
       }
-    }
+    }, 30000) // 30 second TTL for login requests, no retry for failed logins
   }
 
   // Register user
@@ -617,7 +622,7 @@ class AuthService {
   async testSystemStatsEndpoint(): Promise<void> {
     try {
 
-      const response = await fetchWithAuth(`${this.baseURL}/creator/system/stats`)
+      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.creator.systemStats}`)
       
       if (response.ok) {
         const data = await response.json()
@@ -635,7 +640,7 @@ class AuthService {
   async debugTeamContext(): Promise<void> {
     try {
 
-      const response = await fetchWithAuth(`${this.baseURL}/teams/overview`)
+      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.teams.overview}`)
       
       if (response.ok) {
         const teamData = await response.json()

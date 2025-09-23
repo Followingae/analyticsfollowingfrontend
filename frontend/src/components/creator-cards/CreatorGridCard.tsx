@@ -92,22 +92,22 @@ export function CreatorGridCard({
       nano: {
         label: 'Nano',
         icon: Star,
-        className: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+        className: 'bg-muted text-muted-foreground border-border'
       },
       micro: {
         label: 'Micro',
         icon: Zap,
-        className: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800'
+        className: 'bg-primary/10 text-primary border-primary/20'
       },
       macro: {
         label: 'Macro',
         icon: TrendingUp,
-        className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
+        className: 'bg-primary/15 text-primary border-primary/30 font-medium'
       },
       mega: {
         label: 'Mega',
         icon: Crown,
-        className: 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-purple-200 dark:from-purple-900/30 dark:to-pink-900/30 dark:text-purple-400 dark:border-purple-700'
+        className: 'bg-gradient-to-r from-primary/20 to-primary/15 text-primary border-primary/40 font-semibold shadow-sm'
       }
     }
 
@@ -133,7 +133,7 @@ export function CreatorGridCard({
 
   return (
     <Card
-      className="group relative overflow-hidden border-0 bg-gradient-to-br from-white via-white to-gray-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/30 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+      className="group relative overflow-hidden bg-card border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer"
       onClick={handleCardClick}
     >
       {/* Hover gradient overlay */}
@@ -145,7 +145,7 @@ export function CreatorGridCard({
       {/* Country flag */}
       {creator.country_block && (
         <div className="absolute top-3 left-3 z-10">
-          <div className="bg-white/80 dark:bg-gray-800/80 rounded-full p-1 shadow-sm backdrop-blur-sm">
+          <div className="bg-background/80 border border-border rounded-full p-1 shadow-sm backdrop-blur-sm">
             <ReactCountryFlag
               countryCode={getCountryCode(creator.country_block)}
               svg
@@ -163,7 +163,7 @@ export function CreatorGridCard({
       {/* AI badge */}
       {hasAI && (
         <div className="absolute top-3 right-3 z-10">
-          <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-1.5 py-0.5 shadow-sm">
+          <Badge className="bg-primary text-primary-foreground text-xs px-1.5 py-0.5 shadow-sm">
             <Brain className="h-2.5 w-2.5 mr-1" />
             AI
           </Badge>
@@ -175,7 +175,7 @@ export function CreatorGridCard({
         <div className="text-center space-y-3">
           <div className="relative mx-auto w-fit">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-lg scale-110 opacity-20 group-hover:opacity-40 transition-opacity duration-300" />
-            <Avatar className="relative h-16 w-16 border-3 border-white dark:border-gray-800 shadow-md">
+            <Avatar className="relative h-16 w-16 border-3 border-background shadow-md">
               <AvatarImage
                 src={creator.profile_pic_url || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
                 alt={creator.username}
@@ -186,13 +186,13 @@ export function CreatorGridCard({
                   }
                 }}
               />
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-sm font-semibold">
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-sm font-semibold text-primary">
                 {creator.full_name?.charAt(0) || creator.username?.charAt(0)}
               </AvatarFallback>
             </Avatar>
             {creator.is_verified && (
-              <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-1 border-2 border-white dark:border-gray-800">
-                <CheckCircle className="h-3 w-3 text-white" />
+              <div className="absolute -bottom-1 -right-1 bg-primary rounded-full p-1 border-2 border-background">
+                <CheckCircle className="h-3 w-3 text-primary-foreground" />
               </div>
             )}
           </div>
@@ -212,14 +212,14 @@ export function CreatorGridCard({
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-2 text-center">
-          <div className="p-2 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-md border">
+          <div className="p-2 bg-muted/50 rounded-md border border-border">
             <div className="text-sm font-bold text-primary">{formatNumber(creator.followers_count)}</div>
             <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
               <Users className="h-2.5 w-2.5" />
               Followers
             </div>
           </div>
-          <div className="p-2 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-md border">
+          <div className="p-2 bg-muted/50 rounded-md border border-border">
             <div className="text-sm font-bold text-primary">
               {creator.engagement_rate ? `${creator.engagement_rate.toFixed(1)}%` : 'N/A'}
             </div>
@@ -239,12 +239,12 @@ export function CreatorGridCard({
             </div>
           </div>
         ) : hasAI && creator.ai_insights?.content_quality_score && (
-          <div className="p-2 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-md border border-purple-200 dark:border-purple-800">
+          <div className="p-2 bg-primary/5 rounded-md border border-primary/20">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-muted-foreground">AI Score</span>
               <div className="flex items-center gap-1">
-                <Sparkles className="h-2.5 w-2.5 text-yellow-500" />
-                <span className="font-bold text-xs">
+                <Sparkles className="h-2.5 w-2.5 text-primary" />
+                <span className="font-bold text-xs text-primary">
                   {creator.ai_insights.content_quality_score.toFixed(1)}/10
                 </span>
               </div>
@@ -261,7 +261,7 @@ export function CreatorGridCard({
           <Button
             size="sm"
             onClick={handleAnalyticsClick}
-            className={`${showAddButton ? 'flex-1' : 'w-full'} bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-sm hover:shadow-md transition-all duration-200 text-xs py-1.5`}
+            className={`${showAddButton ? 'flex-1' : 'w-full'} bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all duration-200 text-xs py-1.5`}
           >
             <BarChart3 className="h-3 w-3 mr-1" />
             Analytics
@@ -271,7 +271,7 @@ export function CreatorGridCard({
               variant="outline"
               size="sm"
               onClick={handleAddClick}
-              className="px-2 border-2 hover:bg-primary/5 hover:border-primary/50 transition-all duration-200"
+              className="px-2 border-border hover:bg-muted hover:border-border transition-all duration-200"
             >
               <Plus className="h-3 w-3" />
             </Button>

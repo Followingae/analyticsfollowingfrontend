@@ -82,16 +82,16 @@ export const useDashboardData = () => {
     }
   })
 
-  // Unlocked profiles query
+  // Unlocked profiles query - use same cache key as creators page to avoid duplicates
   const unlockedProfilesQuery = useQuery({
-    queryKey: ['unlocked-profiles-count', user?.id],
+    queryKey: ['unlocked-creators-page', 1, !!user],
     queryFn: async () => {
       try {
         const { creatorApiService } = await import('@/services/creatorApi')
-        
+
         const result = await creatorApiService.getUnlockedCreators({
           page: 1,
-          page_size: 10
+          page_size: 20
         })
         
         if (!result.success) {
@@ -155,7 +155,9 @@ export const useDashboardData = () => {
     queryFn: async () => {
       try {
         const { fetchWithAuth } = await import('@/utils/apiInterceptor')
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/campaigns`
+        const { API_CONFIG, ENDPOINTS } = await import('@/config/api')
+
+        const apiUrl = `${API_CONFIG.BASE_URL}${ENDPOINTS.campaigns.list}`
 
         const response = await fetchWithAuth(apiUrl, {
           method: 'GET',

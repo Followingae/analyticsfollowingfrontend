@@ -20,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
+import { useUserStore } from "@/stores/userStore"
 import { calculateRemainingProfiles, getTierDisplayName } from "@/utils/subscriptionUtils"
 
 const chartConfig = {
@@ -34,61 +35,34 @@ const chartConfig = {
 
 export function ChartProfileAnalysis() {
   const { user } = useEnhancedAuth()
+  const { user: userStoreData, subscription, isLoading: userStoreLoading } = useUserStore()
   const [chartData, setChartData] = useState([
     { browser: "safari", visitors: 0, fill: "hsl(var(--primary))" },
   ])
   const [usageData, setUsageData] = useState<{
-    used: number, 
-    limit: number, 
-    remaining: number, 
+    used: number,
+    limit: number,
+    remaining: number,
     tier: string,
     tierDisplay: string
   } | null>(null)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadData = async () => {
-      if (!user) {
-        setLoading(false)
+      if (!user || !userStoreData || !subscription || userStoreLoading) {
         return
       }
 
       try {
-        // Use request cache to prevent duplicate dashboard calls
-        const { requestCache, CACHE_KEYS } = await import('@/utils/requestCache')
-        
-        const data = await requestCache.get(
-          CACHE_KEYS.DASHBOARD_STATS,
-          async () => {
-            const { fetchWithAuth } = await import('@/utils/apiInterceptor')
-            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/auth/dashboard`, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              }
-            })
-            
-            if (!response.ok) {
-              throw new Error(`Dashboard API failed: ${response.status}`)
-            }
-            
-            return response.json()
-          },
-          2 * 60 * 1000 // Cache for 2 minutes
-        )
+        // Use data from UserStore instead of making API call
+        console.log('🔍 Using UserStore data for profiles chart:', {
+          userStoreData,
+          subscription
+        })
 
-        console.log('Dashboard API response for profiles:', data)
-        
-        // Handle both wrapped and direct response formats
-        const dashboardData = data.success ? data.data : data
-        
-        // Get subscription tier from user data or dashboard data
-        const subscriptionTier = user?.role || dashboardData?.team?.subscription_tier || dashboardData?.subscription_tier
-        
-        // Get actual usage from dashboard
-        const monthlyUsage = dashboardData?.team?.monthly_usage || dashboardData?.monthly_usage
-        const profilesUsed = monthlyUsage?.profiles_used || monthlyUsage?.profiles || 0
+        // Get subscription tier and usage from UserStore
+        const subscriptionTier = user?.role || subscription.tier || 'free'
+        const profilesUsed = subscription.profiles_unlocked_this_month || 0
         
         // FIXED: Use dynamic subscription rules instead of static dashboard limits
         const profileData = calculateRemainingProfiles(subscriptionTier, profilesUsed)
@@ -107,10 +81,9 @@ export function ChartProfileAnalysis() {
           fill: "hsl(var(--primary))"
         }])
         
-        console.log('🔥 Profile unlocks calculated with dynamic subscription:', {
+        console.log('🔥 Profile unlocks calculated from UserStore:', {
           user_role: user?.role,
-          dashboard_subscription_tier: dashboardData?.team?.subscription_tier || dashboardData?.subscription_tier,
-          resolved_subscription_tier: subscriptionTier,
+          subscription_tier: subscriptionTier,
           normalized_tier: profileData.tier,
           tier_display: profileData.tierDisplay,
           subscription_limit: profileData.limit,
@@ -119,25 +92,23 @@ export function ChartProfileAnalysis() {
         })
       } catch (error) {
         console.warn('Error loading profile data:', error)
-        setUsageData({ 
-          used: 0, 
-          limit: 0, 
-          remaining: 0, 
-          tier: 'free', 
-          tierDisplay: 'Free' 
+        setUsageData({
+          used: 0,
+          limit: 0,
+          remaining: 0,
+          tier: 'free',
+          tierDisplay: 'Free'
         })
-      } finally {
-        setLoading(false)
       }
     }
 
     loadData()
-  }, [user])
+  }, [user, userStoreData, subscription, userStoreLoading])
 
   return (
     <Card className="flex flex-col relative">
       {/* Usage Badge */}
-      {!loading && (
+      {!userStoreLoading && (
         <Badge 
           variant="outline" 
           className="absolute top-3 right-3 z-20 text-xs text-muted-foreground border-border bg-muted/50"
@@ -151,7 +122,7 @@ export function ChartProfileAnalysis() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium">Profile Unlocks</CardTitle>
         <div className="text-xs text-muted-foreground">
-          {loading ? "Loading..." : `${usageData?.tierDisplay || 'Free'} tier • ${usageData?.limit || 0}/month`}
+          {userStoreLoading ? "Loading..." : `${usageData?.tierDisplay || 'Free'} tier • ${usageData?.limit || 0}/month`}
         </div>
       </CardHeader>
       <CardContent className="p-1">

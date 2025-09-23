@@ -5,6 +5,7 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { creatorApiService } from "@/services/creatorApi"
 import { useCreatorSearch } from "@/hooks/useCreatorSearch"
+import { useQuery } from "@tanstack/react-query"
 import { CreatorProfile, Profile, UnlockedCreatorsResponse } from "@/services/creatorApi"
 // CDN migration: preloadPageImages no longer needed with CDN
 import {
@@ -72,10 +73,37 @@ export default function CreatorsPage() {
   const [searchUsername, setSearchUsername] = useState("")
   const [bulkUsernames, setBulkUsernames] = useState("")
   const [bulkLoading, setBulkLoading] = useState(false)
-  const [unlockedCreators, setUnlockedCreators] = useState<CreatorProfile[]>([])
-  const [unlockedLoading, setUnlockedLoading] = useState(true)
-  const [unlockedError, setUnlockedError] = useState<string | null>(null)
   const [analyzingCreators, setAnalyzingCreators] = useState<Set<string>>(new Set())
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // React Query for unlocked creators with pagination
+  const unlockedCreatorsQuery = useQuery({
+    queryKey: ['unlocked-creators-page', currentPage, !!user],
+    queryFn: async () => {
+      if (!isAuthenticated) return { profiles: [], pagination: { current_page: 1, total_pages: 1, has_next: false } }
+
+      const result = await creatorApiService.getUnlockedCreators({
+        page: currentPage,
+        page_size: 20
+      })
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to load unlocked creators')
+      }
+
+      return result.data || { profiles: [], pagination: { current_page: 1, total_pages: 1, has_next: false } }
+    },
+    enabled: !!isAuthenticated && !authLoading,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 3
+  })
+
+  // Transform data for component use
+  const rawProfiles = unlockedCreatorsQuery.data?.profiles || []
+  const unlockedCreators = rawProfiles.map(transformProfile)
+  const unlockedLoading = unlockedCreatorsQuery.isLoading
+  const unlockedError = unlockedCreatorsQuery.error?.message || null
+  const pagination = unlockedCreatorsQuery.data?.pagination || { current_page: 1, total_pages: 1, has_next: false }
 
   // Robust deduplication utility
   const deduplicateProfiles = (profiles: CreatorProfile[]): CreatorProfile[] => {
@@ -111,33 +139,14 @@ export default function CreatorsPage() {
     return deduplicated
   }
 
-  // Centralized function to update creators list with deduplication
-  const updateUnlockedCreators = (newProfiles: CreatorProfile[], operation: 'replace' | 'add' = 'replace') => {
-
-    
-    setUnlockedCreators(prev => {
-      let updatedProfiles: CreatorProfile[]
-      
-      if (operation === 'replace') {
-        updatedProfiles = newProfiles
-      } else {
-        // Add new profiles to existing ones
-        updatedProfiles = [...newProfiles, ...prev]
-      }
-      
-      // Always deduplicate the final list
-      return deduplicateProfiles(updatedProfiles)
-    })
+  // Helper function to update page
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage)
   }
-  const [pagination, setPagination] = useState<{page: number, totalPages: number, hasNext: boolean}>({
-    page: 1,
-    totalPages: 1,
-    hasNext: false
-  })
   const router = useRouter()
   
   // Authentication state
-  const { isAuthenticated, isLoading: authLoading } = useEnhancedAuth()
+  const { isAuthenticated, isLoading: authLoading, user } = useEnhancedAuth()
 
   // Modern React Query based creator search
   const creatorSearchMutation = useCreatorSearch({
@@ -146,95 +155,33 @@ export default function CreatorsPage() {
     }
   })
 
-  // Load unlocked profiles from backend using creatorApiService
-  const loadUnlockedProfiles = async (page: number = 1) => {
-    setUnlockedLoading(true)
-    setUnlockedError(null)
-    try {
-      // Use the correct creatorApiService with proper pagination
-      const { creatorApiService } = await import('@/services/creatorApi')
-      const result = await creatorApiService.getUnlockedCreators({
-        page,
-        page_size: 20
-      })
-
-
-      if (result.success && result.data) {
-        // ✅ CORRECTED: Use the profiles array from the API response
-        const backendProfiles = result.data.profiles || []
-        
-        // Adapt backend Profile format to frontend CreatorProfile format
-        // Enhanced profile mapping with fallbacks for missing data
-        const profiles: CreatorProfile[] = backendProfiles.map(profile => ({
-          id: profile.id,
-          username: profile.username,
-          full_name: profile.full_name || '',
-          biography: profile.biography || '',
-          followers_count: profile.followers_count,
-          following_count: profile.following_count,
-          posts_count: profile.posts_count,
-          is_verified: profile.verified,
-          is_business: false, // Not provided by unlocked endpoint
-          engagement_rate: 0, // Will be calculated later or from additional field
-          // Enhanced profile picture handling - try multiple sources
-          profile_pic_url: profile.profile_pic_url ||
-                          `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
-                          '',
-          profile_pic_url_hd: profile.profile_pic_url ||
-                             `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
-                             '', // Use same URL for HD
-          created_at: profile.unlocked_at,
-          updated_at: profile.unlocked_at,
-          ai_insights: undefined // Not available in unlocked list
-        }))
-        
-        updateUnlockedCreators(profiles, page === 1 ? 'replace' : 'append')
-        
-        // ✅ CORRECTED: Update pagination based on backend API response format
-        const paginationInfo = result.data.pagination || {}
-        setPagination({
-          page: paginationInfo.current_page || 1,
-          totalPages: paginationInfo.total_pages || 1,
-          hasNext: paginationInfo.has_next || false
-        })
-        setUnlockedError(null)
-        
-        // Preload images for better performance
-        // CDN migration: Image preloading no longer needed
-        // CDN URLs are permanent and cached by Cloudflare
-      } else {
-
-        setUnlockedError(result.error || 'Failed to load unlocked creators')
-      }
-    } catch (error) {
-
-      setUnlockedError('Network error while loading creators')
-    } finally {
-      setUnlockedLoading(false)
-    }
-  }
-
-  // Load data on component mount, but only when authenticated
-  useEffect(() => {
-
-    
-    // Only load unlocked profiles if user is authenticated and not loading
-    if (isAuthenticated && !authLoading) {
-
-      loadUnlockedProfiles()
-    } else if (!authLoading && !isAuthenticated) {
-
-      // Clear any existing data when not authenticated
-      setUnlockedCreators([])
-      setUnlockedError('Please log in to view unlocked creators')
-    }
-  }, [isAuthenticated, authLoading])
-
+  // Transform backend Profile format to frontend CreatorProfile format
+  const transformProfile = (profile: any): CreatorProfile => ({
+    id: profile.id,
+    username: profile.username,
+    full_name: profile.full_name || '',
+    biography: profile.biography || '',
+    followers_count: profile.followers_count,
+    following_count: profile.following_count,
+    posts_count: profile.posts_count,
+    is_verified: profile.verified,
+    is_business: false, // Not provided by unlocked endpoint
+    engagement_rate: 0, // Will be calculated later or from additional field
+    // Enhanced profile picture handling - try multiple sources
+    profile_pic_url: profile.profile_pic_url ||
+                    `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
+                    '',
+    profile_pic_url_hd: profile.profile_pic_url ||
+                       `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
+                       '', // Use same URL for HD
+    created_at: profile.unlocked_at,
+    updated_at: profile.unlocked_at,
+    ai_insights: undefined // Not available in unlocked list
+  })
 
   // Manual refresh function for refresh button
   const handleRefresh = async () => {
-
-    await loadUnlockedProfiles()
+    unlockedCreatorsQuery.refetch()
   }
 
   // Handle individual creator search with modern React Query
@@ -268,9 +215,6 @@ export default function CreatorsPage() {
       ai_insights: undefined
     }
 
-    // Add placeholder to the beginning of the list
-    updateUnlockedCreators([placeholderCreator], 'add')
-
     try {
       const result = await creatorSearchMutation.mutateAsync(cleanUsername)
 
@@ -281,41 +225,8 @@ export default function CreatorsPage() {
         return newSet
       })
 
-      // Replace placeholder with real data
-      setUnlockedCreators(prev => {
-        const filtered = prev.filter(c => c.id !== `temp-${cleanUsername}`)
-
-        // Convert API response to CreatorProfile format with enhanced profile picture handling
-        const creatorProfile: CreatorProfile = {
-          id: result.profile.username, // Use username as ID
-          username: result.profile.username,
-          full_name: result.profile.full_name || '',
-          biography: result.profile.biography || '',
-          followers_count: result.profile.followers_count,
-          following_count: result.profile.following_count,
-          posts_count: result.profile.posts_count,
-          is_verified: result.profile.is_verified,
-          is_business: false, // Not provided by search endpoint
-          engagement_rate: 0, // Will be calculated later or from additional field
-          // Enhanced profile picture handling - try multiple sources
-          profile_pic_url: result.profile.profile_pic_url ||
-                          `https://cdn.following.ae/profiles/ig/${result.profile.username}/profile_picture.webp` ||
-                          '',
-          profile_pic_url_hd: result.profile.profile_pic_url ||
-                             `https://cdn.following.ae/profiles/ig/${result.profile.username}/profile_picture.webp` ||
-                             '', // Use same URL for HD
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          ai_insights: result.profile.ai_analysis?.available ? {
-            available: true,
-            content_quality_score: result.profile.ai_analysis.content_quality_score || 0,
-            primary_content_type: result.profile.ai_analysis.primary_content_type || '',
-            avg_sentiment_score: result.profile.ai_analysis.avg_sentiment_score || 0
-          } : undefined
-        }
-
-        return deduplicateProfiles([creatorProfile, ...filtered])
-      })
+      // Invalidate and refetch the unlocked creators query to include the new creator
+      unlockedCreatorsQuery.refetch()
 
       setSearchUsername("")
       toast.success(`Found profile for @${cleanUsername}!`)
@@ -326,9 +237,6 @@ export default function CreatorsPage() {
         newSet.delete(cleanUsername)
         return newSet
       })
-
-      // Remove placeholder on error
-      setUnlockedCreators(prev => prev.filter(c => c.id !== `temp-${cleanUsername}`))
 
       toast.error("Search failed. Please try again.")
     }
@@ -372,7 +280,7 @@ export default function CreatorsPage() {
         toast.success(`Successfully analyzed ${successful} creators${failed > 0 ? `, ${failed} failed` : ''}`)
         
         // Reload the unlocked creators list
-        await loadUnlockedProfiles()
+        unlockedCreatorsQuery.refetch()
         
         setIsSearchOpen(false)
         setBulkUsernames("")
@@ -405,28 +313,28 @@ export default function CreatorsPage() {
   // Tier Badge Component
   function TierBadge({ tier, isExpired }: { tier: 'nano' | 'micro' | 'macro' | 'mega', isExpired?: boolean }) {
     const tierStyles = {
-      nano: "bg-muted text-muted-foreground border border-border dark:bg-muted dark:text-muted-foreground dark:border-border",
-      micro: "text-foreground border bg-primary border-primary dark:bg-primary dark:border-primary dark:text-primary-foreground",
-      macro: "text-primary-foreground border ring-2 bg-primary border-primary ring-primary/30 dark:bg-primary dark:border-primary dark:ring-primary/30", 
-      mega: "bg-gradient-to-r from-chart-4 via-chart-5 to-chart-1 text-primary-foreground border-2 border-primary ring-2 ring-primary/60 animate-pulse [animation-duration:7s] dark:from-chart-4 dark:via-chart-5 dark:to-chart-1 dark:border-primary dark:ring-primary/60"
+      nano: "bg-muted text-muted-foreground border-border",
+      micro: "bg-primary/10 text-primary border-primary/20",
+      macro: "bg-primary/15 text-primary border-primary/30 font-medium",
+      mega: "bg-gradient-to-r from-primary/20 to-primary/15 text-primary border-primary/40 font-semibold shadow-sm"
     };
     const tierLabels = {
       nano: 'Nano',
-      micro: 'Micro', 
+      micro: 'Micro',
       macro: 'Macro',
       mega: 'Mega'
     };
-    
+
     if (isExpired) {
       return (
-        <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100 text-xs border border-red-300 dark:border-red-700">
+        <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
           Expired
         </Badge>
       );
     }
-    
+
     return (
-      <Badge className={`text-xs font-bold ${tierStyles[tier]}`}>
+      <Badge className={`text-xs font-bold border ${tierStyles[tier]}`}>
         {tierLabels[tier]}
       </Badge>
     );
@@ -666,25 +574,25 @@ export default function CreatorsPage() {
                 </div>
                 
                 {/* Pagination Controls */}
-                {!unlockedLoading && !unlockedError && unlockedCreators.length > 0 && pagination.totalPages > 1 && (
+                {!unlockedLoading && !unlockedError && unlockedCreators.length > 0 && pagination.total_pages > 1 && (
                   <div className="flex items-center justify-between pt-6 border-t">
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => loadUnlockedProfiles(pagination.page - 1)}
-                        disabled={pagination.page <= 1}
+                        onClick={() => handlePageChange(pagination.current_page - 1)}
+                        disabled={pagination.current_page <= 1}
                       >
                         Previous
                       </Button>
                       <span className="text-sm text-muted-foreground">
-                        Page {pagination.page} of {pagination.totalPages}
+                        Page {pagination.current_page} of {pagination.total_pages}
                       </span>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => loadUnlockedProfiles(pagination.page + 1)}
-                        disabled={!pagination.hasNext}
+                        onClick={() => handlePageChange(pagination.current_page + 1)}
+                        disabled={!pagination.has_next}
                       >
                         Next
                       </Button>

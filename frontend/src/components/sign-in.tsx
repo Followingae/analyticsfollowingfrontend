@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -67,9 +67,16 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   onCreateAccount,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { theme } = useTheme();
 
-  const logoSrc = theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg";
+  // Fix hydration mismatch by ensuring theme is only used after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Use fallback logo during SSR/hydration, then switch to theme-specific logo
+  const logoSrc = mounted && theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg";
 
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw]">

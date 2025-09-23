@@ -19,15 +19,9 @@ import {
   X 
 } from 'lucide-react';
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext';
-import { listsApiService } from '@/services/listsApi';
-import { instagramApiService } from '@/services/instagramApi';
+import { useUserStore } from '@/stores/userStore';
+import { useQuery } from '@tanstack/react-query';
 
-interface ChecklistStatus {
-  profileComplete: boolean;
-  firstProfileAnalyzed: boolean;
-  firstListCreated: boolean;
-  loading: boolean;
-}
 
 const getPathAnimate = (isChecked: boolean) => ({
   pathLength: isChecked ? 1 : 0,
@@ -45,119 +39,73 @@ const getPathTransition = (isChecked: boolean): Transition => ({
 export function FloatingSetupChecklist() {
   const router = useRouter();
   const { user } = useEnhancedAuth();
-  const [status, setStatus] = React.useState<ChecklistStatus>({
-    profileComplete: false,
-    firstProfileAnalyzed: false,
-    firstListCreated: false,
-    loading: true,
-  });
+  const { user: userStoreData, subscription, isLoading: userStoreLoading } = useUserStore();
   const [isOpen, setIsOpen] = React.useState(false);
   const [shouldWiggle, setShouldWiggle] = React.useState(false);
 
-  // Load checklist status
-  React.useEffect(() => {
-    const loadChecklistStatus = async () => {
-      if (!user) {
-        setStatus(prev => ({ ...prev, loading: false }));
-        return;
-      }
+  // Use existing React Query cache from useDashboardData for unlocked profiles
+  const unlockedProfilesQuery = useQuery({
+    queryKey: ['unlocked-creators-page', 1, !!user],
+    queryFn: async () => {
+      // This should never run since we're only reading from cache
+      const { creatorApiService } = await import('@/services/creatorApi');
+      const result = await creatorApiService.getUnlockedCreators({
+        page: 1,
+        page_size: 20
+      });
+      return result.success ? result.data : { count: 0, profiles: [] };
+    },
+    enabled: false, // Don't fetch, just read from cache
+    staleTime: Infinity // Use cached data only
+  });
 
-      try {
-        // 1. Check profile completion
-        const profileComplete = !!(
-          user.first_name && 
-          user.company && 
-          (user.first_name.trim() !== '' && user.company.trim() !== '')
-        );
+  // Use existing React Query cache for lists (need to add this to a centralized hook)
+  const listsQuery = useQuery({
+    queryKey: ['user-lists'],
+    queryFn: async () => {
+      const { listsApiService } = await import('@/services/listsApi');
+      const result = await listsApiService.getAllLists();
+      return result.success ? result.data : [];
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
 
-        // 2. Check first profile analysis
-        let firstProfileAnalyzed = false;
-        try {
-          const unlockedResult = await instagramApiService.getUnlockedProfiles(1, 5);
-          if (unlockedResult.success && unlockedResult.data) {
-            const profileCount = unlockedResult.data.profiles?.length || 0;
-            firstProfileAnalyzed = profileCount > 0;
-          }
-        } catch (error) {
-
-        }
-
-        // 3. Check first list creation
-        let firstListCreated = false;
-        try {
-          const listsResult = await listsApiService.getAllLists();
-          if (listsResult.success && listsResult.data) {
-            firstListCreated = listsResult.data.length > 0;
-          }
-        } catch (error) {
-
-        }
-
-        setStatus({
-          profileComplete,
-          firstProfileAnalyzed,
-          firstListCreated,
-          loading: false,
-        });
-
-      } catch (error) {
-
-        setStatus(prev => ({ ...prev, loading: false }));
-      }
-    };
-
-    const setupPolling = async () => {
-      // Initial load
-      await loadChecklistStatus();
-      
-      // Set up intelligent polling
-      const { pollingManager, POLLING_CONFIGS } = await import('@/utils/pollingManager');
-      
-      // SMART POLLING: Only poll if setup is NOT complete
-      const isSetupComplete = status.profileComplete && status.firstProfileAnalyzed && status.firstListCreated;
-      
-      if (!isSetupComplete) {
-        pollingManager.startPolling(
-          'setup-checklist',
-          async () => {
-            await loadChecklistStatus();
-            
-            // Check if setup is now complete and stop polling if so
-            const currentStatus = status;
-            const nowComplete = currentStatus.profileComplete && 
-                                currentStatus.firstProfileAnalyzed && 
-                                currentStatus.firstListCreated;
-            
-            if (nowComplete) {
-              console.log('🎉 Setup complete! Stopping setup checklist polling.');
-              pollingManager.stopPolling('setup-checklist');
-              return false; // Stop polling
-            }
-            
-            return true; // Continue polling
-          },
-          {
-            ...POLLING_CONFIGS.SETUP_STATUS,
-            maxRetries: 20, // Stop after reasonable attempts
-          }
-        );
-      }
-      
-      return () => {
-        pollingManager.stopPolling('setup-checklist');
+  // Calculate status from existing data sources
+  const status = React.useMemo(() => {
+    if (userStoreLoading || !user) {
+      return {
+        profileComplete: false,
+        firstProfileAnalyzed: false,
+        firstListCreated: false,
+        loading: true,
       };
-    };
+    }
 
-    let cleanup: (() => void) | undefined;
+    // 1. Check profile completion
+    const profileComplete = !!(
+      user.first_name &&
+      user.company &&
+      (user.first_name.trim() !== '' && user.company.trim() !== '')
+    );
 
-    setupPolling().then(cleanupFn => {
-      cleanup = cleanupFn;
-    });
-    
-    return () => {
-      if (cleanup) cleanup();
+    // 2. Check first profile analysis from cache or subscription data
+    const unlockedProfilesCount = unlockedProfilesQuery.data?.count ||
+                                  subscription?.profiles_unlocked_this_month || 0;
+    const firstProfileAnalyzed = unlockedProfilesCount > 0;
+
+    // 3. Check first list creation from cache
+    const listsCount = Array.isArray(listsQuery.data) ? listsQuery.data.length : 0;
+    const firstListCreated = listsCount > 0;
+
+    return {
+      profileComplete,
+      firstProfileAnalyzed,
+      firstListCreated,
+      loading: false,
     };
-  }, [user]);
+  }, [user, userStoreData, subscription, userStoreLoading, unlockedProfilesQuery.data, listsQuery.data]);
 
   const setupItems = [
     {

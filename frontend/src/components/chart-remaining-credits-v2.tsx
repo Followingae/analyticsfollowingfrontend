@@ -52,7 +52,9 @@ export function ChartRemainingCreditsV2() {
           'credits-balance-v2',
           async () => {
             const { fetchWithAuth } = await import('@/utils/apiInterceptor')
-            const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/credits/balance`, {
+            const { API_CONFIG, ENDPOINTS } = await import('@/config/api')
+
+            const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.credits.balance}`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',

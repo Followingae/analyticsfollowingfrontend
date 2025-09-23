@@ -446,8 +446,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // This is the same API UserStore uses, ensuring consistency
       const { fetchWithAuth } = await import('@/utils/apiInterceptor')
       
+      const { API_CONFIG, ENDPOINTS } = await import('@/config/api')
+
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/auth/dashboard`,
+        `${API_CONFIG.BASE_URL}${ENDPOINTS.auth.dashboard}`,
         {
           method: 'GET',
           headers: {

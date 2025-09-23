@@ -1,4 +1,4 @@
-import { API_CONFIG, REQUEST_HEADERS, getAuthHeaders } from '@/config/api'
+import { API_CONFIG, REQUEST_HEADERS, ENDPOINTS, getAuthHeaders } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 
 export interface ProfileUpdateRequest {
@@ -56,8 +56,8 @@ class SettingsService {
   async getProfile(): Promise<{ success: boolean; data?: ProfileUpdateResponse; error?: string }> {
     try {
 
-      
-      const response = await fetchWithAuth(`${this.baseURL}/settings/profile`, {
+
+      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.settings.user}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ class SettingsService {
   // Update profile settings
   async updateProfile(profileData: ProfileUpdateRequest): Promise<{ success: boolean; data?: ProfileUpdateResponse; error?: string }> {
     try {
-      const response = await fetchWithAuth(`${this.baseURL}/settings/profile`, {
+      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.settings.user}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -111,7 +111,7 @@ class SettingsService {
     try {
 
       
-      const response = await fetchWithAuth(`${this.baseURL}/settings/overview`, {
+      const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.settings.overview}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

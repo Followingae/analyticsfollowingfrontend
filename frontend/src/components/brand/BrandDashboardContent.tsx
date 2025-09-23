@@ -31,6 +31,7 @@ export function BrandDashboardContent() {
     unlockedProfilesCount,
     profilesLoading,
     activeCampaignsCount,
+    campaigns,
     campaignsLoading,
     isLoading
   } = useDashboardData()
@@ -280,7 +281,7 @@ export function BrandDashboardContent() {
             showCampaignStats ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}>
             <div className="w-full">
-              <ChartBarInteractive />
+              <ChartBarInteractive campaigns={campaigns} campaignsLoading={campaignsLoading} />
             </div>
           </div>
         </div>

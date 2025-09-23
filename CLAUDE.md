@@ -156,6 +156,240 @@ Response: {
 - **Graceful Degradation**: UI remains functional during API failures
 - **User Feedback**: Toast notifications for success/error states
 
+### Base URL Configuration
+- **Production**: `https://api.analyticsfollowing.com`
+- **Development**: `http://localhost:8000`
+
+### ⚠️ CRITICAL ROUTING ISSUE
+**ISSUE**: Frontend was calling `/api/v1/api/v1/auth/login` (duplicate prefix)
+**SOLUTION**: Frontend must call `/api/v1/auth/login` (single prefix)
+
+## Definitive API Endpoints
+
+### 🚀 Core Creator Search Endpoints (Primary Integration)
+
+#### **GET /api/v1/search/creator/{username}**
+- **PURPOSE**: Main creator search endpoint with complete 5-section analytics
+- **AUTHENTICATION**: Required (Bearer token)
+- **CREDITS**: Charges based on unlock status
+- **RESPONSE**: Complete creator analytics with AI insights
+
+#### **GET /api/v1/instagram/profile/{username}**
+- **PURPOSE**: Instagram profile analysis with AI insights
+- **AUTHENTICATION**: Required
+- **CREDITS**: Uses credit gate for influencer unlock
+
+#### **GET /api/v1/instagram/profile/{username}/posts**
+- **PURPOSE**: Get paginated posts with AI analysis
+- **AUTHENTICATION**: Required
+- **QUERY PARAMS**: `limit`, `offset`
+
+#### **GET /api/v1/instagram/profile/{username}/ai-status**
+- **PURPOSE**: Check AI analysis status for a profile
+- **AUTHENTICATION**: Required
+
+### 🔐 Authentication & User Management
+
+#### **POST /api/v1/auth/register**
+- **BODY**: `{ email, password, full_name }`
+- **RESPONSE**: User data + JWT tokens
+
+#### **POST /api/v1/auth/login**
+- **BODY**: `{ email, password }`
+- **RESPONSE**: JWT tokens + user data
+
+#### **POST /api/v1/auth/logout**
+- **AUTHENTICATION**: Required
+
+#### **POST /api/v1/auth/refresh**
+- **BODY**: `{ refresh_token }`
+- **RESPONSE**: New access token
+
+#### **GET /api/v1/auth/me**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Complete user data
+
+#### **GET /api/v1/auth/dashboard**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Credits, usage, subscription info
+
+#### **GET /api/v1/auth/unlocked-profiles**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: List of unlocked Instagram profiles
+
+#### **GET /api/v1/auth/search-history**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Recent searches with timestamps
+
+### 💳 Credits & Billing System
+
+#### **GET /api/v1/credits/balance**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Current credits + billing cycle info
+
+#### **GET /api/v1/credits/total-plan-credits**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Monthly allowances by action type
+
+#### **GET /api/v1/credits/wallet/summary**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Balance, transactions, billing details
+
+#### **GET /api/v1/credits/dashboard**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Complete credit analytics
+
+#### **GET /api/v1/credits/transactions**
+- **AUTHENTICATION**: Required
+- **QUERY PARAMS**: `limit`, `offset`, `action_type`
+
+#### **GET /api/v1/credits/usage/monthly**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Usage by action type
+
+#### **GET /api/v1/credits/can-perform/{action_type}**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Permission + cost info
+
+#### **GET /api/v1/credits/pricing**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Action costs + free allowances
+
+#### **POST /api/v1/credits/top-up/estimate**
+- **AUTHENTICATION**: Required
+- **BODY**: `{ credits_needed }`
+
+### 👥 Team Management
+
+#### **GET /api/v1/teams/members**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: List of team members with roles
+
+#### **POST /api/v1/teams/invite**
+- **AUTHENTICATION**: Required (Admin only)
+- **BODY**: `{ email, role }`
+
+#### **GET /api/v1/teams/invitations**
+- **AUTHENTICATION**: Required
+
+#### **PUT /api/v1/teams/invitations/{token}/accept**
+- **AUTHENTICATION**: Required
+
+#### **DELETE /api/v1/teams/members/{user_id}**
+- **AUTHENTICATION**: Required (Admin only)
+
+#### **GET /api/v1/teams/overview**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Team stats, usage, members
+
+### 📋 User Lists & Organization
+
+#### **GET /api/v1/lists**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: List of saved creator lists
+
+#### **POST /api/v1/lists**
+- **AUTHENTICATION**: Required
+- **BODY**: `{ name, description, template_id? }`
+
+#### **GET /api/v1/lists/{list_id}**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: List with items and metadata
+
+#### **PUT /api/v1/lists/{list_id}**
+- **AUTHENTICATION**: Required
+- **BODY**: `{ name?, description? }`
+
+#### **DELETE /api/v1/lists/{list_id}**
+- **AUTHENTICATION**: Required
+
+#### **POST /api/v1/lists/{list_id}/items**
+- **AUTHENTICATION**: Required
+- **BODY**: `{ profile_id, notes? }`
+
+#### **DELETE /api/v1/lists/{list_id}/items/{item_id}**
+- **AUTHENTICATION**: Required
+
+#### **POST /api/v1/lists/{list_id}/duplicate**
+- **AUTHENTICATION**: Required
+
+#### **GET /api/v1/lists/templates**
+- **RESPONSE**: Available list templates
+
+#### **GET /api/v1/lists/available-profiles**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Unlocked profiles for list creation
+
+### 💰 Stripe Subscription Management
+
+#### **POST /api/v1/stripe/create-customer**
+- **AUTHENTICATION**: Required
+- **BODY**: User payment details
+
+#### **GET /api/v1/stripe/portal-url**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Stripe portal redirect URL
+
+#### **GET /api/v1/stripe/status**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Current subscription details
+
+#### **GET /api/v1/stripe/config**
+- **RESPONSE**: Public Stripe keys
+
+#### **POST /api/v1/stripe/webhooks/stripe**
+- **AUTHENTICATION**: Stripe signature
+- **BODY**: Stripe webhook payload
+
+### 🎯 Settings & Preferences
+
+#### **GET /api/v1/settings/user**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: User preferences
+
+#### **PUT /api/v1/settings/user**
+- **AUTHENTICATION**: Required
+- **BODY**: Settings object
+
+### 🔧 System Health & Monitoring
+
+#### **GET /api/health**
+- **RESPONSE**: Overall system status
+
+#### **GET /api/metrics**
+- **RESPONSE**: Performance data
+
+#### **GET /api/database/schema-check**
+- **RESPONSE**: Schema health status
+
+#### **GET /api/v1/status/comprehensive**
+- **AUTHENTICATION**: Required
+- **RESPONSE**: Detailed system diagnostics
+
+### 📊 Frontend Integration Guidelines
+
+#### ✅ Essential Endpoints for MVP
+1. **Authentication**: `/api/v1/auth/login`, `/api/v1/auth/me`
+2. **Creator Search**: `/api/v1/search/creator/{username}`
+3. **Credits**: `/api/v1/credits/balance`, `/api/v1/credits/dashboard`
+4. **User Lists**: `/api/v1/lists`, `/api/v1/lists/{list_id}`
+
+#### ⚠️ Error Handling Standards
+- **401**: Token expired → Redirect to login
+- **403**: Insufficient credits → Show top-up options
+- **429**: Rate limited → Show retry message
+- **500**: Server error → Show error page
+
+#### 💡 Performance Optimization Rules
+- Use `/api/v1/search/creator/{username}` for complete analytics
+- Cache user data from `/api/v1/auth/me`
+- Implement progressive loading for large lists
+- Use pagination for transaction history
+
+### 🚨 Deprecated Endpoints (DO NOT USE)
+- `/api/v1/api/v1/simple/creator/system/stats` (duplicate prefix)
+- `/api/v1/api/v1/simple/creator/unlocked` (duplicate prefix)
+
 ## Performance Optimizations
 
 ### API Call Reduction

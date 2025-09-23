@@ -6,7 +6,7 @@ import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { API_CONFIG } from '@/config/api'
 import { Plus, BarChart3, TrendingUp, Target, FileText } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
-import { useDashboardData } from "@/hooks/useDashboardData"
+// Removed useDashboardData import - data will be passed as props
 
 import {
   Card,
@@ -42,13 +42,15 @@ interface Campaign {
   status: string
 }
 
-export function ChartBarInteractive() {
+interface ChartBarInteractiveProps {
+  campaigns?: Campaign[]
+  campaignsLoading?: boolean
+}
+
+export function ChartBarInteractive({ campaigns, campaignsLoading }: ChartBarInteractiveProps = {}) {
   const [activeChart, setActiveChart] = React.useState<keyof typeof chartConfig>("reach")
   const [selectedCampaign, setSelectedCampaign] = React.useState<Campaign | null>(null)
   const [chartData, setChartData] = React.useState<any[]>([])
-  
-  // Use dashboard data hook instead of separate API calls
-  const { campaigns, campaignsLoading } = useDashboardData()
 
   // Set default campaign when campaigns data is available
   React.useEffect(() => {

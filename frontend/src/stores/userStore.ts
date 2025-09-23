@@ -124,12 +124,13 @@ export const useUserStore = create<UserStore>()(
         try {
           // Import dynamically to avoid circular dependencies
           const { fetchWithAuth } = await import('@/utils/apiInterceptor')
-          
-          const dashboardUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1'}/auth/dashboard`
+          const { API_CONFIG, ENDPOINTS } = await import('@/config/api')
+
+          const dashboardUrl = `${API_CONFIG.BASE_URL}${ENDPOINTS.auth.dashboard}`
           const url = bustCache ? `${dashboardUrl}?_t=${Date.now()}` : dashboardUrl
 
           console.log('🔍 UserStore: Dashboard API URL:', url)
-          console.log('🔍 UserStore: Base URL env var:', process.env.NEXT_PUBLIC_API_BASE_URL)
+          console.log('🔍 UserStore: Base URL from config:', API_CONFIG.BASE_URL)
 
           // Add retry logic for database timeout issues
           let response: Response

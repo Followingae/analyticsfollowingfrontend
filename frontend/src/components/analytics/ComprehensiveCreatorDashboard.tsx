@@ -49,6 +49,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import ReactCountryFlag from "react-country-flag"
+import { getCountryCode } from "@/lib/countryUtils"
 
 // Backend data interface matching the 5-section structure
 interface BackendCreatorData {
@@ -65,6 +67,7 @@ interface BackendCreatorData {
       is_private: boolean
       external_url?: string
       created_at: string
+      detected_country?: string | null
     }
     engagement_metrics: {
       avg_likes: number
@@ -303,6 +306,38 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
 
+  // Helper function to render country badge
+  const renderCountryBadge = (detectedCountry?: string | null) => {
+    if (!detectedCountry) {
+      // Show Global badge with world flag when country is NULL
+      return (
+        <Badge variant="outline" className="capitalize">
+          <Globe className="h-3 w-3 mr-1" />
+          Global
+        </Badge>
+      )
+    }
+
+    // Show country flag and name
+    const countryCode = getCountryCode(detectedCountry)
+    return (
+      <Badge variant="outline" className="capitalize">
+        <ReactCountryFlag
+          countryCode={countryCode}
+          svg
+          style={{
+            width: '12px',
+            height: '9px',
+            marginRight: '4px',
+            borderRadius: '2px'
+          }}
+          title={detectedCountry}
+        />
+        {detectedCountry}
+      </Badge>
+    )
+  }
+
   // Fetch real data from API using the comprehensive analytics service
   useEffect(() => {
     const fetchData = async () => {
@@ -329,7 +364,8 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                 is_verified: response.profile.is_verified || false,
                 is_private: response.profile.is_private || false,
                 external_url: response.profile.external_url || "",
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                detected_country: response.profile.detected_country || null
               },
               engagement_metrics: {
                 avg_likes: response.analytics_summary?.avg_likes || 0,
@@ -724,15 +760,10 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
 
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <span className="text-lg">@{data.overview.profile.username}</span>
-                  {data.overview.ai_classification.ai_primary_content_type && (
-                    <>
-                      <Separator orientation="vertical" className="h-4" />
-                      <Badge variant="outline" className="capitalize">
-                        <Target className="h-3 w-3 mr-1" />
-                        {data.overview.ai_classification.ai_primary_content_type}
-                      </Badge>
-                    </>
-                  )}
+                  <>
+                    <Separator orientation="vertical" className="h-4" />
+                    {renderCountryBadge(data.overview.profile.detected_country)}
+                  </>
                 </div>
 
                 {data.overview.profile.biography && (
