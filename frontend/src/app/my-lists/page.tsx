@@ -132,7 +132,7 @@ export default function MyListsPage() {
   // Form states
   const [newListName, setNewListName] = useState("")
   const [newListDescription, setNewListDescription] = useState("")
-  const [selectedColor, setSelectedColor] = useState("hsl(var(--primary))")
+  const [selectedColor, setSelectedColor] = useState("#5100f3")
   const [searchResults, setSearchResults] = useState<UnlockedProfile[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [creatorSearchQuery, setCreatorSearchQuery] = useState("")
@@ -222,7 +222,7 @@ export default function MyListsPage() {
       setIsCreatingList(false)
       setNewListName("")
       setNewListDescription("")
-      setSelectedColor("hsl(var(--primary))")
+      setSelectedColor("#5100f3")
       
       loadLists()
     } catch (err: any) {
@@ -249,7 +249,7 @@ export default function MyListsPage() {
       setSelectedTemplate("")
       setNewListName("")
       setNewListDescription("")
-      setSelectedColor("hsl(var(--primary))")
+      setSelectedColor("#5100f3")
       
       loadLists()
     } catch (err: any) {
@@ -274,7 +274,7 @@ export default function MyListsPage() {
       setSelectedList(null)
       setNewListName("")
       setNewListDescription("")
-      setSelectedColor("hsl(var(--primary))")
+      setSelectedColor("#5100f3")
       
       loadLists()
     } catch (err: any) {
@@ -355,16 +355,15 @@ export default function MyListsPage() {
   }
 
   const colorOptions = [
-    "hsl(var(--chart-1))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
-    "hsl(var(--chart-4))",
-    "hsl(var(--chart-5))",
-    "hsl(var(--primary))",
-    "hsl(var(--secondary))",
-    "hsl(var(--accent))",
-    "hsl(var(--muted))",
-    "hsl(var(--destructive))"
+    "#5100f3", // primary
+    "#8b5cf6", // purple variant
+    "#10b981", // emerald
+    "#f59e0b", // amber
+    "#06b6d4", // cyan
+    "#64748b", // slate
+    "#475569", // darker slate
+    "#94a3b8", // light slate
+    "#ef4444"  // red
   ]
 
   if (loading && myLists.length === 0) {
@@ -502,7 +501,7 @@ export default function MyListsPage() {
                           <div className="flex items-center gap-3">
                             <div
                               className="w-4 h-4 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: list.color || 'hsl(var(--primary))' }}
+                              style={{ backgroundColor: list.color || '#5100f3' }}
                             />
                             <div className="min-w-0 flex-1">
                               <CardTitle className="text-lg truncate">{list.name}</CardTitle>
@@ -525,7 +524,7 @@ export default function MyListsPage() {
                                   setSelectedList(list)
                                   setNewListName(list.name)
                                   setNewListDescription(list.description || "")
-                                  setSelectedColor(list.color || "hsl(var(--primary))")
+                                  setSelectedColor(list.color || "#5100f3")
                                   setIsEditingList(true)
                                 }}
                               >
@@ -628,7 +627,7 @@ export default function MyListsPage() {
                         {colorOptions.slice(0, 6).map(color => (
                           <button
                             key={color}
-                            className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-[hsl(var(--primary))]' : 'border-gray-300 hover:border-gray-400'} transition-colors`}
+                            className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-[#5100f3]' : 'border-gray-300 hover:border-gray-400'} transition-colors`}
                             style={{ backgroundColor: color }}
                             onClick={() => setSelectedColor(color)}
                           />
@@ -640,7 +639,7 @@ export default function MyListsPage() {
                     <Button variant="outline" onClick={() => setIsCreatingList(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={createList} style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }}>
+                    <Button onClick={createList} style={{ backgroundColor: '#5100f3', color: 'white' }}>
                       Create List
                     </Button>
                   </div>
@@ -680,7 +679,7 @@ export default function MyListsPage() {
                         {colorOptions.slice(0, 6).map(color => (
                           <button
                             key={color}
-                            className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-[hsl(var(--primary))]' : 'border-gray-300 hover:border-gray-400'} transition-colors`}
+                            className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-[#5100f3]' : 'border-gray-300 hover:border-gray-400'} transition-colors`}
                             style={{ backgroundColor: color }}
                             onClick={() => setSelectedColor(color)}
                           />
@@ -692,7 +691,7 @@ export default function MyListsPage() {
                     <Button variant="outline" onClick={() => setIsEditingList(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={updateList} style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }}>
+                    <Button onClick={updateList} style={{ backgroundColor: '#5100f3', color: 'white' }}>
                       Update List
                     </Button>
                   </div>
