@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 // --- HELPER COMPONENTS (ICONS) ---
 
@@ -37,19 +38,24 @@ const GlassInputWrapper = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const TestimonialCard = ({ testimonial, delay }: { testimonial: Testimonial, delay: string }) => (
-  <div 
-    className={`animate-testimonial ${delay} flex items-center justify-center rounded-3xl border border-white/20 dark:border-white/15 p-6 w-48 h-24 shadow-lg`}
-    style={{
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-      backdropFilter: 'blur(12px) saturate(120%)',
-      WebkitBackdropFilter: 'blur(12px) saturate(120%)',
-      borderColor: 'rgba(255, 255, 255, 0.2)',
-    }}
-  >
-    <img src={testimonial.avatarSrc} className="h-8 w-auto object-contain" alt="Following Logo" />
-  </div>
-);
+const TestimonialCard = ({ testimonial, delay, theme }: { testimonial: Testimonial, delay: string, theme?: string }) => {
+  const logoSrc = theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg"
+  const displaySrc = testimonial.avatarSrc === "/followinglogo.svg" ? logoSrc : testimonial.avatarSrc
+
+  return (
+    <div
+      className={`animate-testimonial ${delay} flex items-center justify-center rounded-3xl border border-white/20 dark:border-white/15 p-6 w-48 h-24 shadow-lg`}
+      style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backdropFilter: 'blur(12px) saturate(120%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(120%)',
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+      }}
+    >
+      <img src={displaySrc} className="h-8 w-auto object-contain" alt="Following Logo" />
+    </div>
+  )
+};
 
 // --- MAIN COMPONENT ---
 
@@ -62,6 +68,9 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { theme } = useTheme();
+
+  const logoSrc = theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg";
 
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw]">
@@ -70,7 +79,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
         <div className="w-full max-w-md">
           <div className="flex flex-col gap-6">
             <div className="animate-element animate-delay-50 mb-2">
-              <img src="/followinglogo.svg" className="h-6 w-auto object-contain opacity-60" alt="Following Logo" />
+              <img src={logoSrc} className="h-6 w-auto object-contain opacity-60" alt="Following Logo" />
             </div>
             <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">{title}</h1>
             <p className="animate-element animate-delay-200 text-muted-foreground">{description}</p>

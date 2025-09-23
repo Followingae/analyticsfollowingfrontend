@@ -79,10 +79,10 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
   
   // Determine influencer tier
   const getInfluencerTier = (followerCount: number) => {
-    if (followerCount >= 1000000) return { tier: 'mega', color: 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900' }
-    if (followerCount >= 100000) return { tier: 'macro', color: 'bg-[hsl(var(--primary))] text-white' }
-    if (followerCount >= 10000) return { tier: 'micro', color: 'bg-[#d3ff02] text-foreground' }
-    return { tier: 'nano', color: 'bg-gray-100 text-foreground border' }
+    if (followerCount >= 1000000) return { tier: 'mega', color: 'bg-gradient-to-r from-chart-4 via-chart-5 to-chart-1 text-primary-foreground' }
+    if (followerCount >= 100000) return { tier: 'macro', color: 'bg-primary text-primary-foreground' }
+    if (followerCount >= 10000) return { tier: 'micro', color: 'bg-chart-3 text-primary-foreground' }
+    return { tier: 'nano', color: 'bg-muted text-muted-foreground border border-border' }
   }
 
   // Loading state
@@ -765,8 +765,8 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
                                 className="h-2 rounded-full transition-all"
                                 style={{
                                   width: `${Math.abs(post.ai_analysis.sentiment_score) * 100}%`,
-                                  backgroundColor: post.ai_analysis.sentiment_score > 0.1 ? '#22c55e' : 
-                                                 post.ai_analysis.sentiment_score < -0.1 ? '#ef4444' : '#6b7280'
+                                  backgroundColor: post.ai_analysis.sentiment_score > 0.1 ? 'hsl(var(--chart-3))' :
+                                                 post.ai_analysis.sentiment_score < -0.1 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'
                                 }}
                               />
                             </div>

@@ -255,50 +255,50 @@ export const formatValidationErrors = (errors: Record<string, string[]>): string
 // Color utilities for status/priority formatting
 export const getStatusColorClass = (status: string): string => {
   const normalizedStatus = status.toLowerCase().replace(/[_-]/g, ' ')
-  
+
   switch (normalizedStatus) {
     case 'active':
     case 'success':
     case 'completed':
     case 'approved':
     case 'healthy':
-      return 'text-green-600 dark:text-green-400'
+      return 'text-chart-3'
     case 'pending':
     case 'processing':
     case 'warning':
     case 'under review':
-      return 'text-yellow-600 dark:text-yellow-400'
+      return 'text-chart-5'
     case 'failed':
     case 'error':
     case 'rejected':
     case 'cancelled':
     case 'critical':
-      return 'text-red-600 dark:text-red-400'
+      return 'text-destructive'
     case 'info':
     case 'draft':
     case 'created':
     case 'sent':
-      return 'text-blue-600 dark:text-blue-400'
+      return 'text-primary'
     case 'paused':
     case 'suspended':
-      return 'text-orange-600 dark:text-orange-400'
+      return 'text-chart-4'
     default:
-      return 'text-gray-600 dark:text-gray-400'
+      return 'text-muted-foreground'
   }
 }
 
 export const getPriorityColorClass = (priority: string): string => {
   switch (priority.toLowerCase()) {
     case 'critical':
-      return 'text-red-600 dark:text-red-400'
+      return 'text-destructive'
     case 'high':
-      return 'text-orange-600 dark:text-orange-400'
+      return 'text-chart-4'
     case 'medium':
-      return 'text-yellow-600 dark:text-yellow-400'
+      return 'text-chart-5'
     case 'low':
-      return 'text-green-600 dark:text-green-400'
+      return 'text-chart-3'
     default:
-      return 'text-gray-600 dark:text-gray-400'
+      return 'text-muted-foreground'
   }
 }
 

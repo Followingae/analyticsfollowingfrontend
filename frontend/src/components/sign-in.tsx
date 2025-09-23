@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 // --- HELPER COMPONENTS (ICONS) ---
 
@@ -66,6 +67,9 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   onCreateAccount,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const { theme } = useTheme();
+
+  const logoSrc = theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg";
 
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw]">
@@ -75,10 +79,10 @@ export const SignInPage: React.FC<SignInPageProps> = ({
           <div className="flex flex-col gap-6">
             {/* Logo aligned with left side */}
             <div className="mb-4">
-              <img 
-                src="/followinglogo.svg" 
-                className="h-6 w-auto object-contain animate-element animate-delay-50 opacity-60" 
-                alt="Following Logo" 
+              <img
+                src={logoSrc}
+                className="h-6 w-auto object-contain animate-element animate-delay-50 opacity-60"
+                alt="Following Logo"
               />
             </div>
             <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">{title}</h1>

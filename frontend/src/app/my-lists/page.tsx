@@ -354,7 +354,18 @@ export default function MyListsPage() {
     })
   }
 
-  const colorOptions = ["#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#ffd93d", "#ff9472", "#a8e6cf", "#dda0dd", "#ffa07a", "#98fb98"]
+  const colorOptions = [
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+    "hsl(var(--primary))",
+    "hsl(var(--secondary))",
+    "hsl(var(--accent))",
+    "hsl(var(--muted))",
+    "hsl(var(--destructive))"
+  ]
 
   if (loading && myLists.length === 0) {
     return (

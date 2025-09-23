@@ -405,10 +405,10 @@ export default function CreatorsPage() {
   // Tier Badge Component
   function TierBadge({ tier, isExpired }: { tier: 'nano' | 'micro' | 'macro' | 'mega', isExpired?: boolean }) {
     const tierStyles = {
-      nano: "bg-background text-foreground border border-gray-300 dark:bg-gray-100 dark:text-foreground dark:border-border",
-      micro: "text-foreground border" + " " + "bg-[#d3ff02] border-[#d3ff02] dark:bg-[#d3ff02] dark:border-[#d3ff02] dark:text-foreground",
-      macro: "text-white border ring-2" + " " + "bg-[hsl(var(--primary))] border-[hsl(var(--primary))] ring-[hsl(var(--primary))]/30 dark:bg-[hsl(var(--primary))] dark:border-[hsl(var(--primary))] dark:ring-[hsl(var(--primary))]/30", 
-      mega: "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 border-2 border-yellow-500 ring-2 ring-yellow-400/60 animate-pulse [animation-duration:7s] dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-300 dark:border-yellow-400 dark:ring-yellow-300/60"
+      nano: "bg-muted text-muted-foreground border border-border dark:bg-muted dark:text-muted-foreground dark:border-border",
+      micro: "text-foreground border bg-primary border-primary dark:bg-primary dark:border-primary dark:text-primary-foreground",
+      macro: "text-primary-foreground border ring-2 bg-primary border-primary ring-primary/30 dark:bg-primary dark:border-primary dark:ring-primary/30", 
+      mega: "bg-gradient-to-r from-chart-4 via-chart-5 to-chart-1 text-primary-foreground border-2 border-primary ring-2 ring-primary/60 animate-pulse [animation-duration:7s] dark:from-chart-4 dark:via-chart-5 dark:to-chart-1 dark:border-primary dark:ring-primary/60"
     };
     const tierLabels = {
       nano: 'Nano',

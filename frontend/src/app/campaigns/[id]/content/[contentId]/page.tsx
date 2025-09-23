@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { useTheme } from "next-themes"
 import {
   ArrowLeft,
   Eye,
@@ -56,6 +57,7 @@ import {
 } from "@/components/ui/chart"
 
 export default function ContentInsightsPage() {
+  const { theme } = useTheme()
   const router = useRouter()
   const params = useParams()
 
@@ -99,7 +101,7 @@ export default function ContentInsightsPage() {
     id: 1,
     name: "Summer Fashion 2024",
     brandName: "Fashion Forward",
-    brandLogo: "/followinglogo.svg"
+    brandLogo: theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg"
   }
 
   // Performance over time data

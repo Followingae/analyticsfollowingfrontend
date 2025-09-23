@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { useTheme } from "next-themes"
 import {
   ArrowLeft,
   Plus,
@@ -89,6 +90,7 @@ import {
 export default function CampaignAnalyticsPage() {
   const router = useRouter()
   const params = useParams()
+  const { theme } = useTheme()
   
   // TODO: Replace with real backend data
   const [campaign, setCampaign] = useState<any>(null)
@@ -115,7 +117,7 @@ export default function CampaignAnalyticsPage() {
     objective: "Brand Awareness",
     description: "Promote summer collection with fashion influencers across Instagram and TikTok platforms.",
     brandName: "Fashion Forward",
-    brandLogo: "/followinglogo.svg"
+    brandLogo: theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg"
   }
 
   const mockAnalytics = {
@@ -261,9 +263,9 @@ export default function CampaignAnalyticsPage() {
   ]
 
   const contentTypeData = [
-    { type: "Posts", count: mockAnalytics.totalPosts, fill: "#8b5cf6" },
-    { type: "Stories", count: mockAnalytics.totalStories, fill: "#f59e0b" },
-    { type: "Reels", count: mockAnalytics.totalReels, fill: "#10b981" },
+    { type: "Posts", count: mockAnalytics.totalPosts, fill: "hsl(var(--chart-1))" },
+    { type: "Stories", count: mockAnalytics.totalStories, fill: "hsl(var(--chart-2))" },
+    { type: "Reels", count: mockAnalytics.totalReels, fill: "hsl(var(--chart-3))" },
   ]
 
   const totalContent = mockAnalytics.totalPosts + mockAnalytics.totalStories + mockAnalytics.totalReels
@@ -326,9 +328,9 @@ export default function CampaignAnalyticsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">Active</Badge>
+        return <Badge className="bg-primary/10 text-primary border-primary/20">Active</Badge>
       case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100">Pending</Badge>
+        return <Badge className="bg-secondary text-secondary-foreground">Pending</Badge>
       case "completed":
         return <Badge variant="secondary">Completed</Badge>
       default:
@@ -407,7 +409,7 @@ export default function CampaignAnalyticsPage() {
                       <Users className="h-4 w-4 mr-2" />
                       Manage Creators
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-600">
+                    <DropdownMenuItem className="text-destructive">
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Campaign
                     </DropdownMenuItem>
@@ -517,50 +519,50 @@ export default function CampaignAnalyticsPage() {
                           <AreaChart data={performanceData} margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
                             <defs>
                               <linearGradient id="reachGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                                <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1}/>
                               </linearGradient>
                               <linearGradient id="engagementGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1}/>
+                                <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.1}/>
                               </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" opacity={0.6} />
-                            <XAxis 
-                              dataKey="date" 
-                              tick={{ fill: '#64748b', fontSize: 12 }}
-                              axisLine={{ stroke: '#cbd5e1' }}
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.6} />
+                            <XAxis
+                              dataKey="date"
+                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                              axisLine={{ stroke: 'hsl(var(--border))' }}
                             />
-                            <YAxis 
-                              tick={{ fill: '#64748b', fontSize: 12 }}
-                              axisLine={{ stroke: '#cbd5e1' }}
+                            <YAxis
+                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                              axisLine={{ stroke: 'hsl(var(--border))' }}
                             />
                             <ChartTooltip 
                               content={<ChartTooltipContent />}
                               contentStyle={{
-                                backgroundColor: '#ffffff',
-                                border: '1px solid #e2e8f0',
+                                backgroundColor: 'hsl(var(--background))',
+                                border: '1px solid hsl(var(--border))',
                                 borderRadius: '8px',
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                boxShadow: 'var(--shadow-md)'
                               }}
                             />
-                            <Area 
-                              type="monotone" 
-                              dataKey="reach" 
-                              stroke="#3b82f6"
+                            <Area
+                              type="monotone"
+                              dataKey="reach"
+                              stroke="hsl(var(--chart-1))"
                               strokeWidth={3}
                               fill="url(#reachGradient)"
-                              dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
-                              activeDot={{ r: 6, stroke: "#3b82f6", strokeWidth: 2, fill: "#ffffff" }}
+                              dot={{ fill: "hsl(var(--chart-1))", strokeWidth: 2, r: 4 }}
+                              activeDot={{ r: 6, stroke: "hsl(var(--chart-1))", strokeWidth: 2, fill: "hsl(var(--background))" }}
                             />
-                            <Area 
-                              type="monotone" 
-                              dataKey="engagement" 
-                              stroke="#f59e0b"
+                            <Area
+                              type="monotone"
+                              dataKey="engagement"
+                              stroke="hsl(var(--chart-2))"
                               strokeWidth={3}
                               fill="url(#engagementGradient)"
-                              dot={{ fill: "#f59e0b", strokeWidth: 2, r: 4 }}
-                              activeDot={{ r: 6, stroke: "#f59e0b", strokeWidth: 2, fill: "#ffffff" }}
+                              dot={{ fill: "hsl(var(--chart-2))", strokeWidth: 2, r: 4 }}
+                              activeDot={{ r: 6, stroke: "hsl(var(--chart-2))", strokeWidth: 2, fill: "hsl(var(--background))" }}
                             />
                           </AreaChart>
                         </ResponsiveContainer>
@@ -594,7 +596,7 @@ export default function CampaignAnalyticsPage() {
                                   outerRadius={90}
                                   paddingAngle={2}
                                   dataKey="count"
-                                  stroke="#ffffff"
+                                  stroke="hsl(var(--background))"
                                   strokeWidth={3}
                                   filter="url(#shadow)"
                                 >
@@ -612,10 +614,10 @@ export default function CampaignAnalyticsPage() {
                                 <ChartTooltip 
                                   content={<ChartTooltipContent />}
                                   contentStyle={{
-                                    backgroundColor: '#ffffff',
-                                    border: '1px solid #e2e8f0',
+                                    backgroundColor: 'hsl(var(--background))',
+                                    border: '1px solid hsl(var(--border))',
                                     borderRadius: '8px',
-                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                    boxShadow: 'var(--shadow-lg)'
                                   }}
                                 />
                               </PieChart>
@@ -670,34 +672,34 @@ export default function CampaignAnalyticsPage() {
                           <BarChart data={engagementData} margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
                             <defs>
                               <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#14b8a6" stopOpacity={0.6}/>
+                                <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="hsl(var(--chart-4))" stopOpacity={0.6}/>
                               </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#d1fae5" opacity={0.6} />
-                            <XAxis 
-                              dataKey="metric" 
-                              tick={{ fill: '#64748b', fontSize: 12 }}
-                              axisLine={{ stroke: '#a7f3d0' }}
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.6} />
+                            <XAxis
+                              dataKey="metric"
+                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                              axisLine={{ stroke: 'hsl(var(--border))' }}
                             />
-                            <YAxis 
-                              tick={{ fill: '#64748b', fontSize: 12 }}
-                              axisLine={{ stroke: '#a7f3d0' }}
+                            <YAxis
+                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                              axisLine={{ stroke: 'hsl(var(--border))' }}
                             />
                             <ChartTooltip 
                               content={<ChartTooltipContent />}
                               contentStyle={{
-                                backgroundColor: '#ffffff',
-                                border: '1px solid #e2e8f0',
+                                backgroundColor: 'hsl(var(--background))',
+                                border: '1px solid hsl(var(--border))',
                                 borderRadius: '8px',
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                boxShadow: 'var(--shadow-md)'
                               }}
                             />
                             <Bar 
                               dataKey="value" 
                               fill="url(#barGradient)" 
                               radius={[8, 8, 0, 0]}
-                              stroke="#10b981"
+                              stroke="hsl(var(--chart-3))"
                               strokeWidth={1}
                             />
                           </BarChart>
@@ -718,37 +720,37 @@ export default function CampaignAnalyticsPage() {
                           <BarChart data={creatorPerformanceData} layout="horizontal" margin={{ top: 20, right: 30, left: 50, bottom: 20 }}>
                             <defs>
                               <linearGradient id="creatorGradient" x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="5%" stopColor="#f97316" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.6}/>
+                                <stop offset="5%" stopColor="hsl(var(--chart-4))" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="hsl(var(--chart-5))" stopOpacity={0.6}/>
                               </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" opacity={0.6} />
-                            <XAxis 
-                              type="number" 
-                              tick={{ fill: '#64748b', fontSize: 12 }}
-                              axisLine={{ stroke: '#fdba74' }}
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.6} />
+                            <XAxis
+                              type="number"
+                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                              axisLine={{ stroke: 'hsl(var(--border))' }}
                             />
-                            <YAxis 
-                              dataKey="name" 
-                              type="category" 
+                            <YAxis
+                              dataKey="name"
+                              type="category"
                               width={60}
-                              tick={{ fill: '#64748b', fontSize: 12 }}
-                              axisLine={{ stroke: '#fdba74' }}
+                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                              axisLine={{ stroke: 'hsl(var(--border))' }}
                             />
                             <ChartTooltip 
                               content={<ChartTooltipContent />}
                               contentStyle={{
-                                backgroundColor: '#ffffff',
-                                border: '1px solid #e2e8f0',
+                                backgroundColor: 'hsl(var(--background))',
+                                border: '1px solid hsl(var(--border))',
                                 borderRadius: '8px',
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                boxShadow: 'var(--shadow-md)'
                               }}
                             />
                             <Bar 
                               dataKey="reach" 
                               fill="url(#creatorGradient)" 
                               radius={[0, 8, 8, 0]}
-                              stroke="#f97316"
+                              stroke="hsl(var(--chart-4))"
                               strokeWidth={1}
                             />
                           </BarChart>

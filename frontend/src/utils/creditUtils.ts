@@ -43,7 +43,7 @@ export function getCreditBalanceStatus(balance: CreditBalance): {
   if (balance.current_balance === 0) {
     return {
       status: 'empty',
-      color: 'text-red-600',
+      color: 'text-destructive',
       message: 'No credits remaining'
     }
   }
@@ -51,7 +51,7 @@ export function getCreditBalanceStatus(balance: CreditBalance): {
   if (percentage <= 10) {
     return {
       status: 'critical',
-      color: 'text-red-600',
+      color: 'text-destructive',
       message: 'Critical - credits running low'
     }
   }
@@ -59,14 +59,14 @@ export function getCreditBalanceStatus(balance: CreditBalance): {
   if (percentage <= 25) {
     return {
       status: 'low',
-      color: 'text-orange-600',
+      color: 'text-chart-4',
       message: 'Low credits - consider purchasing more'
     }
   }
 
   return {
     status: 'healthy',
-    color: 'text-green-600',
+    color: 'text-chart-3',
     message: 'Sufficient credits available'
   }
 }
@@ -217,25 +217,25 @@ export function getWalletStatusInfo(status: CreditBalance['wallet_status']): {
     case 'active':
       return {
         label: 'Active',
-        color: 'text-green-600',
+        color: 'text-chart-3',
         canUse: true
       }
     case 'locked':
       return {
         label: 'Locked',
-        color: 'text-red-600',
+        color: 'text-destructive',
         canUse: false
       }
     case 'suspended':
       return {
         label: 'Suspended',
-        color: 'text-orange-600',
+        color: 'text-chart-4',
         canUse: false
       }
     default:
       return {
         label: 'Unknown',
-        color: 'text-gray-600',
+        color: 'text-muted-foreground',
         canUse: false
       }
   }
