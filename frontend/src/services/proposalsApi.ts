@@ -260,21 +260,21 @@ export class SuperadminProposalsApiService {
     negotiable?: boolean
     minimum_campaign_value_usd_cents?: number
   }): Promise<ApiResponse<InfluencerPricing>> {
-    return this.makeRequest('/api/superadmin/proposals/pricing/influencers', {
+    return this.makeRequest('/api/v1/superadmin/proposals/pricing/influencers', {
       method: 'POST',
       body: JSON.stringify(pricingData)
     })
   }
 
   async updateInfluencerPricing(pricingId: string, updates: Partial<InfluencerPricing>): Promise<ApiResponse<InfluencerPricing>> {
-    return this.makeRequest(`/api/superadmin/proposals/pricing/influencers/${pricingId}`, {
+    return this.makeRequest(`/api/v1/superadmin/proposals/pricing/influencers/${pricingId}`, {
       method: 'PUT',
       body: JSON.stringify(updates)
     })
   }
 
   async getInfluencerPricing(profileId: string): Promise<ApiResponse<InfluencerPricing>> {
-    return this.makeRequest(`/api/superadmin/proposals/pricing/influencers/${profileId}`)
+    return this.makeRequest(`/api/v1/superadmin/proposals/pricing/influencers/${profileId}`)
   }
 
   async calculateInfluencerCost(profileId: string, deliverables: Deliverable[]): Promise<ApiResponse<{
@@ -282,7 +282,7 @@ export class SuperadminProposalsApiService {
     cost_breakdown: Record<string, number>
     pricing_details: InfluencerPricing
   }>> {
-    return this.makeRequest(`/api/superadmin/proposals/pricing/calculate/${profileId}`, {
+    return this.makeRequest(`/api/v1/superadmin/proposals/pricing/calculate/${profileId}`, {
       method: 'POST',
       body: JSON.stringify({ deliverables })
     })
@@ -305,7 +305,7 @@ export class SuperadminProposalsApiService {
     terms_and_conditions: string
     expires_at?: string
   }): Promise<ApiResponse<InviteCampaign>> {
-    return this.makeRequest('/api/superadmin/proposals/invite-campaigns', {
+    return this.makeRequest('/api/v1/superadmin/proposals/invite-campaigns', {
       method: 'POST',
       body: JSON.stringify(campaignData)
     })
@@ -316,7 +316,7 @@ export class SuperadminProposalsApiService {
     invite_url: string
     published_at: string
   }>> {
-    return this.makeRequest(`/api/superadmin/proposals/invite-campaigns/${campaignId}/publish`, {
+    return this.makeRequest(`/api/v1/superadmin/proposals/invite-campaigns/${campaignId}/publish`, {
       method: 'POST'
     })
   }
@@ -339,7 +339,7 @@ export class SuperadminProposalsApiService {
       })
     }
     
-    return this.makeRequest(`/api/superadmin/proposals/invite-campaigns?${params.toString()}`)
+    return this.makeRequest(`/api/v1/superadmin/proposals/invite-campaigns?${params.toString()}`)
   }
 
   async getCampaignApplications(campaignId: string): Promise<ApiResponse<{
@@ -349,7 +349,7 @@ export class SuperadminProposalsApiService {
     approved_count: number
     rejected_count: number
   }>> {
-    return this.makeRequest(`/api/superadmin/proposals/invite-campaigns/${campaignId}/applications`)
+    return this.makeRequest(`/api/v1/superadmin/proposals/invite-campaigns/${campaignId}/applications`)
   }
 
   async approveApplication(applicationId: string, approvalData?: {
@@ -361,7 +361,7 @@ export class SuperadminProposalsApiService {
     profile_created?: boolean
     profile_id?: string
   }>> {
-    return this.makeRequest(`/api/superadmin/proposals/applications/${applicationId}/approve`, {
+    return this.makeRequest(`/api/v1/superadmin/proposals/applications/${applicationId}/approve`, {
       method: 'POST',
       body: JSON.stringify(approvalData || {})
     })
@@ -374,7 +374,7 @@ export class SuperadminProposalsApiService {
     application_id: string
     status: string
   }>> {
-    return this.makeRequest(`/api/superadmin/proposals/applications/${applicationId}/reject`, {
+    return this.makeRequest(`/api/v1/superadmin/proposals/applications/${applicationId}/reject`, {
       method: 'POST',
       body: JSON.stringify(rejectionData)
     })
@@ -402,14 +402,14 @@ export class SuperadminProposalsApiService {
     priority_level?: 'high' | 'medium' | 'low'
     admin_notes?: string
   }): Promise<ApiResponse<BrandProposal>> {
-    return this.makeRequest('/api/superadmin/proposals/brand-proposals', {
+    return this.makeRequest('/api/v1/superadmin/proposals/brand-proposals', {
       method: 'POST',
       body: JSON.stringify(proposalData)
     })
   }
 
   async updateBrandProposal(proposalId: string, updates: Partial<BrandProposal>): Promise<ApiResponse<BrandProposal>> {
-    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}`, {
+    return this.makeRequest(`/api/v1/superadmin/proposals/brand-proposals/${proposalId}`, {
       method: 'PUT',
       body: JSON.stringify(updates)
     })
@@ -435,7 +435,7 @@ export class SuperadminProposalsApiService {
     total_budget_updated: number
     influencers: ProposalInfluencer[]
   }>> {
-    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/influencers`, {
+    return this.makeRequest(`/api/v1/superadmin/proposals/brand-proposals/${proposalId}/influencers`, {
       method: 'POST',
       body: JSON.stringify(influencerData)
     })
@@ -451,7 +451,7 @@ export class SuperadminProposalsApiService {
     sent_at: string
     response_due_date?: string
   }>> {
-    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/send`, {
+    return this.makeRequest(`/api/v1/superadmin/proposals/brand-proposals/${proposalId}/send`, {
       method: 'POST',
       body: JSON.stringify(sendData || {})
     })
@@ -476,22 +476,22 @@ export class SuperadminProposalsApiService {
       })
     }
     
-    return this.makeRequest(`/api/superadmin/proposals/brand-proposals?${params.toString()}`)
+    return this.makeRequest(`/api/v1/superadmin/proposals/brand-proposals?${params.toString()}`)
   }
 
   async getProposalDetails(proposalId: string): Promise<ApiResponse<BrandProposal>> {
-    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}`)
+    return this.makeRequest(`/api/v1/superadmin/proposals/brand-proposals/${proposalId}`)
   }
 
   async getProposalInfluencers(proposalId: string): Promise<ApiResponse<{
     influencers: ProposalInfluencer[]
     total_budget_usd_cents: number
   }>> {
-    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/influencers`)
+    return this.makeRequest(`/api/v1/superadmin/proposals/brand-proposals/${proposalId}/influencers`)
   }
 
   async getDashboard(): Promise<ApiResponse<SuperadminDashboard>> {
-    return this.makeRequest('/api/superadmin/proposals/dashboard')
+    return this.makeRequest('/api/v1/superadmin/proposals/dashboard')
   }
 
   // ==========================================================================
@@ -504,7 +504,7 @@ export class SuperadminProposalsApiService {
     message_type?: 'message' | 'feedback' | 'change_request' | 'approval' | 'rejection'
     attachments?: string[]
   }): Promise<ApiResponse<ProposalCommunication>> {
-    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/communications`, {
+    return this.makeRequest(`/api/v1/superadmin/proposals/brand-proposals/${proposalId}/communications`, {
       method: 'POST',
       body: JSON.stringify(messageData)
     })
@@ -514,7 +514,7 @@ export class SuperadminProposalsApiService {
     communications: ProposalCommunication[]
     total_count: number
   }>> {
-    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/communications`)
+    return this.makeRequest(`/api/v1/superadmin/proposals/brand-proposals/${proposalId}/communications`)
   }
 }
 
@@ -585,11 +585,11 @@ export class BrandProposalsApiService {
       })
     }
     
-    return this.makeRequest(`/api/brand/proposals?${params.toString()}`)
+    return this.makeRequest(`/api/v1/brand/proposals?${params.toString()}`)
   }
 
   async getProposalDetails(proposalId: string): Promise<ApiResponse<BrandProposal>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}`)
+    return this.makeRequest(`/api/v1/brand/proposals/${proposalId}`)
   }
 
   async getProposalInfluencers(proposalId: string): Promise<ApiResponse<{
@@ -602,7 +602,7 @@ export class BrandProposalsApiService {
     }>
     total_influencers: number
   }>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/influencers`)
+    return this.makeRequest(`/api/v1/brand/proposals/${proposalId}/influencers`)
   }
 
   async getProposalStatus(proposalId: string): Promise<ApiResponse<{
@@ -613,7 +613,7 @@ export class BrandProposalsApiService {
     responded_at?: string
     brand_response?: string
   }>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/status`)
+    return this.makeRequest(`/api/v1/brand/proposals/${proposalId}/status`)
   }
 
   async submitResponse(proposalId: string, responseData: {
@@ -626,14 +626,14 @@ export class BrandProposalsApiService {
     responded_at: string
     status_updated: boolean
   }>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/respond`, {
+    return this.makeRequest(`/api/v1/brand/proposals/${proposalId}/respond`, {
       method: 'POST',
       body: JSON.stringify(responseData)
     })
   }
 
   async getDashboard(): Promise<ApiResponse<BrandDashboard>> {
-    return this.makeRequest('/api/brand/proposals/summary')
+    return this.makeRequest('/api/v1/brand/proposals/summary')
   }
 
   // ==========================================================================
@@ -645,7 +645,7 @@ export class BrandProposalsApiService {
     message_type?: 'message' | 'feedback' | 'change_request'
     attachments?: string[]
   }): Promise<ApiResponse<ProposalCommunication>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/communications`, {
+    return this.makeRequest(`/api/v1/brand/proposals/${proposalId}/communications`, {
       method: 'POST',
       body: JSON.stringify(messageData)
     })
@@ -655,13 +655,13 @@ export class BrandProposalsApiService {
     communications: ProposalCommunication[]
     total_count: number
   }>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/communications`)
+    return this.makeRequest(`/api/v1/brand/proposals/${proposalId}/communications`)
   }
 
   async markMessagesAsRead(proposalId: string, messageIds: string[]): Promise<ApiResponse<{
     messages_marked: number
   }>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/communications/read`, {
+    return this.makeRequest(`/api/v1/brand/proposals/${proposalId}/communications/read`, {
       method: 'POST',
       body: JSON.stringify({ message_ids: messageIds })
     })
