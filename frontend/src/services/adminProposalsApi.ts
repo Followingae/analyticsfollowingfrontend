@@ -309,14 +309,14 @@ export class AdminProposalsApiService {
     admin_notes?: string
     tags?: string[]
   }): Promise<ApiResponse<AdminProposal>> {
-    return this.makeRequest('/api/v1/admin/proposals', {
+    return this.makeRequest('/api/admin/proposals', {
       method: 'POST',
       body: JSON.stringify(proposalData)
     })
   }
 
   async updateProposal(proposalId: string, updates: Partial<AdminProposal>): Promise<ApiResponse<AdminProposal>> {
-    return this.makeRequest(`/api/v1/admin/proposals/${proposalId}`, {
+    return this.makeRequest(`/api/admin/proposals/${proposalId}`, {
       method: 'PUT',
       body: JSON.stringify(updates)
     })
@@ -332,7 +332,7 @@ export class AdminProposalsApiService {
     sent_at: string
     message: string
   }>> {
-    return this.makeRequest(`/api/v1/admin/proposals/${proposalId}/send`, {
+    return this.makeRequest(`/api/admin/proposals/${proposalId}/send`, {
       method: 'POST',
       body: JSON.stringify(options || {})
     })
@@ -362,19 +362,19 @@ export class AdminProposalsApiService {
       })
     }
     
-    return this.makeRequest(`/api/v1/admin/proposals?${params.toString()}`)
+    return this.makeRequest(`/api/admin/proposals?${params.toString()}`)
   }
 
   async getProposalDetails(proposalId: string): Promise<ApiResponse<AdminProposal>> {
-    return this.makeRequest(`/api/v1/admin/proposals/${proposalId}`)
+    return this.makeRequest(`/api/admin/proposals/${proposalId}`)
   }
 
   async getProposalMetrics(proposalId: string): Promise<ApiResponse<ProposalMetrics>> {
-    return this.makeRequest(`/api/v1/admin/proposals/${proposalId}/metrics`)
+    return this.makeRequest(`/api/admin/proposals/${proposalId}/metrics`)
   }
 
   async getPipelineSummary(): Promise<ApiResponse<PipelineSummary>> {
-    return this.makeRequest('/api/v1/admin/proposals/pipeline-summary')
+    return this.makeRequest('/api/admin/proposals/pipeline-summary')
   }
 
   // Communications
@@ -391,7 +391,7 @@ export class AdminProposalsApiService {
     follow_up_date?: string
     brand_response_required?: boolean
   }): Promise<ApiResponse<Communication>> {
-    return this.makeRequest(`/api/v1/admin/proposals/${proposalId}/communications`, {
+    return this.makeRequest(`/api/admin/proposals/${proposalId}/communications`, {
       method: 'POST',
       body: JSON.stringify(communication)
     })
@@ -401,7 +401,7 @@ export class AdminProposalsApiService {
     communications: Communication[]
     total_count: number
   }>> {
-    return this.makeRequest(`/api/v1/proposals/${proposalId}/communications`)
+    return this.makeRequest(`/api/proposals/${proposalId}/communications`)
   }
 
   // Templates
@@ -449,7 +449,7 @@ export class AdminProposalsApiService {
     proposal_title: string
     customizations?: Record<string, any>
   }): Promise<ApiResponse<AdminProposal>> {
-    return this.makeRequest(`/api/v1/admin/proposals/from-template/${templateId}`, {
+    return this.makeRequest(`/api/admin/proposals/from-template/${templateId}`, {
       method: 'POST',
       body: JSON.stringify(proposalData)
     })
@@ -503,11 +503,11 @@ export class BrandProposalsApiService {
     proposals: BrandProposal[]
     total_count: number
   }>> {
-    return this.makeRequest('/api/v1/brand/proposals')
+    return this.makeRequest('/api/brand/proposals')
   }
 
   async getProposalDetails(proposalId: string): Promise<ApiResponse<BrandProposal>> {
-    return this.makeRequest(`/api/v1/brand/proposals/${proposalId}`)
+    return this.makeRequest(`/api/brand/proposals/${proposalId}`)
   }
 
   async submitResponse(proposalId: string, response: {
@@ -521,7 +521,7 @@ export class BrandProposalsApiService {
     responded_at: string
     message: string
   }>> {
-    return this.makeRequest(`/api/v1/brand/proposals/${proposalId}/respond`, {
+    return this.makeRequest(`/api/brand/proposals/${proposalId}/respond`, {
       method: 'POST',
       body: JSON.stringify(response)
     })
