@@ -1,6 +1,6 @@
 // stores/userStore.ts
 import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
+import { devtools, persist, createJSONStorage } from 'zustand/middleware'
 
 // Types based on the new dashboard API response structure
 export interface User {
@@ -91,8 +91,9 @@ interface UserStore {
 }
 
 export const useUserStore = create<UserStore>()(
-  devtools(
-    (set, get) => ({
+  persist(
+    devtools(
+      (set, get) => ({
       // Initial state
       user: null,
       subscription: null,
@@ -249,9 +250,39 @@ export const useUserStore = create<UserStore>()(
       // Utility actions
       setLoading: (loading: boolean) => set({ isLoading: loading }),
       setError: (error: string | null) => set({ error })
-    }),
+      }),
+      {
+        name: 'user-store', // Name for devtools
+      }
+    ),
     {
-      name: 'user-store', // Name for devtools
+      name: 'user-store-persist', // Unique name for persistence
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        user: state.user,
+        subscription: state.subscription,
+        team: state.team,
+        stats: state.stats,
+        isAuthenticated: state.isAuthenticated,
+        lastUpdated: state.lastUpdated,
+        // Don't persist loading states or errors
+      }),
+      version: 1, // Increment to invalidate old cache
+      migrate: (persistedState: any, version: number) => {
+        if (version === 0) {
+          // Migrate from version 0 to 1 if needed
+          return persistedState
+        }
+        return persistedState
+      },
+      // Rehydrate state on app start
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Reset loading state after rehydration
+          state.isLoading = false
+          state.error = null
+        }
+      },
     }
   )
 )

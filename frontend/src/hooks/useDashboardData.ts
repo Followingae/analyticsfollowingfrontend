@@ -1,9 +1,40 @@
 // hooks/useDashboardData.ts
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
+import { useEffect } from 'react'
 
 export const useDashboardData = () => {
   const { user } = useEnhancedAuth()
+  const queryClient = useQueryClient()
+
+  // Prefetch likely-needed data when component mounts
+  useEffect(() => {
+    if (user?.id) {
+      // Prefetch system stats that might be needed
+      queryClient.prefetchQuery({
+        queryKey: ['system-stats'],
+        queryFn: async () => {
+          const { API_CONFIG, ENDPOINTS } = await import('@/config/api')
+          const { fetchWithAuth } = await import('@/utils/apiInterceptor')
+          const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.system.stats}`)
+          return response.ok ? response.json() : null
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      })
+
+      // Prefetch unlocked profiles that might be accessed
+      queryClient.prefetchQuery({
+        queryKey: ['unlocked-profiles', user.id],
+        queryFn: async () => {
+          const { API_CONFIG, ENDPOINTS } = await import('@/config/api')
+          const { fetchWithAuth } = await import('@/utils/apiInterceptor')
+          const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.auth.unlockedProfiles}`)
+          return response.ok ? response.json() : { profiles: [] }
+        },
+        staleTime: 2 * 60 * 1000, // 2 minutes
+      })
+    }
+  }, [user?.id, queryClient])
 
   // Teams overview query
   const teamsQuery = useQuery({
@@ -72,6 +103,8 @@ export const useDashboardData = () => {
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch on focus
+    refetchOnMount: 'stale', // Only refetch if stale
     retry: (failureCount, error) => {
       // Don't retry auth errors
       if (error instanceof Error && 
@@ -139,6 +172,8 @@ export const useDashboardData = () => {
     enabled: !!user,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch on focus
+    refetchOnMount: 'stale', // Only refetch if stale
     retry: (failureCount, error) => {
       // Don't retry auth errors
       if (error instanceof Error && 
@@ -205,6 +240,8 @@ export const useDashboardData = () => {
     enabled: !!user,
     staleTime: 3 * 60 * 1000, // 3 minutes
     gcTime: 6 * 60 * 1000, // 6 minutes
+    refetchOnWindowFocus: false, // Don't refetch on focus
+    refetchOnMount: 'stale', // Only refetch if stale
     retry: (failureCount, error) => {
       // Don't retry auth errors
       if (error instanceof Error && 

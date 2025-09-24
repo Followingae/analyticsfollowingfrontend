@@ -21,22 +21,63 @@ export const useCreatorSearch = (options?: UseCreatorSearchOptions) => {
       
       return response.json()
     },
+    onMutate: async (username) => {
+      // Cancel outgoing queries to prevent overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['profile', username] })
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(['profile', username])
+
+      // Optimistically update with loading state
+      queryClient.setQueryData(['profile', username], (old: any) => ({
+        ...old,
+        isLoading: true,
+        lastSearched: new Date().toISOString()
+      }))
+
+      return { previousData, username }
+    },
     onSuccess: (data, username) => {
-      // Cache the profile data for GET requests
+      // Update with real data
       queryClient.setQueryData(
-        ['profile', username], 
-        data.profile
+        ['profile', username],
+        {
+          ...data.profile,
+          isLoading: false,
+          lastSearched: new Date().toISOString(),
+          isCached: false
+        }
       )
-      
-      // Cache CDN media separately if profile has ID
+
+      // Prefetch related AI analysis
       if (data.profile && data.success) {
-        queryClient.invalidateQueries({ 
-          queryKey: ['cdn-media', data.profile.username] 
+        queryClient.prefetchQuery({
+          queryKey: ['profile-ai-analysis', username],
+          queryFn: async () => {
+            const response = await api.get(`/instagram/profile/${username}/ai-status`)
+            return response.ok ? response.json() : null
+          },
+          staleTime: 5 * 60 * 1000,
+        })
+
+        // Invalidate and refetch CDN media
+        queryClient.invalidateQueries({
+          queryKey: ['cdn-media', data.profile.username]
         })
       }
-      
+
       options?.onSuccess?.(data)
     },
-    onError: options?.onError
+    onError: (error, username, context) => {
+      // Revert optimistic update on error
+      if (context?.previousData) {
+        queryClient.setQueryData(['profile', username], context.previousData)
+      }
+      options?.onError?.(error as Error)
+    },
+    // Optimistic updates with faster perceived performance
+    meta: {
+      optimisticUpdate: true
+    }
   })
 }

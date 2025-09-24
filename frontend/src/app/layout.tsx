@@ -10,6 +10,7 @@ import { EnhancedAuthProvider } from "@/contexts/EnhancedAuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { UserStoreProvider } from "@/components/providers/UserStoreProvider";
+import { ServiceWorkerProvider } from "@/components/ServiceWorkerProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -53,8 +54,10 @@ export default function RootLayout({
               <EnhancedAuthProvider>
                 <UserStoreProvider>
                   <NotificationProvider>
-                    {children}
-                    <Toaster />
+                    <ServiceWorkerProvider>
+                      {children}
+                      <Toaster />
+                    </ServiceWorkerProvider>
                   </NotificationProvider>
                 </UserStoreProvider>
               </EnhancedAuthProvider>
