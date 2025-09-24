@@ -59,6 +59,7 @@ import {
 } from '@/components/ui/tabs'
 import { BrandProposalDetailsDialog } from './BrandProposalDetailsDialog'
 import { ProposalResponseDialog } from './ProposalResponseDialog'
+import { FeatureLockedCard } from '../FeatureLockedCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,6 +69,8 @@ export function BrandProposalsDashboard() {
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isFeatureLocked, setIsFeatureLocked] = useState(false)
+  const [lockedFeature, setLockedFeature] = useState<string | null>(null)
   const [currentTab, setCurrentTab] = useState('overview')
   
   // Dialogs
@@ -83,22 +86,32 @@ export function BrandProposalsDashboard() {
   const loadDashboardData = async () => {
     setLoading(true)
     setError(null)
-    
+    setIsFeatureLocked(false)
+
     try {
       const [dashboardResult, proposalsResult] = await Promise.all([
         brandProposalsApi.getDashboard(),
         brandProposalsApi.getAssignedProposals({ limit: 50 })
       ])
 
+      // Check for feature lock in either response
+      if (dashboardResult.isFeatureLocked || proposalsResult.isFeatureLocked) {
+        setIsFeatureLocked(true)
+        setLockedFeature(dashboardResult.lockedFeature || proposalsResult.lockedFeature || 'proposals')
+        return
+      }
+
       if (dashboardResult.success && dashboardResult.data) {
         setDashboardData(dashboardResult.data)
         setProposals(dashboardResult.data.assigned_proposals || [])
-      } else {
+      } else if (!dashboardResult.isFeatureLocked) {
         throw new Error(dashboardResult.error || 'Failed to load dashboard')
       }
 
       if (proposalsResult.success && proposalsResult.data) {
         setProposals(proposalsResult.data.proposals || [])
+      } else if (!proposalsResult.isFeatureLocked) {
+        console.warn('Failed to load proposals list:', proposalsResult.error)
       }
 
     } catch (error) {
@@ -209,6 +222,32 @@ export function BrandProposalsDashboard() {
               <p className="text-muted-foreground">Loading proposals...</p>
             </div>
           </div>
+        </SidebarInset>
+      </SidebarProvider>
+    )
+  }
+
+  // Show feature locked UI if proposals are locked
+  if (isFeatureLocked) {
+    return (
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 66)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          <SiteHeader />
+          <FeatureLockedCard
+            feature={lockedFeature || 'proposals'}
+            onContactSupport={() => {
+              // Track feature lock interaction
+              console.log('User requested agency access for proposals')
+            }}
+          />
         </SidebarInset>
       </SidebarProvider>
     )

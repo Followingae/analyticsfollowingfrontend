@@ -202,6 +202,9 @@ interface ApiResponse<T> {
   data?: T
   error?: string
   message?: string
+  isFeatureLocked?: boolean
+  lockedFeature?: string
+  statusCode?: number
 }
 
 export class SuperadminProposalsApiService {
@@ -545,9 +548,30 @@ export class BrandProposalsApiService {
 
       if (!response.ok) {
         const errorText = await response.text()
+
+        // Handle 402 Payment Required (Feature Locked)
+        if (response.status === 402) {
+          const lockedFeature = response.headers.get('X-Feature-Locked')
+          let errorData
+          try {
+            errorData = JSON.parse(errorText)
+          } catch {
+            errorData = { detail: errorText }
+          }
+
+          return {
+            success: false,
+            error: errorData.detail || 'Feature is locked',
+            isFeatureLocked: true,
+            lockedFeature: lockedFeature || 'unknown',
+            statusCode: 402
+          }
+        }
+
         return {
           success: false,
-          error: errorText || `Request failed with status ${response.status}`
+          error: errorText || `Request failed with status ${response.status}`,
+          statusCode: response.status
         }
       }
 
