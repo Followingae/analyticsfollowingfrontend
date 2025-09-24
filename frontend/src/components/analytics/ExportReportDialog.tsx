@@ -58,42 +58,42 @@ export function ExportReportDialog({ username, trigger }: ExportReportDialogProp
       id: 'ai_intelligence',
       name: 'AI Intelligence Analysis',
       description: '10-model comprehensive AI insights and behavioral patterns',
-      icon: <Brain className="h-4 w-4 text-purple-600" />,
+      icon: <Brain className="h-4 w-4 text-primary" />,
       enabled: true
     },
     {
       id: 'performance_analytics',
       name: 'Performance Analytics',
       description: 'Content performance metrics and AI recommendations',
-      icon: <BarChart3 className="h-4 w-4 text-blue-600" />,
+      icon: <BarChart3 className="h-4 w-4 text-primary" />,
       enabled: true
     },
     {
       id: 'post_analytics',
       name: 'Individual Post Analytics',
       description: 'Per-post AI analysis with sentiment and categorization',
-      icon: <MessageSquare className="h-4 w-4 text-green-600" />,
+      icon: <MessageSquare className="h-4 w-4 text-green-600 dark:text-green-500" />,
       enabled: true
     },
     {
       id: 'safety_assessment',
       name: 'Safety & Risk Assessment',
       description: 'Brand safety scores and compliance analysis',
-      icon: <Shield className="h-4 w-4 text-red-600" />,
+      icon: <Shield className="h-4 w-4 text-destructive" />,
       enabled: true
     },
     {
       id: 'audience_insights',
       name: 'Audience Intelligence',
       description: 'Demographic predictions and engagement quality',
-      icon: <Users className="h-4 w-4 text-orange-600" />,
+      icon: <Users className="h-4 w-4 text-orange-600 dark:text-orange-500" />,
       enabled: true
     },
     {
       id: 'competitive_analysis',
       name: 'Competitive Intelligence',
       description: 'Market positioning and benchmarking data',
-      icon: <Target className="h-4 w-4 text-teal-600" />,
+      icon: <Target className="h-4 w-4 text-teal-600 dark:text-teal-500" />,
       enabled: false
     }
   ])

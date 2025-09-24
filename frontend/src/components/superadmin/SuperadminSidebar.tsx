@@ -104,22 +104,22 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
     const systemManagement = [
       {
         title: "Dashboard",
-        url: "/admin",
+        url: "/superadmin",
         icon: IconDashboard,
       },
       {
         title: "User Management",
-        url: "/admin/users",
+        url: "/superadmin/users",
         icon: IconUsers,
       },
       {
         title: "Security & System Health",
-        url: "/admin/security",
+        url: "/superadmin/security",
         icon: IconShield,
       },
       {
         title: "Analytics & Reports",
-        url: "/admin/analytics",
+        url: "/superadmin/analytics",
         icon: IconChartBar,
       }
     ]
@@ -127,17 +127,17 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
     const platformOversight = [
       {
         title: "Influencer Database",
-        url: "/admin/influencers",
+        url: "/superadmin/influencers",
         icon: IconDatabase,
       },
       {
         title: "Proposal Management",
-        url: "/admin/proposals",
+        url: "/superadmin/proposals",
         icon: IconFileText,
       },
       {
         title: "Credits & Billing",
-        url: "/admin/credits",
+        url: "/superadmin/credits",
         icon: IconCreditCard,
       }
     ]
@@ -145,12 +145,12 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
     const communications = [
       {
         title: "System Notifications",
-        url: "/admin/notifications",
+        url: "/superadmin/notifications",
         icon: IconBell,
       },
       {
         title: "Activity Logs",
-        url: "/admin/logs",
+        url: "/superadmin/logs",
         icon: IconActivity,
       }
     ]
@@ -158,12 +158,12 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
     const administration = [
       {
         title: "Platform Settings",
-        url: "/admin/settings",
+        url: "/superadmin/settings",
         icon: IconSettings,
       },
       {
         title: "Access Control",
-        url: "/admin/access",
+        url: "/superadmin/access",
         icon: IconLock,
       }
     ]

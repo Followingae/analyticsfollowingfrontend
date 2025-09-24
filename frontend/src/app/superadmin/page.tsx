@@ -102,6 +102,7 @@ export default function SuperadminPage() {
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null)
   const [platformAnalytics, setPlatformAnalytics] = useState<PlatformAnalytics | null>(null)
+  const [comprehensiveDashboard, setComprehensiveDashboard] = useState<any | null>(null)
   const [users, setUsers] = useState<UserManagement[]>([])
   const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([])
   const [suspiciousActivities, setSuspiciousActivities] = useState<SuspiciousActivity[]>([])
@@ -128,34 +129,63 @@ export default function SuperadminPage() {
 
   const router = useRouter()
 
-  // Load dashboard data
+  // Load dashboard data - USING REAL COMPREHENSIVE API ENDPOINT
   const loadDashboardData = async () => {
     setLoading(true)
     setError(null)
     try {
-      const [statsResult, healthResult, analyticsResult, dashboardResult] = await Promise.all([
-        superadminApiService.getSystemStats(),
-        superadminApiService.getSystemHealth(),
-        superadminApiService.getPlatformAnalytics(),
-        superadminApiService.getDashboard()
-      ])
+      console.log('🚀 STARTING SUPERADMIN DASHBOARD API CALL')
 
-      if (statsResult.success && statsResult.data) {
-        setSystemStats(statsResult.data)
+      // Check authentication status first
+      const token = localStorage.getItem('auth_tokens')
+      console.log('🔑 Auth tokens from localStorage:', token)
+
+      if (token) {
+        try {
+          const parsedTokens = JSON.parse(token)
+          console.log('🔍 Parsed tokens:', parsedTokens)
+          console.log('📅 Token expires at:', parsedTokens.expires_at ? new Date(parsedTokens.expires_at).toISOString() : 'No expiry')
+          console.log('⏰ Current time:', new Date().toISOString())
+          console.log('✅ Token valid?', parsedTokens.expires_at ? Date.now() < parsedTokens.expires_at : 'Unknown')
+        } catch (e) {
+          console.error('❌ Error parsing tokens:', e)
+        }
+      } else {
+        console.warn('⚠️ No auth tokens found in localStorage')
       }
 
-      if (healthResult.success && healthResult.data) {
-        setSystemHealth(healthResult.data)
-      }
+      // SINGLE comprehensive dashboard call as per backend API documentation
+      const dashboardResult = await superadminApiService.getDashboard()
 
-      if (analyticsResult.success && analyticsResult.data) {
-        setPlatformAnalytics(analyticsResult.data)
-      }
+      console.log('🔍 FULL API RESPONSE:', dashboardResult)
 
       if (dashboardResult.success && dashboardResult.data) {
-        setSecurityAlerts(dashboardResult.data.alerts || [])
+        // This contains ALL the real data from backend - no mock data
+        setComprehensiveDashboard(dashboardResult.data)
+        console.log('✅ SETTING DASHBOARD DATA:', dashboardResult.data)
+        console.log('👥 USER STATISTICS:', dashboardResult.data.user_statistics)
+        console.log('💰 CREDIT SYSTEM:', dashboardResult.data.credit_system)
+        console.log('🏥 SYSTEM HEALTH:', dashboardResult.data.system_health)
+
+        // Set individual state from comprehensive response
+        if (dashboardResult.data.system_health) {
+          setSystemHealth(dashboardResult.data.system_health)
+        }
+
+        // Set security alerts from real backend response
+        if (dashboardResult.data.security_alerts) {
+          setSecurityAlerts(dashboardResult.data.security_alerts)
+        }
+      } else {
+        console.error('❌ API CALL FAILED!')
+        console.error('❌ Success:', dashboardResult.success)
+        console.error('❌ Error:', dashboardResult.error)
+        console.error('❌ Full Response:', dashboardResult)
+        setError(dashboardResult.error || 'Failed to load dashboard data')
       }
+
     } catch (error) {
+      console.error('❌ Network Error:', error)
       setError('Network error while loading dashboard data')
     } finally {
       setLoading(false)
@@ -293,7 +323,11 @@ export default function SuperadminPage() {
     );
   }
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (num: any) => {
+    // Handle all possible falsy/invalid values
+    if (num === undefined || num === null || num === '' || typeof num !== 'number' || isNaN(num)) {
+      return '0'
+    }
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
     return num.toString()
@@ -449,8 +483,23 @@ export default function SuperadminPage() {
 
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="space-y-6">
-                  {/* System Stats Cards */}
-                  {systemStats && (
+                  {/* System Stats Cards - ONLY REAL BACKEND DATA */}
+                  {loading ? (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                      {[1,2,3,4].map(i => (
+                        <Card key={i}>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                            <div className="h-4 w-4 bg-muted animate-pulse rounded" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="h-8 w-16 bg-muted animate-pulse rounded mb-2" />
+                            <div className="h-3 w-20 bg-muted animate-pulse rounded" />
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : comprehensiveDashboard && comprehensiveDashboard.user_statistics ? (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -458,16 +507,26 @@ export default function SuperadminPage() {
                           <Users className="h-4 w-4 text-[hsl(var(--primary))]" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">{formatNumber(systemStats.total_users)}</div>
+                          <div className="text-2xl font-bold">
+                            {formatNumber(comprehensiveDashboard.user_statistics.total_users)}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            +{comprehensiveDashboard.user_statistics.new_registrations_today} today
+                          </p>
                         </CardContent>
                       </Card>
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
+                          <CardTitle className="text-sm font-medium">Active Users (7d)</CardTitle>
                           <Activity className="h-4 w-4 text-[hsl(var(--primary))]" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">{formatNumber(systemStats.active_campaigns)}</div>
+                          <div className="text-2xl font-bold">
+                            {formatNumber(comprehensiveDashboard.user_statistics.active_users_last_7_days)}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {formatNumber(comprehensiveDashboard.user_statistics.active_users_last_30_days)} in 30d
+                          </p>
                         </CardContent>
                       </Card>
                       <Card>
@@ -476,7 +535,12 @@ export default function SuperadminPage() {
                           <DollarSign className="h-4 w-4 text-[hsl(var(--primary))]" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">{formatNumber(systemStats.total_credits_in_circulation)}</div>
+                          <div className="text-2xl font-bold">
+                            {formatNumber(comprehensiveDashboard.credit_system.credits_in_circulation)}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {formatNumber(comprehensiveDashboard.credit_system.total_credits_spent)} spent
+                          </p>
                         </CardContent>
                       </Card>
                       <Card>
@@ -485,7 +549,11 @@ export default function SuperadminPage() {
                           <Server className="h-4 w-4 text-[hsl(var(--primary))]" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">{systemStats.system_health_score}/100</div>
+                          <div className="text-2xl font-bold">
+                            {comprehensiveDashboard.system_health?.health_score ||
+                             systemHealth?.health_score ||
+                             'N/A'}
+                          </div>
                         </CardContent>
                       </Card>
                     </div>
@@ -561,6 +629,10 @@ export default function SuperadminPage() {
                         </CardContent>
                       </Card>
                     </div>
+                  ) : (
+                    <div className="text-center text-muted-foreground">
+                      No dashboard data available. Please check your connection and try again.
+                    </div>
                   )}
 
                   {/* Recent Activity */}
@@ -571,19 +643,31 @@ export default function SuperadminPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {systemStats && (
+                        {comprehensiveDashboard && comprehensiveDashboard.user_statistics && (
                           <>
                             <div className="flex items-center justify-between text-sm">
                               <span>New users today</span>
-                              <span className="font-medium">{systemStats.new_registrations_today}</span>
+                              <span className="font-medium">
+                                {comprehensiveDashboard.user_statistics.new_registrations_today}
+                              </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
-                              <span>Active campaigns</span>
-                              <span className="font-medium">{systemStats.active_campaigns}</span>
+                              <span>Active users (7d)</span>
+                              <span className="font-medium">
+                                {formatNumber(comprehensiveDashboard.user_statistics.active_users_last_7_days)}
+                              </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
-                              <span>Credits spent today</span>
-                              <span className="font-medium">{formatNumber(systemStats.credits_spent_today)}</span>
+                              <span>Total Revenue</span>
+                              <span className="font-medium">
+                                ${formatNumber(comprehensiveDashboard.revenue_analytics?.total_revenue_usd_cents / 100)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span>Credits in Circulation</span>
+                              <span className="font-medium">
+                                {formatNumber(comprehensiveDashboard.credit_system.credits_in_circulation)}
+                              </span>
                             </div>
                           </>
                         )}
@@ -825,7 +909,7 @@ export default function SuperadminPage() {
 
                 {/* System Health Tab */}
                 <TabsContent value="system" className="space-y-6">
-                  {systemHealth && (
+                  {(comprehensiveDashboard?.system_health || systemHealth) && (
                     <>
                       {/* System Overview */}
                       <div className="grid gap-4 md:grid-cols-3">

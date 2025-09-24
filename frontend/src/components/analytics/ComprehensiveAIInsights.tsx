@@ -36,17 +36,13 @@ import {
   TrendingUp as Trending
 } from 'lucide-react'
 import {
-  LineChart as RechartsLineChart,
-  BarChart as RechartsBarChart,
-  PieChart as RechartsPieChart,
-  Cell,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Line,
-  Bar,
-  Pie,
-  ResponsiveContainer
+  CartesianGrid
 } from 'recharts'
 import { ComprehensiveAnalysisResponse } from '@/types/comprehensiveAnalytics'
 
@@ -70,7 +66,7 @@ export function ComprehensiveAIInsights({
       <Card>
         <CardHeader>
           <div className="flex items-center space-x-2">
-            <Brain className="h-5 w-5 text-purple-600 animate-pulse" />
+            <Brain className="h-5 w-5 text-purple-600 dark:text-purple-500 animate-pulse" />
             <CardTitle>AI Intelligence Analysis</CardTitle>
           </div>
         </CardHeader>
@@ -137,8 +133,8 @@ export function ComprehensiveAIInsights({
     ] : []
 
   const audienceQualityData = [
-    { name: 'Real Audience', value: analysis.audience_quality?.real_audience_percentage || 0, color: '#22c55e' },
-    { name: 'Suspicious', value: 100 - (analysis.audience_quality?.real_audience_percentage || 0), color: '#ef4444' }
+    { name: 'Real Audience', value: analysis.audience_quality?.real_audience_percentage || 0, fill: 'var(--color-real)' },
+    { name: 'Suspicious', value: 100 - (analysis.audience_quality?.real_audience_percentage || 0), fill: 'var(--color-suspicious)' }
   ]
 
   const topicsData = analysis.advanced_nlp?.topic_modeling?.slice(0, 5).map(topic => ({
@@ -421,35 +417,31 @@ export function ComprehensiveAIInsights({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <PieChart className="h-5 w-5 text-green-600" />
+                  <PieChart className="h-5 w-5 text-green-600 dark:text-green-500" />
                   <span>Audience Breakdown</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ChartContainer
                   config={{
-                    real: { label: 'Real Audience', color: '#22c55e' },
-                    suspicious: { label: 'Suspicious', color: '#ef4444' }
+                    real: { label: 'Real Audience', color: 'var(--chart-2)' },
+                    suspicious: { label: 'Suspicious', color: 'var(--chart-5)' }
                   }}
-                  className="h-[200px]"
+                  className="mx-auto aspect-square max-h-[200px]"
                 >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsPieChart>
-                      <Pie
-                        data={audienceQualityData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={80}
-                        dataKey="value"
-                      >
-                        {audienceQualityData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                    </RechartsPieChart>
-                  </ResponsiveContainer>
+                  <PieChart>
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent hideLabel />}
+                    />
+                    <Pie
+                      data={audienceQualityData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={40}
+                      strokeWidth={5}
+                    />
+                  </PieChart>
                 </ChartContainer>
               </CardContent>
             </Card>
@@ -458,7 +450,7 @@ export function ComprehensiveAIInsights({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Globe className="h-5 w-5 text-purple-600" />
+                <Globe className="h-5 w-5 text-purple-600 dark:text-purple-500" />
                 <span>Audience Insights</span>
               </CardTitle>
             </CardHeader>
@@ -718,7 +710,7 @@ export function ComprehensiveAIInsights({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Target className="h-5 w-5 text-indigo-600" />
+                <Target className="h-5 w-5 text-indigo-600 dark:text-indigo-500" />
                 <span>Topic Modeling</span>
               </CardTitle>
             </CardHeader>
@@ -726,19 +718,34 @@ export function ComprehensiveAIInsights({
               {topicsData.length > 0 && (
                 <ChartContainer
                   config={{
-                    weight: { label: 'Topic Weight', color: '#6366f1' }
+                    weight: { label: 'Topic Weight', color: 'var(--chart-1)' }
                   }}
                   className="h-[200px]"
                 >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsBarChart data={topicsData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="topic" />
-                      <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="weight" fill="#6366f1" />
-                    </RechartsBarChart>
-                  </ResponsiveContainer>
+                  <BarChart
+                    accessibilityLayer
+                    data={topicsData}
+                    margin={{ left: 12, right: 12 }}
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="topic"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickFormatter={(value) => value.slice(0, 10)}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent hideLabel />}
+                    />
+                    <Bar dataKey="weight" fill="var(--color-weight)" radius={4} />
+                  </BarChart>
                 </ChartContainer>
               )}
             </CardContent>

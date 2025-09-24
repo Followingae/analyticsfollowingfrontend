@@ -46,36 +46,36 @@ export function EngagementAnalytics({ metrics }: EngagementAnalyticsProps) {
   const getTrendColor = (trend: string): string => {
     switch (trend) {
       case 'increasing':
-        return 'text-green-600'
+        return 'text-green-600 dark:text-green-500'
       case 'decreasing':
-        return 'text-red-600'
+        return 'text-destructive'
       default:
-        return 'text-yellow-600'
+        return 'text-yellow-600 dark:text-yellow-500'
     }
   }
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case 'increasing':
-        return <TrendingUp className="h-4 w-4 text-green-600" />
+        return <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-500" />
       case 'decreasing':
-        return <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
+        return <TrendingUp className="h-4 w-4 text-destructive rotate-180" />
       default:
-        return <Activity className="h-4 w-4 text-yellow-600" />
+        return <Activity className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
     }
   }
 
   const getEngagementRateQuality = (rate: number): { label: string; color: string } => {
-    if (rate >= 0.06) return { label: 'Excellent', color: 'text-green-600' }
-    if (rate >= 0.03) return { label: 'Good', color: 'text-blue-600' }
-    if (rate >= 0.01) return { label: 'Average', color: 'text-yellow-600' }
-    return { label: 'Poor', color: 'text-red-600' }
+    if (rate >= 0.06) return { label: 'Excellent', color: 'text-green-600 dark:text-green-500' }
+    if (rate >= 0.03) return { label: 'Good', color: 'text-primary' }
+    if (rate >= 0.01) return { label: 'Average', color: 'text-yellow-600 dark:text-yellow-500' }
+    return { label: 'Poor', color: 'text-destructive' }
   }
 
   const getPostingFrequencyColor = (frequency: string): string => {
-    if (frequency.includes('daily')) return 'text-green-600'
-    if (frequency.includes('weekly')) return 'text-blue-600'
-    return 'text-yellow-600'
+    if (frequency.includes('daily')) return 'text-green-600 dark:text-green-500'
+    if (frequency.includes('weekly')) return 'text-primary'
+    return 'text-yellow-600 dark:text-yellow-500'
   }
 
   // Calculate engagement rates relative to follower benchmarks
@@ -91,7 +91,7 @@ export function EngagementAnalytics({ metrics }: EngagementAnalyticsProps) {
             <Heart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-500">
+            <div className="text-2xl font-bold text-destructive">
               {formatNumber(metrics.avg_likes)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -106,7 +106,7 @@ export function EngagementAnalytics({ metrics }: EngagementAnalyticsProps) {
             <MessageCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-500">
+            <div className="text-2xl font-bold text-primary">
               {formatNumber(metrics.avg_comments)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -175,15 +175,15 @@ export function EngagementAnalytics({ metrics }: EngagementAnalyticsProps) {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
               <div className="text-center p-3 rounded-lg border bg-muted/50">
                 <div className="text-sm text-muted-foreground">Poor</div>
-                <div className="font-semibold text-red-600">&lt; 1%</div>
+                <div className="font-semibold text-destructive">&lt; 1%</div>
               </div>
               <div className="text-center p-3 rounded-lg border bg-muted/50">
                 <div className="text-sm text-muted-foreground">Good</div>
-                <div className="font-semibold text-blue-600">3-6%</div>
+                <div className="font-semibold text-primary">3-6%</div>
               </div>
               <div className="text-center p-3 rounded-lg border bg-muted/50">
                 <div className="text-sm text-muted-foreground">Excellent</div>
-                <div className="font-semibold text-green-600">&gt; 6%</div>
+                <div className="font-semibold text-green-600 dark:text-green-500">&gt; 6%</div>
               </div>
             </div>
           </div>
@@ -267,7 +267,7 @@ export function EngagementAnalytics({ metrics }: EngagementAnalyticsProps) {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
-                  <Heart className="h-4 w-4 text-red-500" />
+                  <Heart className="h-4 w-4 text-destructive" />
                   <span className="text-sm font-medium">Likes</span>
                 </div>
                 <span className="text-sm font-bold">
@@ -287,7 +287,7 @@ export function EngagementAnalytics({ metrics }: EngagementAnalyticsProps) {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4 text-blue-500" />
+                  <MessageCircle className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">Comments</span>
                 </div>
                 <span className="text-sm font-bold">

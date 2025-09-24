@@ -1,12 +1,14 @@
 'use client'
 
 import {
-  Lock,
+  Users,
   Mail,
   MessageCircle,
   ArrowRight,
   Building2,
-  Shield
+  Zap,
+  CheckCircle,
+  Target
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -17,7 +19,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 
 interface FeatureLockedCardProps {
   feature: string
@@ -29,9 +30,9 @@ interface FeatureLockedCardProps {
 
 export function FeatureLockedCard({
   feature,
-  title = 'Feature Locked',
-  description = 'This feature requires agency access.',
-  actionText = 'Contact Support for Agency Access',
+  title = 'Agency Services Required',
+  description = 'Partner with Following as your dedicated influencer marketing agency.',
+  actionText = 'Enroll Your Brand',
   onContactSupport
 }: FeatureLockedCardProps) {
 
@@ -39,38 +40,49 @@ export function FeatureLockedCard({
     if (onContactSupport) {
       onContactSupport()
     } else {
-      // Default action: open email client
-      window.location.href = 'mailto:support@following.ae?subject=Agency Access Request - Proposals Feature'
+      // Default action: open email client for agency enrollment
+      window.location.href = 'mailto:partnerships@following.ae?subject=Brand Agency Enrollment - Influencer Campaign Management'
     }
   }
 
-  const getFeatureIcon = (featureName: string) => {
-    switch (featureName.toLowerCase()) {
-      case 'proposals':
-        return <Building2 className="h-12 w-12 text-muted-foreground/50" />
-      default:
-        return <Lock className="h-12 w-12 text-muted-foreground/50" />
-    }
+  const getFeatureLogo = () => {
+    return (
+      <div className="flex items-center justify-center mb-2">
+        {/* Light mode: dark logo, Dark mode: light logo */}
+        <img
+          src="/followinglogo.svg"
+          alt="Following"
+          className="h-8 w-auto dark:hidden"
+        />
+        <img
+          src="/Following Logo Dark Mode.svg"
+          alt="Following"
+          className="h-8 w-auto hidden dark:block"
+        />
+      </div>
+    )
   }
 
   const getFeatureDetails = (featureName: string) => {
     switch (featureName.toLowerCase()) {
       case 'proposals':
         return {
-          title: 'Proposals Feature Locked',
-          description: 'Access marketing proposals and campaign collaboration tools designed for agency clients.',
+          title: 'Enterprise campaign management',
+          description: 'Available exclusively to full-service agency clients.',
           benefits: [
-            'Receive and review marketing proposals',
-            'Collaborate with Following Agency team',
-            'Track campaign progress and deliverables',
-            'Streamlined approval workflow'
+            'Dedicated account management team',
+            'Custom influencer sourcing & vetting',
+            'End-to-end campaign execution',
+            'Performance tracking & optimization',
+            'Content approval workflows',
+            'Guaranteed campaign deliverables'
           ]
         }
       default:
         return {
-          title: 'Feature Locked',
-          description: 'This feature requires special access.',
-          benefits: ['Enhanced functionality', 'Professional tools']
+          title: 'Agency Partnership Required',
+          description: 'This feature is part of our full-service agency offering.',
+          benefits: ['Professional campaign management', 'Dedicated support team']
         }
     }
   }
@@ -78,78 +90,62 @@ export function FeatureLockedCard({
   const featureInfo = getFeatureDetails(feature)
 
   return (
-    <div className="flex items-center justify-center min-h-[60vh] p-4">
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader className="text-center pb-4">
-          <div className="flex items-center justify-center mb-4">
-            {getFeatureIcon(feature)}
+    <div className="flex items-center justify-center min-h-[70vh] p-6">
+      <div className="w-full max-w-lg mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-6">
+            {getFeatureLogo()}
           </div>
-
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <CardTitle className="text-2xl">{featureInfo.title}</CardTitle>
-            <Badge variant="outline" className="text-xs">
-              <Shield className="h-3 w-3 mr-1" />
-              Agency Only
-            </Badge>
-          </div>
-
-          <CardDescription className="text-base">
-            {featureInfo.description}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          {/* Feature Benefits */}
-          <div className="bg-muted/30 rounded-lg p-4">
-            <h4 className="font-medium mb-3 text-sm uppercase tracking-wide text-muted-foreground">
-              What you'll get with agency access:
-            </h4>
-            <ul className="space-y-2">
-              {featureInfo.benefits.map((benefit, index) => (
-                <li key={index} className="flex items-center gap-2 text-sm">
-                  <div className="h-1.5 w-1.5 bg-primary rounded-full" />
-                  {benefit}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Contact Options */}
-          <div className="space-y-3">
-            <Button
-              onClick={handleContactSupport}
-              className="w-full"
-              size="lg"
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              {actionText}
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">
-                Need immediate assistance?
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open('https://wa.me/971505551234', '_blank')}
-              >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                WhatsApp Support
-              </Button>
-            </div>
-          </div>
-
-          {/* Additional Info */}
-          <div className="border-t pt-4">
-            <p className="text-xs text-muted-foreground text-center">
-              Agency features are designed for professional marketing campaigns and require special access.
-              Our team will help you get set up quickly.
+          <h1 className="text-2xl font-semibold text-foreground mb-3">
+            {featureInfo.title}
+          </h1>
+          {featureInfo.description && (
+            <p className="text-muted-foreground text-base leading-relaxed">
+              {featureInfo.description}
             </p>
-          </div>
-        </CardContent>
-      </Card>
+          )}
+        </div>
+
+        {/* Benefits */}
+        <div className="bg-card border border-border/50 rounded-xl p-6 mb-8 text-center">
+          <h3 className="font-medium text-foreground mb-4 flex items-center justify-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            What's included
+          </h3>
+          <ul className="space-y-3">
+            {featureInfo.benefits.map((benefit, index) => (
+              <li key={index} className="flex items-start justify-center gap-3 text-sm text-muted-foreground">
+                <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <span className="leading-relaxed text-left">{benefit}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Actions */}
+        <div className="space-y-4">
+          <Button
+            onClick={handleContactSupport}
+            className="w-full h-12 text-base font-medium"
+            size="lg"
+          >
+            <Target className="h-5 w-5 mr-2" />
+            {actionText}
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 pt-6 border-t border-border/50 text-center">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Join 200+ brands who trust Following for their influencer marketing campaigns.
+            <br />
+            Professional campaign management with guaranteed results.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

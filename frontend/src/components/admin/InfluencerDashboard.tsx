@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { superadminApiService, Influencer } from '@/services/superadminApi'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -26,55 +27,47 @@ export function InfluencerDashboard() {
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [verificationFilter, setVerificationFilter] = useState('all')
+  const [influencers, setInfluencers] = useState<Influencer[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const influencerStats = {
-    totalInfluencers: 45678,
-    verifiedInfluencers: 12340,
-    categorizedInfluencers: 38950,
-    qualityScore: 87.5
+  // Load influencers from superadmin API
+  const loadInfluencers = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const filters: any = { limit: 25 }
+      if (searchQuery.trim()) filters.search = searchQuery.trim()
+
+      const result = await superadminApiService.getInfluencers(filters)
+      if (result.success && result.data) {
+        setInfluencers(result.data.influencers || [])
+        setTotalCount(result.data.total_count || 0)
+      } else {
+        setError(result.error || 'Failed to load influencers')
+        console.warn('Influencers API failed:', result.error)
+      }
+    } catch (error) {
+      setError('Network error while loading influencers')
+      console.error('Error loading influencers:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const mockInfluencers = [
-    {
-      id: '1',
-      username: 'fashionista_dubai',
-      full_name: 'Sarah Al-Mansouri',
-      category: 'Fashion',
-      followers_count: 125000,
-      engagement_rate: 0.045,
-      is_verified: true,
-      data_quality_score: 0.92,
-      access_tier_required: 'premium',
-      last_updated_at: '2024-01-20T10:30:00Z',
-      profile_picture_url: null
-    },
-    {
-      id: '2',
-      username: 'tech_reviewer_ae',
-      full_name: 'Ahmed Hassan',
-      category: 'Technology',
-      followers_count: 89000,
-      engagement_rate: 0.067,
-      is_verified: true,
-      data_quality_score: 0.88,
-      access_tier_required: 'standard',
-      last_updated_at: '2024-01-19T15:45:00Z',
-      profile_picture_url: null
-    },
-    {
-      id: '3',
-      username: 'fitness_motivation',
-      full_name: 'Layla Ibrahim',
-      category: 'Fitness',
-      followers_count: 67000,
-      engagement_rate: 0.082,
-      is_verified: false,
-      data_quality_score: 0.75,
-      access_tier_required: 'free',
-      last_updated_at: '2024-01-18T09:20:00Z',
-      profile_picture_url: null
-    }
-  ]
+  useEffect(() => {
+    loadInfluencers()
+  }, [])
+
+  // Reload when search changes (with debounce)
+  useEffect(() => {
+    const delayedLoad = setTimeout(() => {
+      loadInfluencers()
+    }, 300)
+
+    return () => clearTimeout(delayedLoad)
+  }, [searchQuery])
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
@@ -97,6 +90,35 @@ export function InfluencerDashboard() {
       month: 'short',
       day: 'numeric'
     })
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="space-y-4">
+          <div className="h-8 bg-muted rounded w-48 animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-32 bg-muted rounded animate-pulse" />
+            ))}
+          </div>
+          <div className="h-64 bg-muted rounded animate-pulse" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-center space-y-4">
+          <p className="text-red-600">{error}</p>
+          <Button variant="outline" onClick={loadInfluencers}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -128,7 +150,7 @@ export function InfluencerDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{influencerStats.totalInfluencers.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{totalCount.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               Platform-wide database
             </p>
@@ -141,9 +163,11 @@ export function InfluencerDashboard() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{influencerStats.verifiedInfluencers.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {influencers.filter(i => i.is_verified).length.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {((influencerStats.verifiedInfluencers / influencerStats.totalInfluencers) * 100).toFixed(1)}% verified
+              {totalCount > 0 ? ((influencers.filter(i => i.is_verified).length / totalCount) * 100).toFixed(1) : 0}% verified
             </p>
           </CardContent>
         </Card>
@@ -154,9 +178,11 @@ export function InfluencerDashboard() {
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{influencerStats.categorizedInfluencers.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              {influencers.filter(i => i.analytics?.primary_content_type).length.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {((influencerStats.categorizedInfluencers / influencerStats.totalInfluencers) * 100).toFixed(1)}% categorized
+              {totalCount > 0 ? ((influencers.filter(i => i.analytics?.primary_content_type).length / totalCount) * 100).toFixed(1) : 0}% categorized
             </p>
           </CardContent>
         </Card>
@@ -167,9 +193,13 @@ export function InfluencerDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{influencerStats.qualityScore}%</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {influencers.length > 0 ?
+                (influencers.reduce((acc, i) => acc + (i.analytics?.content_quality_score || 0), 0) / influencers.length * 100).toFixed(1)
+                : '0'}%
+            </div>
             <p className="text-xs text-muted-foreground">
-              Data quality rating
+              Avg content quality
             </p>
           </CardContent>
         </Card>
@@ -234,12 +264,12 @@ export function InfluencerDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockInfluencers.map((influencer) => (
+                {influencers.length > 0 ? influencers.map((influencer) => (
                   <TableRow key={influencer.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={influencer.profile_picture_url || undefined} />
+                          <AvatarImage src={influencer.profile_image_url || undefined} />
                           <AvatarFallback>
                             {influencer.username.slice(0, 2).toUpperCase()}
                           </AvatarFallback>
@@ -259,7 +289,7 @@ export function InfluencerDashboard() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {influencer.category}
+                        {influencer.analytics?.primary_content_type || 'N/A'}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium">
@@ -267,27 +297,29 @@ export function InfluencerDashboard() {
                     </TableCell>
                     <TableCell>
                       <div className="text-right">
-                        {(influencer.engagement_rate * 100).toFixed(2)}%
+                        {influencer.analytics?.engagement_rate ?
+                          (influencer.analytics.engagement_rate * 100).toFixed(2) + '%' :
+                          'N/A'}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Progress 
-                          value={influencer.data_quality_score * 100} 
-                          className="w-16 h-2" 
+                        <Progress
+                          value={(influencer.analytics?.content_quality_score || 0) * 100}
+                          className="w-16 h-2"
                         />
                         <span className="text-xs font-medium">
-                          {(influencer.data_quality_score * 100).toFixed(0)}%
+                          {((influencer.analytics?.content_quality_score || 0) * 100).toFixed(0)}%
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getTierBadgeVariant(influencer.access_tier_required)}>
-                        {influencer.access_tier_required}
+                      <Badge variant={getTierBadgeVariant(influencer.is_private ? 'premium' : 'standard')}>
+                        {influencer.is_private ? 'Private' : 'Public'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(influencer.last_updated_at)}
+                      {formatDate(influencer.updated_at)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-1">
@@ -300,7 +332,13 @@ export function InfluencerDashboard() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      No influencers found
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>

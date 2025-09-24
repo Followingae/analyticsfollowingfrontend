@@ -337,7 +337,7 @@ export function PostAnalyticsDashboard({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
+                <BarChart3 className="h-5 w-5 text-primary" />
                 <span>Post Analytics Dashboard</span>
               </CardTitle>
               <CardDescription>

@@ -33,8 +33,8 @@ export function InviteCampaignManager({ onClose, onSuccess }: InviteCampaignMana
     campaign_type: 'paid' as 'paid' | 'barter' | 'hybrid',
     deliverables: [{ type: 'post' as const, quantity: 1, description: '' }],
     eligible_follower_range: {
-      min: 1000,
-      max: 100000
+      min: undefined,
+      max: undefined
     },
     eligible_categories: [''],
     terms_and_conditions: '',
@@ -279,7 +279,7 @@ export function InviteCampaignManager({ onClose, onSuccess }: InviteCampaignMana
           <div>
             <label className="text-sm font-medium">Campaign Name *</label>
             <Input
-              placeholder="e.g. Fashion Influencers Q1 2024"
+              placeholder="Enter campaign title"
               value={formData.campaign_name}
               onChange={(e) => setFormData(prev => ({ ...prev, campaign_name: e.target.value }))}
               className="mt-1"
@@ -336,13 +336,13 @@ export function InviteCampaignManager({ onClose, onSuccess }: InviteCampaignMana
               <label className="text-sm font-medium">Min Followers</label>
               <Input
                 type="number"
-                placeholder="1000"
+                placeholder="Minimum followers"
                 value={formData.eligible_follower_range.min}
                 onChange={(e) => setFormData(prev => ({
                   ...prev,
                   eligible_follower_range: {
                     ...prev.eligible_follower_range,
-                    min: parseInt(e.target.value) || 0
+                    min: parseInt(e.target.value) || undefined
                   }
                 }))}
                 className="mt-1"
@@ -352,13 +352,13 @@ export function InviteCampaignManager({ onClose, onSuccess }: InviteCampaignMana
               <label className="text-sm font-medium">Max Followers</label>
               <Input
                 type="number"
-                placeholder="100000"
+                placeholder="Maximum followers"
                 value={formData.eligible_follower_range.max}
                 onChange={(e) => setFormData(prev => ({
                   ...prev,
                   eligible_follower_range: {
                     ...prev.eligible_follower_range,
-                    max: parseInt(e.target.value) || 0
+                    max: parseInt(e.target.value) || undefined
                   }
                 }))}
                 className="mt-1"

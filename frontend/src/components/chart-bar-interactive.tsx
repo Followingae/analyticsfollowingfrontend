@@ -2,11 +2,7 @@
 
 import * as React from "react"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
-import { fetchWithAuth } from '@/utils/apiInterceptor'
-import { API_CONFIG } from '@/config/api'
-import { Plus, BarChart3, TrendingUp, Target, FileText } from "lucide-react"
-import { EmptyState } from "@/components/ui/empty-state"
-// Removed useDashboardData import - data will be passed as props
+import { BarChart3, Target, TrendingUp } from "lucide-react"
 
 import {
   Card,
@@ -15,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/empty-state"
 import {
   ChartConfig,
   ChartContainer,
@@ -25,166 +21,84 @@ import {
 
 export const description = "An interactive bar chart"
 
+
 const chartConfig = {
-  reach: {
-    label: "Reach",
-    color: "oklch(0.4718 0.2853 280.0726)",
-  },
   views: {
-    label: "Views", 
-    color: "oklch(0.4718 0.2853 280.0726)",
+    label: "Campaign Performance",
+  },
+  desktop: {
+    label: "Engagement Rate",
+    color: "var(--chart-2)",
+  },
+  mobile: {
+    label: "Reach",
+    color: "var(--chart-1)",
   },
 } satisfies ChartConfig
 
-interface Campaign {
-  id: string
-  name: string
-  status: string
-}
-
 interface ChartBarInteractiveProps {
-  campaigns?: Campaign[]
+  campaigns?: any[]
   campaignsLoading?: boolean
 }
 
-export function ChartBarInteractive({ campaigns, campaignsLoading }: ChartBarInteractiveProps = {}) {
-  const [activeChart, setActiveChart] = React.useState<keyof typeof chartConfig>("reach")
-  const [selectedCampaign, setSelectedCampaign] = React.useState<Campaign | null>(null)
-  const [chartData, setChartData] = React.useState<any[]>([])
+export function ChartBarInteractive({ campaigns, campaignsLoading }: ChartBarInteractiveProps) {
+  const [activeChart, setActiveChart] =
+    React.useState<keyof typeof chartConfig>("desktop")
 
-  // Set default campaign when campaigns data is available
-  React.useEffect(() => {
-    if (!campaignsLoading && campaigns && campaigns.length > 0) {
-      // Find active campaign or use first one
-      const activeCampaign = campaigns.find((c: any) => c.status === 'active') || campaigns[0]
-      
-      if (activeCampaign) {
-        setSelectedCampaign(activeCampaign)
-        loadMockAnalytics(activeCampaign)
-      }
-    }
-  }, [campaigns, campaignsLoading])
+  const chartData = React.useMemo(() => {
+    if (!campaigns || campaigns.length === 0) return []
 
-  // Generate mock analytics data for the selected campaign
-  const loadMockAnalytics = (campaign: any) => {
-    // Generate 30 days of mock data based on campaign performance
-    const mockData = []
-    const baseReach = campaign.impressions || 15000
-    const baseViews = campaign.clicks || 800
-    
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      
-      // Add some realistic variation (+/- 30%)
-      const reachVariation = 0.7 + Math.random() * 0.6
-      const viewsVariation = 0.7 + Math.random() * 0.6
-      
-      mockData.push({
-        date: date.toISOString().split('T')[0],
-        reach: Math.floor(baseReach * reachVariation / 30),
-        views: Math.floor(baseViews * viewsVariation / 30),
-        impressions: Math.floor(baseReach * reachVariation / 30 * 1.2),
-        engagement: Math.floor(baseViews * viewsVariation / 30 * 0.8),
-        clicks: Math.floor(baseViews * viewsVariation / 30 * 0.6)
-      })
-    }
-    
-    setChartData(mockData)
-  }
+    return campaigns.map((campaign: any) => ({
+      date: campaign.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+      desktop: campaign.engagement_rate || 0,
+      mobile: campaign.reach || 0,
+    }))
+  }, [campaigns])
 
   const total = React.useMemo(
     () => ({
-      reach: chartData.reduce((acc, curr) => acc + (curr.reach || 0), 0),
-      views: chartData.reduce((acc, curr) => acc + (curr.views || 0), 0),
+      desktop: chartData.reduce((acc, curr) => acc + (curr.desktop || 0), 0),
+      mobile: chartData.reduce((acc, curr) => acc + (curr.mobile || 0), 0),
     }),
     [chartData]
   )
 
-  // Loading state
   if (campaignsLoading) {
     return (
       <Card className="py-0">
-        <CardContent className="flex items-center justify-center h-[320px]">
-          <div className="flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[hsl(var(--primary))] border-t-transparent"></div>
-            <div className="text-sm text-muted-foreground">Loading campaign data...</div>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
+            Loading campaign data...
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  // Empty state - no campaigns
-  if (!selectedCampaign || !campaigns || campaigns.length === 0) {
+  if (!campaigns || campaigns.length === 0) {
     return (
       <EmptyState
-        title="No campaigns found"
-        description="You haven't created any campaigns yet. Get started by creating your first campaign to track performance."
-        icons={[Target, BarChart3, FileText]}
-        action={{
-          label: "Create campaign",
-          onClick: () => window.open('/campaigns/new', '_blank')
-        }}
-      />
-    )
-  }
+        title="No Campaign Data Available"
+        description="Start creating campaigns to see performance metrics here.
 
-  // Empty state - campaign exists but no analytics data
-  if (chartData.length === 0) {
-    return (
-      <Card className="py-0">
-        <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
-          <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
-            <CardTitle>Recent Campaign Stats</CardTitle>
-            <CardDescription>
-              {selectedCampaign?.name || 'Campaign Analytics'}
-            </CardDescription>
-          </div>
-          <div className="flex">
-            {["reach", "views"].map((key) => {
-              const chart = key as keyof typeof chartConfig
-              return (
-                <button
-                  key={chart}
-                  data-active={activeChart === chart}
-                  className="data-[active=true]:bg-muted/50 relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
-                  onClick={() => setActiveChart(chart)}
-                >
-                  <span className="text-muted-foreground text-xs">
-                    {chartConfig[chart].label}
-                  </span>
-                  <span className="text-lg leading-none font-bold sm:text-3xl">
-                    0
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center p-8">
-          <EmptyState
-            title="No analytics data yet"
-            description="Analytics data will appear here once your campaign\nstarts generating activity and engagement."
-            icons={[TrendingUp]}
-            className="max-w-md"
-          />
-        </CardContent>
-      </Card>
+Track engagement rates, reach metrics, and campaign success over time."
+        icons={[BarChart3, Target, TrendingUp]}
+        className="p-12"
+      />
     )
   }
 
   return (
     <Card className="py-0">
       <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
-        <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
-          <CardTitle>Recent Campaign Stats</CardTitle>
+        <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-6">
+          <CardTitle>Recent Campaign Performance</CardTitle>
           <CardDescription>
-            {selectedCampaign?.name || 'No campaign selected'}
+            Campaign engagement and reach metrics over time
           </CardDescription>
         </div>
         <div className="flex">
-          {["reach", "views"].map((key) => {
+          {["desktop", "mobile"].map((key) => {
             const chart = key as keyof typeof chartConfig
             return (
               <button
@@ -207,7 +121,7 @@ export function ChartBarInteractive({ campaigns, campaignsLoading }: ChartBarInt
       <CardContent className="px-2 sm:p-6">
         <ChartContainer
           config={chartConfig}
-          className="aspect-auto min-h-[200px] w-full"
+          className="aspect-auto h-[250px] w-full"
         >
           <BarChart
             accessibilityLayer
@@ -236,6 +150,7 @@ export function ChartBarInteractive({ campaigns, campaignsLoading }: ChartBarInt
               content={
                 <ChartTooltipContent
                   className="w-[150px]"
+                  nameKey="views"
                   labelFormatter={(value) => {
                     return new Date(value).toLocaleDateString("en-US", {
                       month: "short",
@@ -246,7 +161,7 @@ export function ChartBarInteractive({ campaigns, campaignsLoading }: ChartBarInt
                 />
               }
             />
-            <Bar dataKey={activeChart} fill="oklch(0.4718 0.2853 280.0726)" />
+            <Bar dataKey={activeChart} fill={`var(--color-${activeChart})`} />
           </BarChart>
         </ChartContainer>
       </CardContent>

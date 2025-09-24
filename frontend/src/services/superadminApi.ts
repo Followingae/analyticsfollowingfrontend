@@ -6,32 +6,60 @@
 import { getAuthHeaders, API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 
-// Core Types based on actual backend implementation
+// Core Types based on comprehensive backend API implementation
 export interface DashboardOverview {
   system_health: {
-    status: string
-    cpu_usage: number
-    memory_usage: number
-    uptime_hours: number
+    overall_status: 'healthy' | 'warning' | 'critical'
+    cpu_usage_percent: number
+    memory_usage_percent: number
+    disk_usage_percent: number
+    uptime_seconds: number
+    services: Array<{
+      name: string
+      status: 'operational' | 'degraded' | 'down'
+      response_time_ms: number
+      last_check: string
+    }>
+    dependencies: Array<{
+      name: string
+      status: string
+      version: string
+    }>
   }
-  user_metrics: {
+  user_statistics: {
     total_users: number
-    active_users: number
-    new_today: number
-    new_this_week: number
+    active_users_last_7_days: number
+    active_users_last_30_days: number
+    new_registrations_today: number
+    new_registrations_this_week: number
   }
-  revenue_metrics: {
-    total_revenue: number
-    monthly_revenue: number
+  revenue_analytics: {
+    total_revenue_usd_cents: number
+    monthly_revenue_usd_cents: number
+    monthly_growth_percent: number
     active_wallets: number
   }
-  activity_metrics: {
-    profiles_analyzed: number
-    total_accesses: number
-    accesses_today: number
+  credit_system: {
+    credits_in_circulation: number
+    total_credits_distributed: number
+    total_credits_spent: number
+    average_credit_balance: number
+  }
+  performance_metrics: {
+    avg_api_response_time_ms: number
+    requests_per_second: number
+    error_rate_percent: number
+    cache_hit_rate_percent: number
   }
   security_alerts: SecurityAlert[]
-  recent_activities: RecentActivity[]
+  recent_activities: Array<{
+    id: string
+    type: string
+    description: string
+    timestamp: string
+    user_id?: string
+    metadata?: any
+  }>
 }
 
 export interface RealtimeAnalytics {
@@ -219,6 +247,211 @@ interface ApiResponse<T> {
   }
 }
 
+// Additional Types for New API Endpoints
+export interface AISystemStatus {
+  model_performance: Record<string, {
+    success_rate: number
+    avg_processing_time: number
+    queue_depth: number
+    last_updated: string
+  }>
+  processing_queue: {
+    total_jobs: number
+    pending_jobs: number
+    failed_jobs: number
+    estimated_completion: string
+  }
+  analysis_stats: {
+    total_analyses: number
+    success_rate: number
+    avg_processing_time: number
+    content_categories: Record<string, number>
+  }
+}
+
+export interface ContentModeration {
+  flagged_content: Array<{
+    id: string
+    type: string
+    content_url: string
+    reason: string
+    severity: string
+    created_at: string
+  }>
+  moderation_queue_count: number
+  category_distribution: Record<string, number>
+  auto_moderation_stats: {
+    total_flagged: number
+    false_positives: number
+    accuracy_rate: number
+  }
+}
+
+export interface SystemConfiguration {
+  configurations: Record<string, {
+    value: any
+    description: string
+    last_updated: string
+    requires_restart: boolean
+  }>
+  feature_flags: Record<string, {
+    enabled: boolean
+    rollout_percentage: number
+    target_segments: string[]
+    created_at: string
+  }>
+}
+
+export interface PlatformAnalytics {
+  usage_metrics: {
+    api_calls_by_endpoint: Record<string, number>
+    user_journey_funnel: Array<{
+      step: string
+      users: number
+      conversion_rate: number
+    }>
+    feature_adoption: Record<string, {
+      active_users: number
+      adoption_rate: number
+    }>
+  }
+  performance_metrics: {
+    response_times: {
+      p50: number
+      p95: number
+      p99: number
+    }
+    error_rates: Record<string, number>
+    cache_performance: {
+      hit_rate: number
+      miss_rate: number
+    }
+  }
+}
+
+export interface UserIntelligence {
+  cohort_analysis: {
+    cohorts: Array<{
+      cohort_period: string
+      initial_users: number
+      retention_rates: Record<string, number>
+    }>
+  }
+  user_segmentation: {
+    segments: Array<{
+      segment_name: string
+      user_count: number
+      characteristics: Record<string, any>
+    }>
+  }
+  business_forecasting: {
+    revenue_forecast: Array<{
+      period: string
+      predicted_revenue: number
+      confidence_interval: [number, number]
+    }>
+    user_growth_forecast: Array<{
+      period: string
+      predicted_users: number
+    }>
+  }
+}
+
+export interface OperationsHealth {
+  system_health: {
+    services: Record<string, {
+      status: 'healthy' | 'warning' | 'critical'
+      response_time: number
+      last_check: string
+    }>
+    dependencies: Record<string, {
+      status: string
+      version: string
+    }>
+  }
+  audit_logs: Array<{
+    id: string
+    user_id: string
+    action: string
+    details: any
+    timestamp: string
+    ip_address: string
+  }>
+}
+
+export interface DataExportJob {
+  id: string
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  created_at: string
+  completed_at?: string
+  file_url?: string
+  expires_at?: string
+  tables: string[]
+  row_count?: number
+  file_size?: number
+}
+
+export interface SecurityThreats {
+  threats: Array<{
+    id: string
+    type: string
+    severity: string
+    description: string
+    affected_entities: string[]
+    detected_at: string
+    status: string
+  }>
+  threat_summary: {
+    high_severity: number
+    medium_severity: number
+    low_severity: number
+    resolved_24h: number
+  }
+}
+
+// Additional interfaces for comprehensive API
+export interface SystemStats {
+  total_users: number
+  active_campaigns: number
+  total_credits_in_circulation: number
+  system_health_score: number
+  new_registrations_today: number
+  credits_spent_today: number
+  total_profiles_analyzed: number
+  api_calls_today: number
+  average_response_time_ms: number
+}
+
+export interface SuspiciousActivity {
+  id: string
+  activity_type: string
+  description: string
+  risk_level: 'low' | 'medium' | 'high' | 'critical'
+  detected_at: string
+  user_id?: string
+  ip_address?: string
+  metadata?: any
+}
+
+export interface ComprehensiveDashboard {
+  system_health: DashboardOverview['system_health']
+  user_statistics: DashboardOverview['user_statistics']
+  revenue_analytics: DashboardOverview['revenue_analytics']
+  credit_system: DashboardOverview['credit_system']
+  performance_metrics: DashboardOverview['performance_metrics']
+  security_overview: {
+    active_threats: number
+    security_score: number
+    recent_incidents: number
+  }
+  platform_metrics: {
+    total_profiles_analyzed: number
+    ai_analyses_completed: number
+    api_calls_today: number
+  }
+  recent_activities: DashboardOverview['recent_activities']
+}
+
 export class SuperadminApiService {
   private baseUrl: string
 
@@ -231,7 +464,11 @@ export class SuperadminApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
-      const response = await fetchWithAuth(`${this.baseUrl}${endpoint}`, {
+      const fullUrl = `${this.baseUrl}${endpoint}`
+      console.log('🌐 SUPERADMIN API CALL:', fullUrl)
+      console.log('🔑 Auth Headers:', options.headers || 'Using fetchWithAuth default headers')
+
+      const response = await fetchWithAuth(fullUrl, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -240,8 +477,13 @@ export class SuperadminApiService {
         },
       })
 
+      console.log('📡 RESPONSE STATUS:', response.status)
+      console.log('📡 RESPONSE OK:', response.ok)
+
       if (!response.ok) {
         const errorText = await response.text()
+        console.error('❌ SUPERADMIN API ERROR:', errorText)
+        console.error('❌ STATUS CODE:', response.status)
         return {
           success: false,
           error: errorText || `Request failed with status ${response.status}`
@@ -249,6 +491,7 @@ export class SuperadminApiService {
       }
 
       const data = await response.json()
+      console.log('✅ SUPERADMIN API SUCCESS:', data)
       return {
         success: true,
         data,
@@ -256,6 +499,7 @@ export class SuperadminApiService {
         pagination: data.pagination
       }
     } catch (error) {
+      console.error('❌ SUPERADMIN NETWORK ERROR:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error occurred'
@@ -263,9 +507,13 @@ export class SuperadminApiService {
     }
   }
 
-  // Core Dashboard
+  // Core Dashboard - REAL comprehensive backend API endpoint
   async getDashboard(): Promise<ApiResponse<DashboardOverview>> {
     return this.makeRequest<DashboardOverview>('/api/superadmin/dashboard')
+  }
+
+  async getComprehensiveDashboard(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/dashboard')
   }
 
   async getRealtimeAnalytics(): Promise<ApiResponse<RealtimeAnalytics>> {
@@ -482,7 +730,7 @@ export class SuperadminApiService {
     })
   }
 
-  // Security
+  // Enhanced Security
   async getSecurityAlerts(filters?: {
     limit?: number
     severity?: string
@@ -504,6 +752,569 @@ export class SuperadminApiService {
     return this.makeRequest(`/api/superadmin/security/alerts?${params.toString()}`)
   }
 
+  // Advanced Analytics
+  async getAnalytics(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/analytics')
+  }
+
+  // Advanced User Management
+  async getUserPermissions(userId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/users/${userId}/permissions`)
+  }
+
+  async updateUserPermissions(userId: string, permissions: Record<string, boolean>): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/users/${userId}/permissions`, {
+      method: 'POST',
+      body: JSON.stringify({ permissions, override_role: true })
+    })
+  }
+
+  async manageMFA(userId: string, action: string, method: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/users/${userId}/security/mfa`, {
+      method: 'POST',
+      body: JSON.stringify({ action, method })
+    })
+  }
+
+  async manageUserSessions(userId: string, action: string, deviceId?: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/users/${userId}/security/sessions`, {
+      method: 'POST',
+      body: JSON.stringify({ action, device_id: deviceId })
+    })
+  }
+
+  async resetUserPassword(userId: string, options: {
+    notify_user?: boolean
+    force_change?: boolean
+    temporary_password?: string
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/users/${userId}/security/password-reset`, {
+      method: 'POST',
+      body: JSON.stringify(options)
+    })
+  }
+
+  async getUserLoginHistory(userId: string, filters?: {
+    limit?: number
+    date_from?: string
+    date_to?: string
+    include_failed_attempts?: boolean
+  }): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest(`/api/superadmin/users/${userId}/login-history?${params.toString()}`)
+  }
+
+  async impersonateUser(userId: string, options: {
+    duration_minutes?: number
+    reason?: string
+    notify_user?: boolean
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/users/${userId}/impersonate`, {
+      method: 'POST',
+      body: JSON.stringify(options)
+    })
+  }
+
+  async updateUserStatus(userId: string, status: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/users/${userId}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status })
+    })
+  }
+
+  async bulkUserOperations(operation: string, userIds: string[], parameters: any): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/users/bulk-operations', {
+      method: 'POST',
+      body: JSON.stringify({ operation, user_ids: userIds, parameters })
+    })
+  }
+
+  async advancedUserSearch(filters: {
+    role?: string
+    status?: string
+    last_login_before?: string
+    credits_range?: [number, number]
+    team_id?: string
+    subscription_tier?: string
+  }): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        if (Array.isArray(value)) {
+          params.append(key, value.join(','))
+        } else {
+          params.append(key, value.toString())
+        }
+      }
+    })
+    return this.makeRequest(`/api/superadmin/users/advanced-search?${params.toString()}`)
+  }
+
+  // Role & Permission Management
+  async getRoles(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/roles')
+  }
+
+  async createRole(roleData: {
+    role_name: string
+    permissions: Record<string, any>
+    role_level: number
+    description: string
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/roles/create', {
+      method: 'POST',
+      body: JSON.stringify(roleData)
+    })
+  }
+
+  async updateRolePermissions(roleId: string, permissions: Record<string, any>, applyToExisting = true): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/roles/${roleId}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissions, apply_to_existing_users: applyToExisting })
+    })
+  }
+
+  async getPermissionMatrix(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/permissions/matrix')
+  }
+
+  // Team Management
+  async getComprehensiveTeams(options?: {
+    include_members?: boolean
+    include_usage?: boolean
+    include_billing?: boolean
+  }): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    if (options) {
+      Object.entries(options).forEach(([key, value]) => {
+        if (value) {
+          params.append(key, 'true')
+        }
+      })
+    }
+    return this.makeRequest(`/api/superadmin/teams/comprehensive?${params.toString()}`)
+  }
+
+  async bulkTeamMemberOperations(teamId: string, operation: string, userIds: string[], teamRole?: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/teams/${teamId}/members/bulk`, {
+      method: 'POST',
+      body: JSON.stringify({ operation, user_ids: userIds, team_role: teamRole })
+    })
+  }
+
+  async updateTeamPermissions(teamId: string, permissions: Record<string, any>, overrideIndividual = false): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/teams/${teamId}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissions, override_individual: overrideIndividual })
+    })
+  }
+
+  // AI System Management
+  async getAIModelsStatus(): Promise<ApiResponse<AISystemStatus>> {
+    return this.makeRequest<AISystemStatus>('/api/superadmin/ai/models/status')
+  }
+
+  async getAIAnalysisQueue(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/ai/analysis/queue')
+  }
+
+  async getAIAnalysisStats(filters?: {
+    date_from?: string
+    date_to?: string
+    model_type?: string
+  }): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest(`/api/superadmin/ai/analysis/stats?${params.toString()}`)
+  }
+
+  async retryAIAnalysis(jobIds?: string[], modelTypes?: string[]): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/ai/analysis/retry', {
+      method: 'POST',
+      body: JSON.stringify({ job_ids: jobIds, model_types: modelTypes })
+    })
+  }
+
+  // Content & Media Management
+  async getContentModerationQueue(): Promise<ApiResponse<ContentModeration>> {
+    return this.makeRequest<ContentModeration>('/api/superadmin/content/moderation/queue')
+  }
+
+  async getContentCategoriesDistribution(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/content/categories/distribution')
+  }
+
+  async getCDNPerformance(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/cdn/performance')
+  }
+
+  async getCDNAssets(filters?: {
+    asset_type?: string
+    status?: string
+    date_range?: string
+  }): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest(`/api/superadmin/cdn/assets?${params.toString()}`)
+  }
+
+  // System Configuration
+  async getSystemConfigurations(): Promise<ApiResponse<SystemConfiguration>> {
+    return this.makeRequest<SystemConfiguration>('/api/superadmin/system/configurations')
+  }
+
+  async updateSystemConfiguration(configKey: string, value: any, description?: string, requiresRestart = false): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/system/configurations', {
+      method: 'PUT',
+      body: JSON.stringify({
+        config_key: configKey,
+        value,
+        description,
+        requires_restart: requiresRestart
+      })
+    })
+  }
+
+  async getFeatureFlags(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/system/feature-flags')
+  }
+
+  async toggleFeatureFlag(flagId: string, enabled: boolean, rolloutPercentage = 100, targetSegments: string[] = []): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/system/feature-flags/${flagId}/toggle`, {
+      method: 'POST',
+      body: JSON.stringify({
+        enabled,
+        rollout_percentage: rolloutPercentage,
+        target_segments: targetSegments
+      })
+    })
+  }
+
+  // Advanced Platform Analytics
+  async getDetailedPlatformUsage(options?: {
+    timeframe?: string
+    breakdown_by?: string
+    include_segments?: boolean
+  }): Promise<ApiResponse<PlatformAnalytics>> {
+    const params = new URLSearchParams()
+    if (options) {
+      Object.entries(options).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest<PlatformAnalytics>(`/api/superadmin/platform/usage/detailed?${params.toString()}`)
+  }
+
+  async getPlatformPerformanceMetrics(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/platform/performance/metrics')
+  }
+
+  async getAPIUsageAnalytics(filters?: {
+    user_id?: string
+    endpoint_pattern?: string
+    time_range?: string
+  }): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest(`/api/superadmin/platform/api/usage?${params.toString()}`)
+  }
+
+  // Advanced User Intelligence
+  async getCohortAnalysis(options?: {
+    cohort_period?: string
+    retention_periods?: string
+  }): Promise<ApiResponse<UserIntelligence>> {
+    const params = new URLSearchParams()
+    if (options) {
+      Object.entries(options).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest<UserIntelligence>(`/api/superadmin/users/cohort-analysis?${params.toString()}`)
+  }
+
+  async getUserSegmentation(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/users/segmentation')
+  }
+
+  async getBusinessForecasting(options?: {
+    forecast_period?: string
+    metrics?: string
+  }): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    if (options) {
+      Object.entries(options).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest(`/api/superadmin/business/forecasting?${params.toString()}`)
+  }
+
+  // Platform Operations
+  async getOperationsHealth(): Promise<ApiResponse<OperationsHealth>> {
+    return this.makeRequest<OperationsHealth>('/api/superadmin/operations/health')
+  }
+
+  async getAuditLog(filters?: {
+    user_id?: string
+    action_type?: string
+    date_range?: string
+    severity?: string
+  }): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest(`/api/superadmin/operations/audit-log?${params.toString()}`)
+  }
+
+  async performMaintenance(operation: string, dryRun = true, schedule = 'now'): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/operations/maintenance', {
+      method: 'POST',
+      body: JSON.stringify({ operation, dry_run: dryRun, schedule })
+    })
+  }
+
+  async getBackupStatus(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/operations/backup-status')
+  }
+
+  // Data Export & Integration
+  async createDataExport(options: {
+    tables: string[]
+    date_range?: Record<string, string>
+    format?: 'csv' | 'json'
+    include_pii?: boolean
+  }): Promise<ApiResponse<DataExportJob>> {
+    return this.makeRequest<DataExportJob>('/api/superadmin/data/export/comprehensive', {
+      method: 'POST',
+      body: JSON.stringify(options)
+    })
+  }
+
+  async getDataExportJobs(): Promise<ApiResponse<{ jobs: DataExportJob[] }>> {
+    return this.makeRequest<{ jobs: DataExportJob[] }>('/api/superadmin/data/export/jobs')
+  }
+
+  async getThirdPartyIntegrations(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/integrations/third-party')
+  }
+
+  // Security & Compliance
+  async getSecurityThreats(): Promise<ApiResponse<SecurityThreats>> {
+    return this.makeRequest<SecurityThreats>('/api/superadmin/security/threats')
+  }
+
+  async getSuspiciousActivities(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/security/suspicious-activities')
+  }
+
+  async getComplianceReports(options?: {
+    report_type?: string
+    date_range?: string
+    regulation?: string
+  }): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    if (options) {
+      Object.entries(options).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest(`/api/superadmin/compliance/reports?${params.toString()}`)
+  }
+
+  async emergencyUserLock(userId: string, action: 'lock' | 'unlock' | 'force_logout', reason: string): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/security/user-lock', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, action, reason })
+    })
+  }
+
+  // Feature Access Management
+  async getFeatureAccessGrants(filters?: {
+    feature_type?: string
+    user_id?: string
+    team_id?: string
+    status?: string
+    expires_soon?: boolean
+  }): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest(`/api/superadmin/features/access-grants?${params.toString()}`)
+  }
+
+  async bulkFeatureGrant(options: {
+    feature: string
+    users?: string[]
+    teams?: string[]
+    access_level: string
+    expires_at?: string
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/features/bulk-grant', {
+      method: 'POST',
+      body: JSON.stringify(options)
+    })
+  }
+
+  async grantProposalAccess(userId: string, options: {
+    access_level: string
+    expires_at?: string
+    reason?: string
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/users/${userId}/features/proposals/grant`, {
+      method: 'POST',
+      body: JSON.stringify(options)
+    })
+  }
+
+  async revokeProposalAccess(userId: string, options: {
+    reason: string
+    immediate?: boolean
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/users/${userId}/features/proposals/revoke`, {
+      method: 'POST',
+      body: JSON.stringify(options)
+    })
+  }
+
+  // Enhanced Proposals Management
+  async setInfluencerPricing(profileId: string, pricingData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/proposals/pricing/influencers', {
+      method: 'POST',
+      body: JSON.stringify({ profile_id: profileId, ...pricingData })
+    })
+  }
+
+  async getInfluencerPricing(profileId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/pricing/influencers/${profileId}`)
+  }
+
+  async calculateCampaignPricing(profileId: string, campaignRequirements: any): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/pricing/calculate/${profileId}`, {
+      method: 'POST',
+      body: JSON.stringify(campaignRequirements)
+    })
+  }
+
+  async createInviteCampaign(campaignData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/proposals/invite-campaigns', {
+      method: 'POST',
+      body: JSON.stringify(campaignData)
+    })
+  }
+
+  async publishInviteCampaign(campaignId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/invite-campaigns/${campaignId}/publish`, {
+      method: 'POST'
+    })
+  }
+
+  async getCampaignApplications(campaignId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/invite-campaigns/${campaignId}/applications`)
+  }
+
+  async approveApplication(applicationId: string, decision: {
+    approved: boolean
+    feedback?: string
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/applications/${applicationId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(decision)
+    })
+  }
+
+  async createBrandProposal(proposalData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/proposals/brand-proposals', {
+      method: 'POST',
+      body: JSON.stringify(proposalData)
+    })
+  }
+
+  async assignInfluencersToProposal(proposalId: string, influencerData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/influencers`, {
+      method: 'POST',
+      body: JSON.stringify(influencerData)
+    })
+  }
+
+  async sendBrandProposal(proposalId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/send`, {
+      method: 'POST'
+    })
+  }
+
+  async getBrandProposals(filters?: {
+    status?: string
+    brand?: string
+    date_from?: string
+    date_to?: string
+  }): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest(`/api/superadmin/proposals/brand-proposals?${params.toString()}`)
+  }
+
+  async getBrandProposalDetails(proposalId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}`)
+  }
+
+  async getProposalsDashboard(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/proposals/dashboard')
+  }
+
+  async getProposalsHealth(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/proposals/health')
+  }
+
   // System Actions
   async broadcastSystemMessage(message: {
     title: string
@@ -516,6 +1327,52 @@ export class SuperadminApiService {
       body: JSON.stringify(message)
     })
   }
+
+  // Missing Critical Methods - Added to match comprehensive API
+  async getSuspiciousActivities(filters?: {
+    limit?: number
+    severity?: string
+    user_id?: string
+  }): Promise<ApiResponse<{
+    activities: SuspiciousActivity[]
+    total_count: number
+    severity_distribution: Record<string, number>
+  }>> {
+    const params = new URLSearchParams()
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest(`/api/superadmin/security/suspicious-activities?${params.toString()}`)
+  }
+
+  async getPlatformAnalytics(): Promise<ApiResponse<PlatformAnalytics>> {
+    return this.makeRequest<PlatformAnalytics>('/api/superadmin/platform/analytics/comprehensive')
+  }
+
+  async getSystemComponents(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/system/components')
+  }
+
+  async restartSystemComponent(componentName: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/system/components/${componentName}/restart`, {
+      method: 'POST'
+    })
+  }
+
+  async getAIAnalysisOverview(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/ai/analysis/overview')
+  }
+
+  async getContentAnalyticsOverview(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/content/analytics/overview')
+  }
 }
 
 export const superadminApiService = new SuperadminApiService()
+
+// Export convenience function for backward compatibility
+export const superadminApi = superadminApiService

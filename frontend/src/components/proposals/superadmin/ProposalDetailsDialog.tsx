@@ -64,7 +64,7 @@ export function ProposalDetailsDialog({ proposal, onClose, onUpdate }: ProposalD
   const handleSendProposal = async () => {
     try {
       const result = await superadminProposalsApi.sendProposalToBrands(proposal.id, {
-        response_due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        response_due_date: new Date(Date.now() + (14 * 24 * 60 * 60 * 1000)).toISOString(), // TODO: Make configurable
         send_notifications: true
       })
 

@@ -42,7 +42,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
-import { Pie, PieChart, Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis, Area, AreaChart } from "recharts"
+import {
+  Pie, PieChart, Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis, Area, AreaChart,
+  RadialBarChart, RadialBar, PolarGrid, PolarRadiusAxis, Label, PolarAngleAxis, Radar, RadarChart
+} from "recharts"
 import {
   ChartConfig,
   ChartContainer,
@@ -871,39 +874,64 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   </div>
                   <ChartContainer
                     config={{
-                      value: {
+                      engagement: {
                         label: "Engagement Rate",
-                        color: "hsl(var(--primary))",
+                        color: "var(--chart-1)",
                       },
                     } satisfies ChartConfig}
-                    className="h-[80px] w-full"
+                    className="mx-auto aspect-square max-h-[120px]"
                   >
-                    <BarChart
-                      accessibilityLayer
-                      data={[
-                        {
-                          category: "Engagement Rate",
-                          value: data.overview.engagement_metrics.engagement_rate * 100,
-                          label: formatPercentage(data.overview.engagement_metrics.engagement_rate)
-                        }
-                      ]}
-                      layout="vertical"
-                      margin={{ left: -20 }}
+                    <RadialBarChart
+                      data={[{
+                        name: "engagement",
+                        value: data.overview.engagement_metrics.engagement_rate * 100,
+                        fill: "var(--color-engagement)"
+                      }]}
+                      startAngle={0}
+                      endAngle={250}
+                      innerRadius={30}
+                      outerRadius={50}
                     >
-                      <XAxis type="number" dataKey="value" hide />
-                      <YAxis
-                        dataKey="category"
-                        type="category"
-                        width={120}
-                        tick={false}
-                        axisLine={false}
+                      <PolarGrid
+                        gridType="circle"
+                        radialLines={false}
+                        stroke="none"
+                        className="first:fill-muted last:fill-background"
+                        polarRadius={[36, 24]}
                       />
-                      <ChartTooltip
-                        cursor={false}
-                        content={<ChartTooltipContent indicator="line" />}
-                      />
-                      <Bar dataKey="value" fill="var(--color-value)" radius={4} />
-                    </BarChart>
+                      <RadialBar dataKey="value" background cornerRadius={10} />
+                      <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+                        <Label
+                          content={({ viewBox }) => {
+                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                              return (
+                                <text
+                                  x={viewBox.cx}
+                                  y={viewBox.cy}
+                                  textAnchor="middle"
+                                  dominantBaseline="middle"
+                                >
+                                  <tspan
+                                    x={viewBox.cx}
+                                    y={viewBox.cy}
+                                    className="fill-foreground text-lg font-bold"
+                                  >
+                                    {formatPercentage(data.overview.engagement_metrics.engagement_rate)}
+                                  </tspan>
+                                  <tspan
+                                    x={viewBox.cx}
+                                    y={(viewBox.cy || 0) + 16}
+                                    className="fill-muted-foreground text-xs"
+                                  >
+                                    Engagement
+                                  </tspan>
+                                </text>
+                              )
+                            }
+                          }}
+                        />
+                      </PolarRadiusAxis>
+                    </RadialBarChart>
                   </ChartContainer>
                   <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
                     <div className="text-sm font-medium text-primary">Best Performing Post</div>
@@ -1092,10 +1120,9 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
               <CardContent>
                 <ChartContainer
                   config={{
-                    visitors: { label: "Audience" },
-                    female: { label: "Female", color: "hsl(var(--primary))" },
-                    male: { label: "Male", color: "hsl(var(--primary) / 0.7)" },
-                    other: { label: "Other", color: "hsl(var(--primary) / 0.4)" },
+                    female: { label: "Female", color: "var(--chart-1)" },
+                    male: { label: "Male", color: "var(--chart-2)" },
+                    other: { label: "Other", color: "var(--chart-3)" },
                   } satisfies ChartConfig}
                   className="mx-auto aspect-square max-h-[250px]"
                 >
@@ -1105,14 +1132,48 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                       data={Object.entries(data.audience.demographics.estimated_gender_split).map(([gender, percentage]) => ({
                         browser: gender.charAt(0).toUpperCase() + gender.slice(1),
                         visitors: (percentage as number) * 100,
-                        fill: gender === 'female' ? 'hsl(var(--primary))' :
-                              gender === 'male' ? 'hsl(var(--primary) / 0.7)' :
-                              'hsl(var(--primary) / 0.4)'
+                        fill: gender === 'female' ? 'var(--color-female)' :
+                              gender === 'male' ? 'var(--color-male)' :
+                              'var(--color-other)'
                       }))}
                       dataKey="visitors"
-                      label
                       nameKey="browser"
-                    />
+                      innerRadius={60}
+                      strokeWidth={5}
+                    >
+                      <Label
+                        content={({ viewBox }) => {
+                          if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                            const totalAudience = Object.values(data.audience.demographics.estimated_gender_split).reduce((a, b) => a + b, 0)
+                            const dominantGender = Object.entries(data.audience.demographics.estimated_gender_split)
+                              .sort(([,a], [,b]) => (b as number) - (a as number))[0]
+                            return (
+                              <text
+                                x={viewBox.cx}
+                                y={viewBox.cy}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                              >
+                                <tspan
+                                  x={viewBox.cx}
+                                  y={viewBox.cy}
+                                  className="fill-foreground text-2xl font-bold"
+                                >
+                                  {Math.round((dominantGender[1] as number) * 100)}%
+                                </tspan>
+                                <tspan
+                                  x={viewBox.cx}
+                                  y={(viewBox.cy || 0) + 20}
+                                  className="fill-muted-foreground capitalize"
+                                >
+                                  {dominantGender[0]}
+                                </tspan>
+                              </text>
+                            )
+                          }
+                        }}
+                      />
+                    </Pie>
                   </PieChart>
                 </ChartContainer>
               </CardContent>
@@ -1185,7 +1246,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                     config={{
                       value: {
                         label: "Percentage",
-                        color: "hsl(var(--primary))",
+                        color: "var(--chart-1)",
                       },
                     } satisfies ChartConfig}
                     className="h-[200px] w-full"
@@ -1339,7 +1400,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                     config={{
                       value: {
                         label: "Score",
-                        color: "hsl(var(--primary))",
+                        color: "var(--chart-1)",
                       },
                     } satisfies ChartConfig}
                     className="h-[180px] w-full"
@@ -1397,28 +1458,46 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
               <CardContent>
                 <ChartContainer
                   config={{
-                    visitors: { label: "Sentiment" },
-                    positive: { label: "Positive", color: "#22c55e" },
-                    negative: { label: "Negative", color: "#ef4444" },
-                    neutral: { label: "Neutral", color: "hsl(var(--primary))" },
+                    positive: { label: "Positive", color: "var(--chart-2)" },
+                    negative: { label: "Negative", color: "var(--chart-5)" },
+                    neutral: { label: "Neutral", color: "var(--chart-3)" },
                   } satisfies ChartConfig}
-                  className="mx-auto aspect-square max-h-[250px]"
+                  className="h-[200px]"
                 >
-                  <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                    <Pie
-                      data={Object.entries(data.engagement.sentiment_analysis.overall_sentiment_distribution).map(([sentiment, percentage]) => ({
-                        browser: sentiment.charAt(0).toUpperCase() + sentiment.slice(1),
-                        visitors: (percentage as number) * 100,
-                        fill: sentiment === 'positive' ? '#22c55e' :
-                              sentiment === 'negative' ? '#ef4444' :
-                              'hsl(var(--primary))'
-                      }))}
-                      dataKey="visitors"
-                      label
-                      nameKey="browser"
+                  <BarChart
+                    accessibilityLayer
+                    data={Object.entries(data.engagement.sentiment_analysis.overall_sentiment_distribution).map(([sentiment, percentage]) => ({
+                      sentiment: sentiment.charAt(0).toUpperCase() + sentiment.slice(1),
+                      value: (percentage as number) * 100,
+                      fill: sentiment === 'positive' ? 'var(--color-positive)' :
+                            sentiment === 'negative' ? 'var(--color-negative)' :
+                            'var(--color-neutral)'
+                    }))}
+                    layout="vertical"
+                    margin={{ left: 60, right: 12 }}
+                  >
+                    <CartesianGrid horizontal={false} />
+                    <XAxis
+                      type="number"
+                      dataKey="value"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
                     />
-                  </PieChart>
+                    <YAxis
+                      dataKey="sentiment"
+                      type="category"
+                      tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
+                      width={50}
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent hideLabel />}
+                    />
+                    <Bar dataKey="value" radius={4} />
+                  </BarChart>
                 </ChartContainer>
                 <div className="text-center mt-4">
                   <div className="text-sm text-muted-foreground">Sentiment Trend</div>
@@ -1541,21 +1620,59 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
             <CardContent>
               <ChartContainer
                 config={{
-                  engagement: {
-                    label: "Engagement Rate",
-                    color: "hsl(var(--primary))",
+                  likes: {
+                    label: "Likes",
+                    color: "var(--chart-1)",
+                  },
+                  comments: {
+                    label: "Comments",
+                    color: "var(--chart-2)",
+                  },
+                  shares: {
+                    label: "Shares",
+                    color: "var(--chart-3)",
                   },
                 } satisfies ChartConfig}
               >
                 <AreaChart
                   accessibilityLayer
                   data={[
-                    { month: 'Jan', engagement: data.engagement.behavioral_patterns.avg_engagement_rate * 80 },
-                    { month: 'Feb', engagement: data.engagement.behavioral_patterns.avg_engagement_rate * 90 },
-                    { month: 'Mar', engagement: data.engagement.behavioral_patterns.avg_engagement_rate * 85 },
-                    { month: 'Apr', engagement: data.engagement.behavioral_patterns.avg_engagement_rate * 95 },
-                    { month: 'May', engagement: data.engagement.behavioral_patterns.avg_engagement_rate * 100 },
-                    { month: 'Jun', engagement: data.engagement.behavioral_patterns.avg_engagement_rate * 110 }
+                    {
+                      month: 'Jan',
+                      likes: data.overview.engagement_metrics.avg_likes * 0.8,
+                      comments: data.overview.engagement_metrics.avg_comments * 0.8,
+                      shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.8
+                    },
+                    {
+                      month: 'Feb',
+                      likes: data.overview.engagement_metrics.avg_likes * 0.9,
+                      comments: data.overview.engagement_metrics.avg_comments * 0.9,
+                      shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.9
+                    },
+                    {
+                      month: 'Mar',
+                      likes: data.overview.engagement_metrics.avg_likes * 0.85,
+                      comments: data.overview.engagement_metrics.avg_comments * 0.85,
+                      shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.85
+                    },
+                    {
+                      month: 'Apr',
+                      likes: data.overview.engagement_metrics.avg_likes * 0.95,
+                      comments: data.overview.engagement_metrics.avg_comments * 0.95,
+                      shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.95
+                    },
+                    {
+                      month: 'May',
+                      likes: data.overview.engagement_metrics.avg_likes,
+                      comments: data.overview.engagement_metrics.avg_comments,
+                      shares: data.overview.engagement_metrics.avg_likes * 0.1
+                    },
+                    {
+                      month: 'Jun',
+                      likes: data.overview.engagement_metrics.avg_likes * 1.1,
+                      comments: data.overview.engagement_metrics.avg_comments * 1.1,
+                      shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 1.1
+                    }
                   ]}
                   margin={{
                     left: 12,
@@ -1571,14 +1688,31 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   />
                   <ChartTooltip
                     cursor={false}
-                    content={<ChartTooltipContent indicator="line" />}
+                    content={<ChartTooltipContent indicator="dot" />}
                   />
                   <Area
-                    dataKey="engagement"
+                    dataKey="shares"
                     type="natural"
-                    fill="hsl(var(--primary))"
+                    fill="var(--color-shares)"
                     fillOpacity={0.4}
-                    stroke="hsl(var(--primary))"
+                    stroke="var(--color-shares)"
+                    stackId="a"
+                  />
+                  <Area
+                    dataKey="comments"
+                    type="natural"
+                    fill="var(--color-comments)"
+                    fillOpacity={0.4}
+                    stroke="var(--color-comments)"
+                    stackId="a"
+                  />
+                  <Area
+                    dataKey="likes"
+                    type="natural"
+                    fill="var(--color-likes)"
+                    fillOpacity={0.4}
+                    stroke="var(--color-likes)"
+                    stackId="a"
                   />
                 </AreaChart>
               </ChartContainer>
@@ -1625,7 +1759,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                       config={{
                         value: {
                           label: "Quality",
-                          color: "hsl(var(--primary))",
+                          color: "var(--chart-1)",
                         },
                       } satisfies ChartConfig}
                       className="h-[80px] w-full"
@@ -1779,7 +1913,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                     config={{
                       value: {
                         label: "Likelihood",
-                        color: "hsl(var(--primary))",
+                        color: "var(--chart-1)",
                       },
                     } satisfies ChartConfig}
                     className="h-[80px] w-full"
@@ -1866,7 +2000,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                         const chartConfig = {
                           value: {
                             label: "Mentions",
-                            color: "hsl(var(--chart-1))",
+                            color: "var(--chart-1)",
                           },
                         }
 
@@ -2007,7 +2141,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                     config={{
                       value: {
                         label: "Score",
-                        color: "hsl(var(--primary))",
+                        color: "var(--chart-1)",
                       },
                     } satisfies ChartConfig}
                     className="h-[120px] w-full"
@@ -2097,7 +2231,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                     config={{
                       value: {
                         label: "Complexity",
-                        color: "hsl(var(--primary))",
+                        color: "var(--chart-1)",
                       },
                     } satisfies ChartConfig}
                     className="h-[80px] w-full"

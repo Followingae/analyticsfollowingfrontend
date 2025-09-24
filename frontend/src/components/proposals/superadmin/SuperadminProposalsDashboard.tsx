@@ -2,13 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  superadminProposalsApi, 
-  BrandProposal, 
+import {
+  superadminProposalsApi,
+  BrandProposal,
   SuperadminDashboard,
   InviteCampaign,
   InfluencerApplication
 } from '@/services/proposalsApi'
+import {
+  superadminApiService,
+  DashboardOverview,
+  UserManagement,
+  CreditOverview,
+  SecurityAlert,
+  Transaction,
+  Influencer,
+  Proposal
+} from '@/services/superadminApi'
 import {
   Plus,
   Users,
@@ -79,11 +89,22 @@ import { ProposalDetailsDialog } from './ProposalDetailsDialog'
 export const dynamic = 'force-dynamic'
 
 export function SuperadminProposalsDashboard() {
-  const [dashboardData, setDashboardData] = useState<SuperadminDashboard | null>(null)
+  // Main Dashboard Data (using superadmin API, not proposals-specific)
+  const [mainDashboardData, setMainDashboardData] = useState<DashboardOverview | null>(null)
+
+  // Proposals-specific data
+  const [proposalsDashboardData, setProposalsDashboardData] = useState<SuperadminDashboard | null>(null)
   const [proposals, setProposals] = useState<BrandProposal[]>([])
   const [inviteCampaigns, setInviteCampaigns] = useState<InviteCampaign[]>([])
   const [recentApplications, setRecentApplications] = useState<InfluencerApplication[]>([])
-  
+
+  // Additional data for comprehensive dashboard
+  const [users, setUsers] = useState<UserManagement[]>([])
+  const [creditOverview, setCreditOverview] = useState<CreditOverview | null>(null)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([])
+  const [influencers, setInfluencers] = useState<Influencer[]>([])
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentTab, setCurrentTab] = useState('overview')
@@ -101,31 +122,75 @@ export function SuperadminProposalsDashboard() {
 
   const router = useRouter()
 
-  // Load dashboard data
+  // Load comprehensive dashboard data
   const loadDashboardData = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
-      const [dashboardResult, proposalsResult, campaignsResult] = await Promise.all([
+      // Load main dashboard data using correct superadmin API (not proposals-specific)
+      const [
+        mainDashboardResult,
+        proposalsDashboardResult,
+        proposalsResult,
+        campaignsResult,
+        usersResult,
+        creditOverviewResult,
+        securityAlertsResult
+      ] = await Promise.all([
+        // Main comprehensive dashboard
+        superadminApiService.getDashboard(),
+
+        // Proposals-specific dashboard
         superadminProposalsApi.getDashboard(),
         superadminProposalsApi.getAllProposals({ limit: 50 }),
-        superadminProposalsApi.getInviteCampaigns({ limit: 10 })
+        superadminProposalsApi.getInviteCampaigns({ limit: 10 }),
+
+        // Additional comprehensive data
+        superadminApiService.getUsers({ limit: 20 }),
+        superadminApiService.getCreditOverview(),
+        superadminApiService.getSecurityAlerts({ limit: 10 })
       ])
 
-      if (dashboardResult.success && dashboardResult.data) {
-        setDashboardData(dashboardResult.data)
-        setRecentApplications(dashboardResult.data.recent_applications || [])
-      } else {
-        throw new Error(dashboardResult.error || 'Failed to load dashboard')
+      // Set main dashboard data (system health, user metrics, etc.)
+      if (mainDashboardResult.success && mainDashboardResult.data) {
+        setMainDashboardData(mainDashboardResult.data)
       }
 
+      // Set proposals-specific dashboard data
+      if (proposalsDashboardResult.success && proposalsDashboardResult.data) {
+        setProposalsDashboardData(proposalsDashboardResult.data)
+        setRecentApplications(proposalsDashboardResult.data.recent_applications || [])
+      }
+
+      // Set proposals data
       if (proposalsResult.success && proposalsResult.data) {
         setProposals(proposalsResult.data.proposals || [])
       }
 
+      // Set campaigns data
       if (campaignsResult.success && campaignsResult.data) {
         setInviteCampaigns(campaignsResult.data.campaigns || [])
+      }
+
+      // Set users data
+      if (usersResult.success && usersResult.data) {
+        setUsers(usersResult.data.users || [])
+      }
+
+      // Set credit overview
+      if (creditOverviewResult.success && creditOverviewResult.data) {
+        setCreditOverview(creditOverviewResult.data)
+      }
+
+      // Set security alerts
+      if (securityAlertsResult.success && securityAlertsResult.data) {
+        setSecurityAlerts(securityAlertsResult.data.alerts || [])
+      }
+
+      // If main dashboard fails but we have some data, continue
+      if (!mainDashboardResult.success && !proposalsDashboardResult.success) {
+        throw new Error(mainDashboardResult.error || proposalsDashboardResult.error || 'Failed to load dashboard data')
       }
 
     } catch (error) {
@@ -144,7 +209,7 @@ export function SuperadminProposalsDashboard() {
   const handleSendProposal = async (proposalId: string) => {
     try {
       const result = await superadminProposalsApi.sendProposalToBrands(proposalId, {
-        response_due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        response_due_date: new Date(Date.now() + (14 * 24 * 60 * 60 * 1000)).toISOString(), // TODO: Make configurable
         send_notifications: true
       })
 
@@ -311,121 +376,241 @@ export function SuperadminProposalsDashboard() {
             </div>
 
             <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
-              <TabsList>
+              <TabsList className="grid w-full grid-cols-8">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="users">Users</TabsTrigger>
+                <TabsTrigger value="credits">Credits</TabsTrigger>
                 <TabsTrigger value="proposals">Proposals</TabsTrigger>
-                <TabsTrigger value="campaigns">Invite Campaigns</TabsTrigger>
+                <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
                 <TabsTrigger value="applications">Applications</TabsTrigger>
+                <TabsTrigger value="security">Security</TabsTrigger>
                 <TabsTrigger value="analytics">Analytics</TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
-                {/* Dashboard Stats */}
-                {dashboardData && (
+                {/* System Health & Main Metrics */}
+                {mainDashboardData && (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Proposals</CardTitle>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">System Health</CardTitle>
+                        <Settings className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold">{dashboardData.total_proposals}</div>
+                        <div className="text-2xl font-bold">
+                          {mainDashboardData.system_health?.cpu_usage_percent !== undefined
+                            ? `${mainDashboardData.system_health.cpu_usage_percent.toFixed(0)}%`
+                            : <div className="h-8 w-12 bg-muted animate-pulse rounded" />
+                          }
+                        </div>
                         <p className="text-xs text-muted-foreground">
-                          {dashboardData.active_proposals} active
+                          {mainDashboardData.system_health?.memory_usage_percent !== undefined
+                            ? `CPU • ${mainDashboardData.system_health.memory_usage_percent.toFixed(0)}% Memory`
+                            : <div className="h-3 w-20 bg-muted animate-pulse rounded" />
+                          }
                         </p>
                       </CardContent>
                     </Card>
-                    
+
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {mainDashboardData.user_statistics.total_users.toLocaleString()}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          +{mainDashboardData.user_statistics.new_registrations_today} today
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">
-                          {formatCurrency(dashboardData.total_proposed_value_usd_cents)}
+                          {formatCurrency(mainDashboardData.revenue_analytics.total_revenue_usd_cents)}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Proposed value
+                          {mainDashboardData.revenue_analytics.monthly_growth_percent > 0 ? '+' : ''}
+                          {mainDashboardData.revenue_analytics.monthly_growth_percent.toFixed(1)}% growth
                         </p>
                       </CardContent>
                     </Card>
 
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pending Responses</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Credits in System</CardTitle>
+                        <Target className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold">{dashboardData.pending_brand_responses}</div>
+                        <div className="text-2xl font-bold">
+                          {mainDashboardData.credit_system.credits_in_circulation.toLocaleString()}
+                        </div>
                         <p className="text-xs text-muted-foreground">
-                          Awaiting brand decision
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Applications</CardTitle>
-                        <UserPlus className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">{dashboardData.total_applications_received}</div>
-                        <p className="text-xs text-muted-foreground">
-                          {dashboardData.active_invite_campaigns} active campaigns
+                          {mainDashboardData.credit_system.total_credits_spent.toLocaleString()} spent
                         </p>
                       </CardContent>
                     </Card>
                   </div>
                 )}
 
-                {/* Recent Proposals */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Proposals</CardTitle>
-                    <CardDescription>Latest proposal activity</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {dashboardData?.recent_proposals?.slice(0, 5).map((proposal) => (
-                        <div key={proposal.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                          <div className="space-y-1">
-                            <p className="font-medium">{proposal.proposal_title}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {proposal.brand_company_name || 'Brand Proposal'} • {formatCurrency(proposal.total_campaign_budget_usd_cents)}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className={getStatusColor(proposal.status)}>
-                              {proposal.status.replace('_', ' ')}
-                            </Badge>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedProposal(proposal)
-                                setIsProposalDetailsOpen(true)
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </div>
+                {/* Proposals Stats (if available) */}
+                {proposalsDashboardData && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Proposals Overview</CardTitle>
+                      <CardDescription>B2B proposals and campaign management</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold">{proposalsDashboardData.total_proposals}</div>
+                          <div className="text-sm text-muted-foreground">Total Proposals</div>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold">{proposalsDashboardData.active_proposals}</div>
+                          <div className="text-sm text-muted-foreground">Active</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold">{proposalsDashboardData.pending_brand_responses}</div>
+                          <div className="text-sm text-muted-foreground">Pending</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold">
+                            {formatCurrency(proposalsDashboardData.total_proposed_value_usd_cents)}
+                          </div>
+                          <div className="text-sm text-muted-foreground">Total Value</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Security Alerts */}
+                {securityAlerts.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Security Alerts</CardTitle>
+                      <CardDescription>Recent security events requiring attention</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {securityAlerts.slice(0, 5).map((alert) => (
+                          <div key={alert.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className={`h-2 w-2 rounded-full ${
+                                alert.severity === 'high' ? 'bg-red-500' :
+                                alert.severity === 'medium' ? 'bg-yellow-500' :
+                                'bg-blue-500'
+                              }`} />
+                              <div>
+                                <p className="font-medium">{alert.title}</p>
+                                <p className="text-sm text-muted-foreground">{alert.message}</p>
+                              </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(alert.timestamp).toLocaleString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Recent Proposals */}
+                {proposalsDashboardData?.recent_proposals && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Recent Proposals</CardTitle>
+                      <CardDescription>Latest proposal activity</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {proposalsDashboardData.recent_proposals.slice(0, 5).map((proposal) => (
+                          <div key={proposal.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                            <div className="space-y-1">
+                              <p className="font-medium">{proposal.proposal_title}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {proposal.brand_company_name || 'Brand Proposal'} • {formatCurrency(proposal.total_campaign_budget_usd_cents)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={getStatusColor(proposal.status)}>
+                                {proposal.status.replace('_', ' ')}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedProposal(proposal)
+                                  setIsProposalDetailsOpen(true)
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Credit System Overview */}
+                {creditOverview && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Credit System Overview</CardTitle>
+                      <CardDescription>System-wide credit analytics</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold">
+                            {creditOverview.overview.total_credits_in_system.toLocaleString()}
+                          </div>
+                          <div className="text-sm text-muted-foreground">Total Credits</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold">
+                            {creditOverview.overview.active_wallets.toLocaleString()}
+                          </div>
+                          <div className="text-sm text-muted-foreground">Active Wallets</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold">
+                            {creditOverview.overview.recent_transactions_24h.toLocaleString()}
+                          </div>
+                          <div className="text-sm text-muted-foreground">24h Transactions</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold">
+                            {creditOverview.overview.total_spent_all_time.toLocaleString()}
+                          </div>
+                          <div className="text-sm text-muted-foreground">Total Spent</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Status Distribution */}
-                {dashboardData && (
+                {proposalsDashboardData && (
                   <Card>
                     <CardHeader>
                       <CardTitle>Proposal Status Distribution</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        {Object.entries(dashboardData.proposals_by_status).map(([status, count]) => (
+                        {Object.entries(proposalsDashboardData.proposals_by_status).map(([status, count]) => (
                           <div key={status} className="text-center">
                             <div className="text-2xl font-bold">{count}</div>
                             <div className="text-sm text-muted-foreground capitalize">
@@ -434,6 +619,276 @@ export function SuperadminProposalsDashboard() {
                           </div>
                         ))}
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* Users Tab */}
+              <TabsContent value="users" className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold">User Management</h2>
+                    <p className="text-muted-foreground">Manage platform users and permissions</p>
+                  </div>
+                  <Button>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add User
+                  </Button>
+                </div>
+
+                {users.length > 0 ? (
+                  <div className="space-y-4">
+                    {users.map((user) => (
+                      <Card key={user.id}>
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-3">
+                                <h3 className="font-semibold">{user.full_name}</h3>
+                                <Badge variant="outline" className="text-xs">
+                                  {user.role}
+                                </Badge>
+                                <Badge
+                                  className={`text-xs ${
+                                    user.status === 'active' ? 'bg-green-100 text-green-800' :
+                                    user.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                                    'bg-red-100 text-red-800'
+                                  }`}
+                                >
+                                  {user.status}
+                                </Badge>
+                              </div>
+                              <p className="text-muted-foreground">{user.email}</p>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span>Credits: {user.credits.balance.toLocaleString()}</span>
+                                <span>Recent Activity: {user.recent_activity}</span>
+                                {user.teams.length > 0 && (
+                                  <span>Teams: {user.teams.map(t => t.name).join(', ')}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button variant="outline" size="sm">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No users found</h3>
+                      <p className="text-muted-foreground">User data will appear here</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* Credits Tab */}
+              <TabsContent value="credits" className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Credits & Billing Management</h2>
+                  <p className="text-muted-foreground">Monitor credit system and financial analytics</p>
+                </div>
+
+                {/* Credit Overview Stats */}
+                {creditOverview && (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Total Credits</CardTitle>
+                          <Target className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">
+                            {creditOverview.overview.total_credits_in_system.toLocaleString()}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            System-wide credits
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Active Wallets</CardTitle>
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">
+                            {creditOverview.overview.active_wallets.toLocaleString()}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Users with credits
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">24h Transactions</CardTitle>
+                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">
+                            {creditOverview.overview.recent_transactions_24h.toLocaleString()}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Recent activity
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">
+                            {creditOverview.overview.total_spent_all_time.toLocaleString()}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            All-time spending
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Top Spenders */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Top Credit Spenders</CardTitle>
+                        <CardDescription>Users with highest credit consumption</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {creditOverview.top_spenders.slice(0, 10).map((spender, index) => (
+                            <div key={spender.email} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <p className="font-medium">{spender.full_name}</p>
+                                  <p className="text-sm text-muted-foreground">{spender.email}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium">{spender.total_spent.toLocaleString()} credits</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Balance: {spender.current_balance.toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Pricing Rules */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Credit Pricing Rules</CardTitle>
+                        <CardDescription>System pricing configuration</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {creditOverview.pricing_rules.map((rule) => (
+                            <div key={rule.action_type} className="p-4 border rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium capitalize">
+                                  {rule.action_type.replace('_', ' ')}
+                                </h4>
+                                <Badge variant={rule.is_active ? "default" : "secondary"}>
+                                  {rule.is_active ? "Active" : "Inactive"}
+                                </Badge>
+                              </div>
+                              <div className="space-y-1 text-sm text-muted-foreground">
+                                <p>Cost: {rule.cost_per_action} credits</p>
+                                <p>Free allowance: {rule.free_monthly_allowance}/month</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </TabsContent>
+
+              {/* Security Tab */}
+              <TabsContent value="security" className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Security Monitoring</h2>
+                  <p className="text-muted-foreground">Monitor security alerts and system threats</p>
+                </div>
+
+                {securityAlerts.length > 0 ? (
+                  <div className="space-y-4">
+                    {securityAlerts.map((alert) => (
+                      <Card key={alert.id} className={`border-l-4 ${
+                        alert.severity === 'high' ? 'border-l-red-500' :
+                        alert.severity === 'medium' ? 'border-l-yellow-500' :
+                        'border-l-blue-500'
+                      }`}>
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-3">
+                                <h3 className="font-semibold">{alert.title}</h3>
+                                <Badge className={
+                                  alert.severity === 'high' ? 'bg-red-100 text-red-800' :
+                                  alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-blue-100 text-blue-800'
+                                }>
+                                  {alert.severity}
+                                </Badge>
+                              </div>
+                              <p className="text-muted-foreground">{alert.message}</p>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span>Type: {alert.type}</span>
+                                <span>Time: {new Date(alert.timestamp).toLocaleString()}</span>
+                                {alert.affected_user && (
+                                  <span>User: {alert.affected_user}</span>
+                                )}
+                              </div>
+                              {alert.suggested_actions.length > 0 && (
+                                <div className="mt-3">
+                                  <p className="text-sm font-medium mb-1">Suggested Actions:</p>
+                                  <ul className="text-sm text-muted-foreground">
+                                    {alert.suggested_actions.map((action, index) => (
+                                      <li key={index}>• {action}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                            {alert.action_required && (
+                              <Badge variant="destructive" className="text-xs">
+                                Action Required
+                              </Badge>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No security alerts</h3>
+                      <p className="text-muted-foreground">System security status: Good</p>
                     </CardContent>
                   </Card>
                 )}
@@ -584,35 +1039,214 @@ export function SuperadminProposalsDashboard() {
                 </div>
               </TabsContent>
 
-              {/* Other tabs (placeholder) */}
-              <TabsContent value="campaigns">
-                <div className="text-center py-12">
-                  <Link2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Invite Campaigns</h3>
-                  <p className="text-muted-foreground">
-                    Campaign management interface coming soon...
-                  </p>
+              {/* Campaigns Tab */}
+              <TabsContent value="campaigns" className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold">Invite Campaigns</h2>
+                    <p className="text-muted-foreground">Manage influencer invite campaigns</p>
+                  </div>
+                  <Button onClick={() => setIsInviteCampaignOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Campaign
+                  </Button>
                 </div>
+
+                {inviteCampaigns.length > 0 ? (
+                  <div className="grid gap-4">
+                    {inviteCampaigns.map((campaign) => (
+                      <Card key={campaign.id}>
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-2">
+                              <h3 className="font-semibold text-lg">{campaign.campaign_name}</h3>
+                              <p className="text-muted-foreground">{campaign.campaign_description}</p>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span>Type: {campaign.campaign_type}</span>
+                                <span>Applications: {campaign.total_applications_received}</span>
+                                <span>Approved: {campaign.total_applications_approved}</span>
+                              </div>
+                            </div>
+                            <Badge className={getStatusColor(campaign.status)}>
+                              {campaign.status}
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <Link2 className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No invite campaigns</h3>
+                      <p className="text-muted-foreground mb-4">Create your first invite campaign</p>
+                      <Button onClick={() => setIsInviteCampaignOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Campaign
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
-              <TabsContent value="applications">
-                <div className="text-center py-12">
-                  <UserPlus className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Influencer Applications</h3>
-                  <p className="text-muted-foreground">
-                    Application review interface coming soon...
-                  </p>
+              {/* Applications Tab */}
+              <TabsContent value="applications" className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Influencer Applications</h2>
+                  <p className="text-muted-foreground">Review and manage influencer applications</p>
                 </div>
+
+                {recentApplications.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentApplications.map((application) => (
+                      <Card key={application.id}>
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold">@{application.instagram_username}</h3>
+                                <span className="text-sm text-muted-foreground">
+                                  {application.followers_count.toLocaleString()} followers
+                                </span>
+                              </div>
+                              {application.full_name && (
+                                <p className="text-muted-foreground">{application.full_name}</p>
+                              )}
+                              <p className="text-sm">{application.why_interested}</p>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span>Category: {application.category}</span>
+                                <span>Submitted: {formatDate(application.submitted_at)}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className={getStatusColor(application.application_status)}>
+                                {application.application_status}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No applications</h3>
+                      <p className="text-muted-foreground">
+                        Applications will appear here when influencers apply to campaigns
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
-              <TabsContent value="analytics">
-                <div className="text-center py-12">
-                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Analytics & Reports</h3>
-                  <p className="text-muted-foreground">
-                    Advanced analytics dashboard coming soon...
-                  </p>
+              {/* Analytics Tab */}
+              <TabsContent value="analytics" className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold">System Analytics</h2>
+                  <p className="text-muted-foreground">Comprehensive system analytics and insights</p>
                 </div>
+
+                {/* Performance Metrics */}
+                {mainDashboardData && (
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>API Performance</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold mb-2">
+                          {mainDashboardData.performance_metrics.avg_api_response_time_ms}ms
+                        </div>
+                        <p className="text-sm text-muted-foreground">Average response time</p>
+                        <div className="mt-3 space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>RPS</span>
+                            <span>{mainDashboardData.performance_metrics.requests_per_second}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Error Rate</span>
+                            <span>{mainDashboardData.performance_metrics.error_rate_percent}%</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>User Activity</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold mb-2">
+                          {mainDashboardData.user_statistics.active_users_last_7_days.toLocaleString()}
+                        </div>
+                        <p className="text-sm text-muted-foreground">Active users (7 days)</p>
+                        <div className="mt-3 space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>30 days</span>
+                            <span>{mainDashboardData.user_statistics.active_users_last_30_days.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>New today</span>
+                            <span>{mainDashboardData.user_statistics.new_registrations_today}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Credit Flow</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold mb-2">
+                          {mainDashboardData.credit_system.credits_in_circulation.toLocaleString()}
+                        </div>
+                        <p className="text-sm text-muted-foreground">Credits in circulation</p>
+                        <div className="mt-3 space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Distributed</span>
+                            <span>{mainDashboardData.credit_system.total_credits_distributed.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Spent</span>
+                            <span>{mainDashboardData.credit_system.total_credits_spent.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Recent Activities */}
+                {mainDashboardData?.recent_activities && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Recent System Activities</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {mainDashboardData.recent_activities.slice(0, 10).map((activity) => (
+                          <div key={activity.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                            <div className={`h-2 w-2 rounded-full ${
+                              activity.type === 'system_alert' ? 'bg-red-500' :
+                              activity.type === 'user_registration' ? 'bg-green-500' :
+                              'bg-blue-500'
+                            }`} />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{activity.description}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(activity.timestamp).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
             </Tabs>
 

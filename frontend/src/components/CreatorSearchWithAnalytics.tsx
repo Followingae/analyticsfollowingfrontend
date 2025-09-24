@@ -136,8 +136,8 @@ export function CreatorSearchWithAnalytics() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="p-2 rounded-lg bg-blue-100 w-fit mx-auto mb-3">
-              <Users className="h-5 w-5 text-blue-600" />
+            <div className="p-2 rounded-lg bg-primary/10 w-fit mx-auto mb-3">
+              <Users className="h-5 w-5 text-primary" />
             </div>
             <h3 className="font-medium mb-1">Audience Analytics</h3>
             <p className="text-sm text-muted-foreground">
@@ -148,8 +148,8 @@ export function CreatorSearchWithAnalytics() {
 
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="p-2 rounded-lg bg-red-100 w-fit mx-auto mb-3">
-              <Heart className="h-5 w-5 text-red-600" />
+            <div className="p-2 rounded-lg bg-destructive/10 w-fit mx-auto mb-3">
+              <Heart className="h-5 w-5 text-destructive" />
             </div>
             <h3 className="font-medium mb-1">Engagement Metrics</h3>
             <p className="text-sm text-muted-foreground">
@@ -160,8 +160,8 @@ export function CreatorSearchWithAnalytics() {
 
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="p-2 rounded-lg bg-green-100 w-fit mx-auto mb-3">
-              <Shield className="h-5 w-5 text-green-600" />
+            <div className="p-2 rounded-lg bg-green-500/10 w-fit mx-auto mb-3">
+              <Shield className="h-5 w-5 text-green-600 dark:text-green-500" />
             </div>
             <h3 className="font-medium mb-1">Brand Safety</h3>
             <p className="text-sm text-muted-foreground">
@@ -173,7 +173,7 @@ export function CreatorSearchWithAnalytics() {
         <Card>
           <CardContent className="p-4 text-center">
             <div className="p-2 rounded-lg bg-purple-100 w-fit mx-auto mb-3">
-              <TrendingUp className="h-5 w-5 text-purple-600" />
+              <TrendingUp className="h-5 w-5 text-primary" />
             </div>
             <h3 className="font-medium mb-1">AI Insights</h3>
             <p className="text-sm text-muted-foreground">
@@ -256,7 +256,7 @@ export function CreatorSearchWithAnalytics() {
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{creator.full_name}</span>
                     {creator.verified && (
-                      <CheckCircle className="h-4 w-4 text-blue-500" />
+                      <CheckCircle className="h-4 w-4 text-primary" />
                     )}
                   </div>
                   <div className="text-sm text-muted-foreground">

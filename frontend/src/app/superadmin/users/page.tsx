@@ -212,7 +212,11 @@ export default function SuperadminUsersPage() {
     })
   }
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (num: any) => {
+    // Handle all possible falsy/invalid values
+    if (num === undefined || num === null || num === '' || typeof num !== 'number' || isNaN(num)) {
+      return '0'
+    }
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
     return num.toString()
@@ -284,7 +288,7 @@ export default function SuperadminUsersPage() {
                             <label className="text-sm font-medium">Email</label>
                             <Input
                               type="email"
-                              placeholder="user@example.com"
+                              placeholder="Enter email address"
                               value={newUser.email}
                               onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
                               className="mt-1"
@@ -334,7 +338,7 @@ export default function SuperadminUsersPage() {
                             type="number"
                             placeholder="0"
                             value={newUser.credits_balance}
-                            onChange={(e) => setNewUser(prev => ({ ...prev, credits_balance: parseInt(e.target.value) || 0 }))}
+                            onChange={(e) => setNewUser(prev => ({ ...prev, credits_balance: parseInt(e.target.value) || undefined }))}
                             className="mt-1"
                           />
                         </div>

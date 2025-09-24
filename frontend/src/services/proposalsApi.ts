@@ -672,8 +672,8 @@ export class BrandProposalsApiService {
         total_proposals_received: proposals.length,
         pending_responses: proposals.filter(p => p.status === 'sent').length,
         overdue_responses: proposals.filter(p => {
-          if (!p.brand_response_deadline) return false
-          return new Date(p.brand_response_deadline) < new Date() && p.status === 'sent'
+          if (!p.response_due_date) return false
+          return new Date(p.response_due_date) < new Date() && p.status === 'sent'
         }).length,
         approved_proposals: proposals.filter(p => p.status === 'approved').length,
         response_rate: proposals.length > 0 ?

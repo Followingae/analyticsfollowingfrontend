@@ -60,14 +60,14 @@ export function AudienceAnalytics({ demographics }: AudienceAnalyticsProps) {
 
   const getAgeGroupColor = (ageGroup: string): string => {
     const colors: Record<string, string> = {
-      '18-24': 'bg-blue-500',
+      '18-24': 'bg-primary',
       '25-34': 'bg-green-500',
-      '35-44': 'bg-yellow-500',
-      '45-54': 'bg-orange-500',
-      '55+': 'bg-red-500',
-      '45+': 'bg-purple-500'
+      '35-44': 'bg-yellow-500 dark:bg-yellow-600',
+      '45-54': 'bg-orange-500 dark:bg-orange-600',
+      '55+': 'bg-destructive',
+      '45+': 'bg-primary/80'
     }
-    return colors[ageGroup] || 'bg-gray-500'
+    return colors[ageGroup] || 'bg-muted'
   }
 
   return (
@@ -120,7 +120,7 @@ export function AudienceAnalytics({ demographics }: AudienceAnalyticsProps) {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <div className="w-3 h-3 rounded-full bg-primary" />
                   <span className="font-medium">Male</span>
                 </div>
                 <span className="text-sm font-semibold">
@@ -137,7 +137,7 @@ export function AudienceAnalytics({ demographics }: AudienceAnalyticsProps) {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-pink-500" />
+                  <div className="w-3 h-3 rounded-full bg-pink-500 dark:bg-pink-600" />
                   <span className="font-medium">Female</span>
                 </div>
                 <span className="text-sm font-semibold">
@@ -195,7 +195,7 @@ export function AudienceAnalytics({ demographics }: AudienceAnalyticsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600 mb-2">
+            <div className="text-3xl font-bold text-primary mb-2">
               {formatPercentage(demographics.verified_followers_percentage)}
             </div>
             <Progress 

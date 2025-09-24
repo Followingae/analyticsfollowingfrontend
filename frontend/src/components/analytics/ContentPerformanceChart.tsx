@@ -65,7 +65,7 @@ export function ContentPerformanceChart({ performance }: ContentPerformanceChart
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-500">
+            <div className="text-2xl font-bold text-destructive">
               {formatNumber(performance.avg_likes_per_post)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -80,7 +80,7 @@ export function ContentPerformanceChart({ performance }: ContentPerformanceChart
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-500">
+            <div className="text-2xl font-bold text-primary">
               {formatNumber(performance.avg_comments_per_post)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -95,7 +95,7 @@ export function ContentPerformanceChart({ performance }: ContentPerformanceChart
             <Share className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-500">
               {formatNumber(performance.avg_shares_per_post)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -110,7 +110,7 @@ export function ContentPerformanceChart({ performance }: ContentPerformanceChart
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-500">
+            <div className="text-2xl font-bold text-primary">
               {formatNumber(totalEngagementScore)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -146,21 +146,21 @@ export function ContentPerformanceChart({ performance }: ContentPerformanceChart
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="text-center p-4 rounded-lg border bg-muted/50">
-                <div className="text-2xl font-bold text-red-500 mb-1">
+                <div className="text-2xl font-bold text-destructive mb-1">
                   {formatNumber(performance.avg_likes_per_post)}
                 </div>
                 <div className="text-sm text-muted-foreground">Avg. Likes</div>
               </div>
               
               <div className="text-center p-4 rounded-lg border bg-muted/50">
-                <div className="text-2xl font-bold text-blue-500 mb-1">
+                <div className="text-2xl font-bold text-primary mb-1">
                   {formatNumber(performance.avg_comments_per_post)}
                 </div>
                 <div className="text-sm text-muted-foreground">Avg. Comments</div>
               </div>
               
               <div className="text-center p-4 rounded-lg border bg-muted/50">
-                <div className="text-2xl font-bold text-green-500 mb-1">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-500 mb-1">
                   {formatNumber(performance.avg_shares_per_post)}
                 </div>
                 <div className="text-sm text-muted-foreground">Avg. Shares</div>

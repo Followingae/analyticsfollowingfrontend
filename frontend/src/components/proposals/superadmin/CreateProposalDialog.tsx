@@ -173,7 +173,7 @@ export function CreateProposalDialog({ onClose, onSuccess }: CreateProposalDialo
             <div>
               <label className="text-sm font-medium">Proposal Title *</label>
               <Input
-                placeholder="e.g. Q1 2024 Influencer Campaign"
+                placeholder="Enter proposal title"
                 value={formData.proposal_title}
                 onChange={(e) => setFormData(prev => ({ ...prev, proposal_title: e.target.value }))}
                 className="mt-1"
@@ -182,7 +182,7 @@ export function CreateProposalDialog({ onClose, onSuccess }: CreateProposalDialo
             <div>
               <label className="text-sm font-medium">Brand Company Name</label>
               <Input
-                placeholder="e.g. Acme Corp"
+                placeholder="Enter brand name"
                 value={formData.brand_company_name}
                 onChange={(e) => setFormData(prev => ({ ...prev, brand_company_name: e.target.value }))}
                 className="mt-1"
@@ -217,7 +217,7 @@ export function CreateProposalDialog({ onClose, onSuccess }: CreateProposalDialo
                 value={formData.total_campaign_budget_usd_cents / 100}
                 onChange={(e) => setFormData(prev => ({ 
                   ...prev, 
-                  total_campaign_budget_usd_cents: parseInt(e.target.value) * 100 || 0 
+                  total_campaign_budget_usd_cents: parseInt(e.target.value) * 100 || undefined 
                 }))}
                 className="mt-1"
               />
@@ -243,7 +243,7 @@ export function CreateProposalDialog({ onClose, onSuccess }: CreateProposalDialo
             {formData.assigned_brand_users.map((user, index) => (
               <div key={index} className="flex gap-2">
                 <Input
-                  placeholder="brand@example.com"
+                  placeholder="Enter brand contact email"
                   value={user}
                   onChange={(e) => updateBrandUser(index, e.target.value)}
                 />

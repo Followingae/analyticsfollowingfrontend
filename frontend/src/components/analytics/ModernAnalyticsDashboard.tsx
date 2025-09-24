@@ -1427,7 +1427,7 @@ function PostCard({ post }: { post: any }) {
         {/* AI Analysis badges */}
         <div className="absolute top-2 left-2 space-y-1">
           {post.ai_analysis?.content_category && (
-            <Badge variant="secondary" className="text-xs bg-black/70 text-white border-0">
+            <Badge variant="secondary" className="text-xs bg-secondary/70 text-secondary-foreground border-0">
               {post.ai_analysis.content_category}
             </Badge>
           )}
@@ -1435,9 +1435,9 @@ function PostCard({ post }: { post: any }) {
             <Badge
               variant="outline"
               className={`text-xs border-0 ${
-                post.ai_analysis.sentiment === 'positive' ? 'bg-green-500/70 text-white' :
-                post.ai_analysis.sentiment === 'negative' ? 'bg-red-500/70 text-white' :
-                'bg-gray-500/70 text-white'
+                post.ai_analysis.sentiment === 'positive' ? 'bg-green-500/70 text-white dark:bg-green-600/70' :
+                post.ai_analysis.sentiment === 'negative' ? 'bg-red-500/70 text-white dark:bg-red-600/70' :
+                'bg-muted/70 text-muted-foreground'
               }`}
             >
               {post.ai_analysis.sentiment}
@@ -1448,15 +1448,15 @@ function PostCard({ post }: { post: any }) {
         {/* Language indicator */}
         {post.ai_analysis?.language_code && (
           <div className="absolute top-2 right-2">
-            <Badge variant="outline" className="text-xs bg-blue-500/70 text-white border-0">
+            <Badge variant="outline" className="text-xs bg-primary/70 text-primary-foreground border-0">
               {post.ai_analysis.language_code.toUpperCase()}
             </Badge>
           </div>
         )}
 
         {/* Engagement overlay */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-          <div className="text-white text-center space-y-2">
+        <div className="absolute inset-0 bg-background/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+          <div className="text-foreground text-center space-y-2">
             <div className="flex justify-center gap-4">
               {post.like_count && (
                 <div className="flex items-center gap-1">

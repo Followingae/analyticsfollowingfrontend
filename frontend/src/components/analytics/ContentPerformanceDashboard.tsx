@@ -37,17 +37,13 @@ import {
   Brain
 } from 'lucide-react'
 import {
-  LineChart as RechartsLineChart,
-  BarChart as RechartsBarChart,
+  BarChart,
+  Bar,
   AreaChart,
   Area,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Line,
-  Bar,
-  ResponsiveContainer,
-  Legend
+  CartesianGrid
 } from 'recharts'
 import { ContentPerformanceResponse } from '@/types/comprehensiveAnalytics'
 
@@ -71,21 +67,21 @@ interface RecommendationCardProps {
 function RecommendationCard({ recommendation }: RecommendationCardProps) {
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'content_type': return <Camera className="h-4 w-4 text-blue-600" />
-      case 'posting_time': return <Clock className="h-4 w-4 text-green-600" />
-      case 'topic': return <Lightbulb className="h-4 w-4 text-yellow-600" />
-      case 'format': return <Grid3x3 className="h-4 w-4 text-purple-600" />
-      default: return <Star className="h-4 w-4 text-gray-600" />
+      case 'content_type': return <Camera className="h-4 w-4 text-primary" />
+      case 'posting_time': return <Clock className="h-4 w-4 text-green-600 dark:text-green-500" />
+      case 'topic': return <Lightbulb className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
+      case 'format': return <Grid3x3 className="h-4 w-4 text-purple-600 dark:text-purple-500" />
+      default: return <Star className="h-4 w-4 text-muted-foreground" />
     }
   }
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'content_type': return 'bg-blue-50 border-blue-200 text-blue-800'
-      case 'posting_time': return 'bg-green-50 border-green-200 text-green-800'
-      case 'topic': return 'bg-yellow-50 border-yellow-200 text-yellow-800'
-      case 'format': return 'bg-purple-50 border-purple-200 text-purple-800'
-      default: return 'bg-gray-50 border-gray-200 text-gray-800'
+      case 'content_type': return 'bg-primary/10 border-primary/20 text-primary'
+      case 'posting_time': return 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200'
+      case 'topic': return 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200'
+      case 'format': return 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-200'
+      default: return 'bg-muted border-border text-muted-foreground'
     }
   }
 
@@ -227,12 +223,12 @@ export function ContentPerformanceDashboard({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+      <Card className="bg-gradient-to-r from-primary/5 to-primary/10">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center space-x-2 text-xl">
-                <TrendingUp className="h-6 w-6 text-blue-600" />
+                <TrendingUp className="h-6 w-6 text-primary" />
                 <span>Content Performance Analytics</span>
               </CardTitle>
               <CardDescription>
@@ -285,7 +281,7 @@ export function ContentPerformanceDashboard({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-primary">
                   {performance.top_categories?.length || 0}
                 </div>
                 <p className="text-sm text-muted-foreground">Content Categories</p>
@@ -293,7 +289,7 @@ export function ContentPerformanceDashboard({
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-500">
                   {performance.recommendations?.length || 0}
                 </div>
                 <p className="text-sm text-muted-foreground">AI Recommendations</p>
@@ -403,22 +399,38 @@ export function ContentPerformanceDashboard({
               {topCategoriesData.length > 0 && (
                 <ChartContainer
                   config={{
-                    engagement: { label: 'Avg Engagement (%)', color: '#3b82f6' },
-                    growth: { label: 'Growth Rate (%)', color: '#10b981' }
+                    engagement: {
+                      label: 'Avg Engagement (%)',
+                      color: 'var(--chart-1)'
+                    },
+                    growth: {
+                      label: 'Growth Rate (%)',
+                      color: 'var(--chart-2)'
+                    }
                   }}
                   className="h-[400px]"
                 >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsBarChart data={topCategoriesData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="category" />
-                      <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Legend />
-                      <Bar dataKey="engagement" fill="#3b82f6" name="Avg Engagement (%)" />
-                      <Bar dataKey="growth" fill="#10b981" name="Growth Rate (%)" />
-                    </RechartsBarChart>
-                  </ResponsiveContainer>
+                  <BarChart
+                    accessibilityLayer
+                    data={topCategoriesData}
+                    margin={{ left: 12, right: 12 }}
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="category"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="engagement" fill="var(--color-engagement)" radius={4} />
+                    <Bar dataKey="growth" fill="var(--color-growth)" radius={4} />
+                  </BarChart>
                 </ChartContainer>
               )}
             </CardContent>
@@ -437,7 +449,7 @@ export function ContentPerformanceDashboard({
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Engagement:</span>
-                      <span className="font-bold text-blue-600">{category.avg_engagement.toFixed(2)}%</span>
+                      <span className="font-bold text-primary">{category.avg_engagement.toFixed(2)}%</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Posts:</span>
@@ -447,16 +459,16 @@ export function ContentPerformanceDashboard({
                       <span className="text-sm text-muted-foreground">Growth:</span>
                       <div className="flex items-center space-x-1">
                         {category.growth_rate > 0 ? (
-                          <ArrowUp className="h-3 w-3 text-green-600" />
+                          <ArrowUp className="h-3 w-3 text-green-600 dark:text-green-500" />
                         ) : category.growth_rate < 0 ? (
-                          <ArrowDown className="h-3 w-3 text-red-600" />
+                          <ArrowDown className="h-3 w-3 text-red-600 dark:text-red-500" />
                         ) : (
-                          <Minus className="h-3 w-3 text-gray-600" />
+                          <Minus className="h-3 w-3 text-muted-foreground" />
                         )}
                         <span className={`font-medium ${
-                          category.growth_rate > 0 ? 'text-green-600' : 
-                          category.growth_rate < 0 ? 'text-red-600' : 
-                          'text-gray-600'
+                          category.growth_rate > 0 ? 'text-green-600 dark:text-green-500' :
+                          category.growth_rate < 0 ? 'text-red-600 dark:text-red-500' :
+                          'text-muted-foreground'
                         }`}>
                           {category.growth_rate > 0 ? '+' : ''}{category.growth_rate.toFixed(1)}%
                         </span>
@@ -482,32 +494,43 @@ export function ContentPerformanceDashboard({
               {sentimentTimelineData.length > 0 && (
                 <ChartContainer
                   config={{
-                    sentiment: { label: 'Sentiment Score', color: '#8b5cf6' },
-                    posts: { label: 'Post Count', color: '#06b6d4' }
+                    sentiment: {
+                      label: 'Sentiment Score',
+                      color: 'var(--chart-1)'
+                    }
                   }}
                   className="h-[300px]"
                 >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={sentimentTimelineData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Area
-                        type="monotone"
-                        dataKey="sentiment"
-                        stroke="#8b5cf6"
-                        fill="#8b5cf6"
-                        fillOpacity={0.3}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="posts"
-                        stroke="#06b6d4"
-                        strokeWidth={2}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <AreaChart
+                    accessibilityLayer
+                    data={sentimentTimelineData}
+                    margin={{ left: 12, right: 12 }}
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickFormatter={(value) => value.slice(0, 6)}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent indicator="dot" hideLabel />}
+                    />
+                    <Area
+                      dataKey="sentiment"
+                      type="natural"
+                      fill="var(--color-sentiment)"
+                      fillOpacity={0.4}
+                      stroke="var(--color-sentiment)"
+                    />
+                  </AreaChart>
                 </ChartContainer>
               )}
             </CardContent>
@@ -516,7 +539,7 @@ export function ContentPerformanceDashboard({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-green-600 mb-2">
+                <div className="text-3xl font-bold text-green-600 dark:text-green-500 mb-2">
                   {performance.sentiment_timeline?.filter(item => item.sentiment_score > 0.3).length || 0}
                 </div>
                 <p className="text-sm text-muted-foreground">Positive Days</p>
@@ -524,8 +547,8 @@ export function ContentPerformanceDashboard({
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-yellow-600 mb-2">
-                  {performance.sentiment_timeline?.filter(item => 
+                <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-500 mb-2">
+                  {performance.sentiment_timeline?.filter(item =>
                     Math.abs(item.sentiment_score) <= 0.3
                   ).length || 0}
                 </div>
@@ -534,7 +557,7 @@ export function ContentPerformanceDashboard({
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-red-600 mb-2">
+                <div className="text-3xl font-bold text-red-600 dark:text-red-500 mb-2">
                   {performance.sentiment_timeline?.filter(item => item.sentiment_score < -0.3).length || 0}
                 </div>
                 <p className="text-sm text-muted-foreground">Negative Days</p>
@@ -548,7 +571,7 @@ export function ContentPerformanceDashboard({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Brain className="h-5 w-5 text-purple-600" />
+                <Brain className="h-5 w-5 text-purple-600 dark:text-purple-500" />
                 <span>AI-Powered Recommendations</span>
               </CardTitle>
               <CardDescription>
@@ -582,7 +605,7 @@ export function ContentPerformanceDashboard({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Target className="h-5 w-5 text-orange-600" />
+                  <Target className="h-5 w-5 text-orange-600 dark:text-orange-500" />
                   <span>Engagement Predictions</span>
                 </CardTitle>
                 <CardDescription>
@@ -595,7 +618,7 @@ export function ContentPerformanceDashboard({
                     <div key={index} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium capitalize">{prediction.content_type}</span>
-                        <span className="text-sm font-bold text-orange-600">
+                        <span className="text-sm font-bold text-orange-600 dark:text-orange-500">
                           {prediction.predicted_engagement_rate.toFixed(2)}%
                         </span>
                       </div>
@@ -613,7 +636,7 @@ export function ContentPerformanceDashboard({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <PieChart className="h-5 w-5 text-blue-600" />
+                  <PieChart className="h-5 w-5 text-primary" />
                   <span>Optimal Content Mix</span>
                 </CardTitle>
                 <CardDescription>
@@ -647,19 +670,38 @@ export function ContentPerformanceDashboard({
               {optimalTimesData.length > 0 && (
                 <ChartContainer
                   config={{
-                    reach: { label: 'Expected Reach', color: '#10b981' }
+                    reach: {
+                      label: 'Expected Reach',
+                      color: 'var(--chart-1)'
+                    }
                   }}
                   className="h-[250px]"
                 >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsBarChart data={optimalTimesData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="time" />
-                      <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="reach" fill="#10b981" />
-                    </RechartsBarChart>
-                  </ResponsiveContainer>
+                  <BarChart
+                    accessibilityLayer
+                    data={optimalTimesData}
+                    margin={{ left: 12, right: 12 }}
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="time"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      angle={-45}
+                      textAnchor="end"
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent hideLabel />}
+                    />
+                    <Bar dataKey="reach" fill="var(--color-reach)" radius={4} />
+                  </BarChart>
                 </ChartContainer>
               )}
             </CardContent>
