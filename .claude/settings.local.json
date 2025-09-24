@@ -77,7 +77,8 @@
       "Bash(start http://localhost:3001/auth/login)",
       "mcp__shadcn__view_items_in_registries",
       "Bash(findstr:*)",
-      "WebFetch(domain:cdn.following.ae)"
+      "WebFetch(domain:cdn.following.ae)",
+      "Bash(printf:*)"
     ],
     "deny": [],
     "additionalDirectories": [
