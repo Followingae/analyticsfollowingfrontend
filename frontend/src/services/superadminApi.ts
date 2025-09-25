@@ -507,6 +507,11 @@ export class SuperadminApiService {
     }
   }
 
+  // Health check to verify backend connectivity
+  async checkBackendHealth(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/health')
+  }
+
   // Core Dashboard - REAL comprehensive backend API endpoint
   async getDashboard(): Promise<ApiResponse<DashboardOverview>> {
     return this.makeRequest<DashboardOverview>('/api/superadmin/dashboard')
@@ -1301,6 +1306,28 @@ export class SuperadminApiService {
       })
     }
     return this.makeRequest(`/api/superadmin/proposals/brand-proposals?${params.toString()}`)
+  }
+
+  async createBrandProposal(proposalData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/proposals/brand-proposals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(proposalData)
+    })
+  }
+
+  async assignInfluencersToProposal(proposalId: string, influencerData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/influencers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(influencerData)
+    })
+  }
+
+  async sendBrandProposal(proposalId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/send`, {
+      method: 'POST'
+    })
   }
 
   async getBrandProposalDetails(proposalId: string): Promise<ApiResponse<any>> {
