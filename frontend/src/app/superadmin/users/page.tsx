@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-import { AuthGuard } from "@/components/AuthGuard"
-import { SuperadminSidebar } from "@/components/superadmin/SuperadminSidebar"
+import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { superadminApiService, UserManagement } from "@/services/superadminApi"
 import {
   Users,
@@ -27,7 +26,6 @@ import {
 } from "lucide-react"
 
 import { toast } from "sonner"
-import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -47,10 +45,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
 import {
   Dialog,
   DialogContent,
@@ -224,38 +218,20 @@ export default function SuperadminUsersPage() {
 
   if (loading && users.length === 0) {
     return (
-      <AuthGuard requireAuth={true} requireSuperAdmin={true}>
-        <SidebarProvider>
-          <SuperadminSidebar variant="inset" />
-          <SidebarInset>
-            <SiteHeader />
-            <div className="flex flex-1 flex-col items-center justify-center">
-              <div className="text-center space-y-4">
-                <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <p className="text-muted-foreground">Loading users...</p>
-              </div>
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
-      </AuthGuard>
+      <SuperadminLayout>
+        <div className="flex flex-1 flex-col items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="text-muted-foreground">Loading users...</p>
+          </div>
+        </div>
+      </SuperadminLayout>
     )
   }
 
   return (
-    <AuthGuard requireAuth={true} requireSuperAdmin={true}>
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-        <SuperadminSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
-          <div className="flex flex-1 flex-col">
-            <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <SuperadminLayout>
+      <div className="space-y-6">
               
               {/* Header */}
               <div className="flex items-center justify-between">
@@ -487,8 +463,7 @@ export default function SuperadminUsersPage() {
                                   View Details
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => {
-                                  setSelectedUser(user)
-                                  setIsEditUserOpen(true)
+                                  router.push(`/superadmin/users/${user.id}`)
                                 }}>
                                   <Edit className="h-3 w-3 mr-2" />
                                   Edit User
@@ -529,10 +504,7 @@ export default function SuperadminUsersPage() {
                   )}
                 </CardContent>
               </Card>
-            </div>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </AuthGuard>
+      </div>
+    </SuperadminLayout>
   )
 }

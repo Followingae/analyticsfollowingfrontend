@@ -53,16 +53,25 @@ export function UnifiedApp() {
     return null
   }
 
+  // Handle redirects in useEffect to avoid render-time state updates
+  useEffect(() => {
+    if (!user || !isAuthenticated) return
+
+    // SUPERADMIN BYPASS: Redirect superadmins to dedicated /superadmin page
+    if (user.email === 'zain@following.ae' || user.role === 'super_admin') {
+      router.replace('/superadmin')
+      return
+    }
+  }, [user, isAuthenticated, router])
+
   // Dynamic interface switching based on user role
-  // SUPERADMIN BYPASS: Force superadmin interface for zain@following.ae
-  if (user.email === 'zain@following.ae') {
-    return <SuperAdminInterface />
+  // If superadmin, return null while redirect happens
+  if (user?.email === 'zain@following.ae' || user?.role === 'super_admin') {
+    return <LoadingScreen />
   }
 
   // Switch based on user role
   switch (user.role) {
-    case 'super_admin':
-      return <SuperAdminInterface />
     
     case 'admin':
       return <AdminInterface />

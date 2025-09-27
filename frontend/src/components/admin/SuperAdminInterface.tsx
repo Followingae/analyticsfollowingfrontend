@@ -2,14 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { AuthGuard } from "@/components/AuthGuard"
+import { SuperadminSidebar } from "@/components/superadmin/SuperadminSidebar"
+import { SiteHeader } from "@/components/site-header"
+import { ClientOnly } from "@/components/ClientOnly"
+import {
+  SidebarInset,
+  SidebarProvider,
+} from "@/components/ui/sidebar"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { RefreshCw, Shield, Users, Settings, Database, BarChart3, Brain, FileImage, Server, Download, Lock, User, Crown, Zap, Activity } from "lucide-react"
-
-import { SuperadminSidebar } from "@/components/superadmin/SuperadminSidebar"
-import { SiteHeader } from "@/components/site-header"
 
 // Import all the new comprehensive dashboard components
 import { AdminDashboard } from "./AdminDashboard"
@@ -156,68 +160,70 @@ export function SuperAdminInterface() {
   }
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 66)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <SuperadminSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <AuthGuard requireAuth={true} requireSuperAdmin={true}>
+      <ClientOnly fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      }>
+        <SidebarProvider>
+          <SuperadminSidebar />
+          <SidebarInset>
+            <SiteHeader />
+            <div className="flex flex-1 flex-col">
+              <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+                <div className="space-y-6">
+                  {/* Header with Actions */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="text-3xl font-bold tracking-tight">Super Admin Dashboard</h1>
+                      <p className="text-muted-foreground">
+                        Comprehensive platform management and oversight • {tabConfigs.find(t => t.id === currentTab)?.description}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" onClick={handleRefreshAll} disabled={loading}>
+                        <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh All
+                      </Button>
+                    </div>
+                  </div>
 
-            {/* Header with Actions */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Super Admin Dashboard</h1>
-                <p className="text-muted-foreground">
-                  Comprehensive platform management and oversight • {tabConfigs.find(t => t.id === currentTab)?.description}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={handleRefreshAll} disabled={loading}>
-                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh All
-                </Button>
+                  <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
+                    {/* Navigation Tabs */}
+                    <div className="border-b">
+                      <TabsList className="grid w-full grid-cols-8 lg:grid-cols-15 h-auto p-1">
+                        {tabConfigs.map((tab) => {
+                          const IconComponent = tab.icon
+                          return (
+                            <TabsTrigger
+                              key={tab.id}
+                              value={tab.id}
+                              className="flex flex-col items-center gap-1 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs"
+                            >
+                              <IconComponent className="h-4 w-4" />
+                              <span className="hidden lg:inline">{tab.label}</span>
+                            </TabsTrigger>
+                          )
+                        })}
+                      </TabsList>
+                    </div>
+
+                    {/* Tab Content */}
+                    <div className="flex-1">
+                      {tabConfigs.map((tab) => (
+                        <TabsContent key={tab.id} value={tab.id} className="m-0">
+                          {getCurrentComponent()}
+                        </TabsContent>
+                      ))}
+                    </div>
+                  </Tabs>
+                </div>
               </div>
             </div>
-
-            <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
-              {/* Navigation Tabs */}
-              <div className="border-b">
-                <TabsList className="grid w-full grid-cols-8 lg:grid-cols-15 h-auto p-1">
-                  {tabConfigs.map((tab) => {
-                    const IconComponent = tab.icon
-                    return (
-                      <TabsTrigger
-                        key={tab.id}
-                        value={tab.id}
-                        className="flex flex-col items-center gap-1 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs"
-                      >
-                        <IconComponent className="h-4 w-4" />
-                        <span className="hidden lg:inline">{tab.label}</span>
-                      </TabsTrigger>
-                    )
-                  })}
-                </TabsList>
-              </div>
-
-              {/* Tab Content */}
-              <div className="flex-1">
-                {tabConfigs.map((tab) => (
-                  <TabsContent key={tab.id} value={tab.id} className="m-0">
-                    {getCurrentComponent()}
-                  </TabsContent>
-                ))}
-              </div>
-            </Tabs>
-          </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+          </SidebarInset>
+        </SidebarProvider>
+      </ClientOnly>
+    </AuthGuard>
   )
 }

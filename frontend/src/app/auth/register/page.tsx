@@ -56,15 +56,8 @@ export default function RegisterPage() {
 
   return (
     <SignUpPage
-      title={
-        <span className="font-light text-foreground tracking-tighter">
-          Join{' '}
-          <span className="font-semibold">
-            Analytics Following
-          </span>
-        </span>
-      }
-      description="Create your account and unlock AI-powered analytics, discovery, and growth acceleration tools"
+      title="Create your account"
+      description="Get started with Following today"
       testimonials={[
         {
           avatarSrc: "/followinglogo.svg",

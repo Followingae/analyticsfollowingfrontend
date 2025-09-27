@@ -127,7 +127,14 @@ export function SiteHeader() {
           </div>
         )}
         <div className="ml-auto flex items-center gap-3">
-          
+
+          {/* Superadmin Badge */}
+          {user && (user.role === 'superadmin' || user.role === 'admin') && (
+            <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 font-normal text-muted-foreground border-muted-foreground/30">
+              SUPERADMIN
+            </Badge>
+          )}
+
           {/* Live Team Context Display for Brand Users */}
           {isBrandUser && user && !contextLoading && teamContext && (
             <div className="flex items-center gap-2">

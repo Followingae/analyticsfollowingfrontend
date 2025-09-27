@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { EnhancedAuthProvider } from "@/contexts/EnhancedAuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { UserStoreProvider } from "@/components/providers/UserStoreProvider";
 import { ServiceWorkerProvider } from "@/components/ServiceWorkerProvider";
@@ -53,12 +54,14 @@ export default function RootLayout({
             <AuthProvider>
               <EnhancedAuthProvider>
                 <UserStoreProvider>
-                  <NotificationProvider>
-                    <ServiceWorkerProvider>
-                      {children}
-                      <Toaster />
-                    </ServiceWorkerProvider>
-                  </NotificationProvider>
+                  <CurrencyProvider>
+                    <NotificationProvider>
+                      <ServiceWorkerProvider>
+                        {children}
+                        <Toaster />
+                      </ServiceWorkerProvider>
+                    </NotificationProvider>
+                  </CurrencyProvider>
                 </UserStoreProvider>
               </EnhancedAuthProvider>
             </AuthProvider>

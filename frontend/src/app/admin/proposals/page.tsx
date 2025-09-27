@@ -1,17 +1,11 @@
 'use client'
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { SuperadminSidebar } from "@/components/superadmin/SuperadminSidebar"
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Card,
   CardContent,
@@ -24,13 +18,12 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -39,6 +32,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 
 import {
   MoreHorizontal,
@@ -48,20 +49,29 @@ import {
   Eye,
   FileText,
   Calendar,
-  DollarSign
+  DollarSign,
+  Edit3,
+  Trash2,
+  Send,
+  Clock
 } from "lucide-react"
 
-import { 
-  superadminApiService, 
+import {
+  superadminApiService,
   Proposal
 } from "@/services/superadminApi"
 import { toast } from "sonner"
 
 export default function ProposalsPage() {
+  const router = useRouter()
+
   // State Management
   const [proposals, setProposals] = useState<Proposal[]>([])
+  const [drafts, setDrafts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [draftsLoading, setDraftsLoading] = useState(true)
   const [proposalStatusFilter, setProposalStatusFilter] = useState("all")
+  const [activeTab, setActiveTab] = useState<'proposals' | 'drafts'>('proposals')
 
   // Load proposals
   const loadProposals = async () => {
@@ -69,7 +79,7 @@ export default function ProposalsPage() {
     try {
       const filters: any = { limit: 50 }
       if (proposalStatusFilter !== "all") filters.status_filter = proposalStatusFilter
-      
+
       const result = await superadminApiService.getProposals(filters)
       if (result.success && result.data) {
         setProposals(result.data.proposals || [])
@@ -85,8 +95,29 @@ export default function ProposalsPage() {
     }
   }
 
+  // Load drafts
+  const loadDrafts = async () => {
+    setDraftsLoading(true)
+    try {
+      const result = await superadminApiService.getBrandProposalLatestDraft()
+      if (result.success && result.data) {
+        // Backend returns single draft object, wrap in array for UI compatibility
+        setDrafts([result.data])
+      } else {
+        console.log('No latest draft found or API not available')
+        setDrafts([])
+      }
+    } catch (error) {
+      console.error('Failed to load drafts:', error)
+      setDrafts([])
+    } finally {
+      setDraftsLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadProposals()
+    loadDrafts()
   }, [])
 
   useEffect(() => {
@@ -146,6 +177,35 @@ export default function ProposalsPage() {
     }
   }
 
+  const handleDeleteDraft = async (draftId: string) => {
+    try {
+      const result = await superadminApiService.deleteBrandProposalDraft(draftId)
+      if (result.success) {
+        toast.success('Draft deleted successfully')
+        loadDrafts()
+      } else {
+        toast.error(result.error || 'Failed to delete draft')
+      }
+    } catch (error) {
+      toast.error('Network error while deleting draft')
+    }
+  }
+
+  const handleConvertDraftToProposal = async (draftId: string) => {
+    try {
+      const result = await superadminApiService.convertDraftToProposal(draftId)
+      if (result.success) {
+        toast.success('Draft converted to proposal successfully')
+        loadDrafts()
+        loadProposals()
+      } else {
+        toast.error(result.error || 'Failed to convert draft to proposal')
+      }
+    } catch (error) {
+      toast.error('Network error while converting draft')
+    }
+  }
+
   if (loading) {
     return (
       <SidebarProvider>
@@ -177,17 +237,17 @@ export default function ProposalsPage() {
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-            
+
             {/* Header with Actions */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">Proposal Management</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Proposals Dashboard</h1>
                 <p className="text-muted-foreground">Review and manage campaign proposals from brands</p>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => loadProposals()}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
+                <Button onClick={() => router.push('/admin/proposals/create')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Create Proposal
                 </Button>
               </div>
             </div>
@@ -204,7 +264,7 @@ export default function ProposalsPage() {
                     <p className="text-xs text-muted-foreground">All submissions</p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
@@ -216,7 +276,7 @@ export default function ProposalsPage() {
                     <p className="text-xs text-muted-foreground">Awaiting approval</p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
@@ -228,7 +288,7 @@ export default function ProposalsPage() {
                     <p className="text-xs text-muted-foreground">Running campaigns</p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
@@ -243,28 +303,67 @@ export default function ProposalsPage() {
               </div>
             )}
 
-            {/* Proposal Filters */}
+            {/* Tab Navigation */}
             <div className="flex items-center justify-between">
-              <Select value={proposalStatusFilter} onValueChange={setProposalStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Proposals</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+                  <Button
+                    variant={activeTab === 'proposals' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setActiveTab('proposals')}
+                    className="px-4"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Proposals ({proposals.length})
+                  </Button>
+                  <Button
+                    variant={activeTab === 'drafts' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setActiveTab('drafts')}
+                    className="px-4"
+                  >
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    Drafts ({drafts.length})
+                  </Button>
+                </div>
+
+                {activeTab === 'proposals' && (
+                  <Select value={proposalStatusFilter} onValueChange={setProposalStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Proposals</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => activeTab === 'proposals' ? loadProposals() : loadDrafts()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
             </div>
 
-            {/* Proposals Table */}
+            {/* Proposals/Drafts Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Campaign Proposals</CardTitle>
-                <CardDescription>Manage brand campaign submissions and approvals</CardDescription>
+                <CardTitle>
+                  {activeTab === 'proposals' ? 'Campaign Proposals' : 'Proposal Drafts'}
+                </CardTitle>
+                <CardDescription>
+                  {activeTab === 'proposals'
+                    ? 'Manage brand campaign submissions and approvals'
+                    : 'Manage saved proposal drafts and continue editing'
+                  }
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -272,15 +371,16 @@ export default function ProposalsPage() {
                     <TableRow>
                       <TableHead>Campaign</TableHead>
                       <TableHead>Brand</TableHead>
-                      <TableHead>Budget</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead>Timeline</TableHead>
+                      <TableHead>{activeTab === 'proposals' ? 'Budget' : 'Created'}</TableHead>
+                      <TableHead>{activeTab === 'proposals' ? 'Status' : 'Modified'}</TableHead>
+                      {activeTab === 'proposals' && <TableHead>Priority</TableHead>}
+                      {activeTab === 'proposals' && <TableHead>Timeline</TableHead>}
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {proposals.map((proposal) => (
+                    {activeTab === 'proposals'
+                      ? proposals.map((proposal) => (
                       <TableRow key={proposal.id}>
                         <TableCell>
                           <div>
@@ -348,17 +448,88 @@ export default function ProposalsPage() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
+                    ))
+                      : drafts.map((draft) => (
+                      <TableRow key={draft.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{draft.title}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Draft
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{draft.brand_name || 'Unnamed Brand'}</div>
+                            <div className="text-sm text-muted-foreground">{draft.brand_contact_email || ''}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{formatDate(draft.created_at)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{formatDate(draft.updated_at)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Draft Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => router.push(`/admin/proposals/create?draft=${draft.id}`)}>
+                                <Edit3 className="h-4 w-4 mr-2" />
+                                Continue Editing
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleConvertDraftToProposal(draft.id)}>
+                                <Send className="h-4 w-4 mr-2" />
+                                Convert to Proposal
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleDeleteDraft(draft.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Draft
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-                
-                {proposals.length === 0 && (
+
+                {((activeTab === 'proposals' && proposals.length === 0) ||
+                  (activeTab === 'drafts' && drafts.length === 0)) && (
                   <div className="py-12 text-center">
-                    <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No proposals found</h3>
-                    <p className="text-muted-foreground">
-                      Proposal data will appear here once brands start submitting campaigns.
-                    </p>
+                    {activeTab === 'proposals' ? (
+                      <>
+                        <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No proposals found</h3>
+                        <p className="text-muted-foreground">
+                          Proposal data will appear here once brands start submitting campaigns.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No drafts found</h3>
+                        <p className="text-muted-foreground">
+                          Saved drafts will appear here when you save proposals while creating them.
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -381,7 +552,7 @@ export default function ProposalsPage() {
                           acc[category] = (acc[category] || 0) + 1
                           return acc
                         }, {})
-                      
+
                       return Object.entries(allCategories)
                         .sort(([,a], [,b]) => b - a)
                         .slice(0, 5)

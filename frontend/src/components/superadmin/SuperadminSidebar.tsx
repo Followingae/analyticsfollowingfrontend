@@ -16,6 +16,7 @@ import {
   IconMail,
   IconFileText,
   IconServer,
+  IconCurrencyDollar,
 } from "@tabler/icons-react"
 import Image from "next/image"
 import { useTheme } from "next-themes"
@@ -108,17 +109,17 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
         icon: IconDashboard,
       },
       {
-        title: "User Management",
+        title: "Users",
         url: "/superadmin/users",
         icon: IconUsers,
       },
       {
-        title: "Security & System Health",
+        title: "Security",
         url: "/superadmin/security",
         icon: IconShield,
       },
       {
-        title: "Analytics & Reports",
+        title: "Analytics",
         url: "/superadmin/analytics",
         icon: IconChartBar,
       }
@@ -126,30 +127,53 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
 
     const platformOversight = [
       {
-        title: "Influencer Database",
+        title: "Influencers",
         url: "/superadmin/influencers",
         icon: IconDatabase,
       },
       {
-        title: "Proposal Management",
-        url: "/superadmin/proposals",
+        title: "Proposals",
+        url: "/admin/proposals",
         icon: IconFileText,
+        items: [
+          {
+            title: "Dashboard",
+            url: "/admin/proposals",
+          },
+          {
+            title: "Create",
+            url: "/admin/proposals/create",
+          },
+          {
+            title: "Pricing",
+            url: "/admin/proposals/pricing",
+          },
+          {
+            title: "Campaigns",
+            url: "/admin/proposals/campaigns",
+          }
+        ]
       },
       {
-        title: "Credits & Billing",
+        title: "Billing",
         url: "/superadmin/credits",
         icon: IconCreditCard,
+      },
+      {
+        title: "Currency",
+        url: "/superadmin/currency",
+        icon: IconCurrencyDollar,
       }
     ]
 
     const communications = [
       {
-        title: "System Notifications",
+        title: "Notifications",
         url: "/superadmin/notifications",
         icon: IconBell,
       },
       {
-        title: "Activity Logs",
+        title: "Logs",
         url: "/superadmin/logs",
         icon: IconActivity,
       }
@@ -157,12 +181,12 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
 
     const administration = [
       {
-        title: "Platform Settings",
+        title: "Settings",
         url: "/superadmin/settings",
         icon: IconSettings,
       },
       {
-        title: "Access Control",
+        title: "Access",
         url: "/superadmin/access",
         icon: IconLock,
       }
@@ -174,50 +198,51 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
   const data = getNavigationData()
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar
+      collapsible="icon"
+      className="border-r"
+      {...props}
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/" className="flex items-center gap-2">
+              <a href="/" className="flex items-center">
                 <ThemeLogo />
-                <Badge variant="secondary" className="text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                  SUPERADMIN
-                </Badge>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      
+
       <SidebarContent>
-        {/* System Management Section */}
+        {/* Core Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>System Management</SidebarGroupLabel>
+          <SidebarGroupLabel>Core</SidebarGroupLabel>
           <SidebarGroupContent>
             <NavMain items={data.systemManagement} />
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Platform Oversight Section */}
+        {/* Platform Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>Platform Oversight</SidebarGroupLabel>
+          <SidebarGroupLabel>Platform</SidebarGroupLabel>
           <SidebarGroupContent>
             <NavMain items={data.platformOversight} />
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Communications Section */}
+        {/* Monitoring Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>Communications</SidebarGroupLabel>
+          <SidebarGroupLabel>Monitoring</SidebarGroupLabel>
           <SidebarGroupContent>
             <NavMain items={data.communications} />
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Administration Section */}
+        {/* Admin Section */}
         <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel>Administration</SidebarGroupLabel>
+          <SidebarGroupLabel>Admin</SidebarGroupLabel>
           <SidebarGroupContent>
             <NavMain items={data.administration} />
           </SidebarGroupContent>

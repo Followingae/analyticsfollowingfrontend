@@ -9,13 +9,17 @@ export function ServiceWorkerProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     if (needRefresh) {
-      toast.success('App update available!', {
+      toast.success('🚀 App update available!', {
         description: 'Click to refresh and get the latest features',
         action: {
-          label: 'Refresh',
-          onClick: updateServiceWorker
+          label: 'Refresh Now',
+          onClick: () => {
+            toast.loading('Updating app...', { duration: 2000 })
+            updateServiceWorker()
+          }
         },
-        duration: Infinity
+        duration: Infinity,
+        important: true
       })
     }
   }, [needRefresh, updateServiceWorker])

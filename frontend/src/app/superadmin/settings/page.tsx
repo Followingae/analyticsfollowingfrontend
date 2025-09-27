@@ -1,10 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AuthGuard } from "@/components/AuthGuard"
-import { SuperadminSidebar } from "@/components/superadmin/SuperadminSidebar"
+import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { superadminApiService } from "@/services/superadminApi"
-import { SiteHeader } from "@/components/site-header"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -12,10 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
 import {
   Table,
   TableBody,
@@ -140,13 +134,8 @@ export default function SuperadminSettingsPage() {
   }
 
   return (
-    <AuthGuard requireAuth={true} requireSuperAdmin={true}>
-      <SidebarProvider>
-        <SuperadminSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
-          <div className="flex flex-1 flex-col">
-            <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <SuperadminLayout>
+      <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-3xl font-bold">Platform Settings</h1>
@@ -370,10 +359,7 @@ export default function SuperadminSettingsPage() {
                   )}
                 </TabsContent>
               </Tabs>
-            </div>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </AuthGuard>
+      </div>
+    </SuperadminLayout>
   )
 }

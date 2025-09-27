@@ -79,7 +79,11 @@
       "Bash(findstr:*)",
       "WebFetch(domain:cdn.following.ae)",
       "Bash(printf:*)",
-      "Bash(pip --version)"
+      "Bash(pip --version)",
+      "Bash(start http://localhost:3003/admin/proposals/create)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)"
     ],
     "deny": [],
     "additionalDirectories": [

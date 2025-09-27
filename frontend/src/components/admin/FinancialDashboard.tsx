@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
+import { useCurrency } from '@/contexts/CurrencyContext'
+import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay'
 import { superadminApiService, CreditOverview, Transaction } from '@/services/superadminApi'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,6 +40,7 @@ import {
 
 export function FinancialDashboard() {
   const { hasPermission } = useEnhancedAuth()
+  const { formatAmount, currencyInfo } = useCurrency()
   const [showCreditAdjustment, setShowCreditAdjustment] = useState(false)
   const [showBulkCredits, setShowBulkCredits] = useState(false)
   const [creditOverview, setCreditOverview] = useState<CreditOverview | null>(null)
@@ -97,11 +100,8 @@ export function FinancialDashboard() {
 
 
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
+  const formatCurrency = (amountCents: number) => {
+    return formatAmount(amountCents)
   }
 
   const getTransactionBadgeVariant = (type: string) => {
@@ -322,7 +322,10 @@ export function FinancialDashboard() {
                   <YAxis
                     stroke="hsl(var(--muted-foreground))"
                     fontSize={12}
-                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                    tickFormatter={(value) => {
+                      const symbol = currencyInfo?.symbol || '$'
+                      return `${symbol}${(value / 1000).toFixed(0)}k`
+                    }}
                   />
                   <ChartTooltip
                     content={<ChartTooltipContent />}
@@ -412,7 +415,10 @@ export function FinancialDashboard() {
                 <YAxis
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
-                  tickFormatter={(value) => `$${(value / 1000).toFixed(1)}k`}
+                  tickFormatter={(value) => {
+                    const symbol = currencyInfo?.symbol || '$'
+                    return `${symbol}${(value / 1000).toFixed(1)}k`
+                  }}
                 />
                 <ChartTooltip
                   content={<ChartTooltipContent />}

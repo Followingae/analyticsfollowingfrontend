@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { MultiStepSignup } from './multi-step-signup';
 
 // --- HELPER COMPONENTS (ICONS) ---
 
@@ -60,123 +61,27 @@ const TestimonialCard = ({ testimonial, delay, theme }: { testimonial: Testimoni
 // --- MAIN COMPONENT ---
 
 export const SignUpPage: React.FC<SignUpPageProps> = ({
-  title = "Join Analytics Following",
-  description = "Create your account and start your analytics journey with us",
+  title = "Create your account",
+  description = "Get started with Following today",
   testimonials = [],
   onSignUp,
   onSignInRedirect,
 }) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { theme } = useTheme();
 
   const logoSrc = theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg";
 
   return (
-    <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw]">
-      {/* Left column: sign-up form */}
-      <section className="flex-[3] flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="flex flex-col gap-6">
-            <div className="animate-element animate-delay-50 mb-2">
-              <img src={logoSrc} className="h-6 w-auto object-contain opacity-60" alt="Following Logo" />
-            </div>
-            <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">{title}</h1>
-            <p className="animate-element animate-delay-200 text-muted-foreground">{description}</p>
-
-            <form className="space-y-5" onSubmit={onSignUp}>
-              <div className="animate-element animate-delay-300">
-                <label className="text-sm font-medium text-muted-foreground">Full Name</label>
-                <GlassInputWrapper>
-                  <input name="fullName" type="text" placeholder="Enter your full name" className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none" required />
-                </GlassInputWrapper>
-              </div>
-
-              <div className="animate-element animate-delay-400">
-                <label className="text-sm font-medium text-muted-foreground">Email Address</label>
-                <GlassInputWrapper>
-                  <input name="email" type="email" placeholder="Enter your email address" className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none" required />
-                </GlassInputWrapper>
-              </div>
-
-              <div className="animate-element animate-delay-500">
-                <label className="text-sm font-medium text-muted-foreground">Password</label>
-                <GlassInputWrapper>
-                  <div className="relative">
-                    <input name="password" type={showPassword ? 'text' : 'password'} placeholder="Create a password (min. 6 characters)" className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none" required minLength={6} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-3 flex items-center">
-                      {showPassword ? <EyeOff className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" /> : <Eye className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />}
-                    </button>
-                  </div>
-                </GlassInputWrapper>
-              </div>
-
-              <div className="animate-element animate-delay-600">
-                <label className="text-sm font-medium text-muted-foreground">Confirm Password</label>
-                <GlassInputWrapper>
-                  <div className="relative">
-                    <input name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="Confirm your password" className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none" required />
-                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-3 flex items-center">
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" /> : <Eye className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />}
-                    </button>
-                  </div>
-                </GlassInputWrapper>
-              </div>
-
-              <div className="animate-element animate-delay-700 flex items-start gap-3 text-sm">
-                <input type="checkbox" name="terms" className="custom-checkbox mt-0.5" required />
-                <span className="text-foreground/90">
-                  I agree to the{' '}
-                  <a href="#" className="text-muted-foreground hover:underline transition-colors">Terms of Service</a>
-                  {' '}and{' '}
-                  <a href="#" className="text-muted-foreground hover:underline transition-colors">Privacy Policy</a>
-                </span>
-              </div>
-
-              <button type="submit" className="animate-element animate-delay-800 w-full rounded-2xl bg-foreground py-4 font-medium text-background hover:bg-foreground/90 transition-colors">
-                Create Account
-              </button>
-            </form>
-
-
-            <p className="animate-element animate-delay-900 text-center text-sm text-muted-foreground">
-              Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); onSignInRedirect?.(); }} className="text-foreground hover:underline transition-colors">Sign In</a>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Right column: magnet lines animation + testimonials */}
-      <section className="hidden md:block flex-[2] relative p-4">
-        <div className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 overflow-hidden">
-          <video 
-            autoPlay 
-            loop 
-            muted 
-            playsInline
-            className="w-full h-full object-cover rounded-3xl"
-          >
-            <source src="/abstract-green-gradient-glass-background-following-influencers-platform.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        </div>
-        
-        <div className="absolute bottom-6 right-6">
-          <div 
-            className="animate-testimonial animate-delay-1200 flex items-center justify-center rounded-2xl border border-white/20 dark:border-white/15 px-4 py-2 shadow-lg"
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(12px) saturate(120%)',
-              WebkitBackdropFilter: 'blur(12px) saturate(120%)',
-              borderColor: 'rgba(255, 255, 255, 0.2)',
-            }}
-          >
-            <p className="text-xs text-gray-700 dark:text-gray-300 opacity-70">
-              Built with ❤️ in Dubai
-            </p>
-          </div>
-        </div>
-      </section>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <div className="w-full max-w-4xl">
+        <MultiStepSignup
+          logoSrc={logoSrc}
+          title={title}
+          description={description}
+          onSignUp={onSignUp}
+          onSignInRedirect={onSignInRedirect}
+        />
+      </div>
     </div>
   );
 };

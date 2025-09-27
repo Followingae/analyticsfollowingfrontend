@@ -1,14 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AuthGuard } from "@/components/AuthGuard"
-import { SuperadminSidebar } from "@/components/superadmin/SuperadminSidebar"
+import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { superadminApiService, SecurityAlert, SuspiciousActivity } from "@/services/superadminApi"
-import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AlertTriangle, Shield, RefreshCw, Eye, Ban, CheckCircle } from "lucide-react"
 
@@ -75,13 +72,8 @@ export default function SuperadminSecurityPage() {
   }
 
   return (
-    <AuthGuard requireAuth={true} requireSuperAdmin={true}>
-      <SidebarProvider>
-        <SuperadminSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
-          <div className="flex flex-1 flex-col">
-            <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <SuperadminLayout>
+      <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-3xl font-bold">Security & System Health</h1>
@@ -223,10 +215,7 @@ export default function SuperadminSecurityPage() {
                   )}
                 </CardContent>
               </Card>
-            </div>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </AuthGuard>
+      </div>
+    </SuperadminLayout>
   )
 }

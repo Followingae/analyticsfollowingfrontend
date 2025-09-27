@@ -415,6 +415,12 @@ Response: {
 - **Prettier**: Automated code formatting
 - **Component Patterns**: Consistent prop interfaces and error boundaries
 
+### Development Server Policy
+- **IMPORTANT**: Never start development servers (`npm run dev`, `npm start`, etc.) for testing purposes
+- The user will always test the application themselves
+- Focus on code fixes and provide clear instructions on what was changed
+- Only make code changes and explain the fixes
+
 ### Testing Strategy
 - **Component Testing**: Jest + React Testing Library
 - **E2E Testing**: Playwright for critical user flows

@@ -78,6 +78,14 @@ export const useServiceWorker = (): ServiceWorkerStatus => {
   const updateServiceWorker = () => {
     if (registration && registration.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+      setNeedRefresh(false)
+      // Give SW time to take control, then reload
+      setTimeout(() => {
+        window.location.reload()
+      }, 100)
+    } else {
+      // Fallback: just reload the page
+      window.location.reload()
     }
   }
 

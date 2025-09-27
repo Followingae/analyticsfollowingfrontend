@@ -102,9 +102,8 @@ export function AdminDashboard() {
 
   useEffect(() => {
     loadDashboardData()
-    // Set up real-time updates
-    const interval = setInterval(loadDashboardData, 30000) // Update every 30 seconds
-    return () => clearInterval(interval)
+    // REMOVED: 30-second polling that was causing automatic refreshing
+    // Real-time updates should be manual via refresh button
   }, [])
 
   if (loading) {

@@ -698,6 +698,48 @@ export class SuperadminApiService {
     return this.makeRequest(`/api/superadmin/influencers/${influencerId}/detailed`)
   }
 
+  // Get available influencers for proposal creation
+  async getAvailableInfluencers(params?: {
+    search?: string
+    category?: string
+    followers_min?: number
+    followers_max?: number
+    has_pricing?: boolean
+    limit?: number
+    offset?: number
+  }): Promise<ApiResponse<{
+    influencers: Array<{
+      id: string
+      username: string
+      full_name: string
+      followers_count: number
+      content_category?: string
+      engagement_rate?: number
+      has_database_pricing: boolean
+      pricing?: {
+        story_price_usd_cents?: number
+        post_price_usd_cents?: number
+        reel_price_usd_cents?: number
+      }
+    }>
+    total_count: number
+    limit: number
+    offset: number
+    has_more: boolean
+  }>> {
+    const queryParams = new URLSearchParams()
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          queryParams.append(key, value.toString())
+        }
+      })
+    }
+
+    const url = `/api/superadmin/proposals/influencers/available${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+    return this.makeRequest(url)
+  }
+
   // Proposals Management
   async getProposalsOverview(): Promise<ApiResponse<any>> {
     return this.makeRequest('/api/superadmin/proposals/overview')
@@ -1234,7 +1276,21 @@ export class SuperadminApiService {
   }
 
   async getInfluencerPricing(profileId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/proposals/pricing/influencers/${profileId}`)
+    try {
+      const response = await this.makeRequest(`/api/superadmin/proposals/pricing/influencers/${profileId}`)
+      return response
+    } catch (error: any) {
+      // Handle 404/500 gracefully - pricing not available is normal for most influencers
+      if (error?.status === 404 || error?.status === 500) {
+        return {
+          success: false,
+          data: null,
+          error: 'Pricing not available',
+          status: error.status
+        }
+      }
+      throw error
+    }
   }
 
   async calculateCampaignPricing(profileId: string, campaignRequirements: any): Promise<ApiResponse<any>> {
@@ -1271,10 +1327,93 @@ export class SuperadminApiService {
     })
   }
 
-  async createBrandProposal(proposalData: any): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/proposals/brand-proposals', {
+  // Individual brands for proposal creation
+  async getAvailableBrands(params?: {
+    limit?: number
+    offset?: number
+  }): Promise<ApiResponse<{
+    brands: Array<{
+      id: string
+      email: string
+      full_name: string
+      role: string
+      subscription_tier: string
+      status: string
+      team?: {
+        id: string
+        name: string
+      }
+      total_proposals: number
+      created_at: string
+    }>
+    total_count: number
+    limit: number
+    offset: number
+    has_more: boolean
+  }>> {
+    const queryParams = new URLSearchParams()
+    if (params?.limit) queryParams.append('limit', params.limit.toString())
+    if (params?.offset) queryParams.append('offset', params.offset.toString())
+
+    const url = `/api/superadmin/proposals/brands/available${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+    return this.makeRequest(url)
+  }
+
+  // Team-based brand selection endpoints
+  async getBrandTeams(): Promise<ApiResponse<{
+    teams: Array<{
+      team_id: string
+      team_name: string
+      company_name: string
+      subscription_tier: string
+      member_count: number
+      total_proposals: number
+      team_members: Array<{
+        user_id: string
+        email: string
+        full_name: string
+        role: string
+        team_role: string
+      }>
+      auto_select_all: boolean
+    }>
+    instructions: {
+      usage: string
+      team_member_selection: string
+    }
+  }>> {
+    return this.makeRequest('/api/superadmin/proposals/brands/teams')
+  }
+
+  async getTeamMembers(teamId: string): Promise<ApiResponse<{
+    team: {
+      team_id: string
+      team_name: string
+      company_name: string
+    }
+    members: Array<{
+      user_id: string
+      email: string
+      full_name: string
+      role: string
+      team_role: string
+    }>
+    all_user_ids: string[]
+    auto_selection_ready: boolean
+  }>> {
+    return this.makeRequest(`/api/superadmin/proposals/brands/teams/${teamId}/members`)
+  }
+
+
+  // Draft proposal management - single draft per user system
+  async getBrandProposalLatestDraft(): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/proposals/brand-proposals/drafts/latest')
+  }
+
+  async saveBrandProposalDraft(draftData: any): Promise<ApiResponse<any>> {
+    return this.makeRequest('/api/superadmin/proposals/brand-proposals/drafts', {
       method: 'POST',
-      body: JSON.stringify(proposalData)
+      body: JSON.stringify(draftData)
     })
   }
 
@@ -1397,6 +1536,58 @@ export class SuperadminApiService {
   async getContentAnalyticsOverview(): Promise<ApiResponse<any>> {
     return this.makeRequest('/api/superadmin/content/analytics/overview')
   }
+
+  // User Management Methods - Superadmin specific endpoints
+  async getUserDetails(userId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/admin/users/${userId}`)
+  }
+
+  async updateUser(userId: string, data: any): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/admin/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async adjustUserCredits(userId: string, data: { amount: number; reason: string }): Promise<ApiResponse<any>> {
+    return this.makeRequest('/admin/credits/adjust', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: userId,
+        ...data
+      })
+    })
+  }
+
+  async verifyUserEmail(userId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/admin/users/${userId}/verify-email`, {
+      method: 'POST'
+    })
+  }
+
+  async resetUser2FA(userId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/admin/users/${userId}/reset-2fa`, {
+      method: 'POST'
+    })
+  }
+
+  async deleteUser(userId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/admin/users/${userId}`, {
+      method: 'DELETE'
+    })
+  }
+
+  async getUserActivity(userId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/admin/users/${userId}/activity`)
+  }
+
+  async getCreditTransactions(userId?: string): Promise<ApiResponse<any>> {
+    const url = userId
+      ? `/api/v1/credits/transactions?user_id=${userId}`
+      : '/api/v1/credits/transactions'
+    return this.makeRequest(url)
+  }
+
 }
 
 export const superadminApiService = new SuperadminApiService()

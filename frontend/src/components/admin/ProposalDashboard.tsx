@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useCurrency } from '@/contexts/CurrencyContext'
 import { superadminApi } from '@/services/superadminApi'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -43,6 +44,7 @@ import {
 } from 'lucide-react'
 
 export function ProposalDashboard() {
+  const { formatAmount, currencyInfo } = useCurrency()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedProposal, setSelectedProposal] = useState<any>(null)
@@ -127,11 +129,8 @@ export function ProposalDashboard() {
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
+  const formatCurrency = (amountCents: number) => {
+    return formatAmount(amountCents)
   }
 
   const formatDate = (dateString: string) => {
@@ -543,7 +542,10 @@ export function ProposalDashboard() {
                       <YAxis
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
-                        tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                        tickFormatter={(value) => {
+                          const symbol = currencyInfo?.symbol || '$'
+                          return `${symbol}${(value / 1000).toFixed(0)}k`
+                        }}
                       />
                       <ChartTooltip
                         content={<ChartTooltipContent />}

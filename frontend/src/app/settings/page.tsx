@@ -28,6 +28,7 @@ import { toast } from "sonner"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AuthGuard } from "@/components/AuthGuard"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
+import { useCurrency } from "@/contexts/CurrencyContext"
 import { settingsApiService, type SettingsOverview, type UserProfile, type NotificationSettings, type PrivacySettings, type UserPreferences } from "@/services/settingsApi"
 import TeamContextDisplay from "@/components/team/TeamContextDisplay"
 import TeamMembersManagement from "@/components/team/TeamMembersManagement"
@@ -97,6 +98,7 @@ export default function SettingsPage() {
   // File upload
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user, refreshUser, updateProfile, updateUserState } = useEnhancedAuth()
+  const { userCurrency, isLoading: currencyLoading } = useCurrency()
   
   // Avatar configuration state
   const [avatarConfig, setAvatarConfig] = useState<{
@@ -934,16 +936,92 @@ export default function SettingsPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="currency">Currency</Label>
-                        <Select defaultValue="aed">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="aed"><span className="aed-currency">AED</span></SelectItem>
-                          </SelectContent>
-                        </Select>
+                        {currencyLoading ? (
+                          <div className="h-10 w-full rounded-md border border-input bg-background animate-pulse" />
+                        ) : userCurrency ? (
+                          <div className="flex items-center justify-between p-3 rounded-md border">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-lg">{userCurrency.currency_symbol}</span>
+                              <span className="font-medium">{userCurrency.currency_code}</span>
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {userCurrency.decimal_places} decimals
+                            </Badge>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between p-3 rounded-md border bg-muted">
+                            <span className="text-muted-foreground">No currency information</span>
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Currency settings are managed by your administrator
+                        </p>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* Currency Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      💱 Account Currency
+                    </CardTitle>
+                    <CardDescription>
+                      View your account currency settings and formatting preferences
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {currencyLoading ? (
+                      <div className="space-y-2">
+                        <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+                        <div className="h-4 w-48 rounded bg-muted animate-pulse" />
+                      </div>
+                    ) : userCurrency ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium">Current Currency</p>
+                            <p className="text-sm text-muted-foreground">
+                              All monetary amounts are displayed in this currency
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-lg font-mono">
+                            {userCurrency.currency_symbol} {userCurrency.currency_code}
+                          </Badge>
+                        </div>
+
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Currency Code:</span>
+                              <span className="ml-2 font-mono">{userCurrency.currency_code}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Symbol:</span>
+                              <span className="ml-2 font-mono">{userCurrency.currency_symbol}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Decimal Places:</span>
+                              <span className="ml-2 font-mono">{userCurrency.decimal_places}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Team ID:</span>
+                              <span className="ml-2 font-mono text-xs">{userCurrency.team_id}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground">
+                          💡 Currency settings are managed by your administrator.
+                          Contact support if you need to change your account currency.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No currency information available</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 

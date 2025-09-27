@@ -44,7 +44,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import {
   Pie, PieChart, Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis, Area, AreaChart,
-  RadialBarChart, RadialBar, PolarGrid, PolarRadiusAxis, Label, PolarAngleAxis, Radar, RadarChart
+  Label, PolarAngleAxis, Radar, RadarChart
 } from "recharts"
 import {
   ChartConfig,
@@ -403,62 +403,60 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                 international_reach: true
               },
               language_analysis: {
-                ai_language_distribution: response.profile.ai_analysis?.language_distribution || { "en": 0.9 },
-                language_indicators: { "english": response.profile.posts_count || 1 }
+                ai_language_distribution: response.profile.ai_analysis?.language_distribution,
+                language_indicators: response.profile.ai_analysis?.language_indicators
               },
               authenticity_analysis: {
-                authenticity_score: response.profile.ai_analysis?.audience_quality_assessment?.authenticity_score || 85,
-                bot_detection_score: response.profile.ai_analysis?.audience_quality_assessment?.bot_detection_score || 15,
-                fake_follower_percentage: response.profile.ai_analysis?.fraud_detection_analysis?.fake_follower_percentage || 10,
+                authenticity_score: response.profile.ai_analysis?.audience_quality_assessment?.authenticity_score,
+                bot_detection_score: response.profile.ai_analysis?.audience_quality_assessment?.bot_detection_score,
+                fake_follower_percentage: response.profile.ai_analysis?.fraud_detection_analysis?.fake_follower_percentage,
                 fraud_assessment: {
-                  risk_level: response.profile.ai_analysis?.comprehensive_insights?.fraud_risk_level || "low",
-                  authenticity_score: response.profile.ai_analysis?.comprehensive_insights?.overall_authenticity_score || 85,
-                  overall_fraud_score: 15,
-                  bot_likelihood_percentage: 10
+                  risk_level: response.profile.ai_analysis?.comprehensive_insights?.fraud_risk_level,
+                  authenticity_score: response.profile.ai_analysis?.comprehensive_insights?.overall_authenticity_score,
+                  overall_fraud_score: response.profile.ai_analysis?.comprehensive_insights?.overall_fraud_score,
+                  bot_likelihood_percentage: response.profile.ai_analysis?.comprehensive_insights?.bot_likelihood_percentage
                 },
-                red_flags: []
+                red_flags: response.profile.ai_analysis?.red_flags || []
               }
             },
             engagement: {
               behavioral_patterns: {
-                posting_frequency: 12,
-                avg_engagement_rate: response.profile.engagement_rate || 0,
-                engagement_consistency_score: 0.76,
-                high_engagement_posts_percentage: 60,
-                posting_consistency: 0.8
+                posting_frequency: response.profile.ai_analysis?.behavioral_patterns?.posting_frequency,
+                avg_engagement_rate: response.profile.engagement_rate,
+                engagement_consistency_score: response.profile.ai_analysis?.behavioral_patterns?.engagement_consistency_score,
+                high_engagement_posts_percentage: response.profile.ai_analysis?.behavioral_patterns?.high_engagement_posts_percentage,
+                posting_consistency: response.profile.ai_analysis?.behavioral_patterns?.posting_consistency
               },
               sentiment_analysis: {
-                overall_sentiment_distribution: {
-                  "positive": 0.4, "neutral": 0.5, "negative": 0.1
-                },
-                ai_avg_sentiment_score: response.profile.ai_analysis?.avg_sentiment_score || 0,
-                sentiment_trends: "positive"
+                overall_sentiment_distribution: response.profile.ai_analysis?.overall_sentiment_distribution,
+                ai_avg_sentiment_score: response.profile.ai_analysis?.avg_sentiment_score,
+                sentiment_trends: response.profile.ai_analysis?.sentiment_trends
               },
               engagement_quality: {
-                avg_like_rate: (response.profile.engagement_rate || 0) * 0.95,
-                avg_comment_rate: (response.profile.engagement_rate || 0) * 0.05,
-                avg_likes_comments_ratio: 20,
-                engagement_authenticity: 85,
-                suspicious_engagement_posts: 0
+                avg_like_rate: response.profile.ai_analysis?.engagement_quality?.avg_like_rate,
+                avg_comment_rate: response.profile.ai_analysis?.engagement_quality?.avg_comment_rate,
+                avg_likes_comments_ratio: response.profile.ai_analysis?.engagement_quality?.avg_likes_comments_ratio,
+                engagement_authenticity: response.profile.ai_analysis?.engagement_quality?.engagement_authenticity,
+                suspicious_engagement_posts: response.profile.ai_analysis?.engagement_quality?.suspicious_engagement_posts
               },
               optimization_insights: {
-                engagement_triggers: ["storytelling", "behind_scenes", "tips"],
-                optimal_post_structure: "hook_content_cta",
-                top_performing_elements: ["questions", "call_to_action", "storytelling"],
-                optimization_recommendations: ["increase_user_mentions", "post_consistently"]
+                engagement_triggers: response.profile.ai_analysis?.optimization_insights?.engagement_triggers,
+                optimal_post_structure: response.profile.ai_analysis?.optimization_insights?.optimal_post_structure,
+                top_performing_elements: response.profile.ai_analysis?.optimization_insights?.top_performing_elements,
+                optimization_recommendations: response.profile.ai_analysis?.optimization_insights?.optimization_recommendations
               }
             },
             content: {
               visual_analysis: {
-                aesthetic_score: response.profile.ai_analysis?.visual_content_analysis?.aesthetic_score || 70,
-                dominant_colors: [],
+                aesthetic_score: response.profile.ai_analysis?.visual_content_analysis?.aesthetic_score,
+                dominant_colors: response.profile.ai_analysis?.visual_content_analysis?.dominant_colors,
                 image_quality_metrics: {
-                  average_quality: 75,
-                  quality_consistency: 0.8,
-                  average_resolution: [1080, 1080]
+                  average_quality: response.profile.ai_analysis?.visual_content_analysis?.image_quality_metrics?.average_quality,
+                  quality_consistency: response.profile.ai_analysis?.visual_content_analysis?.image_quality_metrics?.quality_consistency,
+                  average_resolution: response.profile.ai_analysis?.visual_content_analysis?.image_quality_metrics?.average_resolution
                 },
-                professional_quality_score: response.profile.ai_analysis?.visual_content_analysis?.professional_quality_score || 65,
-                faces_detected: 8,
+                professional_quality_score: response.profile.ai_analysis?.visual_content_analysis?.professional_quality_score,
+                faces_detected: response.profile.ai_analysis?.visual_content_analysis?.faces_detected,
                 brand_logo_detected: (() => {
                   // Extract brand names from the brand mentions data
                   const brandLogos = new Set()
@@ -531,7 +529,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   })
 
                   // Calculate metrics
-                  const uniqueBrands = new Set(allBrandMentions.map(b => b.mention)).size
+                  const uniqueBrands = new Set((allBrandMentions || []).map(b => b.mention)).size
                   const totalMentions = allBrandMentions.reduce((sum, b) => sum + (b.frequency || 1), 0)
                   const sponsoredLikelihood = partnershipIndicators.includes('ad') ? 0.8 :
                                              partnershipIndicators.length > 0 ? 0.5 : 0.2
@@ -549,40 +547,36 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
               },
               content_strategy: {
                 posting_style: {
-                  primary_style: "professional",
-                  avg_post_length: 150,
-                  interactivity_score: 0.3
+                  primary_style: response.profile.ai_analysis?.content_strategy?.posting_style?.primary_style,
+                  avg_post_length: response.profile.ai_analysis?.content_strategy?.posting_style?.avg_post_length,
+                  interactivity_score: response.profile.ai_analysis?.content_strategy?.posting_style?.interactivity_score
                 },
-                content_depth_score: 70,
-                content_strategy_maturity: 75,
+                content_depth_score: response.profile.ai_analysis?.content_strategy?.content_depth_score,
+                content_strategy_maturity: response.profile.ai_analysis?.content_strategy?.content_strategy_maturity,
                 viral_potential: {
-                  overall_viral_score: 50,
-                  note: "moderate_potential"
+                  overall_viral_score: response.profile.ai_analysis?.content_strategy?.viral_potential?.overall_viral_score,
+                  note: response.profile.ai_analysis?.content_strategy?.viral_potential?.note
                 }
               },
               nlp_insights: {
                 text_analysis: {
-                  unique_words: 500,
-                  total_word_count: 1500,
-                  average_word_count: 50,
-                  vocabulary_richness: 0.6,
-                  text_complexity_score: 60
+                  unique_words: response.profile.ai_analysis?.nlp_insights?.text_analysis?.unique_words,
+                  total_word_count: response.profile.ai_analysis?.nlp_insights?.text_analysis?.total_word_count,
+                  average_word_count: response.profile.ai_analysis?.nlp_insights?.text_analysis?.average_word_count,
+                  vocabulary_richness: response.profile.ai_analysis?.nlp_insights?.text_analysis?.vocabulary_richness,
+                  text_complexity_score: response.profile.ai_analysis?.nlp_insights?.text_analysis?.text_complexity_score
                 },
                 readability_scores: {
-                  flesch_ease: 65,
-                  flesch_kincaid_grade: 10,
-                  automated_readability_index: 12
+                  flesch_ease: response.profile.ai_analysis?.nlp_insights?.readability_scores?.flesch_ease,
+                  flesch_kincaid_grade: response.profile.ai_analysis?.nlp_insights?.readability_scores?.flesch_kincaid_grade,
+                  automated_readability_index: response.profile.ai_analysis?.nlp_insights?.readability_scores?.automated_readability_index
                 },
                 entity_extraction: {
-                  entities: {
-                    PERSON: [{ text: response.profile.full_name || "Creator", confidence: 1 }],
-                    ORG: [{ text: "Company", confidence: 0.8 }],
-                    GPE: [{ text: "United States", confidence: 0.9 }]
-                  },
-                  hashtags: 15,
-                  mentions: 8,
-                  urls: 2,
-                  emojis: 25
+                  entities: response.profile.ai_analysis?.nlp_insights?.entity_extraction?.entities,
+                  hashtags: response.profile.ai_analysis?.nlp_insights?.entity_extraction?.hashtags,
+                  mentions: response.profile.ai_analysis?.nlp_insights?.entity_extraction?.mentions,
+                  urls: response.profile.ai_analysis?.nlp_insights?.entity_extraction?.urls,
+                  emojis: response.profile.ai_analysis?.nlp_insights?.entity_extraction?.emojis
                 }
               }
             },
@@ -811,7 +805,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   </div>
                 </div>
                 <div className="text-center p-4 bg-background/60 backdrop-blur-sm rounded-lg border">
-                  <div className="text-3xl font-bold text-primary">{data.overview.ai_classification.ai_content_quality_score.toFixed(0)}</div>
+                  <div className="text-3xl font-bold text-primary">{data.overview.ai_classification.ai_content_quality_score?.toFixed(0) ?? 'N/A'}</div>
                   <div className="text-sm text-muted-foreground flex items-center justify-center gap-1 mt-1">
                     <Star className="h-3 w-3" />
                     Quality Score
@@ -872,67 +866,10 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                       <div className="text-sm text-muted-foreground">Avg Comments</div>
                     </div>
                   </div>
-                  <ChartContainer
-                    config={{
-                      engagement: {
-                        label: "Engagement Rate",
-                        color: "var(--chart-1)",
-                      },
-                    } satisfies ChartConfig}
-                    className="mx-auto aspect-square max-h-[120px]"
-                  >
-                    <RadialBarChart
-                      data={[{
-                        name: "engagement",
-                        value: data.overview.engagement_metrics.engagement_rate * 100,
-                        fill: "var(--color-engagement)"
-                      }]}
-                      startAngle={0}
-                      endAngle={250}
-                      innerRadius={30}
-                      outerRadius={50}
-                    >
-                      <PolarGrid
-                        gridType="circle"
-                        radialLines={false}
-                        stroke="none"
-                        className="first:fill-muted last:fill-background"
-                        polarRadius={[36, 24]}
-                      />
-                      <RadialBar dataKey="value" background cornerRadius={10} />
-                      <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
-                        <Label
-                          content={({ viewBox }) => {
-                            if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                              return (
-                                <text
-                                  x={viewBox.cx}
-                                  y={viewBox.cy}
-                                  textAnchor="middle"
-                                  dominantBaseline="middle"
-                                >
-                                  <tspan
-                                    x={viewBox.cx}
-                                    y={viewBox.cy}
-                                    className="fill-foreground text-lg font-bold"
-                                  >
-                                    {formatPercentage(data.overview.engagement_metrics.engagement_rate)}
-                                  </tspan>
-                                  <tspan
-                                    x={viewBox.cx}
-                                    y={(viewBox.cy || 0) + 16}
-                                    className="fill-muted-foreground text-xs"
-                                  >
-                                    Engagement
-                                  </tspan>
-                                </text>
-                              )
-                            }
-                          }}
-                        />
-                      </PolarRadiusAxis>
-                    </RadialBarChart>
-                  </ChartContainer>
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">{formatPercentage(data.overview.engagement_metrics.engagement_rate)}</div>
+                    <div className="text-sm text-muted-foreground">Engagement Rate</div>
+                  </div>
                   <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
                     <div className="text-sm font-medium text-primary">Best Performing Post</div>
                     <div className="text-lg font-bold">{formatNumber(data.overview.engagement_metrics.best_performing_post_likes)} likes</div>
@@ -960,8 +897,8 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   </div>
 
                   {(() => {
-                    const chartData = Object.entries(data.overview.ai_classification.ai_content_distribution).map(([category, percentage]) => ({
-                      category: category.charAt(0).toUpperCase() + category.slice(1),
+                    const chartData = Object.entries(data.overview.ai_classification.ai_content_distribution || {}).map(([category, percentage]) => ({
+                      category: category ? category.charAt(0).toUpperCase() + category.slice(1) : 'N/A',
                       value: (percentage as number) * 100,
                       label: formatPercentage(percentage as number)
                     }))
@@ -1018,7 +955,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                     <span className="text-sm font-medium">Quality Score</span>
                     <Badge variant="outline" className="text-primary border-primary/20">
-                      {data.overview.ai_classification.ai_content_quality_score.toFixed(1)}/100
+                      {data.overview.ai_classification.ai_content_quality_score?.toFixed(1) ?? 'N/A'}/100
                     </Badge>
                   </div>
                 </div>
@@ -1042,7 +979,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const chartData = Object.entries(data.audience.demographics.estimated_age_groups).map(([ageGroup, percentage]) => ({
+                  const chartData = Object.entries(data.audience.demographics.estimated_age_groups || {}).map(([ageGroup, percentage]) => ({
                     category: ageGroup,
                     value: (percentage as number) * 100,
                     label: formatPercentage(percentage as number)
@@ -1129,8 +1066,8 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <PieChart>
                     <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                     <Pie
-                      data={Object.entries(data.audience.demographics.estimated_gender_split).map(([gender, percentage]) => ({
-                        browser: gender.charAt(0).toUpperCase() + gender.slice(1),
+                      data={Object.entries(data.audience.demographics.estimated_gender_split || {}).map(([gender, percentage]) => ({
+                        browser: gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : 'N/A',
                         visitors: (percentage as number) * 100,
                         fill: gender === 'female' ? 'var(--color-female)' :
                               gender === 'male' ? 'var(--color-male)' :
@@ -1193,7 +1130,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <h4 className="font-semibold">Country Distribution</h4>
-                  {Object.entries(data.audience.geographic_distribution.country_distribution).map(([country, count]) => (
+                  {Object.entries(data.audience.geographic_distribution.country_distribution || {}).map(([country, count]) => (
                     <div key={country} className="flex justify-between items-center">
                       <span className="text-sm">{country}</span>
                       <Badge variant="outline">{count}</Badge>
@@ -1202,7 +1139,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                 </div>
                 <div className="space-y-4">
                   <h4 className="font-semibold">Regional Presence</h4>
-                  {data.audience.geographic_distribution.primary_regions.map((region, index) => (
+                  {(data.audience.geographic_distribution.primary_regions || []).map((region, index) => (
                     <div key={region} className="flex items-center gap-2">
                       <Map className="h-4 w-4 text-primary" />
                       <span className="text-sm">{region}</span>
@@ -1242,44 +1179,24 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <h4 className="font-semibold">Primary Languages</h4>
-                  <ChartContainer
-                    config={{
-                      value: {
-                        label: "Percentage",
-                        color: "var(--chart-1)",
-                      },
-                    } satisfies ChartConfig}
-                    className="h-[200px] w-full"
-                  >
-                    <BarChart
-                      accessibilityLayer
-                      data={Object.entries(data.audience.language_analysis.ai_language_distribution).map(([language, percentage]) => ({
-                        category: language.toUpperCase(),
-                        value: (percentage as number) * 100,
-                        label: formatPercentage(percentage as number)
-                      }))}
-                      layout="vertical"
-                      margin={{ left: -20 }}
-                    >
-                      <XAxis type="number" dataKey="value" hide />
-                      <YAxis
-                        dataKey="category"
-                        type="category"
-                        width={60}
-                        tick={false}
-                        axisLine={false}
-                      />
-                      <ChartTooltip
-                        cursor={false}
-                        content={<ChartTooltipContent indicator="line" />}
-                      />
-                      <Bar dataKey="value" fill="var(--color-value)" radius={4} />
-                    </BarChart>
-                  </ChartContainer>
+                  <div className="space-y-3">
+                    {Object.entries(data.audience.language_analysis.ai_language_distribution || {}).map(([language, percentage]) => (
+                      <div key={language} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                        <div>
+                          <div className="font-medium capitalize">{language}</div>
+                          <div className="text-sm text-muted-foreground">Content Language</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-primary">{formatPercentage(percentage as number)}</div>
+                          <div className="text-xs text-muted-foreground">Coverage</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div className="space-y-4">
                   <h4 className="font-semibold">Language Indicators</h4>
-                  {Object.entries(data.audience.language_analysis.language_indicators).map(([language, count]) => (
+                  {Object.entries(data.audience.language_analysis.language_indicators || {}).map(([language, count]) => (
                     <div key={language} className="flex justify-between items-center">
                       <span className="text-sm capitalize">{language}</span>
                       <Badge variant="outline">{count} posts</Badge>
@@ -1304,15 +1221,15 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                 {/* Authenticity Scores */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-2xl font-bold text-primary">{data.audience.authenticity_analysis.authenticity_score.toFixed(1)}</div>
+                    <div className="text-2xl font-bold text-primary">{data.audience.authenticity_analysis.authenticity_score?.toFixed(1) ?? 'N/A'}</div>
                     <div className="text-sm text-muted-foreground">Authenticity Score</div>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-2xl font-bold text-orange-500">{data.audience.authenticity_analysis.bot_detection_score.toFixed(1)}%</div>
+                    <div className="text-2xl font-bold text-orange-500">{data.audience.authenticity_analysis.bot_detection_score?.toFixed(1) ?? 'N/A'}%</div>
                     <div className="text-sm text-muted-foreground">Bot Detection</div>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-2xl font-bold text-red-500">{data.audience.authenticity_analysis.fake_follower_percentage.toFixed(1)}%</div>
+                    <div className="text-2xl font-bold text-red-500">{data.audience.authenticity_analysis.fake_follower_percentage?.toFixed(1) ?? 'N/A'}%</div>
                     <div className="text-sm text-muted-foreground">Fake Followers</div>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -1321,7 +1238,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                       data.audience.authenticity_analysis.fraud_assessment.risk_level === 'medium' ? 'text-orange-500' :
                       'text-green-500'
                     }`}>
-                      {data.audience.authenticity_analysis.fraud_assessment.risk_level.toUpperCase()}
+                      {data.audience.authenticity_analysis.fraud_assessment?.risk_level?.toUpperCase() ?? 'N/A'}
                     </div>
                     <div className="text-sm text-muted-foreground">Risk Level</div>
                   </div>
@@ -1356,7 +1273,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                       Red Flags
                     </h4>
                     <div className="space-y-2">
-                      {data.audience.authenticity_analysis.red_flags.map((flag, index) => (
+                      {(data.audience.authenticity_analysis.red_flags || []).map((flag, index) => (
                         <Alert key={index} className="py-2">
                           <AlertTriangle className="h-4 w-4" />
                           <AlertDescription className="text-sm">{flag}</AlertDescription>
@@ -1421,7 +1338,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                         {
                           category: "High Engagement Posts",
                           value: data.engagement.behavioral_patterns.high_engagement_posts_percentage,
-                          label: `${data.engagement.behavioral_patterns.high_engagement_posts_percentage.toFixed(1)}%`
+                          label: `${data.engagement.behavioral_patterns.high_engagement_posts_percentage?.toFixed(1) ?? 'N/A'}%`
                         }
                       ]}
                       layout="vertical"
@@ -1466,8 +1383,8 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                 >
                   <BarChart
                     accessibilityLayer
-                    data={Object.entries(data.engagement.sentiment_analysis.overall_sentiment_distribution).map(([sentiment, percentage]) => ({
-                      sentiment: sentiment.charAt(0).toUpperCase() + sentiment.slice(1),
+                    data={Object.entries(data.engagement.sentiment_analysis.overall_sentiment_distribution || {}).map(([sentiment, percentage]) => ({
+                      sentiment: sentiment ? sentiment.charAt(0).toUpperCase() + sentiment.slice(1) : 'N/A',
                       value: (percentage as number) * 100,
                       fill: sentiment === 'positive' ? 'var(--color-positive)' :
                             sentiment === 'negative' ? 'var(--color-negative)' :
@@ -1529,11 +1446,11 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <div className="text-sm text-muted-foreground">Comment Rate</div>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{data.engagement.engagement_quality.avg_likes_comments_ratio.toFixed(0)}</div>
+                  <div className="text-2xl font-bold text-primary">{data.engagement.engagement_quality.avg_likes_comments_ratio?.toFixed(0) ?? 'N/A'}</div>
                   <div className="text-sm text-muted-foreground">Likes/Comments</div>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-500">{data.engagement.engagement_quality.engagement_authenticity.toFixed(1)}%</div>
+                  <div className="text-2xl font-bold text-orange-500">{data.engagement.engagement_quality.engagement_authenticity?.toFixed(1) ?? 'N/A'}%</div>
                   <div className="text-sm text-muted-foreground">Authenticity</div>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -1554,170 +1471,149 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
               <CardDescription>AI-powered recommendations for engagement improvement</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Engagement Triggers */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold flex items-center gap-2">
-                    <Zap className="h-4 w-4" />
-                    Engagement Triggers
-                  </h4>
-                  <div className="space-y-2">
-                    {data.engagement.optimization_insights.engagement_triggers.map((trigger, index) => (
-                      <Badge key={index} variant="secondary" className="mr-2 mb-2 capitalize">
-                        {trigger.replace('_', ' ')}
-                      </Badge>
-                    ))}
+              <div className="space-y-6">
+                {/* Engagement Triggers and Top Performing Elements */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Engagement Triggers */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Zap className="h-4 w-4" />
+                      Engagement Triggers
+                    </h4>
+                    <div className="space-y-2">
+                      {(data.engagement.optimization_insights.engagement_triggers || []).map((trigger, index) => (
+                        <Badge key={index} variant="secondary" className="mr-2 mb-2 capitalize">
+                          {trigger?.replace('_', ' ') ?? 'N/A'}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
 
-                  <h4 className="font-semibold mt-6">Top Performing Elements</h4>
-                  <div className="space-y-2">
-                    {data.engagement.optimization_insights.top_performing_elements.map((element, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        <span className="text-sm capitalize">{element.replace('_', ' ')}</span>
-                      </div>
-                    ))}
+                  {/* Top Performing Elements */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold">Top Performing Elements</h4>
+                    <div className="space-y-2">
+                      {(data.engagement.optimization_insights.top_performing_elements || []).map((element, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span className="text-sm capitalize">{element?.replace('_', ' ') ?? 'N/A'}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* Optimization Recommendations */}
+                {/* Engagement Trends Chart - Full Width */}
                 <div className="space-y-4">
                   <h4 className="font-semibold flex items-center gap-2">
-                    <Target className="h-4 w-4" />
-                    Optimization Recommendations
+                    <TrendingUp className="h-4 w-4" />
+                    Engagement Trends
                   </h4>
-                  <div className="space-y-3">
-                    {data.engagement.optimization_insights.optimization_recommendations.map((recommendation, index) => (
-                      <Alert key={index} className="py-3">
-                        <Sparkles className="h-4 w-4" />
-                        <AlertDescription className="text-sm capitalize">
-                          {recommendation.replace('_', ' ')}
-                        </AlertDescription>
-                      </Alert>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                    <h5 className="font-semibold text-primary mb-2">Optimal Post Structure</h5>
-                    <Badge variant="outline" className="text-primary border-primary/20 capitalize">
-                      {data.engagement.optimization_insights.optimal_post_structure.replace('_', ' → ')}
-                    </Badge>
-                  </div>
+                  <p className="text-sm text-muted-foreground">Engagement performance over time</p>
+                  <ChartContainer
+                    config={{
+                      likes: {
+                        label: "Likes",
+                        color: "var(--chart-1)",
+                      },
+                      comments: {
+                        label: "Comments",
+                        color: "var(--chart-2)",
+                      },
+                      shares: {
+                        label: "Shares",
+                        color: "var(--chart-3)",
+                      },
+                    } satisfies ChartConfig}
+                    className="h-64"
+                  >
+                    <AreaChart
+                      accessibilityLayer
+                      data={[
+                        {
+                          month: 'Jan',
+                          likes: data.overview.engagement_metrics.avg_likes * 0.8,
+                          comments: data.overview.engagement_metrics.avg_comments * 0.8,
+                          shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.8
+                        },
+                        {
+                          month: 'Feb',
+                          likes: data.overview.engagement_metrics.avg_likes * 0.9,
+                          comments: data.overview.engagement_metrics.avg_comments * 0.9,
+                          shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.9
+                        },
+                        {
+                          month: 'Mar',
+                          likes: data.overview.engagement_metrics.avg_likes * 0.85,
+                          comments: data.overview.engagement_metrics.avg_comments * 0.85,
+                          shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.85
+                        },
+                        {
+                          month: 'Apr',
+                          likes: data.overview.engagement_metrics.avg_likes * 0.95,
+                          comments: data.overview.engagement_metrics.avg_comments * 0.95,
+                          shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.95
+                        },
+                        {
+                          month: 'May',
+                          likes: data.overview.engagement_metrics.avg_likes,
+                          comments: data.overview.engagement_metrics.avg_comments,
+                          shares: data.overview.engagement_metrics.avg_likes * 0.1
+                        },
+                        {
+                          month: 'Jun',
+                          likes: data.overview.engagement_metrics.avg_likes * 1.1,
+                          comments: data.overview.engagement_metrics.avg_comments * 1.1,
+                          shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 1.1
+                        }
+                      ]}
+                      margin={{
+                        left: 12,
+                        right: 12,
+                      }}
+                    >
+                      <CartesianGrid vertical={false} />
+                      <XAxis
+                        dataKey="month"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                      />
+                      <ChartTooltip
+                        cursor={false}
+                        content={<ChartTooltipContent indicator="dot" />}
+                      />
+                      <Area
+                        dataKey="shares"
+                        type="natural"
+                        fill="var(--color-shares)"
+                        fillOpacity={0.4}
+                        stroke="var(--color-shares)"
+                        stackId="a"
+                      />
+                      <Area
+                        dataKey="comments"
+                        type="natural"
+                        fill="var(--color-comments)"
+                        fillOpacity={0.4}
+                        stroke="var(--color-comments)"
+                        stackId="a"
+                      />
+                      <Area
+                        dataKey="likes"
+                        type="natural"
+                        fill="var(--color-likes)"
+                        fillOpacity={0.4}
+                        stroke="var(--color-likes)"
+                        stackId="a"
+                      />
+                    </AreaChart>
+                  </ChartContainer>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Engagement Trends Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Engagement Trends
-              </CardTitle>
-              <CardDescription>Engagement performance over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer
-                config={{
-                  likes: {
-                    label: "Likes",
-                    color: "var(--chart-1)",
-                  },
-                  comments: {
-                    label: "Comments",
-                    color: "var(--chart-2)",
-                  },
-                  shares: {
-                    label: "Shares",
-                    color: "var(--chart-3)",
-                  },
-                } satisfies ChartConfig}
-              >
-                <AreaChart
-                  accessibilityLayer
-                  data={[
-                    {
-                      month: 'Jan',
-                      likes: data.overview.engagement_metrics.avg_likes * 0.8,
-                      comments: data.overview.engagement_metrics.avg_comments * 0.8,
-                      shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.8
-                    },
-                    {
-                      month: 'Feb',
-                      likes: data.overview.engagement_metrics.avg_likes * 0.9,
-                      comments: data.overview.engagement_metrics.avg_comments * 0.9,
-                      shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.9
-                    },
-                    {
-                      month: 'Mar',
-                      likes: data.overview.engagement_metrics.avg_likes * 0.85,
-                      comments: data.overview.engagement_metrics.avg_comments * 0.85,
-                      shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.85
-                    },
-                    {
-                      month: 'Apr',
-                      likes: data.overview.engagement_metrics.avg_likes * 0.95,
-                      comments: data.overview.engagement_metrics.avg_comments * 0.95,
-                      shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 0.95
-                    },
-                    {
-                      month: 'May',
-                      likes: data.overview.engagement_metrics.avg_likes,
-                      comments: data.overview.engagement_metrics.avg_comments,
-                      shares: data.overview.engagement_metrics.avg_likes * 0.1
-                    },
-                    {
-                      month: 'Jun',
-                      likes: data.overview.engagement_metrics.avg_likes * 1.1,
-                      comments: data.overview.engagement_metrics.avg_comments * 1.1,
-                      shares: (data.overview.engagement_metrics.avg_likes * 0.1) * 1.1
-                    }
-                  ]}
-                  margin={{
-                    left: 12,
-                    right: 12,
-                  }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="dot" />}
-                  />
-                  <Area
-                    dataKey="shares"
-                    type="natural"
-                    fill="var(--color-shares)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-shares)"
-                    stackId="a"
-                  />
-                  <Area
-                    dataKey="comments"
-                    type="natural"
-                    fill="var(--color-comments)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-comments)"
-                    stackId="a"
-                  />
-                  <Area
-                    dataKey="likes"
-                    type="natural"
-                    fill="var(--color-likes)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-likes)"
-                    stackId="a"
-                  />
-                </AreaChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* CONTENT TAB */}
@@ -1734,11 +1630,11 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
             <CardContent>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.aesthetic_score.toFixed(1)}</div>
+                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.aesthetic_score?.toFixed(1) ?? 'N/A'}</div>
                   <div className="text-sm text-muted-foreground">Aesthetic Score</div>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.professional_quality_score.toFixed(1)}</div>
+                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.professional_quality_score?.toFixed(1) ?? 'N/A'}</div>
                   <div className="text-sm text-muted-foreground">Professional Quality</div>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -1746,7 +1642,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <div className="text-sm text-muted-foreground">Faces Detected</div>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.image_quality_metrics.average_quality.toFixed(1)}</div>
+                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.image_quality_metrics?.average_quality?.toFixed(1) ?? 'N/A'}</div>
                   <div className="text-sm text-muted-foreground">Image Quality</div>
                 </div>
               </div>
@@ -1799,13 +1695,13 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Brand Logos Detected</span>
-                      <Badge variant="outline">{data.content.visual_analysis.brand_logo_detected.length}</Badge>
+                      <Badge variant="outline">{data.content.visual_analysis.brand_logo_detected?.length ?? 0}</Badge>
                     </div>
-                    {data.content.visual_analysis.dominant_colors.length > 0 ? (
+                    {(data.content.visual_analysis.dominant_colors?.length ?? 0) > 0 ? (
                       <div>
                         <span className="text-sm text-muted-foreground">Dominant Colors</span>
                         <div className="flex gap-2 mt-1">
-                          {data.content.visual_analysis.dominant_colors.slice(0, 5).map((color, index) => (
+                          {(data.content.visual_analysis.dominant_colors || []).slice(0, 5).map((color, index) => (
                             <div
                               key={index}
                               className="w-6 h-6 rounded-full border-2 border-border"
@@ -1840,7 +1736,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <div>
                     <h4 className="font-semibold mb-3">Main Themes</h4>
                     <div className="flex flex-wrap gap-2">
-                      {data.content.content_themes.topic_modeling.main_themes.map((theme, index) => (
+                      {(data.content.content_themes.topic_modeling.main_themes || []).map((theme, index) => (
                         <Badge key={index} variant="secondary" className="capitalize">
                           {theme}
                         </Badge>
@@ -1853,12 +1749,12 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <div>
                     <h4 className="font-semibold mb-3">Top Keywords</h4>
                     <div className="space-y-2">
-                      {data.content.content_themes.topic_modeling.top_keywords.map((keyword, index) => (
+                      {(data.content.content_themes.topic_modeling.top_keywords || []).map((keyword, index) => (
                         <div key={index} className="flex justify-between items-center">
                           <span className="text-sm capitalize">{keyword.keyword}</span>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-xs">{keyword.frequency}</Badge>
-                            <Badge variant="outline" className="text-xs">{keyword.score.toFixed(3)}</Badge>
+                            <Badge variant="outline" className="text-xs">{keyword.score?.toFixed(3) ?? 'N/A'}</Badge>
                           </div>
                         </div>
                       ))}
@@ -1869,7 +1765,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
 
                   <div>
                     <h4 className="font-semibold mb-3">Semantic Clusters</h4>
-                    {data.content.content_themes.topic_modeling.semantic_clusters.map((cluster, index) => (
+                    {(data.content.content_themes.topic_modeling.semantic_clusters || []).map((cluster, index) => (
                       <div key={index} className="p-3 bg-muted/50 rounded-lg mb-2">
                         <div className="flex justify-between items-center mb-2">
                           <Badge variant="outline" className="capitalize">{cluster.theme}</Badge>
@@ -1952,7 +1848,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <div>
                     <h4 className="font-semibold mb-3">Partnership Indicators</h4>
                     <div className="flex flex-wrap gap-2">
-                      {data.content.content_themes.brand_analysis.brand_partnership_indicators.map((indicator, index) => (
+                      {(data.content.content_themes.brand_analysis.brand_partnership_indicators || []).map((indicator, index) => (
                         <Badge key={index} variant="outline" className="uppercase">
                           {indicator}
                         </Badge>
@@ -1961,7 +1857,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   </div>
 
                   {/* Brand Mentions Chart */}
-                  {data.content.content_themes.brand_analysis.brand_mentions.length > 0 && (
+                  {(data.content.content_themes.brand_analysis.brand_mentions?.length ?? 0) > 0 && (
                     <div>
                       <h4 className="font-semibold mb-3 flex items-center gap-2">
                         <Hash className="h-4 w-4" />
@@ -2033,9 +1929,9 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                                               </div>
                                             </div>
                                             <div className="flex gap-1">
-                                              {data.types.map((type, idx) => (
+                                              {(data.types || []).map((type, idx) => (
                                                 <Badge key={idx} variant="outline" className="text-xs">
-                                                  {type.replace('_', ' ')}
+                                                  {type?.replace('_', ' ') ?? 'N/A'}
                                                 </Badge>
                                               ))}
                                             </div>
@@ -2051,7 +1947,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                             </ChartContainer>
 
                             <div className="text-xs text-muted-foreground text-center">
-                              Top {uniqueMentions.length} brand mentions by frequency
+                              Top {uniqueMentions?.length ?? 0} brand mentions by frequency
                             </div>
                           </div>
                         )
@@ -2060,7 +1956,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   )}
 
                   {/* Brand Affinities (from audience_insights) */}
-                  {Object.keys(data.content.content_themes.brand_analysis.brand_affinities).length > 0 && (
+                  {Object.keys(data.content.content_themes.brand_analysis.brand_affinities || {}).length > 0 && (
                     <div>
                       <h4 className="font-semibold mb-3 flex items-center gap-2">
                         <Star className="h-4 w-4" />
@@ -2091,8 +1987,8 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   )}
 
                   {/* No Data Message */}
-                  {data.content.content_themes.brand_analysis.brand_mentions.length === 0 &&
-                   Object.keys(data.content.content_themes.brand_analysis.brand_affinities).length === 0 && (
+                  {(data.content.content_themes.brand_analysis.brand_mentions?.length ?? 0) === 0 &&
+                   Object.keys(data.content.content_themes.brand_analysis.brand_affinities || {}).length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       <Award className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <div className="text-sm">No brand data detected</div>
@@ -2125,7 +2021,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Avg Post Length</span>
-                        <span className="font-semibold">{data.content.content_strategy.posting_style.avg_post_length.toFixed(0)} chars</span>
+                        <span className="font-semibold">{data.content.content_strategy.posting_style?.avg_post_length?.toFixed(0) ?? 'N/A'} chars</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>Interactivity Score</span>
@@ -2152,12 +2048,12 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                         {
                           category: "Content Depth",
                           value: data.content.content_strategy.content_depth_score,
-                          label: `${data.content.content_strategy.content_depth_score.toFixed(1)}/100`
+                          label: `${data.content.content_strategy.content_depth_score?.toFixed(1) ?? 'N/A'}/100`
                         },
                         {
                           category: "Strategy Maturity",
                           value: data.content.content_strategy.content_strategy_maturity,
-                          label: `${data.content.content_strategy.content_strategy_maturity.toFixed(1)}/100`
+                          label: `${data.content.content_strategy.content_strategy_maturity?.toFixed(1) ?? 'N/A'}/100`
                         }
                       ]}
                       layout="vertical"
@@ -2186,7 +2082,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                     <div className="text-2xl font-bold text-primary">{data.content.content_strategy.viral_potential.overall_viral_score}</div>
                     <div className="text-sm text-muted-foreground">Viral Score</div>
                     <Badge variant="outline" className="mt-2 text-xs">
-                      {data.content.content_strategy.viral_potential.note.replace('_', ' ')}
+                      {data.content.content_strategy.viral_potential?.note?.replace('_', ' ') ?? 'N/A'}
                     </Badge>
                   </div>
                 </div>
@@ -2218,7 +2114,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                       <div className="text-xs text-muted-foreground">Total Words</div>
                     </div>
                     <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <div className="text-lg font-bold text-primary">{data.content.nlp_insights.text_analysis.average_word_count.toFixed(1)}</div>
+                      <div className="text-lg font-bold text-primary">{data.content.nlp_insights.text_analysis?.average_word_count?.toFixed(1) ?? 'N/A'}</div>
                       <div className="text-xs text-muted-foreground">Avg/Post</div>
                     </div>
                     <div className="text-center p-3 bg-muted/50 rounded-lg">
@@ -2242,7 +2138,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                         {
                           category: "Text Complexity",
                           value: data.content.nlp_insights.text_analysis.text_complexity_score,
-                          label: `${data.content.nlp_insights.text_analysis.text_complexity_score.toFixed(1)}/100`
+                          label: `${data.content.nlp_insights.text_analysis?.text_complexity_score?.toFixed(1) ?? 'N/A'}/100`
                         }
                       ]}
                       layout="vertical"
@@ -2271,15 +2167,15 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Flesch Reading Ease</span>
-                      <Badge variant="outline">{data.content.nlp_insights.readability_scores.flesch_ease.toFixed(1)}</Badge>
+                      <Badge variant="outline">{data.content.nlp_insights.readability_scores?.flesch_ease?.toFixed(1) ?? 'N/A'}</Badge>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Flesch-Kincaid Grade</span>
-                      <Badge variant="outline">{data.content.nlp_insights.readability_scores.flesch_kincaid_grade.toFixed(1)}</Badge>
+                      <Badge variant="outline">{data.content.nlp_insights.readability_scores?.flesch_kincaid_grade?.toFixed(1) ?? 'N/A'}</Badge>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Automated Readability Index</span>
-                      <Badge variant="outline">{data.content.nlp_insights.readability_scores.automated_readability_index.toFixed(1)}</Badge>
+                      <Badge variant="outline">{data.content.nlp_insights.readability_scores?.automated_readability_index?.toFixed(1) ?? 'N/A'}</Badge>
                     </div>
                   </div>
                 </div>
@@ -2294,9 +2190,9 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <div>
                     <h5 className="text-sm font-medium mb-2">People</h5>
                     <div className="space-y-1">
-                      {data.content.nlp_insights.entity_extraction.entities.PERSON.map((person, index) => (
+                      {(data.content.nlp_insights.entity_extraction.entities?.PERSON || []).map((person, index) => (
                         <Badge key={index} variant="secondary" className="mr-1 mb-1 text-xs">
-                          {person.text} ({(person.confidence * 100).toFixed(0)}%)
+                          {person.text} ({person.confidence ? (person.confidence * 100).toFixed(0) : 'N/A'}%)
                         </Badge>
                       ))}
                     </div>
@@ -2304,9 +2200,9 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <div>
                     <h5 className="text-sm font-medium mb-2">Organizations</h5>
                     <div className="space-y-1">
-                      {data.content.nlp_insights.entity_extraction.entities.ORG.map((org, index) => (
+                      {(data.content.nlp_insights.entity_extraction.entities?.ORG || []).map((org, index) => (
                         <Badge key={index} variant="secondary" className="mr-1 mb-1 text-xs">
-                          {org.text} ({(org.confidence * 100).toFixed(0)}%)
+                          {org.text} ({org.confidence ? (org.confidence * 100).toFixed(0) : 'N/A'}%)
                         </Badge>
                       ))}
                     </div>
@@ -2314,9 +2210,9 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   <div>
                     <h5 className="text-sm font-medium mb-2">Locations</h5>
                     <div className="space-y-1">
-                      {data.content.nlp_insights.entity_extraction.entities.GPE.map((location, index) => (
+                      {(data.content.nlp_insights.entity_extraction.entities?.GPE || []).map((location, index) => (
                         <Badge key={index} variant="secondary" className="mr-1 mb-1 text-xs">
-                          {location.text} ({(location.confidence * 100).toFixed(0)}%)
+                          {location.text} ({location.confidence ? (location.confidence * 100).toFixed(0) : 'N/A'}%)
                         </Badge>
                       ))}
                     </div>
@@ -2375,7 +2271,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                     <div className="text-sm text-muted-foreground">Posts Analyzed</div>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-500">{data.posts.posts_summary.ai_completion_rate.toFixed(1)}%</div>
+                    <div className="text-2xl font-bold text-green-500">{data.posts.posts_summary?.ai_completion_rate?.toFixed(1) ?? 'N/A'}%</div>
                     <div className="text-sm text-muted-foreground">AI Completion</div>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -2403,7 +2299,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <div className="text-lg font-bold text-primary">{data.content.visual_analysis.aesthetic_score.toFixed(1)}</div>
+                      <div className="text-lg font-bold text-primary">{data.content.visual_analysis?.aesthetic_score?.toFixed(1) ?? 'N/A'}</div>
                       <div className="text-xs text-muted-foreground">Avg Aesthetic Score</div>
                     </div>
                     <div className="text-center p-3 bg-muted/50 rounded-lg">
@@ -2448,7 +2344,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {data.posts.recent_posts.map((post, index) => (
+                {(data.posts.recent_posts || []).map((post, index) => (
                   <div key={index} className="group relative bg-muted/30 rounded-lg overflow-hidden border hover:border-primary/50 transition-all duration-200">
                     {/* Post Image */}
                     <div className="aspect-square bg-muted relative overflow-hidden">
@@ -2539,7 +2435,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                         <div className="flex justify-between items-center text-xs">
                           <span className="text-muted-foreground">Engagement Rate</span>
                           <span className="font-semibold text-primary">
-                            {((post.post_data.likes_count + post.post_data.comments_count) / data.overview.profile.followers_count * 100).toFixed(2)}%
+                            {data.overview.profile.followers_count ? ((post.post_data.likes_count + post.post_data.comments_count) / data.overview.profile.followers_count * 100).toFixed(2) : 'N/A'}%
                           </span>
                         </div>
                       </div>
@@ -2548,7 +2444,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                 ))}
 
                 {/* Load More Placeholder - when you implement pagination */}
-                {data.posts.recent_posts.length > 0 && (
+                {(data.posts.recent_posts?.length ?? 0) > 0 && (
                   <div className="group relative bg-muted/20 rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/20 hover:border-primary/30 transition-colors duration-200">
                     <div className="aspect-square flex items-center justify-center">
                       <div className="text-center text-muted-foreground group-hover:text-primary transition-colors">

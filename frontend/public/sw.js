@@ -1,6 +1,6 @@
 // Service Worker for Following Analytics Platform
-const CACHE_NAME = 'following-analytics-v1'
-const OFFLINE_CACHE_NAME = 'following-offline-v1'
+const CACHE_NAME = 'following-analytics-v3'
+const OFFLINE_CACHE_NAME = 'following-offline-v3'
 
 // Cache static assets and API responses
 const STATIC_ASSETS = [
@@ -22,6 +22,14 @@ const API_CACHE_PATTERNS = [
   /^http:\/\/localhost:8000\/api\/v1\/auth\/unlocked-profiles/,
   /^http:\/\/localhost:8000\/api\/v1\/simple\/creator\/[^/]+$/,
   /^http:\/\/localhost:8000\/api\/v1\/system\/stats/
+]
+
+// API endpoints to NEVER cache (always fetch fresh)
+const NO_CACHE_PATTERNS = [
+  /\/api\/superadmin\//,
+  /\/api\/v1\/auth\/login/,
+  /\/api\/v1\/auth\/logout/,
+  /\/api\/v1\/stripe\//
 ]
 
 // Image caching patterns
@@ -88,7 +96,10 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Handle different types of requests
-  if (isStaticAsset(request)) {
+  if (isNoCacheRequest(request)) {
+    // Always fetch fresh for superadmin, auth, and payment APIs
+    event.respondWith(fetch(request))
+  } else if (isStaticAsset(request)) {
     event.respondWith(handleStaticAsset(request))
   } else if (isAPIRequest(request)) {
     event.respondWith(handleAPIRequest(request))
@@ -111,6 +122,11 @@ function isStaticAsset(request) {
 // Check if request is for API endpoints we want to cache
 function isAPIRequest(request) {
   return API_CACHE_PATTERNS.some(pattern => pattern.test(request.url))
+}
+
+// Check if request should never be cached
+function isNoCacheRequest(request) {
+  return NO_CACHE_PATTERNS.some(pattern => pattern.test(request.url))
 }
 
 // Check if request is for images
@@ -315,6 +331,14 @@ async function syncFailedRequests() {
   // Implementation for syncing failed requests when back online
   console.log('Service Worker: Syncing failed requests...')
 }
+
+// Handle messages from main thread
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('Service Worker: Received SKIP_WAITING message')
+    self.skipWaiting()
+  }
+})
 
 // Handle push notifications (for future use)
 self.addEventListener('push', (event) => {
