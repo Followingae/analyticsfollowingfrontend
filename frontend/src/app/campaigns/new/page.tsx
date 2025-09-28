@@ -1,28 +1,24 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { v4 as uuidv4 } from "uuid"
 import {
-  Target,
   ArrowLeft,
-  Upload,
-  Eye,
-  Users,
-  TrendingUp,
-  ShoppingCart,
-  MousePointer,
-  Calendar,
-  DollarSign,
-  Briefcase,
-  Sparkles,
+  ArrowRight,
+  Plus,
+  X,
+  Link,
+  BarChart3,
   Loader2,
 } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { toast } from "sonner"
+import { postAnalyticsApi } from "@/services/postAnalyticsApi"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,160 +32,202 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { teamApiService } from "@/services/teamApi"
-import { campaignsApiService } from "@/services/campaignsApi"
 
-// Form validation schema
-const campaignSchema = z.object({
+// Form validation schemas
+const basicInfoSchema = z.object({
   name: z.string().min(2, "Campaign name must be at least 2 characters").max(100, "Campaign name too long"),
   description: z.string().min(10, "Description must be at least 10 characters").max(500, "Description too long"),
-  objective: z.enum(["awareness", "engagement", "conversions", "sales", "traffic"], {
-    required_error: "Please select a campaign objective",
-  }),
-  budget: z.string().min(1, "Budget is required").refine((val) => {
-    const num = parseFloat(val)
-    return num > 0 && num <= 1000000
-  }, "Budget must be between 1 and 1,000,000 AED"),
-  startDate: z.string().min(1, "Start date is required"),
-  endDate: z.string().min(1, "End date is required"),
-  priority: z.enum(["low", "medium", "high", "critical"], {
-    required_error: "Please select campaign priority",
-  }),
 })
 
-type CampaignFormData = z.infer<typeof campaignSchema>
+const postsSchema = z.object({
+  posts: z.array(z.object({
+    url: z.string().url("Please enter a valid Instagram URL")
+  })).min(1, "Please add at least one post URL")
+})
 
-const objectives = [
-  { 
-    value: "awareness" as const, 
-    label: "Brand Awareness", 
-    description: "Increase brand recognition and reach",
-    icon: Eye,
-    color: "bg-blue-50 border-blue-200 text-blue-700"
-  },
-  { 
-    value: "engagement" as const, 
-    label: "Engagement", 
-    description: "Drive interactions and community building",
-    icon: Users,
-    color: "bg-green-50 border-green-200 text-green-700"
-  },
-  { 
-    value: "conversions" as const, 
-    label: "Conversions", 
-    description: "Convert prospects into customers",
-    icon: MousePointer,
-    color: "bg-purple-50 border-purple-200 text-purple-700"
-  },
-  { 
-    value: "sales" as const, 
-    label: "Sales", 
-    description: "Generate direct revenue and sales",
-    icon: ShoppingCart,
-    color: "bg-orange-50 border-orange-200 text-orange-700"
-  },
-  { 
-    value: "traffic" as const, 
-    label: "Website Traffic", 
-    description: "Drive visitors to your website",
-    icon: TrendingUp,
-    color: "bg-indigo-50 border-indigo-200 text-indigo-700"
-  }
-]
+type BasicInfoData = z.infer<typeof basicInfoSchema>
+type PostsData = z.infer<typeof postsSchema>
 
-const priorities = [
-  { value: "low" as const, label: "Low", color: "bg-muted/50 text-muted-foreground" },
-  { value: "medium" as const, label: "Medium", color: "bg-yellow-50 text-yellow-700" },
-  { value: "high" as const, label: "High", color: "bg-orange-50 text-orange-700" },
-  { value: "critical" as const, label: "Critical", color: "bg-red-50 text-red-700" },
-]
+interface CampaignData {
+  name: string
+  description: string
+  posts: Array<{ url: string }>
+}
 
 export default function NewCampaignPage() {
   const router = useRouter()
+  const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
-  const [teamContext, setTeamContext] = useState<any>(null)
-  const [loadingTeam, setLoadingTeam] = useState(true)
+  const [campaignData, setCampaignData] = useState<Partial<CampaignData>>({})
 
-  const form = useForm<CampaignFormData>({
-    resolver: zodResolver(campaignSchema),
+  // Step 1: Basic Information Form
+  const basicInfoForm = useForm<BasicInfoData>({
+    resolver: zodResolver(basicInfoSchema),
     defaultValues: {
       name: "",
       description: "",
-      objective: undefined,
-      budget: "",
-      startDate: "",
-      endDate: "",
-      priority: "medium",
     },
   })
 
-  // Load team context for automatic brand name
-  useEffect(() => {
-    const loadTeamData = async () => {
-      try {
-        const result = await teamApiService.getTeamContext()
-        if (result.success && result.data) {
-          setTeamContext(result.data)
+  // Step 2: Posts Form
+  const postsForm = useForm<PostsData>({
+    resolver: zodResolver(postsSchema),
+    defaultValues: {
+      posts: [{ url: "" }],
+    },
+  })
 
-        }
-      } catch (error) {
+  const handleBasicInfoSubmit = (data: BasicInfoData) => {
+    setCampaignData(prev => ({ ...prev, ...data }))
+    setCurrentStep(2)
+  }
 
-        toast.error('Failed to load team information')
-      } finally {
-        setLoadingTeam(false)
-      }
+  const addPostField = () => {
+    const currentPosts = postsForm.getValues("posts")
+    postsForm.setValue("posts", [...currentPosts, { url: "" }])
+  }
+
+  const removePostField = (index: number) => {
+    const currentPosts = postsForm.getValues("posts")
+    if (currentPosts.length > 1) {
+      postsForm.setValue("posts", currentPosts.filter((_, i) => i !== index))
     }
+  }
 
-    loadTeamData()
-  }, [])
-
-  const handleCreateCampaign = async (data: CampaignFormData) => {
-    setIsLoading(true)
-    
+  const handleTestApiConnection = async () => {
     try {
-      // Create campaign using the API service
-      const campaignData = {
-        name: data.name,
-        description: data.description,
-        objective: data.objective,
-        budget_allocated: parseFloat(data.budget),
-        start_date: data.startDate,
-        end_date: data.endDate,
-        priority: data.priority,
-        status: 'planning' as const,
-      }
+      toast.success("Testing API connection...")
+      const healthResult = await postAnalyticsApi.healthCheck()
+      console.log('API Health Check:', healthResult)
 
-      const result = await campaignsApiService.createCampaign(campaignData)
-      
-      if (result.success) {
-        toast.success("Campaign created successfully! 🎉")
-        router.push("/campaigns")
+      if (healthResult.success) {
+        toast.success("✅ API connection successful!")
       } else {
-        toast.error(result.error || "Failed to create campaign")
+        toast.error(`❌ API connection failed: ${healthResult.error}`)
       }
     } catch (error) {
+      console.error('API test error:', error)
+      toast.error(`❌ API test failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
 
-      toast.error("Failed to create campaign")
+  const handleCreateCampaign = async (data: PostsData) => {
+    setIsLoading(true)
+
+    // Validate all URLs first
+    const urlValidationErrors: string[] = []
+    data.posts.forEach((post, index) => {
+      const validation = postAnalyticsApi.validateInstagramUrl(post.url)
+      if (!validation.valid) {
+        urlValidationErrors.push(`Post ${index + 1}: ${validation.error}`)
+      }
+    })
+
+    if (urlValidationErrors.length > 0) {
+      toast.error(`Invalid URLs:\n${urlValidationErrors.join('\n')}`)
+      setIsLoading(false)
+      return
+    }
+
+    // Create campaign ID and basic info outside try block for error handling
+    const campaignId = uuidv4()
+    const newCampaign = {
+      id: campaignId,
+      name: campaignData.name,
+      description: campaignData.description,
+      posts: data.posts.map(p => ({ url: p.url, analytics: null })),
+      createdAt: new Date().toISOString(),
+      status: 'analyzing' as const
+    }
+
+    try {
+
+      // Save campaign to localStorage
+      const existingCampaigns = JSON.parse(localStorage.getItem('campaigns') || '[]')
+      existingCampaigns.push(newCampaign)
+      localStorage.setItem('campaigns', JSON.stringify(existingCampaigns))
+
+      // Start post analysis - use single or batch based on number of posts
+      const postUrls = data.posts.map(p => p.url)
+      toast.success("Campaign created! Starting post analysis...")
+
+      let analysisResults: any
+
+      if (postUrls.length === 1) {
+        // Single post analysis for better efficiency
+        console.log('Using single post analysis for 1 URL')
+        const singleResult = await postAnalyticsApi.monitorAnalysis(postUrls[0], campaignId)
+        analysisResults = {
+          analyses: [singleResult],
+          failed_urls: [],
+          total_processed: 1,
+          total_successful: 1,
+          total_failed: 0
+        }
+      } else {
+        // Batch analysis for multiple posts
+        console.log(`Using batch analysis for ${postUrls.length} URLs`)
+        analysisResults = await postAnalyticsApi.monitorBatchAnalysis(postUrls, campaignId)
+      }
+
+      console.log('Analysis result:', analysisResults)
+      console.log('Analyses array:', analysisResults.analyses)
+
+      // Update campaign with analysis results
+      const updatedCampaign = {
+        ...newCampaign,
+        posts: data.posts.map(post => {
+          const analysis = analysisResults.analyses.find((a: any) => a.post_url === post.url) || null
+          return {
+            url: post.url,
+            analytics: analysis
+          }
+        }),
+        status: 'completed' as const
+      }
+
+      // Update localStorage
+      const campaigns = JSON.parse(localStorage.getItem('campaigns') || '[]')
+      const updatedCampaigns = campaigns.map((c: any) =>
+        c.id === campaignId ? updatedCampaign : c
+      )
+      localStorage.setItem('campaigns', JSON.stringify(updatedCampaigns))
+
+      if (analysisResults.total_failed && analysisResults.total_failed > 0) {
+        toast.warning(`Analysis completed with ${analysisResults.total_failed} failed posts`)
+      } else {
+        toast.success("All posts analyzed successfully! 🎉")
+      }
+
+      // Navigate to analytics page regardless of analysis success
+      router.push(`/campaigns/${campaignId}/analytics`)
+    } catch (error) {
+      console.error('Campaign creation error:', error)
+
+      // Even if analysis fails, keep the campaign but without analytics
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      toast.error(`Analysis failed: ${errorMessage}. Campaign created without analytics.`)
+
+      // Update campaign status to show analysis failed
+      const failedCampaign = { ...newCampaign, status: 'draft' as const }
+      const campaigns = JSON.parse(localStorage.getItem('campaigns') || '[]')
+      const updatedCampaigns = campaigns.map((c: any) =>
+        c.id === campaignId ? failedCampaign : c
+      )
+      localStorage.setItem('campaigns', JSON.stringify(updatedCampaigns))
+
+      // Still navigate to analytics page
+      router.push(`/campaigns/${campaignId}/analytics`)
     } finally {
       setIsLoading(false)
     }
@@ -199,7 +237,7 @@ export default function NewCampaignPage() {
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--sidebar-width": "calc(var(--spacing) * 66)",
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }
@@ -209,14 +247,14 @@ export default function NewCampaignPage() {
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col p-4 md:p-6">
-            
+
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => router.back()}
+                  onClick={() => currentStep === 1 ? router.back() : setCurrentStep(1)}
                   className="h-10 w-10"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -224,322 +262,176 @@ export default function NewCampaignPage() {
                 <div>
                   <h1 className="text-3xl font-bold">Create New Campaign</h1>
                   <p className="text-muted-foreground mt-1">
-                    {loadingTeam ? "Loading team information..." : `Build a campaign for ${teamContext?.team_name || 'your team'}`}
+                    Step {currentStep} of 2: {currentStep === 1 ? 'Basic Information' : 'Add Posts'}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-[hsl(var(--primary))]" />
-                <Badge variant="secondary" className="bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] border-[hsl(var(--primary))]/20">
-                  {teamContext?.subscription_tier || 'Loading...'}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${currentStep >= 1 ? 'bg-primary' : 'bg-muted'}`} />
+                  <div className={`w-3 h-3 rounded-full ${currentStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+                </div>
               </div>
             </div>
 
-            {/* Form */}
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleCreateCampaign)} className="space-y-8">
-                
-                {/* Team Information Card */}
-                <Card className="border-2 border-dashed border-muted-foreground/25">
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-[hsl(var(--primary))]/10 rounded-lg">
-                        <Briefcase className="h-5 w-5 text-[hsl(var(--primary))]" />
-                      </div>
-                      <div>
-                        <CardTitle>Team Information</CardTitle>
-                        <CardDescription>
-                          Campaign will be created for your team account
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {loadingTeam ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm text-muted-foreground">Loading team information...</span>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">Team Name</p>
-                          <p className="text-2xl font-bold">{teamContext?.team_name || 'Unknown Team'}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">Subscription</p>
-                          <Badge className={`${
-                            teamContext?.subscription_tier === 'premium' ? 'bg-purple-100 text-purple-700' :
-                            teamContext?.subscription_tier === 'standard' ? 'bg-blue-100 text-blue-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {teamContext?.subscription_tier?.toUpperCase() || 'FREE'}
-                          </Badge>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+            {/* Step 1: Basic Information */}
+            {currentStep === 1 && (
+              <Card className="w-full max-w-4xl mx-auto">
+                <CardHeader className="pb-8">
+                  <CardTitle className="text-2xl">Campaign Basic Information</CardTitle>
+                  <CardDescription className="text-base">
+                    Start by giving your campaign a name and description
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-8 pb-8">
+                  <Form {...basicInfoForm}>
+                    <form onSubmit={basicInfoForm.handleSubmit(handleBasicInfoSubmit)} className="space-y-8">
+                      <FormField
+                        control={basicInfoForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base font-medium">Campaign Name</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g., Summer Fashion Campaign 2024"
+                                className="h-12 text-base"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                <div className="grid gap-8 lg:grid-cols-2">
-                  
-                  {/* Left Column - Campaign Details */}
-                  <div className="space-y-6">
-                    
-                    {/* Basic Information */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Target className="h-5 w-5" />
-                          Campaign Details
-                        </CardTitle>
-                        <CardDescription>
-                          Define your campaign's core information and goals
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Campaign Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter campaign name..." {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Description</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder="Describe your campaign goals, target audience, and key messaging..."
-                                  className="min-h-[100px]"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Provide a clear description of what you want to achieve
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                      <FormField
+                        control={basicInfoForm.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base font-medium">Campaign Description</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Describe your campaign goals, target audience, and what you want to track..."
+                                className="min-h-[150px] text-base"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                        <FormField
-                          control={form.control}
-                          name="priority"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Priority Level</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select priority level" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {priorities.map((priority) => (
-                                    <SelectItem key={priority.value} value={priority.value}>
-                                      <div className="flex items-center gap-2">
-                                        <Badge variant="secondary" className={priority.color}>
-                                          {priority.label}
-                                        </Badge>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
+                      <div className="flex justify-end pt-6">
+                        <Button type="submit" size="lg" className="h-12 px-8">
+                          Next: Add Posts
+                          <ArrowRight className="ml-2 h-5 w-5" />
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            )}
 
-                    {/* Campaign Objective */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5" />
-                          Campaign Objective
-                        </CardTitle>
-                        <CardDescription>
-                          Choose the primary goal for your campaign
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <FormField
-                          control={form.control}
-                          name="objective"
-                          render={({ field }) => (
-                            <FormItem className="space-y-3">
-                              <FormControl>
-                                <div className="grid grid-cols-1 gap-3">
-                                  {objectives.map((objective) => {
-                                    const IconComponent = objective.icon
-                                    return (
-                                      <label
-                                        key={objective.value}
-                                        className={`
-                                          flex items-center space-x-4 rounded-lg border-2 p-4 cursor-pointer transition-all
-                                          ${field.value === objective.value 
-                                            ? `${objective.color} border-current` 
-                                            : 'border-muted hover:border-muted-foreground/50'
-                                          }
-                                        `}
-                                        onClick={() => field.onChange(objective.value)}
-                                      >
-                                        <IconComponent className="h-5 w-5" />
-                                        <div className="flex-1 space-y-1">
-                                          <p className="text-sm font-medium">{objective.label}</p>
-                                          <p className="text-xs text-muted-foreground">{objective.description}</p>
-                                        </div>
-                                        <input
-                                          type="radio"
-                                          className="sr-only"
-                                          value={objective.value}
-                                          checked={field.value === objective.value}
-                                          onChange={() => field.onChange(objective.value)}
-                                        />
-                                      </label>
-                                    )
-                                  })}
+            {/* Step 2: Add Posts */}
+            {currentStep === 2 && (
+              <Card className="w-full max-w-5xl mx-auto">
+                <CardHeader className="pb-8">
+                  <CardTitle className="flex items-center gap-3 text-2xl">
+                    <Link className="h-6 w-6" />
+                    Add Instagram Posts
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    Add the Instagram post URLs you want to analyze in this campaign
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-8 pb-8">
+                  <Form {...postsForm}>
+                    <form onSubmit={postsForm.handleSubmit(handleCreateCampaign)} className="space-y-8">
+                      <div className="space-y-6">
+                        {postsForm.watch("posts").map((_, index) => (
+                          <FormField
+                            key={index}
+                            control={postsForm.control}
+                            name={`posts.${index}.url`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-base font-medium">Post URL {index + 1}</FormLabel>
+                                <div className="flex gap-3">
+                                  <FormControl>
+                                    <Input
+                                      placeholder="https://www.instagram.com/p/..."
+                                      className="h-12 text-base"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  {postsForm.watch("posts").length > 1 && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-12 w-12 shrink-0"
+                                      onClick={() => removePostField(index)}
+                                    >
+                                      <X className="h-5 w-5" />
+                                    </Button>
+                                  )}
                                 </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
-                  </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        ))}
+                      </div>
 
-                  {/* Right Column - Budget & Timeline */}
-                  <div className="space-y-6">
-                    
-                    {/* Budget */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <DollarSign className="h-5 w-5" />
-                          Budget Planning
-                        </CardTitle>
-                        <CardDescription>
-                          Set your campaign budget allocation
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <FormField
-                          control={form.control}
-                          name="budget"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Total Budget (AED)</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Input 
-                                    type="number" 
-                                    placeholder="Enter total budget..."
-                                    className="pl-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    {...field}
-                                  />
-                                  <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                </div>
-                              </FormControl>
-                              <FormDescription>
-                                Budget should be between 1 and 1,000,000 AED
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addPostField}
+                        className="w-full h-12 text-base"
+                        size="lg"
+                      >
+                        <Plus className="mr-2 h-5 w-5" />
+                        Add Another Post
+                      </Button>
 
-                    {/* Timeline */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Calendar className="h-5 w-5" />
-                          Campaign Timeline
-                        </CardTitle>
-                        <CardDescription>
-                          Define when your campaign will run
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="startDate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Start Date</FormLabel>
-                              <FormControl>
-                                <Input type="date" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
+                      <div className="flex justify-between pt-8">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setCurrentStep(1)}
+                          size="lg"
+                          className="h-12 px-8"
+                        >
+                          <ArrowLeft className="mr-2 h-5 w-5" />
+                          Back
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={isLoading}
+                          size="lg"
+                          className="min-w-[180px] h-12"
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              Creating...
+                            </>
+                          ) : (
+                            <>
+                              <BarChart3 className="mr-2 h-5 w-5" />
+                              Create Campaign
+                            </>
                           )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="endDate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>End Date</FormLabel>
-                              <FormControl>
-                                <Input type="date" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            )}
 
-                {/* Form Actions */}
-                <Separator />
-                <div className="flex items-center justify-between pt-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => router.back()}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    size="lg" 
-                    disabled={isLoading}
-                    className="min-w-[150px]"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <Target className="mr-2 h-4 w-4" />
-                        Create Campaign
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </Form>
           </div>
         </div>
       </SidebarInset>

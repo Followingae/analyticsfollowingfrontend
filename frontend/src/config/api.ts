@@ -102,6 +102,19 @@ export const ENDPOINTS = {
     search: '/api/v1/discovery/search', // GET - Search creators with filters
   },
 
+  // Post Analytics (/api/v1/post-analytics/)
+  postAnalytics: {
+    analyze: '/api/v1/post-analytics/analyze', // POST - Analyze single post
+    analyzeBatch: '/api/v1/post-analytics/analyze/batch', // POST - Batch analyze posts
+    getByShortcode: (shortcode: string) => `/api/v1/post-analytics/analysis/${shortcode}`, // GET - Get by shortcode
+    getById: (id: string) => `/api/v1/post-analytics/analysis/id/${id}`, // GET - Get by ID
+    search: '/api/v1/post-analytics/search', // POST - Search analyses
+    myAnalyses: '/api/v1/post-analytics/my-analyses', // GET - User's analyses
+    overview: '/api/v1/post-analytics/insights/overview', // GET - Analytics overview
+    delete: (id: string) => `/api/v1/post-analytics/analysis/${id}`, // DELETE - Delete analysis
+    health: '/api/v1/post-analytics/health', // GET - Health check
+  },
+
   // Settings (/api/v1/settings/)
   settings: {
     user: '/api/v1/settings/user', // GET/PUT - User settings and preferences
