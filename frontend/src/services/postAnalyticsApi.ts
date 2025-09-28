@@ -6,6 +6,15 @@
 import { API_CONFIG, ENDPOINTS } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 
+// Verify ENDPOINTS structure on import
+if (typeof window !== 'undefined') {
+  console.log('PostAnalyticsApi: ENDPOINTS structure check', {
+    hasPostAnalytics: !!ENDPOINTS.postAnalytics,
+    hasAnalyzeBatch: !!ENDPOINTS.postAnalytics?.analyzeBatch,
+    endpoints: ENDPOINTS.postAnalytics
+  })
+}
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -26,121 +35,91 @@ export interface PostAnalysisData {
   // Post Identification
   id: string
   shortcode: string
-  post_url: string
-  post_type: 'photo' | 'video' | 'carousel'
+  instagram_post_id: string
 
-  // Raw Apify Data (complete scraper response)
-  raw_apify_data: {
-    inputUrl: string
-    id: string
-    type: string
-    shortCode: string
-    caption: string
-    hashtags: string[]
-    mentions: string[]
-    url: string
-    commentsCount: number
-    firstComment: string
-    latestComments: Array<{
-      id: string
-      text: string
-      ownerUsername: string
-      ownerProfilePicUrl: string
-      timestamp: string
-      repliesCount: number
-      replies: any[]
-      likesCount: number
-      owner: {
-        id: string
-        is_verified: boolean
-        profile_pic_url: string
-        username: string
-      }
-    }>
-    dimensionsHeight: number
-    dimensionsWidth: number
-    displayUrl: string
-    images: string[]
-    videoUrl?: string
-    alt?: string
-    likesCount: number
-    videoViewCount?: number
-    videoPlayCount?: number
-    timestamp: string
-    childPosts: any[]
-    locationName?: string
-    locationId?: string
-    ownerFullName: string
-    ownerUsername: string
-    ownerId: string
-    productType: string
-    videoDuration?: number
-    isSponsored: boolean
-    taggedUsers: Array<{
-      full_name: string
-      id: string
-      is_verified: boolean
-      profile_pic_url: string
-      username: string
-    }>
-    musicInfo?: {
-      artist_name: string
-      song_name: string
-      uses_original_audio: boolean
-      should_mute_audio: boolean
-      should_mute_audio_reason: string
-      audio_id: string
-    }
-    coauthorProducers: any[]
-    isCommentsDisabled: boolean
-  }
+  // Media Information
+  media_type: "Video" | "Image" | "Carousel"
+  is_video: boolean
+  display_url: string
+  cdn_thumbnail_url: string        // ⭐ Optimized Cloudflare CDN URL
+  width: number
+  height: number
+  video_url?: string
 
-  // Extracted Key Metrics
-  likes_count: number
-  comments_count: number
-  video_views_count?: number
-  video_plays_count?: number
-
-  // Content Analysis
+  // Content
   caption: string
   hashtags: string[]
   mentions: string[]
 
-  // Media Information
-  media_urls: string[]
-  media_count: number
-  display_url: string
-  video_url?: string
-  video_duration?: number
-
-  // Creator Information
-  creator_username: string
-  creator_full_name: string
-  creator_id: string
-  creator_follower_count?: number
-  creator_is_verified: boolean
-  creator_profile_pic: string
-
-  // Engagement Metrics
+  // Engagement Data
+  likes_count: number              // Can be -1 if hidden
+  comments_count: number
   engagement_rate: number
 
+  // Profile Information (nested object)
+  profile: {
+    id: string
+    username: string
+    full_name: string
+    followers_count: number
+    following_count: number
+    posts_count: number
+    profile_pic_url: string
+    biography: string
+  }
+
   // Location Data
+  location_name: string
+  location_id: string
+
+  // Carousel Data
+  is_carousel: boolean
+  carousel_media_count: number
+  sidecar_children: any[]
+
+  // Timestamps
+  posted_at: string
+  taken_at_timestamp: number
+  ai_analyzed_at: string
+  created_at: string
+
+  // Analysis metadata
+  analysis_source: string
+
+  // Legacy fields for backward compatibility
+  id?: string
+  post_url?: string
+  post_type?: 'photo' | 'video' | 'carousel'
+  likes_count?: number
+  comments_count?: number
+  video_views_count?: number
+  video_plays_count?: number
+  caption?: string
+  hashtags?: string[]
+  mentions?: string[]
+  media_urls?: string[]
+  media_count?: number
+  display_url?: string
+  video_url?: string
+  video_duration?: number
+  creator_username?: string
+  creator_full_name?: string
+  creator_id?: string
+  creator_follower_count?: number
+  creator_is_verified?: boolean
+  creator_profile_pic?: string
+  engagement_rate?: number
   location_name?: string
   location_id?: string
-
-  // Tags & Categories
   user_tags?: string[]
   content_category?: string
   sentiment?: 'positive' | 'neutral' | 'negative'
-
-  // Metadata
-  created_at: string
-  updated_at: string
-  analysis_status: 'pending' | 'completed' | 'failed'
+  updated_at?: string
+  analysis_status?: 'pending' | 'completed' | 'failed'
   campaign_id?: string
   user_notes?: string
-  is_sponsored: boolean
-  tagged_users: Array<{
+  is_sponsored?: boolean
+  tagged_users?: Array<{
     username: string
     full_name: string
     is_verified: boolean
@@ -256,6 +235,7 @@ class PostAnalyticsApiService {
 
   /**
    * Analyze a single Instagram post
+   * Returns complete analysis with CDN-optimized URLs immediately
    */
   async analyzeSinglePost(request: PostAnalysisRequest): Promise<ApiResponse<PostAnalysisData>> {
     return this.makeRequest<PostAnalysisData>(ENDPOINTS.postAnalytics.analyze, {
@@ -277,6 +257,14 @@ class PostAnalyticsApiService {
     console.log('ENDPOINTS object:', ENDPOINTS)
     console.log('postAnalytics:', ENDPOINTS.postAnalytics)
     console.log('analyzeBatch:', ENDPOINTS.postAnalytics?.analyzeBatch)
+
+    // Ensure the endpoint exists before making the request
+    if (!ENDPOINTS.postAnalytics?.analyzeBatch) {
+      return {
+        success: false,
+        error: 'Batch analysis endpoint not configured'
+      }
+    }
 
     return this.makeRequest(ENDPOINTS.postAnalytics.analyzeBatch, {
       method: 'POST',
@@ -382,94 +370,44 @@ class PostAnalyticsApiService {
   }
 
   // ========================================================================
-  // REAL-TIME ANALYSIS MONITORING
+  // DIRECT ANALYSIS METHODS (NO POLLING NEEDED)
   // ========================================================================
 
   /**
-   * Monitor analysis completion with real-time polling
+   * Analyze single post with immediate results
+   * Returns complete analysis with CDN-optimized URLs in ~15-20 seconds
    */
-  async monitorAnalysis(postUrl: string, campaignId?: string): Promise<PostAnalysisData> {
-    // 1. Submit for analysis
-    const submission = await this.analyzeSinglePost({
+  async analyzePostDirect(postUrl: string, campaignId?: string): Promise<PostAnalysisData> {
+    const result = await this.analyzeSinglePost({
       post_url: postUrl,
       campaign_id: campaignId
     })
 
-    if (!submission.success || !submission.data) {
-      throw new Error(submission.error || 'Failed to submit post for analysis')
+    if (!result.success || !result.data) {
+      throw new Error(result.error || 'Failed to analyze post')
     }
 
-    const shortcode = submission.data.shortcode || this.extractShortcode(postUrl)
-    if (!shortcode) {
-      throw new Error('Could not extract shortcode from post URL')
-    }
-
-    // 2. Poll for completion
-    return new Promise((resolve, reject) => {
-      const pollInterval = setInterval(async () => {
-        try {
-          const status = await this.getAnalysisByShortcode(shortcode)
-
-          if (status.success && status.data) {
-            const analysis = status.data
-
-            // Check if analysis is complete
-            if (analysis.analysis_status === 'completed') {
-              clearInterval(pollInterval)
-              resolve(analysis)
-            } else if (analysis.analysis_status === 'failed') {
-              clearInterval(pollInterval)
-              reject(new Error('Analysis failed on server'))
-            }
-            // Continue polling if still processing
-          }
-        } catch (error) {
-          // Still processing or network error - continue polling
-          console.log('Checking analysis status...', error)
-        }
-      }, 5000) // Check every 5 seconds
-
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        clearInterval(pollInterval)
-        reject(new Error('Analysis timeout - processing took longer than 5 minutes'))
-      }, 300000)
-    })
+    return result.data
   }
 
   /**
-   * Batch monitor multiple posts with real-time polling
+   * Analyze multiple posts with immediate results
+   * Each post returns complete analysis with CDN-optimized URLs
    */
-  async monitorBatchAnalysis(postUrls: string[], campaignId?: string): Promise<{
+  async analyzePostsBatch(postUrls: string[], campaignId?: string): Promise<{
     analyses: PostAnalysisData[]
     failed_urls: Array<{ url: string; error: string }>
     total_processed: number
     total_successful: number
     total_failed: number
   }> {
-    // Submit batch for analysis
-    const batchResult = await this.batchAnalyzePosts({
-      post_urls: postUrls,
-      campaign_id: campaignId,
-      max_concurrent: 3
-    })
-
-    if (!batchResult.success || !batchResult.data) {
-      throw new Error(batchResult.error || 'Failed to submit batch for analysis')
-    }
-
-    // If analyses are immediately available, return them
-    if (batchResult.data.analyses && batchResult.data.analyses.length > 0) {
-      return batchResult.data
-    }
-
-    // Otherwise, poll for completion of each post
     const results: PostAnalysisData[] = []
     const failed: Array<{ url: string; error: string }> = []
 
+    // Process posts one by one for better reliability
     for (const url of postUrls) {
       try {
-        const analysis = await this.monitorAnalysis(url, campaignId)
+        const analysis = await this.analyzePostDirect(url, campaignId)
         results.push(analysis)
       } catch (error) {
         failed.push({
@@ -486,6 +424,30 @@ class PostAnalyticsApiService {
       total_successful: results.length,
       total_failed: failed.length
     }
+  }
+
+  /**
+   * @deprecated Use analyzePostDirect instead
+   * Legacy method for backward compatibility
+   */
+  async monitorAnalysis(postUrl: string, campaignId?: string): Promise<PostAnalysisData> {
+    console.warn('monitorAnalysis is deprecated. Use analyzePostDirect instead.')
+    return this.analyzePostDirect(postUrl, campaignId)
+  }
+
+  /**
+   * @deprecated Use analyzePostsBatch instead
+   * Legacy method for backward compatibility
+   */
+  async monitorBatchAnalysis(postUrls: string[], campaignId?: string): Promise<{
+    analyses: PostAnalysisData[]
+    failed_urls: Array<{ url: string; error: string }>
+    total_processed: number
+    total_successful: number
+    total_failed: number
+  }> {
+    console.warn('monitorBatchAnalysis is deprecated. Use analyzePostsBatch instead.')
+    return this.analyzePostsBatch(postUrls, campaignId)
   }
 
   // ========================================================================
@@ -588,6 +550,113 @@ class PostAnalyticsApiService {
       case 'carousel': return '📱'
       case 'photo':
       default: return '📷'
+    }
+  }
+
+  /**
+   * Get optimal image URL with CDN fallback
+   * Prioritizes CDN-optimized URLs from Cloudflare
+   */
+  getOptimalImageUrl(postData: PostAnalysisData): string {
+    // New API structure with CDN optimization
+    if (postData.cdn_thumbnail_url) {
+      return postData.cdn_thumbnail_url
+    }
+    if (postData.display_url) {
+      return postData.display_url
+    }
+
+    return ''
+  }
+
+  /**
+   * Get video URL if available
+   */
+  getVideoUrl(postData: PostAnalysisData): string | null {
+    if (postData.video_url) {
+      return postData.video_url
+    }
+    return null
+  }
+
+  /**
+   * Check if post has video content
+   */
+  isVideoPost(postData: PostAnalysisData): boolean {
+    return postData.is_video || postData.media_type === 'Video'
+  }
+
+  /**
+   * Get normalized post data for display
+   * Handles the actual API response format
+   */
+  normalizePostData(postData: PostAnalysisData): {
+    id: string
+    caption: string
+    likes: number
+    comments: number
+    engagementRate: number
+    creator: {
+      username: string
+      fullName: string
+      followersCount: number
+      postsCount: number
+      profilePicUrl: string
+      biography: string
+    }
+    media: {
+      imageUrl: string
+      videoUrl?: string
+      isVideo: boolean
+      type: string
+      width: number
+      height: number
+    }
+    location: {
+      name: string
+      id: string
+    }
+    carousel: {
+      isCarousel: boolean
+      mediaCount: number
+    }
+    postedAt: string
+    hashtags: string[]
+    mentions: string[]
+  } {
+    return {
+      id: postData.id || postData.shortcode,
+      caption: postData.caption || '',
+      likes: postData.likes_count || 0,
+      comments: postData.comments_count || 0,
+      engagementRate: postData.engagement_rate || 0,
+      creator: {
+        username: postData.profile?.username || '',
+        fullName: postData.profile?.full_name || '',
+        followersCount: postData.profile?.followers_count || 0,
+        postsCount: postData.profile?.posts_count || 0,
+        profilePicUrl: postData.profile?.profile_pic_url || '',
+        biography: postData.profile?.biography || ''
+      },
+      media: {
+        imageUrl: this.getOptimalImageUrl(postData),
+        videoUrl: this.getVideoUrl(postData) || undefined,
+        isVideo: this.isVideoPost(postData),
+        type: postData.media_type || 'Image',
+        width: postData.width || 0,
+        height: postData.height || 0
+      },
+      location: {
+        name: postData.location_name || '',
+        id: postData.location_id || ''
+      },
+      carousel: {
+        isCarousel: postData.is_carousel || false,
+        mediaCount: postData.carousel_media_count || 1
+      },
+      postedAt: postData.posted_at || postData.created_at || new Date().toISOString(),
+      hashtags: postData.hashtags || [],
+      mentions: postData.mentions || []
     }
   }
 }

@@ -82,7 +82,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { postAnalyticsApi, PostAnalysisData } from "@/services/postAnalyticsApi"
-import { PostAnalyticsDisplay } from "@/components/campaigns/PostAnalyticsDisplay"
+import { ActualPostAnalytics } from "@/components/campaigns/ActualPostAnalytics"
 
 // Disable static generation for this page
 export const dynamic = 'force-dynamic'
@@ -561,7 +561,7 @@ export default function CampaignAnalyticsPage() {
                 </div>
                 <div className="grid gap-6">
                   {campaign.posts.map((post, index) => (
-                    <PostAnalyticsDisplay
+                    <ActualPostAnalytics
                       key={index}
                       post={post}
                       index={index}

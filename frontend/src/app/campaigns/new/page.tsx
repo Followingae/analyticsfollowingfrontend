@@ -151,22 +151,21 @@ export default function NewCampaignPage() {
     }
 
     try {
-
       // Save campaign to localStorage
       const existingCampaigns = JSON.parse(localStorage.getItem('campaigns') || '[]')
       existingCampaigns.push(newCampaign)
       localStorage.setItem('campaigns', JSON.stringify(existingCampaigns))
 
-      // Start post analysis - use single or batch based on number of posts
+      // Start post analysis - use direct API pattern (no polling needed)
       const postUrls = data.posts.map(p => p.url)
       toast.success("Campaign created! Starting post analysis...")
 
       let analysisResults: any
 
       if (postUrls.length === 1) {
-        // Single post analysis for better efficiency
-        console.log('Using single post analysis for 1 URL')
-        const singleResult = await postAnalyticsApi.monitorAnalysis(postUrls[0], campaignId)
+        // Single post analysis with immediate results
+        console.log('Using direct single post analysis for 1 URL')
+        const singleResult = await postAnalyticsApi.analyzePostDirect(postUrls[0], campaignId)
         analysisResults = {
           analyses: [singleResult],
           failed_urls: [],
@@ -175,9 +174,9 @@ export default function NewCampaignPage() {
           total_failed: 0
         }
       } else {
-        // Batch analysis for multiple posts
-        console.log(`Using batch analysis for ${postUrls.length} URLs`)
-        analysisResults = await postAnalyticsApi.monitorBatchAnalysis(postUrls, campaignId)
+        // Batch analysis with immediate results
+        console.log(`Using direct batch analysis for ${postUrls.length} URLs`)
+        analysisResults = await postAnalyticsApi.analyzePostsBatch(postUrls, campaignId)
       }
 
       console.log('Analysis result:', analysisResults)
@@ -186,8 +185,16 @@ export default function NewCampaignPage() {
       // Update campaign with analysis results
       const updatedCampaign = {
         ...newCampaign,
-        posts: data.posts.map(post => {
-          const analysis = analysisResults.analyses.find((a: any) => a.post_url === post.url) || null
+        posts: data.posts.map((post, index) => {
+          // For single post, use the first analysis result
+          // For batch, match by index since they're processed in order
+          const analysis = analysisResults.analyses[index] || null
+
+          // If we have analysis data, make sure it's properly formatted
+          if (analysis) {
+            console.log('Analysis data for post:', post.url, analysis)
+          }
+
           return {
             url: post.url,
             analytics: analysis

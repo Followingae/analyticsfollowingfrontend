@@ -76,6 +76,13 @@ export function PostAnalyticsDisplay({ post, index }: PostAnalyticsDisplayProps)
 
   const analytics = post.analytics
 
+  // Use the normalization function to handle both new and legacy API formats
+  const normalizedData = postAnalyticsApi.normalizePostData(analytics)
+
+  // Use CDN-optimized image URL
+  const imageUrl = postAnalyticsApi.getOptimalImageUrl(analytics)
+  const isVideo = postAnalyticsApi.isVideoPost(analytics)
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -84,17 +91,16 @@ export function PostAnalyticsDisplay({ post, index }: PostAnalyticsDisplayProps)
             <div className="flex items-center gap-2">
               <CardTitle className="text-lg">Post {index + 1}</CardTitle>
               <Badge variant="outline">
-                {postAnalyticsApi.getMediaTypeIcon(analytics.post_type)} {analytics.post_type}
+                {postAnalyticsApi.getMediaTypeIcon(normalizedData.media.type)} {normalizedData.media.type}
               </Badge>
-              {analytics.sentiment && (
-                <Badge className={postAnalyticsApi.getSentimentColor(analytics.sentiment)}>
-                  {analytics.sentiment}
+              {normalizedData.carousel.isCarousel && (
+                <Badge variant="secondary">
+                  📱 Carousel ({normalizedData.carousel.mediaCount})
                 </Badge>
               )}
-              {analytics.is_sponsored && (
-                <Badge variant="secondary">
-                  <Zap className="h-3 w-3 mr-1" />
-                  Sponsored
+              {analytics.cdn_thumbnail_url && (
+                <Badge variant="outline" className="text-xs">
+                  ⚡ CDN Optimized
                 </Badge>
               )}
             </div>
@@ -125,7 +131,9 @@ export function PostAnalyticsDisplay({ post, index }: PostAnalyticsDisplayProps)
               <div className="text-center p-3 bg-red-50 dark:bg-red-950 rounded-lg">
                 <div className="flex items-center justify-center mb-1">
                   <Heart className="h-4 w-4 text-red-500 mr-1" />
-                  <span className="font-semibold">{postAnalyticsApi.formatEngagement(analytics.likes_count || analytics.raw_apify_data?.likesCount)}</span>
+                  <span className="font-semibold">
+                    {normalizedData.likes === -1 ? 'Hidden' : postAnalyticsApi.formatEngagement(normalizedData.likes)}
+                  </span>
                 </div>
                 <div className="text-xs text-muted-foreground">Likes</div>
               </div>
@@ -133,16 +141,16 @@ export function PostAnalyticsDisplay({ post, index }: PostAnalyticsDisplayProps)
               <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                 <div className="flex items-center justify-center mb-1">
                   <MessageCircle className="h-4 w-4 text-blue-500 mr-1" />
-                  <span className="font-semibold">{postAnalyticsApi.formatEngagement(analytics.comments_count || analytics.raw_apify_data?.commentsCount)}</span>
+                  <span className="font-semibold">{postAnalyticsApi.formatEngagement(normalizedData.comments)}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">Comments</div>
               </div>
 
-              {(analytics.video_views_count || analytics.raw_apify_data?.videoViewCount) && (
+              {normalizedData.videoViews && (
                 <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
                   <div className="flex items-center justify-center mb-1">
                     <Eye className="h-4 w-4 text-green-500 mr-1" />
-                    <span className="font-semibold">{postAnalyticsApi.formatEngagement(analytics.video_views_count || analytics.raw_apify_data?.videoViewCount)}</span>
+                    <span className="font-semibold">{postAnalyticsApi.formatEngagement(normalizedData.videoViews)}</span>
                   </div>
                   <div className="text-xs text-muted-foreground">Views</div>
                 </div>
@@ -162,77 +170,73 @@ export function PostAnalyticsDisplay({ post, index }: PostAnalyticsDisplayProps)
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <span className="text-sm font-medium">Engagement Rate</span>
               <Badge variant="outline" className="text-lg">
-                {analytics.engagement_rate?.toFixed(2) || '0.00'}%
+                {normalizedData.engagementRate.toFixed(2)}%
               </Badge>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-purple-500" />
-                <span>Posted: {new Date(analytics.created_at).toLocaleString()}</span>
+                <span>Posted: {new Date(normalizedData.postedAt).toLocaleString()}</span>
               </div>
-              {analytics.video_duration && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4 text-orange-500" />
-                  <span>Duration: {analytics.video_duration}s</span>
-                </div>
-              )}
-              {analytics.location_name && (
+              <div className="flex items-center gap-2 text-sm">
+                <Image className="h-4 w-4 text-blue-500" />
+                <span>Dimensions: {normalizedData.media.width} × {normalizedData.media.height}</span>
+              </div>
+              {normalizedData.location.name && (
                 <div className="flex items-center gap-2 text-sm">
                   <MapPin className="h-4 w-4 text-red-500" />
-                  <span>{analytics.location_name}</span>
+                  <span>{normalizedData.location.name}</span>
                 </div>
               )}
             </div>
           </TabsContent>
 
           <TabsContent value="content" className="space-y-4">
-            {(analytics.caption || analytics.raw_apify_data?.caption) && (
+            {normalizedData.caption && (
               <div>
                 <h4 className="font-medium mb-2">Caption</h4>
                 <ScrollArea className="h-32 w-full rounded border p-3">
                   <p className="text-sm whitespace-pre-wrap">
-                    {analytics.caption || analytics.raw_apify_data?.caption}
+                    {normalizedData.caption}
                   </p>
                 </ScrollArea>
               </div>
             )}
 
-            {((analytics.hashtags && analytics.hashtags.length > 0) ||
-              (analytics.raw_apify_data?.hashtags && analytics.raw_apify_data.hashtags.length > 0)) && (
+            {normalizedData.hashtags.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Hash className="h-4 w-4" />
                   <h4 className="font-medium">
-                    Hashtags ({(analytics.hashtags || analytics.raw_apify_data?.hashtags || []).length})
+                    Hashtags ({normalizedData.hashtags.length})
                   </h4>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {(analytics.hashtags || analytics.raw_apify_data?.hashtags || []).slice(0, 10).map((hashtag, i) => (
+                  {normalizedData.hashtags.slice(0, 10).map((hashtag, i) => (
                     <Badge key={i} variant="secondary" className="text-xs">
                       #{hashtag}
                     </Badge>
                   ))}
-                  {(analytics.hashtags || analytics.raw_apify_data?.hashtags || []).length > 10 && (
+                  {normalizedData.hashtags.length > 10 && (
                     <Badge variant="outline" className="text-xs">
-                      +{(analytics.hashtags || analytics.raw_apify_data?.hashtags || []).length - 10} more
+                      +{normalizedData.hashtags.length - 10} more
                     </Badge>
                   )}
                 </div>
               </div>
             )}
 
-            {((analytics.mentions && analytics.mentions.length > 0) ||
-              (analytics.raw_apify_data?.mentions && analytics.raw_apify_data.mentions.length > 0)) && (
+            {normalizedData.mentions.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <AtSign className="h-4 w-4" />
                   <h4 className="font-medium">
-                    Mentions ({(analytics.mentions || analytics.raw_apify_data?.mentions || []).length})
+                    Mentions ({normalizedData.mentions.length})
                   </h4>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {(analytics.mentions || analytics.raw_apify_data?.mentions || []).map((mention, i) => (
+                  {normalizedData.mentions.map((mention, i) => (
                     <Badge key={i} variant="outline" className="text-xs">
                       @{mention}
                     </Badge>
@@ -261,7 +265,7 @@ export function PostAnalyticsDisplay({ post, index }: PostAnalyticsDisplayProps)
           <TabsContent value="creator" className="space-y-4">
             <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={analytics.creator_profile_pic || analytics.raw_apify_data?.ownerUsername} />
+                <AvatarImage src={normalizedData.creator.profilePicUrl} />
                 <AvatarFallback>
                   <User className="h-6 w-6" />
                 </AvatarFallback>
@@ -269,18 +273,20 @@ export function PostAnalyticsDisplay({ post, index }: PostAnalyticsDisplayProps)
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h4 className="font-medium">
-                    {analytics.creator_full_name || analytics.raw_apify_data?.ownerFullName || 'Unknown Creator'}
+                    {normalizedData.creator.fullName || 'Unknown Creator'}
                   </h4>
-                  {analytics.creator_is_verified && (
-                    <CheckCircle className="h-4 w-4 text-blue-500" />
-                  )}
+                  <CheckCircle className="h-4 w-4 text-blue-500" />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  @{analytics.creator_username || analytics.raw_apify_data?.ownerUsername || 'unknown'}
+                  @{normalizedData.creator.username || 'unknown'}
                 </p>
-                {analytics.creator_follower_count && (
-                  <p className="text-xs text-muted-foreground">
-                    {postAnalyticsApi.formatEngagement(analytics.creator_follower_count)} followers
+                <div className="grid grid-cols-2 gap-4 mt-2 text-xs text-muted-foreground">
+                  <span>{postAnalyticsApi.formatEngagement(normalizedData.creator.followersCount)} followers</span>
+                  <span>{postAnalyticsApi.formatEngagement(normalizedData.creator.postsCount)} posts</span>
+                </div>
+                {normalizedData.creator.biography && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {normalizedData.creator.biography}
                   </p>
                 )}
               </div>
@@ -317,42 +323,44 @@ export function PostAnalyticsDisplay({ post, index }: PostAnalyticsDisplayProps)
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="font-medium">Media Type:</span>
-                <p className="text-muted-foreground">{analytics.post_type || 'Unknown'}</p>
+                <p className="text-muted-foreground">{normalizedData.media.type}</p>
               </div>
               <div>
                 <span className="font-medium">Media Count:</span>
-                <p className="text-muted-foreground">{analytics.media_count || 1}</p>
+                <p className="text-muted-foreground">{normalizedData.carousel.mediaCount}</p>
               </div>
-              {analytics.raw_apify_data?.dimensionsWidth && analytics.raw_apify_data?.dimensionsHeight && (
-                <div>
-                  <span className="font-medium">Dimensions:</span>
-                  <p className="text-muted-foreground">
-                    {analytics.raw_apify_data.dimensionsWidth} × {analytics.raw_apify_data.dimensionsHeight}
-                  </p>
-                </div>
-              )}
-              {(analytics.video_duration || analytics.raw_apify_data?.videoDuration) && (
-                <div>
-                  <span className="font-medium">Duration:</span>
-                  <p className="text-muted-foreground">
-                    {analytics.video_duration || analytics.raw_apify_data?.videoDuration} seconds
-                  </p>
-                </div>
-              )}
+              <div>
+                <span className="font-medium">Dimensions:</span>
+                <p className="text-muted-foreground">
+                  {normalizedData.media.width} × {normalizedData.media.height}
+                </p>
+              </div>
+              <div>
+                <span className="font-medium">CDN Status:</span>
+                <p className="text-muted-foreground">
+                  {analytics.cdn_thumbnail_url ? '✅ Optimized' : '⚠️ Original'}
+                </p>
+              </div>
             </div>
 
-            {(analytics.display_url || analytics.raw_apify_data?.displayUrl) && (
+            {imageUrl && (
               <div>
                 <h4 className="font-medium mb-2">Preview</h4>
                 <div className="relative w-full max-w-sm mx-auto">
                   <img
-                    src={analytics.display_url || analytics.raw_apify_data?.displayUrl}
+                    src={imageUrl}
                     alt="Post preview"
                     className="w-full rounded-lg border"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none'
                     }}
                   />
+                  {/* Show CDN badge if using optimized URL */}
+                  {analytics.cdn_thumbnail_url && (
+                    <Badge variant="secondary" className="absolute top-2 right-2 text-xs">
+                      ⚡ CDN Optimized
+                    </Badge>
+                  )}
                 </div>
               </div>
             )}
@@ -383,12 +391,12 @@ export function PostAnalyticsDisplay({ post, index }: PostAnalyticsDisplayProps)
 
           <TabsContent value="raw" className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium">Raw Apify Data</h4>
+              <h4 className="font-medium">Raw API Response</h4>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  navigator.clipboard.writeText(JSON.stringify(analytics.raw_apify_data, null, 2))
+                  navigator.clipboard.writeText(JSON.stringify(analytics, null, 2))
                   // You could add a toast here
                 }}
               >
@@ -398,7 +406,7 @@ export function PostAnalyticsDisplay({ post, index }: PostAnalyticsDisplayProps)
             </div>
             <ScrollArea className="h-96 w-full rounded border">
               <pre className="p-4 text-xs">
-                {JSON.stringify(analytics.raw_apify_data, null, 2)}
+                {JSON.stringify(analytics, null, 2)}
               </pre>
             </ScrollArea>
           </TabsContent>
