@@ -78,6 +78,7 @@ interface UserDetails {
   credits_used_this_month: number
   current_balance: number
   package_id?: string
+  team_id?: string  // Added missing team_id field
   team_name?: string
   team_role?: string
   monthly_profile_limit: number

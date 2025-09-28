@@ -1,5 +1,4 @@
 import React from 'react';
-import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface CurrencyDisplayProps {
   amountCents: number;
@@ -12,16 +11,16 @@ export const CurrencyDisplay: React.FC<CurrencyDisplayProps> = ({
   className = "",
   showCurrencyCode = false
 }) => {
-  const { formatAmount, currencyInfo } = useCurrency();
-
-  const formattedAmount = formatAmount(amountCents);
+  // Simple static formatting - convert cents to AED
+  const amount = amountCents / 100;
+  const formattedAmount = `AED ${amount.toFixed(2)}`;
 
   return (
     <span className={className}>
       {formattedAmount}
-      {showCurrencyCode && currencyInfo && (
+      {showCurrencyCode && (
         <span className="ml-1 text-xs text-muted-foreground">
-          {currencyInfo.code}
+          AED
         </span>
       )}
     </span>

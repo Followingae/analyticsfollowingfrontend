@@ -247,7 +247,12 @@ export default function CreateProposalPage() {
       }
     } catch (error) {
       console.error('Failed to load influencers:', error)
-      toast.error('Failed to load influencers')
+      // Check if it's a database connection error
+      if (error instanceof Error && error.message.includes('prepared statement')) {
+        toast.error('Database connection issue. Please try again in a moment.')
+      } else {
+        toast.error('Failed to load influencers')
+      }
     } finally {
       setLoadingInfluencers(false)
     }
@@ -348,6 +353,14 @@ export default function CreateProposalPage() {
         toast.error('Please select a brand')
         return
       }
+      if (!proposalData.proposal_title.trim()) {
+        toast.error('Please enter a proposal title')
+        return
+      }
+      if (!proposalData.proposal_description.trim()) {
+        toast.error('Please enter a proposal description')
+        return
+      }
       if (proposalData.influencer_proposals.length === 0) {
         toast.error('Please add at least one influencer')
         return
@@ -361,23 +374,12 @@ export default function CreateProposalPage() {
       const apiData = {
         assigned_brand_users: [selectedBrand.id], // Array of UUIDs as expected by backend
         brand_company_name: selectedBrand.company_name || selectedBrand.name || 'Unknown Company',
-        proposal_title: proposalData.proposal_title,
-        proposal_description: proposalData.proposal_description,
-        campaign_brief: proposalData.campaign_brief,
+        proposal_title: proposalData.proposal_title.trim(),
         deliverables: proposalData.influencer_proposals.flatMap(ip =>
-          ip.deliverables.map(d => ({
-            deliverable_type: d.type,
-            quantity: d.quantity,
-            cost_per_deliverable_usd_cents: d.price_usd_cents,
-            total_cost_usd_cents: d.price_usd_cents * d.quantity,
-            description: d.description || '',
-            influencer_id: ip.influencer.id
-          }))
-        ),
+          ip.deliverables.map(d => d.type)
+        ), // Array of strings as expected by backend
         total_campaign_budget_usd_cents: proposalData.total_budget_usd_cents,
-        proposed_start_date: proposalData.proposed_start_date,
-        proposed_end_date: proposalData.proposed_end_date,
-        brand_response_deadline: proposalData.proposed_end_date // Using end date as deadline for now
+        proposal_description: proposalData.proposal_description.trim()
       }
 
       console.log('Sending proposal data:', JSON.stringify(apiData, null, 2))

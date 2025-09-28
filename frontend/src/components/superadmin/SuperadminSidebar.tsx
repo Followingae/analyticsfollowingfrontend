@@ -137,7 +137,7 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
         icon: IconFileText,
         items: [
           {
-            title: "Dashboard",
+            title: "Overview",
             url: "/admin/proposals",
           },
           {

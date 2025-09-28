@@ -13,7 +13,8 @@ import {
   ExportResponse,
   AnalyticsDashboardData
 } from '@/types/comprehensiveAnalytics'
-import { api as apiClient } from '@/lib/api'
+import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { API_CONFIG } from '@/config/api'
 import { requestCache } from '@/utils/requestCache'
 
 // Real profile data structure from backend (comprehensive spec)
@@ -150,7 +151,7 @@ export class ComprehensiveAnalyticsApiService {
       console.log('🔍 Clean username:', cleanUsername)
 
       // Fresh API: Use the verified backend endpoint (base URL already includes /api/v1)
-      const response = await apiClient.get(`/search/creator/${cleanUsername}`)
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${cleanUsername}`)
 
       if (!response.ok) {
         console.warn(`⚠️ Enhanced profile API returned ${response.status} for ${cleanUsername}`)
@@ -258,7 +259,7 @@ export class ComprehensiveAnalyticsApiService {
   ): Promise<PostAnalyticsResponse> {
     try {
       // First get profile data which may include posts
-      const profileResponse = await apiClient.get(`/search/creator/${username}`)
+      const profileResponse = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${username}`)
 
       if (!profileResponse.ok) {
         throw new Error(`HTTP error! status: ${profileResponse.status}`)
@@ -338,7 +339,7 @@ export class ComprehensiveAnalyticsApiService {
   async getComprehensiveAnalysis(username: string): Promise<ComprehensiveAnalysisResponse> {
     try {
       // Fresh API: Use real API endpoint
-      const response = await apiClient.get(`/search/creator/${username}`)
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${username}`)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -448,7 +449,7 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getContentPerformance(username: string): Promise<ContentPerformanceResponse> {
     try {
-      const response = await apiClient.get(`/search/creator/${username}`)
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${username}`)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -496,7 +497,7 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getSafetyAnalysis(username: string): Promise<SafetyAnalysisResponse> {
     try {
-      const response = await apiClient.get(`/search/creator/${username}`)
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${username}`)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -590,7 +591,7 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getAnalysisStatus(username: string): Promise<AnalysisStatusResponse> {
     try {
-      const response = await apiClient.get(`/search/creator/${username}`)
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${username}`)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -695,11 +696,11 @@ export class ComprehensiveAnalyticsApiService {
           console.log('🔍 Making API call with sequencing and retry logic')
 
           // Fresh API: SINGLE API CALL using verified backend endpoint (base URL already includes /api/v1)
-          const apiUrl = `/search/creator/${cleanUsername}`
-          console.log('🔍 Full API URL being called:', apiUrl)
-          console.log('🔍 apiClient base URL should be:', process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1')
+          const apiUrl = `/api/v1/search/creator/${cleanUsername}`
+          console.log('🔍 Full API URL being called:', `${API_CONFIG.BASE_URL}${apiUrl}`)
+          console.log('🔍 API base URL should be:', API_CONFIG.BASE_URL)
 
-          const response = await apiClient.get(apiUrl)
+          const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${apiUrl}`)
 
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)

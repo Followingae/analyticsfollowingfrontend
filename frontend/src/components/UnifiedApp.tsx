@@ -38,6 +38,18 @@ export function UnifiedApp() {
     }
   }, [isAuthenticated, updateActivity])
 
+  // Handle redirects in useEffect to avoid render-time state updates
+  // CRITICAL: This useEffect must always be called (before any early returns) to avoid hooks order violation
+  useEffect(() => {
+    if (!user || !isAuthenticated) return
+
+    // SUPERADMIN BYPASS: Redirect superadmins to dedicated /superadmin page
+    if (user.email === 'zain@following.ae' || user.role === 'super_admin') {
+      router.replace('/superadmin')
+      return
+    }
+  }, [user, isAuthenticated, router])
+
   // Authentication redirects are handled by AuthGuard - no need to duplicate here
 
   // Show loading screen while auth is being determined
@@ -52,17 +64,6 @@ export function UnifiedApp() {
     // Return null to let AuthGuard handle redirects without showing loading screen
     return null
   }
-
-  // Handle redirects in useEffect to avoid render-time state updates
-  useEffect(() => {
-    if (!user || !isAuthenticated) return
-
-    // SUPERADMIN BYPASS: Redirect superadmins to dedicated /superadmin page
-    if (user.email === 'zain@following.ae' || user.role === 'super_admin') {
-      router.replace('/superadmin')
-      return
-    }
-  }, [user, isAuthenticated, router])
 
   // Dynamic interface switching based on user role
   // If superadmin, return null while redirect happens

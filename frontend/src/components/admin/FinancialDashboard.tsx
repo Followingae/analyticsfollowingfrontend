@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
-import { useCurrency } from '@/contexts/CurrencyContext'
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay'
 import { superadminApiService, CreditOverview, Transaction } from '@/services/superadminApi'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,7 +39,10 @@ import {
 
 export function FinancialDashboard() {
   const { hasPermission } = useEnhancedAuth()
-  const { formatAmount, currencyInfo } = useCurrency()
+
+  // Simple static currency formatting
+  const formatAmount = (amountCents: number) => `AED ${(amountCents / 100).toFixed(2)}`
+  const currencyInfo = { code: 'AED', symbol: 'AED' }
   const [showCreditAdjustment, setShowCreditAdjustment] = useState(false)
   const [showBulkCredits, setShowBulkCredits] = useState(false)
   const [creditOverview, setCreditOverview] = useState<CreditOverview | null>(null)

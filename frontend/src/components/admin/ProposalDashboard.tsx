@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useCurrency } from '@/contexts/CurrencyContext'
 import { superadminApi } from '@/services/superadminApi'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -44,7 +43,9 @@ import {
 } from 'lucide-react'
 
 export function ProposalDashboard() {
-  const { formatAmount, currencyInfo } = useCurrency()
+  // Simple static currency formatting
+  const formatAmount = (amountCents: number) => `AED ${(amountCents / 100).toFixed(2)}`
+  const currencyInfo = { code: 'AED', symbol: 'AED' }
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedProposal, setSelectedProposal] = useState<any>(null)

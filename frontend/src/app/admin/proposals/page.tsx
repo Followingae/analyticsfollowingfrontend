@@ -78,17 +78,24 @@ export default function ProposalsPage() {
     setLoading(true)
     try {
       const filters: any = { limit: 50 }
-      if (proposalStatusFilter !== "all") filters.status_filter = proposalStatusFilter
+      if (proposalStatusFilter !== "all") filters.status = proposalStatusFilter
 
-      const result = await superadminApiService.getProposals(filters)
+      const result = await superadminApiService.getBrandProposals(filters)
       if (result.success && result.data) {
-        setProposals(result.data.proposals || [])
+        // Backend returns proposals directly in data array
+        setProposals(Array.isArray(result.data) ? result.data : [])
       } else {
         console.warn('Proposals API not available - superadmin endpoints not implemented')
         setProposals([])
       }
     } catch (error) {
-      console.warn('Proposals API not available - superadmin endpoints not implemented')
+      console.error('Failed to load proposals:', error)
+      // Check if it's a database connection error
+      if (error instanceof Error && error.message.includes('prepared statement')) {
+        toast.error('Database connection issue. Please try again in a moment.')
+      } else {
+        console.warn('Proposals API not available - superadmin endpoints not implemented')
+      }
       setProposals([])
     } finally {
       setLoading(false)
@@ -109,6 +116,12 @@ export default function ProposalsPage() {
       }
     } catch (error) {
       console.error('Failed to load drafts:', error)
+      // Check if it's a database connection error
+      if (error instanceof Error && error.message.includes('prepared statement')) {
+        toast.error('Database connection issue. Please try again in a moment.')
+      } else {
+        console.log('No latest draft found or API not available')
+      }
       setDrafts([])
     } finally {
       setDraftsLoading(false)
@@ -187,7 +200,12 @@ export default function ProposalsPage() {
         toast.error(result.error || 'Failed to delete draft')
       }
     } catch (error) {
-      toast.error('Network error while deleting draft')
+      console.error('Failed to delete draft:', error)
+      if (error instanceof Error && error.message.includes('prepared statement')) {
+        toast.error('Database connection issue. Please try again in a moment.')
+      } else {
+        toast.error('Network error while deleting draft')
+      }
     }
   }
 
@@ -202,7 +220,12 @@ export default function ProposalsPage() {
         toast.error(result.error || 'Failed to convert draft to proposal')
       }
     } catch (error) {
-      toast.error('Network error while converting draft')
+      console.error('Failed to convert draft:', error)
+      if (error instanceof Error && error.message.includes('prepared statement')) {
+        toast.error('Database connection issue. Please try again in a moment.')
+      } else {
+        toast.error('Network error while converting draft')
+      }
     }
   }
 

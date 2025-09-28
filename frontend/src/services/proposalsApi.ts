@@ -568,6 +568,17 @@ export class BrandProposalsApiService {
           }
         }
 
+        // Handle 404 Not Found (Feature not yet implemented for brand users)
+        if (response.status === 404 && endpoint.includes('brand-proposals')) {
+          return {
+            success: false,
+            error: 'Brand proposals feature is not yet available',
+            isFeatureLocked: true,
+            lockedFeature: 'proposals',
+            statusCode: 404
+          }
+        }
+
         return {
           success: false,
           error: errorText || `Request failed with status ${response.status}`,
@@ -609,11 +620,11 @@ export class BrandProposalsApiService {
       })
     }
     
-    return this.makeRequest(`/api/brand/proposals?${params.toString()}`)
+    return this.makeRequest(`/api/brand-proposals?${params.toString()}`)
   }
 
   async getProposalDetails(proposalId: string): Promise<ApiResponse<BrandProposal>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}`)
+    return this.makeRequest(`/api/brand-proposals/${proposalId}`)
   }
 
   async getProposalInfluencers(proposalId: string): Promise<ApiResponse<{
@@ -626,7 +637,7 @@ export class BrandProposalsApiService {
     }>
     total_influencers: number
   }>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/influencers`)
+    return this.makeRequest(`/api/brand-proposals/${proposalId}/influencers`)
   }
 
   async getProposalStatus(proposalId: string): Promise<ApiResponse<{
@@ -637,7 +648,7 @@ export class BrandProposalsApiService {
     responded_at?: string
     brand_response?: string
   }>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/status`)
+    return this.makeRequest(`/api/brand-proposals/${proposalId}/status`)
   }
 
   async submitResponse(proposalId: string, responseData: {
@@ -650,7 +661,7 @@ export class BrandProposalsApiService {
     responded_at: string
     status_updated: boolean
   }>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/respond`, {
+    return this.makeRequest(`/api/brand-proposals/${proposalId}/respond`, {
       method: 'POST',
       body: JSON.stringify(responseData)
     })
@@ -705,7 +716,7 @@ export class BrandProposalsApiService {
     message_type?: 'message' | 'feedback' | 'change_request'
     attachments?: string[]
   }): Promise<ApiResponse<ProposalCommunication>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/communications`, {
+    return this.makeRequest(`/api/brand-proposals/${proposalId}/communications`, {
       method: 'POST',
       body: JSON.stringify(messageData)
     })
@@ -715,13 +726,13 @@ export class BrandProposalsApiService {
     communications: ProposalCommunication[]
     total_count: number
   }>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/communications`)
+    return this.makeRequest(`/api/brand-proposals/${proposalId}/communications`)
   }
 
   async markMessagesAsRead(proposalId: string, messageIds: string[]): Promise<ApiResponse<{
     messages_marked: number
   }>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/communications/read`, {
+    return this.makeRequest(`/api/brand-proposals/${proposalId}/communications/read`, {
       method: 'POST',
       body: JSON.stringify({ message_ids: messageIds })
     })
@@ -729,7 +740,7 @@ export class BrandProposalsApiService {
 
   // Health check endpoint (confirmed by backend team)
   async healthCheck(): Promise<ApiResponse<{ status: string }>> {
-    return this.makeRequest('/api/brand/proposals/health')
+    return this.makeRequest('/api/brand-proposals/health')
   }
 
   // Add feedback endpoint (confirmed as placeholder by backend team)
@@ -737,7 +748,7 @@ export class BrandProposalsApiService {
     feedback: string
     type?: string
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/brand/proposals/${proposalId}/feedback`, {
+    return this.makeRequest(`/api/brand-proposals/${proposalId}/feedback`, {
       method: 'POST',
       body: JSON.stringify(feedbackData)
     })

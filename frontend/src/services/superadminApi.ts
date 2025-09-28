@@ -3,7 +3,7 @@
  * Updated to match the comprehensive backend implementation
  */
 
-import { getAuthHeaders, API_CONFIG } from '@/config/api'
+import { getAuthHeaders, API_CONFIG, ENDPOINTS } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 
 // Core Types based on comprehensive backend API implementation
@@ -512,25 +512,25 @@ export class SuperadminApiService {
     return this.makeRequest('/api/health')
   }
 
-  // Core Dashboard - REAL comprehensive backend API endpoint
+  // Core Dashboard - Using centralized ENDPOINTS configuration
   async getDashboard(): Promise<ApiResponse<DashboardOverview>> {
-    return this.makeRequest<DashboardOverview>('/api/superadmin/dashboard')
+    return this.makeRequest<DashboardOverview>(ENDPOINTS.superadmin.dashboard)
   }
 
   async getComprehensiveDashboard(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/dashboard')
+    return this.makeRequest(ENDPOINTS.superadmin.dashboard)
   }
 
   async getRealtimeAnalytics(): Promise<ApiResponse<RealtimeAnalytics>> {
-    return this.makeRequest<RealtimeAnalytics>('/api/superadmin/analytics/realtime')
+    return this.makeRequest<RealtimeAnalytics>(ENDPOINTS.superadmin.realtimeAnalytics)
   }
 
   async getSystemHealth(): Promise<ApiResponse<SystemHealth>> {
-    return this.makeRequest<SystemHealth>('/api/superadmin/system/health')
+    return this.makeRequest<SystemHealth>(ENDPOINTS.superadmin.systemHealth)
   }
 
   async getSystemStats(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/system/stats')
+    return this.makeRequest(ENDPOINTS.superadmin.systemStats)
   }
 
   // User Management
@@ -555,7 +555,7 @@ export class SuperadminApiService {
         }
       })
     }
-    return this.makeRequest(`/api/superadmin/users?${params.toString()}`)
+    return this.makeRequest(`${ENDPOINTS.superadmin.users}?${params.toString()}`)
   }
 
   async createUser(userData: {
@@ -565,7 +565,7 @@ export class SuperadminApiService {
     status: string
     initial_credits: number
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/users/create', {
+    return this.makeRequest(ENDPOINTS.superadmin.createUser, {
       method: 'POST',
       body: JSON.stringify(userData)
     })
@@ -573,7 +573,7 @@ export class SuperadminApiService {
 
   async deleteUser(userId: string, permanent = false): Promise<ApiResponse<any>> {
     const params = permanent ? '?permanent=true' : ''
-    return this.makeRequest(`/api/superadmin/users/${userId}${params}`, {
+    return this.makeRequest(`${ENDPOINTS.superadmin.deleteUser(userId)}${params}`, {
       method: 'DELETE'
     })
   }
@@ -591,7 +591,7 @@ export class SuperadminApiService {
         params.append(key, value)
       }
     })
-    return this.makeRequest(`/api/superadmin/users/${userId}/edit?${params.toString()}`, {
+    return this.makeRequest(`${ENDPOINTS.superadmin.editUser(userId)}?${params.toString()}`, {
       method: 'PUT'
     })
   }
@@ -615,12 +615,12 @@ export class SuperadminApiService {
         }
       })
     }
-    return this.makeRequest(`/api/superadmin/users/${userId}/activities?${params.toString()}`)
+    return this.makeRequest(`${ENDPOINTS.superadmin.userActivities(userId)}?${params.toString()}`)
   }
 
   // Credits Management
   async getCreditOverview(): Promise<ApiResponse<CreditOverview>> {
-    return this.makeRequest<CreditOverview>('/api/superadmin/credits/overview')
+    return this.makeRequest<CreditOverview>(ENDPOINTS.superadmin.creditOverview)
   }
 
   async adjustUserCredits(userId: string, data: {
@@ -629,7 +629,7 @@ export class SuperadminApiService {
     reason: string
     transaction_type: string
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/credits/users/${userId}/adjust`, {
+    return this.makeRequest(ENDPOINTS.superadmin.adjustUserCredits(userId), {
       method: 'POST',
       body: JSON.stringify(data)
     })
@@ -659,12 +659,12 @@ export class SuperadminApiService {
         }
       })
     }
-    return this.makeRequest(`/api/superadmin/billing/transactions?${params.toString()}`)
+    return this.makeRequest(`${ENDPOINTS.superadmin.transactions}?${params.toString()}`)
   }
 
   async getRevenueAnalytics(timeRange?: '7d' | '30d' | '90d' | '1y'): Promise<ApiResponse<any>> {
     const params = timeRange ? `?time_range=${timeRange}` : ''
-    return this.makeRequest(`/api/superadmin/billing/revenue-analytics${params}`)
+    return this.makeRequest(`${ENDPOINTS.superadmin.revenueAnalytics}${params}`)
   }
 
   // Influencer Database
@@ -691,11 +691,11 @@ export class SuperadminApiService {
         }
       })
     }
-    return this.makeRequest(`/api/superadmin/influencers/master-database?${params.toString()}`)
+    return this.makeRequest(`${ENDPOINTS.superadmin.influencers}?${params.toString()}`)
   }
 
   async getInfluencerDetails(influencerId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/influencers/${influencerId}/detailed`)
+    return this.makeRequest(ENDPOINTS.superadmin.influencerDetails(influencerId))
   }
 
   // Get available influencers for proposal creation
@@ -736,25 +736,21 @@ export class SuperadminApiService {
       })
     }
 
-    const url = `/api/superadmin/proposals/influencers/available${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+    const url = `${ENDPOINTS.superadmin.availableInfluencers}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
     return this.makeRequest(url)
   }
 
   // Proposals Management
   async getProposalsOverview(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/proposals/overview')
+    return this.makeRequest(ENDPOINTS.superadmin.proposalsOverview)
   }
 
   async getProposals(filters?: {
     limit?: number
     offset?: number
-    status_filter?: string
+    status?: string
     search?: string
-  }): Promise<ApiResponse<{
-    proposals: Proposal[]
-    pagination: any
-    filters_applied: any
-  }>> {
+  }): Promise<ApiResponse<Proposal[]>> {
     const params = new URLSearchParams()
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
@@ -763,7 +759,7 @@ export class SuperadminApiService {
         }
       })
     }
-    return this.makeRequest(`/api/superadmin/proposals/manage?${params.toString()}`)
+    return this.makeRequest(`${ENDPOINTS.superadmin.brandProposals}?${params.toString()}`)
   }
 
   async updateProposalStatus(proposalId: string, newStatus: string, adminNotes?: string): Promise<ApiResponse<any>> {
@@ -772,7 +768,7 @@ export class SuperadminApiService {
     if (adminNotes) {
       params.append('admin_notes', adminNotes)
     }
-    return this.makeRequest(`/api/superadmin/proposals/${proposalId}/status?${params.toString()}`, {
+    return this.makeRequest(`${ENDPOINTS.superadmin.proposalStatus(proposalId)}?${params.toString()}`, {
       method: 'PUT'
     })
   }
@@ -796,12 +792,12 @@ export class SuperadminApiService {
         }
       })
     }
-    return this.makeRequest(`/api/superadmin/security/alerts?${params.toString()}`)
+    return this.makeRequest(`${ENDPOINTS.superadmin.securityAlerts}?${params.toString()}`)
   }
 
   // Advanced Analytics
   async getAnalytics(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/analytics')
+    return this.makeRequest(ENDPOINTS.superadmin.platformAnalytics)
   }
 
   // Advanced User Management
@@ -1417,6 +1413,18 @@ export class SuperadminApiService {
     })
   }
 
+  async deleteBrandProposalDraft(draftId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/drafts/${draftId}`, {
+      method: 'DELETE'
+    })
+  }
+
+  async convertDraftToProposal(draftId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/drafts/${draftId}/convert`, {
+      method: 'POST'
+    })
+  }
+
   async assignInfluencersToProposal(proposalId: string, influencerData: any): Promise<ApiResponse<any>> {
     return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/influencers`, {
       method: 'POST',
@@ -1435,6 +1443,8 @@ export class SuperadminApiService {
     brand?: string
     date_from?: string
     date_to?: string
+    limit?: number
+    offset?: number
   }): Promise<ApiResponse<any>> {
     const params = new URLSearchParams()
     if (filters) {
@@ -1537,20 +1547,20 @@ export class SuperadminApiService {
     return this.makeRequest('/api/superadmin/content/analytics/overview')
   }
 
-  // User Management Methods - Superadmin specific endpoints
+  // User Management Methods - Using standardized admin endpoints
   async getUserDetails(userId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/admin/users/${userId}`)
+    return this.makeRequest(ENDPOINTS.admin.getUser(userId))
   }
 
   async updateUser(userId: string, data: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/admin/users/${userId}`, {
+    return this.makeRequest(ENDPOINTS.admin.updateUser(userId), {
       method: 'PUT',
       body: JSON.stringify(data)
     })
   }
 
   async adjustUserCredits(userId: string, data: { amount: number; reason: string }): Promise<ApiResponse<any>> {
-    return this.makeRequest('/admin/credits/adjust', {
+    return this.makeRequest(ENDPOINTS.admin.adjustCredits, {
       method: 'POST',
       body: JSON.stringify({
         user_id: userId,
@@ -1560,25 +1570,25 @@ export class SuperadminApiService {
   }
 
   async verifyUserEmail(userId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/admin/users/${userId}/verify-email`, {
+    return this.makeRequest(ENDPOINTS.admin.verifyUserEmail(userId), {
       method: 'POST'
     })
   }
 
   async resetUser2FA(userId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/admin/users/${userId}/reset-2fa`, {
+    return this.makeRequest(ENDPOINTS.admin.resetUser2FA(userId), {
       method: 'POST'
     })
   }
 
   async deleteUser(userId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/admin/users/${userId}`, {
+    return this.makeRequest(ENDPOINTS.admin.deleteUser(userId), {
       method: 'DELETE'
     })
   }
 
   async getUserActivity(userId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/admin/users/${userId}/activity`)
+    return this.makeRequest(ENDPOINTS.admin.getUserActivity(userId))
   }
 
   async getCreditTransactions(userId?: string): Promise<ApiResponse<any>> {
