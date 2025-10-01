@@ -908,7 +908,7 @@ export default function CampaignDetailsPage() {
                   No posts added to this campaign yet.
                 </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {posts.map((post) => (
                     <Card key={post.id} className="overflow-hidden">
                       <div className="aspect-square relative bg-muted">
@@ -929,11 +929,22 @@ export default function CampaignDetailsPage() {
                         </Badge>
                       </div>
                       <CardContent className="p-4 space-y-3">
+                        {/* Caption */}
+                        {post.caption && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {post.caption}
+                          </p>
+                        )}
+
+                        {/* Metrics */}
                         <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="flex items-center gap-1">
-                            <Eye className="h-3 w-3 text-muted-foreground" />
-                            <span className="font-medium">{formatNumber(post.views)}</span>
-                          </div>
+                          {/* Only show views for reels, not static posts */}
+                          {post.type === "reel" && (
+                            <div className="flex items-center gap-1">
+                              <Eye className="h-3 w-3 text-muted-foreground" />
+                              <span className="font-medium">{formatNumber(post.views)}</span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-1">
                             <Heart className="h-3 w-3 text-muted-foreground" />
                             <span className="font-medium">{formatNumber(post.likes)}</span>
@@ -947,6 +958,7 @@ export default function CampaignDetailsPage() {
                             <span className="font-medium">{((post.engagementRate ?? 0) * 100).toFixed(1)}%</span>
                           </div>
                         </div>
+
                         <Button
                           variant="outline"
                           size="sm"
