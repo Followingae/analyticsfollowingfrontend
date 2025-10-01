@@ -1,447 +1,474 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { v4 as uuidv4 } from "uuid"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Plus, Upload, X, Link as LinkIcon } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  ArrowLeft,
-  ArrowRight,
-  Plus,
-  X,
-  Link,
-  BarChart3,
-  Loader2,
-} from "lucide-react"
-
-import { AppSidebar } from "@/components/app-sidebar"
-import { toast } from "sonner"
-import { postAnalyticsApi } from "@/services/postAnalyticsApi"
-import { SiteHeader } from "@/components/site-header"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
-import { Textarea } from "@/components/ui/textarea"
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SiteHeader } from "@/components/site-header";
+import { AuthGuard } from "@/components/AuthGuard";
 
-// Form validation schemas
-const basicInfoSchema = z.object({
-  name: z.string().min(2, "Campaign name must be at least 2 characters").max(100, "Campaign name too long"),
-  description: z.string().min(10, "Description must be at least 10 characters").max(500, "Description too long"),
-})
-
-const postsSchema = z.object({
-  posts: z.array(z.object({
-    url: z.string().url("Please enter a valid Instagram URL")
-  })).min(1, "Please add at least one post URL")
-})
-
-type BasicInfoData = z.infer<typeof basicInfoSchema>
-type PostsData = z.infer<typeof postsSchema>
-
-interface CampaignData {
-  name: string
-  description: string
-  posts: Array<{ url: string }>
+interface CampaignPost {
+  url: string;
+  id: string;
 }
 
 export default function NewCampaignPage() {
-  const router = useRouter()
-  const [currentStep, setCurrentStep] = useState(1)
-  const [isLoading, setIsLoading] = useState(false)
-  const [campaignData, setCampaignData] = useState<Partial<CampaignData>>({})
+  const router = useRouter();
+  const [campaignName, setCampaignName] = useState("");
+  const [brandName, setBrandName] = useState("");
+  const [brandLogo, setBrandLogo] = useState<File | null>(null);
+  const [status, setStatus] = useState<"draft" | "active">("draft");
+  const [posts, setPosts] = useState<CampaignPost[]>([]);
+  const [isAddPostDialogOpen, setIsAddPostDialogOpen] = useState(false);
+  const [newPostUrl, setNewPostUrl] = useState("");
+  const [logoPreview, setLogoPreview] = useState<string>("");
 
-  // Step 1: Basic Information Form
-  const basicInfoForm = useForm<BasicInfoData>({
-    resolver: zodResolver(basicInfoSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-    },
-  })
-
-  // Step 2: Posts Form
-  const postsForm = useForm<PostsData>({
-    resolver: zodResolver(postsSchema),
-    defaultValues: {
-      posts: [{ url: "" }],
-    },
-  })
-
-  const handleBasicInfoSubmit = (data: BasicInfoData) => {
-    setCampaignData(prev => ({ ...prev, ...data }))
-    setCurrentStep(2)
-  }
-
-  const addPostField = () => {
-    const currentPosts = postsForm.getValues("posts")
-    postsForm.setValue("posts", [...currentPosts, { url: "" }])
-  }
-
-  const removePostField = (index: number) => {
-    const currentPosts = postsForm.getValues("posts")
-    if (currentPosts.length > 1) {
-      postsForm.setValue("posts", currentPosts.filter((_, i) => i !== index))
-    }
-  }
-
-  const handleTestApiConnection = async () => {
-    try {
-      toast.success("Testing API connection...")
-      const healthResult = await postAnalyticsApi.healthCheck()
-      console.log('API Health Check:', healthResult)
-
-      if (healthResult.success) {
-        toast.success("✅ API connection successful!")
-      } else {
-        toast.error(`❌ API connection failed: ${healthResult.error}`)
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (5MB max)
+      const MAX_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > MAX_SIZE) {
+        toast.error(`File too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 5MB.`);
+        e.target.value = ""; // Reset file input
+        return;
       }
-    } catch (error) {
-      console.error('API test error:', error)
-      toast.error(`❌ API test failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
-  }
 
-  const handleCreateCampaign = async (data: PostsData) => {
-    setIsLoading(true)
-
-    // Validate all URLs first
-    const urlValidationErrors: string[] = []
-    data.posts.forEach((post, index) => {
-      const validation = postAnalyticsApi.validateInstagramUrl(post.url)
-      if (!validation.valid) {
-        urlValidationErrors.push(`Post ${index + 1}: ${validation.error}`)
+      // Validate file type
+      const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+      if (!validTypes.includes(file.type)) {
+        toast.error("Invalid file type. Please upload PNG, JPEG, or WEBP.");
+        e.target.value = ""; // Reset file input
+        return;
       }
-    })
 
-    if (urlValidationErrors.length > 0) {
-      toast.error(`Invalid URLs:\n${urlValidationErrors.join('\n')}`)
-      setIsLoading(false)
-      return
+      setBrandLogo(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
+  };
 
-    // Create campaign ID and basic info outside try block for error handling
-    const campaignId = uuidv4()
-    const newCampaign = {
-      id: campaignId,
-      name: campaignData.name,
-      description: campaignData.description,
-      posts: data.posts.map(p => ({ url: p.url, analytics: null })),
-      createdAt: new Date().toISOString(),
-      status: 'analyzing' as const
+  const handleAddPost = () => {
+    if (newPostUrl.trim()) {
+      const newPost: CampaignPost = {
+        url: newPostUrl.trim(),
+        id: `post-${Date.now()}`,
+      };
+      setPosts([...posts, newPost]);
+      setNewPostUrl("");
+      setIsAddPostDialogOpen(false);
     }
+  };
+
+  const handleRemovePost = (postId: string) => {
+    setPosts(posts.filter((post) => post.id !== postId));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     try {
-      // Save campaign to localStorage
-      const existingCampaigns = JSON.parse(localStorage.getItem('campaigns') || '[]')
-      existingCampaigns.push(newCampaign)
-      localStorage.setItem('campaigns', JSON.stringify(existingCampaigns))
+      const { API_CONFIG, ENDPOINTS } = await import("@/config/api");
+      const { tokenManager } = await import("@/utils/tokenManager");
 
-      // Start post analysis - use direct API pattern (no polling needed)
-      const postUrls = data.posts.map(p => p.url)
-      toast.success("Campaign created! Starting post analysis...")
+      // Use tokenManager to get a valid token (handles token refresh automatically)
+      const tokenResult = await tokenManager.getValidToken();
 
-      let analysisResults: any
+      console.log("Token validation:", tokenResult.isValid ? "Valid token" : "Invalid/missing token");
 
-      if (postUrls.length === 1) {
-        // Single post analysis with immediate results
-        console.log('Using direct single post analysis for 1 URL')
-        const singleResult = await postAnalyticsApi.analyzePostDirect(postUrls[0], campaignId)
-        analysisResults = {
-          analyses: [singleResult],
-          failed_urls: [],
-          total_processed: 1,
-          total_successful: 1,
-          total_failed: 0
+      if (!tokenResult.isValid || !tokenResult.token) {
+        toast.error("You are not logged in. Please log in and try again.");
+        router.push("/login");
+        return;
+      }
+
+      const token = tokenResult.token;
+
+      // STEP 1: Create campaign with JSON payload (no binary data)
+      const campaignPayload = {
+        name: campaignName,
+        brand_name: brandName,
+        status: status,
+      };
+
+      const apiUrl = `${API_CONFIG.BASE_URL}${ENDPOINTS.campaigns.list}`;
+      console.log("Creating campaign with:", campaignPayload);
+      console.log("API URL:", apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(campaignPayload),
+      });
+
+      console.log("Campaign creation response:", response.status, response.statusText);
+
+      if (!response.ok) {
+        let errorMessage = `${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          console.error("❌ Campaign creation failed (JSON):", errorData);
+          console.error("❌ Error detail:", errorData.detail);
+          console.error("❌ Error message:", errorData.message);
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch (parseError) {
+          console.error("❌ Failed to parse error response as JSON:", parseError);
+          try {
+            const errorText = await response.text();
+            console.error("❌ Campaign creation failed (Text):", errorText);
+            errorMessage = errorText.substring(0, 200) || errorMessage;
+          } catch (textError) {
+            console.error("❌ Failed to read error response as text:", textError);
+          }
         }
-      } else {
-        // Batch analysis with immediate results
-        console.log(`Using direct batch analysis for ${postUrls.length} URLs`)
-        analysisResults = await postAnalyticsApi.analyzePostsBatch(postUrls, campaignId)
+        throw new Error(errorMessage);
       }
 
-      console.log('Analysis result:', analysisResults)
-      console.log('Analyses array:', analysisResults.analyses)
+      const result = await response.json();
+      console.log("Campaign created successfully:", result);
 
-      // Update campaign with analysis results
-      const updatedCampaign = {
-        ...newCampaign,
-        posts: data.posts.map((post, index) => {
-          // For single post, use the first analysis result
-          // For batch, match by index since they're processed in order
-          const analysis = analysisResults.analyses[index] || null
+      const campaignId = result.data?.id || result.id;
 
-          // If we have analysis data, make sure it's properly formatted
-          if (analysis) {
-            console.log('Analysis data for post:', post.url, analysis)
+      if (!campaignId) {
+        console.error("No campaign ID in response:", result);
+        throw new Error("No campaign ID returned from server");
+      }
+
+      // STEP 2: Upload logo if provided (separate multipart request)
+      if (brandLogo) {
+        console.log("Uploading campaign logo...");
+        const logoFormData = new FormData();
+        logoFormData.append("logo", brandLogo);
+
+        const logoResponse = await fetch(
+          `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/logo`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: logoFormData,
           }
+        );
 
-          return {
-            url: post.url,
-            analytics: analysis
+        if (!logoResponse.ok) {
+          console.warn("Failed to upload logo, but campaign was created:", logoResponse.status);
+          toast.warning("Campaign created but logo upload failed");
+        } else {
+          console.log("Logo uploaded successfully");
+        }
+      }
+
+      // STEP 3: Add posts to campaign if any (optional)
+      if (posts.length > 0) {
+        console.log("Adding posts to campaign:", posts.length);
+        const postsPayload = {
+          posts: posts.map((post) => ({ url: post.url })),
+        };
+
+        const postsResponse = await fetch(
+          `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(postsPayload),
           }
-        }),
-        status: 'completed' as const
+        );
+
+        if (!postsResponse.ok) {
+          console.warn("Failed to add posts, but campaign was created:", postsResponse.status);
+          toast.warning("Campaign created but posts could not be added");
+        } else {
+          console.log("Posts added successfully");
+        }
       }
 
-      // Update localStorage
-      const campaigns = JSON.parse(localStorage.getItem('campaigns') || '[]')
-      const updatedCampaigns = campaigns.map((c: any) =>
-        c.id === campaignId ? updatedCampaign : c
-      )
-      localStorage.setItem('campaigns', JSON.stringify(updatedCampaigns))
+      // Success notification
+      toast.success("Campaign created successfully!");
 
-      if (analysisResults.total_failed && analysisResults.total_failed > 0) {
-        toast.warning(`Analysis completed with ${analysisResults.total_failed} failed posts`)
-      } else {
-        toast.success("All posts analyzed successfully! 🎉")
-      }
-
-      // Navigate to analytics page regardless of analysis success
-      router.push(`/campaigns/${campaignId}/analytics`)
+      // Redirect to campaigns list
+      router.push(`/campaigns`);
     } catch (error) {
-      console.error('Campaign creation error:', error)
-
-      // Even if analysis fails, keep the campaign but without analytics
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      toast.error(`Analysis failed: ${errorMessage}. Campaign created without analytics.`)
-
-      // Update campaign status to show analysis failed
-      const failedCampaign = { ...newCampaign, status: 'draft' as const }
-      const campaigns = JSON.parse(localStorage.getItem('campaigns') || '[]')
-      const updatedCampaigns = campaigns.map((c: any) =>
-        c.id === campaignId ? failedCampaign : c
-      )
-      localStorage.setItem('campaigns', JSON.stringify(updatedCampaigns))
-
-      // Still navigate to analytics page
-      router.push(`/campaigns/${campaignId}/analytics`)
-    } finally {
-      setIsLoading(false)
+      console.error("❌ Error creating campaign:", error);
+      if (error instanceof Error) {
+        console.error("❌ Error name:", error.name);
+        console.error("❌ Error message:", error.message);
+        console.error("❌ Error stack:", error.stack);
+      }
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(errorMessage);
     }
-  }
+  };
+
+  const handleCancel = () => {
+    router.push("/campaigns");
+  };
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 66)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col p-4 md:p-6">
-
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+    <AuthGuard>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 66)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="container mx-auto py-8 px-4 max-w-4xl">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Header */}
               <div className="flex items-center gap-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => currentStep === 1 ? router.back() : setCurrentStep(1)}
-                  className="h-10 w-10"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div>
-                  <h1 className="text-3xl font-bold">Create New Campaign</h1>
-                  <p className="text-muted-foreground mt-1">
-                    Step {currentStep} of 2: {currentStep === 1 ? 'Basic Information' : 'Add Posts'}
+          <Button type="button" variant="ghost" size="icon" onClick={handleCancel}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold tracking-tight">Create New Campaign</h1>
+            <p className="text-muted-foreground mt-1">
+              Set up a new influencer marketing campaign
+            </p>
+          </div>
+        </div>
+
+        {/* Campaign Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Campaign Details</CardTitle>
+            <CardDescription>Basic information about your campaign</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Campaign Name */}
+            <div className="space-y-2">
+              <Label htmlFor="campaignName">
+                Campaign Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="campaignName"
+                placeholder="e.g., Summer Collection Launch"
+                value={campaignName}
+                onChange={(e) => setCampaignName(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Brand Name */}
+            <div className="space-y-2">
+              <Label htmlFor="brandName">
+                Brand Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="brandName"
+                placeholder="e.g., Nike"
+                value={brandName}
+                onChange={(e) => setBrandName(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Brand Logo Upload */}
+            <div className="space-y-2">
+              <Label htmlFor="brandLogo">Brand Logo</Label>
+              <div className="flex items-center gap-4">
+                {logoPreview && (
+                  <div className="h-20 w-20 rounded-lg border overflow-hidden">
+                    <img
+                      src={logoPreview}
+                      alt="Brand logo preview"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <Input
+                    id="brandLogo"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    PNG, JPG or SVG (max. 2MB)
                   </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${currentStep >= 1 ? 'bg-primary' : 'bg-muted'}`} />
-                  <div className={`w-3 h-3 rounded-full ${currentStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
                 </div>
               </div>
             </div>
 
-            {/* Step 1: Basic Information */}
-            {currentStep === 1 && (
-              <Card className="w-full max-w-4xl mx-auto">
-                <CardHeader className="pb-8">
-                  <CardTitle className="text-2xl">Campaign Basic Information</CardTitle>
-                  <CardDescription className="text-base">
-                    Start by giving your campaign a name and description
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="px-8 pb-8">
-                  <Form {...basicInfoForm}>
-                    <form onSubmit={basicInfoForm.handleSubmit(handleBasicInfoSubmit)} className="space-y-8">
-                      <FormField
-                        control={basicInfoForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base font-medium">Campaign Name</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="e.g., Summer Fashion Campaign 2024"
-                                className="h-12 text-base"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+            {/* Status */}
+            <div className="space-y-2">
+              <Label htmlFor="status">
+                Status <span className="text-destructive">*</span>
+              </Label>
+              <Select value={status} onValueChange={(value: "draft" | "active") => setStatus(value)}>
+                <SelectTrigger id="status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Draft campaigns are not visible to creators
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-                      <FormField
-                        control={basicInfoForm.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base font-medium">Campaign Description</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Describe your campaign goals, target audience, and what you want to track..."
-                                className="min-h-[150px] text-base"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="flex justify-end pt-6">
-                        <Button type="submit" size="lg" className="h-12 px-8">
-                          Next: Add Posts
-                          <ArrowRight className="ml-2 h-5 w-5" />
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Step 2: Add Posts */}
-            {currentStep === 2 && (
-              <Card className="w-full max-w-5xl mx-auto">
-                <CardHeader className="pb-8">
-                  <CardTitle className="flex items-center gap-3 text-2xl">
-                    <Link className="h-6 w-6" />
-                    Add Instagram Posts
-                  </CardTitle>
-                  <CardDescription className="text-base">
-                    Add the Instagram post URLs you want to analyze in this campaign
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="px-8 pb-8">
-                  <Form {...postsForm}>
-                    <form onSubmit={postsForm.handleSubmit(handleCreateCampaign)} className="space-y-8">
-                      <div className="space-y-6">
-                        {postsForm.watch("posts").map((_, index) => (
-                          <FormField
-                            key={index}
-                            control={postsForm.control}
-                            name={`posts.${index}.url`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-base font-medium">Post URL {index + 1}</FormLabel>
-                                <div className="flex gap-3">
-                                  <FormControl>
-                                    <Input
-                                      placeholder="https://www.instagram.com/p/..."
-                                      className="h-12 text-base"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  {postsForm.watch("posts").length > 1 && (
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-12 w-12 shrink-0"
-                                      onClick={() => removePostField(index)}
-                                    >
-                                      <X className="h-5 w-5" />
-                                    </Button>
-                                  )}
-                                </div>
-                                <FormMessage />
-                              </FormItem>
-                            )}
+        {/* Campaign Posts */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Campaign Posts</CardTitle>
+                <CardDescription>Add Instagram post URLs to track</CardDescription>
+              </div>
+              <Dialog open={isAddPostDialogOpen} onOpenChange={setIsAddPostDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline" size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Posts
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Post URL</DialogTitle>
+                    <DialogDescription>
+                      Enter the Instagram post URL you want to track in this campaign
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="postUrl">Instagram Post URL</Label>
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="postUrl"
+                            placeholder="https://instagram.com/p/..."
+                            value={newPostUrl}
+                            onChange={(e) => setNewPostUrl(e.target.value)}
+                            className="pl-9"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddPost();
+                              }
+                            }}
                           />
-                        ))}
+                        </div>
                       </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={addPostField}
-                        className="w-full h-12 text-base"
-                        size="lg"
-                      >
-                        <Plus className="mr-2 h-5 w-5" />
-                        Add Another Post
-                      </Button>
-
-                      <div className="flex justify-between pt-8">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setCurrentStep(1)}
-                          size="lg"
-                          className="h-12 px-8"
-                        >
-                          <ArrowLeft className="mr-2 h-5 w-5" />
-                          Back
-                        </Button>
-                        <Button
-                          type="submit"
-                          disabled={isLoading}
-                          size="lg"
-                          className="min-w-[180px] h-12"
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                              Creating...
-                            </>
-                          ) : (
-                            <>
-                              <BarChart3 className="mr-2 h-5 w-5" />
-                              Create Campaign
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
+                      <p className="text-xs text-muted-foreground">
+                        Example: https://instagram.com/p/CXXXxxxxxx/
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsAddPostDialogOpen(false);
+                        setNewPostUrl("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="button" onClick={handleAddPost}>
+                      Add Post
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {posts.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                <LinkIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-sm text-muted-foreground">
+                  No posts added yet. Click "Add Posts" to get started.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {posts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm truncate">{post.url}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemovePost(post.id)}
+                      className="flex-shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-2">
+                  <p className="text-sm text-muted-foreground">
+                    {posts.length} {posts.length === 1 ? "post" : "posts"} added
+                  </p>
+                  <Badge variant="secondary">{posts.length} URLs</Badge>
+                </div>
+              </div>
             )}
+          </CardContent>
+        </Card>
 
-          </div>
+        {/* Form Actions */}
+        <div className="flex items-center justify-end gap-4">
+          <Button type="button" variant="outline" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!campaignName || !brandName}>
+            Create Campaign
+          </Button>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
-  )
+            </form>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </AuthGuard>
+  );
 }

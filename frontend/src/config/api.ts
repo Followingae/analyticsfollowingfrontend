@@ -76,10 +76,11 @@ export const ENDPOINTS = {
 
   // Campaigns (/api/v1/campaigns/)
   campaigns: {
-    list: '/api/v1/campaigns', // GET/POST - Campaigns
-    detail: (id: string) => `/api/v1/campaigns/${id}`, // GET - Campaign detail
-    dashboard: '/api/v1/campaigns/dashboard', // GET - Campaign dashboard
-    analytics: '/api/v1/campaigns/analytics', // GET - Campaign analytics
+    list: '/api/v1/campaigns/', // GET/POST - Campaigns (with trailing slash)
+    detail: (id: string) => `/api/v1/campaigns/${id}/`, // GET - Campaign detail
+    delete: (id: string) => `/api/v1/campaigns/${id}`, // DELETE - Delete campaign
+    dashboard: '/api/v1/campaigns/dashboard/', // GET - Campaign dashboard
+    analytics: '/api/v1/campaigns/analytics/', // GET - Campaign analytics
   },
 
   // Lists (/api/v1/lists/)

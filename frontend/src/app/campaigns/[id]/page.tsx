@@ -1,929 +1,1140 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { useTheme } from "next-themes"
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Users, FileText, Eye, TrendingUp, Heart, MessageCircle, Image, Video, Share2, Plus, Pencil, Upload, Trash2, X, Link as LinkIcon, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  ArrowLeft,
-  Plus,
-  Eye,
-  TrendingUp,
-  Users,
-  Heart,
-  MessageCircle,
-  Share,
-  Calendar,
-  DollarSign,
-  BarChart3,
-  Settings,
-  Edit,
-  Trash2,
-  UserPlus,
-  Instagram,
-  ExternalLink,
-  Download,
-  Filter,
-} from "lucide-react"
-import { 
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  Area,
-  AreaChart,
-  Label,
-  PolarRadiusAxis,
-  RadialBar,
-  RadialBarChart
-} from "recharts"
-
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
+} from "@/components/ui/select";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SiteHeader } from "@/components/site-header";
+import { AuthGuard } from "@/components/AuthGuard";
 
-export default function CampaignAnalyticsPage() {
-  const router = useRouter()
-  const params = useParams()
-  const { theme } = useTheme()
-  
-  // TODO: Replace with real backend data
-  const [campaign, setCampaign] = useState<any>(null)
-  const [analytics, setAnalytics] = useState<any>(null)
-  const [creators, setCreators] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  
+// Backend response interfaces
+interface BackendCampaignPost {
+  id: string;
+  thumbnail: string | null;
+  url: string;
+  type: "static" | "reel";
+  caption: string;
+  views: number;
+  likes: number;
+  comments: number;
+  engagementRate: number; // Decimal 0-1 format
+
+  // AI Analysis (nullable for old posts)
+  ai_content_category: string | null;
+  ai_sentiment: "positive" | "neutral" | "negative" | null;
+  ai_language_code: string | null;
+
+  // Creator Info
+  creator_username: string;
+  creator_full_name: string;
+  creator_followers_count: number;
+
+  // Additional Metadata
+  shortcode: string;
+  added_at: string;
+  display_url?: string; // Fallback for thumbnail
+}
+
+interface BackendCampaignDetails {
+  id: string;
+  name: string;
+  brand_name: string;
+  brand_logo_url: string | null;
+  status: "active" | "completed" | "draft";
+  created_at: string;
+  updated_at: string;
+}
+
+interface BackendAudience {
+  total_reach: number;
+  total_creators: number;
+
+  // AI-Estimated Demographics (may be null while processing)
+  gender_distribution?: {
+    FEMALE: number;
+    MALE: number;
+  };
+  age_distribution?: {
+    "18-24"?: number;
+    "25-34"?: number;
+    "35-44"?: number;
+    "45+"?: number;
+    [key: string]: number | undefined;
+  };
+  country_distribution?: Record<string, number>;
+  city_distribution?: Record<string, number>;
+
+  // Top Demographics (provided by backend)
+  topGender?: {
+    name: string;
+    percentage: number;
+  };
+  topAgeGroup?: {
+    name: string;
+    percentage: number;
+  };
+  topCountry?: {
+    name: string;
+    percentage: number;
+  };
+  topCity?: {
+    name: string;
+    percentage: number;
+  };
+}
+
+interface BackendCreator {
+  profile_id: string;
+  username: string;
+  full_name: string;
+  profile_pic_url: string | null;
+  followers_count: number;
+  posts_count: number;
+
+  // Campaign-specific metrics (updated field names)
+  posts_in_campaign: number;
+  total_likes: number;
+  total_comments: number;
+  avg_engagement_rate: number; // Decimal 0-1 format
+
+  // AI-Estimated Audience Demographics (nullable while processing)
+  audience_demographics?: {
+    gender_distribution?: { FEMALE: number; MALE: number };
+    age_distribution?: Record<string, number>;
+    country_distribution?: Record<string, number>;
+    city_distribution?: Record<string, number>;
+  };
+}
+
+interface CampaignStats {
+  totalCreators: number;
+  totalPosts: number;
+  totalFollowers: number;
+  totalReach: number;
+  totalViews: number;
+  overallEngagementRate: number;
+  totalComments: number;
+  totalLikes: number;
+  postTypeBreakdown: {
+    static: number;
+    reels: number;
+    story: number;
+  };
+}
+
+export default function CampaignDetailsPage() {
+  const params = useParams();
+  const router = useRouter();
+  const campaignId = params.id as string;
+
+  const [campaign, setCampaign] = useState<BackendCampaignDetails | null>(null);
+  const [posts, setPosts] = useState<BackendCampaignPost[]>([]);
+  const [creators, setCreators] = useState<BackendCreator[]>([]);
+  const [audience, setAudience] = useState<BackendAudience | null>(null);
+  const [stats, setStats] = useState<CampaignStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Edit campaign state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editCampaignName, setEditCampaignName] = useState("");
+  const [editBrandName, setEditBrandName] = useState("");
+  const [editStatus, setEditStatus] = useState<"draft" | "active" | "completed">("draft");
+  const [newLogo, setNewLogo] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Add post state
+  const [isAddPostDialogOpen, setIsAddPostDialogOpen] = useState(false);
+  const [newPostUrl, setNewPostUrl] = useState("");
+
   useEffect(() => {
-    // TODO: Implement actual API calls to fetch campaign data
-    // fetchCampaign(params.id).then(setCampaign)
-    // fetchCampaignAnalytics(params.id).then(setAnalytics)
-    // fetchCampaignCreators(params.id).then(setCreators)
-    setLoading(false)
-  }, [params.id])
+    fetchCampaignData();
+  }, [campaignId]);
 
-  // Fallback campaign structure for development
-  const fallbackCampaign = {
-    id: 1,
-    name: "Summer Fashion 2024",
-    status: "active",
-    startDate: "2024-06-01",
-    endDate: "2024-08-31",
-    budget: 55050,
-    objective: "Brand Awareness",
-    description: "Promote summer collection with fashion influencers across Instagram and TikTok platforms.",
-    brandName: "Fashion Forward",
-    brandLogo: theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg"
-  }
+  const fetchCampaignData = async () => {
+    try {
+      setIsLoading(true);
+      const { API_CONFIG } = await import("@/config/api");
+      const { fetchWithAuth } = await import("@/utils/apiInterceptor");
 
-  const mockAnalytics = {
-    totalReach: 1250000,
-    totalImpressions: 3200000,
-    totalEngagement: 186000,
-    engagementRate: 5.8,
-    ctr: 2.3,
-    conversions: 1240,
-    roi: 285,
-    avgCPM: 12.5,
-    totalPosts: 28,
-    totalStories: 45,
-    totalReels: 12
-  }
+      // Fetch campaign details, posts, creators, and audience in parallel
+      const [campaignRes, postsRes, creatorsRes, audienceRes] = await Promise.all([
+        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}`),
+        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts`),
+        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/creators`),
+        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/audience`),
+      ]);
 
-  const mockCreators = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      username: "fashionista_sarah",
-      avatar: "/avatars/01.png",
-      followers: 250000,
-      engagement: 4.2,
-      posts: 3,
-      stories: 5,
-      reels: 1,
-      reach: 180000,
-      impressions: 420000,
-      likes: 28500,
-      comments: 1250,
-      shares: 340,
-      status: "active"
-    },
-    {
-      id: 2,
-      name: "Emma Wilson", 
-      username: "style_emma",
-      avatar: "/avatars/02.png",
-      followers: 180000,
-      engagement: 5.1,
-      posts: 2,
-      stories: 4,
-      reels: 2,
-      reach: 145000,
-      impressions: 380000,
-      likes: 24200,
-      comments: 980,
-      shares: 290,
-      status: "active"
-    },
-    {
-      id: 3,
-      name: "Lisa Chen",
-      username: "chic_lisa", 
-      avatar: "/avatars/03.png",
-      followers: 320000,
-      engagement: 3.8,
-      posts: 4,
-      stories: 6,
-      reels: 1,
-      reach: 220000,
-      impressions: 580000,
-      likes: 32100,
-      comments: 1580,
-      shares: 420,
-      status: "pending"
+      const campaignData = await campaignRes.json();
+      const postsData = await postsRes.json();
+      const creatorsData = await creatorsRes.json();
+      const audienceData = await audienceRes.json();
+
+      // Check if demographics are missing
+      const hasCreators = creatorsData.data.creators?.length > 0;
+      const hasNoDemographics = !audienceData.data?.topGender && !audienceData.data?.topAgeGroup;
+
+      if (hasCreators && hasNoDemographics) {
+        console.log("⏳ Demographics are being processed. This may take 2-3 minutes after adding creators.");
+      }
+
+      setCampaign(campaignData.data);
+      setPosts(postsData.data.posts || []);
+      setCreators(creatorsData.data.creators || []);
+      setAudience(audienceData.data);
+
+      // Calculate stats from fetched data
+      const postTypes = postsData.data.posts.reduce(
+        (acc: any, post: BackendCampaignPost) => {
+          acc[post.type === "reel" ? "reels" : post.type]++;
+          return acc;
+        },
+        { static: 0, reels: 0, story: 0 }
+      );
+
+      const totalViews = postsData.data.posts.reduce(
+        (sum: number, post: BackendCampaignPost) => sum + post.views,
+        0
+      );
+      const totalLikes = postsData.data.posts.reduce(
+        (sum: number, post: BackendCampaignPost) => sum + post.likes,
+        0
+      );
+      const totalComments = postsData.data.posts.reduce(
+        (sum: number, post: BackendCampaignPost) => sum + post.comments,
+        0
+      );
+      const avgEngagement =
+        postsData.data.posts.reduce(
+          (sum: number, post: BackendCampaignPost) => sum + post.engagementRate,
+          0
+        ) / (postsData.data.posts.length || 1);
+      const totalFollowers = creatorsData.data.creators.reduce(
+        (sum: number, creator: BackendCreator) => sum + creator.followers_count,
+        0
+      );
+
+      setStats({
+        totalCreators: audienceData.data.total_creators,
+        totalPosts: postsData.data.total_posts,
+        totalFollowers,
+        totalReach: audienceData.data.total_reach,
+        totalViews,
+        overallEngagementRate: avgEngagement,
+        totalComments,
+        totalLikes,
+        postTypeBreakdown: postTypes,
+      });
+    } catch (error) {
+      console.error("Error fetching campaign data:", error);
+    } finally {
+      setIsLoading(false);
     }
-  ]
+  };
 
-  const contentPosts = [
-    {
-      id: 1,
-      creator: creators[0],
-      type: "post",
-      caption: "Summer vibes with the new Fashion Forward collection! ✨ #SummerFashion2024",
-      postedDate: "2024-07-15",
-      imageUrl: "/post-images/post1.jpg",
-      likes: 12500,
-      comments: 340,
-      shares: 85,
-      reach: 85000,
-      impressions: 125000,
-      engagement: 4.8,
-      platform: "instagram"
-    },
-    {
-      id: 2,
-      creator: creators[1],
-      type: "reel",
-      caption: "Get ready with me using Fashion Forward's latest pieces! 💫",
-      postedDate: "2024-07-14",
-      imageUrl: "/post-images/reel1.jpg",
-      likes: 18200,
-      comments: 560,
-      shares: 140,
-      reach: 95000,
-      impressions: 180000,
-      engagement: 5.2,
-      platform: "instagram"
-    },
-    {
-      id: 3,
-      creator: creators[0],
-      type: "story",
-      caption: "Behind the scenes of our summer shoot 📸",
-      postedDate: "2024-07-13",
-      imageUrl: "/post-images/story1.jpg",
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      reach: 45000,
-      impressions: 48000,
-      engagement: 2.1,
-      platform: "instagram"
-    },
-    {
-      id: 4,
-      creator: creators[2],
-      type: "post",
-      caption: "Obsessed with these summer essentials from @fashionforward! Perfect for vacation vibes 🌴",
-      postedDate: "2024-07-12",
-      imageUrl: "/post-images/post2.jpg",
-      likes: 15800,
-      comments: 420,
-      shares: 110,
-      reach: 105000,
-      impressions: 160000,
-      engagement: 4.2,
-      platform: "instagram"
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
     }
-  ]
+    if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toString();
+  };
 
-  // Chart data
-  const performanceData = [
-    { date: "Jul 1", reach: 45000, engagement: 2100, impressions: 62000 },
-    { date: "Jul 2", reach: 52000, engagement: 2800, impressions: 74000 },
-    { date: "Jul 3", reach: 48000, engagement: 2400, impressions: 68000 },
-    { date: "Jul 4", reach: 61000, engagement: 3200, impressions: 89000 },
-    { date: "Jul 5", reach: 58000, engagement: 3100, impressions: 82000 },
-    { date: "Jul 6", reach: 65000, engagement: 3600, impressions: 94000 },
-    { date: "Jul 7", reach: 72000, engagement: 4200, impressions: 108000 },
-  ]
+  const getPostTypeIcon = (type: BackendCampaignPost["type"]) => {
+    switch (type) {
+      case "static":
+        return <Image className="h-3 w-3" />;
+      case "reel":
+        return <Video className="h-3 w-3" />;
+      case "story":
+        return <Share2 className="h-3 w-3" />;
+    }
+  };
 
-  const contentTypeData = [
-    { type: "Posts", count: mockAnalytics.totalPosts, fill: "hsl(var(--chart-1))" },
-    { type: "Stories", count: mockAnalytics.totalStories, fill: "hsl(var(--chart-2))" },
-    { type: "Reels", count: mockAnalytics.totalReels, fill: "hsl(var(--chart-3))" },
-  ]
+  // Use backend-provided top demographics
+  const getTopAgeGroup = () => {
+    if (!audience?.topAgeGroup) return { range: "N/A", percentage: 0, isLoading: !audience };
+    return { range: audience.topAgeGroup.name, percentage: audience.topAgeGroup.percentage, isLoading: false };
+  };
 
-  const totalContent = mockAnalytics.totalPosts + mockAnalytics.totalStories + mockAnalytics.totalReels
+  const getTopGender = () => {
+    if (!audience?.topGender) return { gender: "N/A", percentage: 0, isLoading: !audience };
+    // Display friendly name (FEMALE -> Female, MALE -> Male)
+    const displayName = audience.topGender.name === "FEMALE" ? "Female" : "Male";
+    return { gender: displayName, percentage: audience.topGender.percentage, isLoading: false };
+  };
 
-  const engagementData = [
-    { metric: "Likes", value: 75400, fill: "hsl(var(--chart-1))" },
-    { metric: "Comments", value: 12800, fill: "hsl(var(--chart-2))" },
-    { metric: "Shares", value: 3200, fill: "hsl(var(--chart-3))" },
-  ]
+  const getTopCountry = () => {
+    if (!audience?.topCountry) return { name: "N/A", isLoading: !audience };
+    return { name: audience.topCountry.name, isLoading: false };
+  };
 
-  const creatorPerformanceData = mockCreators.map(creator => ({
-    name: creator.name.split(' ')[0],
-    reach: creator.reach,
-    engagement: creator.engagement,
-    posts: creator.posts + creator.stories + creator.reels
-  }))
+  const handleOpenEditDialog = () => {
+    if (campaign) {
+      setEditCampaignName(campaign.name);
+      setEditBrandName(campaign.brand_name);
+      setEditStatus(campaign.status as "draft" | "active" | "completed");
+      setLogoPreview(campaign.brand_logo_url || "");
+      setNewLogo(null);
+      setIsEditDialogOpen(true);
+    }
+  };
 
-  const chartConfig = {
-    reach: {
-      label: "Reach",
-      color: "hsl(var(--chart-1))",
-    },
-    engagement: {
-      label: "Engagement",
-      color: "hsl(var(--chart-2))",
-    },
-    impressions: {
-      label: "Impressions",
-      color: "hsl(var(--chart-3))",
-    },
-  } satisfies ChartConfig
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (5MB max)
+      const MAX_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > MAX_SIZE) {
+        toast.error(`File too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 5MB.`);
+        e.target.value = ""; // Reset file input
+        return;
+      }
 
-  const formatCurrency = (amount: number) => {
-    const formattedAmount = new Intl.NumberFormat('ar-AE', {
-      style: 'decimal',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount);
+      // Validate file type
+      const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+      if (!validTypes.includes(file.type)) {
+        toast.error("Invalid file type. Please upload PNG, JPEG, or WEBP.");
+        e.target.value = ""; // Reset file input
+        return;
+      }
+
+      setNewLogo(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDeleteLogo = async () => {
+    if (!campaign) return;
+
+    if (!confirm("Are you sure you want to delete the logo?")) return;
+
+    try {
+      const { API_CONFIG } = await import("@/config/api");
+      const { tokenManager } = await import("@/utils/tokenManager");
+      const tokenResult = await tokenManager.getValidToken();
+
+      if (!tokenResult.isValid || !tokenResult.token) {
+        toast.error("Please log in again");
+        return;
+      }
+
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/logo`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${tokenResult.token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete logo");
+      }
+
+      // Update local state
+      setCampaign({ ...campaign, brand_logo_url: null });
+      setLogoPreview("");
+      toast.success("Logo deleted successfully");
+    } catch (error) {
+      console.error("Error deleting logo:", error);
+      toast.error("Failed to delete logo");
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!campaign) return;
+
+    setIsSaving(true);
+    try {
+      const { API_CONFIG } = await import("@/config/api");
+      const { tokenManager } = await import("@/utils/tokenManager");
+      const tokenResult = await tokenManager.getValidToken();
+
+      if (!tokenResult.isValid || !tokenResult.token) {
+        toast.error("Please log in again");
+        return;
+      }
+
+      const token = tokenResult.token;
+
+      // Build update payload with all changed fields
+      const updatePayload: Record<string, any> = {};
+
+      if (editCampaignName !== campaign.name) {
+        updatePayload.name = editCampaignName;
+      }
+
+      if (editBrandName !== campaign.brand_name) {
+        updatePayload.brand_name = editBrandName;
+      }
+
+      if (editStatus !== campaign.status) {
+        updatePayload.status = editStatus;
+      }
+
+      // Update campaign if any fields changed
+      if (Object.keys(updatePayload).length > 0) {
+        const updateResponse = await fetch(
+          `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updatePayload),
+          }
+        );
+
+        if (!updateResponse.ok) {
+          throw new Error("Failed to update campaign");
+        }
+      }
+
+      // Upload new logo if selected
+      let updatedLogoUrl = campaign.brand_logo_url;
+      if (newLogo) {
+        const logoFormData = new FormData();
+        logoFormData.append("logo", newLogo);
+
+        const logoResponse = await fetch(
+          `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/logo`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: logoFormData,
+          }
+        );
+
+        if (!logoResponse.ok) {
+          throw new Error("Failed to upload logo");
+        }
+
+        const logoResult = await logoResponse.json();
+        updatedLogoUrl = logoResult.data?.brand_logo_url || logoPreview;
+      }
+
+      // Update local state with all changes
+      setCampaign({
+        ...campaign,
+        name: editCampaignName,
+        brand_name: editBrandName,
+        status: editStatus,
+        brand_logo_url: updatedLogoUrl,
+      });
+
+      setIsEditDialogOpen(false);
+      toast.success("Campaign updated successfully");
+    } catch (error) {
+      console.error("Error saving changes:", error);
+      toast.error("Failed to save changes");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleAddPost = async () => {
+    if (!newPostUrl.trim()) {
+      toast.error("Please enter a post URL");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { API_CONFIG } = await import("@/config/api");
+      const { tokenManager } = await import("@/utils/tokenManager");
+      const tokenResult = await tokenManager.getValidToken();
+
+      if (!tokenResult.isValid || !tokenResult.token) {
+        toast.error("Please log in again");
+        return;
+      }
+
+      // Use correct field name: instagram_post_url (snake_case)
+      const postsPayload = {
+        instagram_post_url: newPostUrl.trim(),
+      };
+
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${tokenResult.token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(postsPayload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Failed to add post");
+      }
+
+      toast.success("Post added successfully! Analytics will be ready in 5-10 minutes.", {
+        duration: 5000,
+      });
+      setNewPostUrl("");
+      setIsAddPostDialogOpen(false);
+
+      // Refresh campaign data to show new post
+      fetchCampaignData();
+    } catch (error) {
+      console.error("Error adding post:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to add post";
+      toast.error(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
     return (
-      <>
-        <span className="aed-currency">AED</span> {formattedAmount}
-      </>
+      <AuthGuard>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <SiteHeader />
+            <div className="container mx-auto py-8 px-4 space-y-6">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-10 w-10" />
+                <Skeleton className="h-8 w-64" />
+              </div>
+              <Skeleton className="h-[400px] w-full" />
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
+      </AuthGuard>
     );
   }
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toString()
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    })
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-primary/10 text-primary border-primary/20">Active</Badge>
-      case "pending":
-        return <Badge className="bg-secondary text-secondary-foreground">Pending</Badge>
-      case "completed":
-        return <Badge variant="secondary">Completed</Badge>
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
-  }
-
-  return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-            
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => router.back()}
-                >
-                  <ArrowLeft className="h-4 w-4" />
+  if (!campaign) {
+    return (
+      <AuthGuard>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <SiteHeader />
+            <div className="container mx-auto py-8 px-4">
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Campaign not found</p>
+                <Button className="mt-4" onClick={() => router.push("/campaigns")}>
+                  Back to Campaigns
                 </Button>
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-12 w-12 bg-black">
-                    <AvatarImage src={campaign?.brandLogo || fallbackCampaign.brandLogo} alt={campaign?.brandName || fallbackCampaign.brandName} />
-                    <AvatarFallback className="text-white">{(campaign?.brandName || fallbackCampaign.brandName).slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h1 className="text-3xl font-bold">{campaign?.name || fallbackCampaign.name}</h1>
-                    <p className="text-muted-foreground">{campaign?.brandName || fallbackCampaign.brandName} • {campaign?.description || fallbackCampaign.description}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Download className="h-4 w-4 mr-2" />
-                      Export as PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Download className="h-4 w-4 mr-2" />
-                      Export as CSV
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Manage
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Campaign
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Users className="h-4 w-4 mr-2" />
-                      Manage Creators
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Campaign
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
             </div>
+          </SidebarInset>
+        </SidebarProvider>
+      </AuthGuard>
+    );
+  }
 
-            {/* Campaign Info Bar */}
+  const topAgeGroup = getTopAgeGroup();
+  const topGender = getTopGender();
+  const topCountry = getTopCountry();
+
+  return (
+    <AuthGuard>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 66)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="container mx-auto py-8 px-4 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => router.push("/campaigns")}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={campaign.brand_logo_url || ""} />
+              <AvatarFallback>{campaign.brand_name.substring(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
+                <Button variant="ghost" size="icon" onClick={handleOpenEditDialog}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">{campaign.brand_name}</p>
+            </div>
+          </div>
+        </div>
+        <Badge>{campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}</Badge>
+        <Button
+          variant="outline"
+          onClick={() => setIsAddPostDialogOpen(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Posts
+        </Button>
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="stats" className="space-y-6">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="stats">Campaign Stats</TabsTrigger>
+          <TabsTrigger value="audience">Audience</TabsTrigger>
+          <TabsTrigger value="posts">Posts</TabsTrigger>
+        </TabsList>
+
+        {/* Campaign Stats Tab */}
+        <TabsContent value="stats" className="space-y-6">
+          {/* Primary Metrics */}
+          <div className="grid gap-4 md:grid-cols-5">
             <Card>
-              <CardContent className="py-3 px-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{formatDate(campaign.startDate)} - {formatDate(campaign.endDate)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{formatCurrency(campaign.budget)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{mockCreators.length} Creators</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(campaign.status)}
-                  </div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Creators</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.totalCreators || 0}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Posts</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.totalPosts || 0}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Followers</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatNumber(stats?.totalFollowers || 0)}
                 </div>
               </CardContent>
             </Card>
 
-            <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="content">Content</TabsTrigger>
-                <TabsTrigger value="performance">Performance</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="space-y-6">
-                {/* Key Metrics */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Total Reach</CardTitle>
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{formatNumber(mockAnalytics.totalReach)}</div>
-                      <p className="text-xs text-muted-foreground">
-                        +12.5% from last period
-                      </p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Engagement</CardTitle>
-                      <Heart className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{formatNumber(mockAnalytics.totalEngagement)}</div>
-                      <p className="text-xs text-muted-foreground">
-                        {mockAnalytics.engagementRate}% engagement rate
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Conversions</CardTitle>
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{formatNumber(mockAnalytics.conversions)}</div>
-                      <p className="text-xs text-muted-foreground">
-                        {mockAnalytics.ctr}% click-through rate
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">ROI</CardTitle>
-                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">+{mockAnalytics.roi}%</div>
-                      <p className="text-xs text-muted-foreground">
-                        Return on investment
-                      </p>
-                    </CardContent>
-                  </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Reach</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatNumber(stats?.totalReach || 0)}
                 </div>
+              </CardContent>
+            </Card>
 
-                {/* Charts Grid */}
-                <div className="grid gap-6 md:grid-cols-2">
-                  {/* Performance Over Time Chart */}
-                  <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800">
-                    <CardHeader>
-                      <CardTitle className="text-blue-900 dark:text-blue-100">Campaign Performance Over Time</CardTitle>
-                      <CardDescription className="text-blue-700 dark:text-blue-300">Daily reach and engagement trends with interactive hover</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={performanceData} margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
-                            <defs>
-                              <linearGradient id="reachGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1}/>
-                              </linearGradient>
-                              <linearGradient id="engagementGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.1}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.6} />
-                            <XAxis
-                              dataKey="date"
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                              axisLine={{ stroke: 'hsl(var(--border))' }}
-                            />
-                            <YAxis
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                              axisLine={{ stroke: 'hsl(var(--border))' }}
-                            />
-                            <ChartTooltip 
-                              content={<ChartTooltipContent />}
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--background))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                                boxShadow: 'var(--shadow-md)'
-                              }}
-                            />
-                            <Area
-                              type="monotone"
-                              dataKey="reach"
-                              stroke="hsl(var(--chart-1))"
-                              strokeWidth={3}
-                              fill="url(#reachGradient)"
-                              dot={{ fill: "hsl(var(--chart-1))", strokeWidth: 2, r: 4 }}
-                              activeDot={{ r: 6, stroke: "hsl(var(--chart-1))", strokeWidth: 2, fill: "hsl(var(--background))" }}
-                            />
-                            <Area
-                              type="monotone"
-                              dataKey="engagement"
-                              stroke="hsl(var(--chart-2))"
-                              strokeWidth={3}
-                              fill="url(#engagementGradient)"
-                              dot={{ fill: "hsl(var(--chart-2))", strokeWidth: 2, r: 4 }}
-                              activeDot={{ r: 6, stroke: "hsl(var(--chart-2))", strokeWidth: 2, fill: "hsl(var(--background))" }}
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    </CardContent>
-                  </Card>
-
-                  {/* Content Distribution Interactive Pie Chart */}
-                  <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-purple-200 dark:border-purple-800">
-                    <CardHeader>
-                      <CardTitle className="text-purple-900 dark:text-purple-100">Content Distribution</CardTitle>
-                      <CardDescription className="text-purple-700 dark:text-purple-300">Interactive breakdown with hover details</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <div className="flex flex-col items-center space-y-4">
-                        {/* Chart Container */}
-                        <div className="relative w-48 h-48">
-                          <ChartContainer config={chartConfig} className="w-full h-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <defs>
-                                  <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                                    <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.1"/>
-                                  </filter>
-                                </defs>
-                                <Pie
-                                  data={contentTypeData}
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={50}
-                                  outerRadius={90}
-                                  paddingAngle={2}
-                                  dataKey="count"
-                                  stroke="hsl(var(--background))"
-                                  strokeWidth={3}
-                                  filter="url(#shadow)"
-                                >
-                                  {contentTypeData.map((entry, index) => (
-                                    <Cell 
-                                      key={`cell-${index}`} 
-                                      fill={entry.fill}
-                                      style={{
-                                        filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))',
-                                        transition: 'all 0.2s ease-in-out'
-                                      }}
-                                    />
-                                  ))}
-                                </Pie>
-                                <ChartTooltip 
-                                  content={<ChartTooltipContent />}
-                                  contentStyle={{
-                                    backgroundColor: 'hsl(var(--background))',
-                                    border: '1px solid hsl(var(--border))',
-                                    borderRadius: '8px',
-                                    boxShadow: 'var(--shadow-lg)'
-                                  }}
-                                />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          </ChartContainer>
-                          
-                          {/* Center Label */}
-                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                              {totalContent}
-                            </div>
-                            <div className="text-sm text-purple-700 dark:text-purple-300">
-                              Total
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Professional Legend */}
-                        <div className="grid grid-cols-3 gap-4 w-full max-w-sm">
-                          {contentTypeData.map((item, index) => (
-                            <div key={index} className="text-center">
-                              <div className="flex items-center justify-center mb-1">
-                                <div 
-                                  className="w-4 h-4 rounded-full border-2 border-white" 
-                                  style={{ backgroundColor: item.fill }}
-                                />
-                              </div>
-                              <div className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                                {item.count}
-                              </div>
-                              <div className="text-xs text-purple-700 dark:text-purple-300">
-                                {item.type}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Views</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatNumber(stats?.totalViews || 0)}
                 </div>
+              </CardContent>
+            </Card>
+          </div>
 
-                <div className="grid gap-6 md:grid-cols-2">
-                  {/* Engagement Breakdown Bar Chart */}
-                  <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 border-emerald-200 dark:border-emerald-800">
-                    <CardHeader>
-                      <CardTitle className="text-emerald-900 dark:text-emerald-100">Engagement Breakdown</CardTitle>
-                      <CardDescription className="text-emerald-700 dark:text-emerald-300">Likes, Comments & Shares with interactive bars</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={engagementData} margin={{ top: 20, right: 30, left: 30, bottom: 20 }}>
-                            <defs>
-                              <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="hsl(var(--chart-4))" stopOpacity={0.6}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.6} />
-                            <XAxis
-                              dataKey="metric"
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                              axisLine={{ stroke: 'hsl(var(--border))' }}
-                            />
-                            <YAxis
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                              axisLine={{ stroke: 'hsl(var(--border))' }}
-                            />
-                            <ChartTooltip 
-                              content={<ChartTooltipContent />}
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--background))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                                boxShadow: 'var(--shadow-md)'
-                              }}
-                            />
-                            <Bar 
-                              dataKey="value" 
-                              fill="url(#barGradient)" 
-                              radius={[8, 8, 0, 0]}
-                              stroke="hsl(var(--chart-3))"
-                              strokeWidth={1}
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    </CardContent>
-                  </Card>
-
-                  {/* Creator Performance Bar Chart */}
-                  <Card className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950 border-orange-200 dark:border-orange-800">
-                    <CardHeader>
-                      <CardTitle className="text-orange-900 dark:text-orange-100">Creator Reach</CardTitle>
-                      <CardDescription className="text-orange-700 dark:text-orange-300">Reach by creator with interactive comparison</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={creatorPerformanceData} layout="horizontal" margin={{ top: 20, right: 30, left: 50, bottom: 20 }}>
-                            <defs>
-                              <linearGradient id="creatorGradient" x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="5%" stopColor="hsl(var(--chart-4))" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="hsl(var(--chart-5))" stopOpacity={0.6}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.6} />
-                            <XAxis
-                              type="number"
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                              axisLine={{ stroke: 'hsl(var(--border))' }}
-                            />
-                            <YAxis
-                              dataKey="name"
-                              type="category"
-                              width={60}
-                              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                              axisLine={{ stroke: 'hsl(var(--border))' }}
-                            />
-                            <ChartTooltip 
-                              content={<ChartTooltipContent />}
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--background))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                                boxShadow: 'var(--shadow-md)'
-                              }}
-                            />
-                            <Bar 
-                              dataKey="reach" 
-                              fill="url(#creatorGradient)" 
-                              radius={[0, 8, 8, 0]}
-                              stroke="hsl(var(--chart-4))"
-                              strokeWidth={1}
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    </CardContent>
-                  </Card>
+          {/* Engagement Metrics */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Overall Engagement Rate</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {((stats?.overallEngagementRate ?? 0) * 100).toFixed(1)}%
                 </div>
+              </CardContent>
+            </Card>
 
-                {/* Top Performing Creators */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Top Performing Creators</CardTitle>
-                    <CardDescription>Based on engagement rate and total reach</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {mockCreators.slice(0, 3).map((creator, index) => (
-                      <div key={creator.id} className="flex items-center gap-4">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-sm font-semibold">
-                          {index + 1}
-                        </div>
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={creator.avatar} alt={creator.name} />
-                          <AvatarFallback>{creator.name.slice(0, 2)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="font-medium">{creator.name}</p>
-                          <p className="text-sm text-muted-foreground">@{creator.username}</p>
-                        </div>
-                        <div className="text-right space-y-1">
-                          <div className="flex items-center gap-4">
-                            <div className="text-center">
-                              <p className="text-sm font-semibold">{formatNumber(creator.reach)}</p>
-                              <p className="text-xs text-muted-foreground">Reach</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-sm font-semibold">{creator.engagement}%</p>
-                              <p className="text-xs text-muted-foreground">Engagement</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-sm font-semibold">{creator.posts + creator.stories + creator.reels}</p>
-                              <p className="text-xs text-muted-foreground">Content</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </TabsContent>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Comments</CardTitle>
+                <MessageCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatNumber(stats?.totalComments || 0)}
+                </div>
+              </CardContent>
+            </Card>
 
-              <TabsContent value="content" className="space-y-6">
-                {/* Content Header */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold">Campaign Content</h2>
-                    <p className="text-muted-foreground">All content posted by creators for this campaign</p>
-                  </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Likes</CardTitle>
+                <Heart className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatNumber(stats?.totalLikes || 0)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Post Type Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Post Type Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-2">
-                    <Select defaultValue="all">
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Content</SelectItem>
-                        <SelectItem value="post">Posts</SelectItem>
-                        <SelectItem value="story">Stories</SelectItem>
-                        <SelectItem value="reel">Reels</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Image className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Static Posts</span>
                   </div>
+                  <span className="text-2xl font-bold">
+                    {stats?.postTypeBreakdown.static || 0}
+                  </span>
                 </div>
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Video className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Reels</span>
+                  </div>
+                  <span className="text-2xl font-bold">
+                    {stats?.postTypeBreakdown.reels || 0}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Share2 className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Stories</span>
+                  </div>
+                  <span className="text-2xl font-bold">
+                    {stats?.postTypeBreakdown.story || 0}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                {/* Content Grid */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {contentPosts.map((post) => (
-                    <Card key={post.id} className="relative overflow-hidden">
-                      <CardHeader className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 border-b">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={post.creator.avatar} alt={post.creator.name} />
-                              <AvatarFallback>{post.creator.name.slice(0, 2)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <CardTitle className="text-base">{post.creator.name}</CardTitle>
-                              <p className="text-sm text-muted-foreground">@{post.creator.username}</p>
-                            </div>
+        {/* Audience Tab */}
+        <TabsContent value="audience" className="space-y-6">
+          {/* Top Demographics */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Top Gender</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {topGender.isLoading ? (
+                  <div className="text-sm text-muted-foreground animate-pulse">Analyzing demographics...</div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{topGender.gender}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {(topGender.percentage ?? 0).toFixed(1)}% of audience
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Top Age Group</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {topAgeGroup.isLoading ? (
+                  <div className="text-sm text-muted-foreground animate-pulse">Analyzing demographics...</div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{topAgeGroup.range}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {(topAgeGroup.percentage ?? 0).toFixed(1)}% of audience
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Top City</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!audience?.topCity ? (
+                  <div className="text-sm text-muted-foreground animate-pulse">Analyzing demographics...</div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{audience.topCity.name}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {(audience.topCity.percentage ?? 0).toFixed(1)}% of audience
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Top Country</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {topCountry.isLoading ? (
+                  <div className="text-sm text-muted-foreground animate-pulse">Analyzing...</div>
+                ) : (
+                  <div className="text-xl font-bold">{topCountry.name}</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Gender Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Gender Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Male</span>
+                  <span className="text-2xl font-bold">
+                    {(audience?.gender_distribution?.MALE ?? 0).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-secondary rounded-full h-3">
+                  <div
+                    className="bg-primary h-3 rounded-full"
+                    style={{ width: `${audience?.gender_distribution?.MALE || 0}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Female</span>
+                  <span className="text-2xl font-bold">
+                    {(audience?.gender_distribution?.FEMALE ?? 0).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-secondary rounded-full h-3">
+                  <div
+                    className="bg-primary h-3 rounded-full"
+                    style={{ width: `${audience?.gender_distribution?.FEMALE || 0}%` }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Age Group Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Age Group Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {audience &&
+                  Object.entries(audience.age_distribution).map(([range, percentage]) => (
+                    <div key={range} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{range}</span>
+                        <span className="font-bold">{(percentage ?? 0).toFixed(1)}%</span>
+                      </div>
+                      <div className="w-full bg-secondary rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Posts Tab */}
+        <TabsContent value="posts">
+          <Card>
+            <CardHeader>
+              <CardTitle>Campaign Posts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {posts.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  No posts added to this campaign yet.
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {posts.map((post) => (
+                    <Card key={post.id} className="overflow-hidden">
+                      <div className="aspect-square relative bg-muted">
+                        <img
+                          src={post.thumbnail || post.display_url || "/placeholder.jpg"}
+                          alt="Post thumbnail"
+                          className="object-cover w-full h-full"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/placeholder.jpg";
+                          }}
+                        />
+                        <Badge className="absolute top-2 right-2" variant="secondary">
+                          <div className="flex items-center gap-1">
+                            {getPostTypeIcon(post.type)}
+                            <span className="text-xs capitalize">{post.type}</span>
                           </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {post.type}
-                            </Badge>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6">
-                                  <BarChart3 className="h-3 w-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => router.push(`/campaigns/${campaign.id}/content/${post.id}`)}>
-                                  <BarChart3 className="h-4 w-4 mr-2" />
-                                  View Insights
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <ExternalLink className="h-4 w-4 mr-2" />
-                                  View on Instagram
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                        </Badge>
+                      </div>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="flex items-center gap-1">
+                            <Eye className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-medium">{formatNumber(post.views)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Heart className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-medium">{formatNumber(post.likes)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MessageCircle className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-medium">{formatNumber(post.comments)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <TrendingUp className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-medium">{((post.engagementRate ?? 0) * 100).toFixed(1)}%</span>
                           </div>
                         </div>
-                      </CardHeader>
-                      
-                      <CardContent className="space-y-4">
-                        {/* Post Details */}
-                        <div className="space-y-2">
-                          <p className="text-sm">{post.caption}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Posted on {formatDate(post.postedDate)}
-                          </p>
-                        </div>
-
-                        {/* Performance Stats */}
-                        <div className="grid grid-cols-3 gap-3 text-center">
-                          <div>
-                            <div className="text-sm font-semibold">{formatNumber(post.reach)}</div>
-                            <div className="text-xs text-muted-foreground">Reach</div>
-                          </div>
-                          <div>
-                            <div className="text-sm font-semibold">{formatNumber(post.impressions)}</div>
-                            <div className="text-xs text-muted-foreground">Impressions</div>
-                          </div>
-                          <div>
-                            <div className="text-sm font-semibold">{post.engagement}%</div>
-                            <div className="text-xs text-muted-foreground">Engagement</div>
-                          </div>
-                        </div>
-
-                        {/* Engagement Breakdown */}
-                        {post.type !== "story" && (
-                          <div className="grid grid-cols-3 gap-2 text-center">
-                            <div>
-                              <div className="text-xs font-medium">{formatNumber(post.likes)}</div>
-                              <div className="text-xs text-muted-foreground">Likes</div>
-                            </div>
-                            <div>
-                              <div className="text-xs font-medium">{formatNumber(post.comments)}</div>
-                              <div className="text-xs text-muted-foreground">Comments</div>
-                            </div>
-                            <div>
-                              <div className="text-xs font-medium">{formatNumber(post.shares)}</div>
-                              <div className="text-xs text-muted-foreground">Shares</div>
-                            </div>
-                          </div>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => window.open(post.url, "_blank")}
+                        >
+                          View Post
+                        </Button>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
-              </TabsContent>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
+      {/* Edit Campaign Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Campaign</DialogTitle>
+            <DialogDescription>
+              Update campaign details, brand name, status, and logo
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Campaign Name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-campaign-name">Campaign Name</Label>
+              <Input
+                id="edit-campaign-name"
+                value={editCampaignName}
+                onChange={(e) => setEditCampaignName(e.target.value)}
+              />
+            </div>
 
-              <TabsContent value="performance" className="space-y-6">
-                <div className="text-center py-12">
-                  <h3 className="text-lg font-semibold mb-2">Performance Analytics</h3>
-                  <p className="text-muted-foreground">Advanced performance metrics and charts will be displayed here</p>
+            {/* Brand Name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-brand-name">Brand Name</Label>
+              <Input
+                id="edit-brand-name"
+                value={editBrandName}
+                onChange={(e) => setEditBrandName(e.target.value)}
+              />
+            </div>
+
+            {/* Campaign Status */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">Campaign Status</Label>
+              <Select value={editStatus} onValueChange={(value: "draft" | "active" | "completed") => setEditStatus(value)}>
+                <SelectTrigger id="edit-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Logo Management */}
+            <div className="space-y-2">
+              <Label>Brand Logo</Label>
+              <div className="flex items-center gap-4">
+                {logoPreview && (
+                  <div className="h-20 w-20 rounded-lg border overflow-hidden relative group">
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogoPreview("");
+                        setNewLogo(null);
+                      }}
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    >
+                      <X className="h-5 w-5 text-white" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex-1 space-y-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="cursor-pointer"
+                  />
+                  {campaign?.brand_logo_url && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteLogo}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Logo
+                    </Button>
+                  )}
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                PNG, JPEG, or WEBP (max 5MB)
+              </p>
+            </div>
           </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  )
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveChanges} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Post Dialog */}
+      <Dialog open={isAddPostDialogOpen} onOpenChange={setIsAddPostDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Post to Campaign</DialogTitle>
+            <DialogDescription>
+              Enter the Instagram post URL you want to add to this campaign
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="post-url">Instagram Post URL</Label>
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="post-url"
+                    placeholder="https://instagram.com/p/..."
+                    value={newPostUrl}
+                    onChange={(e) => setNewPostUrl(e.target.value)}
+                    className="pl-9"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddPost();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Example: https://instagram.com/p/CXXXxxxxxx/
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddPostDialogOpen(false);
+                setNewPostUrl("");
+              }}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleAddPost} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding Post...
+                </>
+              ) : (
+                "Add Post"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </AuthGuard>
+  );
 }

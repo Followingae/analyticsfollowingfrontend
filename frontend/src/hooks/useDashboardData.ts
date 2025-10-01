@@ -213,14 +213,22 @@ export const useDashboardData = () => {
           throw new Error(`Failed to fetch campaigns: ${response.statusText}`)
         }
         
-        const data = await response.json()
-        let campaigns = data.campaigns || data.data || data || []
+        const result = await response.json()
 
-        const activeCount = Array.isArray(campaigns)
-          ? campaigns.filter((campaign: any) => campaign.status === 'active').length
-          : 0
+        // Handle new backend response structure: { success, data: { campaigns, summary, pagination }, message }
+        let campaigns = []
+        if (result.data && Array.isArray(result.data.campaigns)) {
+          campaigns = result.data.campaigns
+        } else if (Array.isArray(result.campaigns)) {
+          campaigns = result.campaigns
+        } else if (Array.isArray(result.data)) {
+          campaigns = result.data
+        } else if (Array.isArray(result)) {
+          campaigns = result
+        }
 
-        
+        const activeCount = campaigns.filter((campaign: any) => campaign.status === 'active').length
+
         return {
           activeCount,
           campaigns: campaigns
