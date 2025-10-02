@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Users, FileText, Eye, TrendingUp, Heart, MessageCircle, Image, Video, Share2, Plus, Pencil, Upload, Trash2, X, Link as LinkIcon, Loader2 } from "lucide-react";
+import { ArrowLeft, Users, FileText, Eye, TrendingUp, Heart, MessageCircle, Image, Video, Share2, Plus, Pencil, Upload, Trash2, X, Link as LinkIcon, Loader2, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +74,10 @@ interface BackendCampaignDetails {
   status: "active" | "completed" | "draft";
   created_at: string;
   updated_at: string;
+  posts_count?: number;
+  creators_count?: number;
+  total_reach?: number;
+  engagement_rate?: number;
 }
 
 interface BackendAudience {
@@ -147,6 +157,101 @@ interface CampaignStats {
   };
 }
 
+interface AIInsights {
+  total_posts: number;
+  ai_analyzed_posts: number;
+  sentiment_analysis: {
+    available: boolean;
+    distribution?: {
+      positive: number;
+      neutral: number;
+      negative: number;
+    };
+    average_score?: number;
+    dominant_sentiment?: string;
+  };
+  language_detection: {
+    available: boolean;
+    total_languages?: number;
+    primary_language?: string;
+    top_languages?: Array<{ language: string; percentage: number }>;
+  };
+  category_classification: {
+    available: boolean;
+    total_categories?: number;
+    primary_category?: string;
+    average_confidence?: number;
+    top_categories?: Array<{ category: string; percentage: number }>;
+  };
+  audience_quality: {
+    available: boolean;
+    average_authenticity?: number;
+    average_bot_score?: number;
+    quality_rating?: "high" | "medium" | "low";
+  };
+  visual_content: {
+    available: boolean;
+    aesthetic_score?: number;
+    professional_quality_score?: number;
+    image_quality_metrics?: {
+      average_quality: number;
+    };
+  };
+  audience_insights: {
+    available: boolean;
+    geographic_analysis?: {
+      country_distribution: Record<string, number>;
+      location_distribution: Record<string, number>;
+      geographic_reach: string;
+      geographic_diversity_score: number;
+      international_reach: boolean;
+    };
+    demographic_insights?: {
+      estimated_age_groups: Record<string, number>;
+      estimated_gender_split: Record<string, number>;
+      audience_sophistication: string;
+    };
+    audience_interests?: {
+      interest_distribution: Record<string, number>;
+      brand_affinities: Record<string, number>;
+    };
+    cultural_analysis?: {
+      social_context: string;
+      language_indicators: Record<string, number>;
+    };
+  };
+  trend_detection: {
+    available: boolean;
+    average_viral_potential?: number;
+    viral_rating?: "high" | "medium" | "low";
+    trending_posts?: number;
+  };
+  advanced_nlp: {
+    available: boolean;
+    average_word_count?: number;
+    average_readability?: number;
+    average_hashtags?: number;
+    total_brand_mentions?: number;
+    content_depth?: "detailed" | "moderate" | "brief";
+  };
+  fraud_detection: {
+    available: boolean;
+    average_fraud_score?: number;
+    risk_distribution?: {
+      low: number;
+      medium: number;
+      high: number;
+    };
+    overall_trust_level?: "high" | "medium" | "low";
+  };
+  behavioral_patterns: {
+    available: boolean;
+    average_engagement_consistency?: number;
+    average_posting_frequency?: number;
+    consistency_rating?: "high" | "medium" | "low";
+  };
+}
+
 export default function CampaignDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -157,6 +262,7 @@ export default function CampaignDetailsPage() {
   const [creators, setCreators] = useState<BackendCreator[]>([]);
   const [audience, setAudience] = useState<BackendAudience | null>(null);
   const [stats, setStats] = useState<CampaignStats | null>(null);
+  const [aiInsights, setAiInsights] = useState<AIInsights | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Edit campaign state
@@ -176,24 +282,70 @@ export default function CampaignDetailsPage() {
     fetchCampaignData();
   }, [campaignId]);
 
+  // Polling for AI insights when posts are being analyzed
+  useEffect(() => {
+    if (!aiInsights || aiInsights.ai_analyzed_posts === 0) return;
+
+    const hasIncompleteAnalysis =
+      aiInsights.ai_analyzed_posts < aiInsights.total_posts ||
+      !aiInsights.sentiment_analysis.available ||
+      !aiInsights.category_classification.available;
+
+    if (hasIncompleteAnalysis) {
+      const pollInterval = setInterval(() => {
+        fetchCampaignData();
+      }, 10000); // Poll every 10 seconds
+
+      // Stop polling after 3 minutes
+      const timeout = setTimeout(() => {
+        clearInterval(pollInterval);
+      }, 180000);
+
+      return () => {
+        clearInterval(pollInterval);
+        clearTimeout(timeout);
+      };
+    }
+  }, [aiInsights]);
+
   const fetchCampaignData = async () => {
     try {
       setIsLoading(true);
       const { API_CONFIG } = await import("@/config/api");
       const { fetchWithAuth } = await import("@/utils/apiInterceptor");
 
-      // Fetch campaign details, posts, creators, and audience in parallel
-      const [campaignRes, postsRes, creatorsRes, audienceRes] = await Promise.all([
+      // Fetch campaign details, posts, creators, audience, and AI insights in parallel
+      const [campaignRes, postsRes, creatorsRes, audienceRes, aiInsightsRes] = await Promise.all([
         fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}`),
         fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts`),
         fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/creators`),
         fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/audience`),
+        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/ai-insights`),
       ]);
 
       const campaignData = await campaignRes.json();
       const postsData = await postsRes.json();
       const creatorsData = await creatorsRes.json();
       const audienceData = await audienceRes.json();
+
+      console.log("📊 Campaign data received:", campaignData.data);
+      console.log("  - creators_count:", campaignData.data?.creators_count);
+      console.log("  - posts_count:", campaignData.data?.posts_count);
+      console.log("  - total_reach:", campaignData.data?.total_reach);
+      console.log("  - engagement_rate:", campaignData.data?.engagement_rate);
+
+      // Fetch AI insights with error handling
+      let aiInsightsData = null;
+      try {
+        if (aiInsightsRes.ok) {
+          aiInsightsData = await aiInsightsRes.json();
+          console.log("AI Insights loaded:", aiInsightsData);
+        } else {
+          console.warn("AI Insights endpoint returned error:", aiInsightsRes.status);
+        }
+      } catch (err) {
+        console.warn("AI Insights not available yet:", err);
+      }
 
       // Check if demographics are missing
       const hasCreators = creatorsData.data.creators?.length > 0;
@@ -207,6 +359,14 @@ export default function CampaignDetailsPage() {
       setPosts(postsData.data.posts || []);
       setCreators(creatorsData.data.creators || []);
       setAudience(audienceData.data);
+
+      // Set AI insights if available
+      if (aiInsightsData?.data) {
+        setAiInsights(aiInsightsData.data);
+        console.log("AI Insights state updated");
+      } else {
+        console.log("No AI insights data available");
+      }
 
       // Calculate stats from fetched data
       const postTypes = postsData.data.posts.reduce(
@@ -238,6 +398,14 @@ export default function CampaignDetailsPage() {
         (sum: number, creator: BackendCreator) => sum + creator.followers_count,
         0
       );
+
+      console.log("📊 Stats calculation:", {
+        totalCreators: audienceData.data.total_creators,
+        totalReach: audienceData.data.total_reach,
+        totalFollowers,
+        campaignCreatorsCount: campaignData.data?.creators_count,
+        campaignTotalReach: campaignData.data?.total_reach,
+      });
 
       setStats({
         totalCreators: audienceData.data.total_creators,
@@ -623,6 +791,26 @@ export default function CampaignDetailsPage() {
           <TabsTrigger value="posts">Posts</TabsTrigger>
         </TabsList>
 
+        {/* AI Analysis Progress Indicator */}
+        {aiInsights && aiInsights.ai_analyzed_posts < aiInsights.total_posts && (
+          <Card className="border-primary/50 bg-primary/5">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <div className="flex-1">
+                  <div className="font-medium">AI Analysis in Progress</div>
+                  <div className="text-sm text-muted-foreground">
+                    Analyzing {aiInsights.total_posts} posts... {aiInsights.ai_analyzed_posts}/{aiInsights.total_posts} complete
+                  </div>
+                </div>
+                <Badge variant="secondary">
+                  {Math.round((aiInsights.ai_analyzed_posts / aiInsights.total_posts) * 100)}%
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Campaign Stats Tab */}
         <TabsContent value="stats" className="space-y-6">
           {/* Primary Metrics */}
@@ -633,7 +821,7 @@ export default function CampaignDetailsPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats?.totalCreators || 0}</div>
+                <div className="text-2xl font-bold">{campaign?.creators_count || stats?.totalCreators || 0}</div>
               </CardContent>
             </Card>
 
@@ -643,7 +831,7 @@ export default function CampaignDetailsPage() {
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats?.totalPosts || 0}</div>
+                <div className="text-2xl font-bold">{campaign?.posts_count || stats?.totalPosts || 0}</div>
               </CardContent>
             </Card>
 
@@ -654,20 +842,9 @@ export default function CampaignDetailsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatNumber(stats?.totalFollowers || 0)}
+                  {formatNumber(campaign?.total_reach || stats?.totalReach || 0)}
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Reach</CardTitle>
-                <Eye className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatNumber(stats?.totalReach || 0)}
-                </div>
+                <p className="text-xs text-muted-foreground mt-1">Combined reach</p>
               </CardContent>
             </Card>
 
@@ -682,22 +859,27 @@ export default function CampaignDetailsPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Engagement Metrics */}
-          <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Overall Engagement Rate</CardTitle>
+                <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {((stats?.overallEngagementRate ?? 0) * 100).toFixed(1)}%
+                  {campaign?.engagement_rate !== undefined
+                    ? `${campaign.engagement_rate.toFixed(2)}%`
+                    : stats?.overallEngagementRate
+                    ? `${(stats.overallEngagementRate * 100).toFixed(1)}%`
+                    : '0.0%'}
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">Campaign average</p>
               </CardContent>
             </Card>
+          </div>
 
+          {/* Engagement Metrics */}
+          <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Comments</CardTitle>
@@ -760,10 +942,221 @@ export default function CampaignDetailsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* AI Content Intelligence */}
+          {aiInsights && aiInsights.total_posts > 0 && (
+            <>
+              {/* Content Quality & Authenticity */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Content Quality & Authenticity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {!aiInsights.audience_quality?.available && !aiInsights.visual_content?.available && !aiInsights.fraud_detection?.available ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                      <div className="text-sm">AI analysis in progress...</div>
+                      <p className="text-xs mt-2">Quality metrics will appear shortly</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-3">
+                      {aiInsights.audience_quality?.available && (
+                        <div className="p-4 border rounded-lg space-y-2">
+                          <div className="text-sm font-medium text-muted-foreground">Authenticity Score</div>
+                          <div className="text-2xl font-bold">
+                            {aiInsights.audience_quality.average_authenticity?.toFixed(1)}%
+                          </div>
+                          <Badge variant={
+                            aiInsights.audience_quality.quality_rating === "high" ? "default" :
+                            aiInsights.audience_quality.quality_rating === "medium" ? "secondary" : "outline"
+                          }>
+                            {aiInsights.audience_quality.quality_rating?.toUpperCase()}
+                          </Badge>
+                        </div>
+                      )}
+                      {aiInsights.visual_content?.available && (
+                        <div className="p-4 border rounded-lg space-y-2">
+                          <div className="text-sm font-medium text-muted-foreground">Visual Quality</div>
+                          <div className="text-2xl font-bold">
+                            {aiInsights.visual_content.aesthetic_score?.toFixed(1)}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Professional: {aiInsights.visual_content.professional_quality_score?.toFixed(1)}
+                          </div>
+                        </div>
+                      )}
+                      {aiInsights.fraud_detection?.available && (
+                        <div className="p-4 border rounded-lg space-y-2">
+                          <div className="text-sm font-medium text-muted-foreground">Trust Level</div>
+                          <div className="text-2xl font-bold">
+                            {(100 - (aiInsights.fraud_detection.average_fraud_score || 0)).toFixed(0)}%
+                          </div>
+                          <Badge variant={
+                            aiInsights.fraud_detection.overall_trust_level === "high" ? "default" :
+                            aiInsights.fraud_detection.overall_trust_level === "medium" ? "secondary" : "outline"
+                          }>
+                            {aiInsights.fraud_detection.overall_trust_level?.toUpperCase()}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Sentiment & Category Analysis */}
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Sentiment Distribution */}
+                {aiInsights.sentiment_analysis?.available && aiInsights.sentiment_analysis?.distribution && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Sentiment Analysis</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Positive</span>
+                          <span className="text-sm font-bold">
+                            {aiInsights.sentiment_analysis.distribution.positive.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-secondary rounded-full h-2">
+                          <div
+                            className="bg-green-500 h-2 rounded-full"
+                            style={{ width: `${aiInsights.sentiment_analysis.distribution.positive}%` }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Neutral</span>
+                          <span className="text-sm font-bold">
+                            {aiInsights.sentiment_analysis.distribution.neutral.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-secondary rounded-full h-2">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full"
+                            style={{ width: `${aiInsights.sentiment_analysis.distribution.neutral}%` }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Negative</span>
+                          <span className="text-sm font-bold">
+                            {aiInsights.sentiment_analysis.distribution.negative.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-secondary rounded-full h-2">
+                          <div
+                            className="bg-red-500 h-2 rounded-full"
+                            style={{ width: `${aiInsights.sentiment_analysis.distribution.negative}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <div className="text-sm text-muted-foreground">Dominant Sentiment</div>
+                        <div className="text-lg font-bold capitalize">
+                          {aiInsights.sentiment_analysis.dominant_sentiment}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Category Classification */}
+                {aiInsights.category_classification?.available && aiInsights.category_classification?.top_categories && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Content Categories</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {aiInsights.category_classification.top_categories.slice(0, 5).map((cat) => (
+                        <div key={cat.category} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium capitalize">{cat.category}</span>
+                            <span className="text-sm font-bold">{cat.percentage.toFixed(1)}%</span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className="bg-primary h-2 rounded-full"
+                              style={{ width: `${cat.percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Viral Potential & Content Depth */}
+              <div className="grid gap-4 md:grid-cols-3">
+                {aiInsights.trend_detection?.available && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Viral Potential</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {aiInsights.trend_detection.average_viral_potential?.toFixed(1)}/100
+                      </div>
+                      <Badge className="mt-2" variant={
+                        aiInsights.trend_detection.viral_rating === "high" ? "default" :
+                        aiInsights.trend_detection.viral_rating === "medium" ? "secondary" : "outline"
+                      }>
+                        {aiInsights.trend_detection.viral_rating?.toUpperCase()}
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {aiInsights.advanced_nlp?.available && (
+                  <>
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium">Content Depth</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {aiInsights.advanced_nlp.average_word_count?.toFixed(0)} words
+                        </div>
+                        <Badge className="mt-2" variant="secondary">
+                          {aiInsights.advanced_nlp.content_depth?.toUpperCase()}
+                        </Badge>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium">Brand Mentions</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {aiInsights.advanced_nlp.total_brand_mentions || 0}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Avg. {aiInsights.advanced_nlp.average_hashtags?.toFixed(0)} hashtags
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* Audience Tab */}
         <TabsContent value="audience" className="space-y-6">
+          {posts.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">No audience data available yet.</p>
+                <p className="text-sm text-muted-foreground mt-2">Add posts to your campaign to see audience insights.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
           {/* Top Demographics */}
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
@@ -834,66 +1227,162 @@ export default function CampaignDetailsPage() {
             </Card>
           </div>
 
-          {/* Gender Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Gender Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Male</span>
-                  <span className="text-2xl font-bold">
-                    {(audience?.gender_distribution?.MALE ?? 0).toFixed(1)}%
-                  </span>
-                </div>
-                <div className="w-full bg-secondary rounded-full h-3">
-                  <div
-                    className="bg-primary h-3 rounded-full"
-                    style={{ width: `${audience?.gender_distribution?.MALE || 0}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Female</span>
-                  <span className="text-2xl font-bold">
-                    {(audience?.gender_distribution?.FEMALE ?? 0).toFixed(1)}%
-                  </span>
-                </div>
-                <div className="w-full bg-secondary rounded-full h-3">
-                  <div
-                    className="bg-primary h-3 rounded-full"
-                    style={{ width: `${audience?.gender_distribution?.FEMALE || 0}%` }}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Age Group Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Age Group Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {audience &&
-                  Object.entries(audience.age_distribution).map(([range, percentage]) => (
-                    <div key={range} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{range}</span>
-                        <span className="font-bold">{(percentage ?? 0).toFixed(1)}%</span>
+          {/* AI Audience Insights */}
+          {aiInsights && aiInsights.total_posts > 0 && aiInsights.audience_insights?.available && (
+            <>
+              {/* Geographic Distribution */}
+              {aiInsights.audience_insights.geographic_analysis && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Geographic Analysis</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="text-sm text-muted-foreground mb-2">Top Countries</div>
+                        <div className="space-y-2">
+                          {Object.entries(aiInsights.audience_insights.geographic_analysis.country_distribution)
+                            .sort(([, a], [, b]) => b - a)
+                            .slice(0, 5)
+                            .map(([country, count]) => (
+                              <div key={country} className="flex items-center justify-between">
+                                <span className="text-sm font-medium">{country}</span>
+                                <Badge variant="secondary">{count} posts</Badge>
+                              </div>
+                            ))}
+                        </div>
                       </div>
-                      <div className="w-full bg-secondary rounded-full h-2">
-                        <div
-                          className="bg-primary h-2 rounded-full transition-all"
-                          style={{ width: `${percentage}%` }}
-                        />
+                      <div className="pt-3 border-t grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs text-muted-foreground">Geographic Reach</div>
+                          <div className="text-sm font-bold capitalize">
+                            {aiInsights.audience_insights.geographic_analysis.geographic_reach}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground">Diversity Score</div>
+                          <div className="text-sm font-bold">
+                            {(aiInsights.audience_insights.geographic_analysis.geographic_diversity_score * 100).toFixed(0)}%
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Demographic Insights */}
+              {aiInsights.audience_insights.demographic_insights && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Demographic Insights</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-2">Age Distribution</div>
+                      <div className="space-y-2">
+                        {Object.entries(aiInsights.audience_insights.demographic_insights.estimated_age_groups)
+                          .sort(([, a], [, b]) => b - a)
+                          .map(([age, percentage]) => (
+                            <div key={age} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-medium">{age}</span>
+                                <span className="font-bold">{(percentage * 100).toFixed(1)}%</span>
+                              </div>
+                              <div className="w-full bg-secondary rounded-full h-2">
+                                <div
+                                  className="bg-primary h-2 rounded-full"
+                                  style={{ width: `${percentage * 100}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                    <div className="pt-3 border-t">
+                      <div className="text-sm text-muted-foreground mb-2">Gender Split</div>
+                      <div className="space-y-2">
+                        {Object.entries(aiInsights.audience_insights.demographic_insights.estimated_gender_split)
+                          .sort(([, a], [, b]) => b - a)
+                          .map(([gender, percentage]) => (
+                            <div key={gender} className="flex items-center justify-between">
+                              <span className="text-sm font-medium capitalize">{gender}</span>
+                              <span className="text-sm font-bold">{(percentage * 100).toFixed(1)}%</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Audience Interests */}
+              {aiInsights.audience_insights.audience_interests && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Audience Interests</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-2">Interest Distribution</div>
+                      <div className="space-y-2">
+                        {Object.entries(aiInsights.audience_insights.audience_interests.interest_distribution)
+                          .sort(([, a], [, b]) => b - a)
+                          .slice(0, 5)
+                          .map(([interest, percentage]) => (
+                            <div key={interest} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-medium capitalize">{interest}</span>
+                                <span className="font-bold">{(percentage * 100).toFixed(1)}%</span>
+                              </div>
+                              <div className="w-full bg-secondary rounded-full h-2">
+                                <div
+                                  className="bg-primary h-2 rounded-full"
+                                  style={{ width: `${percentage * 100}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Engagement Consistency */}
+              {aiInsights.behavioral_patterns?.available && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Engagement Consistency</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="text-sm text-muted-foreground mb-2">Consistency Score</div>
+                        <div className="text-2xl font-bold">
+                          {aiInsights.behavioral_patterns.average_engagement_consistency?.toFixed(1)}%
+                        </div>
+                        <Badge className="mt-2" variant={
+                          aiInsights.behavioral_patterns.consistency_rating === "high" ? "default" :
+                          aiInsights.behavioral_patterns.consistency_rating === "medium" ? "secondary" : "outline"
+                        }>
+                          {aiInsights.behavioral_patterns.consistency_rating?.toUpperCase()}
+                        </Badge>
+                      </div>
+                      <div className="pt-4 border-t">
+                        <div className="text-sm text-muted-foreground">Posting Frequency</div>
+                        <div className="text-lg font-bold">
+                          {aiInsights.behavioral_patterns.average_posting_frequency} posts/month
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+            </>
+          )}
         </TabsContent>
 
         {/* Posts Tab */}
@@ -908,7 +1397,7 @@ export default function CampaignDetailsPage() {
                   No posts added to this campaign yet.
                 </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
                   {posts.map((post) => (
                     <Card key={post.id} className="overflow-hidden">
                       <div className="aspect-square relative bg-muted">
@@ -921,30 +1410,16 @@ export default function CampaignDetailsPage() {
                             target.src = "/placeholder.jpg";
                           }}
                         />
-                        <Badge className="absolute top-2 right-2" variant="secondary">
+                        <Badge className="absolute top-2 left-2" variant="secondary">
                           <div className="flex items-center gap-1">
                             {getPostTypeIcon(post.type)}
                             <span className="text-xs capitalize">{post.type}</span>
                           </div>
                         </Badge>
                       </div>
-                      <CardContent className="p-4 space-y-3">
-                        {/* Caption */}
-                        {post.caption && (
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {post.caption}
-                          </p>
-                        )}
-
+                      <CardContent className="p-2 space-y-1.5">
                         {/* Metrics */}
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          {/* Only show views for reels, not static posts */}
-                          {post.type === "reel" && (
-                            <div className="flex items-center gap-1">
-                              <Eye className="h-3 w-3 text-muted-foreground" />
-                              <span className="font-medium">{formatNumber(post.views)}</span>
-                            </div>
-                          )}
+                        <div className="grid grid-cols-2 gap-1 text-xs">
                           <div className="flex items-center gap-1">
                             <Heart className="h-3 w-3 text-muted-foreground" />
                             <span className="font-medium">{formatNumber(post.likes)}</span>
@@ -953,20 +1428,68 @@ export default function CampaignDetailsPage() {
                             <MessageCircle className="h-3 w-3 text-muted-foreground" />
                             <span className="font-medium">{formatNumber(post.comments)}</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <TrendingUp className="h-3 w-3 text-muted-foreground" />
-                            <span className="font-medium">{((post.engagementRate ?? 0) * 100).toFixed(1)}%</span>
-                          </div>
                         </div>
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          onClick={() => window.open(post.url, "_blank")}
-                        >
-                          View Post
-                        </Button>
+                        <div className="flex gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-7 text-xs"
+                            onClick={() => window.open(post.url, "_blank")}
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            View
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-7 px-2">
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={async () => {
+                                  if (!confirm("Remove this post from the campaign?")) return;
+
+                                  try {
+                                    const { API_CONFIG } = await import("@/config/api");
+                                    const { tokenManager } = await import("@/utils/tokenManager");
+
+                                    const tokenResult = await tokenManager.getValidToken();
+                                    if (!tokenResult.isValid || !tokenResult.token) {
+                                      toast.error("Please log in again");
+                                      return;
+                                    }
+
+                                    const response = await fetch(
+                                      `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts/${post.id}`,
+                                      {
+                                        method: "DELETE",
+                                        headers: {
+                                          Authorization: `Bearer ${tokenResult.token}`,
+                                        },
+                                      }
+                                    );
+
+                                    if (!response.ok) {
+                                      throw new Error("Failed to remove post");
+                                    }
+
+                                    toast.success("Post removed from campaign");
+                                    fetchCampaignData();
+                                  } catch (error) {
+                                    console.error("Error removing post:", error);
+                                    toast.error("Failed to remove post");
+                                  }
+                                }}
+                                className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+                              >
+                                <Trash2 className="h-3 w-3 mr-2" />
+                                Remove
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}

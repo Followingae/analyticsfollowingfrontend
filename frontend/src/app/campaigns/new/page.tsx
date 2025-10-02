@@ -49,18 +49,18 @@ export default function NewCampaignPage() {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file size (5MB max)
-      const MAX_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+      // Validate file size (2MB max)
+      const MAX_SIZE = 2 * 1024 * 1024; // 2MB in bytes
       if (file.size > MAX_SIZE) {
-        toast.error(`File too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 5MB.`);
+        toast.error(`File too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 2MB.`);
         e.target.value = ""; // Reset file input
         return;
       }
 
       // Validate file type
-      const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+      const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml"];
       if (!validTypes.includes(file.type)) {
-        toast.error("Invalid file type. Please upload PNG, JPEG, or WEBP.");
+        toast.error("Invalid file type. Please upload PNG, JPEG, WEBP, or SVG.");
         e.target.value = ""; // Reset file input
         return;
       }
@@ -71,27 +71,63 @@ export default function NewCampaignPage() {
         setLogoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+      toast.success("Logo uploaded successfully");
     }
   };
 
   const handleAddPost = () => {
-    if (newPostUrl.trim()) {
-      const newPost: CampaignPost = {
-        url: newPostUrl.trim(),
-        id: `post-${Date.now()}`,
-      };
-      setPosts([...posts, newPost]);
-      setNewPostUrl("");
-      setIsAddPostDialogOpen(false);
+    const trimmedUrl = newPostUrl.trim();
+
+    // Validate URL is not empty
+    if (!trimmedUrl) {
+      toast.error("Please enter a post URL");
+      return;
     }
+
+    // Validate Instagram URL format
+    const instagramUrlPattern = /^https?:\/\/(www\.)?(instagram\.com|instagr\.am)\/(p|reel|tv)\/[\w-]+\/?/i;
+    if (!instagramUrlPattern.test(trimmedUrl)) {
+      toast.error("Invalid Instagram URL. Please use format: https://instagram.com/p/...");
+      return;
+    }
+
+    // Check for duplicate URLs
+    if (posts.some(post => post.url === trimmedUrl)) {
+      toast.error("This post URL has already been added");
+      return;
+    }
+
+    const newPost: CampaignPost = {
+      url: trimmedUrl,
+      id: `post-${Date.now()}`,
+    };
+    setPosts([...posts, newPost]);
+    setNewPostUrl("");
+    setIsAddPostDialogOpen(false);
+    toast.success("Post added successfully");
   };
 
   const handleRemovePost = (postId: string) => {
     setPosts(posts.filter((post) => post.id !== postId));
+    toast.success("Post removed");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate required fields
+    if (!campaignName.trim()) {
+      toast.error("Please enter a campaign name");
+      return;
+    }
+
+    if (!brandName.trim()) {
+      toast.error("Please enter a brand name");
+      return;
+    }
+
+    // Show loading toast
+    const loadingToast = toast.loading("Creating campaign...");
 
     try {
       const { API_CONFIG, ENDPOINTS } = await import("@/config/api");
@@ -103,6 +139,7 @@ export default function NewCampaignPage() {
       console.log("Token validation:", tokenResult.isValid ? "Valid token" : "Invalid/missing token");
 
       if (!tokenResult.isValid || !tokenResult.token) {
+        toast.dismiss(loadingToast);
         toast.error("You are not logged in. Please log in and try again.");
         router.push("/login");
         return;
@@ -216,6 +253,7 @@ export default function NewCampaignPage() {
       }
 
       // Success notification
+      toast.dismiss(loadingToast);
       toast.success("Campaign created successfully!");
 
       // Redirect to campaigns list
@@ -227,7 +265,8 @@ export default function NewCampaignPage() {
         console.error("❌ Error message:", error.message);
         console.error("❌ Error stack:", error.stack);
       }
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.dismiss(loadingToast);
+      const errorMessage = error instanceof Error ? error.message : "Failed to create campaign";
       toast.error(errorMessage);
     }
   };

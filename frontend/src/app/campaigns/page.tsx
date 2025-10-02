@@ -288,7 +288,11 @@ export default function CampaignsDashboard() {
                 </TableRow>
               ) : (
                 campaigns.map((campaign) => (
-                  <TableRow key={campaign.id}>
+                  <TableRow
+                    key={campaign.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => router.push(`/campaigns/${campaign.id}`)}
+                  >
                     <TableCell className="font-medium">
                       {campaign.id.substring(0, 8).toUpperCase()}
                     </TableCell>
@@ -324,13 +328,14 @@ export default function CampaignsDashboard() {
                         {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         <Button
-                          variant="outline"
                           size="sm"
                           onClick={() => router.push(`/campaigns/${campaign.id}`)}
+                          className="bg-primary text-primary-foreground hover:bg-primary/90"
                         >
+                          <Eye className="mr-2 h-4 w-4" />
                           View Insights
                         </Button>
                         <DropdownMenu>
@@ -378,7 +383,7 @@ export default function CampaignsDashboard() {
                                   toast.error(message);
                                 }
                               }}
-                              className="text-destructive focus:text-destructive"
+                              className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
