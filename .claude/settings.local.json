@@ -87,7 +87,8 @@
       "Bash(start http://localhost:3001/campaigns)",
       "Bash(start http://localhost:3002/campaigns)",
       "Bash(certutil:*)",
-      "Bash(del temp.txt)"
+      "Bash(del temp.txt)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "additionalDirectories": [

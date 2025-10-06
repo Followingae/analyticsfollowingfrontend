@@ -560,12 +560,23 @@ export class SuperadminApiService {
 
   async createUser(userData: {
     email: string
+    password: string
     full_name: string
-    role: string
-    status: string
-    initial_credits: number
+    company?: string
+    phone_number?: string
+    role?: string
+    status?: string
+    subscription_tier?: string
+    initial_credits?: number
+    credit_package_id?: number
+    create_team?: boolean
+    team_name?: string
+    max_team_members?: number
+    monthly_profile_limit?: number
+    monthly_email_limit?: number
+    monthly_posts_limit?: number
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest(ENDPOINTS.superadmin.createUser, {
+    return this.makeRequest('/api/superadmin/users/create', {
       method: 'POST',
       body: JSON.stringify(userData)
     })

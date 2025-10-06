@@ -30,7 +30,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -45,14 +44,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,20 +73,9 @@ export default function SuperadminUsersPage() {
   const [planFilter, setPlanFilter] = useState("all")
   
   // Dialogs
-  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false)
   const [isEditUserOpen, setIsEditUserOpen] = useState(false)
   const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserManagement | null>(null)
-  
-  // Create user form
-  const [newUser, setNewUser] = useState({
-    email: '',
-    full_name: '',
-    user_type: 'regular',
-    subscription_tier: 'free',
-    credits_balance: 0,
-    password: ''
-  })
 
   const router = useRouter()
 
@@ -127,34 +107,6 @@ export default function SuperadminUsersPage() {
   useEffect(() => {
     loadUsers()
   }, [searchQuery, statusFilter, typeFilter, planFilter])
-
-  const handleCreateUser = async () => {
-    if (!newUser.email.trim() || !newUser.full_name.trim()) {
-      toast.error("Please fill in all required fields")
-      return
-    }
-
-    try {
-      const result = await superadminApiService.createUser(newUser)
-      if (result.success) {
-        toast.success("User created successfully!")
-        setIsCreateUserOpen(false)
-        setNewUser({
-          email: '',
-          full_name: '',
-          user_type: 'regular',
-          subscription_tier: 'free',
-          credits_balance: 0,
-          password: ''
-        })
-        await loadUsers()
-      } else {
-        toast.error(result.error || 'Failed to create user')
-      }
-    } catch (error) {
-      toast.error('Network error while creating user')
-    }
-  }
 
   const handleUpdateUserStatus = async (userId: string, status: 'active' | 'suspended' | 'deactivated', reason?: string) => {
     try {
@@ -244,102 +196,14 @@ export default function SuperadminUsersPage() {
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                   </Button>
-                  <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
-                    <DialogTrigger asChild>
-                      <Button style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }} className="hover:opacity-90">
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Create User
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px]">
-                      <DialogHeader>
-                        <DialogTitle>Create New User</DialogTitle>
-                        <DialogDescription>
-                          Create a new platform user with specified permissions
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium">Email</label>
-                            <Input
-                              type="email"
-                              placeholder="Enter email address"
-                              value={newUser.email}
-                              onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Full Name</label>
-                            <Input
-                              placeholder="Full name"
-                              value={newUser.full_name}
-                              onChange={(e) => setNewUser(prev => ({ ...prev, full_name: e.target.value }))}
-                              className="mt-1"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium">User Type</label>
-                            <Select value={newUser.user_type} onValueChange={(value) => setNewUser(prev => ({ ...prev, user_type: value }))}>
-                              <SelectTrigger className="mt-1">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="regular">Regular User</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="superadmin">Superadmin</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Subscription Plan</label>
-                            <Select value={newUser.subscription_tier} onValueChange={(value) => setNewUser(prev => ({ ...prev, subscription_tier: value }))}>
-                              <SelectTrigger className="mt-1">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="free">Free</SelectItem>
-                                <SelectItem value="premium">Premium</SelectItem>
-                                <SelectItem value="enterprise">Enterprise</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">Initial Credits</label>
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            value={newUser.credits_balance}
-                            onChange={(e) => setNewUser(prev => ({ ...prev, credits_balance: parseInt(e.target.value) || undefined }))}
-                            className="mt-1"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">Temporary Password</label>
-                          <Input
-                            type="password"
-                            placeholder="Temporary password"
-                            value={newUser.password}
-                            onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                            className="mt-1"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => setIsCreateUserOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={handleCreateUser} style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }} className="hover:opacity-90">
-                          <UserPlus className="h-4 w-4 mr-2" />
-                          Create User
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  <Button
+                    style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }}
+                    className="hover:opacity-90"
+                    onClick={() => router.push('/superadmin/users/create')}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create Brand Account
+                  </Button>
                 </div>
               </div>
 
