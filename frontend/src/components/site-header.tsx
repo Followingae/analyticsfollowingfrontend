@@ -9,14 +9,22 @@ import { Balloons } from "@/components/ui/balloons"
 import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { useMemo, useState, useEffect, useRef } from "react"
-import { Crown, Coins, PartyPopper } from "lucide-react"
+import { Crown, Coins, PartyPopper, LogOut } from "lucide-react"
 import { creditsApiService, CreditBalance } from "@/services/creditsApi"
 import { teamApiService, TeamContext } from "@/services/teamApi"
+import { useRouter } from 'next/navigation'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export function SiteHeader() {
   const pathname = usePathname()
+  const router = useRouter()
   const isDashboard = pathname === '/' || pathname === '/dashboard'
-  const { user, isLoading, isBrandUser } = useEnhancedAuth()
+  const { user, isLoading, isBrandUser, logout } = useEnhancedAuth()
   
   // Team context state (replaces individual credit balance)
   const [teamContext, setTeamContext] = useState<TeamContext | null>(null)
@@ -177,8 +185,31 @@ export function SiteHeader() {
           >
             <PartyPopper className="h-4 w-4" />
           </Button>
-          
+
           <ModeToggle />
+
+          {/* Always visible sign out button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    logout()
+                    router.push('/auth/login')
+                  }}
+                  className="h-8 w-8"
+                  aria-label="Sign out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Sign out</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
       

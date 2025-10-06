@@ -90,7 +90,7 @@ class CampaignService {
 
   // Get all campaigns
   async getCampaigns(): Promise<ApiResponse<{ campaigns: Campaign[], pagination: any }>> {
-    return this.request('/api/v1/campaigns')
+    return this.request('/api/v1/campaigns/')
   }
 
   // Get campaign analytics

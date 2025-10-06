@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { useDashboardData } from "@/hooks/useDashboardData"
 import { useUserStore, useSubscriptionData, useTeamData } from "@/stores/userStore"
-import { ChartBarInteractive } from "@/components/chart-bar-interactive"
 import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
 import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
 import { MetricCard } from "@/components/analytics-cards"
@@ -95,7 +94,6 @@ export function BrandDashboardContent() {
   const [showMetrics, setShowMetrics] = useState(false)
   const [showDiscovery, setShowDiscovery] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
-  const [showCampaignStats, setShowCampaignStats] = useState(false)
 
   // Sequential loading animation effect
   useEffect(() => {
@@ -103,9 +101,8 @@ export function BrandDashboardContent() {
       const timeouts = [
         setTimeout(() => setShowWelcome(true), 100),        // Welcome first
         setTimeout(() => setShowMetrics(true), 300),        // Metrics after 300ms
-        setTimeout(() => setShowDiscovery(true), 600),      // Discovery after 600ms  
+        setTimeout(() => setShowDiscovery(true), 600),      // Discovery after 600ms
         setTimeout(() => setShowAnalytics(true), 900),      // Analytics after 900ms
-        setTimeout(() => setShowCampaignStats(true), 1200), // Campaign stats after 1200ms
       ]
 
       return () => timeouts.forEach(timeout => clearTimeout(timeout))
@@ -273,19 +270,6 @@ export function BrandDashboardContent() {
             </div>
           </div>
         </div>
-
-        {/* Recent Campaign Stats Section */}
-        <div className="grid gap-6 grid-cols-12">
-          {/* Recent Campaign Stats */}
-          <div className={`col-span-12 transition-all duration-500 ease-out ${
-            showCampaignStats ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-          }`}>
-            <div className="w-full">
-              <ChartBarInteractive campaigns={campaigns} campaignsLoading={campaignsLoading} />
-            </div>
-          </div>
-        </div>
-
 
       </div>
     </div>

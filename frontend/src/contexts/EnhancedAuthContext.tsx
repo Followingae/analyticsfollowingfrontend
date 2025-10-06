@@ -106,7 +106,7 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
   } = useAuth()
   
   const [user, setUser] = useState<EnhancedUser | null>(null)
-  const [isLoading, setIsLoading] = useState(false) // HOTFIX: Start with false due to hydration issues
+  const [isLoading, setIsLoading] = useState(true) // Start with true to match basic auth context
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
   const [lastActivity, setLastActivity] = useState<Date>(new Date())
   const [sessionTimeout] = useState<number>(30 * 60 * 1000) // 30 minutes
@@ -116,6 +116,8 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
   // Sync with basic auth context
   useEffect(() => {
+    // Always sync loading state first
+    setIsLoading(basicIsLoading)
 
     if (!basicIsLoading) {
       if (basicIsAuthenticated && basicUser) {
@@ -126,8 +128,6 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
         setUser(null)
         setDashboardStats(null)
       }
-
-      setIsLoading(false)
     }
   }, [basicUser, basicIsAuthenticated, basicIsLoading, basicDashboardStats])
 

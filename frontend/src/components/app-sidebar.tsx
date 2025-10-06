@@ -190,10 +190,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        {!isLoading && dynamicUser && dynamicUser.name && (
-          <NavUser 
+        {!isLoading && dynamicUser && (
+          <NavUser
             key={`nav-user-${JSON.stringify(user?.avatar_config) || 'default'}`}
-            user={dynamicUser} 
+            user={dynamicUser}
           />
         )}
       </SidebarFooter>

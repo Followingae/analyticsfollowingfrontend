@@ -33,6 +33,7 @@
   "license": "Private",
   "dependencies": {
     "@playwright/mcp": "^0.0.37",
+    "@tanstack/react-table": "^8.21.3",
     "boring-avatars": "^2.0.1"
   },
   "devDependencies": {

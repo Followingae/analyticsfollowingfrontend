@@ -2,10 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Users, FileText, Eye, TrendingUp, Heart, MessageCircle, Image, Video, Share2, Plus, Pencil, Upload, Trash2, X, Link as LinkIcon, Loader2, MoreVertical } from "lucide-react";
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
+import { ArrowLeft, Users, FileText, Eye, TrendingUp, Heart, MessageCircle, Image, Video, Share2, Plus, Pencil, Upload, Trash2, X, Link as LinkIcon, Loader2, MoreVertical, Download } from "lucide-react";
 import { toast } from "sonner";
+import { AudienceBarChart } from "@/components/campaigns/AudienceBarChart";
+import { InterestsRadarChart } from "@/components/campaigns/InterestsRadarChart";
+import { PostCard } from "@/components/campaigns/PostCard";
+import { CampaignPDFExportButton, downloadCampaignPDF } from "@/components/campaigns/CampaignPDFExport";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +53,7 @@ interface BackendCampaignPost {
   views: number;
   likes: number;
   comments: number;
-  engagementRate: number; // Decimal 0-1 format
+  engagementRate: number; // Percentage format (e.g., 2.5 for 2.5%)
 
   // AI Analysis (nullable for old posts)
   ai_content_category: string | null;
@@ -59,6 +64,8 @@ interface BackendCampaignPost {
   creator_username: string;
   creator_full_name: string;
   creator_followers_count: number;
+  creator_profile_pic_url?: string | null;
+  creator_profile_pic_url_hd?: string | null;
 
   // Additional Metadata
   shortcode: string;
@@ -130,7 +137,7 @@ interface BackendCreator {
   posts_in_campaign: number;
   total_likes: number;
   total_comments: number;
-  avg_engagement_rate: number; // Decimal 0-1 format
+  avg_engagement_rate: number; // Percentage format (e.g., 2.5 for 2.5%)
 
   // AI-Estimated Audience Demographics (nullable while processing)
   audience_demographics?: {
@@ -200,8 +207,8 @@ interface AIInsights {
   audience_insights: {
     available: boolean;
     geographic_analysis?: {
-      country_distribution: Record<string, number>;
-      location_distribution: Record<string, number>;
+      top_countries?: Record<string, number>;
+      top_cities?: Record<string, number>;
       geographic_reach: string;
       geographic_diversity_score: number;
       international_reach: boolean;
@@ -256,6 +263,7 @@ export default function CampaignDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const campaignId = params.id as string;
+  const { user, isLoading: authLoading } = useEnhancedAuth();
 
   const [campaign, setCampaign] = useState<BackendCampaignDetails | null>(null);
   const [posts, setPosts] = useState<BackendCampaignPost[]>([]);
@@ -278,9 +286,23 @@ export default function CampaignDetailsPage() {
   const [isAddPostDialogOpen, setIsAddPostDialogOpen] = useState(false);
   const [newPostUrl, setNewPostUrl] = useState("");
 
+  // Check authentication and fetch data
   useEffect(() => {
-    fetchCampaignData();
-  }, [campaignId]);
+    // Wait for auth context to load
+    if (authLoading) return;
+
+    // If no user after auth loading is complete, redirect to login
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+
+    // User is authenticated, fetch campaign data
+    if (campaignId) {
+      fetchCampaignData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading, campaignId, router]);
 
   // Polling for AI insights when posts are being analyzed
   useEffect(() => {
@@ -311,16 +333,19 @@ export default function CampaignDetailsPage() {
   const fetchCampaignData = async () => {
     try {
       setIsLoading(true);
+
       const { API_CONFIG } = await import("@/config/api");
       const { fetchWithAuth } = await import("@/utils/apiInterceptor");
 
       // Fetch campaign details, posts, creators, audience, and AI insights in parallel
+      // Add timestamp to prevent caching issues
+      const timestamp = Date.now();
       const [campaignRes, postsRes, creatorsRes, audienceRes, aiInsightsRes] = await Promise.all([
-        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}`),
-        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts`),
-        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/creators`),
-        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/audience`),
-        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/ai-insights`),
+        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}?t=${timestamp}`),
+        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts?t=${timestamp}`),
+        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/creators?t=${timestamp}`),
+        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/audience?t=${timestamp}`),
+        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/ai-insights?t=${timestamp}`),
       ]);
 
       const campaignData = await campaignRes.json();
@@ -418,8 +443,13 @@ export default function CampaignDetailsPage() {
         totalLikes,
         postTypeBreakdown: postTypes,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching campaign data:", error);
+
+      // If it's an authentication error, redirect to login
+      if (error.message?.includes('authentication') || error.message?.includes('token')) {
+        router.push('/auth/login');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -692,22 +722,16 @@ export default function CampaignDetailsPage() {
     }
   };
 
-  if (isLoading) {
+  // Show consistent loading state to prevent hydration mismatch
+  if (authLoading || isLoading || !user) {
     return (
       <AuthGuard>
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <SiteHeader />
-            <div className="container mx-auto py-8 px-4 space-y-6">
-              <div className="flex items-center gap-4">
-                <Skeleton className="h-10 w-10" />
-                <Skeleton className="h-8 w-64" />
-              </div>
-              <Skeleton className="h-[400px] w-full" />
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading campaign...</p>
+          </div>
+        </div>
       </AuthGuard>
     );
   }
@@ -773,14 +797,55 @@ export default function CampaignDetailsPage() {
             </div>
           </div>
         </div>
-        <Badge>{campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}</Badge>
-        <Button
-          variant="outline"
-          onClick={() => setIsAddPostDialogOpen(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Posts
-        </Button>
+        <div className="flex items-center gap-2">
+          <Badge>{campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}</Badge>
+          <Button
+            variant="default"
+            onClick={() => setIsAddPostDialogOpen(true)}
+            className="h-10"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Posts
+          </Button>
+          <CampaignPDFExportButton
+            data={{
+              campaign: {
+                ...campaign,
+                engagement_rate: campaign.engagement_rate || stats?.overallEngagementRate || 0,
+                posts_count: campaign.posts_count || stats?.totalPosts || posts.length,
+                creators_count: campaign.creators_count || stats?.totalCreators || creators.length,
+                total_reach: campaign.total_reach || stats?.totalReach || 0,
+              },
+              stats: stats || undefined,
+              posts: posts.map(post => ({
+                ...post,
+                thumbnail: post.thumbnail,
+                engagementRate: post.engagementRate || 0,
+                creator_profile_pic_url: post.creator_profile_pic_url,
+              })),
+              creators: creators.map(creator => ({
+                ...creator,
+                profile_pic_url: creator.profile_pic_url || null,
+                avg_engagement_rate: creator.avg_engagement_rate || 0,
+              })),
+              audience: audience ? {
+                age_groups: audience.age_groups,
+                gender_split: audience.gender_split,
+                top_countries: audience.top_countries?.map((c: any) => ({
+                  country: c.country,
+                  percentage: c.percentage
+                })),
+                top_cities: audience.top_cities?.map((c: any) => ({
+                  city: c.city,
+                  percentage: c.percentage
+                })),
+                interests: audience.interests,
+              } : undefined,
+              aiInsights: aiInsights || undefined,
+            }}
+            className="h-10"
+          />
+        </div>
       </div>
 
       {/* Tabs */}
@@ -868,9 +933,9 @@ export default function CampaignDetailsPage() {
               <CardContent>
                 <div className="text-2xl font-bold">
                   {campaign?.engagement_rate !== undefined
-                    ? `${campaign.engagement_rate.toFixed(2)}%`
+                    ? `${Math.min(campaign.engagement_rate, 100).toFixed(2)}%`
                     : stats?.overallEngagementRate
-                    ? `${(stats.overallEngagementRate * 100).toFixed(1)}%`
+                    ? `${Math.min(stats.overallEngagementRate, 100).toFixed(2)}%`
                     : '0.0%'}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Campaign average</p>
@@ -1158,7 +1223,7 @@ export default function CampaignDetailsPage() {
           ) : (
             <>
           {/* Top Demographics */}
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium">Top Gender</CardTitle>
@@ -1194,191 +1259,104 @@ export default function CampaignDetailsPage() {
                 )}
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Top City</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!audience?.topCity ? (
-                  <div className="text-sm text-muted-foreground animate-pulse">Analyzing demographics...</div>
-                ) : (
-                  <>
-                    <div className="text-2xl font-bold">{audience.topCity.name}</div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {(audience.topCity.percentage ?? 0).toFixed(1)}% of audience
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Top Country</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {topCountry.isLoading ? (
-                  <div className="text-sm text-muted-foreground animate-pulse">Analyzing...</div>
-                ) : (
-                  <div className="text-xl font-bold">{topCountry.name}</div>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* AI Audience Insights */}
           {aiInsights && aiInsights.total_posts > 0 && aiInsights.audience_insights?.available && (
             <>
               {/* Geographic Distribution */}
-              {aiInsights.audience_insights.geographic_analysis && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Geographic Analysis</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="text-sm text-muted-foreground mb-2">Top Countries</div>
-                        <div className="space-y-2">
-                          {Object.entries(aiInsights.audience_insights.geographic_analysis.country_distribution)
-                            .sort(([, a], [, b]) => b - a)
-                            .slice(0, 5)
-                            .map(([country, count]) => (
-                              <div key={country} className="flex items-center justify-between">
-                                <span className="text-sm font-medium">{country}</span>
-                                <Badge variant="secondary">{count} posts</Badge>
+              {aiInsights.audience_insights.geographic_analysis &&
+               aiInsights.audience_insights.geographic_analysis.top_countries &&
+               typeof aiInsights.audience_insights.geographic_analysis.top_countries === 'object' &&
+               Object.keys(aiInsights.audience_insights.geographic_analysis.top_countries).length > 0 && (
+                <AudienceBarChart
+                  title="Audience Geographic Distribution"
+                  description="Top audience locations by country"
+                  data={Object.entries(aiInsights.audience_insights.geographic_analysis.top_countries)
+                    .filter(([, percentage]) => percentage >= 5)
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 5)
+                    .map(([country, percentage]) => ({
+                      label: country,
+                      value: percentage
+                    }))}
+                />
+              )}
+
+              {/* Demographic Insights - Age Distribution */}
+              {aiInsights.audience_insights.demographic_insights &&
+               aiInsights.audience_insights.demographic_insights.estimated_age_groups &&
+               typeof aiInsights.audience_insights.demographic_insights.estimated_age_groups === 'object' && (
+                <AudienceBarChart
+                  title="Audience Age Distribution"
+                  description="Age demographics of campaign audience"
+                  data={Object.entries(aiInsights.audience_insights.demographic_insights.estimated_age_groups)
+                    .sort(([a], [b]) => {
+                      const aNum = parseInt(a.split('-')[0]);
+                      const bNum = parseInt(b.split('-')[0]);
+                      return aNum - bNum;
+                    })
+                    .map(([age, percentage]) => ({
+                      label: `${age} years`,
+                      value: percentage * 100
+                    }))}
+                />
+              )}
+
+              {/* Gender Distribution and Audience Interests - Single Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Audience Gender */}
+                {aiInsights.audience_insights.demographic_insights &&
+                 aiInsights.audience_insights.demographic_insights.estimated_gender_split &&
+                 typeof aiInsights.audience_insights.demographic_insights.estimated_gender_split === 'object' && (() => {
+                  const genderData = Object.entries(aiInsights.audience_insights.demographic_insights.estimated_gender_split)
+                    .filter(([gender]) => gender.toLowerCase() === 'male' || gender.toLowerCase() === 'female');
+                  const malePercentage = (genderData.find(([g]) => g.toLowerCase() === 'male')?.[1] || 0) * 100;
+                  const femalePercentage = (genderData.find(([g]) => g.toLowerCase() === 'female')?.[1] || 0) * 100;
+                  return (
+                    <Card>
+                      <CardHeader className="items-center">
+                        <CardTitle>Audience Gender</CardTitle>
+                        <CardDescription>Gender distribution of campaign audience</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="border rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm font-medium text-muted-foreground">Male</div>
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-2xl font-bold" style={{ color: "#3b82f6" }}>
+                                  {malePercentage.toFixed(0)}
+                                </span>
+                                <span className="text-lg text-muted-foreground">%</span>
                               </div>
-                            ))}
-                        </div>
-                      </div>
-                      <div className="pt-3 border-t grid grid-cols-2 gap-3">
-                        <div>
-                          <div className="text-xs text-muted-foreground">Geographic Reach</div>
-                          <div className="text-sm font-bold capitalize">
-                            {aiInsights.audience_insights.geographic_analysis.geographic_reach}
+                            </div>
+                          </div>
+                          <div className="border rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm font-medium text-muted-foreground">Female</div>
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-2xl font-bold" style={{ color: "#ec4899" }}>
+                                  {femalePercentage.toFixed(0)}
+                                </span>
+                                <span className="text-lg text-muted-foreground">%</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">Diversity Score</div>
-                          <div className="text-sm font-bold">
-                            {(aiInsights.audience_insights.geographic_analysis.geographic_diversity_score * 100).toFixed(0)}%
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
-              {/* Demographic Insights */}
-              {aiInsights.audience_insights.demographic_insights && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Demographic Insights</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-2">Age Distribution</div>
-                      <div className="space-y-2">
-                        {Object.entries(aiInsights.audience_insights.demographic_insights.estimated_age_groups)
-                          .sort(([, a], [, b]) => b - a)
-                          .map(([age, percentage]) => (
-                            <div key={age} className="space-y-1">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="font-medium">{age}</span>
-                                <span className="font-bold">{(percentage * 100).toFixed(1)}%</span>
-                              </div>
-                              <div className="w-full bg-secondary rounded-full h-2">
-                                <div
-                                  className="bg-primary h-2 rounded-full"
-                                  style={{ width: `${percentage * 100}%` }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                    <div className="pt-3 border-t">
-                      <div className="text-sm text-muted-foreground mb-2">Gender Split</div>
-                      <div className="space-y-2">
-                        {Object.entries(aiInsights.audience_insights.demographic_insights.estimated_gender_split)
-                          .sort(([, a], [, b]) => b - a)
-                          .map(([gender, percentage]) => (
-                            <div key={gender} className="flex items-center justify-between">
-                              <span className="text-sm font-medium capitalize">{gender}</span>
-                              <span className="text-sm font-bold">{(percentage * 100).toFixed(1)}%</span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Audience Interests */}
-              {aiInsights.audience_insights.audience_interests && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Audience Interests</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-2">Interest Distribution</div>
-                      <div className="space-y-2">
-                        {Object.entries(aiInsights.audience_insights.audience_interests.interest_distribution)
-                          .sort(([, a], [, b]) => b - a)
-                          .slice(0, 5)
-                          .map(([interest, percentage]) => (
-                            <div key={interest} className="space-y-1">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="font-medium capitalize">{interest}</span>
-                                <span className="font-bold">{(percentage * 100).toFixed(1)}%</span>
-                              </div>
-                              <div className="w-full bg-secondary rounded-full h-2">
-                                <div
-                                  className="bg-primary h-2 rounded-full"
-                                  style={{ width: `${percentage * 100}%` }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Engagement Consistency */}
-              {aiInsights.behavioral_patterns?.available && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Engagement Consistency</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="text-sm text-muted-foreground mb-2">Consistency Score</div>
-                        <div className="text-2xl font-bold">
-                          {aiInsights.behavioral_patterns.average_engagement_consistency?.toFixed(1)}%
-                        </div>
-                        <Badge className="mt-2" variant={
-                          aiInsights.behavioral_patterns.consistency_rating === "high" ? "default" :
-                          aiInsights.behavioral_patterns.consistency_rating === "medium" ? "secondary" : "outline"
-                        }>
-                          {aiInsights.behavioral_patterns.consistency_rating?.toUpperCase()}
-                        </Badge>
-                      </div>
-                      <div className="pt-4 border-t">
-                        <div className="text-sm text-muted-foreground">Posting Frequency</div>
-                        <div className="text-lg font-bold">
-                          {aiInsights.behavioral_patterns.average_posting_frequency} posts/month
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                {/* Audience Interests */}
+                {aiInsights.audience_insights.audience_interests?.interest_distribution &&
+                 typeof aiInsights.audience_insights.audience_interests.interest_distribution === 'object' && (
+                  <InterestsRadarChart
+                    interests={aiInsights.audience_insights.audience_interests.interest_distribution}
+                  />
+                )}
+              </div>
             </>
           )}
             </>
@@ -1386,117 +1364,78 @@ export default function CampaignDetailsPage() {
         </TabsContent>
 
         {/* Posts Tab */}
-        <TabsContent value="posts">
-          <Card>
-            <CardHeader>
-              <CardTitle>Campaign Posts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {posts.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  No posts added to this campaign yet.
-                </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                  {posts.map((post) => (
-                    <Card key={post.id} className="overflow-hidden">
-                      <div className="aspect-square relative bg-muted">
-                        <img
-                          src={post.thumbnail || post.display_url || "/placeholder.jpg"}
-                          alt="Post thumbnail"
-                          className="object-cover w-full h-full"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "/placeholder.jpg";
-                          }}
-                        />
-                        <Badge className="absolute top-2 left-2" variant="secondary">
-                          <div className="flex items-center gap-1">
-                            {getPostTypeIcon(post.type)}
-                            <span className="text-xs capitalize">{post.type}</span>
-                          </div>
-                        </Badge>
-                      </div>
-                      <CardContent className="p-2 space-y-1.5">
-                        {/* Metrics */}
-                        <div className="grid grid-cols-2 gap-1 text-xs">
-                          <div className="flex items-center gap-1">
-                            <Heart className="h-3 w-3 text-muted-foreground" />
-                            <span className="font-medium">{formatNumber(post.likes)}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MessageCircle className="h-3 w-3 text-muted-foreground" />
-                            <span className="font-medium">{formatNumber(post.comments)}</span>
-                          </div>
-                        </div>
+        <TabsContent value="posts" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Campaign Posts</h2>
+              <p className="text-muted-foreground">
+                {posts.length} {posts.length === 1 ? "post" : "posts"} in this campaign
+              </p>
+            </div>
+            <Button onClick={() => setIsAddPostDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Post
+            </Button>
+          </div>
 
-                        <div className="flex gap-1.5">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-7 text-xs"
-                            onClick={() => window.open(post.url, "_blank")}
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" className="h-7 px-2">
-                                <MoreVertical className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={async () => {
-                                  if (!confirm("Remove this post from the campaign?")) return;
+          {posts.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Image className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No posts yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Start adding posts to track campaign performance
+                </p>
+                <Button onClick={() => setIsAddPostDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Your First Post
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-stretch" style={{ gridAutoRows: 'minmax(0, 1fr)' }}>
+              {posts.map((post) => (
+                <PostCard
+                  key={`${post.id}-${post.engagementRate?.toFixed(2)}`}
+                  post={post}
+                  onRemove={async (postId) => {
+                    if (!confirm("Remove this post from the campaign?")) return;
 
-                                  try {
-                                    const { API_CONFIG } = await import("@/config/api");
-                                    const { tokenManager } = await import("@/utils/tokenManager");
+                    try {
+                      const { API_CONFIG } = await import("@/config/api");
+                      const { tokenManager } = await import("@/utils/tokenManager");
 
-                                    const tokenResult = await tokenManager.getValidToken();
-                                    if (!tokenResult.isValid || !tokenResult.token) {
-                                      toast.error("Please log in again");
-                                      return;
-                                    }
+                      const tokenResult = await tokenManager.getValidToken();
+                      if (!tokenResult.isValid || !tokenResult.token) {
+                        toast.error("Please log in again");
+                        return;
+                      }
 
-                                    const response = await fetch(
-                                      `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts/${post.id}`,
-                                      {
-                                        method: "DELETE",
-                                        headers: {
-                                          Authorization: `Bearer ${tokenResult.token}`,
-                                        },
-                                      }
-                                    );
+                      const response = await fetch(
+                        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts/${postId}`,
+                        {
+                          method: "DELETE",
+                          headers: {
+                            Authorization: `Bearer ${tokenResult.token}`,
+                          },
+                        }
+                      );
 
-                                    if (!response.ok) {
-                                      throw new Error("Failed to remove post");
-                                    }
+                      if (!response.ok) {
+                        throw new Error("Failed to remove post");
+                      }
 
-                                    toast.success("Post removed from campaign");
-                                    fetchCampaignData();
-                                  } catch (error) {
-                                    console.error("Error removing post:", error);
-                                    toast.error("Failed to remove post");
-                                  }
-                                }}
-                                className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
-                              >
-                                <Trash2 className="h-3 w-3 mr-2" />
-                                Remove
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      toast.success("Post removed from campaign");
+                      fetchCampaignData();
+                    } catch (error) {
+                      console.error("Error removing post:", error);
+                      toast.error("Failed to remove post");
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

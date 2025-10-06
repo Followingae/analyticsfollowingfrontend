@@ -83,7 +83,11 @@
       "Bash(start http://localhost:3003/admin/proposals/create)",
       "Bash(for:*)",
       "Bash(do echo \"=== $file ===\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(start http://localhost:3001/campaigns)",
+      "Bash(start http://localhost:3002/campaigns)",
+      "Bash(certutil:*)",
+      "Bash(del temp.txt)"
     ],
     "deny": [],
     "additionalDirectories": [
