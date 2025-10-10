@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { pdf } from '@react-pdf/renderer'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { CompleteCampaignPDFDocument } from './CompleteCampaignPDF'
+import { CleanCampaignPDFDocument } from './CleanCampaignPDF'
 
 // Types for campaign data - Updated to match CompleteCampaignPDF structure
 interface CampaignPDFData {
@@ -101,66 +101,54 @@ const convertWebPToPNG = async (blob: Blob): Promise<Blob> => {
   })
 }
 
-// Convert image to base64 for PDF embedding (with WebP conversion)
+// Convert image to base64 for @react-pdf/renderer - PROPER IMPLEMENTATION
 const imageToBase64 = async (url: string): Promise<string> => {
   try {
-    console.log('🖼️ Loading image:', url)
+    console.log('🖼️ Converting image to base64:', url)
 
+    // For our CDN images, try a simple fetch first
     const response = await fetch(url, {
       method: 'GET',
       mode: 'cors',
-      headers: {
-        'Accept': 'image/*'
-      }
+      cache: 'no-cache'
     })
 
-    console.log('📡 Response status:', response.status, 'for URL:', url)
-
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      console.error(`❌ Failed to fetch image: ${response.status}`)
+      return ''
     }
 
-    let blob = await response.blob()
-    console.log('💾 Blob size:', blob.size, 'type:', blob.type)
-
+    const blob = await response.blob()
     if (blob.size === 0) {
-      throw new Error('Empty blob received')
+      console.warn('⚠️ Empty image blob')
+      return ''
     }
 
-    // Convert WebP to PNG for PDF compatibility
-    if (blob.type === 'image/webp') {
-      console.log('🔄 Converting WebP to PNG for PDF compatibility...')
-      blob = await convertWebPToPNG(blob)
-    }
-
-    return new Promise((resolve, reject) => {
+    // Convert to base64
+    return new Promise((resolve) => {
       const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result as string
-        console.log('✅ Image converted to base64, length:', result.length, 'format:', blob.type)
-        resolve(result)
-      }
+      reader.onload = () => resolve(reader.result as string)
       reader.onerror = () => {
         console.error('❌ FileReader error')
-        reject(new Error('FileReader failed'))
+        resolve('')
       }
       reader.readAsDataURL(blob)
     })
   } catch (error) {
-    console.error('❌ Failed to convert image to base64:', url, error)
+    console.error('❌ Image conversion failed:', error)
     return ''
   }
 }
 
-// Get Following logo (embedded base64 PNG for reliable display)
-const getFollowingLogo = (): string => {
-  console.log('📋 Using embedded Following PNG logo for reliable PDF display...')
+// Use the brand logo directly from campaign data
+const getBrandLogo = (logoUrl?: string): string => {
+  if (!logoUrl) {
+    console.log('📋 No brand logo available')
+    return ''
+  }
 
-  // Embedded Following logo as base64 PNG for guaranteed @react-pdf/renderer compatibility
-  const base64PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/58hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
-
-  console.log('✅ Embedded Following PNG logo ready for PDF')
-  return base64PNG
+  console.log('📋 Using brand logo URL directly:', logoUrl)
+  return logoUrl
 }
 
 // Export button component with modern styling
@@ -180,63 +168,52 @@ export const CampaignPDFExportButton: React.FC<ExportButtonProps> = ({ data, cla
       // Preload all images first
       const images: { logo?: string; creatorProfiles?: Record<string, string>; postThumbnails?: Record<string, string> } = {}
 
-      // Load Following logo (embedded SVG for reliability)
-      images.logo = getFollowingLogo()
-      console.log('✅ Logo embedded successfully')
+      // Note: Logo will be added later if brand_logo_url is available
 
-      // Load creator profile images
-      console.log('👥 Loading creator profile images...', data.creators?.length || 0, 'creators')
+      // EMBED IMAGES FROM OUR CDN - These should work since they're our own images!
+      console.log('📥 Downloading and embedding images from our CDN...')
+
+      // Use creator profile image URLs directly
+      console.log('👥 Processing creator profile images...', data.creators?.length || 0, 'creators')
       images.creatorProfiles = {}
       if (data.creators) {
-        await Promise.allSettled(
-          data.creators.map(async (creator) => {
-            if (creator.profile_pic_url) {
-              try {
-                const imageUrl = getImageUrl(creator.profile_pic_url)
-                console.log(`👤 Loading profile for ${creator.username}:`, imageUrl)
-                const imageData = await imageToBase64(imageUrl)
-                if (imageData) {
-                  images.creatorProfiles![creator.username] = imageData
-                  console.log(`✅ Loaded profile for ${creator.username}`)
-                }
-              } catch (error) {
-                console.warn(`❌ Failed to load creator image for ${creator.username}:`, error)
-              }
-            }
-          })
-        )
+        data.creators.forEach((creator) => {
+          if (creator.profile_pic_url) {
+            const imageUrl = getImageUrl(creator.profile_pic_url)
+            console.log(`👤 Using profile URL for ${creator.username}:`, imageUrl)
+            images.creatorProfiles![creator.username] = processImageUrl(imageUrl)
+            console.log(`✅ Profile URL ready for ${creator.username}`)
+          }
+        })
       }
 
-      // Load post thumbnail images
-      console.log('🖼️ Loading post thumbnail images...', data.posts?.length || 0, 'posts')
+      // Use post thumbnail URLs directly
+      console.log('🖼️ Processing post thumbnail images...', data.posts?.length || 0, 'posts')
       images.postThumbnails = {}
       if (data.posts) {
-        await Promise.allSettled(
-          data.posts.map(async (post) => {
-            if (post.thumbnail) {
-              try {
-                const imageUrl = getImageUrl(post.thumbnail)
-                console.log(`📷 Loading thumbnail for post ${post.id}:`, imageUrl)
-                const imageData = await imageToBase64(imageUrl)
-                if (imageData) {
-                  images.postThumbnails![post.id] = imageData
-                  console.log(`✅ Loaded thumbnail for post ${post.id}`)
-                }
-              } catch (error) {
-                console.warn(`❌ Failed to load post thumbnail for ${post.id}:`, error)
-              }
-            }
-          })
-        )
+        data.posts.forEach((post) => {
+          if (post.thumbnail) {
+            const imageUrl = getImageUrl(post.thumbnail)
+            console.log(`📷 Using thumbnail URL for post ${post.id}:`, imageUrl)
+            images.postThumbnails![post.id] = processImageUrl(imageUrl)
+            console.log(`✅ Thumbnail URL ready for post ${post.id}`)
+          }
+        })
       }
 
-      // Log image loading summary
-      const loadedCreatorImages = Object.keys(images.creatorProfiles || {}).length
-      const loadedPostImages = Object.keys(images.postThumbnails || {}).length
-      console.log('📊 Image loading summary:')
-      console.log('  📷 Logo:', images.logo ? '✅ Loaded' : '❌ Failed')
-      console.log(`  👥 Creator profiles: ${loadedCreatorImages}/${data.creators?.length || 0}`)
-      console.log(`  🖼️ Post thumbnails: ${loadedPostImages}/${data.posts?.length || 0}`)
+      // Add brand logo if available
+      if (data.campaign.brand_logo_url) {
+        console.log('📋 Using brand logo URL:', data.campaign.brand_logo_url)
+        images.logo = getBrandLogo(data.campaign.brand_logo_url)
+      }
+
+      // Log image summary
+      const readyCreatorImages = Object.keys(images.creatorProfiles || {}).length
+      const readyPostImages = Object.keys(images.postThumbnails || {}).length
+      console.log('📊 Image URL summary:')
+      console.log('  📷 Brand logo:', images.logo ? '✅ Ready' : '❌ Not available')
+      console.log(`  👥 Creator profiles: ${readyCreatorImages}/${data.creators?.length || 0}`)
+      console.log(`  🖼️ Post thumbnails: ${readyPostImages}/${data.posts?.length || 0}`)
 
       // Generate PDF with preloaded images using CompleteCampaignPDFDocument
       const enhancedData: EnhancedCampaignPDFData = {
@@ -248,8 +225,8 @@ export const CampaignPDFExportButton: React.FC<ExportButtonProps> = ({ data, cla
         .toISOString()
         .split('T')[0]}.pdf`
 
-      console.log('📄 Generating PDF with CompleteCampaignPDFDocument...')
-      const doc = <CompleteCampaignPDFDocument data={enhancedData} />
+      console.log('📄 Generating PDF with CleanCampaignPDFDocument...')
+      const doc = <CleanCampaignPDFDocument data={enhancedData} />
       const pdfBlob = await pdf(doc).toBlob()
 
       // Download the PDF
@@ -285,7 +262,7 @@ export const CampaignPDFExportButton: React.FC<ExportButtonProps> = ({ data, cla
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          Loading Images...
+          Generating PDF...
         </>
       ) : (
         <>
@@ -304,52 +281,36 @@ export const downloadCampaignPDF = async (data: CampaignPDFData) => {
   // Preload all images
   const images: { logo?: string; creatorProfiles?: Record<string, string>; postThumbnails?: Record<string, string> } = {}
 
-  // Download Following logo
-  try {
-    images.logo = await getFollowingLogo()
-    console.log('✅ Logo loaded for direct export')
-  } catch (error) {
-    console.warn('⚠️ Failed to load logo for direct export:', error)
+  // Use brand logo directly if available
+  if (data.campaign.brand_logo_url) {
+    console.log('📋 Using brand logo URL for direct export:', data.campaign.brand_logo_url)
+    images.logo = getBrandLogo(data.campaign.brand_logo_url)
   }
 
-  // Download creator profile images
-  console.log('👥 Loading creator profiles for direct export...')
+  // Use creator profile URLs directly
+  console.log('👥 Processing creator profiles for direct export...')
   images.creatorProfiles = {}
   if (data.creators) {
-    for (const creator of data.creators) {
+    data.creators.forEach((creator) => {
       if (creator.profile_pic_url) {
-        try {
-          const imageUrl = getImageUrl(creator.profile_pic_url)
-          const imageData = await imageToBase64(imageUrl)
-          if (imageData) {
-            images.creatorProfiles[creator.username] = imageData
-            console.log(`✅ Loaded profile for ${creator.username}`)
-          }
-        } catch (error) {
-          console.warn(`❌ Failed to load profile for ${creator.username}:`, error)
-        }
+        const imageUrl = getImageUrl(creator.profile_pic_url)
+        images.creatorProfiles[creator.username] = processImageUrl(imageUrl)
+        console.log(`✅ Profile URL ready for ${creator.username}`)
       }
-    }
+    })
   }
 
-  // Download post thumbnail images
-  console.log('🖼️ Loading post thumbnails for direct export...')
+  // Use post thumbnail URLs directly
+  console.log('🖼️ Processing post thumbnails for direct export...')
   images.postThumbnails = {}
   if (data.posts) {
-    for (const post of data.posts) {
+    data.posts.forEach((post) => {
       if (post.thumbnail) {
-        try {
-          const imageUrl = getImageUrl(post.thumbnail)
-          const imageData = await imageToBase64(imageUrl)
-          if (imageData) {
-            images.postThumbnails[post.id] = imageData
-            console.log(`✅ Loaded thumbnail for post ${post.id}`)
-          }
-        } catch (error) {
-          console.warn(`❌ Failed to load thumbnail for post ${post.id}:`, error)
-        }
+        const imageUrl = getImageUrl(post.thumbnail)
+        images.postThumbnails[post.id] = processImageUrl(imageUrl)
+        console.log(`✅ Thumbnail URL ready for post ${post.id}`)
       }
-    }
+    })
   }
 
   // Create enhanced data with embedded images
@@ -362,8 +323,8 @@ export const downloadCampaignPDF = async (data: CampaignPDFData) => {
     .toISOString()
     .split('T')[0]}.pdf`
 
-  console.log('📄 Generating PDF with CompleteCampaignPDFDocument for direct export...')
-  const blob = await pdf(<CompleteCampaignPDFDocument data={enhancedData} />).toBlob()
+  console.log('📄 Generating PDF with CleanCampaignPDFDocument for direct export...')
+  const blob = await pdf(<CleanCampaignPDFDocument data={enhancedData} />).toBlob()
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url

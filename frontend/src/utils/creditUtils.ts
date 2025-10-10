@@ -8,24 +8,42 @@ import { CreditBalance, PricingRule, CreditError } from '@/types'
 /**
  * Format credit amount for display
  */
-export function formatCredits(amount: number | null | undefined): string {
+export function formatCredits(amount: number | null | undefined, options?: {
+  showSign?: boolean
+  forcePositive?: boolean
+}): string {
   // Handle null/undefined values
   if (amount == null) {
     return '0'
   }
-  
+
   // Handle non-numeric values
   if (typeof amount !== 'number' || !Number.isFinite(amount)) {
     return '0'
   }
-  
-  if (amount >= 1000000) {
-    return `${(amount / 1000000).toFixed(1)}M`
+
+  const { showSign = false, forcePositive = false } = options || {}
+
+  // Determine the absolute value for formatting
+  const absAmount = Math.abs(amount)
+  let formattedNumber: string
+
+  if (absAmount >= 1000000) {
+    formattedNumber = `${(absAmount / 1000000).toFixed(1)}M`
+  } else if (absAmount >= 1000) {
+    formattedNumber = `${(absAmount / 1000).toFixed(1)}K`
+  } else {
+    formattedNumber = absAmount.toString()
   }
-  if (amount >= 1000) {
-    return `${(amount / 1000).toFixed(1)}K`
+
+  // Handle sign display
+  if (forcePositive || amount > 0) {
+    return showSign ? `+${formattedNumber}` : formattedNumber
+  } else if (amount < 0) {
+    return `-${formattedNumber}`
+  } else {
+    return formattedNumber // amount === 0
   }
-  return amount.toString()
 }
 
 /**
@@ -190,9 +208,25 @@ export function calculateUsagePercentage(used: number, total: number): number {
 /**
  * Format date for display
  */
-export function formatCreditDate(dateString: string): string {
+export function formatCreditDate(dateString: string | null | undefined): string {
+  // Handle null/undefined values
+  if (!dateString) {
+    return 'Not set'
+  }
+
   try {
     const date = new Date(dateString)
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid date'
+    }
+
+    // Check if date is Unix epoch (Jan 1, 1970) - likely from null conversion
+    if (date.getFullYear() === 1970) {
+      return 'Not set'
+    }
+
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',

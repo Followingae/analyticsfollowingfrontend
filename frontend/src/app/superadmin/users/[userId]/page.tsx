@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { superadminApiService } from "@/services/superadminApi"
-import { currencyService } from "@/services/currencyService"
+// Currency service removed - functionality to be reimplemented when needed
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"

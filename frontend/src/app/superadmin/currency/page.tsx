@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Pencil, Save, X, Globe } from 'lucide-react';
-import { currencyService, SupportedCurrency, CurrencySettings } from '@/services/currencyService';
+// Currency service removed - functionality to be reimplemented when needed
 import { superadminApiService } from '@/services/superadminApi';
 
 export const dynamic = 'force-dynamic'

@@ -57,33 +57,34 @@ const colors = {
   }
 }
 
-// Typography
+// Typography - MUCH LARGER for readability
 const typography = {
-  hero: { fontSize: 48, fontWeight: 900, letterSpacing: -2 },
-  h1: { fontSize: 36, fontWeight: 700, letterSpacing: -1.5 },
-  h2: { fontSize: 28, fontWeight: 700, letterSpacing: -1 },
-  h3: { fontSize: 20, fontWeight: 600, letterSpacing: -0.5 },
-  h4: { fontSize: 16, fontWeight: 600 },
-  body: { fontSize: 11, fontWeight: 400 },
-  bodyLarge: { fontSize: 13, fontWeight: 400 },
-  caption: { fontSize: 9, fontWeight: 400 },
-  micro: { fontSize: 8, fontWeight: 500 },
+  hero: { fontSize: 60, fontWeight: 900, letterSpacing: -2 },
+  h1: { fontSize: 48, fontWeight: 700, letterSpacing: -1.5 },
+  h2: { fontSize: 36, fontWeight: 700, letterSpacing: -1 },
+  h3: { fontSize: 28, fontWeight: 600, letterSpacing: -0.5 },
+  h4: { fontSize: 22, fontWeight: 600 },
+  body: { fontSize: 16, fontWeight: 400 },
+  bodyLarge: { fontSize: 18, fontWeight: 400 },
+  caption: { fontSize: 14, fontWeight: 400 },
+  micro: { fontSize: 12, fontWeight: 500 },
 }
 
 // Professional PDF styles with proper spacing and page breaks
 const styles = StyleSheet.create({
-  // Base page - Optimized for 16:9 landscape
+  // Base page - MUCH BETTER spacing and readability
   page: {
     fontFamily: 'Inter',
     backgroundColor: colors.white,
     color: colors.dark,
-    padding: 30,
-    paddingTop: 20,
-    paddingBottom: 60,
-    fontSize: 11,
+    padding: 50,
+    paddingTop: 40,
+    paddingBottom: 80,
+    fontSize: 16, // Increased base font size
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
+    lineHeight: 1.5, // Better line spacing
   },
 
   // Cover page - Pentagram-inspired bold design
@@ -273,27 +274,31 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
   },
 
-  // Content container - Fixed height to prevent overflow
+  // Content container - FIXED to prevent overflow and overlapping
   contentContainer: {
     flex: 1,
     width: '100%',
-    maxHeight: '85%',
-    overflow: 'hidden',
+    paddingBottom: 60, // Space for footer
+    // Remove maxHeight and overflow hidden that was cutting content
   },
 
-  // Section styles - Constrained height
+  // Section styles - FIXED spacing and page break prevention
   section: {
-    marginBottom: 16,
+    marginBottom: 40, // Much more space between sections
     width: '100%',
-    maxHeight: '50%',
+    paddingBottom: 20, // Internal padding to prevent overlapping
+    // Remove maxHeight constraint that was causing overflow
   },
 
   sectionTitle: {
     ...typography.h2,
     color: colors.dark,
-    marginBottom: 12,
-    paddingBottom: 4,
+    marginBottom: 20,
+    paddingBottom: 8,
     borderBottom: `3px solid ${colors.primary}`,
+    fontSize: 28, // Much larger and more readable
+    fontWeight: 700,
+    lineHeight: 1.2,
   },
 
   sectionSubtitle: {
@@ -302,22 +307,24 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // Grid layouts - Compact
+  // Grid layouts - FIXED spacing and overflow prevention
   fourColumnGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 12,
+    gap: 16, // More space between columns
+    marginBottom: 30, // More space after grid
     width: '100%',
-    maxHeight: '140px',
+    // Remove maxHeight that was causing overflow
     flexWrap: 'nowrap',
+    alignItems: 'stretch', // Prevent uneven heights
   },
 
   twoColumnGrid: {
     flexDirection: 'row',
-    gap: 20,
-    marginBottom: 20,
+    gap: 30, // More space between columns
+    marginBottom: 30, // More space after grid
     width: '100%',
+    alignItems: 'flex-start', // Prevent overlapping
   },
 
   threeColumnGrid: {
@@ -331,28 +338,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Metric cards - Compact sizing
+  // Metric cards - FIXED spacing and sizing
   metricCard: {
     backgroundColor: colors.white,
-    borderRadius: 6,
-    padding: 10,
+    borderRadius: 8,
+    padding: 20, // Much more internal padding
     flex: 1,
-    minWidth: 100,
-    maxWidth: 180,
-    maxHeight: 120,
+    minWidth: 140, // Larger minimum width
+    minHeight: 120, // Minimum height for consistency
     border: `1px solid ${colors.gray[100]}`,
-    overflow: 'hidden',
+    // Remove maxHeight that was cutting content
+    // Remove overflow hidden
   },
 
   metricCardPrimary: {
     backgroundColor: colors.primary,
-    borderRadius: 6,
-    padding: 10,
+    borderRadius: 8,
+    padding: 20, // Much more internal padding
     flex: 1,
-    minWidth: 100,
-    maxWidth: 180,
-    maxHeight: 120,
-    overflow: 'hidden',
+    minWidth: 140, // Larger minimum width
+    minHeight: 120, // Minimum height for consistency
+    // Remove maxHeight and overflow hidden
   },
 
   metricLabel: {
@@ -360,32 +366,40 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 6,
-    fontSize: 8,
+    marginBottom: 8,
+    fontSize: 16, // Much larger and more readable
+    fontWeight: 600,
+    lineHeight: 1.2,
   },
 
   metricLabelWhite: {
     ...typography.caption,
     color: colors.white,
-    opacity: 0.8,
+    opacity: 0.9,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 6,
-    fontSize: 8,
+    marginBottom: 8,
+    fontSize: 16, // Much larger and more readable
+    fontWeight: 600,
+    lineHeight: 1.2,
   },
 
   metricValue: {
     ...typography.h3,
     color: colors.dark,
     fontWeight: 900,
-    marginBottom: 4,
+    marginBottom: 6,
+    fontSize: 32, // Much larger and more readable
+    lineHeight: 1.1,
   },
 
   metricValueWhite: {
     ...typography.h3,
     color: colors.white,
     fontWeight: 900,
-    marginBottom: 4,
+    marginBottom: 6,
+    fontSize: 32, // Much larger and more readable
+    lineHeight: 1.1,
   },
 
   metricDescription: {

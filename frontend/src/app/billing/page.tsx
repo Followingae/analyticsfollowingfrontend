@@ -1,29 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import {
-  CreditCard,
-  DollarSign,
-  Calendar,
-  Download,
-  MoreHorizontal,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Plus,
-  Zap,
-  Star,
-  Settings,
-  Shield,
-  Receipt,
-  AlertTriangle,
-  TrendingUp,
-  Users,
-} from "lucide-react"
+import { ExternalLink, CreditCard, Users, Calendar, TrendingUp, Activity, Crown, Sparkles, Zap, Shield, ArrowUp, ArrowDown, Check } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -32,900 +13,520 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { AuthGuard } from "@/components/AuthGuard"
 import { creditsApiService } from "@/services/creditsApi"
-import { CreditDashboard, CreditTransaction, PricingRule } from "@/types"
-import { formatCredits, formatCreditDate, getCreditBalanceStatus } from "@/utils/creditUtils"
-import { InsufficientCreditsModal } from "@/components/credits/InsufficientCreditsModal"
+import {
+  StripeBillingDashboard,
+  StripeTopupOptions,
+  CreditTransaction,
+} from "@/services/creditsApi"
+import { formatCredits, formatCreditDate } from "@/utils/creditUtils"
 import { toast } from "sonner"
 
 export default function BillingPage() {
-  // State for real data
-  const [creditDashboard, setCreditDashboard] = useState<CreditDashboard | null>(null)
-  const [transactions, setTransactions] = useState<CreditTransaction[]>([])
-  const [pricing, setPricing] = useState<PricingRule[]>([])
+  // Stripe billing state
+  const [stripeBillingDashboard, setStripeBillingDashboard] = useState<StripeBillingDashboard | null>(null)
+  const [stripeTopupOptions, setStripeTopupOptions] = useState<StripeTopupOptions | null>(null)
+  const [recentTransactions, setRecentTransactions] = useState<CreditTransaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [transactionsLoading, setTransactionsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
 
-  // Load credit dashboard data
+  // Load Stripe billing data
   useEffect(() => {
-    const loadDashboardData = async () => {
+    const loadStripeBillingData = async () => {
       try {
         setLoading(true)
-        const [dashboardResult, pricingResult] = await Promise.all([
-          creditsApiService.getDashboard(),
-          creditsApiService.getAllPricing()
+
+        // Load Stripe billing data
+        const [stripeBillingResult, stripeTopupResult, transactionsResult] = await Promise.allSettled([
+          creditsApiService.getStripeBillingDashboard(),
+          creditsApiService.getStripeTopupOptions(),
+          creditsApiService.getRecentTransactions(5)
         ])
 
-        if (dashboardResult.success && dashboardResult.data) {
-          setCreditDashboard(dashboardResult.data)
+        // Handle Stripe billing dashboard
+        if (stripeBillingResult.status === 'fulfilled' && stripeBillingResult.value.success) {
+          console.log('🔍 Stripe Billing Dashboard Data:', JSON.stringify(stripeBillingResult.value.data, null, 2))
+          setStripeBillingDashboard(stripeBillingResult.value.data)
         } else {
-          // Handle permission errors gracefully - don't fail the page
-          if (dashboardResult.error?.includes('403') || dashboardResult.error?.includes('permission')) {
-
-            setError('Some billing features require premium access')
-          } else if (dashboardResult.error?.includes('401') || dashboardResult.error?.includes('Authentication')) {
-
-            setError('Authentication required. Please log in again.')
-          } else {
-            setError(dashboardResult.error || 'Failed to load dashboard data')
-          }
+          console.error('❌ Stripe Billing Dashboard Error:', stripeBillingResult)
+          toast.error('Failed to load subscription data')
         }
 
-        if (pricingResult.success && pricingResult.data) {
-          setPricing(pricingResult.data)
-        }
-      } catch (err) {
-
-        if (err instanceof Error && err.message.includes('Authentication')) {
-          setError('Session expired. Please log in again.')
+        // Handle Stripe topup options
+        if (stripeTopupResult.status === 'fulfilled' && stripeTopupResult.value.success) {
+          console.log('🔍 Stripe Topup Options Data:', JSON.stringify(stripeTopupResult.value.data, null, 2))
+          setStripeTopupOptions(stripeTopupResult.value.data)
         } else {
-          setError('Network error loading billing data')
+          console.error('❌ Stripe Topup Options Error:', stripeTopupResult)
         }
+
+        // Handle recent transactions (optional - don't block if it fails)
+        if (transactionsResult.status === 'fulfilled' && transactionsResult.value.success) {
+          setRecentTransactions(transactionsResult.value.data || [])
+        } else {
+          console.warn('⚠️ Transactions data not available')
+        }
+
+      } catch (error) {
+        console.error('Error loading billing data:', error)
+        toast.error('Failed to load billing data')
       } finally {
         setLoading(false)
       }
     }
 
-    loadDashboardData()
+    loadStripeBillingData()
   }, [])
 
-  // Load transactions
-  useEffect(() => {
-    const loadTransactions = async () => {
-      try {
-        setTransactionsLoading(true)
-        const result = await creditsApiService.getTransactions(20, 0)
+  // Handle subscription changes
+  const handleUpgrade = async (tier: 'standard' | 'premium') => {
+    try {
+      const result = await creditsApiService.upgradeSubscription(tier)
+      if (result.success) {
+        toast.success(result.data?.message || `Successfully upgraded to ${tier}`)
+        window.location.reload()
+      } else {
+        toast.error(result.error || 'Failed to upgrade subscription')
+      }
+    } catch (error) {
+      toast.error('Error upgrading subscription')
+    }
+  }
 
-        if (result.success && result.data) {
-          setTransactions(result.data.transactions || [])
-        } else {
-          // Handle transaction loading errors gracefully
-          if (result.error?.includes('403') || result.error?.includes('permission')) {
+  const handleDowngrade = async (tier: 'free' | 'standard') => {
+    try {
+      const result = await creditsApiService.downgradeSubscription(tier)
+      if (result.success) {
+        toast.success(result.data?.message || `Downgrade scheduled for period end`)
+        window.location.reload()
+      } else {
+        toast.error(result.error || 'Failed to downgrade subscription')
+      }
+    } catch (error) {
+      toast.error('Error downgrading subscription')
+    }
+  }
 
-            // Don't show error for permission issues
-          } else if (result.error?.includes('401') || result.error?.includes('Authentication')) {
+  const handleTopup = async (topupType: 'starter' | 'professional' | 'enterprise') => {
+    try {
+      const result = await creditsApiService.createStripeTopupPaymentLink(topupType)
+      if (result.success && result.data?.payment_link?.url) {
+        window.location.href = result.data.payment_link.url
+      } else {
+        toast.error(result.error || 'Failed to create payment link')
+      }
+    } catch (error) {
+      toast.error('Error creating payment link')
+    }
+  }
 
-            // Authentication issues will be handled by interceptor
-          } else {
-
-          }
-        }
-      } catch (err) {
-
-        // Don't propagate transaction loading errors to prevent logout loops
-      } finally {
-        setTransactionsLoading(false)
+  // Tier configurations
+  const getTierConfig = (tier: string) => {
+    const configs = {
+      free: {
+        icon: Shield,
+        name: 'Free',
+        color: 'text-gray-600',
+        bgColor: 'bg-gray-50',
+        borderColor: 'border-gray-200',
+        price: '$0',
+        description: 'Perfect for getting started'
+      },
+      standard: {
+        icon: Zap,
+        name: 'Standard',
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-200',
+        price: '$199',
+        description: 'Great for growing teams'
+      },
+      premium: {
+        icon: Crown,
+        name: 'Premium',
+        color: 'text-primary',
+        bgColor: 'bg-primary/5',
+        borderColor: 'border-primary/20',
+        price: '$499',
+        description: 'Enterprise-grade features'
       }
     }
-
-    loadTransactions()
-  }, [])
-
-  // Handle credit purchase
-  const handlePurchaseCredits = async (credits: number) => {
-    try {
-      // For now, show modal - payment integration will come later
-      setShowPurchaseModal(true)
-      toast.info('Payment integration coming soon!')
-    } catch (error) {
-      toast.error('Failed to process purchase')
-    }
+    return configs[tier as keyof typeof configs] || configs.free
   }
 
-  // Mock invoices for billing history (until payment system is integrated)
-  const invoices = [
-    {
-      id: "INV-001",
-      date: "2024-07-01",
-      amount: 5505,
-      status: "paid",
-      description: "Monthly subscription - Pro Plan",
-      dueDate: "2024-07-15",
-    },
-    {
-      id: "INV-002",
-      date: "2024-06-01",
-      amount: 5505,
-      status: "paid",
-      description: "Monthly subscription - Pro Plan",
-      dueDate: "2024-06-15",
-    },
-    {
-      id: "INV-003",
-      date: "2024-05-01",
-      amount: 4404,
-      status: "paid",
-      description: "Credit package - 5000 credits",
-      dueDate: "2024-05-15",
-    },
-    {
-      id: "INV-004",
-      date: "2024-04-01",
-      amount: 5505,
-      status: "overdue",
-      description: "Monthly subscription - Pro Plan",
-      dueDate: "2024-04-15",
-    },
-  ]
-
-  const teamPlans = [
-    {
-      name: "Free Team",
-      price: 0,
-      period: "Forever",
-      teamMembers: 1,
-      limits: {
-        profiles: 5,
-        emails: 0,
-        posts: 0
-      },
-      features: [
-        "5 profile analyses per month",
-        "1 team member",
-        "Basic analytics",
-        "Manual data refresh",
-        "Community support"
-      ],
-      popular: false,
-    },
-    {
-      name: "Standard Team",
-      price: 199,
-      period: "month",
-      teamMembers: 2,
-      limits: {
-        profiles: 500,
-        emails: 250,
-        posts: 125
-      },
-      features: [
-        "500 profile analyses per month",
-        "Up to 2 team members",
-        "250 email unlocks per month",
-        "125 post analyses per month",
-        "Complete analytics & AI insights",
-        "Data export capabilities",
-        "Priority support"
-      ],
-      popular: true,
-    },
-    {
-      name: "Premium Team",
-      price: 499,
-      period: "month",
-      teamMembers: 5,
-      limits: {
-        profiles: 2000,
-        emails: 800,
-        posts: 300
-      },
-      features: [
-        "2000 profile analyses per month",
-        "Up to 5 team members",
-        "800 email unlocks per month",
-        "300 post analyses per month",
-        "Complete analytics & AI insights",
-        "Data export capabilities",
-        "Priority support",
-        "Advanced team management"
-      ],
-      popular: false,
-    },
-  ]
-
-  const formatCurrency = (amount: number) => {
-    const formattedAmount = new Intl.NumberFormat('ar-AE', {
-      style: 'decimal',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount);
+  if (loading) {
     return (
-      <>
-        <span className="aed-currency">AED</span> {formattedAmount}
-      </>
-    );
+      <AuthGuard>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <SiteHeader />
+            <main className="flex-1 p-6">
+              <div className="max-w-7xl mx-auto space-y-8">
+                {/* Loading State */}
+                <div className="space-y-6">
+                  <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({length: 6}).map((_, i) => (
+                      <Card key={i} className="h-40">
+                        <CardContent className="p-6">
+                          <div className="space-y-3">
+                            <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                            <div className="h-8 w-3/4 bg-muted animate-pulse rounded" />
+                            <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
+      </AuthGuard>
+    )
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "paid":
-        return (
-          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Paid
-          </Badge>
-        )
-      case "pending":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100">
-            <Clock className="h-3 w-3 mr-1" />
-            Pending
-          </Badge>
-        )
-      case "overdue":
-        return (
-          <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100">
-            <XCircle className="h-3 w-3 mr-1" />
-            Overdue
-          </Badge>
-        )
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
+  // If no Stripe data available, show fallback
+  if (!stripeBillingDashboard) {
+    return (
+      <AuthGuard>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <SiteHeader />
+            <main className="flex-1 p-6">
+              <div className="max-w-7xl mx-auto">
+                <Card className="p-8 text-center">
+                  <CardContent>
+                    <div className="mx-auto w-12 h-12 bg-muted rounded-lg flex items-center justify-center mb-4">
+                      <CreditCard className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h2 className="text-xl font-semibold mb-2">Billing Data Unavailable</h2>
+                    <p className="text-muted-foreground mb-4">
+                      We're unable to load your billing information at the moment.
+                    </p>
+                    <Button onClick={() => window.location.reload()}>
+                      Try Again
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
+      </AuthGuard>
+    )
   }
+
+  const tierConfig = getTierConfig(stripeBillingDashboard.subscription.tier)
+  const TierIcon = tierConfig.icon
 
   return (
-    <AuthGuard requireAuth={true}>
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-            
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold">Billing & Subscription Hub</h1>
-                <p className="text-muted-foreground">
-                  Manage your subscription plans, credits usage, and billing with comprehensive analytics
-                </p>
+    <AuthGuard>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <SiteHeader />
+          <main className="flex-1 p-6">
+            <div className="max-w-7xl mx-auto space-y-8">
+              {/* Header */}
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight">Billing & Subscription</h1>
+                  <p className="text-muted-foreground text-lg mt-2">
+                    Manage your subscription and monitor credit usage
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="px-3 py-1">
+                    {stripeBillingDashboard.subscription.status === 'active' ? '✅ Active' : '⚠️ ' + stripeBillingDashboard.subscription.status}
+                  </Badge>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Payment Methods
-                </Button>
-                <Button variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Invoices
-                </Button>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Purchase Credits
-                </Button>
-              </div>
-            </div>
 
-            {/* Current Plan Overview - Now using real data */}
-            {loading ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {Array.from({length: 4}).map((_, i) => (
-                  <Card key={i}>
-                    <CardContent className="p-6">
-                      <div className="h-4 w-full bg-muted animate-pulse rounded mb-2" />
-                      <div className="h-8 w-3/4 bg-muted animate-pulse rounded mb-1" />
-                      <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : error ? (
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center text-red-600">
-                    <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
-                    <p>{error}</p>
+              {/* Current Plan Hero Card */}
+              <Card className={`border-2 ${tierConfig.borderColor} ${tierConfig.bgColor} relative overflow-hidden`}>
+                <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
+                  <TierIcon className="w-full h-full" />
+                </div>
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-xl ${tierConfig.bgColor} border ${tierConfig.borderColor}`}>
+                      <TierIcon className={`h-6 w-6 ${tierConfig.color}`} />
+                    </div>
+                    <div>
+                      <CardTitle className="text-2xl flex items-center gap-2">
+                        {tierConfig.name} Plan
+                        {stripeBillingDashboard.subscription.tier === 'premium' && (
+                          <Crown className="h-5 w-5 text-yellow-500" />
+                        )}
+                      </CardTitle>
+                      <CardDescription className="text-base">
+                        {tierConfig.description} • {tierConfig.price}/month
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Usage Progress */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium">Credit Usage This Cycle</h4>
+                      <span className="text-sm text-muted-foreground">
+                        {formatCredits(stripeBillingDashboard.usage.credits_used_this_cycle)} / {formatCredits(stripeBillingDashboard.tier_limits.monthly_credits)}
+                      </span>
+                    </div>
+                    <Progress
+                      value={stripeBillingDashboard.usage.percentage_used}
+                      className="h-3"
+                    />
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>{stripeBillingDashboard.usage.percentage_used.toFixed(1)}% used</span>
+                      <span>Resets: {formatCreditDate(stripeBillingDashboard.subscription.current_period_end)}</span>
+                    </div>
+                  </div>
+
+                  {/* Plan Features Grid */}
+                  <div className="grid md:grid-cols-3 gap-4 pt-4 border-t">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">{formatCredits(stripeBillingDashboard.tier_limits.monthly_credits)}</div>
+                      <div className="text-sm text-muted-foreground">Monthly Credits</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">{stripeBillingDashboard.tier_limits.max_team_members}</div>
+                      <div className="text-sm text-muted-foreground">Team Members</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">{stripeBillingDashboard.tier_limits.features.length}</div>
+                      <div className="text-sm text-muted-foreground">Features</div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+
+              {/* Action Cards Grid */}
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Subscription Management */}
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Current Plan</CardTitle>
-                    <Star className="h-4 w-4 text-muted-foreground" />
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ArrowUp className="h-5 w-5 text-green-600" />
+                      Subscription Changes
+                    </CardTitle>
+                    <CardDescription>
+                      Upgrade or downgrade your plan
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {creditDashboard?.wallet.package_name || 'Free'}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {creditDashboard?.wallet.wallet_status === 'active' ? 'Active' : 'Inactive'}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Credits Remaining</CardTitle>
-                    <Zap className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {creditDashboard ? formatCredits(creditDashboard.wallet.current_balance) : '--'}
-                    </div>
-                    {creditDashboard && (
+                  <CardContent className="space-y-3">
+                    {stripeBillingDashboard.subscription.tier === 'free' && (
                       <>
-                        <Progress 
-                          value={
-                            creditDashboard.wallet.monthly_allowance > 0 
-                              ? (creditDashboard.wallet.current_balance / creditDashboard.wallet.monthly_allowance) * 100 
-                              : 0
-                          } 
-                          className="mt-2" 
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          of {formatCredits(creditDashboard.wallet.monthly_allowance)} monthly allowance
-                        </p>
+                        <Button onClick={() => handleUpgrade('standard')} className="w-full" size="lg">
+                          <Zap className="h-4 w-4 mr-2" />
+                          Upgrade to Standard ($199/month)
+                        </Button>
+                        <Button onClick={() => handleUpgrade('premium')} className="w-full" size="lg">
+                          <Crown className="h-4 w-4 mr-2" />
+                          Upgrade to Premium ($499/month)
+                        </Button>
                       </>
+                    )}
+
+                    {stripeBillingDashboard.subscription.tier === 'standard' && (
+                      <>
+                        <Button onClick={() => handleUpgrade('premium')} className="w-full" size="lg">
+                          <Crown className="h-4 w-4 mr-2" />
+                          Upgrade to Premium ($499/month)
+                        </Button>
+                        <Button variant="outline" onClick={() => handleDowngrade('free')} className="w-full">
+                          <ArrowDown className="h-4 w-4 mr-2" />
+                          Downgrade to Free (at period end)
+                        </Button>
+                      </>
+                    )}
+
+                    {stripeBillingDashboard.subscription.tier === 'premium' && (
+                      <>
+                        <Button variant="outline" onClick={() => handleDowngrade('standard')} className="w-full">
+                          <ArrowDown className="h-4 w-4 mr-2" />
+                          Downgrade to Standard (at period end)
+                        </Button>
+                        <Button variant="outline" onClick={() => handleDowngrade('free')} className="w-full">
+                          <ArrowDown className="h-4 w-4 mr-2" />
+                          Downgrade to Free (at period end)
+                        </Button>
+                      </>
+                    )}
+
+                    {stripeBillingDashboard.subscription.cancel_at_period_end && (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-800">
+                          ⚠️ Your subscription will be cancelled at the end of the current period.
+                        </p>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Current Balance */}
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Monthly Usage</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-purple-600" />
+                      Current Balance
+                    </CardTitle>
+                    <CardDescription>
+                      Available credits in your account
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
-                      {creditDashboard ? formatCredits(creditDashboard.monthly_usage.total_spent) : '--'}
+                    <div className="text-center space-y-2">
+                      <div className="text-4xl font-bold text-primary">
+                        {formatCredits(stripeBillingDashboard.credit_summary.current_balance)}
+                      </div>
+                      <div className="text-muted-foreground">Credits Available</div>
+                      <div className="text-sm text-muted-foreground">
+                        Total spent this cycle: {formatCredits(stripeBillingDashboard.credit_summary.total_spent)}
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {creditDashboard ? `${creditDashboard.monthly_usage.actions_performed} actions` : '--'}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Unlocked Profiles</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {creditDashboard?.unlocked_influencers_count || 0}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Total analyzed
-                    </p>
                   </CardContent>
                 </Card>
               </div>
-            )}
 
-            {/* Alert for overdue payments */}
-            {invoices.some(invoice => invoice.status === 'overdue') && (
-              <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
-                <CardContent className="flex items-center gap-4 pt-4">
-                  <AlertTriangle className="h-5 w-5 text-red-600" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-red-800 dark:text-red-200">Payment Required</h3>
-                    <p className="text-sm text-red-600 dark:text-red-300">
-                      You have overdue invoices that require immediate attention.
-                    </p>
-                  </div>
-                  <Button variant="destructive" size="sm">
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Pay Now
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Tabs for different sections */}
-            <Tabs defaultValue="plans" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="plans">Plans & Pricing</TabsTrigger>
-                <TabsTrigger value="billing">Billing History</TabsTrigger>
-                <TabsTrigger value="credits">Credits & Usage</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="plans" className="space-y-6">
-                {/* Pricing Plans */}
+              {/* Credit Topup Packages */}
+              {stripeTopupOptions && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Team Subscription Plans</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                      Buy Additional Credits
+                      {stripeTopupOptions.eligible_for_discount && (
+                        <Badge className="bg-green-100 text-green-800 border-green-200">
+                          20% Premium Discount!
+                        </Badge>
+                      )}
+                    </CardTitle>
                     <CardDescription>
-                      Choose the team plan that fits your collaborative analytics needs. All plans include pooled usage limits shared across team members.
+                      {stripeTopupOptions.eligible_for_discount
+                        ? 'Premium users save 20% on all credit purchases'
+                        : 'Purchase additional credits for your account'}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-6 md:grid-cols-3">
-                      {teamPlans.map((plan) => (
-                        <div
-                          key={plan.name}
-                          className={`relative rounded-lg border p-6 ${
-                            plan.popular ? 'border-primary bg-primary/5' : 'border-border'
-                          }`}
-                        >
-                          {plan.popular && (
-                            <Badge className="absolute -top-2 left-1/2 -translate-x-1/2">
-                              Most Popular
-                            </Badge>
+                      {stripeTopupOptions.packages.map((pkg) => (
+                        <Card key={pkg.type} className={`relative border-2 transition-all hover:border-primary/50 hover:shadow-lg ${
+                          pkg.type === 'professional' ? 'border-primary/30 bg-primary/5' : 'border-border'
+                        }`}>
+                          {pkg.type === 'professional' && (
+                            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                              <Badge className="bg-primary text-primary-foreground">Most Popular</Badge>
+                            </div>
                           )}
-                          <div className="text-center">
-                            <h3 className="text-lg font-semibold">{plan.name}</h3>
-                            <div className="mt-2">
-                              <span className="text-3xl font-bold">
-                                {plan.price === 0 ? 'Free' : formatCurrency(plan.price)}
-                              </span>
-                              <span className="text-muted-foreground">/{plan.period}</span>
-                            </div>
-                            <div className="mt-2">
-                              <Badge variant="outline" className="text-xs">
-                                <Users className="h-3 w-3 mr-1" />
-                                {plan.teamMembers} team member{plan.teamMembers !== 1 ? 's' : ''}
-                              </Badge>
-                            </div>
-                          </div>
-
-                          {/* Usage Limits Summary */}
-                          <div className="mt-4 p-3 bg-muted rounded-lg">
-                            <h4 className="text-sm font-medium mb-2">Monthly Limits (Shared)</h4>
-                            <div className="space-y-1 text-xs">
-                              <div className="flex justify-between">
-                                <span>👤 Profile analyses</span>
-                                <span className="font-medium">{plan.limits.profiles.toLocaleString()}</span>
+                          <CardContent className="p-6 text-center space-y-4">
+                            <div>
+                              <h4 className="text-xl font-bold capitalize">{pkg.type}</h4>
+                              <div className="text-3xl font-bold text-primary mt-2">
+                                {formatCredits(pkg.credits)}
                               </div>
-                              {plan.limits.emails > 0 && (
-                                <div className="flex justify-between">
-                                  <span>📧 Email unlocks</span>
-                                  <span className="font-medium">{plan.limits.emails.toLocaleString()}</span>
-                                </div>
-                              )}
-                              {plan.limits.posts > 0 && (
-                                <div className="flex justify-between">
-                                  <span>📊 Post analyses</span>
-                                  <span className="font-medium">{plan.limits.posts.toLocaleString()}</span>
+                              <div className="text-sm text-muted-foreground">Credits</div>
+                            </div>
+
+                            <div className="space-y-2">
+                              {pkg.discount_percentage > 0 ? (
+                                <>
+                                  <div className="flex items-center justify-center gap-2">
+                                    <span className="text-lg text-gray-500 line-through">
+                                      ${pkg.base_price}
+                                    </span>
+                                    <Badge variant="secondary" className="bg-green-100 text-green-700">
+                                      {pkg.discount_percentage}% off
+                                    </Badge>
+                                  </div>
+                                  <div className="text-2xl font-bold text-green-600">
+                                    ${pkg.discounted_price}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="text-2xl font-bold">
+                                  ${pkg.base_price}
                                 </div>
                               )}
                             </div>
-                          </div>
 
-                          <ul className="mt-4 space-y-3">
-                            {plan.features.map((feature, index) => (
-                              <li key={index} className="flex items-center gap-2 text-sm">
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                                {feature}
-                              </li>
-                            ))}
-                          </ul>
-                          <Button
-                            className="mt-6 w-full"
-                            variant={plan.popular ? "default" : "outline"}
-                          >
-                            {plan.name === "Standard Team" ? "Current Plan" : 
-                             plan.price === 0 ? "Current Plan" : "Upgrade Team"}
-                          </Button>
+                            <Button
+                              onClick={() => handleTopup(pkg.type)}
+                              className="w-full"
+                              size="lg"
+                              variant={pkg.type === 'professional' ? 'default' : 'outline'}
+                            >
+                              <CreditCard className="h-4 w-4 mr-2" />
+                              Buy Credits
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Recent Transactions (if available) */}
+              {recentTransactions.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-blue-600" />
+                      Recent Transactions
+                    </CardTitle>
+                    <CardDescription>
+                      Your latest credit transactions
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {recentTransactions.slice(0, 5).map((transaction) => (
+                        <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${
+                              transaction.transaction_type === 'spent' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                            }`}>
+                              {transaction.transaction_type === 'spent' ? '-' : '+'}
+                            </div>
+                            <div>
+                              <p className="font-medium">{transaction.description}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {formatCreditDate(transaction.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-semibold ${
+                              transaction.transaction_type === 'spent' ? 'text-red-600' : 'text-green-600'
+                            }`}>
+                              {transaction.transaction_type === 'spent' ? '-' : '+'}
+                              {formatCredits(transaction.amount)}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Balance: {formatCredits(transaction.balance_after)}
+                            </p>
+                          </div>
                         </div>
                       ))}
                     </div>
-                    
-                    {/* Team Plan Benefits */}
-                    <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                      <h4 className="text-lg font-semibold mb-3">🚀 Team Plan Benefits</h4>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <h5 className="font-medium">👥 Collaborative Analytics</h5>
-                          <p className="text-sm text-muted-foreground">
-                            Share insights and analysis work across your entire team with role-based permissions.
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <h5 className="font-medium">📊 Pooled Usage Limits</h5>
-                          <p className="text-sm text-muted-foreground">
-                            Team members share monthly limits, maximizing efficiency and reducing individual restrictions.
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <h5 className="font-medium">⚡ Same Analytics Power</h5>
-                          <p className="text-sm text-muted-foreground">
-                            All team plans get identical comprehensive analytics - only usage capacity differs.
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <h5 className="font-medium">🔒 Team Management</h5>
-                          <p className="text-sm text-muted-foreground">
-                            Team owners can invite members, manage permissions, and control billing centrally.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
-
-              <TabsContent value="billing" className="space-y-6">
-                {/* Billing History */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center">
-                    <div className="grid gap-2">
-                      <CardTitle>Billing History</CardTitle>
-                      <CardDescription>
-                        Your recent invoices and payment history
-                      </CardDescription>
-                    </div>
-                    <Button size="sm" className="ml-auto gap-1">
-                      <Download className="h-4 w-4" />
-                      Download All
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Invoice</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Due Date</TableHead>
-                          <TableHead className="w-[70px]"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {invoices.map((invoice) => (
-                          <TableRow key={invoice.id}>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">{invoice.id}</div>
-                                <div className="text-sm text-muted-foreground max-w-[200px] truncate">
-                                  {invoice.description}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {new Date(invoice.date).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <div className="font-medium">{formatCurrency(invoice.amount)}</div>
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(invoice.status)}
-                            </TableCell>
-                            <TableCell>
-                              {new Date(invoice.dueDate).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Download PDF
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <Receipt className="h-4 w-4 mr-2" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  {invoice.status === 'overdue' && (
-                                    <DropdownMenuItem>
-                                      <CreditCard className="h-4 w-4 mr-2" />
-                                      Pay Now
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="credits" className="space-y-6">
-                {/* Credits and Usage - Now with real data */}
-                <div className="grid gap-6 md:grid-cols-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Zap className="h-5 w-5" />
-                        Credit Usage
-                      </CardTitle>
-                      <CardDescription>
-                        Track your monthly credit consumption
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {creditDashboard ? (
-                        <>
-                          <div className="flex justify-between text-sm">
-                            <span>Used this month</span>
-                            <span className="font-medium">{formatCredits(creditDashboard.monthly_usage.total_spent)} credits</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Remaining</span>
-                            <span className="font-medium">{formatCredits(creditDashboard.wallet.current_balance)} credits</span>
-                          </div>
-                          <Progress 
-                            value={
-                              creditDashboard.wallet.monthly_allowance > 0 
-                                ? (creditDashboard.monthly_usage.total_spent / creditDashboard.wallet.monthly_allowance) * 100 
-                                : 0
-                            } 
-                            className="h-3" 
-                          />
-                          <div className="text-xs text-muted-foreground">
-                            {Math.round((creditDashboard.monthly_usage.total_spent / creditDashboard.wallet.monthly_allowance) * 100)}% of monthly allowance used
-                          </div>
-                          
-                          <div className="pt-4 space-y-2">
-                            <h4 className="text-sm font-medium">Credit Usage Breakdown</h4>
-                            <div className="space-y-1 text-sm">
-                              {creditDashboard.monthly_usage.top_actions.map((action, index) => (
-                                <div key={action} className="flex justify-between">
-                                  <span className="text-muted-foreground capitalize">
-                                    {action.replace(/_/g, ' ')}
-                                  </span>
-                                  <span>{Math.round(creditDashboard.monthly_usage.total_spent * (0.7 - index * 0.2))} credits</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="h-4 bg-muted animate-pulse rounded" />
-                          <div className="h-4 bg-muted animate-pulse rounded" />
-                          <div className="h-2 bg-muted animate-pulse rounded" />
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Plus className="h-5 w-5" />
-                        Buy Additional Credits
-                      </CardTitle>
-                      <CardDescription>
-                        Purchase credit packages for extended usage
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid gap-3">
-                        <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                          <div>
-                            <div className="font-medium">1,000 Credits</div>
-                            <div className="text-sm text-muted-foreground">Basic package</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium">{formatCurrency(180)}</div>
-                            <Button size="sm" variant="outline" onClick={() => handlePurchaseCredits(1000)}>
-                              Buy
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                          <div>
-                            <div className="font-medium">5,000 Credits</div>
-                            <div className="text-sm text-muted-foreground">Popular choice</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium">{formatCurrency(730)}</div>
-                            <Button size="sm" onClick={() => handlePurchaseCredits(5000)}>
-                              Buy
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                          <div>
-                            <div className="font-medium">10,000 Credits</div>
-                            <div className="text-sm text-muted-foreground">Best value</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium">{formatCurrency(1281)}</div>
-                            <Button size="sm" variant="outline" onClick={() => handlePurchaseCredits(10000)}>
-                              Buy
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Real Transaction History */}
-                      {transactions.length > 0 && (
-                        <div className="pt-4 space-y-2">
-                          <h4 className="text-sm font-medium">Recent Transactions</h4>
-                          <div className="space-y-2 max-h-32 overflow-y-auto">
-                            {transactions.slice(0, 5).map((transaction) => (
-                              <div key={transaction.id} className="flex justify-between text-xs p-2 bg-muted rounded">
-                                <span className="capitalize">
-                                  {transaction.action_type.replace(/_/g, ' ')}
-                                </span>
-                                <span className={transaction.transaction_type === 'debit' ? 'text-red-600' : 'text-green-600'}>
-                                  {transaction.transaction_type === 'debit' ? '-' : '+'}{formatCredits(Math.abs(transaction.amount))}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Pricing Rules Display */}
-                {pricing.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Current Pricing</CardTitle>
-                      <CardDescription>
-                        Credit costs for premium features
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-3 md:grid-cols-2">
-                        {pricing.map((rule) => (
-                          <div key={rule.action_type} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div>
-                              <div className="font-medium capitalize">
-                                {rule.action_type.replace(/_/g, ' ')}
-                              </div>
-                              {rule.free_allowance_per_month > 0 && (
-                                <div className="text-sm text-green-600">
-                                  {rule.free_allowance_per_month} free/month
-                                </div>
-                              )}
-                            </div>
-                            <Badge variant="outline">
-                              {formatCredits(rule.credits_per_action)} credits
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-            </Tabs>
-
-            {/* Usage Analytics & Optimization */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Usage Analytics & Cost Optimization
-                </CardTitle>
-                <CardDescription>
-                  Track your spending patterns and get recommendations to optimize your subscription
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium">Monthly Usage Trends</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">Peak Usage Month</p>
-                          <p className="text-xs text-muted-foreground">July 2024 - {formatCurrency(694)} spent</p>
-                        </div>
-                        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
-                          +23%
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">Average Monthly Cost</p>
-                          <p className="text-xs text-muted-foreground">Based on last 6 months</p>
-                        </div>
-                        <span className="text-sm font-medium">{formatCurrency(573)}</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">Cost per Analysis</p>
-                          <p className="text-xs text-muted-foreground">Creator profile analysis</p>
-                        </div>
-                        <span className="text-sm font-medium">{formatCurrency(9.2)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium">Optimization Recommendations</h4>
-                    <div className="space-y-3">
-                      <div className="p-3 border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <div className="w-2 h-2 rounded-full bg-green-500 mt-2" />
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                              Consider upgrading to Enterprise
-                            </p>
-                            <p className="text-xs text-green-600 dark:text-green-300">
-                              Save {formatCurrency(165)}/month with unlimited creator unlocks
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-3 border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                              Bulk credit purchase discount
-                            </p>
-                            <p className="text-xs text-blue-600 dark:text-blue-300">
-                              Buy 10,000 credits and save 15% on your next purchase
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-3 border border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <div className="w-2 h-2 rounded-full bg-purple-500 mt-2" />
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
-                              Annual billing savings
-                            </p>
-                            <p className="text-xs text-purple-600 dark:text-purple-300">
-                              Switch to annual billing and save {formatCurrency(1314)} per year
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </SidebarInset>
-
-      {/* Purchase Credits Modal */}
-      <InsufficientCreditsModal
-        isOpen={showPurchaseModal}
-        onClose={() => setShowPurchaseModal(false)}
-        actionName="purchase credits"
-        message="Payment integration coming soon! Contact support for custom packages."
-      />
+              )}
+            </div>
+          </main>
+        </SidebarInset>
       </SidebarProvider>
     </AuthGuard>
   )

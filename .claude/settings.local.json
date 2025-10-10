@@ -88,7 +88,11 @@
       "Bash(start http://localhost:3002/campaigns)",
       "Bash(certutil:*)",
       "Bash(del temp.txt)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git clean:*)",
+      "Bash(start http://localhost:3001)",
+      "Bash(start http://localhost:3001/billing)",
+      "Bash(start http://localhost:3001/campaigns/1)"
     ],
     "deny": [],
     "additionalDirectories": [
