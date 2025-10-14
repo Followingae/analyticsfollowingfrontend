@@ -37,6 +37,6 @@
     "boring-avatars": "^2.0.1"
   },
   "devDependencies": {
-    "shadcn": "^3.2.1"
+    "shadcn": "^3.4.0"
   }
 }

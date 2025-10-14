@@ -100,7 +100,13 @@ export const ENDPOINTS = {
 
   // Discovery (/api/v1/discovery/)
   discovery: {
-    search: '/api/v1/discovery/search', // GET - Search creators with filters
+    browse: '/api/v1/discovery/browse', // GET - Browse all profiles with filtering
+    unlockProfile: '/api/v1/discovery/unlock-profile', // POST - Unlock profile for 30 days (25 credits)
+    unlockedProfiles: '/api/v1/discovery/unlocked-profiles', // GET - User's unlocked profiles
+    dashboard: '/api/v1/discovery/dashboard', // GET - Discovery statistics
+    searchAdvanced: '/api/v1/discovery/search-advanced', // GET - Advanced search
+    categories: '/api/v1/discovery/categories', // GET - Available content categories
+    pricing: '/api/v1/discovery/pricing', // GET - Pricing information
   },
 
   // Post Analytics (/api/v1/post-analytics/)
