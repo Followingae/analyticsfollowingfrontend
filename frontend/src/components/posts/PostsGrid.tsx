@@ -172,32 +172,6 @@ export default function PostsGrid({ username }: PostsGridProps) {
         ))}
       </div>
 
-      {/* Load More Button */}
-      {pagination?.has_more && (
-        <div className="text-center">
-          <Button 
-            onClick={loadMorePosts} 
-            disabled={loading}
-            variant="outline"
-            size="lg"
-            className="px-8"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Loading More...
-              </>
-            ) : (
-              <>
-                Load More Posts
-                <Badge variant="secondary" className="ml-2">
-                  {(pagination.total - posts.length).toLocaleString()} remaining
-                </Badge>
-              </>
-            )}
-          </Button>
-        </div>
-      )}
 
       {/* End of Posts Message */}
       {pagination && !pagination.has_more && posts.length > 0 && (

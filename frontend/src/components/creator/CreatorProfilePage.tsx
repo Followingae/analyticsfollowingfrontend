@@ -780,15 +780,6 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
                   </Card>
                 ))}
               </div>
-              
-              {aiAnalysis.data.posts_analysis.length > 12 && (
-                <div className="text-center pt-6">
-                  <Button variant="outline">
-                    <Eye className="h-4 w-4 mr-2" />
-                    Load More Posts
-                  </Button>
-                </div>
-              )}
             </>
           ) : (
             <Card>
