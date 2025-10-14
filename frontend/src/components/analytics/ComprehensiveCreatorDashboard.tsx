@@ -581,7 +581,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
               }
             },
             posts: {
-              recent_posts: (response.posts || []).slice(0, 3).map(post => ({
+              recent_posts: (response.posts || []).map(post => ({
                   post_data: {
                     instagram_post_id: post.id || "unknown",
                     caption: post.caption || "",
@@ -2443,18 +2443,6 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   </div>
                 ))}
 
-                {/* Load More Placeholder - when you implement pagination */}
-                {(data.posts.recent_posts?.length ?? 0) > 0 && (
-                  <div className="group relative bg-muted/20 rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/20 hover:border-primary/30 transition-colors duration-200">
-                    <div className="aspect-square flex items-center justify-center">
-                      <div className="text-center text-muted-foreground group-hover:text-primary transition-colors">
-                        <RefreshCw className="h-8 w-8 mx-auto mb-2" />
-                        <div className="text-sm font-medium">Load More Posts</div>
-                        <div className="text-xs">View additional content</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>

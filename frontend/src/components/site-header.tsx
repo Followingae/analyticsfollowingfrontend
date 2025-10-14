@@ -174,42 +174,52 @@ export function SiteHeader() {
             </div>
           )}
           
-          
-          {/* Balloon Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => balloonsRef.current?.launchAnimation()}
-            className="h-8 w-8"
-            title="Launch celebration balloons!"
-          >
-            <PartyPopper className="h-4 w-4" />
-          </Button>
 
-          <ModeToggle />
+          {/* Navigation Icons Group */}
+          <div className="flex items-center gap-1">
+            {/* Balloon Button */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => balloonsRef.current?.launchAnimation()}
+                    title="Launch celebration balloons!"
+                  >
+                    <PartyPopper className="h-[1.2rem] w-[1.2rem]" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Launch balloons</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          {/* Always visible sign out button */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    logout()
-                    router.push('/auth/login')
-                  }}
-                  className="h-8 w-8"
-                  aria-label="Sign out"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <p>Sign out</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <ModeToggle />
+
+            {/* Sign out button */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      logout()
+                      router.push('/auth/login')
+                    }}
+                    aria-label="Sign out"
+                  >
+                    <LogOut className="h-[1.2rem] w-[1.2rem]" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Sign out</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
       

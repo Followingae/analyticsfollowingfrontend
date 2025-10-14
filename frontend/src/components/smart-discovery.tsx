@@ -31,7 +31,7 @@ export function SmartDiscovery({
       
       {/* Adaptive gradient overlay for better text readability in both light and dark modes */}
       <div className="absolute inset-0 z-10 bg-background/20 dark:bg-background/40 transition-all duration-700 ease-out rounded-xl" />
-      <div className="absolute inset-0 z-10 opacity-0 group-hover:opacity-100 bg-background/30 dark:bg-background/60 transition-all duration-700 ease-out rounded-xl" />
+      <div className="absolute inset-0 z-10 opacity-0 group-hover:opacity-100 bg-background/30 dark:bg-background/20 transition-all duration-700 ease-out rounded-xl" />
       
       
       

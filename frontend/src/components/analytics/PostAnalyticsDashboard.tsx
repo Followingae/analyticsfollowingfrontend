@@ -13,7 +13,6 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  Eye,
   Play,
   Image as ImageIcon,
   Grid3x3,
@@ -38,8 +37,6 @@ interface PostAnalyticsDashboardProps {
   isLoading?: boolean
   error?: string | null
   onRefresh?: () => void
-  onLoadMore?: () => void
-  hasMore?: boolean
 }
 
 interface PostCardProps {
@@ -228,9 +225,7 @@ export function PostAnalyticsDashboard({
   posts,
   isLoading = false,
   error = null,
-  onRefresh,
-  onLoadMore,
-  hasMore = false
+  onRefresh
 }: PostAnalyticsDashboardProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -472,19 +467,6 @@ export function PostAnalyticsDashboard({
         </div>
       )}
 
-      {/* Load More */}
-      {hasMore && onLoadMore && (
-        <div className="text-center">
-          <Button onClick={onLoadMore} variant="outline" disabled={isLoading}>
-            {isLoading ? (
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Eye className="h-4 w-4 mr-2" />
-            )}
-            Load More Posts
-          </Button>
-        </div>
-      )}
     </div>
   )
 }
