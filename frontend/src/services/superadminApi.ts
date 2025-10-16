@@ -773,6 +773,46 @@ export interface WorkerActivityResponse {
   }
 }
 
+// Discovery Control Types
+export interface UnprocessedProfile {
+  related_username: string
+  similarity_score: number
+  discovered_at: string
+  processing_status: string
+  related_followers_count: number
+}
+
+export interface DiscoveryQueueStatus {
+  processor_running: boolean
+  worker_active: boolean
+  discovery_stats: {
+    total_discovered: number
+    unprocessed_count: number
+    processed_count: number
+  }
+  unprocessed_profiles: UnprocessedProfile[]
+  action_required: boolean
+}
+
+export interface ProcessedProfileResult {
+  username: string
+  status: 'success' | 'failed' | 'error'
+  profile_id?: string
+  error?: string
+}
+
+export interface ProcessAllUnprocessedResponse {
+  success: boolean
+  message: string
+  summary: {
+    total_processed: number
+    successful: number
+    failed: number
+  }
+  profiles: ProcessedProfileResult[]
+  triggered_by: string
+}
+
 export class SuperadminApiService {
   private baseUrl: string
 
@@ -2032,6 +2072,71 @@ export class SuperadminApiService {
   // Worker Activity Logs
   async getWorkerActivityLogs(hours = 1, limit = 100): Promise<ApiResponse<WorkerActivityResponse>> {
     return this.makeRequest<WorkerActivityResponse>(`/api/v1/workers/activity-logs?hours=${hours}&limit=${limit}`)
+  }
+
+  // Discovery Control - Real-time queue status
+  async getDiscoveryQueueStatus(): Promise<ApiResponse<DiscoveryQueueStatus>> {
+    return this.makeRequest<DiscoveryQueueStatus>('/api/v1/admin/repair/discovery/queue-status')
+  }
+
+  // Discovery Control - Process all unprocessed profiles
+  // CRITICAL: This endpoint blocks until complete (3-5 min per profile)
+  // Uses custom fetch with 1-hour timeout instead of default makeRequest
+  async processAllUnprocessed(limit?: number): Promise<ApiResponse<ProcessAllUnprocessedResponse>> {
+    const params = limit ? `?limit=${limit}` : ''
+    const endpoint = `/api/v1/admin/repair/discovery/process-all-unprocessed${params}`
+
+    try {
+      const fullUrl = `${this.baseUrl}${endpoint}`
+      console.log('🌐 DISCOVERY BATCH PROCESS:', fullUrl)
+      console.log('⏱️  WARNING: Long-running operation (3-5 min per profile)')
+
+      // Create AbortController with 1-hour timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3600000) // 1 hour = 3,600,000ms
+
+      const response = await fetchWithAuth(fullUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      console.log('📡 RESPONSE STATUS:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ DISCOVERY BATCH ERROR:', errorText)
+        return {
+          success: false,
+          error: errorText || `Request failed with status ${response.status}`
+        }
+      }
+
+      const data = await response.json()
+      console.log('✅ DISCOVERY BATCH SUCCESS:', data)
+      return {
+        success: true,
+        data
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('❌ DISCOVERY BATCH TIMEOUT: Operation took longer than 1 hour')
+        return {
+          success: false,
+          error: 'Request timeout: Operation took longer than 1 hour. The batch processing may still be running on the server.'
+        }
+      }
+      console.error('❌ DISCOVERY BATCH NETWORK ERROR:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error occurred'
+      }
+    }
   }
 
 }

@@ -45,7 +45,10 @@ import {
   IncompleteProfile,
   IncompleteProfilesResponse,
   WorkerActivityLog,
-  WorkerActivityResponse
+  WorkerActivityResponse,
+  DiscoveryQueueStatus,
+  UnprocessedProfile,
+  ProcessAllUnprocessedResponse
 } from '@/services/superadminApi'
 import { toast } from 'sonner'
 import { useUserStore } from '@/stores/userStore'
@@ -254,15 +257,30 @@ function IncompleteProfilesTable({ isCollapsed, onToggle }: { isCollapsed: boole
     try {
       const response = await superadminApiService.getIncompleteProfiles(page, 50)
       if (response.success && response.data) {
-        setProfiles(response.data.profiles)
-        setTotal(response.data.total_count)
-        setTotalPages(response.data.total_pages)
+        setProfiles(response.data.profiles || [])
+        setTotal(response.data.total_count || 0)
+        setTotalPages(response.data.total_pages || 0)
       } else {
-        toast.error(response.error || 'Failed to fetch incomplete profiles')
+        // Handle backend calculation errors gracefully
+        const errorMsg = response.error || 'Failed to fetch incomplete profiles'
+        if (errorMsg.includes('division by zero')) {
+          toast.error('Backend error: Invalid completeness calculation. Please contact support.')
+          console.error('Backend division by zero error in profile completeness scan')
+        } else {
+          toast.error(errorMsg)
+        }
+        // Set empty state on error
+        setProfiles([])
+        setTotal(0)
+        setTotalPages(0)
       }
     } catch (error) {
       console.error('Failed to fetch incomplete profiles:', error)
       toast.error('Network error loading profiles')
+      // Set empty state on network error
+      setProfiles([])
+      setTotal(0)
+      setTotalPages(0)
     } finally {
       setLoading(false)
     }
@@ -636,6 +654,353 @@ function IncompleteProfilesTable({ isCollapsed, onToggle }: { isCollapsed: boole
   )
 }
 
+// Discovery Control Panel Component
+function DiscoveryControlPanel({ isCollapsed, onToggle }: { isCollapsed: boolean; onToggle: () => void }) {
+  const [queueStatus, setQueueStatus] = useState<DiscoveryQueueStatus | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [processResults, setProcessResults] = useState<ProcessAllUnprocessedResponse | null>(null)
+
+  useEffect(() => {
+    fetchQueueStatus()
+
+    if (autoRefresh) {
+      const interval = setInterval(fetchQueueStatus, 30000) // Poll every 30 seconds
+      return () => clearInterval(interval)
+    }
+  }, [autoRefresh])
+
+  const fetchQueueStatus = async () => {
+    setLoading(true)
+    try {
+      const response = await superadminApiService.getDiscoveryQueueStatus()
+      if (response.success && response.data) {
+        setQueueStatus(response.data)
+      } else {
+        console.error('Failed to fetch discovery queue status:', response.error)
+      }
+    } catch (error) {
+      console.error('Failed to fetch discovery queue status:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleProcessAll = async () => {
+    if (!queueStatus) return
+
+    const count = queueStatus.discovery_stats.unprocessed_count
+    const estimatedMinutes = Math.round(count * 4) // 3-5 min per profile, use 4 as average
+
+    const confirmed = confirm(
+      `Process ${count} unprocessed profiles?\n\n` +
+      `⏱️ Estimated time: ${estimatedMinutes}-${Math.round(count * 5)} minutes\n` +
+      `⚠️ This is a long-running operation. Please don't close this page.\n\n` +
+      `Click OK to proceed.`
+    )
+
+    if (!confirmed) return
+
+    setProcessing(true)
+    setProcessResults(null)
+
+    try {
+      const response = await superadminApiService.processAllUnprocessed(count)
+      if (response.success && response.data) {
+        setProcessResults(response.data)
+        toast.success(
+          `Processing complete! ${response.data.summary.successful} succeeded, ${response.data.summary.failed} failed`
+        )
+        // Refresh queue status
+        await fetchQueueStatus()
+      } else {
+        toast.error(response.error || 'Failed to process profiles')
+      }
+    } catch (error) {
+      console.error('Failed to process profiles:', error)
+      toast.error('Network error during processing')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date()
+    const then = new Date(timestamp)
+    const diffMs = now.getTime() - then.getTime()
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+    if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    return 'Just now'
+  }
+
+  const getProcessingPercent = () => {
+    if (!queueStatus) return 0
+    const { processed_count, total_discovered } = queueStatus.discovery_stats
+    if (total_discovered === 0) return 0
+    return Math.round((processed_count / total_discovered) * 100)
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              🔍 Discovery Background Worker Status
+            </CardTitle>
+            <CardDescription>
+              Real-time monitoring and control of profile discovery processing
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center space-x-2 text-sm">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="rounded"
+              />
+              <span>Auto-refresh (30s)</span>
+            </label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchQueueStatus}
+              disabled={loading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggle}
+              className="h-8 w-8 p-0"
+            >
+              {isCollapsed ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      {!isCollapsed && (
+        <CardContent className="space-y-6">
+          {loading && !queueStatus ? (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+              ))}
+            </div>
+          ) : queueStatus ? (
+            <>
+              {/* Worker Status */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Background Processor:</span>
+                      <Badge
+                        variant="secondary"
+                        className={
+                          queueStatus.processor_running
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }
+                      >
+                        {queueStatus.processor_running ? '🟢 Running' : '🔴 Not Running'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Current Activity:</span>
+                      <span className="text-sm text-muted-foreground">
+                        {queueStatus.worker_active ? 'Currently Processing' : 'Idle'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Discovery Statistics */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3">📊 Discovery Statistics</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="bg-card p-4 rounded-lg border">
+                      <div className="text-sm text-muted-foreground">Total Discovered</div>
+                      <div className="text-2xl font-bold">
+                        {queueStatus.discovery_stats.total_discovered}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">profiles found</div>
+                    </div>
+                    <div className="bg-card p-4 rounded-lg border">
+                      <div className="text-sm text-muted-foreground">✅ Processed</div>
+                      <div className="text-2xl font-bold text-green-600">
+                        {queueStatus.discovery_stats.processed_count}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        ({getProcessingPercent()}% complete)
+                      </div>
+                    </div>
+                    <div className="bg-card p-4 rounded-lg border">
+                      <div className="text-sm text-muted-foreground">❌ Unprocessed</div>
+                      <div className="text-2xl font-bold text-red-600">
+                        {queueStatus.discovery_stats.unprocessed_count}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">need processing</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Required Alert */}
+                {queueStatus.action_required && (
+                  <Alert className="border-red-200 bg-red-50">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <AlertDescription>
+                      <div className="space-y-3">
+                        <div className="font-semibold text-red-900">
+                          ⚠️ Action Required: Background worker not processing
+                        </div>
+                        <Button
+                          onClick={handleProcessAll}
+                          disabled={processing}
+                          size="lg"
+                          className="w-full bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          {processing ? (
+                            <>
+                              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                              Processing profiles... This may take several minutes
+                            </>
+                          ) : (
+                            <>
+                              🔴 PROCESS ALL UNPROCESSED ({queueStatus.discovery_stats.unprocessed_count})
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Processing Results */}
+                {processResults && (
+                  <Alert className="border-green-200 bg-green-50">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <div className="font-semibold text-green-900">
+                          ✅ Processing Complete
+                        </div>
+                        <div className="text-sm text-green-800">
+                          {processResults.message}
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-sm mt-2">
+                          <div>
+                            Total: <span className="font-medium">{processResults.summary.total_processed}</span>
+                          </div>
+                          <div>
+                            Successful: <span className="font-medium text-green-600">{processResults.summary.successful}</span>
+                          </div>
+                          <div>
+                            Failed: <span className="font-medium text-red-600">{processResults.summary.failed}</span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Triggered by: {processResults.triggered_by}
+                        </div>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <Separator />
+
+                {/* Unprocessed Profiles Table */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3">
+                    📋 Unprocessed Profiles ({queueStatus.unprocessed_profiles.length})
+                  </h3>
+                  {queueStatus.unprocessed_profiles.length > 0 ? (
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Username</TableHead>
+                            <TableHead>Score</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Discovered</TableHead>
+                            <TableHead>Followers</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {queueStatus.unprocessed_profiles.slice(0, 20).map((profile, idx) => (
+                            <TableRow key={`${profile.related_username}-${idx}`}>
+                              <TableCell className="font-medium">
+                                @{profile.related_username}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant="secondary"
+                                  className={
+                                    profile.similarity_score >= 90
+                                      ? 'bg-green-100 text-green-800'
+                                      : profile.similarity_score >= 80
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                  }
+                                >
+                                  {profile.similarity_score}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                  {profile.processing_status}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {formatTimeAgo(profile.discovered_at)}
+                              </TableCell>
+                              <TableCell>
+                                {profile.related_followers_count.toLocaleString()}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {queueStatus.unprocessed_profiles.length > 20 && (
+                        <div className="p-4 text-center text-sm text-muted-foreground bg-muted">
+                          Showing top 20 of {queueStatus.unprocessed_profiles.length} unprocessed profiles
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>All discovered profiles have been processed!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>Failed to load discovery queue status</p>
+            </div>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
 // Worker Activity Feed Component
 function WorkerActivityFeed({ isCollapsed, onToggle }: { isCollapsed: boolean; onToggle: () => void }) {
   const [logs, setLogs] = useState<WorkerActivityLog[]>([])
@@ -804,6 +1169,7 @@ export default function WorkerMonitoringDashboard() {
   const [sectionsCollapsed, setSectionsCollapsed] = useState({
     systemOverview: false,
     backgroundWorkers: false,
+    discoveryControl: false,
     workerActivity: false,
     analyticsCompleteness: false,
     incompleteProfiles: false,
@@ -1324,6 +1690,12 @@ export default function WorkerMonitoringDashboard() {
           </CardContent>
         )}
       </Card>
+
+      {/* Discovery Control Panel - NEW */}
+      <DiscoveryControlPanel
+        isCollapsed={sectionsCollapsed.discoveryControl}
+        onToggle={() => toggleSection('discoveryControl')}
+      />
 
       {/* Real-Time Worker Activity Feed */}
       <WorkerActivityFeed
