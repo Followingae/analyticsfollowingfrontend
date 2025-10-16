@@ -409,6 +409,285 @@ export interface SecurityThreats {
   }
 }
 
+// Worker Monitoring Types
+export interface WorkerOverview {
+  timestamp?: string
+
+  // System Overview (from your specification)
+  system_overview?: {
+    total_workers: number
+    active_workers: number        // Based on 24h activity
+    overall_health: 'healthy' | 'degraded' | 'critical'
+    system_load: number
+    total_tasks_processed: number
+    avg_system_response_time: number
+  }
+
+  // Legacy fields (for backward compatibility)
+  total_workers: number
+  active_workers: number
+  idle_workers?: number
+  failed_workers?: number
+  total_jobs_processed?: number
+  current_queue_size?: number
+  avg_processing_time_ms?: number
+
+  system_load?: {
+    cpu_percent: number
+    memory_percent: number
+    disk_percent: number
+  }
+
+  workers: WorkerSummary[]
+}
+
+export interface WorkerSummary {
+  worker_name: string               // Exact API field name
+  status: 'active' | 'idle' | 'error'
+  current_job: string               // "Creator Analytics", "Profile Discovery", "Idle"
+  tasks_processed: number
+  avg_processing_time: number       // seconds
+  last_activity: string             // ISO timestamp
+
+  // 24h Activity Metrics (exact API field names)
+  profiles_created_24h?: number     // Discovery Worker
+  posts_processed_24h?: number      // Discovery Worker
+  related_profiles_24h?: number     // Similar Profiles Processor
+  total_related_profiles?: number   // Similar Profiles Processor
+  cdn_jobs_24h?: number            // CDN Processor
+  total_cdn_assets?: number        // CDN Processor
+}
+
+export interface WorkerDetails {
+  name: string
+  status: 'active' | 'idle' | 'failed' | 'stopped'
+  pid?: number
+  started_at: string
+  uptime_seconds: number
+  current_job?: {
+    id: string
+    type: string
+    started_at: string
+    progress?: number
+  }
+  stats: {
+    jobs_processed: number
+    jobs_failed: number
+    avg_processing_time_ms: number
+    last_job_completed_at?: string
+  }
+  health: {
+    cpu_percent: number
+    memory_mb: number
+    status: 'healthy' | 'warning' | 'critical'
+  }
+  recent_jobs: Array<{
+    id: string
+    type: string
+    status: 'completed' | 'failed'
+    started_at: string
+    completed_at: string
+    processing_time_ms: number
+    error?: string
+  }>
+}
+
+export interface QueueStatus {
+  total_jobs: number
+  pending_jobs: number
+  processing_jobs: number
+  completed_jobs: number
+  failed_jobs: number
+  queues: Array<{
+    name: string
+    size: number
+    oldest_job_age_seconds?: number
+    processing_rate_per_minute: number
+  }>
+}
+
+export interface WorkerPerformanceMetrics {
+  timeframe: string
+  metrics: Array<{
+    timestamp: string
+    total_workers: number
+    active_workers: number
+    jobs_processed_per_minute: number
+    avg_processing_time_ms: number
+    error_rate_percent: number
+    cpu_usage_percent: number
+    memory_usage_percent: number
+  }>
+}
+
+export interface WorkerControlResponse {
+  success: boolean
+  message: string
+  worker_name: string
+  action: string
+  previous_status?: string
+  new_status?: string
+}
+
+// Analytics Completeness Types
+export interface AnalyticsCompletenessProfile {
+  profile_id: string
+  username: string
+  is_complete: boolean
+  completeness_score: number
+  missing_components: string[]
+  followers_count: number
+  stored_posts_count: number
+  ai_analyzed_posts_count: number
+  cdn_processed_posts_count: number
+  posts_analysis?: {
+    total_posts: number
+    ai_analyzed_posts: number
+    cdn_processed_posts: number
+    oldest_post?: string
+    newest_post?: string
+    avg_likes: number
+    avg_comments: number
+  }
+}
+
+export interface AnalyticsCompletenessScanRequest {
+  limit?: number
+  username_filter?: string
+  include_complete?: boolean
+}
+
+export interface AnalyticsCompletenessScanResponse {
+  success: boolean
+  scan_timestamp: string
+  execution_time_seconds: number
+  summary: {
+    total_profiles: number
+    complete_profiles: number
+    incomplete_profiles: number
+    completeness_percentage: number
+    average_completeness_score: number
+    needs_posts?: number
+    needs_ai_analysis?: number
+    needs_cdn_processing?: number
+  }
+  profiles: AnalyticsCompletenessProfile[]
+  incomplete_profiles: AnalyticsCompletenessProfile[]
+}
+
+export interface AnalyticsCompletenessRepairRequest {
+  profile_ids?: string[]
+  max_profiles?: number
+  dry_run?: boolean
+  force_repair?: boolean
+}
+
+export interface AnalyticsCompletenessRepairResult {
+  profile_id: string
+  username: string
+  status: 'success' | 'failed'
+  message?: string
+  error?: string
+}
+
+export interface AnalyticsCompletenessRepairResponse {
+  success: boolean
+  operation_id: string
+  execution_time_seconds?: number
+  dry_run?: boolean
+  summary?: {
+    total_profiles: number
+    successful_repairs: number
+    failed_repairs: number
+    success_rate: number
+  }
+  repair_results?: AnalyticsCompletenessRepairResult[]
+  profiles_to_repair?: number
+}
+
+export interface AnalyticsCompletenessDashboard {
+  success: boolean
+  generated_at: string
+  system_stats: {
+    total_profiles: number
+    complete_profiles: number
+    incomplete_profiles: number
+    completeness_percentage: number
+    avg_followers: number
+    last_profile_update: string
+    profiles_created_24h: number
+    profiles_updated_24h: number
+  }
+  completeness_distribution: Array<{
+    completeness_category: string
+    profile_count: number
+    avg_followers: number
+  }>
+  recent_repair_operations: Array<{
+    operation_id: string
+    started_by: string
+    total_profiles: number
+    completed_profiles: number
+    failed_profiles: number
+    status: string
+    started_at: string
+    completed_at?: string
+  }>
+  system_health: {
+    status: 'healthy' | 'needs_attention'
+    recommendations: string[]
+  }
+}
+
+export interface AnalyticsCompletenessStats {
+  total_profiles: number
+  complete_profiles: number
+  incomplete_profiles: number
+  completeness_percentage: number
+  profiles_created_24h: number
+  profiles_updated_24h: number
+}
+
+export interface AnalyticsCompletenessHealth {
+  success: boolean
+  timestamp: string
+  overall_status: 'healthy' | 'degraded' | 'critical'
+  components: {
+    database: {
+      status: 'healthy' | 'degraded' | 'critical'
+      description: string
+    }
+    analytics_service: {
+      status: 'healthy' | 'degraded' | 'critical'
+      description: string
+    }
+    bulletproof_search: {
+      status: 'healthy' | 'degraded' | 'critical'
+      description: string
+    }
+  }
+  metrics: AnalyticsCompletenessStats
+  recommendations: string[]
+  recent_activity: any
+}
+
+export interface AnalyticsCompletenessValidationResponse {
+  success: boolean
+  username: string
+  profile_analysis: AnalyticsCompletenessProfile
+  posts_analysis: {
+    total_posts: number
+    ai_analyzed_posts: number
+    cdn_processed_posts: number
+    oldest_post?: string
+    newest_post?: string
+    avg_likes: number
+    avg_comments: number
+  }
+  recommendations: string[]
+  validated_at: string
+}
+
 // Additional interfaces for comprehensive API
 export interface SystemStats {
   total_users: number
@@ -450,6 +729,48 @@ export interface ComprehensiveDashboard {
     api_calls_today: number
   }
   recent_activities: DashboardOverview['recent_activities']
+}
+
+// Incomplete Profiles Management Types
+export interface IncompleteProfile {
+  id: string
+  username: string
+  followers_count: number
+  posts_count: number
+  ai_posts_count: number
+  has_profile_ai: boolean
+  completeness_score: number
+  issues: string[]
+}
+
+export interface IncompleteProfilesResponse {
+  profiles: IncompleteProfile[]
+  total_count: number
+  total_pages: number
+}
+
+// Worker Activity Logs Types
+export interface WorkerActivityLog {
+  timestamp: string
+  worker: string
+  activity: string
+  details: string
+  status: 'completed' | 'failed' | 'in_progress'
+  metadata?: {
+    username?: string
+    followers?: number
+    has_ai_analysis?: boolean
+    [key: string]: any
+  }
+}
+
+export interface WorkerActivityResponse {
+  activity_logs: WorkerActivityLog[]
+  summary: {
+    discovery_activities: number
+    similar_profile_activities: number
+    cdn_activities: number
+  }
 }
 
 export class SuperadminApiService {
@@ -1607,6 +1928,110 @@ export class SuperadminApiService {
       ? `/api/v1/credits/transactions?user_id=${userId}`
       : '/api/v1/credits/transactions'
     return this.makeRequest(url)
+  }
+
+  // Worker Monitoring System
+  async getWorkerOverview(): Promise<ApiResponse<WorkerOverview>> {
+    return this.makeRequest<WorkerOverview>('/api/v1/workers/overview')
+  }
+
+  async getWorkerDetails(workerName: string): Promise<ApiResponse<WorkerDetails>> {
+    return this.makeRequest<WorkerDetails>(`/api/v1/workers/worker/${workerName}/details`)
+  }
+
+  async getQueueStatus(): Promise<ApiResponse<QueueStatus>> {
+    return this.makeRequest<QueueStatus>('/api/v1/workers/queue/status')
+  }
+
+  async getWorkerPerformanceMetrics(timeframe?: string): Promise<ApiResponse<WorkerPerformanceMetrics>> {
+    const params = timeframe ? `?timeframe=${timeframe}` : ''
+    return this.makeRequest<WorkerPerformanceMetrics>(`/api/v1/workers/performance/metrics${params}`)
+  }
+
+  async controlWorker(workerName: string, action: 'start' | 'stop' | 'restart' | 'pause' | 'resume'): Promise<ApiResponse<WorkerControlResponse>> {
+    return this.makeRequest<WorkerControlResponse>(`/api/v1/workers/worker/${workerName}/control`, {
+      method: 'POST',
+      body: JSON.stringify({ action })
+    })
+  }
+
+  // Worker Live Stream (SSE) - returns EventSource for real-time updates
+  createWorkerLiveStream(): EventSource {
+    const url = `${this.baseUrl}/api/v1/workers/live-stream`
+    return new EventSource(url, {
+      withCredentials: false // Adjust based on your auth setup
+    })
+  }
+
+  // Analytics Completeness System
+  async getAnalyticsCompletenessDashboard(): Promise<ApiResponse<AnalyticsCompletenessDashboard>> {
+    return this.makeRequest<AnalyticsCompletenessDashboard>('/api/v1/admin/superadmin/analytics-completeness/dashboard')
+  }
+
+  async getAnalyticsCompletenessStats(): Promise<ApiResponse<AnalyticsCompletenessStats>> {
+    return this.makeRequest<AnalyticsCompletenessStats>('/api/v1/admin/superadmin/analytics-completeness/stats')
+  }
+
+  async getAnalyticsCompletenessHealth(): Promise<ApiResponse<AnalyticsCompletenessHealth>> {
+    return this.makeRequest<AnalyticsCompletenessHealth>('/api/v1/admin/superadmin/analytics-completeness/health')
+  }
+
+  async scanAnalyticsCompleteness(params: AnalyticsCompletenessScanRequest = {}): Promise<ApiResponse<AnalyticsCompletenessScanResponse>> {
+    return this.makeRequest<AnalyticsCompletenessScanResponse>('/api/v1/admin/superadmin/analytics-completeness/scan', {
+      method: 'POST',
+      body: JSON.stringify(params)
+    })
+  }
+
+  async repairAnalyticsCompleteness(params: AnalyticsCompletenessRepairRequest = {}): Promise<ApiResponse<AnalyticsCompletenessRepairResponse>> {
+    return this.makeRequest<AnalyticsCompletenessRepairResponse>('/api/v1/admin/superadmin/analytics-completeness/repair', {
+      method: 'POST',
+      body: JSON.stringify(params)
+    })
+  }
+
+  async validateAnalyticsCompletenessProfile(username: string): Promise<ApiResponse<AnalyticsCompletenessValidationResponse>> {
+    return this.makeRequest<AnalyticsCompletenessValidationResponse>(`/api/v1/admin/superadmin/analytics-completeness/validate/${username}`, {
+      method: 'POST'
+    })
+  }
+
+  async repairSingleAnalyticsCompletenessProfile(username: string, forceRepair: boolean = false): Promise<ApiResponse<AnalyticsCompletenessRepairResponse>> {
+    const params = forceRepair ? '?force_repair=true' : ''
+    return this.makeRequest<AnalyticsCompletenessRepairResponse>(`/api/v1/admin/superadmin/analytics-completeness/repair-single/${username}${params}`, {
+      method: 'POST'
+    })
+  }
+
+  async bulkScanAnalyticsCompletenessUsernames(usernames: string[]): Promise<ApiResponse<AnalyticsCompletenessScanResponse>> {
+    return this.makeRequest<AnalyticsCompletenessScanResponse>('/api/v1/admin/superadmin/analytics-completeness/bulk-scan-usernames', {
+      method: 'POST',
+      body: JSON.stringify(usernames)
+    })
+  }
+
+  async optimizeAnalyticsCompletenessDatabase(): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>('/api/v1/admin/superadmin/analytics-completeness/maintenance/optimize-database', {
+      method: 'POST'
+    })
+  }
+
+  // GOD-MODE ENDPOINTS
+
+  // Incomplete Profiles Management
+  async getIncompleteProfiles(page = 1, perPage = 50): Promise<ApiResponse<IncompleteProfilesResponse>> {
+    return this.makeRequest<IncompleteProfilesResponse>(`/api/v1/admin/superadmin/analytics-completeness/incomplete-profiles?page=${page}&per_page=${perPage}`)
+  }
+
+  async repairSingleProfile(profileId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>(`/api/v1/admin/superadmin/analytics-completeness/repair-single/${profileId}`, {
+      method: 'POST'
+    })
+  }
+
+  // Worker Activity Logs
+  async getWorkerActivityLogs(hours = 1, limit = 100): Promise<ApiResponse<WorkerActivityResponse>> {
+    return this.makeRequest<WorkerActivityResponse>(`/api/v1/workers/activity-logs?hours=${hours}&limit=${limit}`)
   }
 
 }

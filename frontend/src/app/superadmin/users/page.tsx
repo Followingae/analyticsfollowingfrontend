@@ -85,10 +85,9 @@ export default function SuperadminUsersPage() {
       setError(null)
       
       const filters: any = {}
-      if (statusFilter !== "all") filters.account_status = statusFilter
-      if (typeFilter !== "all") filters.user_type = typeFilter
-      if (planFilter !== "all") filters.subscription_tier = planFilter
-      if (searchQuery.trim()) filters.search_query = searchQuery.trim()
+      if (statusFilter !== "all") filters.status_filter = statusFilter
+      if (typeFilter !== "all") filters.role_filter = typeFilter
+      if (searchQuery.trim()) filters.search = searchQuery.trim()
       
       const result = await superadminApiService.getUsers({ ...filters, limit: 100 })
       if (result.success && result.data) {
@@ -110,7 +109,7 @@ export default function SuperadminUsersPage() {
 
   const handleUpdateUserStatus = async (userId: string, status: 'active' | 'suspended' | 'deactivated', reason?: string) => {
     try {
-      const result = await superadminApiService.updateUserStatus(userId, status, reason)
+      const result = await superadminApiService.editUser(userId, { status })
       if (result.success) {
         await loadUsers()
         toast.success(`User status updated to ${status}`)
@@ -125,7 +124,7 @@ export default function SuperadminUsersPage() {
 
   const handleUpdateUserPlan = async (userId: string, plan: string) => {
     try {
-      const result = await superadminApiService.updateUserPlan(userId, plan)
+      const result = await superadminApiService.editUser(userId, { subscription_tier: plan })
       if (result.success) {
         await loadUsers()
         toast.success(`User plan updated to ${plan}`)
@@ -288,28 +287,28 @@ export default function SuperadminUsersPage() {
                         <TableRow key={user.id}>
                           <TableCell>
                             <div className="space-y-1">
-                              <div className="font-medium">{user.full_name || user.username}</div>
+                              <div className="font-medium">{user.full_name}</div>
                               <div className="text-sm text-muted-foreground">{user.email}</div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="capitalize">
-                              {user.user_type}
+                              {user.role}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="capitalize">
-                              {user.subscription_tier}
+                              {user.teams?.[0]?.name || 'Individual'}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge className={getStatusColor(user.account_status)}>
-                              {user.account_status}
+                            <Badge className={getStatusColor(user.status)}>
+                              {user.status}
                             </Badge>
                           </TableCell>
-                          <TableCell>{formatNumber(user.credits_balance)}</TableCell>
+                          <TableCell>{formatNumber(user.credits?.balance || 0)}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {formatDate(user.last_login)}
+                            {user.updated_at ? formatDate(user.updated_at) : 'N/A'}
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -332,12 +331,12 @@ export default function SuperadminUsersPage() {
                                   <Edit className="h-3 w-3 mr-2" />
                                   Edit User
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => handleUpdateUserStatus(user.id, 
-                                    user.account_status === 'active' ? 'suspended' : 'active'
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateUserStatus(user.id,
+                                    user.status === 'active' ? 'suspended' : 'active'
                                   )}
                                 >
-                                  {user.account_status === 'active' ? (
+                                  {user.status === 'active' ? (
                                     <>
                                       <Ban className="h-3 w-3 mr-2" />
                                       Suspend User

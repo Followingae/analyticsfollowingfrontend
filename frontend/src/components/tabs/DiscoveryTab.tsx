@@ -158,12 +158,7 @@ export default function DiscoveryTab() {
     handleSearch(newPage)
   }
 
-  const totalPages = Math.ceil(profiles.length / itemsPerPage)
-
-  // Calculate profiles for current page
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentPageProfiles = profiles.slice(startIndex, endIndex)
+  const totalPages = Math.ceil(totalCount / itemsPerPage)
 
   const handleUnlockProfile = async (profile: DiscoveryProfile) => {
     if (profile.unlock_status.is_unlocked) {
@@ -324,7 +319,7 @@ export default function DiscoveryTab() {
         </div>
       ) : profiles && profiles.length > 0 ? (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {currentPageProfiles.map((profile) => (
+          {profiles.map((profile) => (
             <Card key={profile.username} className="group overflow-hidden hover:shadow-lg transition-all duration-300 border border-border bg-card shadow-sm hover:shadow-md hover:border-border/60">
               <CardContent className="p-6">
                 <div className="flex flex-col space-y-3">
@@ -518,7 +513,7 @@ export default function DiscoveryTab() {
           </Button>
 
           <div className="text-sm text-muted-foreground ml-2">
-            Page {currentPage} of {totalPages} ({formatNumber(profiles.length)} creators)
+            Page {currentPage} of {totalPages} ({formatNumber(totalCount)} creators)
           </div>
         </div>
       )}

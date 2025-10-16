@@ -17,6 +17,9 @@ import {
   IconFileText,
   IconServer,
   IconCurrencyDollar,
+  IconSearch,
+  IconTool,
+  IconHeartHandshake,
 } from "@tabler/icons-react"
 import Image from "next/image"
 import { useTheme } from "next-themes"
@@ -122,6 +125,24 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
         title: "Analytics",
         url: "/superadmin/analytics",
         icon: IconChartBar,
+        items: [
+          {
+            title: "Completeness",
+            url: "/superadmin/analytics/completeness",
+          },
+          {
+            title: "Scan Profiles",
+            url: "/superadmin/analytics/completeness/scan",
+          },
+          {
+            title: "Repair Profiles",
+            url: "/superadmin/analytics/completeness/repair",
+          },
+          {
+            title: "System Health",
+            url: "/superadmin/analytics/completeness/health",
+          }
+        ]
       }
     ]
 
@@ -167,6 +188,11 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
     ]
 
     const communications = [
+      {
+        title: "Workers",
+        url: "/superadmin/workers",
+        icon: IconServer,
+      },
       {
         title: "Notifications",
         url: "/superadmin/notifications",

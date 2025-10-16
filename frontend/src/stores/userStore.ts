@@ -13,7 +13,7 @@ export interface User {
   job_title?: string
   phone_number?: string
   bio?: string
-  role: 'free' | 'standard' | 'premium' | 'enterprise' | 'admin' | 'superadmin'
+  role: 'free' | 'standard' | 'premium' | 'enterprise' | 'admin' | 'superadmin' | 'super_admin'
   status: string
   created_at: string
   last_login?: string
