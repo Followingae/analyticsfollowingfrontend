@@ -409,125 +409,10 @@ export interface SecurityThreats {
   }
 }
 
-// Worker Monitoring Types
-export interface WorkerOverview {
-  timestamp?: string
 
-  // System Overview (from your specification)
-  system_overview?: {
-    total_workers: number
-    active_workers: number        // Based on 24h activity
-    overall_health: 'healthy' | 'degraded' | 'critical'
-    system_load: number
-    total_tasks_processed: number
-    avg_system_response_time: number
-  }
 
-  // Legacy fields (for backward compatibility)
-  total_workers: number
-  active_workers: number
-  idle_workers?: number
-  failed_workers?: number
-  total_jobs_processed?: number
-  current_queue_size?: number
-  avg_processing_time_ms?: number
 
-  system_load?: {
-    cpu_percent: number
-    memory_percent: number
-    disk_percent: number
-  }
 
-  workers: WorkerSummary[]
-}
-
-export interface WorkerSummary {
-  worker_name: string               // Exact API field name
-  status: 'active' | 'idle' | 'error'
-  current_job: string               // "Creator Analytics", "Profile Discovery", "Idle"
-  tasks_processed: number
-  avg_processing_time: number       // seconds
-  last_activity: string             // ISO timestamp
-
-  // 24h Activity Metrics (exact API field names)
-  profiles_created_24h?: number     // Discovery Worker
-  posts_processed_24h?: number      // Discovery Worker
-  related_profiles_24h?: number     // Similar Profiles Processor
-  total_related_profiles?: number   // Similar Profiles Processor
-  cdn_jobs_24h?: number            // CDN Processor
-  total_cdn_assets?: number        // CDN Processor
-}
-
-export interface WorkerDetails {
-  name: string
-  status: 'active' | 'idle' | 'failed' | 'stopped'
-  pid?: number
-  started_at: string
-  uptime_seconds: number
-  current_job?: {
-    id: string
-    type: string
-    started_at: string
-    progress?: number
-  }
-  stats: {
-    jobs_processed: number
-    jobs_failed: number
-    avg_processing_time_ms: number
-    last_job_completed_at?: string
-  }
-  health: {
-    cpu_percent: number
-    memory_mb: number
-    status: 'healthy' | 'warning' | 'critical'
-  }
-  recent_jobs: Array<{
-    id: string
-    type: string
-    status: 'completed' | 'failed'
-    started_at: string
-    completed_at: string
-    processing_time_ms: number
-    error?: string
-  }>
-}
-
-export interface QueueStatus {
-  total_jobs: number
-  pending_jobs: number
-  processing_jobs: number
-  completed_jobs: number
-  failed_jobs: number
-  queues: Array<{
-    name: string
-    size: number
-    oldest_job_age_seconds?: number
-    processing_rate_per_minute: number
-  }>
-}
-
-export interface WorkerPerformanceMetrics {
-  timeframe: string
-  metrics: Array<{
-    timestamp: string
-    total_workers: number
-    active_workers: number
-    jobs_processed_per_minute: number
-    avg_processing_time_ms: number
-    error_rate_percent: number
-    cpu_usage_percent: number
-    memory_usage_percent: number
-  }>
-}
-
-export interface WorkerControlResponse {
-  success: boolean
-  message: string
-  worker_name: string
-  action: string
-  previous_status?: string
-  new_status?: string
-}
 
 // Analytics Completeness Types
 export interface AnalyticsCompletenessProfile {
@@ -749,29 +634,6 @@ export interface IncompleteProfilesResponse {
   total_pages: number
 }
 
-// Worker Activity Logs Types
-export interface WorkerActivityLog {
-  timestamp: string
-  worker: string
-  activity: string
-  details: string
-  status: 'completed' | 'failed' | 'in_progress'
-  metadata?: {
-    username?: string
-    followers?: number
-    has_ai_analysis?: boolean
-    [key: string]: any
-  }
-}
-
-export interface WorkerActivityResponse {
-  activity_logs: WorkerActivityLog[]
-  summary: {
-    discovery_activities: number
-    similar_profile_activities: number
-    cdn_activities: number
-  }
-}
 
 // Discovery Control Types
 export interface UnprocessedProfile {
@@ -811,6 +673,91 @@ export interface ProcessAllUnprocessedResponse {
   }
   profiles: ProcessedProfileResult[]
   triggered_by: string
+}
+
+// New Sequential Bulk Repair Types
+export interface BulkRepairCurrentProfile {
+  username: string
+  stage: 'queued' | 'apify_fetching' | 'apify_completed' | 'cdn_processing' | 'cdn_completed' | 'ai_processing' | 'ai_completed' | 'database_storing' | 'completed' | 'failed'
+  stage_message: string
+  progress_percent: number
+}
+
+export interface BulkRepairLiveStatus {
+  operation_id: string
+  status: 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  current_profile_index: number
+  total_profiles: number
+  profiles_completed: number
+  profiles_failed: number
+  current_profile?: BulkRepairCurrentProfile
+  queue_remaining: number
+  last_updated: string
+}
+
+export interface BulkRepairProgress {
+  operation_id: string
+  status: string
+  started_at: string
+  estimated_completion?: string
+  total_profiles: number
+  completed_profiles: number
+  failed_profiles: number
+  current_profile?: BulkRepairCurrentProfile
+  queue: Array<{
+    username: string
+    status: string
+  }>
+  completed_results: Array<{
+    username: string
+    status: 'success' | 'failed'
+    message?: string
+    error?: string
+  }>
+}
+
+export interface BulkRepairActiveOperations {
+  active_operations: Array<{
+    operation_id: string
+    status: string
+    started_at: string
+    total_profiles: number
+    completed_profiles: number
+    current_profile?: string
+  }>
+  total_active: number
+}
+
+export interface BulkRepairCancelResponse {
+  success: boolean
+  message: string
+  operation_id: string
+  status: string
+}
+
+
+// Job Tracking Types
+export interface JobStatus {
+  job_id: string
+  status: 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  progress_percent: number
+  queue_position?: number
+  estimated_completion?: string
+  started_at?: string
+  completed_at?: string
+  error_message?: string
+  result?: any
+}
+
+export interface ProfileAnalysisJob {
+  job_id: string
+  username: string
+  status: JobStatus['status']
+  progress_percent: number
+  stages_completed: string[]
+  current_stage?: string
+  queue_position?: number
+  estimated_completion?: string
 }
 
 export class SuperadminApiService {
@@ -1970,38 +1917,6 @@ export class SuperadminApiService {
     return this.makeRequest(url)
   }
 
-  // Worker Monitoring System
-  async getWorkerOverview(): Promise<ApiResponse<WorkerOverview>> {
-    return this.makeRequest<WorkerOverview>('/api/v1/workers/overview')
-  }
-
-  async getWorkerDetails(workerName: string): Promise<ApiResponse<WorkerDetails>> {
-    return this.makeRequest<WorkerDetails>(`/api/v1/workers/worker/${workerName}/details`)
-  }
-
-  async getQueueStatus(): Promise<ApiResponse<QueueStatus>> {
-    return this.makeRequest<QueueStatus>('/api/v1/workers/queue/status')
-  }
-
-  async getWorkerPerformanceMetrics(timeframe?: string): Promise<ApiResponse<WorkerPerformanceMetrics>> {
-    const params = timeframe ? `?timeframe=${timeframe}` : ''
-    return this.makeRequest<WorkerPerformanceMetrics>(`/api/v1/workers/performance/metrics${params}`)
-  }
-
-  async controlWorker(workerName: string, action: 'start' | 'stop' | 'restart' | 'pause' | 'resume'): Promise<ApiResponse<WorkerControlResponse>> {
-    return this.makeRequest<WorkerControlResponse>(`/api/v1/workers/worker/${workerName}/control`, {
-      method: 'POST',
-      body: JSON.stringify({ action })
-    })
-  }
-
-  // Worker Live Stream (SSE) - returns EventSource for real-time updates
-  createWorkerLiveStream(): EventSource {
-    const url = `${this.baseUrl}/api/v1/workers/live-stream`
-    return new EventSource(url, {
-      withCredentials: false // Adjust based on your auth setup
-    })
-  }
 
   // Analytics Completeness System
   async getAnalyticsCompletenessDashboard(): Promise<ApiResponse<AnalyticsCompletenessDashboard>> {
@@ -2028,6 +1943,41 @@ export class SuperadminApiService {
       method: 'POST',
       body: JSON.stringify(params)
     })
+  }
+
+  // New Sequential Bulk Repair Progress Monitoring APIs
+  async getOperationLiveStatus(operationId: string): Promise<ApiResponse<BulkRepairLiveStatus>> {
+    return this.makeRequest<BulkRepairLiveStatus>(`/api/v1/admin/superadmin/analytics-completeness/operations/${operationId}/live`)
+  }
+
+  async getOperationProgress(operationId: string): Promise<ApiResponse<BulkRepairProgress>> {
+    return this.makeRequest<BulkRepairProgress>(`/api/v1/admin/superadmin/analytics-completeness/progress/${operationId}`)
+  }
+
+  async getActiveOperations(): Promise<ApiResponse<BulkRepairActiveOperations>> {
+    return this.makeRequest<BulkRepairActiveOperations>('/api/v1/admin/superadmin/analytics-completeness/operations/active')
+  }
+
+  async cancelOperation(operationId: string): Promise<ApiResponse<BulkRepairCancelResponse>> {
+    return this.makeRequest<BulkRepairCancelResponse>(`/api/v1/admin/superadmin/analytics-completeness/operations/${operationId}/cancel`, {
+      method: 'POST'
+    })
+  }
+
+
+  // New Job Tracking APIs
+  async createProfileAnalysisJob(username: string): Promise<ApiResponse<{ job_id: string }>> {
+    return this.makeRequest<{ job_id: string }>(`/api/v1/analytics/profile/${username}`, {
+      method: 'POST'
+    })
+  }
+
+  async getJobStatus(jobId: string): Promise<ApiResponse<JobStatus>> {
+    return this.makeRequest<JobStatus>(`/api/v1/jobs/${jobId}/status`)
+  }
+
+  async getProfileAnalysisJob(jobId: string): Promise<ApiResponse<ProfileAnalysisJob>> {
+    return this.makeRequest<ProfileAnalysisJob>(`/api/v1/jobs/${jobId}/profile-analysis`)
   }
 
   async validateAnalyticsCompletenessProfile(username: string): Promise<ApiResponse<AnalyticsCompletenessValidationResponse>> {
@@ -2069,10 +2019,6 @@ export class SuperadminApiService {
     })
   }
 
-  // Worker Activity Logs
-  async getWorkerActivityLogs(hours = 1, limit = 100): Promise<ApiResponse<WorkerActivityResponse>> {
-    return this.makeRequest<WorkerActivityResponse>(`/api/v1/workers/activity-logs?hours=${hours}&limit=${limit}`)
-  }
 
   // Discovery Control - Real-time queue status
   async getDiscoveryQueueStatus(): Promise<ApiResponse<DiscoveryQueueStatus>> {

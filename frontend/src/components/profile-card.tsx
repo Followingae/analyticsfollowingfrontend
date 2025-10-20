@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { CheckCircle2, Users, MessageCircle, ImageIcon } from 'lucide-react'
 import { ProfileImageWithFallback } from './profile-image-with-fallback'
+import { getOptimizedProfilePicture } from '@/utils/cdnUtils'
 
 interface ProfileCardProps {
   profile: {
@@ -19,6 +20,11 @@ interface ProfileCardProps {
     is_verified: boolean
     profile_pic_url: string | null
     cdn_url_512?: string | null
+    cdn_avatar_url?: string | null
+    cdn_urls?: {
+      avatar_256?: string
+      avatar_512?: string
+    }
     ai_analysis?: {
       primary_content_type: string | null
       avg_sentiment_score: number | null
@@ -28,8 +34,8 @@ interface ProfileCardProps {
 }
 
 export const ProfileCard: React.FC<ProfileCardProps> = ({ profile, showAI = false }) => {
-  // Use only CDN URL with placeholder fallback
-  const profileImageUrl = profile.profile_pic_url || '/placeholder-avatar.webp'
+  // Use CDN-optimized URL with fallback
+  const profileImageUrl = getOptimizedProfilePicture(profile) || '/placeholder-avatar.webp'
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {

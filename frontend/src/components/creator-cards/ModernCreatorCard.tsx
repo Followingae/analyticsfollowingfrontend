@@ -44,7 +44,8 @@ import {
 import { ProfileImage } from '@/components/ProfileImage'
 import { getCountryCode } from '@/lib/countryUtils'
 import { toast } from 'sonner'
-import { CreatorProfile } from '@/services/creatorApi'
+import { CreatorProfile } from '@/types/creator'
+import { getOptimizedProfilePicture, getOptimizedCountry } from '@/utils/cdnUtils'
 
 interface ModernCreatorCardProps {
   creator: CreatorProfile
@@ -152,7 +153,7 @@ export function ModernCreatorCard({
             <div className="relative">
               <Avatar className="h-12 w-12 border-2 border-white dark:border-gray-800 shadow-md">
                 <AvatarImage
-                  src={creator.profile_pic_url || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
+                  src={getOptimizedProfilePicture(creator) || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
                   alt={creator.username}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -201,18 +202,18 @@ export function ModernCreatorCard({
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       {/* Country flag - top left */}
-      {creator.country_block && (
+      {getOptimizedCountry(creator) && (
         <div className="absolute top-4 left-4 z-10">
           <div className="bg-white/90 dark:bg-gray-800/90 rounded-full p-1.5 shadow-sm backdrop-blur-sm">
             <ReactCountryFlag
-              countryCode={getCountryCode(creator.country_block)}
+              countryCode={getCountryCode(getOptimizedCountry(creator)!)}
               svg
               style={{
                 width: '16px',
                 height: '12px',
                 borderRadius: '2px'
               }}
-              title={creator.country_block}
+              title={getOptimizedCountry(creator)!}
             />
           </div>
         </div>

@@ -620,9 +620,9 @@ class CreatorApiService {
     if (options.category) params.append('category', options.category);
     if (options.min_followers) params.append('min_followers', String(options.min_followers));
 
-    // Use the same endpoint pattern as analytics for consistency
-    const url = `${this.baseUrl}/unlocked?${params}`;
-    
+    // Use the auth endpoint where backend team added cdn_avatar_url field
+    const url = `${API_BASE_URL}${API_VERSION}/auth/unlocked?${params}`;
+
     try {
       const headers = createHeaders(false);
 

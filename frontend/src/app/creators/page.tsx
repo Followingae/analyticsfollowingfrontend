@@ -82,27 +82,27 @@ export default function CreatorsPage() {
 
   // Transform backend Profile format to frontend CreatorProfile format
   const transformProfile = (profile: any): CreatorProfile => ({
-    id: profile.id,
-    username: profile.username,
-    full_name: profile.full_name || '',
-    biography: profile.biography || '',
-    followers_count: profile.followers_count,
-    following_count: profile.following_count,
-    posts_count: profile.posts_count,
-    is_verified: profile.verified,
-    is_business: false, // Not provided by unlocked endpoint
-    engagement_rate: 0, // Will be calculated later or from additional field
-    // Enhanced profile picture handling - try multiple sources
-    profile_pic_url: profile.profile_pic_url ||
-                    `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
-                    '',
-    profile_pic_url_hd: profile.profile_pic_url ||
-                       `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp` ||
-                       '', // Use same URL for HD
-    created_at: profile.unlocked_at,
-    updated_at: profile.unlocked_at,
-    ai_insights: undefined // Not available in unlocked list
-  })
+      id: profile.id,
+      username: profile.username,
+      full_name: profile.full_name || '',
+      biography: profile.biography || '',
+      followers_count: profile.followers_count,
+      following_count: profile.following_count,
+      posts_count: profile.posts_count,
+      is_verified: profile.verified,
+      is_business: false, // Not provided by unlocked endpoint
+      engagement_rate: 0, // Will be calculated later or from additional field
+      // Enhanced profile picture handling with CDN support
+      profile_pic_url: profile.profile_pic_url || '',
+      profile_pic_url_hd: profile.profile_pic_url_hd || profile.profile_pic_url || '',
+      // Add CDN fields directly from API response
+      cdn_avatar_url: profile.cdn_avatar_url || null,
+      cdn_url_512: profile.cdn_url_512 || null,
+      cdn_urls: profile.cdn_urls || null,
+      created_at: profile.unlocked_at,
+      updated_at: profile.unlocked_at,
+      ai_insights: undefined // Not available in unlocked list
+    })
 
   // React Query for unlocked creators with pagination
   const unlockedCreatorsQuery = useQuery({

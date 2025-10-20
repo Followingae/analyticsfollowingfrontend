@@ -33,6 +33,7 @@ import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { comprehensiveAnalyticsApi } from '@/services/comprehensiveAnalyticsApi'
+import { getOptimizedProfilePicture } from '@/utils/cdnUtils'
 
 interface ModernAnalyticsDashboardProps {
   username: string
@@ -53,6 +54,12 @@ interface DashboardData {
     is_verified: boolean
     is_business_account?: boolean
     profile_pic_url: string
+    cdn_url_512?: string | null
+    cdn_avatar_url?: string | null
+    cdn_urls?: {
+      avatar_256?: string
+      avatar_512?: string
+    }
     external_url?: string
     engagement_rate: number
 
@@ -307,7 +314,7 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
               <div className="flex items-center gap-6">
                 <div className="relative">
                   <Avatar className="h-32 w-32 border-2 border-border">
-                    <AvatarImage src={profile.profile_pic_url} alt={profile.username} />
+                    <AvatarImage src={getOptimizedProfilePicture(profile)} alt={profile.username} />
                     <AvatarFallback className="text-3xl font-bold">
                       {profile.full_name?.charAt(0) || profile.username?.charAt(0)}
                     </AvatarFallback>

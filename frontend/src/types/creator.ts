@@ -218,8 +218,9 @@ export interface CreatorProfile {
   business_category_name?: string;
   engagement_rate: number;
   profile_pic_url: string | null; // Original/fallback profile picture URL
-  cdn_url_512: string | null; // CDN 512px profile picture URL (preferred)
-  profile_pic_url_hd?: string | null; // Legacy HD URL (deprecated)
+  cdn_url_512: string | null; // CDN 512px profile picture URL (legacy)
+  cdn_avatar_url?: string | null; // PRIMARY: Optimized CDN avatar URL (WebP, 512px)
+  profile_pic_url_hd?: string | null; // Instagram original HD (preferred fallback)
   cdn_urls?: {
     avatar_256?: string;
     avatar_512?: string;
@@ -228,6 +229,7 @@ export interface CreatorProfile {
   proxied_profile_pic_url_hd?: string;
   external_url?: string;
   country_block?: string;
+  detected_country?: string | null; // PRIMARY: ISO country codes (AE, US, GB, etc.)
   created_at: string;
   updated_at: string;
   access_granted_at?: string;

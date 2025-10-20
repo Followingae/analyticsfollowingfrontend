@@ -27,7 +27,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { getCountryCode } from '@/lib/countryUtils'
 import { toast } from 'sonner'
-import { CreatorProfile } from '@/services/creatorApi'
+import { CreatorProfile } from '@/types/creator'
+import { getOptimizedProfilePicture, getOptimizedCountry } from '@/utils/cdnUtils'
 
 interface CreatorGridCardProps {
   creator: CreatorProfile
@@ -45,6 +46,7 @@ export function CreatorGridCard({
   isAnalyzing = false
 }: CreatorGridCardProps) {
   const router = useRouter()
+
 
   const formatNumber = (num: number | undefined | null) => {
     if (num === undefined || num === null || isNaN(num)) return '0'
@@ -143,18 +145,18 @@ export function CreatorGridCard({
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:from-primary/10 transition-colors duration-500 pointer-events-none" />
 
       {/* Country flag */}
-      {creator.country_block && (
+      {getOptimizedCountry(creator) && (
         <div className="absolute top-3 left-3 z-10">
           <div className="bg-background/80 border border-border rounded-full p-1 shadow-sm backdrop-blur-sm">
             <ReactCountryFlag
-              countryCode={getCountryCode(creator.country_block)}
+              countryCode={getCountryCode(getOptimizedCountry(creator)!)}
               svg
               style={{
                 width: '14px',
                 height: '10px',
                 borderRadius: '2px'
               }}
-              title={creator.country_block}
+              title={getOptimizedCountry(creator)!}
             />
           </div>
         </div>
@@ -177,17 +179,11 @@ export function CreatorGridCard({
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-lg scale-110 opacity-20 group-hover:opacity-40 transition-opacity duration-300" />
             <Avatar className="relative h-16 w-16 border-3 border-background shadow-md">
               <AvatarImage
-                src={creator.profile_pic_url || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
+                src={creator.cdn_avatar_url || creator.profile_pic_url_hd || creator.profile_pic_url || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
                 alt={creator.username}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  if (!target.src.includes('cdn.following.ae')) {
-                    target.src = `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`;
-                  }
-                }}
               />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-sm font-semibold text-primary">
-                {creator.full_name?.charAt(0) || creator.username?.charAt(0)}
+                {creator.full_name?.charAt(0)?.toUpperCase() || creator.username?.charAt(0)?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
             {creator.is_verified && (

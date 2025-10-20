@@ -39,8 +39,10 @@ interface BackendProfileData {
     posts_count: number
     engagement_rate: number
 
-    // CDN URLs
-    cdn_avatar_url: string
+    // CDN URLs and Location (ONLY these fields matter for frontend)
+    cdn_avatar_url?: string | null
+    profile_pic_url_hd?: string | null
+    detected_country?: string | null
 
     // ACTUAL BACKEND STRUCTURE - nested ai_analysis object
     ai_analysis: {
@@ -162,6 +164,20 @@ export class ComprehensiveAnalyticsApiService {
       const data: BackendProfileData = await response.json()
       console.log('🔍 Raw backend response:', JSON.stringify(data, null, 2))
 
+      // Check if laurazaraa has correct CDN fields after backend fix
+      if (cleanUsername.toLowerCase() === 'laurazaraa') {
+        console.log('🚨 LAURAZARAA BACKEND CHECK (after backend fix):')
+        console.log('❌ cdn_avatar_url:', data.profile?.cdn_avatar_url, '(should contain CDN URL)')
+        console.log('❌ detected_country:', data.profile?.detected_country, '(should be "AE")')
+        console.log('✅ profile_pic_url:', data.profile?.profile_pic_url, '(contains CDN URL but wrong field)')
+        console.log('✅ profile_pic_url_hd:', data.profile?.profile_pic_url_hd)
+
+        console.log('\n🚨 BACKEND TEAM: The fix is NOT yet implemented!')
+        console.log('- CDN URL is still in profile_pic_url instead of cdn_avatar_url')
+        console.log('- detected_country field is still missing')
+      }
+
+
       if (!data.success || !data.profile) {
         console.error('🔍 Invalid response structure:', { success: data.success, hasProfile: !!data.profile })
         throw new Error('Invalid response structure from backend')
@@ -183,7 +199,10 @@ export class ComprehensiveAnalyticsApiService {
       const enhancedAiAnalysis = data.profile.ai_analysis
       const transformedProfile = {
         ...data.profile,
-        profile_pic_url: data.profile.cdn_avatar_url || data.profile.profile_pic_url,
+        // Pass through CDN fields from backend
+        cdn_avatar_url: data.profile.cdn_avatar_url,
+        profile_pic_url_hd: data.profile.profile_pic_url_hd,
+        detected_country: data.profile.detected_country,
         ai_analysis: enhancedAiAnalysis ? {
           // Basic AI fields from nested structure
           primary_content_type: enhancedAiAnalysis.primary_content_type,
@@ -232,6 +251,7 @@ export class ComprehensiveAnalyticsApiService {
           }
         }
       }
+
 
       // Return the comprehensive backend data structure with proper transformation
       return {
@@ -788,7 +808,10 @@ export class ComprehensiveAnalyticsApiService {
           const dashboardAiAnalysis = data.profile.ai_analysis
           const transformedProfile = {
             ...data.profile,
-            profile_pic_url: data.profile.cdn_avatar_url || data.profile.profile_pic_url,
+            // Pass through CDN fields from backend
+            cdn_avatar_url: data.profile.cdn_avatar_url,
+            profile_pic_url_hd: data.profile.profile_pic_url_hd,
+            detected_country: data.profile.detected_country,
             // Use the existing nested ai_analysis structure from backend
             ai_analysis: dashboardAiAnalysis ? {
               // Basic AI fields - directly from nested structure

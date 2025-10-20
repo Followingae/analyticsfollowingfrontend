@@ -15,7 +15,6 @@ import {
   IconCreditCard,
   IconMail,
   IconFileText,
-  IconServer,
   IconCurrencyDollar,
   IconSearch,
   IconTool,
@@ -188,11 +187,6 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
     ]
 
     const communications = [
-      {
-        title: "Workers",
-        url: "/superadmin/workers",
-        icon: IconServer,
-      },
       {
         title: "Notifications",
         url: "/superadmin/notifications",

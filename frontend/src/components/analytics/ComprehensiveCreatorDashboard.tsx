@@ -42,6 +42,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
+import { getOptimizedProfilePicture } from '@/utils/cdnUtils'
 import {
   Pie, PieChart, Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis, Area, AreaChart,
   Label, PolarAngleAxis, Radar, RadarChart
@@ -63,6 +64,14 @@ interface BackendCreatorData {
       full_name: string
       biography: string
       profile_picture_url: string
+      // CDN fields for optimized profile pictures
+      cdn_avatar_url?: string | null
+      profile_pic_url_hd?: string | null
+      cdn_url_512?: string | null
+      cdn_urls?: {
+        avatar_256?: string
+        avatar_512?: string
+      } | null
       followers_count: number
       following_count: number
       posts_count: number
@@ -351,6 +360,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
         // Get the real data from the backend endpoint
         const response = await comprehensiveAnalyticsApi.getCompleteDashboardData(username)
 
+
         // Transform the existing API response to match our comprehensive structure
         if (response && response.profile) {
           // Map the existing API response to our comprehensive structure
@@ -361,6 +371,11 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                 full_name: response.profile.full_name || "Creator",
                 biography: response.profile.biography || "",
                 profile_picture_url: response.profile.profile_pic_url || "",
+                // CDN fields for optimized profile pictures
+                cdn_avatar_url: response.profile.cdn_avatar_url || null,
+                profile_pic_url_hd: response.profile.profile_pic_url_hd || null,
+                cdn_url_512: response.profile.cdn_url_512 || null,
+                cdn_urls: response.profile.cdn_urls || null,
                 followers_count: response.profile.followers_count || 0,
                 following_count: response.profile.following_count || 0,
                 posts_count: response.profile.posts_count || 0,
@@ -730,7 +745,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
             <div className="flex items-center gap-6">
               <div className="relative">
                 <Avatar className="h-32 w-32 border-4 border-background shadow-lg">
-                  <AvatarImage src={data.overview.profile.profile_picture_url} alt={data.overview.profile.username} />
+                  <AvatarImage src={getOptimizedProfilePicture(data.overview.profile)} alt={data.overview.profile.username} />
                   <AvatarFallback className="text-3xl font-bold bg-primary/10">
                     {data.overview.profile.full_name?.charAt(0) || data.overview.profile.username?.charAt(0)}
                   </AvatarFallback>

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { InstagramProfileCDN } from '@/services/instagramCdnApi'
 import { formatNumber } from '@/lib/utils'
+import { getOptimizedProfilePicture } from '@/utils/cdnUtils'
 // TEMP: Commented out problematic import
 import { 
   ExternalLink, 
@@ -47,7 +48,7 @@ export default function ProfileHeader({ profile, className = '' }: ProfileHeader
           {/* Profile Picture */}
           <div className="relative flex-shrink-0">
             <ProfileAvatar
-              src={profile.profile_pic_url || '/placeholder-avatar.webp'}
+              src={getOptimizedProfilePicture(profile) || '/placeholder-avatar.webp'}
               alt={profile.username}
               fallbackText={profile.username}
               size="xl"
