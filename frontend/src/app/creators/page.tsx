@@ -5,6 +5,7 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { creatorApiService } from "@/services/creatorApi"
 import { useCreatorSearch } from "@/hooks/useCreatorSearch"
+import { useProcessingToast } from "@/contexts/ProcessingToastContext"
 import { useQuery } from "@tanstack/react-query"
 import { CreatorProfile, Profile, UnlockedCreatorsResponse } from "@/services/creatorApi"
 // CDN migration: preloadPageImages no longer needed with CDN
@@ -58,6 +59,7 @@ import { ProfileImage } from "@/components/ProfileImage"
 import {
   SidebarInset,
   SidebarProvider,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { AIVerificationTool } from "@/components/ui/ai-verification-tool"
@@ -79,6 +81,7 @@ export default function CreatorsPage() {
 
   // Authentication state - moved before React Query
   const { isAuthenticated, isLoading: authLoading, user } = useEnhancedAuth()
+  const { addProcessingToast } = useProcessingToast()
 
   // Transform backend Profile format to frontend CreatorProfile format
   const transformProfile = (profile: any): CreatorProfile => ({
@@ -194,6 +197,12 @@ export default function CreatorsPage() {
     }
 
     const cleanUsername = searchUsername.trim().replace('@', '')
+
+    // Add processing toast for AI analytics
+    addProcessingToast(cleanUsername)
+
+    // Close the sheet only
+    setIsSearchOpen(false)
 
     // Add creator to analyzing set
     setAnalyzingCreators(prev => new Set([...prev, cleanUsername]))
@@ -342,7 +351,6 @@ export default function CreatorsPage() {
     );
   }
 
-
   return (
     <AuthGuard requireAuth={true}>
       <SidebarProvider
@@ -396,7 +404,7 @@ export default function CreatorsPage() {
                           onKeyPress={(e) => e.key === 'Enter' && handleSearchCreator()}
                         />
                       </div>
-                      <Button 
+                      <Button
                         className="w-full"
                         onClick={handleSearchCreator}
                         disabled={creatorSearchMutation.isPending || !searchUsername.trim()}
@@ -423,8 +431,8 @@ export default function CreatorsPage() {
                           onChange={(e) => setBulkUsernames(e.target.value)}
                         />
                       </div>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="w-full"
                         onClick={handleBulkAnalysis}
                         disabled={bulkLoading || !bulkUsernames.trim()}
@@ -445,7 +453,7 @@ export default function CreatorsPage() {
                       <h3 className="text-sm font-medium">📊 Analysis Tools</h3>
                       <AIVerificationTool />
                     </div>
-                    
+
                     <div className="pt-4 border-t">
                       <div className="text-xs text-muted-foreground space-y-1">
                         <p>📊 Comprehensive analysis:</p>

@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useCreatorSearch } from '@/hooks/useCreatorSearch'
+import { useProcessingToast } from '@/contexts/ProcessingToastContext'
 import { ProfileCard } from './profile-card'
 import { EnhancedProfileDetail } from './enhanced-profile-detail'
 import type { ProfileSearchResponse } from '@/types/api'
@@ -17,6 +18,7 @@ export const CreatorSearch: React.FC = () => {
   const [username, setUsername] = useState('')
   const [searchResult, setSearchResult] = useState<ProfileSearchResponse | null>(null)
   const [viewMode, setViewMode] = useState<'compact' | 'detailed'>('compact')
+  const { addProcessingToast } = useProcessingToast()
 
   const creatorSearch = useCreatorSearch({
     onSuccess: (data) => {
@@ -30,7 +32,13 @@ export const CreatorSearch: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (username.trim()) {
-      creatorSearch.mutate(username.trim())
+      const cleanUsername = username.trim()
+
+      // Start processing toast for AI analytics
+      addProcessingToast(cleanUsername)
+
+      // Execute the search
+      creatorSearch.mutate(cleanUsername)
     }
   }
 

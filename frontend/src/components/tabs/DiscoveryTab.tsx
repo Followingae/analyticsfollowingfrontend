@@ -50,10 +50,14 @@ import {
 } from '@/components/ui/alert-dialog'
 import { formatNumber } from '@/lib/utils'
 import { discoveryService, DiscoveryProfile } from '@/services/discoveryService'
+import { useProcessingToast } from '@/contexts/ProcessingToastContext'
+import { useSidebar } from '@/components/ui/sidebar'
 import { toast } from 'sonner'
 
 export default function DiscoveryTab() {
   const router = useRouter()
+  const { addProcessingToast } = useProcessingToast()
+  const { setOpenMobile } = useSidebar()
   const [mounted, setMounted] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -71,10 +75,38 @@ export default function DiscoveryTab() {
 
   // Load initial data when component mounts
   useEffect(() => {
-    handleSearch()
+    handleDiscoverySearch()
   }, [])
 
-  const handleSearch = async (page: number = currentPage, resetPage: boolean = false) => {
+  // Determine search type and execute appropriate search
+  const handleSearchAction = () => {
+    const trimmedSearch = searchTerm.trim()
+
+    // If search looks like a specific username (no spaces, starts with @ or looks like username)
+    if (trimmedSearch && (trimmedSearch.startsWith('@') || !trimmedSearch.includes(' '))) {
+      handleDirectCreatorSearch()
+    } else {
+      // Otherwise do discovery search
+      handleDiscoverySearch(1, true)
+    }
+  }
+
+  // Handle direct creator search (when user wants to go to specific creator's analytics)
+  const handleDirectCreatorSearch = () => {
+    const username = searchTerm.trim().replace('@', '')
+    if (!username) {
+      toast.error('Please enter a creator username')
+      return
+    }
+
+    console.log(`🚀 Direct creator search for: ${username}`)
+    addProcessingToast(username)
+    setOpenMobile(false) // Close sidebar on mobile
+    router.push(`/creator-analytics/${username}`)
+  }
+
+  // Handle discovery search (browse/filter creators)
+  const handleDiscoverySearch = async (page: number = currentPage, resetPage: boolean = false) => {
     setLoading(true)
 
     const pageToUse = resetPage ? 1 : page
@@ -150,12 +182,12 @@ export default function DiscoveryTab() {
       setTierFilter(newValue)
     }
     // Reset to first page when filters change
-    handleSearch(1, true)
+    handleDiscoverySearch(1, true)
   }
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
-    handleSearch(newPage)
+    handleDiscoverySearch(newPage)
   }
 
   const totalPages = Math.ceil(totalCount / itemsPerPage)
@@ -163,7 +195,9 @@ export default function DiscoveryTab() {
   const handleUnlockProfile = async (profile: DiscoveryProfile) => {
     if (profile.unlock_status.is_unlocked) {
       // Already unlocked, go to analytics
-      router.push(`/analytics/${profile.username}`)
+      addProcessingToast(profile.username)
+      setOpenMobile(false) // Close sidebar on mobile
+      router.push(`/creator-analytics/${profile.username}`)
       return
     }
 
@@ -195,14 +229,18 @@ export default function DiscoveryTab() {
 
         // Navigate to analytics
         console.log(`🚀 Navigating to analytics for: ${profile.username}`)
-        router.push(`/analytics/${profile.username}`)
+        addProcessingToast(profile.username)
+        setOpenMobile(false) // Close sidebar on mobile
+        router.push(`/creator-analytics/${profile.username}`)
       } else {
         console.log('❌ Unlock failed:', result.error)
         if (result.error?.includes('credits') || result.error?.includes('insufficient')) {
           toast.error('Insufficient credits. Please top up your account to unlock this profile.')
         } else if (result.error?.includes('already unlocked')) {
           toast.error('Profile is already unlocked. Redirecting to analytics...')
-          router.push(`/analytics/${profile.username}`)
+          addProcessingToast(profile.username)
+          setOpenMobile(false) // Close sidebar on mobile
+          router.push(`/creator-analytics/${profile.username}`)
         } else {
           toast.error(result.error || 'Failed to unlock profile')
         }
@@ -249,7 +287,7 @@ export default function DiscoveryTab() {
               placeholder="Search creators..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch(1, true)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearchAction()}
               className="pl-9"
             />
           </div>
@@ -280,7 +318,7 @@ export default function DiscoveryTab() {
             </SelectContent>
           </Select>
 
-          <Button onClick={() => handleSearch(1, true)} disabled={loading}>
+          <Button onClick={handleSearchAction} disabled={loading}>
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
@@ -457,7 +495,7 @@ export default function DiscoveryTab() {
           <p className="text-muted-foreground mb-4">
             Try adjusting your search terms or filters to discover more creators.
           </p>
-          <Button onClick={handleSearch} disabled={loading}>
+          <Button onClick={() => handleDiscoverySearch()} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Refresh
           </Button>

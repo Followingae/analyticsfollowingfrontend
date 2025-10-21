@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { CreatorProfile } from './analytics/CreatorAnalyticsDashboard'
 import { useCreatorAnalytics } from '@/hooks/useCreatorAnalytics'
+import { useProcessingToast } from '@/contexts/ProcessingToastContext'
 import { toast } from 'sonner'
 
 export function CreatorSearchWithAnalytics() {
@@ -30,17 +31,21 @@ export function CreatorSearchWithAnalytics() {
   const [searchTerm, setSearchTerm] = useState('')
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchResults, setSearchResults] = useState<CreatorProfile[]>([])
+  const { addProcessingToast } = useProcessingToast()
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!searchTerm.trim()) {
       toast.error('Please enter a username')
       return
     }
 
     const username = searchTerm.replace('@', '').trim()
-    
+
+    // Start processing toast for AI analytics
+    addProcessingToast(username)
+
     // Navigate directly to analytics page
     router.push(`/creator-analytics/${username}`)
   }
