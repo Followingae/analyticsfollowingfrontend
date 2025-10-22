@@ -13,6 +13,7 @@ interface ProcessingToast {
 interface ProcessingToastContextType {
   addProcessingToast: (username: string) => void
   removeProcessingToast: (username: string) => void
+  clearAllProcessingToasts: () => void
   processingToasts: ProcessingToast[]
 }
 
@@ -25,17 +26,26 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
   const [processingToasts, setProcessingToasts] = useState<ProcessingToast[]>([])
   const [toastIds, setToastIds] = useState<Map<string, string | number>>(new Map())
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount and immediately check for completion
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       try {
         const toasts = JSON.parse(stored) as ProcessingToast[]
+        console.log('🔄 Restored processing toasts from localStorage:', toasts)
         setProcessingToasts(toasts)
         // Show toasts for persisted items
         toasts.forEach(toastItem => {
           showProcessingToast(toastItem.username, toastItem.id)
         })
+
+        // Immediately check for completion (in case profiles were unlocked while app was closed)
+        if (toasts.length > 0) {
+          setTimeout(() => {
+            console.log('🔍 Immediately checking for completion of restored toasts...')
+            checkCompletionNow()
+          }, 1000) // Give time for auth to load
+        }
       } catch (error) {
         console.error('Failed to parse stored processing toasts:', error)
       }
@@ -104,11 +114,22 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
     })
   }, [toastIds])
 
-  // Polling logic to check for completion
-  useEffect(() => {
-    if (processingToasts.length === 0) return
+  const clearAllProcessingToasts = useCallback(() => {
+    // Dismiss all Sonner toasts
+    toastIds.forEach((toastId) => {
+      toast.dismiss(toastId)
+    })
 
-    const checkCompletion = async () => {
+    // Clear all state
+    setProcessingToasts([])
+    setToastIds(new Map())
+    localStorage.removeItem(STORAGE_KEY)
+
+    console.log('🧹 Cleared all processing toasts')
+  }, [toastIds])
+
+  // Extract polling logic into reusable function
+  const checkCompletionNow = useCallback(async () => {
       try {
         // Get auth tokens properly
         const storedTokens = localStorage.getItem('auth_tokens')
@@ -168,16 +189,21 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
       } catch (error) {
         console.error('Failed to check processing completion:', error)
       }
-    }
-
-    const interval = setInterval(checkCompletion, POLL_INTERVAL)
-    return () => clearInterval(interval)
   }, [processingToasts, removeProcessingToast])
+
+  // Polling logic to check for completion
+  useEffect(() => {
+    if (processingToasts.length === 0) return
+
+    const interval = setInterval(checkCompletionNow, POLL_INTERVAL)
+    return () => clearInterval(interval)
+  }, [processingToasts, checkCompletionNow])
 
   return (
     <ProcessingToastContext.Provider value={{
       addProcessingToast,
       removeProcessingToast,
+      clearAllProcessingToasts,
       processingToasts
     }}>
       {children}
