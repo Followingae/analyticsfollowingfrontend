@@ -2,48 +2,61 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
-import { ArrowLeft, Users, FileText, Eye, TrendingUp, Heart, MessageCircle, Image, Video, Share2, Plus, Pencil, Upload, Trash2, X, Link as LinkIcon, Loader2, MoreVertical, Download, Copy, FileUp } from "lucide-react";
-import { toast } from "sonner";
-import { AudienceBarChart } from "@/components/campaigns/AudienceBarChart";
-import { InterestsRadarChart } from "@/components/campaigns/InterestsRadarChart";
-import { PostCard } from "@/components/campaigns/PostCard";
-import { BeautifulPDFExportButton } from "@/components/campaigns/BeautifulPDFExport";
+import {
+  ArrowLeft,
+  Settings,
+  Share2,
+  Download,
+  MoreHorizontal,
+  Play,
+  Pause,
+  StopCircle,
+  Plus,
+  Users,
+  FileText,
+  Eye,
+  TrendingUp,
+  MessageCircle,
+  Heart,
+  Image,
+  Video,
+  Pencil,
+  X,
+  Trash2,
+  LinkIcon,
+  FileUp,
+  Copy,
+  Loader2,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { AuthGuard } from "@/components/AuthGuard";
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
+import { toast } from "sonner";
+
+import { CampaignWorkflow } from "@/components/campaigns/unified/CampaignWorkflow";
+import { InfluencerSelection } from "@/components/campaigns/unified/InfluencerSelection";
+import { PostCard } from "@/components/campaigns/PostCard";
 
 // Backend response interfaces (UPDATED with collaboration support)
 interface BackendCampaignPost {
@@ -348,202 +361,229 @@ export default function CampaignDetailsPage() {
     try {
       setIsLoading(true);
 
+      // TEMPORARILY COMMENTED OUT API CALLS FOR DEMO - NO BACKEND DEPENDENCY
+      /*
       const { API_CONFIG } = await import("@/config/api");
-      const { fetchWithAuth } = await import("@/utils/apiInterceptor");
+      const { tokenManager } = await import("@/utils/tokenManager");
+      const tokenResult = await tokenManager.getValidToken();
 
-      // Fetch campaign details, posts, creators, audience, and AI insights in parallel
-      const [campaignRes, postsRes, creatorsRes, audienceRes, aiInsightsRes] = await Promise.all([
-        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}`),
-        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts`),
-        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/creators`),
-        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/audience`),
-        fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/ai-insights`),
-      ]);
-
-      const campaignData = await campaignRes.json();
-      const postsData = await postsRes.json();
-      const creatorsData = await creatorsRes.json();
-      const audienceData = await audienceRes.json();
-
-      console.log("📊 Campaign data received:", campaignData.data);
-      console.log("  - creators_count:", campaignData.data?.creators_count);
-      console.log("  - posts_count:", campaignData.data?.posts_count);
-      console.log("  - total_reach:", campaignData.data?.total_reach);
-      console.log("  - engagement_rate:", campaignData.data?.engagement_rate);
-
-      // Fetch AI insights with error handling
-      let aiInsightsData = null;
-      try {
-        if (aiInsightsRes.ok) {
-          aiInsightsData = await aiInsightsRes.json();
-          console.log("AI Insights loaded:", aiInsightsData);
-        } else {
-          console.warn("AI Insights endpoint returned error:", aiInsightsRes.status);
-        }
-      } catch (err) {
-        console.warn("AI Insights not available yet:", err);
+      if (!tokenResult.isValid || !tokenResult.token) {
+        router.push('/auth/login');
+        return;
       }
 
-      // Check if demographics are missing
-      const hasCreators = creatorsData.data?.creators?.length > 0;
-      const hasNoDemographics = !audienceData.data?.topGender && !audienceData.data?.topAgeGroup;
+      // Actual API calls would go here
+      */
 
-      if (hasCreators && hasNoDemographics) {
-        console.log("⏳ Demographics are being processed. This may take 2-3 minutes after adding creators.");
-      }
+      // Mock campaign data with rich content for demo
+      const mockCampaign: BackendCampaignDetails = {
+        id: campaignId,
+        name: campaignId === "1" ? "Summer Collection Launch" :
+              campaignId === "2" ? "Brand Awareness Q4" :
+              campaignId === "3" ? "Product Launch" : "Holiday Campaign 2024",
+        brand_name: campaignId === "1" ? "Fashion Forward" :
+                    campaignId === "2" ? "TechNova" :
+                    campaignId === "3" ? "Lifestyle Co" : "Demo Brand",
+        brand_logo_url: "https://picsum.photos/100/100?random=" + campaignId,
+        status: campaignId === "1" ? "active" : campaignId === "2" ? "active" : "draft",
+        created_at: "2024-10-20T00:00:00Z",
+        updated_at: "2024-10-25T00:00:00Z",
+        posts_count: campaignId === "1" ? 8 : campaignId === "2" ? 12 : 0,
+        creators_count: campaignId === "1" ? 3 : campaignId === "2" ? 5 : 0,
+        total_reach: campaignId === "1" ? 450000 : campaignId === "2" ? 820000 : 0,
+        engagement_rate: campaignId === "1" ? 3.2 : campaignId === "2" ? 2.8 : 0,
+      };
 
-      setCampaign(campaignData.data);
-      setPosts(postsData.data?.posts || []);
-      setCreators(creatorsData.data?.creators || []);
-      setAudience(audienceData.data || null);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setCampaign(mockCampaign);
 
-      // Set AI insights if available
-      if (aiInsightsData?.data) {
-        setAiInsights(aiInsightsData.data);
-        console.log("AI Insights state updated");
-      } else {
-        console.log("No AI insights data available");
-      }
+      // Enhanced mock data for campaigns with content
+      let mockPosts: BackendCampaignPost[] = [];
+      let mockCreators: BackendCreator[] = [];
+      let mockAudience: BackendAudience | null = null;
+      let mockAiInsights: AIInsights | null = null;
 
-      // Calculate stats from fetched data
-      const posts = postsData.data?.posts || [];
-      const creators = creatorsData.data?.creators || [];
-
-      // Enhanced post type calculation using new is_video field
-      const postTypes = posts.reduce(
-        (acc: any, post: BackendCampaignPost) => {
-          // Use enhanced video detection
-          if (post.is_video === true || post.media_type === "Video" || post.type === "reel") {
-            acc.reels++;
-          } else if (post.media_type === "Carousel") {
-            acc.carousel = (acc.carousel || 0) + 1;
-          } else {
-            acc.static++;
+      if (campaignId === "1" || campaignId === "2") {
+        // Mock posts with realistic data
+        mockPosts = [
+          {
+            id: "post1",
+            thumbnail: "https://picsum.photos/300/300?random=1",
+            url: "https://instagram.com/p/ABC123/",
+            type: "static",
+            caption: "Check out our amazing summer collection! 🌟 #fashion #summer",
+            views: 25000,
+            likes: 1200,
+            comments: 85,
+            engagementRate: 3.1,
+            is_video: false,
+            media_type: "Image",
+            collaborators: [],
+            is_collaboration: false,
+            total_creators: 1,
+            ai_content_category: "Fashion",
+            ai_sentiment: "positive",
+            ai_language_code: "en",
+            creator_username: "fashionista_jane",
+            creator_full_name: "Jane Doe",
+            creator_followers_count: 45000,
+            creator_profile_pic_url: "https://picsum.photos/100/100?random=11",
+            shortcode: "ABC123",
+            added_at: "2024-10-22T00:00:00Z"
+          },
+          {
+            id: "post2",
+            thumbnail: "https://picsum.photos/300/300?random=2",
+            url: "https://instagram.com/reel/XYZ789/",
+            type: "reels",
+            caption: "Behind the scenes of our photoshoot! 🎬✨",
+            views: 42000,
+            likes: 2100,
+            comments: 156,
+            engagementRate: 4.2,
+            is_video: true,
+            media_type: "Video",
+            video_duration: 45,
+            collaborators: [
+              {
+                username: "photographer_mike",
+                full_name: "Mike Wilson",
+                is_verified: true,
+                collaboration_type: "coauthor_producer"
+              }
+            ],
+            is_collaboration: true,
+            total_creators: 2,
+            ai_content_category: "Behind the Scenes",
+            ai_sentiment: "positive",
+            ai_language_code: "en",
+            creator_username: "fashionista_jane",
+            creator_full_name: "Jane Doe",
+            creator_followers_count: 45000,
+            creator_profile_pic_url: "https://picsum.photos/100/100?random=11",
+            shortcode: "XYZ789",
+            added_at: "2024-10-23T00:00:00Z"
           }
-          return acc;
-        },
-        { static: 0, reels: 0, carousel: 0, story: 0 }
-      );
+        ];
 
-      // Calculate basic metrics first (needed for reach calculation)
-      const totalLikes = posts.reduce(
-        (sum: number, post: BackendCampaignPost) => sum + post.likes,
-        0
-      );
-      const totalComments = posts.reduce(
-        (sum: number, post: BackendCampaignPost) => sum + post.comments,
-        0
-      );
-      const avgEngagement =
-        posts.reduce(
-          (sum: number, post: BackendCampaignPost) => sum + post.engagementRate,
-          0
-        ) / (posts.length || 1);
-      const totalFollowers = creators.reduce(
-        (sum: number, creator: BackendCreator) => sum + creator.followers_count,
-        0
-      );
+        // Mock creators data
+        mockCreators = [
+          {
+            profile_id: "creator1",
+            username: "fashionista_jane",
+            full_name: "Jane Doe",
+            profile_pic_url: "https://picsum.photos/100/100?random=11",
+            followers_count: 45000,
+            posts_count: 2,
+            posts_in_campaign: 2,
+            total_likes: 3300,
+            total_comments: 241,
+            avg_engagement_rate: 3.65
+          }
+        ];
 
-      // Now calculate estimated total reach using industry-standard formulas
-      const estimatedTotalReach = calculateCampaignReach(posts);
+        // Mock audience data
+        mockAudience = {
+          total_reach: 450000,
+          total_creators: 2,
+          gender_distribution: { FEMALE: 65, MALE: 35 },
+          age_distribution: { "18-24": 35, "25-34": 40, "35-44": 20, "45+": 5 },
+          country_distribution: { "United States": 45, "Canada": 15, "United Kingdom": 12, "Australia": 8 },
+          topGender: { name: "FEMALE", percentage: 65 },
+          topAgeGroup: { name: "25-34", percentage: 40 },
+          topCountry: { name: "United States", percentage: 45 }
+        };
 
-      // Aggressive fallback reach calculation - reach should NEVER be lower than followers!
-      const totalPostEngagement = posts.reduce((sum, post) => sum + post.likes + post.comments, 0);
-      const averageFollowers = creators.length > 0 ? totalFollowers / creators.length : 100000; // Higher fallback
+        // Mock AI insights
+        mockAiInsights = {
+          total_posts: 2,
+          ai_analyzed_posts: 2,
+          sentiment_analysis: {
+            available: true,
+            distribution: { positive: 85, neutral: 15, negative: 0 },
+            dominant_sentiment: "positive"
+          },
+          category_classification: {
+            available: true,
+            top_categories: [
+              { category: "fashion", percentage: 70 },
+              { category: "lifestyle", percentage: 30 }
+            ]
+          },
+          audience_quality: {
+            available: true,
+            average_authenticity: 92,
+            quality_rating: "high"
+          },
+          visual_content: {
+            available: true,
+            aesthetic_score: 8.5,
+            professional_quality_score: 9.2
+          },
+          trend_detection: {
+            available: true,
+            average_viral_potential: 75,
+            viral_rating: "high"
+          },
+          advanced_nlp: {
+            available: true,
+            average_word_count: 25,
+            total_brand_mentions: 5,
+            content_depth: "moderate"
+          },
+          fraud_detection: {
+            available: true,
+            average_fraud_score: 5,
+            overall_trust_level: "high"
+          },
+          language_detection: { available: true },
+          audience_insights: { available: true },
+          behavioral_patterns: { available: true }
+        };
+      }
 
-      const simpleReachEstimate = Math.max(
-        totalPostEngagement * 150,  // 150x engagement as baseline (even higher!)
-        totalFollowers * 1.2,       // At least 120% of total followers as reach
-        averageFollowers * posts.length * 0.8, // 80% reach per post per creator
-        totalFollowers * 1.5        // Minimum 150% of followers reached across campaign
-      );
+      setPosts(mockPosts);
+      setCreators(mockCreators);
+      setAudience(mockAudience);
+      setAiInsights(mockAiInsights);
 
-      // GUARANTEE reach is MASSIVE - use the MUCH higher estimate
-      const finalReachEstimate = Math.max(
-        estimatedTotalReach,
-        simpleReachEstimate,
-        totalFollowers * 1.3  // Absolute minimum: 130% of total followers
-      );
+      // Calculate mock stats
+      const postTypes = {
+        static: mockPosts.filter(p => p.type === "static").length,
+        reels: mockPosts.filter(p => p.type === "reels").length,
+        carousel: mockPosts.filter(p => p.media_type === "Carousel").length,
+        story: 0
+      };
 
-      // Calculate unique creators (no duplicates) - collaboration-aware
-      const uniqueCreators = new Set<string>();
-
-      // Add main creators
-      posts.forEach(post => {
-        uniqueCreators.add(post.creator_username);
-      });
-
-      // Add collaborators (if backend provides collaboration data)
-      posts.forEach(post => {
-        if (post.collaborators && post.collaborators.length > 0) {
-          post.collaborators.forEach(collaborator => {
-            uniqueCreators.add(collaborator.username);
-          });
-        }
-      });
-
-      const collaborationAwareTotalCreators = uniqueCreators.size;
-
-      // Calculate collaboration rate
-      const collaborationPosts = posts.filter(post => post.is_collaboration).length;
-      const collaborationRate = posts.length > 0 ? (collaborationPosts / posts.length) * 100 : 0;
-
-      // Debug: Check if backend is sending collaboration data + reach calculations
-      console.log("🔍 Debugging collaboration data from backend:", {
-        samplePost: posts[0] ? {
-          id: posts[0].id,
-          likes: posts[0].likes,
-          comments: posts[0].comments,
-          views: posts[0].views,
-          is_video: posts[0].is_video,
-          followers: posts[0].creator_followers_count,
-          hasCollaborators: !!posts[0].collaborators,
-          collaboratorsLength: posts[0].collaborators?.length || 0,
-          isCollaboration: posts[0].is_collaboration,
-          totalCreators: posts[0].total_creators,
-          calculatedReach: posts[0] ? calculatePostReach(posts[0]) : 0,
-        } : "No posts found",
-        totalPosts: posts.length,
-        uniqueCreatorsList: Array.from(uniqueCreators),
-        uniqueCreatorsCount: uniqueCreators.size,
-      });
-
-      console.log("📊 Enhanced Stats calculation with collaboration support:", {
-        totalCreators: audienceData.data?.total_creators || 0,
-        collaborationAwareTotalCreators,
-        collaborationPosts,
-        collaborationRate: collaborationRate.toFixed(1) + '%',
-        estimatedTotalReach: estimatedTotalReach,
-        simpleReachEstimate: simpleReachEstimate,
-        finalReachEstimate: finalReachEstimate,
-        totalPostEngagement: totalPostEngagement,
-        totalFollowers,
-        averageFollowers: averageFollowers,
-        campaignCreatorsCount: campaignData.data?.creators_count,
-        campaignTotalReach: campaignData.data?.total_reach,
-        samplePostReach: posts[0] ? calculatePostReach(posts[0]) : "No posts",
-      });
+      const totalLikes = mockPosts.reduce((sum, post) => sum + post.likes, 0);
+      const totalComments = mockPosts.reduce((sum, post) => sum + post.comments, 0);
+      const avgEngagement = mockPosts.length > 0
+        ? mockPosts.reduce((sum, post) => sum + post.engagementRate, 0) / mockPosts.length
+        : 0;
+      const totalFollowers = mockCreators.reduce((sum, creator) => sum + creator.followers_count, 0);
+      const collaborationPosts = mockPosts.filter(p => p.is_collaboration).length;
+      const collaborationRate = mockPosts.length > 0 ? (collaborationPosts / mockPosts.length) * 100 : 0;
 
       setStats({
-        totalCreators: collaborationAwareTotalCreators, // Use collaboration-aware count
-        totalPosts: postsData.data?.total_posts || 0,
+        totalCreators: mockCreators.length,
+        totalPosts: mockPosts.length,
         totalFollowers,
-        totalReach: finalReachEstimate, // Use the higher of complex vs simple calculation
+        totalReach: mockCampaign.total_reach || 0,
         overallEngagementRate: avgEngagement,
         totalComments,
         totalLikes,
         postTypeBreakdown: postTypes,
-        // Add collaboration metrics
         collaborationRate,
         collaborationPosts,
       });
     } catch (error: any) {
       console.error("Error fetching campaign data:", error);
 
-      // If it's an authentication error, redirect to login
-      if (error.message?.includes('authentication') || error.message?.includes('token')) {
-        router.push('/auth/login');
-      }
+      // For demo purposes, don't redirect on errors
+      // if (error.message?.includes('authentication') || error.message?.includes('token')) {
+      //   router.push('/auth/login');
+      // }
     } finally {
       setIsLoading(false);
     }
@@ -756,6 +796,8 @@ export default function CampaignDetailsPage() {
     if (!confirm("Are you sure you want to delete the logo?")) return;
 
     try {
+      // TEMPORARILY COMMENTED OUT API CALLS FOR DEMO - NO BACKEND DEPENDENCY
+      /*
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
       const tokenResult = await tokenManager.getValidToken();
@@ -778,11 +820,15 @@ export default function CampaignDetailsPage() {
       if (!response.ok) {
         throw new Error("Failed to delete logo");
       }
+      */
+
+      // Mock delete for demo
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Update local state
       setCampaign({ ...campaign, brand_logo_url: null });
       setLogoPreview("");
-      toast.success("Logo deleted successfully");
+      toast.success("Logo deleted successfully (Demo Mode)");
     } catch (error) {
       console.error("Error deleting logo:", error);
       toast.error("Failed to delete logo");
@@ -794,6 +840,8 @@ export default function CampaignDetailsPage() {
 
     setIsSaving(true);
     try {
+      // TEMPORARILY COMMENTED OUT API CALLS FOR DEMO - NO BACKEND DEPENDENCY
+      /*
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
       const tokenResult = await tokenManager.getValidToken();
@@ -840,7 +888,6 @@ export default function CampaignDetailsPage() {
       }
 
       // Upload new logo if selected
-      let updatedLogoUrl = campaign.brand_logo_url;
       if (newLogo) {
         const logoFormData = new FormData();
         logoFormData.append("logo", newLogo);
@@ -863,6 +910,16 @@ export default function CampaignDetailsPage() {
         const logoResult = await logoResponse.json();
         updatedLogoUrl = logoResult.data?.brand_logo_url || logoPreview;
       }
+      */
+
+      // Mock update for demo
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Handle logo upload in demo mode
+      let updatedLogoUrl = campaign.brand_logo_url;
+      if (newLogo) {
+        updatedLogoUrl = logoPreview; // Use preview as uploaded URL in demo
+      }
 
       // Update local state with all changes
       setCampaign({
@@ -874,7 +931,7 @@ export default function CampaignDetailsPage() {
       });
 
       setIsEditDialogOpen(false);
-      toast.success("Campaign updated successfully");
+      toast.success("Campaign updated successfully (Demo Mode)");
     } catch (error) {
       console.error("Error saving changes:", error);
       toast.error("Failed to save changes");
@@ -899,6 +956,8 @@ export default function CampaignDetailsPage() {
 
     setIsSaving(true);
     try {
+      // TEMPORARILY COMMENTED OUT API CALLS FOR DEMO - NO BACKEND DEPENDENCY
+      /*
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
       const tokenResult = await tokenManager.getValidToken();
@@ -929,15 +988,19 @@ export default function CampaignDetailsPage() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || "Failed to add post");
       }
+      */
 
-      toast.success("Post added successfully! Analytics will be ready in 5-10 minutes.", {
+      // Mock add post for demo
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      toast.success("Post added successfully! (Demo Mode)", {
         duration: 5000,
       });
       setNewPostUrl("");
       setIsAddPostDialogOpen(false);
 
       // Refresh campaign data to show new post
-      fetchCampaignData();
+      // fetchCampaignData(); // Commented out for demo
     } catch (error) {
       console.error("Error adding post:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to add post";
@@ -1102,51 +1165,18 @@ export default function CampaignDetailsPage() {
             <Plus className="mr-2 h-4 w-4" />
             Add Posts
           </Button>
-          <BeautifulPDFExportButton
-            data={{
-              campaign: {
-                ...campaign,
-                engagement_rate: campaign.engagement_rate || stats?.overallEngagementRate || 0,
-                posts_count: campaign.posts_count || stats?.totalPosts || posts.length,
-                creators_count: campaign.creators_count || stats?.totalCreators || creators.length,
-                total_reach: campaign.total_reach || stats?.totalReach || 0,
-              },
-              stats: stats || undefined,
-              posts: posts.map(post => ({
-                ...post,
-                thumbnail: post.thumbnail,
-                engagementRate: post.engagementRate || 0,
-                creator_profile_pic_url: post.creator_profile_pic_url,
-              })),
-              creators: creators.map(creator => ({
-                ...creator,
-                profile_pic_url: creator.profile_pic_url || null,
-                avg_engagement_rate: creator.avg_engagement_rate || 0,
-              })),
-              audience: audience ? {
-                age_groups: audience.age_groups,
-                gender_split: audience.gender_split,
-                top_countries: audience.top_countries?.map((c: any) => ({
-                  country: c.country,
-                  percentage: c.percentage
-                })),
-                top_cities: audience.top_cities?.map((c: any) => ({
-                  city: c.city,
-                  percentage: c.percentage
-                })),
-                interests: audience.interests,
-              } : undefined,
-              aiInsights: aiInsights || undefined,
-            }}
-            className="h-10"
-          />
+          <Button variant="outline" className="h-10">
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </Button>
         </div>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="stats" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="stats">Campaign Stats</TabsTrigger>
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsTrigger value="workflow">Workflow</TabsTrigger>
+          <TabsTrigger value="stats">Analytics</TabsTrigger>
           <TabsTrigger value="audience">Audience</TabsTrigger>
           <TabsTrigger value="posts">Posts</TabsTrigger>
         </TabsList>
@@ -1170,6 +1200,15 @@ export default function CampaignDetailsPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Campaign Workflow Tab */}
+        <TabsContent value="workflow" className="space-y-6">
+          <CampaignWorkflow
+            campaignId={campaignId}
+            currentStage={campaign?.status === "active" ? "influencer_selection" : "proposal"}
+            isAgencyClient={user?.role === 'premium' || user?.role === 'enterprise'}
+          />
+        </TabsContent>
 
         {/* Campaign Stats Tab */}
         <TabsContent value="stats" className="space-y-6">
@@ -1621,38 +1660,52 @@ export default function CampaignDetailsPage() {
                aiInsights.audience_insights.geographic_analysis.top_countries &&
                typeof aiInsights.audience_insights.geographic_analysis.top_countries === 'object' &&
                Object.keys(aiInsights.audience_insights.geographic_analysis.top_countries).length > 0 && (
-                <AudienceBarChart
-                  title="Audience Geographic Distribution"
-                  description="Top audience locations by country"
-                  data={Object.entries(aiInsights.audience_insights.geographic_analysis.top_countries)
-                    .filter(([, percentage]) => percentage >= 5)
-                    .sort(([, a], [, b]) => b - a)
-                    .slice(0, 5)
-                    .map(([country, percentage]) => ({
-                      label: country,
-                      value: percentage
-                    }))}
-                />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Audience Geographic Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {Object.entries(aiInsights.audience_insights.geographic_analysis.top_countries)
+                        .filter(([, percentage]) => percentage >= 5)
+                        .sort(([, a], [, b]) => b - a)
+                        .slice(0, 5)
+                        .map(([country, percentage]) => (
+                          <div key={country} className="flex items-center justify-between">
+                            <span className="text-sm font-medium">{country}</span>
+                            <span className="text-sm">{percentage.toFixed(1)}%</span>
+                          </div>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Demographic Insights - Age Distribution */}
               {aiInsights.audience_insights.demographic_insights &&
                aiInsights.audience_insights.demographic_insights.estimated_age_groups &&
                typeof aiInsights.audience_insights.demographic_insights.estimated_age_groups === 'object' && (
-                <AudienceBarChart
-                  title="Audience Age Distribution"
-                  description="Age demographics of campaign audience"
-                  data={Object.entries(aiInsights.audience_insights.demographic_insights.estimated_age_groups)
-                    .sort(([a], [b]) => {
-                      const aNum = parseInt(a.split('-')[0]);
-                      const bNum = parseInt(b.split('-')[0]);
-                      return aNum - bNum;
-                    })
-                    .map(([age, percentage]) => ({
-                      label: `${age} years`,
-                      value: percentage * 100
-                    }))}
-                />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Audience Age Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {Object.entries(aiInsights.audience_insights.demographic_insights.estimated_age_groups)
+                        .sort(([a], [b]) => {
+                          const aNum = parseInt(a.split('-')[0]);
+                          const bNum = parseInt(b.split('-')[0]);
+                          return aNum - bNum;
+                        })
+                        .map(([age, percentage]) => (
+                          <div key={age} className="flex items-center justify-between">
+                            <span className="text-sm font-medium">{age} years</span>
+                            <span className="text-sm">{(percentage * 100).toFixed(1)}%</span>
+                          </div>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Gender Distribution and Audience Interests - Single Row */}
@@ -1704,9 +1757,23 @@ export default function CampaignDetailsPage() {
                 {/* Audience Interests */}
                 {aiInsights.audience_insights.audience_interests?.interest_distribution &&
                  typeof aiInsights.audience_insights.audience_interests.interest_distribution === 'object' && (
-                  <InterestsRadarChart
-                    interests={aiInsights.audience_insights.audience_interests.interest_distribution}
-                  />
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Audience Interests</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {Object.entries(aiInsights.audience_insights.audience_interests.interest_distribution)
+                          .slice(0, 5)
+                          .map(([interest, percentage]) => (
+                            <div key={interest} className="flex items-center justify-between">
+                              <span className="text-sm font-medium capitalize">{interest}</span>
+                              <span className="text-sm">{(percentage * 100).toFixed(1)}%</span>
+                            </div>
+                          ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             </>

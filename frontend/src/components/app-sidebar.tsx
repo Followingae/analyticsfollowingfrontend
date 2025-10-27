@@ -64,11 +64,6 @@ const data = {
       url: "/my-lists",
       icon: IconList,
     },
-    {
-      title: "Proposals",
-      url: "/brand-proposals",
-      icon: IconFileText,
-    },
   ],
   more: [
     {

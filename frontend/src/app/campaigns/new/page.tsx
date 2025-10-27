@@ -130,6 +130,8 @@ export default function NewCampaignPage() {
     const loadingToast = toast.loading("Creating campaign...");
 
     try {
+      // TEMPORARILY COMMENTED OUT API CALLS FOR DEMO - NO BACKEND DEPENDENCY
+      /*
       const { API_CONFIG, ENDPOINTS } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
 
@@ -251,10 +253,20 @@ export default function NewCampaignPage() {
           console.log("Posts added successfully");
         }
       }
+      */
+
+      // Mock campaign creation for demo
+      console.log("Creating campaign with demo data:", { campaignName, brandName, status, posts });
+
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const mockCampaignId = Date.now().toString();
+      console.log("Mock campaign created with ID:", mockCampaignId);
 
       // Success notification
       toast.dismiss(loadingToast);
-      toast.success("Campaign created successfully!");
+      toast.success("Campaign created successfully! (Demo Mode)");
 
       // Redirect to campaigns list
       router.push(`/campaigns`);

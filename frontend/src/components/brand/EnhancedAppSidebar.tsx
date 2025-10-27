@@ -131,11 +131,6 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         title: "Lists",
         url: "/my-lists",
         icon: IconList,
-      },
-      {
-        title: "Proposals",
-        url: "/brand-proposals", // Use the actual existing route
-        icon: IconFileText,
       }
     ]
 

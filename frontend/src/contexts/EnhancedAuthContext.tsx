@@ -28,6 +28,7 @@ interface EnhancedAuthContextType extends SessionContext {
   isHigherRole: (targetLevel: number) => boolean
   
   // Feature access control
+  hasFeature: (feature: string) => boolean
   checkFeatureAccess: (feature: string) => Promise<FeatureAccess>
   checkCreditGate: (action: string, cost: number) => Promise<FeatureAccess>
   checkSubscriptionGate: (requiredTier: string) => boolean
@@ -327,6 +328,27 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
   }
 
   // Feature access control methods
+  const hasFeature = (feature: string): boolean => {
+    if (!user) return false;
+
+    // Simple feature checking based on role
+    const tier = user.subscription_tier || user.role || 'brand_free';
+
+    switch (feature) {
+      case 'proposals':
+      case 'campaign_management':
+        return ['brand_premium', 'brand_enterprise', 'super_admin', 'admin'].includes(tier);
+      case 'advanced_analytics':
+        return ['brand_premium', 'brand_enterprise', 'super_admin', 'admin'].includes(tier);
+      case 'unlimited_searches':
+        return ['brand_premium', 'brand_enterprise', 'super_admin', 'admin'].includes(tier);
+      case 'api_access':
+        return ['brand_premium', 'brand_enterprise', 'super_admin', 'admin'].includes(tier);
+      default:
+        return true; // Default to allow if feature is not restricted
+    }
+  };
+
   const checkFeatureAccess = async (feature: string): Promise<FeatureAccess> => {
     if (!user) {
       return { allowed: false, reason: 'Not authenticated' }
@@ -413,6 +435,7 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     isHigherRole,
     
     // Feature access methods
+    hasFeature,
     checkFeatureAccess,
     checkCreditGate,
     checkSubscriptionGate,
