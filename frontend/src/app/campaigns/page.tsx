@@ -13,10 +13,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { SiteHeader } from "@/components/site-header";
 import { AuthGuard } from "@/components/AuthGuard";
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 
 import { CampaignsOverview } from "@/components/campaigns/unified/CampaignsOverview";
@@ -42,94 +40,80 @@ export default function UnifiedCampaignsDashboard() {
 
   return (
     <AuthGuard>
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar />
-        <SidebarInset>
-          <SiteHeader />
-          <div className="flex flex-col h-[calc(100vh-theme(spacing.12))] bg-background">
-            {/* Header Section */}
-            <div className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="container mx-auto px-6 py-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
-                    <p className="text-muted-foreground">
-                      End-to-end influencer campaign management
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        placeholder="Search campaigns..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 w-80"
-                      />
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline">
-                          Create <ChevronDown className="ml-2 h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => router.push("/campaigns/new")}>
-                          <Plus className="mr-2 h-4 w-4" />
-                          New Campaign
-                        </DropdownMenuItem>
-                        {isAgencyClient && (
-                          <DropdownMenuItem onClick={() => router.push("/campaigns/request-proposal")}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Request Proposal
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </div>
+      <BrandUserInterface>
+        <div className="flex flex-col h-[calc(100vh-theme(spacing.12))] bg-background">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b bg-background">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
+              <p className="text-muted-foreground mt-1">
+                Manage your influencer marketing campaigns in one place
+              </p>
             </div>
 
-            {/* Tabs Navigation */}
-            <div className="border-b border-border/40 bg-background">
-              <div className="container mx-auto px-6">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid h-12 w-full bg-transparent p-0" style={{ gridTemplateColumns: `repeat(${tabConfig.length}, 1fr)` }}>
-                    {tabConfig.map(({ id, label }) => (
-                      <TabsTrigger
-                        key={id}
-                        value={id}
-                        className="relative h-12 rounded-none border-b-2 border-transparent bg-transparent px-6 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                      >
-                        {label}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </Tabs>
+            <div className="flex items-center gap-3">
+              <div className="relative w-80">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search campaigns..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            </div>
 
-            {/* Tab Content */}
-            <div className="flex-1 overflow-hidden">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-                {tabConfig.map(({ id, component: Component }) => (
-                  <TabsContent key={id} value={id} className="h-full m-0 p-0">
-                    <Component searchQuery={searchQuery} />
-                  </TabsContent>
-                ))}
-              </Tabs>
+              {!isAgencyClient && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Campaign
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => router.push('/campaigns/new')}>
+                      Start from scratch
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/campaigns/templates')}>
+                      Use a template
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/campaigns/import')}>
+                      Import from CSV
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+
+          {/* Tabs Content */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden">
+            <div className="border-b px-6">
+              <TabsList className="h-12 bg-transparent p-0 w-full justify-start">
+                {tabConfig.map(tab => (
+                  <TabsTrigger
+                    key={tab.id}
+                    value={tab.id}
+                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-4"
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+
+            {tabConfig.map(tab => {
+              const TabComponent = tab.component;
+              return (
+                <TabsContent key={tab.id} value={tab.id} className="flex-1 overflow-auto mt-0">
+                  <TabComponent searchQuery={searchQuery} />
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        </div>
+      </BrandUserInterface>
     </AuthGuard>
   );
 }

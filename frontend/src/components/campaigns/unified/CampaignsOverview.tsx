@@ -197,30 +197,33 @@ export function CampaignsOverview({ searchQuery }: CampaignsOverviewProps) {
   return (
     <div className="flex-1 overflow-auto">
       <div className="container mx-auto p-6 space-y-8">
-        {/* Key Metrics Grid */}
+        {/* Key Metrics Grid - Using Theme Colors */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10" />
-            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
-              <FileText className="h-4 w-4 text-primary" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <FileText className="h-4 w-4 text-primary" />
+              </div>
             </CardHeader>
-            <CardContent className="relative">
+            <CardContent>
               <div className="text-2xl font-bold">{summary?.totalCampaigns || 0}</div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                 <Activity className="h-3 w-3" />
                 <span>{summary?.activeCampaigns || 0} active</span>
               </div>
+              <Progress value={(summary?.activeCampaigns || 0) / (summary?.totalCampaigns || 1) * 100} className="h-1 mt-2" />
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20" />
-            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Creators</CardTitle>
-              <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Users className="h-4 w-4 text-primary" />
+              </div>
             </CardHeader>
-            <CardContent className="relative">
+            <CardContent>
               <div className="text-2xl font-bold">{summary?.totalCreators || 0}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 Across all campaigns
@@ -228,13 +231,14 @@ export function CampaignsOverview({ searchQuery }: CampaignsOverviewProps) {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20" />
-            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Reach</CardTitle>
-              <Eye className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Eye className="h-4 w-4 text-primary" />
+              </div>
             </CardHeader>
-            <CardContent className="relative">
+            <CardContent>
               <div className="text-2xl font-bold">
                 {formatNumber(summary?.totalReach || 0)}
               </div>
@@ -244,13 +248,14 @@ export function CampaignsOverview({ searchQuery }: CampaignsOverviewProps) {
             </CardContent>
           </Card>
 
-          <Card className="relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/20 dark:to-orange-900/20" />
-            <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Avg. Engagement</CardTitle>
-              <TrendingUp className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <TrendingUp className="h-4 w-4 text-primary" />
+              </div>
             </CardHeader>
-            <CardContent className="relative">
+            <CardContent>
               <div className="text-2xl font-bold">
                 {summary?.avgEngagementRate?.toFixed(1) || "0.0"}%
               </div>
