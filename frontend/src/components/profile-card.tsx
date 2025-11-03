@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { CheckCircle2, Users, MessageCircle, ImageIcon } from 'lucide-react'
+import { CheckCircle2, Users, MessageCircle, ImageIcon, Shield, Zap, TrendingUp } from 'lucide-react'
 import { ProfileImageWithFallback } from './profile-image-with-fallback'
 import { getOptimizedProfilePicture } from '@/utils/cdnUtils'
 
@@ -26,8 +26,41 @@ interface ProfileCardProps {
       avatar_512?: string
     }
     ai_analysis?: {
+      // Core AI Analysis (always available)
       primary_content_type: string | null
       avg_sentiment_score: number | null
+      content_quality_score?: number
+
+      // Advanced AI Analysis (now always available)
+      audience_quality_assessment?: {
+        authenticity_score: number
+        bot_percentage: number
+        engagement_quality: string
+      }
+      visual_content_analysis?: {
+        aesthetic_score: number
+        color_consistency: number
+        composition_quality: string
+      }
+      fraud_detection_analysis?: {
+        fraud_risk_score: number
+        brand_safety_score: number
+      }
+      comprehensive_insights?: {
+        overall_authenticity_score: number
+        content_quality_rating: number
+        fraud_risk_level: string
+        engagement_trend: string
+        lifecycle_stage: string
+      }
+
+      // Metadata
+      comprehensive_analysis_version?: string
+      models_success_rate?: number
+    }
+    data_source?: string
+    performance?: {
+      total_time_seconds: number
     }
   }
   showAI?: boolean
@@ -109,8 +142,10 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ profile, showAI = fals
         {showAI && profile.ai_analysis && (
           <>
             <Separator />
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h4 className="font-medium text-sm">AI Analysis</h4>
+
+              {/* Primary Content & Sentiment */}
               <div className="flex flex-wrap gap-2">
                 {profile.ai_analysis.primary_content_type && (
                   <Badge variant="outline">
@@ -119,6 +154,54 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ profile, showAI = fals
                 )}
                 {getSentimentBadge(profile.ai_analysis.avg_sentiment_score)}
               </div>
+
+              {/* Advanced Metrics - Now Always Available */}
+              {profile.ai_analysis.comprehensive_insights && (
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="flex flex-col">
+                    <span className="text-lg font-bold text-green-600">
+                      {profile.ai_analysis.comprehensive_insights.overall_authenticity_score}%
+                    </span>
+                    <span className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      Authentic
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-lg font-bold text-blue-600">
+                      {profile.ai_analysis.comprehensive_insights.content_quality_rating}%
+                    </span>
+                    <span className="text-xs text-muted-foreground">Quality</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${
+                        profile.ai_analysis.comprehensive_insights.fraud_risk_level === 'low'
+                          ? 'text-green-600 border-green-600'
+                          : profile.ai_analysis.comprehensive_insights.fraud_risk_level === 'medium'
+                          ? 'text-yellow-600 border-yellow-600'
+                          : 'text-red-600 border-red-600'
+                      }`}
+                    >
+                      {profile.ai_analysis.comprehensive_insights.fraud_risk_level} risk
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              {/* Data Source Indicator */}
+              {profile.data_source && (
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Zap className={`h-3 w-3 ${profile.data_source === 'database_fast_path' ? 'text-yellow-500' : 'text-blue-500'}`} />
+                    {profile.data_source === 'database_fast_path' ? 'Cached' : 'Fresh'} Analysis
+                  </span>
+                  {profile.performance && (
+                    <span>{profile.performance.total_time_seconds.toFixed(1)}s</span>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}

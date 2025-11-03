@@ -43,12 +43,24 @@ export const CreatorSearch: React.FC = () => {
   }
 
   const getDataSourceBadge = () => {
-    if (!searchResult) return null
-    
+    if (!searchResult?.profile) return null
+
+    const dataSource = searchResult.profile.data_source
+    const isCache = dataSource === 'database_fast_path'
+    const responseTime = searchResult.profile.performance?.total_time_seconds
+
     return (
-      <Badge variant={searchResult.cached ? "secondary" : "default"}>
-        {searchResult.cached ? "Database" : "Fresh Data"}
-      </Badge>
+      <div className="flex items-center gap-2">
+        <Badge variant={isCache ? "secondary" : "default"} className="flex items-center gap-1">
+          <Sparkles className="h-3 w-3" />
+          {isCache ? "⚡ Instant Response" : "🔄 Complete Processing"}
+        </Badge>
+        {responseTime && (
+          <span className="text-xs text-muted-foreground">
+            {responseTime.toFixed(1)}s
+          </span>
+        )}
+      </div>
     )
   }
 
@@ -108,12 +120,12 @@ export const CreatorSearch: React.FC = () => {
                 <span>{searchResult.message}</span>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">
-                    {searchResult.cached ? "Database" : "Fresh Data"}
+                    {searchResult.profile.data_source === 'database_fast_path' ? "⚡ Cached" : "🔄 Fresh"}
                   </Badge>
-                  {searchResult.profile.ai_analysis && (
-                    <Badge className="bg-purple-100 text-purple-800">
+                  {searchResult.profile.ai_analysis?.comprehensive_insights && (
+                    <Badge className="bg-gradient-to-r from-purple-100 to-blue-100 text-purple-800 border-purple-300">
                       <Sparkles className="h-3 w-3 mr-1" />
-                      Enhanced AI
+                      Full AI Suite ({searchResult.profile.ai_analysis.models_success_rate || 100}%)
                     </Badge>
                   )}
                 </div>

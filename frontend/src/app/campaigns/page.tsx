@@ -1,24 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, ChevronDown } from "lucide-react";
+import { Plus, Search, Filter, TrendingUp, Calendar, Target, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AuthGuard } from "@/components/AuthGuard";
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 
-import { CampaignsOverview } from "@/components/campaigns/unified/CampaignsOverview";
-import { ActiveCampaigns } from "@/components/campaigns/unified/ActiveCampaigns";
+import { CampaignsOverviewV2 } from "@/components/campaigns/unified/CampaignsOverviewV2";
+import { ActiveCampaignsV2 } from "@/components/campaigns/unified/ActiveCampaignsV2";
 import { ProposalsTab } from "@/components/campaigns/unified/ProposalsTab";
 import { ArchiveTab } from "@/components/campaigns/unified/ArchiveTab";
 
@@ -27,91 +30,169 @@ export default function UnifiedCampaignsDashboard() {
   const { user } = useEnhancedAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Simple feature flag - can be made dynamic later
   const isAgencyClient = user?.role === 'premium' || user?.role === 'enterprise' || false;
 
+  const stats = {
+    active: 8,
+    proposals: 3,
+    completed: 24,
+    totalReach: "2.4M",
+    engagement: "4.8%",
+    totalSpend: "$84,250"
+  };
+
   const tabConfig = [
-    { id: "overview", label: "Overview", component: CampaignsOverview },
-    { id: "active", label: "Active Campaigns", component: ActiveCampaigns },
-    ...(isAgencyClient ? [{ id: "proposals", label: "Proposals", component: ProposalsTab }] : []),
-    { id: "archive", label: "Archive", component: ArchiveTab },
+    { id: "overview", label: "Overview", component: CampaignsOverviewV2, count: null },
+    { id: "active", label: "Active", component: ActiveCampaignsV2, count: stats.active },
+    ...(isAgencyClient ? [{ id: "proposals", label: "Proposals", component: ProposalsTab, count: stats.proposals }] : []),
+    { id: "archive", label: "Completed", component: ArchiveTab, count: stats.completed },
   ];
 
   return (
     <AuthGuard>
       <BrandUserInterface>
-        <div className="flex flex-col h-[calc(100vh-theme(spacing.12))] bg-background">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b bg-background">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
-              <p className="text-muted-foreground mt-1">
-                Manage your influencer marketing campaigns in one place
-              </p>
-            </div>
+        <div className="flex flex-col min-h-screen bg-background">
+          {/* Enhanced Header */}
+          <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container mx-auto px-6 py-8">
+              {/* Top Section */}
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h1 className="text-3xl font-semibold tracking-tight">Campaigns</h1>
+                  <p className="text-muted-foreground mt-1">
+                    Create and manage influencer campaigns
+                  </p>
+                </div>
 
-            <div className="flex items-center gap-3">
-              <div className="relative w-80">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search campaigns..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+                <Button
+                  onClick={() => router.push('/campaigns/new')}
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Campaign
+                </Button>
               </div>
 
-              {!isAgencyClient && (
-                <DropdownMenu>
+              {/* Search and Filters */}
+              <div className="flex items-center gap-3 mt-6">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search campaigns by name or brand"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 h-10"
+                  />
+                </div>
+
+                <DropdownMenu open={showFilters} onOpenChange={setShowFilters}>
                   <DropdownMenuTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      New Campaign
-                      <ChevronDown className="ml-2 h-4 w-4" />
+                    <Button variant="outline" className="h-10">
+                      <Filter className="mr-2 h-4 w-4" />
+                      Filters
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={() => router.push('/campaigns/new')}>
-                      Start from scratch
+                    <div className="px-2 py-1.5 text-sm font-semibold">Filter by Status</div>
+                    <DropdownMenuItem>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                        Active Campaigns
+                      </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push('/campaigns/templates')}>
-                      Use a template
+                    <DropdownMenuItem>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-blue-500" />
+                        In Review
+                      </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push('/campaigns/import')}>
-                      Import from CSV
+                    <DropdownMenuItem>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-amber-500" />
+                        Draft
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <div className="px-2 py-1.5 text-sm font-semibold">Filter by Date</div>
+                    <DropdownMenuItem>Last 7 days</DropdownMenuItem>
+                    <DropdownMenuItem>Last 30 days</DropdownMenuItem>
+                    <DropdownMenuItem>Last 3 months</DropdownMenuItem>
+                    <DropdownMenuItem>Custom range</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive">
+                      Clear filters
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              )}
+
+                {!isAgencyClient && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="h-10">
+                        Quick Actions
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem onClick={() => router.push('/campaigns/templates')}>
+                        Browse Templates
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => router.push('/campaigns/import')}>
+                        Import from CSV
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => router.push('/campaigns/duplicate')}>
+                        Duplicate Campaign
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => router.push('/campaigns/analytics')}>
+                        View Analytics
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => router.push('/campaigns/export')}>
+                        Export Data
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Tabs Content */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden">
-            <div className="border-b px-6">
-              <TabsList className="h-12 bg-transparent p-0 w-full justify-start">
+          <div className="flex-1 container mx-auto px-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+              <TabsList className="bg-muted/30 p-1 h-auto">
                 {tabConfig.map(tab => (
                   <TabsTrigger
                     key={tab.id}
                     value={tab.id}
-                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-12 px-4"
+                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2"
                   >
-                    {tab.label}
+                    <span>{tab.label}</span>
+                    {tab.count !== null && tab.count > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="ml-2 h-5 px-1.5 min-w-[20px] text-xs"
+                      >
+                        {tab.count}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 ))}
               </TabsList>
-            </div>
 
-            {tabConfig.map(tab => {
-              const TabComponent = tab.component;
-              return (
-                <TabsContent key={tab.id} value={tab.id} className="flex-1 overflow-auto mt-0">
-                  <TabComponent searchQuery={searchQuery} />
-                </TabsContent>
-              );
-            })}
-          </Tabs>
+              <div className="mt-6 pb-8">
+                {tabConfig.map(tab => {
+                  const TabComponent = tab.component;
+                  return (
+                    <TabsContent key={tab.id} value={tab.id} className="mt-0 space-y-4">
+                      <TabComponent searchQuery={searchQuery} />
+                    </TabsContent>
+                  );
+                })}
+              </div>
+            </Tabs>
+          </div>
         </div>
       </BrandUserInterface>
     </AuthGuard>

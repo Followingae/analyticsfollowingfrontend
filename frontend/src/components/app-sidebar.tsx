@@ -2,18 +2,17 @@
 
 import * as React from "react"
 import {
-  IconChartBar,
-  IconDashboard,
-  IconHelp,
-  IconReport,
-  IconSettings,
-  IconUsers,
-  IconTarget,
-  IconCreditCard,
-  IconCompass,
-  IconList,
-  IconFileText,
-} from "@tabler/icons-react"
+  BarChart3,
+  LayoutDashboard,
+  HelpCircle,
+  FileText,
+  Settings,
+  Users,
+  Target,
+  CreditCard,
+  Compass,
+  List,
+} from "lucide-react"
 import Image from "next/image"
 import { useTheme } from "next-themes"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
@@ -40,46 +39,46 @@ const data = {
     {
       title: "Dashboard",
       url: "/",
-      icon: IconDashboard,
+      icon: LayoutDashboard,
     },
     {
       title: "Discovery",
       url: "/discover",
-      icon: IconCompass,
+      icon: Compass,
     },
     {
       title: "Creators",
       url: "/creators",
-      icon: IconUsers,
+      icon: Users,
     },
   ],
   management: [
     {
       title: "Campaigns",
       url: "/campaigns",
-      icon: IconTarget,
+      icon: Target,
     },
     {
       title: "Lists",
       url: "/my-lists",
-      icon: IconList,
+      icon: List,
     },
   ],
   more: [
     {
       title: "Billing",
       url: "/billing",
-      icon: IconCreditCard,
+      icon: CreditCard,
     },
     {
       title: "Settings",
       url: "/settings",
-      icon: IconSettings,
+      icon: Settings,
     },
     {
       title: "Help & Support",
       url: "#",
-      icon: IconHelp,
+      icon: HelpCircle,
     },
   ],
 }

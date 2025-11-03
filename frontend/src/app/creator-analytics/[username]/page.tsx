@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ComprehensiveCreatorDashboard } from '@/components/analytics/ComprehensiveCreatorDashboard'
+import { ComprehensiveCreatorAnalytics } from '@/components/analytics/ComprehensiveCreatorAnalytics'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { SiteHeader } from '@/components/site-header'
@@ -15,8 +15,7 @@ export default function CreatorAnalyticsPage() {
   const router = useRouter()
   const username = params.username as string
 
-  console.log('🔍 CreatorAnalyticsPage route params:', params)
-  console.log('🔍 Extracted username:', username)
+  // Debug logging removed for cleaner console output
 
   return (
     <AuthGuard requireAuth={true}>
@@ -48,7 +47,7 @@ export default function CreatorAnalyticsPage() {
                 <p className="text-muted-foreground text-sm">Creator Analytics</p>
               </div>
             </div>
-            <ComprehensiveCreatorDashboard username={username} />
+            <ComprehensiveCreatorAnalytics username={username} />
           </div>
         </SidebarInset>
       </SidebarProvider>

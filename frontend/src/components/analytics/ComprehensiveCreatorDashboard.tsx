@@ -312,7 +312,7 @@ interface ComprehensiveCreatorDashboardProps {
   username: string
 }
 
-export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreatorDashboardProps) {
+function ComprehensiveCreatorDashboardComponent({ username }: ComprehensiveCreatorDashboardProps) {
   const [data, setData] = useState<BackendCreatorData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -360,6 +360,46 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
         // Get the real data from the backend endpoint
         const response = await comprehensiveAnalyticsApi.getCompleteDashboardData(username)
 
+        // LOG EXACTLY WHAT BACKEND SENDS - ALL TABS DATA
+        // Removed excessive logging to reduce console duplication
+        // Debug logging can be re-enabled by uncommenting below:
+        /*
+        console.log('🔍 COMPLETE BACKEND RESPONSE for', username)
+        console.log('📊 OVERVIEW TAB DATA:', {
+          followers: response?.profile?.followers_count,
+          posts: response?.profile?.posts_count,
+          engagement_rate: response?.profile?.engagement_rate,
+          avg_likes: response?.profile?.avg_likes,
+          avg_comments: response?.profile?.avg_comments,
+          primary_content_type: response?.profile?.ai_analysis?.primary_content_type,
+          content_distribution: response?.profile?.ai_analysis?.content_distribution,
+          content_quality_score: response?.profile?.ai_analysis?.content_quality_score
+        })
+
+        console.log('👥 AUDIENCE TAB DATA:', {
+          audience_demographics: response?.profile?.ai_analysis?.audience_demographics,
+          audience_quality: response?.profile?.ai_analysis?.audience_quality_assessment,
+          audience_insights: response?.profile?.ai_analysis?.audience_insights
+        })
+
+        console.log('💬 ENGAGEMENT TAB DATA:', {
+          behavioral_patterns: response?.profile?.ai_analysis?.behavioral_patterns_analysis,
+          lifecycle_stage: response?.profile?.ai_analysis?.comprehensive_insights?.lifecycle_stage,
+          engagement_trend: response?.profile?.ai_analysis?.comprehensive_insights?.engagement_trend
+        })
+
+        console.log('📝 CONTENT TAB DATA:', {
+          visual_content: response?.profile?.ai_analysis?.visual_content_analysis,
+          fraud_detection: response?.profile?.ai_analysis?.fraud_detection_analysis,
+          advanced_nlp: response?.profile?.ai_analysis?.advanced_nlp_analysis
+        })
+
+        console.log('📸 POSTS TAB DATA:', {
+          posts_count: response?.profile?.posts?.length,
+          first_post_ai: response?.profile?.posts?.[0]?.ai_analysis,
+          analytics_summary: response?.analytics_summary
+        })
+        */
 
         // Transform the existing API response to match our comprehensive structure
         if (response && response.profile) {
@@ -386,11 +426,13 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                 detected_country: response.profile.detected_country || null
               },
               engagement_metrics: {
-                avg_likes: response.analytics_summary?.avg_likes || 0,
-                avg_comments: response.analytics_summary?.avg_comments || 0,
+                // Use avg_likes and avg_comments directly from profile
+                avg_likes: response.profile.avg_likes || response.analytics_summary?.avg_likes || 0,
+                avg_comments: response.profile.avg_comments || response.analytics_summary?.avg_comments || 0,
                 engagement_rate: response.profile.engagement_rate || 0,
-                best_performing_post_likes: Math.max(...(response.posts || []).map(p => p.likes_count || 0), 0),
-                total_engagement: response.analytics_summary?.total_engagement || 0
+                best_performing_post_likes: Math.max(...(response.profile.posts || []).map(p => p.likes_count || 0), 0),
+                total_engagement: response.analytics_summary?.total_engagement ||
+                                 ((response.profile.avg_likes || 0) + (response.profile.avg_comments || 0)) * (response.profile.posts_count || 0)
               },
               ai_classification: {
                 ai_primary_content_type: response.profile.ai_analysis?.primary_content_type || "general",
@@ -401,46 +443,49 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
             },
             audience: {
               demographics: {
-                estimated_age_groups: response.profile.ai_analysis?.audience_insights?.age_distribution || {
-                  "18-24": 0.25, "25-34": 0.4, "35-44": 0.2, "45-54": 0.1, "55+": 0.05
-                },
-                estimated_gender_split: response.profile.ai_analysis?.audience_insights?.gender_breakdown || {
-                  "female": 0.6, "male": 0.35, "other": 0.05
-                },
-                demographic_confidence: 0.75
+                // Use REAL audience demographics - no more fake fallbacks
+                estimated_age_groups: response.profile.ai_analysis?.audience_demographics?.age_distribution || {},
+                estimated_gender_split: response.profile.ai_analysis?.audience_demographics?.gender_distribution || {},
+                demographic_confidence: response.profile.ai_analysis?.audience_demographics?.confidence_score ||
+                                       response.profile.ai_analysis?.models_success_rate || 0
               },
               geographic_distribution: {
-                primary_regions: ["North America", "Europe", "Asia", "Other"],
-                country_distribution: response.profile.ai_analysis?.audience_insights?.geographic_distribution || {
-                  "United States": 40, "Canada": 15, "United Kingdom": 12, "Other": 33
-                },
-                geographic_diversity_score: 1,
-                international_reach: true
+                // Use REAL location data from audience_demographics
+                primary_regions: response.profile.ai_analysis?.audience_demographics?.primary_regions || [],
+                country_distribution: response.profile.ai_analysis?.audience_demographics?.location_distribution || {},
+                geographic_diversity_score: response.profile.ai_analysis?.audience_demographics?.geographic_diversity_score || 0,
+                international_reach: response.profile.ai_analysis?.audience_demographics?.international_reach || false
               },
               language_analysis: {
                 ai_language_distribution: response.profile.ai_analysis?.language_distribution,
                 language_indicators: response.profile.ai_analysis?.language_indicators
               },
               authenticity_analysis: {
-                authenticity_score: response.profile.ai_analysis?.audience_quality_assessment?.authenticity_score,
-                bot_detection_score: response.profile.ai_analysis?.audience_quality_assessment?.bot_detection_score,
-                fake_follower_percentage: response.profile.ai_analysis?.fraud_detection_analysis?.fake_follower_percentage,
+                // Use REAL authenticity data from comprehensive insights
+                authenticity_score: response.profile.ai_analysis?.comprehensive_insights?.overall_authenticity_score ||
+                                   response.profile.ai_analysis?.audience_quality_assessment?.authenticity_score || 0,
+                bot_detection_score: response.profile.ai_analysis?.audience_quality_assessment?.bot_percentage ||
+                                    response.profile.ai_analysis?.audience_quality_assessment?.bot_detection_score || 0,
+                fake_follower_percentage: response.profile.ai_analysis?.fraud_detection_analysis?.fake_follower_percentage || 0,
                 fraud_assessment: {
-                  risk_level: response.profile.ai_analysis?.comprehensive_insights?.fraud_risk_level,
-                  authenticity_score: response.profile.ai_analysis?.comprehensive_insights?.overall_authenticity_score,
-                  overall_fraud_score: response.profile.ai_analysis?.comprehensive_insights?.overall_fraud_score,
-                  bot_likelihood_percentage: response.profile.ai_analysis?.comprehensive_insights?.bot_likelihood_percentage
+                  risk_level: response.profile.ai_analysis?.comprehensive_insights?.fraud_risk_level || 'unknown',
+                  authenticity_score: response.profile.ai_analysis?.comprehensive_insights?.overall_authenticity_score || 0,
+                  overall_fraud_score: response.profile.ai_analysis?.fraud_detection_analysis?.fraud_risk_score || 0,
+                  bot_likelihood_percentage: response.profile.ai_analysis?.audience_quality_assessment?.bot_percentage || 0
                 },
                 red_flags: response.profile.ai_analysis?.red_flags || []
               }
             },
             engagement: {
               behavioral_patterns: {
-                posting_frequency: response.profile.ai_analysis?.behavioral_patterns?.posting_frequency,
-                avg_engagement_rate: response.profile.engagement_rate,
-                engagement_consistency_score: response.profile.ai_analysis?.behavioral_patterns?.engagement_consistency_score,
-                high_engagement_posts_percentage: response.profile.ai_analysis?.behavioral_patterns?.high_engagement_posts_percentage,
-                posting_consistency: response.profile.ai_analysis?.behavioral_patterns?.posting_consistency
+                // Map from actual backend structure
+                posting_frequency: response.profile.ai_analysis?.behavioral_patterns_analysis?.content_strategy?.posting_frequency || 0,
+                avg_engagement_rate: response.profile.engagement_rate || 0,
+                engagement_consistency_score: response.profile.ai_analysis?.behavioral_patterns_analysis?.engagement_consistency || 0,
+                high_engagement_posts_percentage: response.profile.ai_analysis?.behavioral_patterns_analysis?.high_engagement_posts_percentage || 0,
+                posting_consistency: response.profile.ai_analysis?.behavioral_patterns_analysis?.posting_consistency || 0,
+                lifecycle_stage: response.profile.ai_analysis?.behavioral_patterns_analysis?.lifecycle_analysis?.current_stage ||
+                                response.profile.ai_analysis?.comprehensive_insights?.lifecycle_stage || 'unknown'
               },
               sentiment_analysis: {
                 overall_sentiment_distribution: response.profile.ai_analysis?.overall_sentiment_distribution,
@@ -463,15 +508,16 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
             },
             content: {
               visual_analysis: {
-                aesthetic_score: response.profile.ai_analysis?.visual_content_analysis?.aesthetic_score,
-                dominant_colors: response.profile.ai_analysis?.visual_content_analysis?.dominant_colors,
+                // Map from actual backend visual_content_analysis
+                aesthetic_score: response.profile.ai_analysis?.visual_content_analysis?.aesthetic_score || 0,
+                dominant_colors: response.profile.ai_analysis?.visual_content_analysis?.dominant_colors || [],
                 image_quality_metrics: {
-                  average_quality: response.profile.ai_analysis?.visual_content_analysis?.image_quality_metrics?.average_quality,
-                  quality_consistency: response.profile.ai_analysis?.visual_content_analysis?.image_quality_metrics?.quality_consistency,
-                  average_resolution: response.profile.ai_analysis?.visual_content_analysis?.image_quality_metrics?.average_resolution
+                  average_quality: response.profile.ai_analysis?.visual_content_analysis?.image_quality_metrics?.average_quality || 0,
+                  quality_consistency: response.profile.ai_analysis?.visual_content_analysis?.image_quality_metrics?.quality_consistency || 0,
+                  average_resolution: response.profile.ai_analysis?.visual_content_analysis?.image_quality_metrics?.average_resolution || [0, 0]
                 },
-                professional_quality_score: response.profile.ai_analysis?.visual_content_analysis?.professional_quality_score,
-                faces_detected: response.profile.ai_analysis?.visual_content_analysis?.faces_detected,
+                professional_quality_score: response.profile.ai_analysis?.visual_content_analysis?.professional_quality_score || 0,
+                faces_detected: response.profile.ai_analysis?.visual_content_analysis?.faces_detected || 0,
                 brand_logo_detected: (() => {
                   // Extract brand names from the brand mentions data
                   const brandLogos = new Set()
@@ -596,76 +642,74 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
               }
             },
             posts: {
-              recent_posts: (response.posts || []).map(post => ({
+              recent_posts: (response.profile.posts || []).map(post => ({
                   post_data: {
-                    instagram_post_id: post.id || "unknown",
+                    instagram_post_id: post.id || post.shortcode || "unknown",
                     caption: post.caption || "",
-                    likes_count: post.like_count || 0,
-                    comments_count: post.comment_count || 0,
-                    created_at: post.timestamp || new Date().toISOString(),
-                    post_url: `https://instagram.com/p/${post.id}`,
+                    likes_count: post.likes_count || post.like_count || 0,
+                    comments_count: post.comments_count || post.comment_count || 0,
+                    created_at: post.taken_at || post.timestamp || new Date().toISOString(),
+                    post_url: `https://instagram.com/p/${post.shortcode || post.id}`,
                     media_type: "image",
                     thumbnail_url: post.cdn_thumbnail_url || post.display_url || ""
                   },
                   ai_analysis: {
                     basic_analysis: {
-                      ai_content_category: post.ai_analysis?.content_category || "general",
-                      ai_category_confidence: 0.8,
-                      ai_sentiment: post.ai_analysis?.sentiment || "neutral",
+                      // Use REAL post AI analysis - no hardcoded values
+                      ai_content_category: post.ai_analysis?.content_category || post.ai_analysis?.category || "",
+                      ai_category_confidence: post.ai_analysis?.category_confidence || 0,
+                      ai_sentiment: post.ai_analysis?.sentiment || "",
                       ai_sentiment_score: post.ai_analysis?.sentiment_score || 0,
-                      ai_sentiment_confidence: 0.7,
-                      ai_language_code: "en",
-                      ai_language_confidence: 0.95
+                      ai_sentiment_confidence: post.ai_analysis?.sentiment_confidence || 0,
+                      ai_language_code: post.ai_analysis?.language || "",
+                      ai_language_confidence: post.ai_analysis?.language_confidence || 0
                     },
                     advanced_analysis: {
                       category: {
-                        category: post.ai_analysis?.content_category || "general",
-                        confidence: 0.8
+                        category: post.ai_analysis?.content_category || post.ai_analysis?.category || "",
+                        confidence: post.ai_analysis?.category_confidence || 0
                       },
                       sentiment: {
-                        sentiment: post.ai_analysis?.sentiment || "neutral",
+                        sentiment: post.ai_analysis?.sentiment || "",
                         score: post.ai_analysis?.sentiment_score || 0,
-                        confidence: 0.7
+                        confidence: post.ai_analysis?.sentiment_confidence || 0
                       },
                       language: {
-                        language: "en",
-                        confidence: 0.95
+                        language: post.ai_analysis?.language || "",
+                        confidence: post.ai_analysis?.language_confidence || 0
                       },
                       visual_content: {
-                        aesthetic_score: 70,
-                        dominant_colors: [],
+                        aesthetic_score: post.ai_analysis?.visual_analysis?.aesthetic_score || 0,
+                        dominant_colors: post.ai_analysis?.visual_analysis?.dominant_colors || [],
                         face_analysis: {
-                          faces_detected: 1,
-                          emotions: [],
-                          celebrities: []
+                          faces_detected: post.ai_analysis?.visual_analysis?.faces_detected || 0,
+                          emotions: post.ai_analysis?.visual_analysis?.emotions || [],
+                          celebrities: post.ai_analysis?.visual_analysis?.celebrities || []
                         },
                         content_recognition: {
-                          objects_detected: [
-                            { object: "person", confidence: 0.9 },
-                            { object: "background", confidence: 0.7 }
-                          ]
+                          objects_detected: post.ai_analysis?.visual_analysis?.objects_detected || []
                         }
                       },
                       engagement_prediction: {
-                        score: 0.6,
-                        prediction: "medium",
-                        factors: {
-                          optimal_length: true,
-                          consistent_posting: true,
+                        score: post.ai_analysis?.engagement_prediction?.score || 0,
+                        prediction: post.ai_analysis?.engagement_prediction?.prediction || "",
+                        factors: post.ai_analysis?.engagement_prediction?.factors || {
+                          optimal_length: false,
+                          consistent_posting: false,
                           good_hashtag_usage: false,
-                          interactive_content: true
+                          interactive_content: false
                         }
                       }
                     }
                   }
               })),
               posts_summary: {
-                total_posts_analyzed: response.posts?.length || 0,
-                ai_completion_rate: 95,
-                average_engagement: response.analytics_summary?.avg_likes || 0,
+                total_posts_analyzed: response.analytics_summary?.total_posts_analyzed || response.profile.posts?.length || 0,
+                ai_completion_rate: response.analytics_summary?.ai_completion_rate || response.profile.ai_analysis?.models_success_rate || 0,
+                average_engagement: response.analytics_summary?.avg_engagement_rate || response.profile.engagement_rate || 0,
                 top_performing_post: {
-                  instagram_post_id: response.posts?.[0]?.id || "unknown",
-                  likes: Math.max(...(response.posts || []).map(p => p.like_count || 0), 0),
+                  instagram_post_id: response.profile.posts?.[0]?.id || "unknown",
+                  likes: Math.max(...(response.profile.posts || []).map(p => p.likes_count || 0), 0),
                   engagement_rate: response.profile.engagement_rate || 0
                 }
               }
@@ -673,9 +717,21 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
           }
 
 
+        // console.log('🎯 TRANSFORMED DATA:', transformedData)
+        // console.log('🔍 CHECKING KEY FIELDS IN TRANSFORMED DATA:')
+        // console.log('  - Gender Distribution:', transformedData.audience.demographics.estimated_gender_split)
+        // console.log('  - Age Distribution:', transformedData.audience.demographics.estimated_age_groups)
+        // console.log('  - Location Distribution:', transformedData.audience.geographic_distribution.country_distribution)
+        // console.log('  - Authenticity Score:', transformedData.audience.authenticity_analysis.authenticity_score)
+        // console.log('  - Visual Analysis:', transformedData.content.visual_analysis.aesthetic_score)
+        // console.log('  - Lifecycle Stage:', transformedData.engagement.behavioral_patterns.lifecycle_stage)
+        // console.log('  - Avg Likes:', transformedData.overview.engagement_metrics.avg_likes)
+        // console.log('  - Avg Comments:', transformedData.overview.engagement_metrics.avg_comments)
+
           setData(transformedData)
         } else {
           // No fallback - if API doesn't return expected structure, show error
+          console.error('❌ Invalid API response structure:', response)
           throw new Error('Invalid API response structure')
         }
         setLoading(false)
@@ -994,10 +1050,28 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const chartData = Object.entries(data.audience.demographics.estimated_age_groups || {}).map(([ageGroup, percentage]) => ({
+        // console.log('🎨 RENDERING AGE DEMOGRAPHICS:')
+        // console.log('  - Raw data:', data.audience.demographics.estimated_age_groups)
+        // console.log('  - Keys:', Object.keys(data.audience.demographics.estimated_age_groups || {}))
+
+                  const hasData = Object.keys(data.audience.demographics.estimated_age_groups || {}).length > 0
+
+                  if (!hasData) {
+                    return (
+                      <div className="flex flex-col items-center justify-center h-[250px] text-muted-foreground">
+                        <Users className="h-12 w-12 mb-3 opacity-30" />
+                        <p className="text-sm">Age distribution data not available</p>
+                        <p className="text-xs mt-1">This profile hasn't been fully analyzed yet</p>
+                      </div>
+                    )
+                  }
+
+                  const chartData = Object.entries(data.audience.demographics.estimated_age_groups).map(([ageGroup, percentage]) => ({
                     category: ageGroup,
-                    value: (percentage as number) * 100,
-                    label: formatPercentage(percentage as number)
+                    // Handle both 0.25 (25%) and 25 (25%) formats
+                    value: typeof percentage === 'number' ? (percentage > 1 ? percentage : percentage * 100) : 0,
+                    label: typeof percentage === 'number' ?
+                           (percentage > 1 ? `${percentage.toFixed(1)}%` : formatPercentage(percentage)) : '0%'
                   }))
 
                   const chartConfig = {
@@ -1070,20 +1144,39 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                 <CardDescription>Estimated audience gender split</CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer
-                  config={{
-                    female: { label: "Female", color: "var(--chart-1)" },
-                    male: { label: "Male", color: "var(--chart-2)" },
-                    other: { label: "Other", color: "var(--chart-3)" },
-                  } satisfies ChartConfig}
-                  className="mx-auto aspect-square max-h-[250px]"
-                >
-                  <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                    <Pie
-                      data={Object.entries(data.audience.demographics.estimated_gender_split || {}).map(([gender, percentage]) => ({
-                        browser: gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : 'N/A',
-                        visitors: (percentage as number) * 100,
+                {(() => {
+        // console.log('🎨 RENDERING GENDER DISTRIBUTION:')
+        // console.log('  - Raw data:', data.audience.demographics.estimated_gender_split)
+        // console.log('  - Keys:', Object.keys(data.audience.demographics.estimated_gender_split || {}))
+
+                  const hasData = Object.keys(data.audience.demographics.estimated_gender_split || {}).length > 0
+
+                  if (!hasData) {
+                    return (
+                      <div className="flex flex-col items-center justify-center h-[250px] text-muted-foreground">
+                        <Activity className="h-12 w-12 mb-3 opacity-30" />
+                        <p className="text-sm">Gender distribution data not available</p>
+                        <p className="text-xs mt-1">This profile hasn't been fully analyzed yet</p>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <ChartContainer
+                      config={{
+                        female: { label: "Female", color: "var(--chart-1)" },
+                        male: { label: "Male", color: "var(--chart-2)" },
+                        other: { label: "Other", color: "var(--chart-3)" },
+                      } satisfies ChartConfig}
+                      className="mx-auto aspect-square max-h-[250px]"
+                    >
+                      <PieChart>
+                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                        <Pie
+                          data={Object.entries(data.audience.demographics.estimated_gender_split).map(([gender, percentage]) => ({
+                        browser: gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : '',
+                        // Handle both 0.69 (69%) and 69.2 (69.2%) formats
+                        visitors: typeof percentage === 'number' ? (percentage > 1 ? percentage : percentage * 100) : 0,
                         fill: gender === 'female' ? 'var(--color-female)' :
                               gender === 'male' ? 'var(--color-male)' :
                               'var(--color-other)'
@@ -1111,7 +1204,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                                   y={viewBox.cy}
                                   className="fill-foreground text-2xl font-bold"
                                 >
-                                  {Math.round((dominantGender[1] as number) * 100)}%
+                                  {Math.round((dominantGender[1] as number) > 1 ? (dominantGender[1] as number) : (dominantGender[1] as number) * 100)}%
                                 </tspan>
                                 <tspan
                                   x={viewBox.cx}
@@ -1128,6 +1221,8 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                     </Pie>
                   </PieChart>
                 </ChartContainer>
+                  )
+                })()}
               </CardContent>
             </Card>
           </div>
@@ -1142,15 +1237,34 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
               <CardDescription>Audience geographic spread and international reach</CardDescription>
             </CardHeader>
             <CardContent>
+              {(() => {
+                const hasCountryData = Object.keys(data.audience.geographic_distribution.country_distribution || {}).length > 0
+                const hasRegionData = (data.audience.geographic_distribution.primary_regions || []).length > 0
+
+                if (!hasCountryData && !hasRegionData) {
+                  return (
+                    <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                      <Globe className="h-12 w-12 mb-3 opacity-30" />
+                      <p className="text-sm">Geographic data not available</p>
+                      <p className="text-xs mt-1">Location analysis pending</p>
+                    </div>
+                  )
+                }
+
+                return (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <h4 className="font-semibold">Country Distribution</h4>
-                  {Object.entries(data.audience.geographic_distribution.country_distribution || {}).map(([country, count]) => (
-                    <div key={country} className="flex justify-between items-center">
-                      <span className="text-sm">{country}</span>
-                      <Badge variant="outline">{count}</Badge>
-                    </div>
-                  ))}
+                  {hasCountryData ? (
+                    Object.entries(data.audience.geographic_distribution.country_distribution).map(([country, count]) => (
+                      <div key={country} className="flex justify-between items-center">
+                        <span className="text-sm">{country}</span>
+                        <Badge variant="outline">{count}</Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No country data available</p>
+                  )}
                 </div>
                 <div className="space-y-4">
                   <h4 className="font-semibold">Regional Presence</h4>
@@ -1178,6 +1292,8 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                   </div>
                 </div>
               </div>
+                )
+              })()}
             </CardContent>
           </Card>
 
@@ -1236,11 +1352,19 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                 {/* Authenticity Scores */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-2xl font-bold text-primary">{data.audience.authenticity_analysis.authenticity_score?.toFixed(1) ?? 'N/A'}</div>
+                    <div className="text-2xl font-bold text-primary">
+                      {data.audience.authenticity_analysis.authenticity_score
+                        ? `${data.audience.authenticity_analysis.authenticity_score.toFixed(1)}%`
+                        : 'N/A'}
+                    </div>
                     <div className="text-sm text-muted-foreground">Authenticity Score</div>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-2xl font-bold text-orange-500">{data.audience.authenticity_analysis.bot_detection_score?.toFixed(1) ?? 'N/A'}%</div>
+                    <div className="text-2xl font-bold text-orange-500">
+                      {data.audience.authenticity_analysis.bot_detection_score
+                        ? `${data.audience.authenticity_analysis.bot_detection_score.toFixed(1)}%`
+                        : 'N/A'}
+                    </div>
                     <div className="text-sm text-muted-foreground">Bot Detection</div>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -2364,7 +2488,7 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                     {/* Post Image */}
                     <div className="aspect-square bg-muted relative overflow-hidden">
                       {(() => {
-                        console.log('🔍 Final thumbnail URL:', post.post_data.thumbnail_url);
+        // console.log('🔍 Final thumbnail URL:', post.post_data.thumbnail_url);
                         return post.post_data.thumbnail_url;
                       })() ? (
                         <img
@@ -2373,10 +2497,10 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                           loading="lazy"
                           onLoad={() => {
-                            console.log('✅ Image loaded successfully:', post.post_data.thumbnail_url);
+        // console.log('✅ Image loaded successfully:', post.post_data.thumbnail_url);
                           }}
                           onError={(e) => {
-                            console.log('❌ Image failed to load:', post.post_data.thumbnail_url);
+        // console.log('❌ Image failed to load:', post.post_data.thumbnail_url);
                             // Fallback to placeholder if CDN fails
                             const target = e.currentTarget;
                             target.style.display = 'none';
@@ -2466,3 +2590,6 @@ export function ComprehensiveCreatorDashboard({ username }: ComprehensiveCreator
     </div>
   )
 }
+
+// Export with React.memo to prevent unnecessary re-renders
+export const ComprehensiveCreatorDashboard = React.memo(ComprehensiveCreatorDashboardComponent)

@@ -28,7 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AuthGuard } from "@/components/AuthGuard";
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
-import { InfluencerSelectionView } from "@/components/campaigns/InfluencerSelectionView";
+import { InfluencerSelectionV3 } from "@/components/campaigns/unified/InfluencerSelectionV3";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -504,9 +504,10 @@ export default function CleanCampaignDetailsPage() {
 
                 <TabsContent value="influencers" className="h-full overflow-hidden">
                   {campaign?.currentStage === "proposal" && (
-                    <InfluencerSelectionView
+                    <InfluencerSelectionV3
                       campaignId={campaignId}
-                      suggestedInfluencers={campaign?.suggestedInfluencers}
+                      selectedInfluencers={[]}
+                      onSelectionChange={() => {}}
                     />
                   )}
 

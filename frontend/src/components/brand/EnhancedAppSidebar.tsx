@@ -1,19 +1,6 @@
 "use client"
 
 import * as React from "react"
-import {
-  IconChartBar,
-  IconDashboard,
-  IconHelp,
-  IconReport,
-  IconSettings,
-  IconUsers,
-  IconTarget,
-  IconCreditCard,
-  IconCompass,
-  IconList,
-  IconFileText,
-} from "@tabler/icons-react"
 import Image from "next/image"
 import { useTheme } from "next-themes"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
@@ -36,7 +23,20 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
-import { Crown } from "lucide-react"
+import {
+  Crown,
+  BarChart3 as IconChartBar,
+  LayoutDashboard as IconDashboard,
+  HelpCircle as IconHelp,
+  FileText as IconReport,
+  Settings as IconSettings,
+  Users as IconUsers,
+  Target as IconTarget,
+  CreditCard as IconCreditCard,
+  Compass as IconCompass,
+  List as IconList,
+  FileText as IconFileText
+} from "lucide-react"
 
 function ThemeLogo() {
   const { theme, resolvedTheme } = useTheme()
