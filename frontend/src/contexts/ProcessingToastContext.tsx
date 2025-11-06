@@ -25,6 +25,8 @@ const POLL_INTERVAL = 20000 // 20 seconds
 export function ProcessingToastProvider({ children }: { children: React.ReactNode }) {
   const [processingToasts, setProcessingToasts] = useState<ProcessingToast[]>([])
   const [toastIds, setToastIds] = useState<Map<string, string | number>>(new Map())
+  const [consolidatedToastId, setConsolidatedToastId] = useState<string | number | null>(null)
+  const [completedToasts, setCompletedToasts] = useState<string[]>([])
 
   // Load from localStorage on mount and immediately check for completion
   useEffect(() => {
@@ -34,47 +36,32 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
         const toasts = JSON.parse(stored) as ProcessingToast[]
         console.log('🔄 Restored processing toasts from localStorage:', toasts)
         setProcessingToasts(toasts)
-        // Show toasts for persisted items
-        toasts.forEach(toastItem => {
-          showProcessingToast(toastItem.username, toastItem.id)
-        })
-
-        // Immediately check for completion (in case profiles were unlocked while app was closed)
-        if (toasts.length > 0) {
-          setTimeout(() => {
-            console.log('🔍 Immediately checking for completion of restored toasts...')
-            checkCompletionNow()
-          }, 1000) // Give time for auth to load
-        }
       } catch (error) {
         console.error('Failed to parse stored processing toasts:', error)
       }
     }
-  }, [])
+  }, []) // Only run on mount
 
   // Save to localStorage whenever processingToasts changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(processingToasts))
   }, [processingToasts])
 
-  const showProcessingToast = useCallback((username: string, id: string) => {
-    const toastId = toast(
-      <div className="flex items-center gap-3">
-        <ToastLoader size={40} text="AI" />
-        <span className="text-sm font-medium">
-          AI Powered Analytics Processing for {username}
-        </span>
-      </div>,
-      {
-        duration: Infinity, // Keep until manually dismissed
-        position: 'bottom-center',
-        className: 'bg-gray-900/95 text-white border-gray-700',
-      }
-    )
+  const clearAllProcessingToasts = useCallback(() => {
+    // Dismiss consolidated toast
+    if (consolidatedToastId) {
+      toast.dismiss(consolidatedToastId)
+      setConsolidatedToastId(null)
+    }
 
-    setToastIds(prev => new Map(prev.set(id, toastId)))
-    return toastId
-  }, [])
+    // Clear all state
+    setProcessingToasts([])
+    setToastIds(new Map())
+    setCompletedToasts([])
+    localStorage.removeItem(STORAGE_KEY)
+
+    console.log('🧹 Cleared all processing toasts')
+  }, [consolidatedToastId])
 
   const addProcessingToast = useCallback((username: string) => {
     const id = `${username}-${Date.now()}`
@@ -91,42 +78,51 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
       }
       return [...prev, newToast]
     })
-
-    showProcessingToast(username, id)
-  }, [showProcessingToast])
+  }, [])
 
   const removeProcessingToast = useCallback((username: string) => {
-    setProcessingToasts(prev => {
-      const toastToRemove = prev.find(t => t.username === username)
-      if (toastToRemove) {
-        // Dismiss the Sonner toast
-        const toastId = toastIds.get(toastToRemove.id)
-        if (toastId) {
-          toast.dismiss(toastId)
-          setToastIds(prev => {
-            const newMap = new Map(prev)
-            newMap.delete(toastToRemove.id)
-            return newMap
-          })
-        }
+    setProcessingToasts(prev => prev.filter(t => t.username !== username))
+  }, [])
+
+  // Update consolidated toast when processing or completed toasts change
+  useEffect(() => {
+    // Dismiss existing toast
+    if (consolidatedToastId) {
+      toast.dismiss(consolidatedToastId)
+      setConsolidatedToastId(null)
+    }
+
+    // Don't show toast if no items
+    if (processingToasts.length === 0) {
+      return
+    }
+
+    // Show consolidated toast with your beautiful ToastLoader animation
+    const toastId = toast(
+      <div className="flex items-center gap-3">
+        <ToastLoader size={40} text="AI" />
+        <div>
+          <div className="font-medium">
+            {processingToasts.length === 1
+              ? `AI Analytics Processing for ${processingToasts[0].username}`
+              : `Processing ${processingToasts.length} creators with AI`
+            }
+          </div>
+          <div className="text-xs text-gray-400">
+            {processingToasts.slice(0, 2).map(t => t.username).join(', ')}
+            {processingToasts.length > 2 && ` +${processingToasts.length - 2} more`}
+          </div>
+        </div>
+      </div>,
+      {
+        duration: Infinity,
+        position: 'bottom-center',
+        className: 'bg-gray-900/95 text-white border-gray-700',
       }
-      return prev.filter(t => t.username !== username)
-    })
-  }, [toastIds])
+    )
 
-  const clearAllProcessingToasts = useCallback(() => {
-    // Dismiss all Sonner toasts
-    toastIds.forEach((toastId) => {
-      toast.dismiss(toastId)
-    })
-
-    // Clear all state
-    setProcessingToasts([])
-    setToastIds(new Map())
-    localStorage.removeItem(STORAGE_KEY)
-
-    console.log('🧹 Cleared all processing toasts')
-  }, [toastIds])
+    setConsolidatedToastId(toastId)
+  }, [processingToasts]) // Simplified dependencies to prevent infinite loops
 
   // Extract polling logic into reusable function
   const checkCompletionNow = useCallback(async () => {

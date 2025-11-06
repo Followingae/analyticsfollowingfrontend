@@ -5,6 +5,7 @@ import ReactCountryFlag from 'react-country-flag'
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
@@ -33,6 +34,7 @@ import {
   Award,
   Target,
   Camera,
+  MapPin,
   CheckCircle,
   AlertTriangle,
   Brain,
@@ -43,6 +45,7 @@ import {
   BookOpen
 } from 'lucide-react'
 import { comprehensiveAnalyticsApi } from '@/services/comprehensiveAnalyticsApi'
+import { getCountryName } from '@/utils/countryNames'
 
 interface ComprehensiveCreatorAnalyticsProps {
   username: string
@@ -129,14 +132,19 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
       {/* Header Section - Profile Overview */}
       <Card className="border-0 bg-gradient-to-r from-primary/5 to-secondary/5">
         <CardContent className="p-6">
-          <div className="flex items-start gap-6">
-            <Avatar className="h-24 w-24 border-2 border-primary/20">
-              <AvatarImage src={profile.cdn_avatar_url || profile.profile_pic_url_hd || profile.profile_pic_url} />
-              <AvatarFallback>{profile.full_name?.charAt(0) || profile.username?.charAt(0)}</AvatarFallback>
+          <div className="flex items-start gap-8">
+            <Avatar className="h-32 w-32 border-4 border-primary/30 shadow-xl ring-4 ring-primary/10">
+              <AvatarImage
+                src={profile.cdn_avatar_url || profile.profile_pic_url_hd || profile.profile_pic_url}
+                className="object-cover"
+              />
+              <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                {profile.full_name?.charAt(0) || profile.username?.charAt(0)}
+              </AvatarFallback>
             </Avatar>
 
             <div className="flex-1 space-y-3">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-3xl font-bold">{profile.full_name || profile.username}</h1>
                 {profile.is_verified && <CheckCircle className="h-6 w-6 text-blue-500" />}
                 {profile.detected_country && (
@@ -144,10 +152,12 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
                     <ReactCountryFlag
                       countryCode={profile.detected_country}
                       svg
-                      style={{ width: '1.5em', height: '1.5em' }}
-                      title={profile.detected_country}
+                      style={{ width: '1.2em', height: '1.2em' }}
+                      title={getCountryName(profile.detected_country)}
                     />
-                    <Badge variant="outline">{profile.detected_country}</Badge>
+                    <Badge variant="outline" className="font-medium">
+                      {getCountryName(profile.detected_country)}
+                    </Badge>
                   </div>
                 )}
                 {profile.is_business_account && <Badge variant="secondary">Business</Badge>}
@@ -758,73 +768,115 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
 
         {/* AI Insights Tab */}
         <TabsContent value="insights" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Trend Analysis */}
-            {engagement.trend_analysis && Object.keys(engagement.trend_analysis).length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Trend Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {engagement.trend_analysis.viral_potential !== null && engagement.trend_analysis.viral_potential !== undefined && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Viral Potential</span>
-                        <span className="font-medium">{engagement.trend_analysis.viral_potential}%</span>
-                      </div>
-                      <Progress value={engagement.trend_analysis.viral_potential} className="h-2" />
-                    </div>
-                  )}
-
-                  {engagement.trend_analysis.optimization_recommendations && engagement.trend_analysis.optimization_recommendations.length > 0 && (
-                    <div>
-                      <h4 className="font-medium mb-2">Optimization Recommendations</h4>
-                      <ul className="list-disc list-inside text-sm space-y-1">
-                        {engagement.trend_analysis.optimization_recommendations.map((rec: string, idx: number) => (
-                          <li key={idx} className="text-muted-foreground capitalize">{rec.replace(/_/g, ' ')}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Cultural Analysis */}
-            {audience.cultural_analysis && Object.keys(audience.cultural_analysis).length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Star className="h-5 w-5" />
-                    Cultural Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+          {/* Enhanced Cultural Analysis - Full Width Prominent Display */}
+          {audience.cultural_analysis && Object.keys(audience.cultural_analysis).length > 0 && (
+            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
+              <CardHeader className="pb-6">
+                <CardTitle className="flex items-center gap-3 text-2xl font-bold">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Star className="h-8 w-8 text-primary" />
+                  </div>
+                  Cultural Analysis & Insights
+                </CardTitle>
+                <CardDescription className="text-lg text-muted-foreground">
+                  Deep cultural context and behavioral patterns of the creator's audience
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {audience.cultural_analysis.social_context && (
-                    <div className="flex justify-between">
-                      <span className="text-sm">Social Context</span>
-                      <Badge variant="secondary" className="capitalize">{audience.cultural_analysis.social_context}</Badge>
+                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-6 border border-primary/20">
+                      <div className="text-center space-y-3">
+                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                          <Globe className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Social Context</p>
+                          <p className="text-xl font-bold capitalize mt-1">{audience.cultural_analysis.social_context}</p>
+                        </div>
+                      </div>
                     </div>
                   )}
 
                   {audience.cultural_analysis.language_indicators && Object.keys(audience.cultural_analysis.language_indicators).length > 0 && (
-                    <div>
-                      <h4 className="font-medium mb-2">Language Indicators</h4>
-                      {Object.entries(audience.cultural_analysis.language_indicators).map(([lang, count]: [string, any]) => (
-                        <div key={lang} className="flex justify-between text-sm mb-1">
-                          <span className="capitalize">{lang}</span>
-                          <span className="font-medium">{count}</span>
+                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-6 border border-primary/20 md:col-span-2">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                            <MapPin className="h-4 w-4 text-primary" />
+                          </div>
+                          <h4 className="text-lg font-bold">Language Indicators</h4>
                         </div>
-                      ))}
+                        <div className="grid grid-cols-2 gap-4">
+                          {Object.entries(audience.cultural_analysis.language_indicators).map(([lang, count]: [string, any]) => (
+                            <div key={lang} className="flex items-center justify-between p-3 bg-muted/30 rounded-md">
+                              <span className="font-medium capitalize">{lang}</span>
+                              <Badge variant="outline" className="font-bold">{count}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
+
+                  {/* Additional Cultural Metrics if available */}
+                  {audience.cultural_analysis.cultural_affinity && (
+                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-6 border border-primary/20">
+                      <div className="text-center space-y-3">
+                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                          <Heart className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Cultural Affinity</p>
+                          <p className="text-xl font-bold capitalize mt-1">{audience.cultural_analysis.cultural_affinity}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {audience.cultural_analysis.regional_influence && (
+                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-6 border border-primary/20">
+                      <div className="text-center space-y-3">
+                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                          <Target className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Regional Influence</p>
+                          <p className="text-xl font-bold capitalize mt-1">{audience.cultural_analysis.regional_influence}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Additional Cultural Insights if available */}
+                {audience.cultural_analysis.behavioral_patterns && (
+                  <div className="mt-6 p-6 bg-white/30 dark:bg-black/10 rounded-lg border border-primary/10">
+                    <h4 className="text-lg font-bold mb-4 flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-primary" />
+                      Behavioral Patterns
+                    </h4>
+                    <div className="text-sm text-muted-foreground">
+                      {typeof audience.cultural_analysis.behavioral_patterns === 'string'
+                        ? audience.cultural_analysis.behavioral_patterns
+                        : JSON.stringify(audience.cultural_analysis.behavioral_patterns)}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Fallback message if no cultural analysis available */}
+          {(!audience.cultural_analysis || Object.keys(audience.cultural_analysis).length === 0) && (
+            <Card className="border-dashed border-2 border-muted">
+              <CardContent className="py-12 text-center">
+                <Brain className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-muted-foreground mb-2">Cultural Analysis In Progress</h3>
+                <p className="text-muted-foreground">AI cultural insights will appear here once analysis is complete.</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Posts Tab */}
@@ -838,33 +890,38 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
             </CardHeader>
             <CardContent>
               {posts.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {posts.map((post: any, idx: number) => (
-                    <Card key={post.id || idx} className="overflow-hidden">
+                    <Card key={post.id || idx} className="overflow-hidden hover:shadow-lg transition-shadow">
                       {(post.cdn_thumbnail_url || post.display_url) && (
-                        <img
-                          src={post.cdn_thumbnail_url || post.display_url}
-                          alt={post.caption?.slice(0, 50) || 'Post'}
-                          className="w-full h-48 object-cover"
-                        />
+                        <div className="aspect-square bg-muted relative overflow-hidden">
+                          <img
+                            src={post.cdn_thumbnail_url || post.display_url}
+                            alt={post.caption?.slice(0, 50) || 'Post'}
+                            className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
                       )}
-                      <CardContent className="p-4">
+                      <CardContent className="p-3">
                         {post.caption && (
-                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{post.caption}</p>
+                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{post.caption}</p>
                         )}
-                        <div className="flex items-center gap-4 text-sm mb-2">
+                        <div className="flex items-center gap-3 text-xs mb-2">
                           <span className="flex items-center gap-1">
-                            <Heart className="h-4 w-4" />
+                            <Heart className="h-3 w-3 text-red-500" />
                             {(post.likes_count || post.like_count || 0).toLocaleString()}
                           </span>
                           <span className="flex items-center gap-1">
-                            <MessageCircle className="h-4 w-4" />
+                            <MessageCircle className="h-3 w-3 text-blue-500" />
                             {(post.comments_count || post.comment_count || 0).toLocaleString()}
                           </span>
                         </div>
                         {post.engagement_rate !== null && post.engagement_rate !== undefined && (
                           <div className="text-xs text-muted-foreground mb-2">
-                            Engagement: {safeToFixed(post.engagement_rate, 2)}%
+                            <span className="flex items-center gap-1">
+                              <BarChart3 className="h-3 w-3 text-primary" />
+                              {safeToFixed(post.engagement_rate, 2)}%
+                            </span>
                           </div>
                         )}
                         {post.ai_analysis && (

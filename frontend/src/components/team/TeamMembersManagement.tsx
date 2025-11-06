@@ -10,15 +10,25 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  DialogTrigger 
+  DialogTrigger
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 import { teamApiService, TeamContext, TeamMember, TeamInvitation } from '@/services/teamApi'
 
@@ -43,6 +53,12 @@ export function TeamMembersManagement({
   const [inviteMessage, setInviteMessage] = useState('')
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
+
+  // Confirmation states
+  const [removeMemberConfirm, setRemoveMemberConfirm] = useState(false)
+  const [memberToRemove, setMemberToRemove] = useState<{id: string, name: string} | null>(null)
+  const [cancelInviteConfirm, setCancelInviteConfirm] = useState(false)
+  const [inviteToCancel, setInviteToCancel] = useState<{id: string, email: string} | null>(null)
 
   const isOwner = teamContext?.user_role === 'owner'
 
@@ -130,12 +146,19 @@ export function TeamMembersManagement({
   }
 
   const handleRemoveMember = async (userId: string, userName: string) => {
-    if (!confirm(`Remove ${userName} from the team?`)) return
+    setMemberToRemove({ id: userId, name: userName })
+    setRemoveMemberConfirm(true)
+  }
+
+  const confirmRemoveMember = async () => {
+    if (!memberToRemove) return
 
     try {
-      const result = await teamApiService.removeTeamMember(userId)
+      const result = await teamApiService.removeTeamMember(memberToRemove.id)
       if (result.success) {
         await fetchTeamData() // Refresh data
+        setRemoveMemberConfirm(false)
+        setMemberToRemove(null)
       } else {
         alert('Failed to remove member: ' + result.error)
       }
@@ -145,12 +168,19 @@ export function TeamMembersManagement({
   }
 
   const handleCancelInvitation = async (invitationId: string, email: string) => {
-    if (!confirm(`Cancel invitation to ${email}?`)) return
+    setInviteToCancel({ id: invitationId, email })
+    setCancelInviteConfirm(true)
+  }
+
+  const confirmCancelInvitation = async () => {
+    if (!inviteToCancel) return
 
     try {
-      const result = await teamApiService.cancelTeamInvitation(invitationId)
+      const result = await teamApiService.cancelTeamInvitation(inviteToCancel.id)
       if (result.success) {
         await fetchTeamData() // Refresh data
+        setCancelInviteConfirm(false)
+        setInviteToCancel(null)
       } else {
         alert('Failed to cancel invitation: ' + result.error)
       }
@@ -392,6 +422,64 @@ export function TeamMembersManagement({
           </div>
         )}
       </CardContent>
+
+      {/* Remove Member Confirmation Dialog */}
+      <AlertDialog open={removeMemberConfirm} onOpenChange={setRemoveMemberConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove {memberToRemove?.name} from the team?
+              They will lose access to all team features and data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setRemoveMemberConfirm(false)
+                setMemberToRemove(null)
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRemoveMember}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove Member
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Invitation Confirmation Dialog */}
+      <AlertDialog open={cancelInviteConfirm} onOpenChange={setCancelInviteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Invitation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel the invitation to {inviteToCancel?.email}?
+              They will not be able to join the team using this invitation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setCancelInviteConfirm(false)
+                setInviteToCancel(null)
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmCancelInvitation}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Cancel Invitation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 }
