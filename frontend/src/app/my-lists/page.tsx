@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
 import { AuthGuard } from "@/components/AuthGuard"
@@ -32,6 +32,8 @@ import {
   Activity,
   Target,
   Zap,
+  Bookmark,
+  Star,
 } from "lucide-react"
 
 import {
@@ -89,6 +91,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -114,7 +126,7 @@ export default function MyListsPage() {
     hasNext: false,
     hasPrevious: false
   })
-  
+
   // Dialog states
   const [isCreatingList, setIsCreatingList] = useState(false)
   const [isEditingList, setIsEditingList] = useState(false)
@@ -128,6 +140,8 @@ export default function MyListsPage() {
   const [selectedListForExport, setSelectedListForExport] = useState<List | null>(null)
   const [isAnalyticsDialogOpen, setIsAnalyticsDialogOpen] = useState(false)
   const [selectedListForAnalytics, setSelectedListForAnalytics] = useState<List | null>(null)
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  const [selectedListForDeletion, setSelectedListForDeletion] = useState<List | null>(null)
 
   // Form states
   const [newListName, setNewListName] = useState("")
@@ -137,7 +151,7 @@ export default function MyListsPage() {
   const [searchLoading, setSearchLoading] = useState(false)
   const [creatorSearchQuery, setCreatorSearchQuery] = useState("")
   const [selectedProfiles, setSelectedProfiles] = useState<UnlockedProfile[]>([])
-  
+
   // Enhanced features state
   const [templates, setTemplates] = useState<ListTemplate[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<string>("")
@@ -151,9 +165,9 @@ export default function MyListsPage() {
     try {
       setLoading(true)
       setError(null)
-      
+
       const response = await listsApiService.getAllLists()
-      
+
       if (response.success && response.data) {
         // Handle both array and paginated response formats
         if (Array.isArray(response.data)) {
@@ -217,13 +231,13 @@ export default function MyListsPage() {
       }
 
       await listsApiService.createList(listData)
-      
+
       toast.success("List created successfully!")
       setIsCreatingList(false)
       setNewListName("")
       setNewListDescription("")
       setSelectedColor("#5100f3")
-      
+
       loadLists()
     } catch (err: any) {
 
@@ -243,14 +257,14 @@ export default function MyListsPage() {
         description: newListDescription.trim(),
         color: selectedColor
       })
-      
+
       toast.success("List created from template!")
       setIsCreatingFromTemplate(false)
       setSelectedTemplate("")
       setNewListName("")
       setNewListDescription("")
       setSelectedColor("#5100f3")
-      
+
       loadLists()
     } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to create list from template")
@@ -268,14 +282,14 @@ export default function MyListsPage() {
       }
 
       await listsApiService.updateList(selectedList.id, updateData)
-      
+
       toast.success("List updated successfully!")
       setIsEditingList(false)
       setSelectedList(null)
       setNewListName("")
       setNewListDescription("")
       setSelectedColor("#5100f3")
-      
+
       loadLists()
     } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to update list")
@@ -283,14 +297,23 @@ export default function MyListsPage() {
   }
 
   const deleteList = async (list: List) => {
-    if (!window.confirm(`Are you sure you want to delete "${list.name}"? This action cannot be undone.`)) {
-      return
-    }
+    setSelectedListForDeletion(list)
+    setIsDeleteConfirmOpen(true)
+  }
+
+  const confirmDeleteList = async () => {
+    if (!selectedListForDeletion) return
 
     try {
-      await listsApiService.deleteList(list.id)
-      toast.success("List deleted successfully!")
-      loadLists()
+      const response = await listsApiService.deleteList(selectedListForDeletion.id)
+      if (response.success) {
+        toast.success("List deleted successfully!")
+        loadLists()
+        setIsDeleteConfirmOpen(false)
+        setSelectedListForDeletion(null)
+      } else {
+        toast.error(response.error || "Failed to delete list")
+      }
     } catch (err: any) {
       toast.error(err.response?.data?.detail || "Failed to delete list")
     }
@@ -309,7 +332,7 @@ export default function MyListsPage() {
   const exportList = async (listId: string, settings: ExportSettings) => {
     try {
       const blob = await listsApiService.exportList(listId, settings)
-      
+
       // Create download link
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -319,7 +342,7 @@ export default function MyListsPage() {
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
-      
+
       toast.success("List exported successfully!")
       setIsExportDialogOpen(false)
     } catch (err: any) {
@@ -341,7 +364,7 @@ export default function MyListsPage() {
   }
 
   const filteredAndSortedLists = myLists
-    .filter(list => 
+    .filter(list =>
       list.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       list.description?.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -352,6 +375,18 @@ export default function MyListsPage() {
       day: 'numeric',
       year: 'numeric'
     })
+  }
+
+  const handleCreateList = () => {
+    setIsCreatingList(true)
+  }
+
+  const handleEditList = (list: List) => {
+    setSelectedList(list)
+    setNewListName(list.name)
+    setNewListDescription(list.description || '')
+    setSelectedColor(list.color || '#5100f3')
+    setIsEditingList(true)
   }
 
   const colorOptions = [
@@ -421,20 +456,20 @@ export default function MyListsPage() {
           <SiteHeader />
           <div className="flex flex-1 flex-col">
             <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-              
+
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-3xl font-bold">My Lists</h1>
                   <p className="text-muted-foreground">Organize your creators into custom lists</p>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   {/* Create New List Button */}
                   <Button
-                    onClick={() => setIsCreatingList(true)}
+                    onClick={handleCreateList}
                     className="gap-2"
-                                      >
+                  >
                     <Plus className="h-4 w-4" />
                     New List
                   </Button>
@@ -452,7 +487,7 @@ export default function MyListsPage() {
                     className="pl-9"
                   />
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <Select value={sortBy} onValueChange={setSortBy}>
                     <SelectTrigger className="w-40">
@@ -465,7 +500,7 @@ export default function MyListsPage() {
                       <SelectItem value="profile_count">Size</SelectItem>
                     </SelectContent>
                   </Select>
-                  
+
                   <Button
                     variant="outline"
                     size="icon"
@@ -481,165 +516,180 @@ export default function MyListsPage() {
                 <div className="flex justify-center py-12">
                   <EmptyState
                     title={searchQuery.trim() ? "No lists found" : "No lists yet"}
-                    description={searchQuery.trim() 
-                      ? "Try adjusting your search criteria\nto find the lists you're looking for." 
+                    description={searchQuery.trim()
+                      ? "Try adjusting your search criteria\nto find the lists you're looking for."
                       : "Create your first list to get started\norganizing and managing your creators."
                     }
                     icons={[ListIcon, Users, FileText]}
                     action={!searchQuery.trim() ? {
                       label: "Create Your First List",
-                      onClick: () => setIsCreatingList(true)
+                      onClick: handleCreateList
                     } : undefined}
                   />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredAndSortedLists.map((list) => (
-                    <Card key={list.id} className="group">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-4 h-4 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: list.color || '#5100f3' }}
-                            />
+                  {filteredAndSortedLists.map((list) => {
+                    const bannerColor = list.color || '#5100f3'
+
+                    return (
+                      <Card key={list.id} className="group hover:scale-[1.02] transition-all duration-200 bg-card border border-border">
+                        {/* Color banner */}
+                        <div
+                          className="h-2 w-full"
+                          style={{ backgroundColor: bannerColor }}
+                        />
+
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
                             <div className="min-w-0 flex-1">
-                              <CardTitle className="text-lg truncate">{list.name}</CardTitle>
+                              <CardTitle className="text-lg leading-tight truncate">
+                                {list.name}
+                              </CardTitle>
                               {list.description && (
-                                <CardDescription className="text-sm text-muted-foreground line-clamp-2">
+                                <CardDescription className="line-clamp-2 mt-1">
                                   {list.description}
                                 </CardDescription>
                               )}
                             </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 ml-2"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEditList(list)}>
+                                  <Edit3 className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedListForSharing(list)
+                                    setIsShareDialogOpen(true)
+                                  }}
+                                >
+                                  <Share2 className="h-4 w-4 mr-2" />
+                                  Share
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedListForExport(list)
+                                    setIsExportDialogOpen(true)
+                                  }}
+                                >
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Export
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedListForAnalytics(list)
+                                    getListAnalytics(list.id)
+                                    setIsAnalyticsDialogOpen(true)
+                                  }}
+                                >
+                                  <BarChart3 className="h-4 w-4 mr-2" />
+                                  Analytics
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => deleteList(list)} className="text-red-600">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedList(list)
-                                  setNewListName(list.name)
-                                  setNewListDescription(list.description || "")
-                                  setSelectedColor(list.color || "#5100f3")
-                                  setIsEditingList(true)
-                                }}
-                              >
-                                <Edit3 className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedListForSharing(list)
-                                  setIsShareDialogOpen(true)
-                                }}
-                              >
-                                <Share2 className="h-4 w-4 mr-2" />
-                                Share
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedListForExport(list)
-                                  setIsExportDialogOpen(true)
-                                }}
-                              >
-                                <Download className="h-4 w-4 mr-2" />
-                                Export
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedListForAnalytics(list)
-                                  getListAnalytics(list.id)
-                                  setIsAnalyticsDialogOpen(true)
-                                }}
-                              >
-                                <BarChart3 className="h-4 w-4 mr-2" />
-                                Analytics
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => deleteList(list)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                          <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4" />
-                            <span>{list.profile_count} creators</span>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="flex items-center justify-between text-xs mb-3 text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              <span>{list.profile_count || 0} creators</span>
+                            </div>
+                            <span>Updated {formatDate(list.updated_at)}</span>
                           </div>
-                          <span>Updated {formatDate(list.updated_at)}</span>
-                        </div>
-                        
-                        <Button
-                          onClick={() => router.push(`/my-lists/${list.id}`)}
-                          className="w-full"
-                          variant="outline"
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View List
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+
+                          <Button
+                            onClick={() => router.push(`/my-lists/${list.id}`)}
+                            size="sm"
+                            className="w-full"
+                            variant="outline"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            View List
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
               )}
 
               {/* Create List Dialog */}
               <Dialog open={isCreatingList} onOpenChange={setIsCreatingList}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Create New List</DialogTitle>
                     <DialogDescription>
                       Create a new list to organize your creators
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4 py-4">
+
+                  <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium">List Name</label>
+                      <label className="text-sm font-medium mb-2 block">Name</label>
                       <Input
+                        placeholder="Enter list name"
                         value={newListName}
                         onChange={(e) => setNewListName(e.target.value)}
-                        placeholder="Enter list name..."
-                        className="mt-1"
                       />
                     </div>
+
                     <div>
-                      <label className="text-sm font-medium">Description (Optional)</label>
-                      <Input
+                      <label className="text-sm font-medium mb-2 block">Description (Optional)</label>
+                      <Textarea
+                        placeholder="Enter description"
                         value={newListDescription}
                         onChange={(e) => setNewListDescription(e.target.value)}
-                        placeholder="Brief description..."
-                        className="mt-1"
+                        rows={3}
                       />
                     </div>
+
                     <div>
-                      <label className="text-sm font-medium">Color</label>
-                      <div className="flex gap-2 mt-2">
-                        {colorOptions.slice(0, 6).map(color => (
+                      <label className="text-sm font-medium mb-2 block">Banner Color</label>
+                      <div className="flex gap-2">
+                        {colorOptions.map((color) => (
                           <button
                             key={color}
-                            className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-[#5100f3]' : 'border-gray-300 hover:border-gray-400'} transition-colors`}
-                            style={{ backgroundColor: color }}
                             onClick={() => setSelectedColor(color)}
+                            className={`w-8 h-8 rounded border-2 transition-all ${
+                              selectedColor === color
+                                ? 'border-gray-400 scale-110'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            style={{ backgroundColor: color }}
                           />
                         ))}
                       </div>
                     </div>
                   </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsCreatingList(false)}>
+
+                  <div className="flex gap-2 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsCreatingList(false)}
+                      className="flex-1"
+                    >
                       Cancel
                     </Button>
-                    <Button onClick={createList} style={{ backgroundColor: '#5100f3', color: 'white' }}>
+                    <Button
+                      onClick={createList}
+                      className="flex-1"
+                      disabled={!newListName.trim()}
+                    >
                       Create List
                     </Button>
                   </div>
@@ -648,55 +698,100 @@ export default function MyListsPage() {
 
               {/* Edit List Dialog */}
               <Dialog open={isEditingList} onOpenChange={setIsEditingList}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Edit List</DialogTitle>
                     <DialogDescription>
                       Update your list details
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4 py-4">
+
+                  <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium">List Name</label>
+                      <label className="text-sm font-medium mb-2 block">Name</label>
                       <Input
+                        placeholder="Enter list name"
                         value={newListName}
                         onChange={(e) => setNewListName(e.target.value)}
-                        className="mt-1"
                       />
                     </div>
+
                     <div>
-                      <label className="text-sm font-medium">Description</label>
-                      <Input
+                      <label className="text-sm font-medium mb-2 block">Description (Optional)</label>
+                      <Textarea
+                        placeholder="Enter description"
                         value={newListDescription}
                         onChange={(e) => setNewListDescription(e.target.value)}
-                        className="mt-1"
-                        placeholder="Brief description..."
+                        rows={3}
                       />
                     </div>
+
                     <div>
-                      <label className="text-sm font-medium">Color</label>
-                      <div className="flex gap-2 mt-2">
-                        {colorOptions.slice(0, 6).map(color => (
+                      <label className="text-sm font-medium mb-2 block">Banner Color</label>
+                      <div className="flex gap-2">
+                        {colorOptions.map((color) => (
                           <button
                             key={color}
-                            className={`w-6 h-6 rounded-full border-2 ${selectedColor === color ? 'border-[#5100f3]' : 'border-gray-300 hover:border-gray-400'} transition-colors`}
-                            style={{ backgroundColor: color }}
                             onClick={() => setSelectedColor(color)}
+                            className={`w-8 h-8 rounded border-2 transition-all ${
+                              selectedColor === color
+                                ? 'border-gray-400 scale-110'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            style={{ backgroundColor: color }}
                           />
                         ))}
                       </div>
                     </div>
                   </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsEditingList(false)}>
+
+                  <div className="flex gap-2 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditingList(false)}
+                      className="flex-1"
+                    >
                       Cancel
                     </Button>
-                    <Button onClick={updateList} style={{ backgroundColor: '#5100f3', color: 'white' }}>
+                    <Button
+                      onClick={updateList}
+                      className="flex-1"
+                      disabled={!newListName.trim()}
+                    >
                       Update List
                     </Button>
                   </div>
                 </DialogContent>
               </Dialog>
+
+              {/* Delete Confirmation Dialog */}
+              <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete List</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete "{selectedListForDeletion?.name}"?
+                      This action cannot be undone and will permanently remove all creators from this list.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel
+                      onClick={() => {
+                        setIsDeleteConfirmOpen(false)
+                        setSelectedListForDeletion(null)
+                      }}
+                    >
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={confirmDeleteList}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete List
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </SidebarInset>

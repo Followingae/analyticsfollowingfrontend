@@ -83,19 +83,34 @@ export const ENDPOINTS = {
     analytics: '/api/v1/campaigns/analytics/', // GET - Campaign analytics
   },
 
-  // Lists (/api/v1/lists/)
+  // Lists (/api/v1/lists/) - Complete API Documentation
   lists: {
-    templates: '/api/v1/lists/templates', // GET - List templates
-    list: '/api/v1/lists', // GET - List all user lists
+    // Core CRUD Operations
+    list: '/api/v1/lists', // GET - List all user lists (paginated)
     create: '/api/v1/lists', // POST - Create new list
-    detail: (listId: string) => `/api/v1/lists/${listId}`, // GET - Get specific list by UUID
-    update: (listId: string) => `/api/v1/lists/${listId}`, // PUT - Update list
-    delete: (listId: string) => `/api/v1/lists/${listId}`, // DELETE - Delete list
-    addItem: (listId: string) => `/api/v1/lists/${listId}/items`, // POST - Add item
-    removeItem: (listId: string, itemId: string) => `/api/v1/lists/${listId}/items/${itemId}`, // DELETE - Remove item
+    detail: (listId: string) => `/api/v1/lists/${listId}`, // GET - Get specific list with items
+    update: (listId: string) => `/api/v1/lists/${listId}`, // PUT - Update list metadata
+    delete: (listId: string) => `/api/v1/lists/${listId}`, // DELETE - Delete list and all items
+
+    // List Items Management
+    addItem: (listId: string) => `/api/v1/lists/${listId}/items`, // POST - Add profile to list
+    updateItem: (listId: string, itemId: string) => `/api/v1/lists/${listId}/items/${itemId}`, // PUT - Update list item
+    removeItem: (listId: string, itemId: string) => `/api/v1/lists/${listId}/items/${itemId}`, // DELETE - Remove profile from list
+    bulkAddItems: (listId: string) => `/api/v1/lists/${listId}/items/bulk`, // POST - Add multiple profiles
+
+    // List Operations
+    reorder: (listId: string) => `/api/v1/lists/${listId}/reorder`, // PUT - Reorder list items
     duplicate: (listId: string) => `/api/v1/lists/${listId}/duplicate`, // POST - Duplicate list
-    availableProfiles: '/api/v1/lists/available-profiles', // GET - Available profiles for lists
+    bulkOperations: '/api/v1/lists/bulk-operations', // POST - Bulk operations (delete, favorite)
+
+    // Discovery & Templates
+    templates: '/api/v1/lists/templates', // GET - Get list templates
+    availableProfiles: '/api/v1/lists/available-profiles', // GET - Get profiles available for lists
+
+    // Legacy aliases for backwards compatibility
     userLists: '/api/v1/lists', // GET - Alias for backwards compatibility
+    bulkAdd: (listId: string) => `/api/v1/lists/${listId}/items/bulk`, // POST - Legacy alias
+    analytics: (listId: string) => `/api/v1/lists/${listId}/analytics`, // GET - List analytics (if implemented)
   },
 
   // Discovery (/api/v1/discovery/)

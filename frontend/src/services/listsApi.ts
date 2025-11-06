@@ -117,7 +117,7 @@ export interface ListItem {
 export interface CreateListRequest {
   name: string
   description?: string
-  color: string
+  color?: string
   icon?: string
 }
 
@@ -131,7 +131,7 @@ export interface UpdateListRequest {
 }
 
 export interface AddProfileToListRequest {
-  profile_id: string
+  profile_username: string  // Updated to match API documentation
   position?: number
   notes?: string
   tags?: string[]
@@ -139,17 +139,54 @@ export interface AddProfileToListRequest {
   is_pinned?: boolean
 }
 
-export interface BulkAddProfilesRequest {
-  profile_usernames: string[]
+export interface UpdateListItemRequest {
+  notes?: string
+  tags?: string[]
   position?: number
 }
 
-export interface ReorderListRequest {
-  items: Array<{
-    id: string
+export interface BulkAddProfilesRequest {
+  profile_usernames: string[]
+  notes?: string
+  tags?: string[]
+}
+
+export interface BulkOperationsRequest {
+  operation: 'delete' | 'favorite' | 'unfavorite'
+  list_ids: string[]
+}
+
+export interface ReorderItemsRequest {
+  item_positions: Array<{
+    item_id: string
     position: number
   }>
 }
+
+// Query Parameters Interfaces
+export interface ListQueryParams {
+  include_items?: boolean
+  sort?: 'created_at' | 'updated_at' | 'name' | 'items_count'
+  order?: 'asc' | 'desc'
+  page?: number
+  limit?: number
+}
+
+export interface SingleListQueryParams {
+  include_profiles?: boolean
+  sort_items?: 'position' | 'added_at' | 'name'
+}
+
+export interface AvailableProfilesQueryParams {
+  search?: string
+  not_in_list?: string
+  category?: string
+  min_followers?: number
+  verified_only?: boolean
+  page?: number
+  limit?: number
+}
+
 
 export interface AvailableProfile {
   username: string
@@ -190,9 +227,23 @@ export interface ListsPaginatedResponse {
 
 export class ListsApiService {
   // Core List Management
-  async getAllLists(): Promise<ApiResponse<List[] | ListsPaginatedResponse>> {
-    const url = `${API_CONFIG.BASE_URL}${ENDPOINTS.lists.list}`
-    
+  async getAllLists(params?: ListQueryParams): Promise<ApiResponse<List[] | ListsPaginatedResponse>> {
+    let url = `${API_CONFIG.BASE_URL}${ENDPOINTS.lists.list}`
+
+    // Add query parameters if provided
+    if (params) {
+      const queryParams = new URLSearchParams()
+      if (params.include_items !== undefined) queryParams.append('include_items', params.include_items.toString())
+      if (params.sort) queryParams.append('sort', params.sort)
+      if (params.order) queryParams.append('order', params.order)
+      if (params.page) queryParams.append('page', params.page.toString())
+      if (params.limit) queryParams.append('limit', params.limit.toString())
+
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`
+      }
+    }
+
     try {
       const response = await fetchWithAuth(url, {
         method: 'GET',
@@ -219,6 +270,48 @@ export class ListsApiService {
       }
     } catch (error) {
       return { success: false, error: 'Network error while fetching lists' }
+    }
+  }
+
+  async getListDetails(listId: string, params?: SingleListQueryParams): Promise<ApiResponse<List>> {
+    let url = `${API_CONFIG.BASE_URL}${ENDPOINTS.lists.detail(listId)}`
+
+    // Add query parameters if provided
+    if (params) {
+      const queryParams = new URLSearchParams()
+      if (params.include_profiles !== undefined) queryParams.append('include_profiles', params.include_profiles.toString())
+      if (params.sort_items) queryParams.append('sort_items', params.sort_items)
+
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`
+      }
+    }
+
+    try {
+      const response = await fetchWithAuth(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return { success: false, error: data.detail || data.message || `HTTP ${response.status}: ${response.statusText}` }
+      }
+
+      // Handle backend response format
+      if (data.success && data.data) {
+        return { success: true, data: data.data }
+      } else if (data.success) {
+        return { success: true, data: data }
+      } else {
+        return { success: false, error: data.message || 'Backend returned unsuccessful response' }
+      }
+    } catch (error) {
+      return { success: false, error: 'Network error while fetching list details' }
     }
   }
 
@@ -354,6 +447,29 @@ export class ListsApiService {
     }
   }
 
+  async updateListItem(listId: string, itemId: string, updates: UpdateListItemRequest): Promise<ApiResponse<ListItem>> {
+    try {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.updateItem(listId, itemId)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(updates)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return { success: false, error: data.detail || data.message || 'Failed to update list item' }
+      }
+
+      return { success: true, data: data }
+    } catch (error) {
+      return { success: false, error: 'Network error while updating list item' }
+    }
+  }
+
   async bulkAddProfilesToList(listId: string, profilesData: BulkAddProfilesRequest): Promise<ApiResponse<ListItem[]>> {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.bulkAdd(listId)}`, {
@@ -377,8 +493,31 @@ export class ListsApiService {
     }
   }
 
+  async bulkOperations(operationsData: BulkOperationsRequest): Promise<ApiResponse<void>> {
+    try {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.bulkOperations}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(operationsData)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return { success: false, error: data.detail || data.message || 'Failed to perform bulk operations' }
+      }
+
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: 'Network error while performing bulk operations' }
+    }
+  }
+
   // Advanced Operations
-  async reorderList(listId: string, reorderData: ReorderListRequest): Promise<ApiResponse<void>> {
+  async reorderList(listId: string, reorderData: ReorderItemsRequest): Promise<ApiResponse<void>> {
     try {
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.lists.reorder(listId)}`, {
         method: 'PUT',
@@ -422,9 +561,27 @@ export class ListsApiService {
     }
   }
 
-  async getAvailableProfiles(page: number = 1, perPage: number = 20): Promise<ApiResponse<PaginatedResponse<AvailableProfile>>> {
+  async getAvailableProfiles(params?: AvailableProfilesQueryParams): Promise<ApiResponse<PaginatedResponse<AvailableProfile>>> {
+    let url = `${API_CONFIG.BASE_URL}${ENDPOINTS.lists.availableProfiles}`
+
+    // Add query parameters if provided
+    if (params) {
+      const queryParams = new URLSearchParams()
+      if (params.search) queryParams.append('search', params.search)
+      if (params.not_in_list) queryParams.append('not_in_list', params.not_in_list)
+      if (params.category) queryParams.append('category', params.category)
+      if (params.min_followers) queryParams.append('min_followers', params.min_followers.toString())
+      if (params.verified_only !== undefined) queryParams.append('verified_only', params.verified_only.toString())
+      if (params.page) queryParams.append('page', params.page.toString())
+      if (params.limit) queryParams.append('limit', params.limit.toString())
+
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`
+      }
+    }
+
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.profiles.availableForLists}?page=${page}&per_page=${perPage}`, {
+      const response = await fetchWithAuth(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

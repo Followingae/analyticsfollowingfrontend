@@ -56,7 +56,7 @@ export default function UnifiedCampaignsDashboard() {
         <div className="flex flex-col min-h-screen bg-background">
           {/* Enhanced Header */}
           <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container mx-auto px-6 py-8">
+            <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
               {/* Top Section */}
               <div className="flex items-start justify-between mb-6">
                 <div>
@@ -159,7 +159,7 @@ export default function UnifiedCampaignsDashboard() {
           </div>
 
           {/* Tabs Content */}
-          <div className="flex-1 container mx-auto px-6">
+          <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
               <TabsList className="bg-muted/30 p-1 h-auto">
                 {tabConfig.map(tab => (
