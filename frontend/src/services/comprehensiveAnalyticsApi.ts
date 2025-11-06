@@ -812,26 +812,39 @@ export class ComprehensiveAnalyticsApiService {
       /* Debug logging removed to fix syntax error */
           }
 
-          // SIMPLIFIED: Pass through the complete backend data structure without transformation
+          // CRITICAL FIX: Pass through ALL 10 AI model objects from backend
+          console.log('🔥 RAW BACKEND DATA:', JSON.stringify(data.profile, null, 2))
+
           const transformedProfile = {
             ...data.profile,
-            // Ensure the ai_analysis object is passed through completely
-            ai_analysis: data.profile.ai_analysis || {
-              // Fallback empty structure if no AI analysis
-              primary_content_type: null,
-              content_distribution: {},
-              content_quality_score: 0,
-              language_distribution: {},
-              avg_sentiment_score: 0,
-              comprehensive_insights: {
-                overall_authenticity_score: 0,
-                fraud_risk_level: 'unknown',
-                engagement_trend: 'stable',
-                lifecycle_stage: 'mature',
-                content_quality_rating: 0
-              }
-            }
+            // Pass through ai_analysis object
+            ai_analysis: data.profile.ai_analysis,
+            // Pass through ALL 10 AI model objects explicitly
+            ai_sentiment: data.profile.ai_sentiment,
+            ai_language: data.profile.ai_language,
+            ai_content_category: data.profile.ai_content_category,
+            ai_audience_quality: data.profile.ai_audience_quality,
+            ai_visual_content: data.profile.ai_visual_content,
+            ai_audience_insights: data.profile.ai_audience_insights,
+            ai_trend_detection: data.profile.ai_trend_detection,
+            ai_advanced_nlp: data.profile.ai_advanced_nlp,
+            ai_fraud_detection: data.profile.ai_fraud_detection,
+            ai_behavioral_patterns: data.profile.ai_behavioral_patterns
           }
+
+          console.log('🔥 TRANSFORMED PROFILE KEYS:', Object.keys(transformedProfile))
+          console.log('🔥 HAS AI MODELS:', {
+            ai_sentiment: !!transformedProfile.ai_sentiment,
+            ai_language: !!transformedProfile.ai_language,
+            ai_content_category: !!transformedProfile.ai_content_category,
+            ai_audience_quality: !!transformedProfile.ai_audience_quality,
+            ai_visual_content: !!transformedProfile.ai_visual_content,
+            ai_audience_insights: !!transformedProfile.ai_audience_insights,
+            ai_trend_detection: !!transformedProfile.ai_trend_detection,
+            ai_advanced_nlp: !!transformedProfile.ai_advanced_nlp,
+            ai_fraud_detection: !!transformedProfile.ai_fraud_detection,
+            ai_behavioral_patterns: !!transformedProfile.ai_behavioral_patterns
+          })
 
           // Transform posts data - capture ALL AI analysis (25KB+ per post)
           const transformedPosts = (data.profile.posts || []).map(post => ({
