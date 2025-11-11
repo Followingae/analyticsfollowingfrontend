@@ -74,13 +74,39 @@ export const ENDPOINTS = {
     overview: '/api/v1/teams/overview', // GET - Team overview
   },
 
-  // Campaigns (/api/v1/campaigns/)
+  // Campaigns (/api/v1/campaigns/) - COMPLETE 19 ENDPOINTS
   campaigns: {
-    list: '/api/v1/campaigns/', // GET/POST - Campaigns (with trailing slash)
-    detail: (id: string) => `/api/v1/campaigns/${id}/`, // GET - Campaign detail
-    delete: (id: string) => `/api/v1/campaigns/${id}`, // DELETE - Delete campaign
-    dashboard: '/api/v1/campaigns/dashboard/', // GET - Campaign dashboard
-    analytics: '/api/v1/campaigns/analytics/', // GET - Campaign analytics
+    // 1. CAMPAIGN CRUD (7 endpoints)
+    list: '/api/v1/campaigns/', // GET/POST - List and create campaigns
+    detail: (id: string) => `/api/v1/campaigns/${id}`, // GET - Campaign detail
+    update: (id: string) => `/api/v1/campaigns/${id}`, // PATCH - Update campaign
+    delete: (id: string) => `/api/v1/campaigns/${id}`, // DELETE - Archive campaign
+    restore: (id: string) => `/api/v1/campaigns/${id}/restore`, // POST - Restore archived campaign
+    updateStatus: (id: string) => `/api/v1/campaigns/${id}/status`, // PATCH - Update campaign status
+
+    // 2. OVERVIEW/DASHBOARD (1 endpoint)
+    overview: '/api/v1/campaigns/overview', // GET - Dashboard overview with trends
+
+    // 3. POSTS MANAGEMENT (3 endpoints)
+    posts: (id: string) => `/api/v1/campaigns/${id}/posts`, // GET/POST - List and add posts
+    removePost: (id: string, postId: string) => `/api/v1/campaigns/${id}/posts/${postId}`, // DELETE - Remove post
+
+    // 4. ANALYTICS & REPORTS (2 endpoints)
+    analytics: (id: string) => `/api/v1/campaigns/${id}/analytics`, // GET - Campaign analytics with period
+    generateReport: (id: string) => `/api/v1/campaigns/${id}/reports/generate`, // POST - Generate report
+
+    // 5. CAMPAIGN PROPOSALS (5 endpoints)
+    proposals: '/api/v1/campaigns/proposals', // GET - List user proposals
+    proposalDetail: (id: string) => `/api/v1/campaigns/proposals/${id}`, // GET - Proposal details
+    selectInfluencers: (id: string) => `/api/v1/campaigns/proposals/${id}/influencers`, // PUT - Select influencers
+    approveProposal: (id: string) => `/api/v1/campaigns/proposals/${id}/approve`, // POST - Approve proposal
+    rejectProposal: (id: string) => `/api/v1/campaigns/proposals/${id}/reject`, // POST - Reject proposal
+
+    // 6. CAMPAIGN INFLUENCERS (1 endpoint)
+    creators: (id: string) => `/api/v1/campaigns/${id}/creators`, // GET - Campaign influencers
+
+    // Legacy aliases
+    dashboard: '/api/v1/campaigns/dashboard/', // Legacy - Use overview instead
   },
 
   // Lists (/api/v1/lists/) - Complete API Documentation

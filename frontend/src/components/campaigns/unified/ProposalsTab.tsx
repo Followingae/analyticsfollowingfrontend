@@ -74,29 +74,14 @@ export function ProposalsTab({ searchQuery }: ProposalsTabProps) {
     try {
       setIsLoading(true);
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const storedTokens = localStorage.getItem('auth_tokens');
+      const { campaignApi } = await import('@/services/campaignApiComplete');
+      const response = await campaignApi.listProposals({ limit: 100 });
 
-      if (!storedTokens) {
-        console.error("No auth tokens found");
-        setProposals([]);
-        return;
+      if (response.success && response.data) {
+        setProposals(response.data.proposals || []);
+      } else {
+        throw new Error(response.error || 'Failed to fetch proposals');
       }
-
-      const tokenData = JSON.parse(storedTokens);
-      const response = await fetch(`${API_BASE_URL}/api/v1/campaigns/proposals`, {
-        headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setProposals(data.proposals || []);
     } catch (error) {
       console.error("Error fetching proposals:", error);
       setProposals([]);

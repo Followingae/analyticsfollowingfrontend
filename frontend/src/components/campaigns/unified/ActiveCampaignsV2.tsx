@@ -70,29 +70,14 @@ export function ActiveCampaignsV2({ searchQuery }: ActiveCampaignsProps) {
     try {
       setIsLoading(true);
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const storedTokens = localStorage.getItem('auth_tokens');
+      const { campaignApi } = await import('@/services/campaignApiComplete');
+      const response = await campaignApi.listCampaigns({ status: 'active', limit: 100 });
 
-      if (!storedTokens) {
-        console.error("No auth tokens found");
-        setCampaigns([]);
-        return;
+      if (response.success && response.data) {
+        setCampaigns(response.data.campaigns || []);
+      } else {
+        throw new Error(response.error || 'Failed to fetch campaigns');
       }
-
-      const tokenData = JSON.parse(storedTokens);
-      const response = await fetch(`${API_BASE_URL}/api/v1/campaigns?status=active,in_review,paused`, {
-        headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setCampaigns(data.campaigns || []);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
       setCampaigns([]);

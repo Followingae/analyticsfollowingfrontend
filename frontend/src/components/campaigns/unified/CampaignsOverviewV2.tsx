@@ -92,30 +92,18 @@ export function CampaignsOverviewV2({ searchQuery }: CampaignsOverviewProps) {
     try {
       setIsLoading(true);
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const storedTokens = localStorage.getItem('auth_tokens');
+      // Import the complete campaign API service
+      const { campaignApi } = await import('@/services/campaignApiComplete');
 
-      if (!storedTokens) {
-        console.error("No auth tokens found");
-        return;
+      const response = await campaignApi.getDashboardOverview();
+
+      if (response.success && response.data) {
+        setSummary(response.data.summary || null);
+        setRecentCampaigns(response.data.recent_campaigns || []);
+        setTopCreators(response.data.top_creators || []);
+      } else {
+        throw new Error(response.error || 'Failed to fetch overview data');
       }
-
-      const tokenData = JSON.parse(storedTokens);
-      const response = await fetch(`${API_BASE_URL}/api/v1/campaigns/overview`, {
-        headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setSummary(data.summary || null);
-      setRecentCampaigns(data.recent_campaigns || []);
-      setTopCreators(data.top_creators || []);
     } catch (error) {
       console.error("Error fetching overview data:", error);
       setSummary(null);

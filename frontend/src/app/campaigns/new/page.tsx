@@ -130,77 +130,38 @@ export default function NewCampaignPage() {
     const loadingToast = toast.loading("Creating campaign...");
 
     try {
-      // TEMPORARILY COMMENTED OUT API CALLS FOR DEMO - NO BACKEND DEPENDENCY
-      /*
-      const { API_CONFIG, ENDPOINTS } = await import("@/config/api");
-      const { tokenManager } = await import("@/utils/tokenManager");
+      // Use the NEW workflow endpoint for user campaign creation
+      const { campaignApi } = await import('@/services/campaignApiComplete');
 
-      // Use tokenManager to get a valid token (handles token refresh automatically)
-      const tokenResult = await tokenManager.getValidToken();
-
-      console.log("Token validation:", tokenResult.isValid ? "Valid token" : "Invalid/missing token");
-
-      if (!tokenResult.isValid || !tokenResult.token) {
-        toast.dismiss(loadingToast);
-        toast.error("You are not logged in. Please log in and try again.");
-        router.push("/login");
-        return;
-      }
-
-      const token = tokenResult.token;
-
-      // STEP 1: Create campaign with JSON payload (no binary data)
-      const campaignPayload = {
+      // Prepare campaign data - use the simplified user flow
+      const campaignData = {
         name: campaignName,
         brand_name: brandName,
-        status: status,
+        description: "", // Optional
+        budget: undefined, // Optional
+        start_date: undefined, // Optional
+        end_date: undefined, // Optional
       };
 
-      const apiUrl = `${API_CONFIG.BASE_URL}${ENDPOINTS.campaigns.list}`;
-      console.log("Creating campaign with:", campaignPayload);
-      console.log("API URL:", apiUrl);
+      console.log("✅ Creating campaign with NEW workflow endpoint:", campaignData);
 
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(campaignPayload),
-      });
+      // Call the new /workflow/user/create endpoint
+      const response = await campaignApi.createUserCampaign(campaignData);
 
-      console.log("Campaign creation response:", response.status, response.statusText);
+      console.log("Campaign creation response:", response);
 
-      if (!response.ok) {
-        let errorMessage = `${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          console.error("❌ Campaign creation failed (JSON):", errorData);
-          console.error("❌ Error detail:", errorData.detail);
-          console.error("❌ Error message:", errorData.message);
-          errorMessage = errorData.detail || errorData.message || errorMessage;
-        } catch (parseError) {
-          console.error("❌ Failed to parse error response as JSON:", parseError);
-          try {
-            const errorText = await response.text();
-            console.error("❌ Campaign creation failed (Text):", errorText);
-            errorMessage = errorText.substring(0, 200) || errorMessage;
-          } catch (textError) {
-            console.error("❌ Failed to read error response as text:", textError);
-          }
-        }
-        throw new Error(errorMessage);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to create campaign');
       }
 
-      const result = await response.json();
-      console.log("Campaign created successfully:", result);
-
-      const campaignId = result.data?.id || result.id;
+      const campaignId = response.data.id;
 
       if (!campaignId) {
-        console.error("No campaign ID in response:", result);
+        console.error("No campaign ID in response:", response);
         throw new Error("No campaign ID returned from server");
       }
+
+      console.log("✅ Campaign created successfully:", campaignId);
 
       // STEP 2: Upload logo if provided (separate multipart request)
       if (brandLogo) {
@@ -253,20 +214,10 @@ export default function NewCampaignPage() {
           console.log("Posts added successfully");
         }
       }
-      */
-
-      // Mock campaign creation for demo
-      console.log("Creating campaign with demo data:", { campaignName, brandName, status, posts });
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const mockCampaignId = Date.now().toString();
-      console.log("Mock campaign created with ID:", mockCampaignId);
 
       // Success notification
       toast.dismiss(loadingToast);
-      toast.success("Campaign created successfully! (Demo Mode)");
+      toast.success("Campaign created successfully!");
 
       // Redirect to campaigns list
       router.push(`/campaigns`);

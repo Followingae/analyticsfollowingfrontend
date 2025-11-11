@@ -46,32 +46,18 @@ export default function UnifiedCampaignsDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const storedTokens = localStorage.getItem('auth_tokens');
+        const { campaignApi } = await import('@/services/campaignApiComplete');
+        const response = await campaignApi.getDashboardOverview();
 
-        if (!storedTokens) return;
-
-        const tokenData = JSON.parse(storedTokens);
-        const response = await fetch(`${API_BASE_URL}/api/v1/campaigns`, {
-          headers: {
-            'Authorization': `Bearer ${tokenData.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) return;
-
-        const data = await response.json();
-
-        // Extract counts from summary if available
-        if (data.summary) {
+        if (response.success && response.data) {
+          const { summary } = response.data;
           setStats({
-            active: data.summary.active_count || 0,
-            proposals: data.summary.proposals_count || 0,
-            completed: data.summary.completed_count || 0,
-            totalReach: data.summary.total_reach || "0",
-            engagement: data.summary.avg_engagement || "0%",
-            totalSpend: data.summary.total_spend || "$0"
+            active: summary.activeCampaigns || 0,
+            proposals: summary.pendingProposals || 0,
+            completed: summary.completedCampaigns || 0,
+            totalReach: summary.totalReach.current.toString(),
+            engagement: `${summary.avgEngagementRate.current}%`,
+            totalSpend: `$${summary.totalSpend.current}`
           });
         }
       } catch (error) {
