@@ -70,96 +70,29 @@ export function ActiveCampaignsV2({ searchQuery }: ActiveCampaignsProps) {
     try {
       setIsLoading(true);
 
-      const mockCampaigns: Campaign[] = [
-        {
-          id: "1",
-          name: "Summer Collection Launch",
-          brand_name: "Fashion Forward",
-          brand_logo_url: "https://picsum.photos/100/100?random=1",
-          status: "active",
-          created_at: "2024-10-20T00:00:00Z",
-          updated_at: "2024-10-25T00:00:00Z",
-          engagement_rate: 4.8,
-          total_reach: 850000,
-          creators_count: 12,
-          progress: 65,
-          budget: "$25,000",
-          deadline: "2024-11-15",
-          content_delivered: 18,
-          content_total: 28
-        },
-        {
-          id: "2",
-          name: "Brand Awareness Q4",
-          brand_name: "TechNova",
-          brand_logo_url: "https://picsum.photos/100/100?random=2",
-          status: "active",
-          created_at: "2024-10-15T00:00:00Z",
-          updated_at: "2024-10-22T00:00:00Z",
-          engagement_rate: 3.9,
-          total_reach: 650000,
-          creators_count: 8,
-          progress: 40,
-          budget: "$18,500",
-          deadline: "2024-12-01",
-          content_delivered: 10,
-          content_total: 25
-        },
-        {
-          id: "3",
-          name: "Holiday Campaign 2024",
-          brand_name: "Lifestyle Co",
-          brand_logo_url: "https://picsum.photos/100/100?random=3",
-          status: "in_review",
-          created_at: "2024-10-24T00:00:00Z",
-          updated_at: "2024-10-24T00:00:00Z",
-          engagement_rate: 0,
-          total_reach: 0,
-          creators_count: 15,
-          progress: 0,
-          budget: "$32,000",
-          deadline: "2024-12-20",
-          content_delivered: 0,
-          content_total: 45
-        },
-        {
-          id: "4",
-          name: "Product Launch - Series X",
-          brand_name: "Innovation Labs",
-          brand_logo_url: "https://picsum.photos/100/100?random=4",
-          status: "active",
-          created_at: "2024-10-18T00:00:00Z",
-          updated_at: "2024-10-26T00:00:00Z",
-          engagement_rate: 5.2,
-          total_reach: 1200000,
-          creators_count: 20,
-          progress: 85,
-          budget: "$45,000",
-          deadline: "2024-10-30",
-          content_delivered: 38,
-          content_total: 45
-        },
-        {
-          id: "5",
-          name: "Sustainability Initiative",
-          brand_name: "EcoForward",
-          brand_logo_url: "https://picsum.photos/100/100?random=5",
-          status: "paused",
-          created_at: "2024-09-15T00:00:00Z",
-          updated_at: "2024-10-10T00:00:00Z",
-          engagement_rate: 3.5,
-          total_reach: 420000,
-          creators_count: 6,
-          progress: 30,
-          budget: "$15,000",
-          deadline: "2024-11-30",
-          content_delivered: 6,
-          content_total: 20
-        }
-      ];
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const storedTokens = localStorage.getItem('auth_tokens');
 
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setCampaigns(mockCampaigns);
+      if (!storedTokens) {
+        console.error("No auth tokens found");
+        setCampaigns([]);
+        return;
+      }
+
+      const tokenData = JSON.parse(storedTokens);
+      const response = await fetch(`${API_BASE_URL}/api/v1/campaigns?status=active,in_review,paused`, {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setCampaigns(data.campaigns || []);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
       setCampaigns([]);

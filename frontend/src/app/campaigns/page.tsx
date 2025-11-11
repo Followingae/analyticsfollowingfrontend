@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Filter, TrendingUp, Calendar, Target, Sparkles } from "lucide-react";
 
@@ -31,17 +31,56 @@ export default function UnifiedCampaignsDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [stats, setStats] = useState({
+    active: 0,
+    proposals: 0,
+    completed: 0,
+    totalReach: "0",
+    engagement: "0%",
+    totalSpend: "$0"
+  });
 
   const isAgencyClient = user?.role === 'premium' || user?.role === 'enterprise' || false;
 
-  const stats = {
-    active: 8,
-    proposals: 3,
-    completed: 24,
-    totalReach: "2.4M",
-    engagement: "4.8%",
-    totalSpend: "$84,250"
-  };
+  // Fetch campaign stats for tab badges
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const storedTokens = localStorage.getItem('auth_tokens');
+
+        if (!storedTokens) return;
+
+        const tokenData = JSON.parse(storedTokens);
+        const response = await fetch(`${API_BASE_URL}/api/v1/campaigns`, {
+          headers: {
+            'Authorization': `Bearer ${tokenData.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        // Extract counts from summary if available
+        if (data.summary) {
+          setStats({
+            active: data.summary.active_count || 0,
+            proposals: data.summary.proposals_count || 0,
+            completed: data.summary.completed_count || 0,
+            totalReach: data.summary.total_reach || "0",
+            engagement: data.summary.avg_engagement || "0%",
+            totalSpend: data.summary.total_spend || "$0"
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching campaign stats:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const tabConfig = [
     { id: "overview", label: "Overview", component: CampaignsOverviewV2, count: null },

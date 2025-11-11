@@ -69,70 +69,32 @@ export function ArchiveTab({ searchQuery }: ArchiveTabProps) {
     try {
       setIsLoading(true);
 
-      // TEMPORARILY COMMENTED OUT API CALLS FOR DEMO - NO BACKEND DEPENDENCY
-      /*
-      const { API_CONFIG, ENDPOINTS } = await import("@/config/api");
-      const { fetchWithAuth } = await import("@/utils/apiInterceptor");
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const storedTokens = localStorage.getItem('auth_tokens');
 
-      const response = await fetchWithAuth(
-        `${API_CONFIG.BASE_URL}${ENDPOINTS.campaigns.archived}`
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        setArchivedCampaigns(result.data?.campaigns || []);
+      if (!storedTokens) {
+        console.error("No auth tokens found");
+        setArchivedCampaigns([]);
+        return;
       }
-      */
 
-      // Mock archived campaigns for demo
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const mockArchivedCampaigns: ArchivedCampaign[] = [
-        {
-          id: "archived1",
-          name: "Summer Fashion Week 2024",
-          brand_name: "StyleCorp",
-          brand_logo_url: "https://picsum.photos/100/100?random=201",
-          status: "completed",
-          archived_at: "2024-09-15T00:00:00Z",
-          completed_at: "2024-09-10T00:00:00Z",
-          total_reach: 1200000,
-          engagement_rate: 4.2,
-          creators_count: 8,
-          campaign_duration_days: 30,
-          final_report_url: "#mock-report-1"
+      const tokenData = JSON.parse(storedTokens);
+      const response = await fetch(`${API_BASE_URL}/api/v1/campaigns?status=completed,archived`, {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Content-Type': 'application/json',
         },
-        {
-          id: "archived2",
-          name: "Product Launch Campaign",
-          brand_name: "TechFlow",
-          brand_logo_url: "https://picsum.photos/100/100?random=202",
-          status: "completed",
-          archived_at: "2024-08-20T00:00:00Z",
-          completed_at: "2024-08-15T00:00:00Z",
-          total_reach: 850000,
-          engagement_rate: 3.8,
-          creators_count: 5,
-          campaign_duration_days: 21,
-          final_report_url: "#mock-report-2"
-        },
-        {
-          id: "archived3",
-          name: "Holiday Collection",
-          brand_name: "WinterWear Co",
-          brand_logo_url: "https://picsum.photos/100/100?random=203",
-          status: "cancelled",
-          archived_at: "2024-07-10T00:00:00Z",
-          total_reach: 0,
-          engagement_rate: 0,
-          creators_count: 0,
-          campaign_duration_days: 0
-        }
-      ];
+      });
 
-      setArchivedCampaigns(mockArchivedCampaigns);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setArchivedCampaigns(data.campaigns || []);
     } catch (error) {
       console.error("Error fetching archived campaigns:", error);
+      setArchivedCampaigns([]);
     } finally {
       setIsLoading(false);
     }

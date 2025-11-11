@@ -90,49 +90,12 @@ export function ActiveCampaigns({ searchQuery }: ActiveCampaignsProps) {
     try {
       setIsLoading(true);
 
-      // Mock data for frontend demo
-      const mockCampaigns: BackendCampaign[] = [
-        {
-          id: "1",
-          name: "Summer Collection Launch",
-          brand_name: "Fashion Forward",
-          brand_logo_url: "https://picsum.photos/100/100?random=1",
-          status: "active",
-          created_at: "2024-10-20T00:00:00Z",
-          updated_at: "2024-10-25T00:00:00Z",
-          engagement_rate: 4.8,
-          total_reach: 850000,
-          creators_count: 12
-        },
-        {
-          id: "2",
-          name: "Brand Awareness Q4",
-          brand_name: "Tech Innovators",
-          brand_logo_url: "https://picsum.photos/100/100?random=2",
-          status: "active",
-          created_at: "2024-10-15T00:00:00Z",
-          updated_at: "2024-10-22T00:00:00Z",
-          engagement_rate: 3.9,
-          total_reach: 650000,
-          creators_count: 8
-        },
-        {
-          id: "3",
-          name: "Product Launch",
-          brand_name: "Lifestyle Co",
-          brand_logo_url: "https://picsum.photos/100/100?random=3",
-          status: "proposal_pending",
-          created_at: "2024-10-24T00:00:00Z",
-          updated_at: "2024-10-24T00:00:00Z",
-          engagement_rate: 0,
-          total_reach: 0,
-          creators_count: 0
-        }
-      ];
+      // TODO: Replace with actual API call
+      // const response = await fetch('/api/v1/campaigns');
+      // const data = await response.json();
+      // setCampaigns(data.campaigns);
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setCampaigns(mockCampaigns);
+      setCampaigns([]);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
       setCampaigns([]);

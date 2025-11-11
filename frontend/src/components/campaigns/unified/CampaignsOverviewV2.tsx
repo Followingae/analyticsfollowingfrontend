@@ -92,127 +92,35 @@ export function CampaignsOverviewV2({ searchQuery }: CampaignsOverviewProps) {
     try {
       setIsLoading(true);
 
-      const mockSummary: CampaignSummary = {
-        totalCampaigns: 36,
-        totalCreators: 145,
-        totalReach: {
-          current: 2800000,
-          previous: 2100000,
-          trend: "up",
-          changePercent: 33.3
-        },
-        avgEngagementRate: {
-          current: 4.8,
-          previous: 4.2,
-          trend: "up",
-          changePercent: 14.3
-        },
-        activeCampaigns: 8,
-        completedCampaigns: 24,
-        pendingProposals: 3,
-        thisMonthCampaigns: 6,
-        totalSpend: {
-          current: 84250,
-          previous: 72000,
-          trend: "up",
-          changePercent: 17.0
-        },
-        contentProduced: 324
-      };
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const storedTokens = localStorage.getItem('auth_tokens');
 
-      const mockRecentCampaigns: RecentCampaign[] = [
-        {
-          id: "1",
-          name: "Summer Collection Launch",
-          brand_name: "Fashion Forward",
-          brand_logo: "https://picsum.photos/100/100?random=1",
-          status: "active",
-          engagement_rate: 4.8,
-          total_reach: 850000,
-          creators_count: 12,
-          created_at: "2024-10-20T00:00:00Z",
-          updated_at: "2024-10-25T00:00:00Z",
-          progress: 65,
-          budget: "$25,000",
-          deadline: "2024-11-15"
-        },
-        {
-          id: "2",
-          name: "Brand Awareness Q4",
-          brand_name: "TechNova",
-          brand_logo: "https://picsum.photos/100/100?random=2",
-          status: "active",
-          engagement_rate: 3.9,
-          total_reach: 650000,
-          creators_count: 8,
-          created_at: "2024-10-15T00:00:00Z",
-          updated_at: "2024-10-22T00:00:00Z",
-          progress: 40,
-          budget: "$18,500",
-          deadline: "2024-12-01"
-        },
-        {
-          id: "3",
-          name: "Product Launch - Series X",
-          brand_name: "Innovation Labs",
-          brand_logo: "https://picsum.photos/100/100?random=3",
-          status: "completed",
-          engagement_rate: 5.2,
-          total_reach: 1200000,
-          creators_count: 20,
-          created_at: "2024-09-15T00:00:00Z",
-          updated_at: "2024-10-20T00:00:00Z",
-          progress: 100,
-          budget: "$45,000",
-          deadline: "2024-10-20"
-        }
-      ];
+      if (!storedTokens) {
+        console.error("No auth tokens found");
+        return;
+      }
 
-      const mockTopCreators: TopCreator[] = [
-        {
-          id: "1",
-          name: "Sarah Johnson",
-          handle: "@foodie_sarah",
-          avatar: "https://picsum.photos/100/100?random=101",
-          campaigns_count: 8,
-          total_reach: 450000,
-          avg_engagement: 5.2
+      const tokenData = JSON.parse(storedTokens);
+      const response = await fetch(`${API_BASE_URL}/api/v1/campaigns/overview`, {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Content-Type': 'application/json',
         },
-        {
-          id: "2",
-          name: "Mike Chen",
-          handle: "@tech_mike",
-          avatar: "https://picsum.photos/100/100?random=102",
-          campaigns_count: 6,
-          total_reach: 320000,
-          avg_engagement: 4.8
-        },
-        {
-          id: "3",
-          name: "Emma Rodriguez",
-          handle: "@fashion_emma",
-          avatar: "https://picsum.photos/100/100?random=103",
-          campaigns_count: 10,
-          total_reach: 680000,
-          avg_engagement: 4.5
-        },
-        {
-          id: "4",
-          name: "Alex Thompson",
-          handle: "@fitness_alex",
-          avatar: "https://picsum.photos/100/100?random=104",
-          campaigns_count: 5,
-          total_reach: 280000,
-          avg_engagement: 6.1
-        }
-      ];
+      });
 
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setSummary(mockSummary);
-      setRecentCampaigns(mockRecentCampaigns);
-      setTopCreators(mockTopCreators);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setSummary(data.summary || null);
+      setRecentCampaigns(data.recent_campaigns || []);
+      setTopCreators(data.top_creators || []);
     } catch (error) {
       console.error("Error fetching overview data:", error);
+      setSummary(null);
+      setRecentCampaigns([]);
+      setTopCreators([]);
     } finally {
       setIsLoading(false);
     }

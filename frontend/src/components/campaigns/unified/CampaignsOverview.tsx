@@ -62,55 +62,14 @@ export function CampaignsOverview({ searchQuery }: CampaignsOverviewProps) {
     try {
       setIsLoading(true);
 
-      // Mock data for frontend demo
-      const mockSummary: CampaignSummary = {
-        totalCampaigns: 12,
-        totalCreators: 45,
-        totalReach: 2800000,
-        avgEngagementRate: 4.2,
-        activeCampaigns: 8,
-        completedCampaigns: 4,
-        pendingProposals: 3,
-        thisMonthCampaigns: 6
-      };
+      // TODO: Replace with actual API call
+      // const response = await fetch('/api/v1/campaigns/overview');
+      // const data = await response.json();
+      // setSummary(data.summary);
+      // setRecentCampaigns(data.recent_campaigns);
 
-      const mockRecentCampaigns: RecentCampaign[] = [
-        {
-          id: "1",
-          name: "Summer Collection Launch",
-          status: "active",
-          engagement_rate: 4.8,
-          total_reach: 850000,
-          creators_count: 12,
-          created_at: "2024-10-20T00:00:00Z",
-          updated_at: "2024-10-25T00:00:00Z"
-        },
-        {
-          id: "2",
-          name: "Brand Awareness Q4",
-          status: "completed",
-          engagement_rate: 3.9,
-          total_reach: 650000,
-          creators_count: 8,
-          created_at: "2024-10-15T00:00:00Z",
-          updated_at: "2024-10-22T00:00:00Z"
-        },
-        {
-          id: "3",
-          name: "Product Launch",
-          status: "proposal_pending",
-          engagement_rate: 0,
-          total_reach: 0,
-          creators_count: 0,
-          created_at: "2024-10-24T00:00:00Z",
-          updated_at: "2024-10-24T00:00:00Z"
-        }
-      ];
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setSummary(mockSummary);
-      setRecentCampaigns(mockRecentCampaigns);
+      setSummary(null);
+      setRecentCampaigns([]);
     } catch (error) {
       console.error("Error fetching overview data:", error);
     } finally {

@@ -74,39 +74,29 @@ export function ProposalsTab({ searchQuery }: ProposalsTabProps) {
     try {
       setIsLoading(true);
 
-      // Mock data for frontend demo
-      const mockProposals: Proposal[] = [
-        {
-          id: "1",
-          title: "Summer Fashion Campaign",
-          campaign_name: "Summer Collection 2024",
-          status: "sent",
-          total_budget: 15000,
-          influencer_count: 8,
-          created_at: "2024-10-20T00:00:00Z",
-          updated_at: "2024-10-25T00:00:00Z",
-          expected_reach: 2500000,
-          avg_engagement_rate: 4.2,
-          proposal_type: "campaign_package"
-        },
-        {
-          id: "2",
-          title: "Lifestyle Influencer List",
-          campaign_name: "Brand Awareness Q4",
-          status: "approved",
-          total_budget: 8500,
-          influencer_count: 5,
-          created_at: "2024-10-18T00:00:00Z",
-          updated_at: "2024-10-24T00:00:00Z",
-          expected_reach: 1200000,
-          avg_engagement_rate: 3.8,
-          proposal_type: "influencer_list"
-        }
-      ];
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const storedTokens = localStorage.getItem('auth_tokens');
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setProposals(mockProposals);
+      if (!storedTokens) {
+        console.error("No auth tokens found");
+        setProposals([]);
+        return;
+      }
+
+      const tokenData = JSON.parse(storedTokens);
+      const response = await fetch(`${API_BASE_URL}/api/v1/campaigns/proposals`, {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setProposals(data.proposals || []);
     } catch (error) {
       console.error("Error fetching proposals:", error);
       setProposals([]);

@@ -28,18 +28,73 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
   const [consolidatedToastId, setConsolidatedToastId] = useState<string | number | null>(null)
   const [completedToasts, setCompletedToasts] = useState<string[]>([])
 
-  // Load from localStorage on mount and immediately check for completion
+  // Load from localStorage on mount and check completion
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        const toasts = JSON.parse(stored) as ProcessingToast[]
-        console.log('🔄 Restored processing toasts from localStorage:', toasts)
-        setProcessingToasts(toasts)
-      } catch (error) {
-        console.error('Failed to parse stored processing toasts:', error)
+    const loadAndCheck = async () => {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        try {
+          const toasts = JSON.parse(stored) as ProcessingToast[]
+          console.log('🔄 Restored processing toasts from localStorage:', toasts)
+
+          if (toasts.length === 0) {
+            return
+          }
+
+          // Immediately verify if these are still processing
+          try {
+            const storedTokens = localStorage.getItem('auth_tokens')
+            if (storedTokens) {
+              const tokenData = JSON.parse(storedTokens)
+              if (tokenData?.access_token) {
+                const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+                const response = await fetch(`${API_BASE_URL}/api/v1/auth/unlocked-profiles`, {
+                  headers: {
+                    'Authorization': `Bearer ${tokenData.access_token}`,
+                    'Content-Type': 'application/json',
+                  },
+                })
+
+                if (response.ok) {
+                  const data = await response.json()
+                  let unlockedUsernames: string[] = []
+                  if (data.profiles) {
+                    unlockedUsernames = data.profiles.map((p: any) => p.username?.toLowerCase())
+                  } else if (Array.isArray(data)) {
+                    unlockedUsernames = data.map((p: any) => p.username?.toLowerCase())
+                  } else if (data.data?.profiles) {
+                    unlockedUsernames = data.data.profiles.map((p: any) => p.username?.toLowerCase())
+                  }
+
+                  // Filter out any undefined/null values
+                  unlockedUsernames = unlockedUsernames.filter(Boolean)
+
+                  // Filter out already completed toasts (case-insensitive comparison)
+                  const stillProcessing = toasts.filter(t => !unlockedUsernames.includes(t.username.toLowerCase()))
+
+                  if (stillProcessing.length !== toasts.length) {
+                    console.log(`🧹 Removed ${toasts.length - stillProcessing.length} completed toasts on mount`)
+                    setProcessingToasts(stillProcessing)
+                  } else {
+                    setProcessingToasts(toasts)
+                  }
+                  return
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Failed to verify processing status on mount:', error)
+          }
+
+          // Fallback: just load the toasts
+          setProcessingToasts(toasts)
+        } catch (error) {
+          console.error('Failed to parse stored processing toasts:', error)
+        }
       }
     }
+
+    loadAndCheck()
   }, []) // Only run on mount
 
   // Save to localStorage whenever processingToasts changes
@@ -94,6 +149,13 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
 
     // Don't show toast if no items
     if (processingToasts.length === 0) {
+      return
+    }
+
+    // Don't show toast if not authenticated (but don't clear state - just don't show)
+    const storedTokens = localStorage.getItem('auth_tokens')
+    if (!storedTokens) {
+      console.log('Not authenticated, skipping toast display')
       return
     }
 
@@ -156,19 +218,23 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
           // Handle different possible response structures
           let unlockedUsernames: string[] = []
           if (data.profiles) {
-            unlockedUsernames = data.profiles.map((p: any) => p.username)
+            unlockedUsernames = data.profiles.map((p: any) => p.username?.toLowerCase())
           } else if (Array.isArray(data)) {
-            unlockedUsernames = data.map((p: any) => p.username)
+            unlockedUsernames = data.map((p: any) => p.username?.toLowerCase())
           } else if (data.data?.profiles) {
-            unlockedUsernames = data.data.profiles.map((p: any) => p.username)
+            unlockedUsernames = data.data.profiles.map((p: any) => p.username?.toLowerCase())
           }
+
+          // Filter out any undefined/null values
+          unlockedUsernames = unlockedUsernames.filter(Boolean)
 
           console.log('Processing toasts:', processingToasts.map(t => t.username))
           console.log('Unlocked usernames:', unlockedUsernames)
 
-          // Remove toasts for completed processing
+          // Remove toasts for completed processing (case-insensitive comparison)
           processingToasts.forEach(toastItem => {
-            if (unlockedUsernames.includes(toastItem.username)) {
+            const normalizedUsername = toastItem.username.toLowerCase()
+            if (unlockedUsernames.includes(normalizedUsername)) {
               console.log(`✅ Found ${toastItem.username} in unlocked profiles, removing toast`)
               removeProcessingToast(toastItem.username)
 

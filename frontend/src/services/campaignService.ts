@@ -100,40 +100,7 @@ class CampaignService {
 
   // Get current campaign
   async getCurrentCampaign(): Promise<ApiResponse<CurrentCampaign>> {
-    const response = await this.request<CurrentCampaign>('/api/v1/campaigns/current')
-    
-    if (response.success) {
-      return response
-    }
-
-    // Fallback: Get first active campaign from campaigns list
-    const campaignsResponse = await this.getCampaigns()
-    if (campaignsResponse.success && campaignsResponse.data) {
-      const activeCampaign = campaignsResponse.data.campaigns.find(c => c.status === 'active') 
-        || campaignsResponse.data.campaigns[0]
-
-      if (activeCampaign) {
-        return {
-          success: true,
-          data: {
-            current_campaign: {
-              id: activeCampaign.id,
-              name: activeCampaign.name,
-              status: activeCampaign.status,
-              days_remaining: 0,
-              progress_percentage: 0,
-              last_activity: activeCampaign.updated_at
-            },
-            recent_campaigns: campaignsResponse.data.campaigns.slice(0, 3)
-          }
-        }
-      }
-    }
-
-    return {
-      success: false,
-      error: 'No campaigns found'
-    }
+    return this.request<CurrentCampaign>('/api/v1/campaigns/current')
   }
 
   // Transform API analytics data to chart format

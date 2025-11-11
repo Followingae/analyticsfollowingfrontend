@@ -85,71 +85,8 @@ interface Campaign {
   tags: string[]
 }
 
-const sampleCampaigns: Campaign[] = [
-  {
-    id: "1",
-    name: "Summer Fashion Collection 2024",
-    description: "Promote our new summer collection with fashion influencers",
-    status: "active",
-    budget: 15000,
-    spent: 8500,
-    startDate: "2024-01-15",
-    endDate: "2024-02-15",
-    creators: [
-      {
-        id: "1",
-        username: "fashionista_sarah",
-        profilePic: "/avatars/creator1.jpg",
-        posts: 3
-      },
-      {
-        id: "2",
-        username: "style_maven_emma",
-        profilePic: "/avatars/creator2.jpg",
-        posts: 2
-      }
-    ],
-    metrics: {
-      totalReach: 1250000,
-      totalEngagements: 52000,
-      totalLikes: 45000,
-      totalComments: 4200,
-      totalShares: 2800,
-      avgEngagementRate: 4.16
-    },
-    tags: ["Fashion", "Summer", "Collection"]
-  },
-  {
-    id: "2",
-    name: "Tech Product Launch",
-    description: "Launch campaign for our new smartphone with tech reviewers",
-    status: "completed",
-    budget: 25000,
-    spent: 24800,
-    startDate: "2023-12-01",
-    endDate: "2023-12-31",
-    creators: [
-      {
-        id: "3",
-        username: "tech_reviewer_mike",
-        profilePic: "/avatars/creator3.jpg",
-        posts: 4
-      }
-    ],
-    metrics: {
-      totalReach: 980000,
-      totalEngagements: 67000,
-      totalLikes: 58000,
-      totalComments: 6200,
-      totalShares: 2800,
-      avgEngagementRate: 6.84
-    },
-    tags: ["Technology", "Product Launch", "Smartphone"]
-  }
-]
-
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>(sampleCampaigns)
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [newCampaign, setNewCampaign] = useState({
