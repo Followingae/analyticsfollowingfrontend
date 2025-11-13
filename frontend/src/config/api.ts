@@ -74,7 +74,7 @@ export const ENDPOINTS = {
     overview: '/api/v1/teams/overview', // GET - Team overview
   },
 
-  // Campaigns (/api/v1/campaigns/) - COMPLETE 19 ENDPOINTS
+  // Campaigns (/api/v1/campaigns/) - COMPLETE LIVE CAMPAIGN SYSTEM
   campaigns: {
     // 1. CAMPAIGN CRUD (7 endpoints)
     list: '/api/v1/campaigns/', // GET/POST - List and create campaigns
@@ -91,19 +91,37 @@ export const ENDPOINTS = {
     posts: (id: string) => `/api/v1/campaigns/${id}/posts`, // GET/POST - List and add posts
     removePost: (id: string, postId: string) => `/api/v1/campaigns/${id}/posts/${postId}`, // DELETE - Remove post
 
-    // 4. ANALYTICS & REPORTS (2 endpoints)
+    // 4. ANALYTICS & REPORTS (3 endpoints)
     analytics: (id: string) => `/api/v1/campaigns/${id}/analytics`, // GET - Campaign analytics with period
-    generateReport: (id: string) => `/api/v1/campaigns/${id}/reports/generate`, // POST - Generate report
+    audience: (id: string) => `/api/v1/campaigns/${id}/audience`, // GET - Campaign audience insights
+    aiInsights: (id: string) => `/api/v1/campaigns/${id}/ai-insights`, // GET - AI-powered campaign insights
 
-    // 5. CAMPAIGN PROPOSALS (5 endpoints)
+    // 5. BRAND & EXPORT (3 endpoints)
+    uploadLogo: (id: string) => `/api/v1/campaigns/${id}/logo`, // POST - Upload brand logo
+    deleteLogo: (id: string) => `/api/v1/campaigns/${id}/logo`, // DELETE - Delete brand logo
+    export: (id: string) => `/api/v1/campaigns/${id}/export`, // GET - Export campaign data
+    exportAll: '/api/v1/campaigns/export/all', // GET - Export all campaigns
+
+    // 6. CAMPAIGN CREATORS (2 endpoints)
+    creators: (id: string) => `/api/v1/campaigns/${id}/creators`, // GET - Campaign creators
+    addCreator: (id: string) => `/api/v1/campaigns/${id}/creators`, // POST - Add creator to campaign
+
+    // 7. DUAL WORKFLOW SYSTEM (3 endpoints)
+    createUser: '/api/v1/campaigns/workflow/user/create', // POST - User self-managed campaign
+    createSuperadmin: '/api/v1/campaigns/workflow/superadmin/create', // POST - Superadmin managed campaign
+    selectInfluencer: (id: string) => `/api/v1/campaigns/workflow/${id}/select-influencer`, // POST - Select influencer for workflow
+
+    // 8. CAMPAIGN PROPOSALS (5 endpoints)
     proposals: '/api/v1/campaigns/proposals', // GET - List user proposals
     proposalDetail: (id: string) => `/api/v1/campaigns/proposals/${id}`, // GET - Proposal details
-    selectInfluencers: (id: string) => `/api/v1/campaigns/proposals/${id}/influencers`, // PUT - Select influencers
+    updateInfluencers: (id: string) => `/api/v1/campaigns/proposals/${id}/influencers`, // PUT - Update influencer selection
     approveProposal: (id: string) => `/api/v1/campaigns/proposals/${id}/approve`, // POST - Approve proposal
     rejectProposal: (id: string) => `/api/v1/campaigns/proposals/${id}/reject`, // POST - Reject proposal
 
-    // 6. CAMPAIGN INFLUENCERS (1 endpoint)
-    creators: (id: string) => `/api/v1/campaigns/${id}/creators`, // GET - Campaign influencers
+    // 9. SYSTEM & HEALTH (3 endpoints)
+    cleanup: (id: string) => `/api/v1/campaigns/${id}/cleanup`, // POST - Cleanup orphaned creators
+    healthCheck: '/api/v1/campaigns/health/check', // GET - Campaign system health
+    proposalHealthCheck: '/api/v1/campaigns/proposals/health/check', // GET - Proposal system health
 
     // Legacy aliases
     dashboard: '/api/v1/campaigns/dashboard/', // Legacy - Use overview instead

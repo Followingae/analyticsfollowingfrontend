@@ -280,7 +280,7 @@ export function CampaignWorkflow({ campaignId, currentStage, isAgencyClient }: C
                               {stage.status === "completed" && <CheckCircle2 className="mr-1 h-3 w-3" />}
                               {stage.status === "pending" && <Clock className="mr-1 h-3 w-3" />}
                               {stage.status === "blocked" && <AlertCircle className="mr-1 h-3 w-3" />}
-                              {stage.status.charAt(0).toUpperCase() + stage.status.slice(1)}
+                              {stage.status ? stage.status.charAt(0).toUpperCase() + stage.status.slice(1) : 'Pending'}
                             </Badge>
                           </CardTitle>
                           <p className="text-sm text-muted-foreground mt-1">

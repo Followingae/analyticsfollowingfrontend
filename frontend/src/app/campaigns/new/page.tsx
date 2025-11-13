@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Upload, X, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Plus, Upload, X, Link as LinkIcon, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -29,6 +29,9 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { AuthGuard } from "@/components/AuthGuard";
+import { API_CONFIG } from "@/config/api";
+import { tokenManager } from "@/utils/tokenManager";
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 
 interface CampaignPost {
   url: string;
@@ -37,6 +40,7 @@ interface CampaignPost {
 
 export default function NewCampaignPage() {
   const router = useRouter();
+  const { user } = useEnhancedAuth();
   const [campaignName, setCampaignName] = useState("");
   const [brandName, setBrandName] = useState("");
   const [brandLogo, setBrandLogo] = useState<File | null>(null);
@@ -45,6 +49,10 @@ export default function NewCampaignPage() {
   const [isAddPostDialogOpen, setIsAddPostDialogOpen] = useState(false);
   const [newPostUrl, setNewPostUrl] = useState("");
   const [logoPreview, setLogoPreview] = useState<string>("");
+
+  // ROLE-BASED FLOW DETECTION (NO MORE USER CHOICE)
+  const isSuperadmin = user?.role === 'superadmin';
+  const [targetUserId, setTargetUserId] = useState<string>('');
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -126,29 +134,61 @@ export default function NewCampaignPage() {
       return;
     }
 
+    // Validate superadmin-specific fields
+    if (isSuperadmin && !targetUserId.trim()) {
+      toast.error("Please enter the user ID for whom you're creating this campaign");
+      return;
+    }
+
     // Show loading toast
     const loadingToast = toast.loading("Creating campaign...");
 
     try {
-      // Use the NEW workflow endpoint for user campaign creation
+      // ROLE-BASED API ENDPOINT SELECTION
       const { campaignApi } = await import('@/services/campaignApiComplete');
 
-      // Prepare campaign data - use the simplified user flow
-      const campaignData = {
-        name: campaignName,
-        brand_name: brandName,
-        description: "", // Optional
-        budget: undefined, // Optional
-        start_date: undefined, // Optional
-        end_date: undefined, // Optional
-      };
+      let campaignData: any;
+      let response: any;
 
-      console.log("✅ Creating campaign with NEW workflow endpoint:", campaignData);
+      if (isSuperadmin) {
+        // SUPERADMIN: Create campaign FOR another user
+        campaignData = {
+          user_id: targetUserId.trim(),
+          name: campaignName,
+          brand_name: brandName,
+          description: "", // Optional
+          budget: undefined, // Optional
+          start_date: undefined, // Optional
+          end_date: undefined, // Optional
+        };
 
-      // Call the new /workflow/user/create endpoint
-      const response = await campaignApi.createUserCampaign(campaignData);
+        console.log("🏢 Creating MANAGED campaign for user:", campaignData);
+        response = await campaignApi.createSuperadminCampaign(campaignData);
+      } else {
+        // REGULAR USER: Create campaign for themselves
+        campaignData = {
+          name: campaignName,
+          brand_name: brandName,
+          description: "", // Optional
+          budget: undefined, // Optional
+          start_date: undefined, // Optional
+          end_date: undefined, // Optional
+        };
 
-      console.log("Campaign creation response:", response);
+        console.log("👤 Creating SELF-MANAGED campaign:", campaignData);
+        response = await campaignApi.createUserCampaign(campaignData);
+      }
+
+      console.log("🚨 DEBUG: Campaign creation response:", response);
+      console.log("🚨 DEBUG: Created campaign object:", response.data);
+      if (response.data) {
+        console.log("🚨 DEBUG: Campaign created_by field:", {
+          created_by: response.data.created_by,
+          created_by_type: typeof response.data.created_by,
+          isSuperadmin: isSuperadmin,
+          expectedCreatedBy: isSuperadmin ? 'superadmin' : 'user'
+        });
+      }
 
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to create campaign');
@@ -166,6 +206,10 @@ export default function NewCampaignPage() {
       // STEP 2: Upload logo if provided (separate multipart request)
       if (brandLogo) {
         console.log("Uploading campaign logo...");
+        const tokenResult = await tokenManager.getValidTokenWithRefresh();
+        if (!tokenResult.isValid || !tokenResult.token) {
+          throw new Error('Authentication required for logo upload');
+        }
         const logoFormData = new FormData();
         logoFormData.append("logo", brandLogo);
 
@@ -174,7 +218,7 @@ export default function NewCampaignPage() {
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${tokenResult.token}`,
             },
             body: logoFormData,
           }
@@ -191,6 +235,10 @@ export default function NewCampaignPage() {
       // STEP 3: Add posts to campaign if any (optional)
       if (posts.length > 0) {
         console.log("Adding posts to campaign:", posts.length);
+        const tokenResult = await tokenManager.getValidTokenWithRefresh();
+        if (!tokenResult.isValid || !tokenResult.token) {
+          throw new Error('Authentication required for adding posts');
+        }
         const postsPayload = {
           posts: posts.map((post) => ({ url: post.url })),
         };
@@ -200,7 +248,7 @@ export default function NewCampaignPage() {
           {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${tokenResult.token}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify(postsPayload),
@@ -255,16 +303,22 @@ export default function NewCampaignPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Header */}
               <div className="flex items-center gap-4">
-          <Button type="button" variant="ghost" size="icon" onClick={handleCancel}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight">Create New Campaign</h1>
-            <p className="text-muted-foreground mt-1">
-              Set up a new influencer marketing campaign
-            </p>
-          </div>
-        </div>
+                <Button type="button" variant="ghost" size="icon" onClick={handleCancel}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold tracking-tight">Create New Campaign</h1>
+                  <p className="text-muted-foreground mt-1">
+                    {isSuperadmin
+                      ? 'Create a managed campaign with professional workflow for a user'
+                      : 'Set up your self-managed campaign'
+                    }
+                  </p>
+                </div>
+                <Badge variant="outline" className={isSuperadmin ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}>
+                  {isSuperadmin ? '🏢 Admin Mode' : '👤 Self-Managed'}
+                </Badge>
+              </div>
 
         {/* Campaign Details */}
         <Card>
@@ -273,6 +327,26 @@ export default function NewCampaignPage() {
             <CardDescription>Basic information about your campaign</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* User Selection (Superadmin Only) */}
+            {isSuperadmin && (
+              <div className="space-y-2 p-4 bg-purple-50 rounded-lg border-purple-200 border">
+                <Label htmlFor="targetUser" className="font-semibold text-purple-700">
+                  Create Campaign For User <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="targetUser"
+                  placeholder="Enter user ID or email"
+                  value={targetUserId}
+                  onChange={(e) => setTargetUserId(e.target.value)}
+                  required={isSuperadmin}
+                  className="border-purple-200 focus:border-purple-500"
+                />
+                <p className="text-xs text-purple-600">
+                  As a superadmin, you are creating this campaign FOR another user. Enter their user ID.
+                </p>
+              </div>
+            )}
+
             {/* Campaign Name */}
             <div className="space-y-2">
               <Label htmlFor="campaignName">
@@ -463,11 +537,14 @@ export default function NewCampaignPage() {
           <Button type="button" variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={!campaignName || !brandName}>
-            Create Campaign
+          <Button
+            type="submit"
+            disabled={!campaignName || !brandName || (isSuperadmin && !targetUserId)}
+          >
+            {isSuperadmin ? 'Create Managed Campaign' : 'Create My Campaign'}
           </Button>
         </div>
-            </form>
+              </form>
           </div>
         </SidebarInset>
       </SidebarProvider>

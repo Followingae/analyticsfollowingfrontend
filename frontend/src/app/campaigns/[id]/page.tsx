@@ -525,7 +525,7 @@ export default function CleanCampaignDetailsPage() {
                                   <div className="flex items-center gap-3">
                                     <Avatar>
                                       <AvatarImage src={`https://picsum.photos/100/100?random=${influencer.id}`} />
-                                      <AvatarFallback>{influencer.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                      <AvatarFallback>{influencer.username ? influencer.username.substring(0, 2).toUpperCase() : 'IN'}</AvatarFallback>
                                     </Avatar>
                                     <div>
                                       <p className="font-medium">@{influencer.username}</p>
@@ -563,7 +563,7 @@ export default function CleanCampaignDetailsPage() {
                                   <div className="flex items-center gap-3">
                                     <Avatar>
                                       <AvatarImage src={`https://picsum.photos/100/100?random=${influencer.id}`} />
-                                      <AvatarFallback>{influencer.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                      <AvatarFallback>{influencer.username ? influencer.username.substring(0, 2).toUpperCase() : 'IN'}</AvatarFallback>
                                     </Avatar>
                                     <div>
                                       <p className="font-medium">@{influencer.username}</p>

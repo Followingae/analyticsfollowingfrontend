@@ -47,7 +47,7 @@ export function ChartProfileAnalysisV2() {
       limit: subscription.limits.profiles,
       remaining: profilesRemaining,
       tier: subscriptionTier,
-      tierDisplay: subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1)
+      tierDisplay: subscriptionTier ? subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1) : 'Free'
     }
   }, [subscription, profilesRemaining, subscriptionTier])
 

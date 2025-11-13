@@ -360,230 +360,298 @@ export default function CampaignDetailsPage() {
   const fetchCampaignData = async () => {
     try {
       setIsLoading(true);
-
-      // TEMPORARILY COMMENTED OUT API CALLS FOR DEMO - NO BACKEND DEPENDENCY
-      /*
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
-      const tokenResult = await tokenManager.getValidToken();
+      const tokenResult = await tokenManager.getValidTokenWithRefresh();
 
       if (!tokenResult.isValid || !tokenResult.token) {
         router.push('/auth/login');
         return;
       }
 
-      // Actual API calls would go here
-      */
+      // 1. Fetch campaign details
+      const campaignResponse = await fetch(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${tokenResult.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      // Mock campaign data with rich content for demo
-      const mockCampaign: BackendCampaignDetails = {
-        id: campaignId,
-        name: campaignId === "1" ? "Summer Collection Launch" :
-              campaignId === "2" ? "Brand Awareness Q4" :
-              campaignId === "3" ? "Product Launch" : "Holiday Campaign 2024",
-        brand_name: campaignId === "1" ? "Fashion Forward" :
-                    campaignId === "2" ? "TechNova" :
-                    campaignId === "3" ? "Lifestyle Co" : "Demo Brand",
-        brand_logo_url: "https://picsum.photos/100/100?random=" + campaignId,
-        status: campaignId === "1" ? "active" : campaignId === "2" ? "active" : "draft",
-        created_at: "2024-10-20T00:00:00Z",
-        updated_at: "2024-10-25T00:00:00Z",
-        posts_count: campaignId === "1" ? 8 : campaignId === "2" ? 12 : 0,
-        creators_count: campaignId === "1" ? 3 : campaignId === "2" ? 5 : 0,
-        total_reach: campaignId === "1" ? 450000 : campaignId === "2" ? 820000 : 0,
-        engagement_rate: campaignId === "1" ? 3.2 : campaignId === "2" ? 2.8 : 0,
-      };
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setCampaign(mockCampaign);
-
-      // Enhanced mock data for campaigns with content
-      let mockPosts: BackendCampaignPost[] = [];
-      let mockCreators: BackendCreator[] = [];
-      let mockAudience: BackendAudience | null = null;
-      let mockAiInsights: AIInsights | null = null;
-
-      if (campaignId === "1" || campaignId === "2") {
-        // Mock posts with realistic data
-        mockPosts = [
-          {
-            id: "post1",
-            thumbnail: "https://picsum.photos/300/300?random=1",
-            url: "https://instagram.com/p/ABC123/",
-            type: "static",
-            caption: "Check out our amazing summer collection! 🌟 #fashion #summer",
-            views: 25000,
-            likes: 1200,
-            comments: 85,
-            engagementRate: 3.1,
-            is_video: false,
-            media_type: "Image",
-            collaborators: [],
-            is_collaboration: false,
-            total_creators: 1,
-            ai_content_category: "Fashion",
-            ai_sentiment: "positive",
-            ai_language_code: "en",
-            creator_username: "fashionista_jane",
-            creator_full_name: "Jane Doe",
-            creator_followers_count: 45000,
-            creator_profile_pic_url: "https://picsum.photos/100/100?random=11",
-            shortcode: "ABC123",
-            added_at: "2024-10-22T00:00:00Z"
-          },
-          {
-            id: "post2",
-            thumbnail: "https://picsum.photos/300/300?random=2",
-            url: "https://instagram.com/reel/XYZ789/",
-            type: "reels",
-            caption: "Behind the scenes of our photoshoot! 🎬✨",
-            views: 42000,
-            likes: 2100,
-            comments: 156,
-            engagementRate: 4.2,
-            is_video: true,
-            media_type: "Video",
-            video_duration: 45,
-            collaborators: [
-              {
-                username: "photographer_mike",
-                full_name: "Mike Wilson",
-                is_verified: true,
-                collaboration_type: "coauthor_producer"
-              }
-            ],
-            is_collaboration: true,
-            total_creators: 2,
-            ai_content_category: "Behind the Scenes",
-            ai_sentiment: "positive",
-            ai_language_code: "en",
-            creator_username: "fashionista_jane",
-            creator_full_name: "Jane Doe",
-            creator_followers_count: 45000,
-            creator_profile_pic_url: "https://picsum.photos/100/100?random=11",
-            shortcode: "XYZ789",
-            added_at: "2024-10-23T00:00:00Z"
-          }
-        ];
-
-        // Mock creators data
-        mockCreators = [
-          {
-            profile_id: "creator1",
-            username: "fashionista_jane",
-            full_name: "Jane Doe",
-            profile_pic_url: "https://picsum.photos/100/100?random=11",
-            followers_count: 45000,
-            posts_count: 2,
-            posts_in_campaign: 2,
-            total_likes: 3300,
-            total_comments: 241,
-            avg_engagement_rate: 3.65
-          }
-        ];
-
-        // Mock audience data
-        mockAudience = {
-          total_reach: 450000,
-          total_creators: 2,
-          gender_distribution: { FEMALE: 65, MALE: 35 },
-          age_distribution: { "18-24": 35, "25-34": 40, "35-44": 20, "45+": 5 },
-          country_distribution: { "United States": 45, "Canada": 15, "United Kingdom": 12, "Australia": 8 },
-          topGender: { name: "FEMALE", percentage: 65 },
-          topAgeGroup: { name: "25-34", percentage: 40 },
-          topCountry: { name: "United States", percentage: 45 }
-        };
-
-        // Mock AI insights
-        mockAiInsights = {
-          total_posts: 2,
-          ai_analyzed_posts: 2,
-          sentiment_analysis: {
-            available: true,
-            distribution: { positive: 85, neutral: 15, negative: 0 },
-            dominant_sentiment: "positive"
-          },
-          category_classification: {
-            available: true,
-            top_categories: [
-              { category: "fashion", percentage: 70 },
-              { category: "lifestyle", percentage: 30 }
-            ]
-          },
-          audience_quality: {
-            available: true,
-            average_authenticity: 92,
-            quality_rating: "high"
-          },
-          visual_content: {
-            available: true,
-            aesthetic_score: 8.5,
-            professional_quality_score: 9.2
-          },
-          trend_detection: {
-            available: true,
-            average_viral_potential: 75,
-            viral_rating: "high"
-          },
-          advanced_nlp: {
-            available: true,
-            average_word_count: 25,
-            total_brand_mentions: 5,
-            content_depth: "moderate"
-          },
-          fraud_detection: {
-            available: true,
-            average_fraud_score: 5,
-            overall_trust_level: "high"
-          },
-          language_detection: { available: true },
-          audience_insights: { available: true },
-          behavioral_patterns: { available: true }
-        };
+      if (!campaignResponse.ok) {
+        if (campaignResponse.status === 404) {
+          console.log('🔧 DEBUG: Campaign not found (404)');
+          setCampaign(null);
+          return;
+        }
+        throw new Error(`Campaign fetch failed: ${campaignResponse.status}`);
       }
 
-      setPosts(mockPosts);
-      setCreators(mockCreators);
-      setAudience(mockAudience);
-      setAiInsights(mockAiInsights);
+      const campaignData = await campaignResponse.json();
+      console.log('🔧 DEBUG: FULL CAMPAIGN DETAILS RESPONSE:', JSON.stringify(campaignData, null, 2));
+      console.log('🔧 DEBUG: Campaign response structure keys:', Object.keys(campaignData));
 
-      // Calculate mock stats
-      const postTypes = {
-        static: mockPosts.filter(p => p.type === "static").length,
-        reels: mockPosts.filter(p => p.type === "reels").length,
-        carousel: mockPosts.filter(p => p.media_type === "Carousel").length,
-        story: 0
+      // Check for nested data structure
+      let processedCampaignData = campaignData;
+      if (campaignData.data) {
+        console.log('🔧 DEBUG: Campaign has nested data structure');
+        processedCampaignData = campaignData.data;
+        console.log('🔧 DEBUG: Processed campaign data keys:', Object.keys(processedCampaignData));
+      }
+
+      // Log all available campaign fields
+      console.log('🔧 DEBUG: Available campaign fields:');
+      Object.keys(processedCampaignData).forEach(key => {
+        console.log(`  - ${key}:`, typeof processedCampaignData[key], processedCampaignData[key]);
+      });
+
+      // Extract campaign details using processed data
+      const campaignDetails: BackendCampaignDetails = {
+        id: processedCampaignData.id,
+        name: processedCampaignData.name,
+        brand_name: processedCampaignData.brand_name,
+        brand_logo_url: processedCampaignData.brand_logo_url,
+        status: processedCampaignData.status,
+        created_at: processedCampaignData.created_at,
+        updated_at: processedCampaignData.updated_at,
+        posts_count: processedCampaignData.posts_count,
+        creators_count: processedCampaignData.creators_count,
+        total_reach: processedCampaignData.total_reach,
+        engagement_rate: processedCampaignData.engagement_rate,
       };
 
-      const totalLikes = mockPosts.reduce((sum, post) => sum + post.likes, 0);
-      const totalComments = mockPosts.reduce((sum, post) => sum + post.comments, 0);
-      const avgEngagement = mockPosts.length > 0
-        ? mockPosts.reduce((sum, post) => sum + post.engagementRate, 0) / mockPosts.length
-        : 0;
-      const totalFollowers = mockCreators.reduce((sum, creator) => sum + creator.followers_count, 0);
-      const collaborationPosts = mockPosts.filter(p => p.is_collaboration).length;
-      const collaborationRate = mockPosts.length > 0 ? (collaborationPosts / mockPosts.length) * 100 : 0;
+      console.log('🔧 DEBUG: Extracted campaign details for UI:', campaignDetails);
 
-      setStats({
-        totalCreators: mockCreators.length,
-        totalPosts: mockPosts.length,
-        totalFollowers,
-        totalReach: mockCampaign.total_reach || 0,
-        overallEngagementRate: avgEngagement,
-        totalComments,
-        totalLikes,
-        postTypeBreakdown: postTypes,
-        collaborationRate,
-        collaborationPosts,
-      });
+      // Validate interface completeness
+      const requiredFields = ['id', 'name', 'brand_name', 'status', 'created_at', 'updated_at'];
+      const optionalFields = ['brand_logo_url', 'posts_count', 'creators_count', 'total_reach', 'engagement_rate'];
+      const allInterfaceFields = [...requiredFields, ...optionalFields];
+
+      console.log('🔧 DEBUG: Campaign interface validation:');
+      const missingRequired = requiredFields.filter(field => !processedCampaignData.hasOwnProperty(field));
+      const missingOptional = optionalFields.filter(field => !processedCampaignData.hasOwnProperty(field));
+
+      if (missingRequired.length > 0) {
+        console.log('  ❌ MISSING REQUIRED FIELDS:', missingRequired);
+      }
+      if (missingOptional.length > 0) {
+        console.log('  ⚠️ MISSING OPTIONAL FIELDS:', missingOptional);
+      }
+      if (missingRequired.length === 0 && missingOptional.length === 0) {
+        console.log('  ✅ ALL INTERFACE FIELDS PRESENT');
+      }
+
+      // Check for any additional rich fields not in our interface
+      const unusedFields = Object.keys(processedCampaignData).filter(key => !allInterfaceFields.includes(key));
+      if (unusedFields.length > 0) {
+        console.log('🔧 DEBUG: EXTRA CAMPAIGN FIELDS (not in interface):', unusedFields);
+        unusedFields.forEach(field => {
+          console.log(`  - EXTRA ${field}:`, typeof processedCampaignData[field], processedCampaignData[field]);
+        });
+      }
+
+      // Check data types for critical fields
+      console.log('🔧 DEBUG: Campaign data type validation:');
+      console.log('  - posts_count type:', typeof processedCampaignData.posts_count, 'value:', processedCampaignData.posts_count);
+      console.log('  - creators_count type:', typeof processedCampaignData.creators_count, 'value:', processedCampaignData.creators_count);
+      console.log('  - total_reach type:', typeof processedCampaignData.total_reach, 'value:', processedCampaignData.total_reach);
+      console.log('  - engagement_rate type:', typeof processedCampaignData.engagement_rate, 'value:', processedCampaignData.engagement_rate);
+
+      setCampaign(campaignDetails);
+
+      // 2. Fetch campaign posts
+      const postsResponse = await fetch(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${tokenResult.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      let campaignPosts: BackendCampaignPost[] = [];
+      if (postsResponse.ok) {
+        const postsData = await postsResponse.json();
+        // Log basic status for monitoring
+        console.log('✅ Posts API Response: Retrieved', postsData.data?.posts?.length || 0, 'posts');
+
+        // Handle the response structure properly
+        if (Array.isArray(postsData)) {
+          campaignPosts = postsData;
+        } else if (postsData.data) {
+          // Handle {success: true, data: [...], message: "..."} format
+          campaignPosts = Array.isArray(postsData.data) ? postsData.data : (postsData.data.posts || []);
+        } else {
+          // Fallback to old structure
+          campaignPosts = postsData.posts || [];
+        }
+
+        // Enhance posts data with missing fields for better UI compatibility
+        campaignPosts = campaignPosts.map(post => ({
+          ...post,
+          // Add is_video field based on media_type if missing
+          is_video: post.is_video ?? (post.media_type === "Video" || post.type === "reel"),
+          // Calculate engagement rate if missing (likes + comments) / views * 100
+          engagementRate: post.engagementRate > 0 ? post.engagementRate :
+            post.views > 0 ? ((post.likes + post.comments) / post.views) * 100 : 0
+        }));
+
+        console.log('✅ Enhanced Posts: Applied video detection and engagement rate fixes to', campaignPosts.length, 'posts');
+      } else {
+        console.log('❌ Posts fetch failed:', postsResponse.status);
+      }
+      setPosts(campaignPosts);
+
+      // 3. Fetch campaign analytics (optional)
+      try {
+        const analyticsResponse = await fetch(
+          `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/analytics`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${tokenResult.token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json();
+          console.log('✅ Analytics API Response: Retrieved campaign analytics data');
+
+          // Handle analytics data parsing similar to posts
+          let processedAnalyticsData = analyticsData;
+          if (analyticsData.data) {
+            // Handle {success: true, data: {...}} format
+            processedAnalyticsData = analyticsData.data;
+          }
+
+          // Extract audience data from analytics totals (backend sends it in this structure)
+          if (processedAnalyticsData.totals) {
+            const audienceData = {
+              total_reach: processedAnalyticsData.totals.total_reach || 0,
+              total_creators: campaignPosts.length > 0 ? new Set(campaignPosts.map(p => p.creator_username)).size : 0,
+              // Add any demographic data if available in the analytics structure
+              ...(processedAnalyticsData.demographics && { demographics: processedAnalyticsData.demographics }),
+              ...(processedAnalyticsData.audience_insights && { insights: processedAnalyticsData.audience_insights })
+            };
+            console.log('✅ Audience Data: Extracted from analytics totals - reach:', audienceData.total_reach);
+            setAudience(audienceData);
+          }
+
+          // Extract performance insights from analytics (backend sends rich performance data)
+          if (processedAnalyticsData.performance_insights) {
+            console.log('✅ Performance Insights: Available');
+          }
+
+          // Extract daily stats for trend analysis
+          if (processedAnalyticsData.daily_stats && Array.isArray(processedAnalyticsData.daily_stats)) {
+            console.log('✅ Daily Stats: Available for', processedAnalyticsData.daily_stats.length, 'days');
+          }
+
+          // Set AI insights if available
+          if (processedAnalyticsData.ai_insights) {
+            setAiInsights(processedAnalyticsData.ai_insights);
+          }
+
+          // Set creators data if available
+          if (processedAnalyticsData.creators) {
+            setCreators(processedAnalyticsData.creators);
+          }
+        } else {
+          console.log('❌ Analytics fetch failed:', analyticsResponse.status);
+        }
+      } catch (analyticsError) {
+        console.log('⚠️ Analytics fetch error (non-critical):', analyticsError);
+      }
+
+      // Calculate stats from real data
+      if (campaignPosts.length > 0) {
+        const postTypes = {
+          static: campaignPosts.filter(p => p.type === "static" || p.media_type === "Image").length,
+          reels: campaignPosts.filter(p => p.type === "reel" || p.media_type === "Video" || p.is_video === true).length,
+          carousel: campaignPosts.filter(p => p.media_type === "Carousel").length,
+          story: 0
+        };
+
+        console.log('✅ Post Types Calculated:', postTypes);
+
+        const totalLikes = campaignPosts.reduce((sum, post) => sum + post.likes, 0);
+        const totalComments = campaignPosts.reduce((sum, post) => sum + post.comments, 0);
+        const avgEngagement = campaignPosts.length > 0
+          ? campaignPosts.reduce((sum, post) => sum + post.engagementRate, 0) / campaignPosts.length
+          : 0;
+
+        // Get unique creators from posts
+        const uniqueCreators = new Set(campaignPosts.map(p => p.creator_username));
+        const totalFollowers = campaignPosts.reduce((sum, post) => sum + post.creator_followers_count, 0);
+        const collaborationPosts = campaignPosts.filter(p => p.is_collaboration).length;
+        const collaborationRate = campaignPosts.length > 0 ? (collaborationPosts / campaignPosts.length) * 100 : 0;
+
+        // Calculate estimated reach
+        const totalReach = calculateCampaignReach(campaignPosts);
+
+        console.log('✅ Campaign Stats:', {
+          posts: campaignPosts.length,
+          creators: uniqueCreators.size,
+          reach: totalReach,
+          engagement: `${avgEngagement.toFixed(2)}%`
+        });
+
+        setStats({
+          totalCreators: uniqueCreators.size,
+          totalPosts: campaignPosts.length,
+          totalFollowers,
+          totalReach: totalReach || campaignDetails.total_reach || 0,
+          overallEngagementRate: avgEngagement,
+          totalComments,
+          totalLikes,
+          postTypeBreakdown: postTypes,
+          collaborationRate,
+          collaborationPosts,
+        });
+      } else {
+        // No posts yet - set empty stats
+        setStats({
+          totalCreators: 0,
+          totalPosts: 0,
+          totalFollowers: 0,
+          totalReach: 0,
+          overallEngagementRate: 0,
+          totalComments: 0,
+          totalLikes: 0,
+          postTypeBreakdown: {
+            static: 0,
+            reels: 0,
+            carousel: 0,
+            story: 0
+          },
+          collaborationRate: 0,
+          collaborationPosts: 0,
+        });
+      }
+
     } catch (error: any) {
-      console.error("Error fetching campaign data:", error);
+      console.error("Campaign data fetch error:", error);
 
-      // For demo purposes, don't redirect on errors
-      // if (error.message?.includes('authentication') || error.message?.includes('token')) {
-      //   router.push('/auth/login');
-      // }
+      // Handle authentication errors
+      if (error.message?.includes('authentication') || error.message?.includes('token') || error.message?.includes('401')) {
+        router.push('/auth/login');
+        return;
+      }
+
+      // For other errors, show user feedback but don't crash
+      toast.error('Failed to load campaign data. Please try refreshing the page.');
+
+      // Set empty state if campaign not found
+      if (error.message?.includes('404')) {
+        setCampaign(null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -796,11 +864,9 @@ export default function CampaignDetailsPage() {
     if (!confirm("Are you sure you want to delete the logo?")) return;
 
     try {
-      // TEMPORARILY COMMENTED OUT API CALLS FOR DEMO - NO BACKEND DEPENDENCY
-      /*
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
-      const tokenResult = await tokenManager.getValidToken();
+      const tokenResult = await tokenManager.getValidTokenWithRefresh();
 
       if (!tokenResult.isValid || !tokenResult.token) {
         toast.error("Please log in again");
@@ -820,15 +886,11 @@ export default function CampaignDetailsPage() {
       if (!response.ok) {
         throw new Error("Failed to delete logo");
       }
-      */
-
-      // Mock delete for demo
-      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Update local state
       setCampaign({ ...campaign, brand_logo_url: null });
       setLogoPreview("");
-      toast.success("Logo deleted successfully (Demo Mode)");
+      toast.success("Logo deleted successfully");
     } catch (error) {
       console.error("Error deleting logo:", error);
       toast.error("Failed to delete logo");
@@ -840,11 +902,9 @@ export default function CampaignDetailsPage() {
 
     setIsSaving(true);
     try {
-      // TEMPORARILY COMMENTED OUT API CALLS FOR DEMO - NO BACKEND DEPENDENCY
-      /*
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
-      const tokenResult = await tokenManager.getValidToken();
+      const tokenResult = await tokenManager.getValidTokenWithRefresh();
 
       if (!tokenResult.isValid || !tokenResult.token) {
         toast.error("Please log in again");
@@ -887,7 +947,8 @@ export default function CampaignDetailsPage() {
         }
       }
 
-      // Upload new logo if selected
+      // Handle logo upload
+      let updatedLogoUrl = campaign.brand_logo_url;
       if (newLogo) {
         const logoFormData = new FormData();
         logoFormData.append("logo", newLogo);
@@ -910,16 +971,6 @@ export default function CampaignDetailsPage() {
         const logoResult = await logoResponse.json();
         updatedLogoUrl = logoResult.data?.brand_logo_url || logoPreview;
       }
-      */
-
-      // Mock update for demo
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Handle logo upload in demo mode
-      let updatedLogoUrl = campaign.brand_logo_url;
-      if (newLogo) {
-        updatedLogoUrl = logoPreview; // Use preview as uploaded URL in demo
-      }
 
       // Update local state with all changes
       setCampaign({
@@ -931,7 +982,7 @@ export default function CampaignDetailsPage() {
       });
 
       setIsEditDialogOpen(false);
-      toast.success("Campaign updated successfully (Demo Mode)");
+      toast.success("Campaign updated successfully");
     } catch (error) {
       console.error("Error saving changes:", error);
       toast.error("Failed to save changes");
@@ -956,11 +1007,9 @@ export default function CampaignDetailsPage() {
 
     setIsSaving(true);
     try {
-      // TEMPORARILY COMMENTED OUT API CALLS FOR DEMO - NO BACKEND DEPENDENCY
-      /*
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
-      const tokenResult = await tokenManager.getValidToken();
+      const tokenResult = await tokenManager.getValidTokenWithRefresh();
 
       if (!tokenResult.isValid || !tokenResult.token) {
         toast.error("Please log in again");
@@ -988,19 +1037,17 @@ export default function CampaignDetailsPage() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || "Failed to add post");
       }
-      */
 
-      // Mock add post for demo
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      toast.success("Post added successfully! (Demo Mode)", {
+      toast.success("Post added successfully!", {
         duration: 5000,
       });
       setNewPostUrl("");
       setIsAddPostDialogOpen(false);
 
       // Refresh campaign data to show new post
-      // fetchCampaignData(); // Commented out for demo
+      console.log("🔧 DEBUG: Post added successfully, refreshing campaign data...");
+      await fetchCampaignData();
+      console.log("🔧 DEBUG: Campaign data refreshed after adding post");
     } catch (error) {
       console.error("Error adding post:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to add post";

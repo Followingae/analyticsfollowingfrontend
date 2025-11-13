@@ -276,7 +276,7 @@ export const CleanCampaignPDFDocument: React.FC<{ data: CleanCampaignPDFData }> 
           )}
           <View style={styles.headerText}>
             <Text style={styles.title}>{campaign.name}</Text>
-            <Text style={styles.body}>{campaign.brand_name} • {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}</Text>
+            <Text style={styles.body}>{campaign.brand_name} • {campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : 'Draft'}</Text>
           </View>
         </View>
 

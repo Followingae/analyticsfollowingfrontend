@@ -25,7 +25,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
 
 interface PerformanceMetric {
   current: number;
@@ -98,7 +97,16 @@ export function CampaignsOverviewV2({ searchQuery }: CampaignsOverviewProps) {
       const response = await campaignApi.getDashboardOverview();
 
       if (response.success && response.data) {
-        setSummary(response.data.summary || null);
+        // Process summary data to handle missing values gracefully
+        const summary = response.data.summary;
+        if (summary) {
+          // Ensure all metrics have valid values
+          summary.totalReach = summary.totalReach || { current: 0, previous: 0, trend: 'stable', changePercent: 0 };
+          summary.avgEngagementRate = summary.avgEngagementRate || { current: 0, previous: 0, trend: 'stable', changePercent: 0 };
+          summary.totalSpend = summary.totalSpend || { current: 0, previous: 0, trend: 'stable', changePercent: 0 };
+        }
+
+        setSummary(summary || null);
         setRecentCampaigns(response.data.recent_campaigns || []);
         setTopCreators(response.data.top_creators || []);
       } else {
@@ -129,16 +137,6 @@ export function CampaignsOverviewV2({ searchQuery }: CampaignsOverviewProps) {
     }).format(num);
   };
 
-  const getStatusConfig = (status: string) => {
-    const configs = {
-      active: { label: "Active", color: "bg-green-100 text-green-700", dot: "bg-green-500" },
-      completed: { label: "Completed", color: "bg-slate-100 text-slate-700", dot: "bg-slate-500" },
-      in_review: { label: "In Review", color: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
-      paused: { label: "Paused", color: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
-      draft: { label: "Draft", color: "bg-gray-100 text-gray-700", dot: "bg-gray-500" }
-    };
-    return configs[status as keyof typeof configs] || configs.draft;
-  };
 
   if (isLoading) {
     return (
@@ -293,8 +291,6 @@ export function CampaignsOverviewV2({ searchQuery }: CampaignsOverviewProps) {
                 </div>
               ) : (
                 filteredCampaigns.slice(0, 3).map((campaign) => {
-                  const statusConfig = getStatusConfig(campaign.status);
-
                   return (
                     <div
                       key={campaign.id}
@@ -311,10 +307,6 @@ export function CampaignsOverviewV2({ searchQuery }: CampaignsOverviewProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-medium truncate">{campaign.name}</p>
-                          <Badge variant="outline" className={cn("text-xs", statusConfig.color)}>
-                            <span className={cn("w-1.5 h-1.5 rounded-full mr-1", statusConfig.dot)} />
-                            {statusConfig.label}
-                          </Badge>
                         </div>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span>{campaign.brand_name}</span>

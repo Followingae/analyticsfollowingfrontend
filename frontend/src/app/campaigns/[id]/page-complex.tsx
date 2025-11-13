@@ -885,7 +885,7 @@ export default function ModernCampaignDetailsPage() {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10 border-2 border-primary/20">
                       <AvatarImage src={campaign.brand_logo_url} />
-                      <AvatarFallback>{campaign.brand_name.substring(0, 2)}</AvatarFallback>
+                      <AvatarFallback>{campaign.brand_name ? campaign.brand_name.substring(0, 2).toUpperCase() : 'BR'}</AvatarFallback>
                     </Avatar>
 
                     <div>

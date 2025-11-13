@@ -469,7 +469,7 @@ const generateBeautifulHTML = (data: CampaignPDFData): string => {
             <div class="header-text">
                 <h1>${campaign.name}</h1>
                 <p>${campaign.brand_name}</p>
-                <span class="status-badge">${campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}</span>
+                <span class="status-badge">${campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : 'Draft'}</span>
             </div>
         </div>
     </div>

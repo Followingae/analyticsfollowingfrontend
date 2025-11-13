@@ -289,7 +289,7 @@ const generateCampaignHTML = (data: CampaignPDFData): string => {
         ${campaign.brand_logo_url ? `<img src="${campaign.brand_logo_url}" alt="Brand Logo" class="brand-logo">` : ''}
         <div class="header-text">
             <h1>${campaign.name}</h1>
-            <p>${campaign.brand_name} • ${campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}</p>
+            <p>${campaign.brand_name} • ${campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : 'Draft'}</p>
         </div>
     </div>
 

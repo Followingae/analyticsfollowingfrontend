@@ -1,14 +1,17 @@
 /**
  * Complete Campaign API Service
- * Based on FRONTEND_CAMPAIGN_API_GUIDE.md - All 19 Endpoints
+ * 🚀 ALL 33 LIVE CAMPAIGN ENDPOINTS
  *
  * Endpoints:
- * 1. Campaign CRUD: 7 endpoints
+ * 1. Campaign CRUD: 8 endpoints (includes restore)
  * 2. Overview/Dashboard: 1 endpoint
  * 3. Posts Management: 3 endpoints
- * 4. Analytics & Reports: 2 endpoints
- * 5. Campaign Proposals: 5 endpoints
- * 6. Campaign Influencers: 1 endpoint
+ * 4. Analytics & Data: 4 endpoints (includes AI insights, audience)
+ * 5. Brand & Export: 4 endpoints (logo, export)
+ * 6. Campaign Proposals: 6 endpoints
+ * 7. Workflow System: 2 endpoints (user/superadmin flows)
+ * 8. Influencer Selection: 1 endpoint
+ * 9. System Health: 4 endpoints
  */
 
 import { API_CONFIG, ENDPOINTS } from '@/config/api'
@@ -173,6 +176,66 @@ export interface CampaignInfluencer {
   posts_count: number
   total_reach: number
   added_at: string
+}
+
+// ==================== NEW ENDPOINT INTERFACES ====================
+
+export interface CampaignAudience {
+  total_audience: number
+  audience_demographics: {
+    age_groups: { [key: string]: number }
+    gender_distribution: { [key: string]: number }
+    location_breakdown: { [key: string]: number }
+    interests: string[]
+  }
+  reach_potential: {
+    estimated_reach: number
+    engagement_potential: number
+    audience_overlap: number
+  }
+}
+
+export interface CampaignAIInsights {
+  performance_score: number
+  optimization_suggestions: string[]
+  content_recommendations: {
+    best_posting_times: string[]
+    recommended_hashtags: string[]
+    content_themes: string[]
+  }
+  competitor_analysis: {
+    similar_campaigns: Array<{
+      id: string
+      name: string
+      performance: number
+    }>
+    market_position: string
+  }
+  predicted_outcomes: {
+    estimated_reach: number
+    estimated_engagement: number
+    estimated_conversions: number
+  }
+}
+
+export interface CampaignExport {
+  export_id: string
+  format: 'pdf' | 'excel' | 'csv'
+  download_url: string
+  expires_at: string
+  file_size: number
+}
+
+export interface CampaignHealth {
+  status: 'healthy' | 'warning' | 'critical'
+  issues: Array<{
+    type: string
+    severity: 'low' | 'medium' | 'high'
+    description: string
+    resolution: string
+  }>
+  last_checked: string
+  next_check: string
 }
 
 export interface ApiResponse<T> {
@@ -558,6 +621,40 @@ class CampaignApiComplete {
     return response.json()
   }
 
+  /**
+   * Add Creator to Campaign
+   * POST /api/v1/campaigns/{campaign_id}/creators
+   */
+  async addCreatorToCampaign(
+    campaignId: string,
+    creatorData: {
+      username: string;
+      notes?: string;
+      role?: string;
+    }
+  ): Promise<ApiResponse<any>> {
+    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.addCreator(campaignId)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(creatorData)
+    })
+    return response.json()
+  }
+
+  /**
+   * Remove Creator from Campaign
+   * DELETE /api/v1/campaigns/{campaign_id}/creators/{creator_id}
+   */
+  async removeCreatorFromCampaign(
+    campaignId: string,
+    creatorId: string
+  ): Promise<ApiResponse<any>> {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/creators/${creatorId}`, {
+      method: 'DELETE'
+    })
+    return response.json()
+  }
+
   // ==================== 7. WORKFLOW SYSTEM (NEW - HIGH PRIORITY) ====================
 
   /**
@@ -704,6 +801,124 @@ class CampaignApiComplete {
     )
     return response.json()
   }
+
+  // ==================== ADDITIONAL ANALYTICS & DATA (4 NEW ENDPOINTS) ====================
+
+  /**
+   * Get Campaign Audience Data
+   * GET /api/v1/campaigns/{campaign_id}/audience
+   */
+  async getCampaignAudience(campaignId: string): Promise<ApiResponse<CampaignAudience>> {
+    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.detail(campaignId)}/audience`)
+    return response.json()
+  }
+
+  /**
+   * Get Campaign AI Insights
+   * GET /api/v1/campaigns/{campaign_id}/ai-insights
+   */
+  async getCampaignAIInsights(campaignId: string): Promise<ApiResponse<CampaignAIInsights>> {
+    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.detail(campaignId)}/ai-insights`)
+    return response.json()
+  }
+
+  // ==================== BRAND & EXPORT (4 NEW ENDPOINTS) ====================
+
+  /**
+   * Upload Brand Logo
+   * POST /api/v1/campaigns/{campaign_id}/logo
+   */
+  async uploadBrandLogo(
+    campaignId: string,
+    logoFile: File
+  ): Promise<ApiResponse<{ logo_url: string }>> {
+    const formData = new FormData()
+    formData.append('logo', logoFile)
+
+    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.detail(campaignId)}/logo`, {
+      method: 'POST',
+      body: formData
+    })
+    return response.json()
+  }
+
+  /**
+   * Delete Brand Logo
+   * DELETE /api/v1/campaigns/{campaign_id}/logo
+   */
+  async deleteBrandLogo(campaignId: string): Promise<ApiResponse<{ message: string }>> {
+    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.detail(campaignId)}/logo`, {
+      method: 'DELETE'
+    })
+    return response.json()
+  }
+
+  /**
+   * Export Campaign Data
+   * GET /api/v1/campaigns/{campaign_id}/export
+   */
+  async exportCampaign(
+    campaignId: string,
+    format: 'pdf' | 'excel' | 'csv' = 'pdf'
+  ): Promise<ApiResponse<CampaignExport>> {
+    const url = `${this.baseUrl}${ENDPOINTS.campaigns.detail(campaignId)}/export?format=${format}`
+    const response = await fetchWithAuth(url)
+    return response.json()
+  }
+
+  /**
+   * Export All Campaigns
+   * GET /api/v1/campaigns/export/all
+   */
+  async exportAllCampaigns(
+    format: 'pdf' | 'excel' | 'csv' = 'pdf'
+  ): Promise<ApiResponse<CampaignExport>> {
+    const url = `${this.baseUrl}/api/v1/campaigns/export/all?format=${format}`
+    const response = await fetchWithAuth(url)
+    return response.json()
+  }
+
+  // ==================== SYSTEM HEALTH (4 NEW ENDPOINTS) ====================
+
+  /**
+   * Cleanup Campaign Orphaned Creators
+   * POST /api/v1/campaigns/{campaign_id}/cleanup
+   */
+  async cleanupCampaignOrphanedCreators(
+    campaignId: string
+  ): Promise<ApiResponse<{ cleaned_count: number; message: string }>> {
+    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.detail(campaignId)}/cleanup`, {
+      method: 'POST'
+    })
+    return response.json()
+  }
+
+  /**
+   * Campaign Health Check
+   * GET /api/v1/campaigns/health/check
+   */
+  async campaignHealthCheck(): Promise<ApiResponse<CampaignHealth>> {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/health/check`)
+    return response.json()
+  }
+
+  /**
+   * Proposal Health Check
+   * GET /api/v1/campaigns/proposals/health/check
+   */
+  async proposalHealthCheck(): Promise<ApiResponse<CampaignHealth>> {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/proposals/health/check`)
+    return response.json()
+  }
+
+  /**
+   * Get Campaign Health Status
+   * GET /api/v1/campaigns/{campaign_id}/health
+   */
+  async getCampaignHealth(campaignId: string): Promise<ApiResponse<CampaignHealth>> {
+    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.detail(campaignId)}/health`)
+    return response.json()
+  }
 }
 
 // Export singleton instance
@@ -719,6 +934,10 @@ export type {
   CampaignProposal,
   SuggestedInfluencer,
   CampaignInfluencer,
+  CampaignAudience,
+  CampaignAIInsights,
+  CampaignExport,
+  CampaignHealth,
   CampaignStatus,
   ProposalStatus,
   TrendType
