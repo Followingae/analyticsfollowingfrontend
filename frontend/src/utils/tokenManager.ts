@@ -271,6 +271,14 @@ class TokenManager {
   }
 
   /**
+   * Store tokens (public method for external use)
+   * Used by authService after registration/login
+   */
+  storeTokens(tokenData: TokenData): void {
+    this.setTokenData(tokenData)
+  }
+
+  /**
    * Set new token data (from login)
    */
   setTokenData(tokenData: TokenData): void {

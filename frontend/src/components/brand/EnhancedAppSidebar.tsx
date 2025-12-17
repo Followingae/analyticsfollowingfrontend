@@ -48,12 +48,12 @@ function ThemeLogo() {
   
   if (!mounted) {
     return (
-      <Image 
-        src="/followinglogo.svg" 
-        alt="Following Logo" 
-        width={128} 
-        height={40}
-        className="object-contain w-28 h-10"
+      <Image
+        src="/followinglogo.svg"
+        alt="Following Logo"
+        width={120}
+        height={32}
+        className="object-contain w-30 h-8"
       />
     )
   }
@@ -62,12 +62,12 @@ function ThemeLogo() {
   const logoSrc = isDark ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg"
   
   return (
-    <Image 
+    <Image
       src={logoSrc}
-      alt="Following Logo" 
-      width={128} 
-      height={40}
-      className="object-contain w-28 h-10"
+      alt="Following Logo"
+      width={120}
+      height={32}
+      className="object-contain w-30 h-8"
     />
   )
 }

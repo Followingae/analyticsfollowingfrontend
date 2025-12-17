@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -26,8 +26,18 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { API_CONFIG, ENDPOINTS } from "@/config/api";
+import { toast } from "sonner";
 
-// Form data interface matching backend requirements
+// Billing type option from API
+interface BillingTypeOption {
+  value: string;
+  label: string;
+  description: string;
+  features: string[];
+}
+
+// Form data interface matching backend API
 interface SignupFormData {
   email: string;
   password: string;
@@ -35,9 +45,12 @@ interface SignupFormData {
   full_name: string;
   company_name: string;
   subscription_tier: 'free' | 'standard' | 'premium';
+  billing_type: 'online_payment' | 'admin_managed';  // Updated to match backend
   terms_accepted: boolean;
   privacy_accepted: boolean;
   marketing_consent: boolean;
+  initial_credits?: number;
+  send_welcome_email: boolean;
 }
 
 interface ValidationErrors {
@@ -67,6 +80,11 @@ const steps = [
   },
   {
     id: 5,
+    title: "Billing Setup",
+    description: "Payment method"
+  },
+  {
+    id: 6,
     title: "Terms & Privacy",
     description: "Legal agreements"
   }
@@ -75,9 +93,9 @@ const steps = [
 const subscriptionTiers = [
   {
     id: 'free',
-    name: 'Free',
+    name: 'Free Tier',
     description: 'Perfect for getting started',
-    features: ['5 profile unlocks/month', 'Basic analytics', 'Community support'],
+    features: ['5 profile unlocks/month', 'Basic analytics', 'Community support', 'Discovery access'],
     price: 'Free',
     popular: false,
     icon: User
@@ -86,8 +104,8 @@ const subscriptionTiers = [
     id: 'standard',
     name: 'Standard',
     description: 'For growing businesses',
-    features: ['500 profile unlocks/month', 'Advanced analytics', 'Email support'],
-    price: '$29/month',
+    features: ['500 profile unlocks/month', 'All features enabled', 'Email support', '10,000 API calls/month', '2 team members'],
+    price: '$199/month',
     popular: true,
     icon: Zap
   },
@@ -95,8 +113,8 @@ const subscriptionTiers = [
     id: 'premium',
     name: 'Premium',
     description: 'For enterprise teams',
-    features: ['2000 profile unlocks/month', 'Premium analytics', 'Priority support'],
-    price: '$99/month',
+    features: ['2000 profile unlocks/month', 'All features enabled', 'Priority support', '50,000 API calls/month', '5 team members', '20% topup discount'],
+    price: '$499/month',
     popular: false,
     icon: Crown
   }
@@ -106,7 +124,7 @@ interface MultiStepSignupProps {
   logoSrc?: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
-  onSignUp?: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSignUp?: (event: React.FormEvent<HTMLFormElement>, formData: SignupFormData) => void;
   onSignInRedirect?: () => void;
 }
 
@@ -124,6 +142,7 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong'>('weak');
+  const [billingTypes, setBillingTypes] = useState<BillingTypeOption[]>([]);
 
   const [formData, setFormData] = useState<SignupFormData>({
     email: '',
@@ -132,24 +151,63 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
     full_name: '',
     company_name: '',
     subscription_tier: 'free',
+    billing_type: 'online_payment', // Default to online payment
     terms_accepted: false,
     privacy_accepted: false,
     marketing_consent: false,
+    initial_credits: 0,
+    send_welcome_email: true,
   });
 
   const logoSrc = providedLogoSrc || (theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg");
 
-  // Password strength validation
+  // Fetch billing types from API
+  useEffect(() => {
+    const fetchBillingTypes = async () => {
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.auth.billingTypes}`);
+        if (response.ok) {
+          const data = await response.json();
+          setBillingTypes(data.billing_types || []);
+          if (data.default_billing_type) {
+            setFormData(prev => ({ ...prev, billing_type: data.default_billing_type }));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch billing types:', error);
+        // Use default billing types as fallback
+        setBillingTypes([
+          {
+            value: 'online_payment',
+            label: 'Pay Online (Instant Activation)',
+            description: 'Instant account activation with credit card. Self-service billing management',
+            features: ['Instant activation', 'Self-service portal', 'Automatic renewals']
+          },
+          {
+            value: 'admin_managed',
+            label: 'Admin Managed Billing',
+            description: 'Account and billing managed by our team',
+            features: ['Manual invoicing', 'Custom billing arrangements', 'Account managed by admin']
+          }
+        ]);
+      }
+    };
+
+    fetchBillingTypes();
+  }, []);
+
+  // Password strength validation - matches backend requirements
   const validatePasswordStrength = (password: string) => {
     const hasLowercase = /[a-z]/.test(password);
     const hasUppercase = /[A-Z]/.test(password);
     const hasNumbers = /\d/.test(password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    // Updated special chars to match backend: !@#$%^&*()_+-=[]{};':"|<>?,./`~
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"|<>?,./`~]/.test(password);
     const hasMinLength = password.length >= 8;
 
     const score = [hasLowercase, hasUppercase, hasNumbers, hasSpecialChar, hasMinLength].filter(Boolean).length;
 
-    if (score < 3) return 'weak';
+    if (score < 4) return 'weak';
     if (score < 5) return 'medium';
     return 'strong';
   };
@@ -164,9 +222,21 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
       case 'password':
         if (!value) return 'Password is required';
         if (value.length < 8) return 'Password must be at least 8 characters';
-        if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
-          return 'Password must contain uppercase, lowercase, and number';
+
+        // Check for lowercase
+        if (!/[a-z]/.test(value)) return 'Password must contain at least one lowercase letter';
+
+        // Check for uppercase
+        if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter';
+
+        // Check for numbers
+        if (!/\d/.test(value)) return 'Password must contain at least one number';
+
+        // Check for special characters (matches backend exactly)
+        if (!/[!@#$%^&*()_+\-=\[\]{};':"|<>?,./`~]/.test(value)) {
+          return 'Password must contain at least one special character (!@#$%^&*()_+-=[]{};\':\"|<>?,./`~)';
         }
+
         return '';
       case 'confirmPassword':
         if (!value) return 'Please confirm your password';
@@ -181,10 +251,12 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
         if (value.length < 2) return 'Company name must be at least 2 characters';
         return '';
       case 'terms_accepted':
-        if (!value) return 'Must accept terms and conditions';
+        console.log('Validating terms_accepted:', value, typeof value);
+        if (!value || value !== true) return 'Must accept terms and conditions';
         return '';
       case 'privacy_accepted':
-        if (!value) return 'Must accept privacy policy';
+        console.log('Validating privacy_accepted:', value, typeof value);
+        if (!value || value !== true) return 'Must accept privacy policy';
         return '';
       default:
         return '';
@@ -192,10 +264,17 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
   };
 
   const updateFormData = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Ensure boolean fields are properly converted to boolean
+    let processedValue = value;
+    if (field === 'terms_accepted' || field === 'privacy_accepted' || field === 'marketing_consent') {
+      processedValue = Boolean(value);
+      console.log(`Boolean field ${field} updated:`, processedValue);
+    }
+
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
 
     // Real-time validation
-    const error = validateField(field, value);
+    const error = validateField(field, processedValue);
     setErrors(prev => ({ ...prev, [field]: error }));
 
     // Update password strength
@@ -210,27 +289,37 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
       2: ['company_name'],
       3: ['password', 'confirmPassword'],
       4: [], // No validation needed for plan selection
-      5: ['terms_accepted', 'privacy_accepted']
+      5: [], // No validation needed for billing type selection
+      6: ['terms_accepted', 'privacy_accepted']
     };
 
     const fieldsToValidate = stepFields[currentStep] || [];
     const newErrors: ValidationErrors = {};
     let isValid = true;
 
+    console.log('Validating step', currentStep, 'fields:', fieldsToValidate);
+
     fieldsToValidate.forEach(field => {
-      const error = validateField(field, formData[field as keyof SignupFormData]);
+      const fieldValue = formData[field as keyof SignupFormData];
+      console.log(`Checking field ${field}:`, fieldValue);
+
+      const error = validateField(field, fieldValue);
       if (error) {
+        console.log(`Validation error for ${field}:`, error);
         newErrors[field] = error;
         isValid = false;
       }
     });
+
+    console.log('Validation result for step', currentStep, ':', isValid);
+    console.log('Current form data:', formData);
 
     setErrors(prev => ({ ...prev, ...newErrors }));
     return isValid;
   };
 
   const handleNext = () => {
-    if (validateCurrentStep() && currentStep < 5) {
+    if (validateCurrentStep() && currentStep < 6) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -241,12 +330,141 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+
+      if (currentStep < 6) {
+        // For steps 1-5, Enter acts as "Continue"
+        handleNext();
+      } else {
+        // For step 6, Enter acts as "Create Account" (submit)
+        handleSubmit(e as any);
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (currentStep === 5 && validateCurrentStep()) {
+    console.log('MultiStepSignup handleSubmit called, current step:', currentStep);
+    console.log('Current form data state:', formData);
+    console.log('Boolean fields specifically:', {
+      terms_accepted: formData.terms_accepted,
+      privacy_accepted: formData.privacy_accepted,
+      marketing_consent: formData.marketing_consent
+    });
+
+    const validationResult = validateCurrentStep();
+    console.log('Validation result:', validationResult);
+
+    if (currentStep === 6 && validationResult) {
+      console.log('Step 6 validation passed');
       setIsLoading(true);
-      onSignUp?.(e);
+
+      // NEW PAYMENT-FIRST FLOW LOGIC
+      // For paid plans with online payment, redirect to pre-registration checkout
+      if (formData.subscription_tier !== 'free' && formData.billing_type === 'online_payment') {
+        console.log('Paid plan with online payment detected - redirecting to pre-registration checkout');
+
+        try {
+          // Build success and cancel URLs
+          const successUrl = `${window.location.origin}/welcome?session_id={CHECKOUT_SESSION_ID}`;
+          const cancelUrl = `${window.location.origin}/auth/register?payment=cancelled`;
+
+          // Call the pre-registration checkout endpoint - NO AUTH NEEDED!
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${ENDPOINTS.billing.preRegistrationCheckout}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              // NO Authorization header - user doesn't exist yet!
+            },
+            body: JSON.stringify({
+              email: formData.email,
+              password: formData.password,
+              full_name: formData.full_name,
+              plan: formData.subscription_tier, // 'standard' or 'premium'
+              company: formData.company_name,
+              job_title: '', // Can be added to form later
+              phone_number: '', // Can be added to form later
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+              language: 'en',
+              success_url: successUrl,
+              cancel_url: cancelUrl
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.detail || 'Failed to create checkout session');
+          }
+
+          // Redirect to Stripe checkout
+          if (data.sessionUrl || data.checkout_url) {
+            window.location.href = data.sessionUrl || data.checkout_url;
+          } else {
+            throw new Error('No checkout URL received');
+          }
+        } catch (error: any) {
+          console.error('Pre-registration checkout error:', error);
+          setIsLoading(false);
+          toast.error(error.message || 'Failed to create payment session');
+        }
+      } else if (formData.subscription_tier === 'free') {
+        // Free tier - use direct registration endpoint
+        console.log('Free tier - using free tier registration');
+
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${ENDPOINTS.billing.freeTierRegistration}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: formData.email,
+              password: formData.password,
+              full_name: formData.full_name,
+              company: formData.company_name,
+              job_title: '', // Can be added to form later
+              phone_number: '', // Can be added to form later
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+              language: 'en'
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.detail || 'Registration failed');
+          }
+
+          // Store tokens and redirect
+          if (data.access_token) {
+            localStorage.setItem('access_token', data.access_token);
+            if (data.refresh_token) {
+              localStorage.setItem('refresh_token', data.refresh_token);
+            }
+          }
+
+          toast.success('Account created successfully!');
+          window.location.href = '/dashboard';
+
+        } catch (error: any) {
+          console.error('Free tier registration error:', error);
+          setIsLoading(false);
+          toast.error(error.message || 'Registration failed');
+        }
+      } else {
+        // Admin-managed billing - use normal registration flow
+        console.log('Admin-managed billing - using normal registration flow');
+        onSignUp?.(e, formData);
+      }
+    } else {
+      console.log('Validation failed or not on final step');
+      if (currentStep === 6) {
+        console.log('Current errors object:', errors);
+      }
     }
   };
 
@@ -259,6 +477,7 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
   };
 
   const renderStepContent = () => {
+    console.log('Rendering step content for currentStep:', currentStep);
     switch (currentStep) {
       case 1:
         return (
@@ -429,6 +648,9 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
                         {passwordStrength}
                       </span>
                     </div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Password must contain: lowercase, uppercase, number, and special character (!@#$%^&*()_+-=[]{}|;':".,/&lt;&gt;?`~)
+                    </div>
                   </div>
                 )}
 
@@ -549,6 +771,122 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
         );
 
       case 5:
+        return (
+          <div className="space-y-6">
+            <CardHeader className="px-0 pt-0">
+              <CardTitle>Billing Setup</CardTitle>
+              <CardDescription>
+                How would you like to manage your subscription?
+              </CardDescription>
+            </CardHeader>
+
+            <RadioGroup
+              value={formData.billing_type}
+              onValueChange={(value) => updateFormData('billing_type', value)}
+              className="space-y-3"
+            >
+              {billingTypes.map((billingType) => (
+                <label
+                  key={billingType.value}
+                  className={cn(
+                    "relative flex cursor-pointer rounded-lg border p-4 transition-all duration-200 hover:bg-muted/50",
+                    formData.billing_type === billingType.value && "border-primary bg-primary/5 ring-2 ring-primary/20"
+                  )}
+                >
+                  <div className="flex items-start space-x-3 w-full">
+                    <RadioGroupItem value={billingType.value} className="mt-1" />
+                    <div className="flex items-center space-x-3 flex-1">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
+                        <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-foreground">{billingType.label}</div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {billingType.description}
+                        </p>
+                        {billingType.features && billingType.features.length > 0 && (
+                          <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+                            {billingType.features.map((feature, idx) => (
+                              <li key={idx} className="flex items-center">
+                                <Check className="h-3 w-3 text-green-500 mr-2" />
+                                {feature}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </label>
+              ))}
+
+              {/* Fallback if no billing types loaded */}
+              {billingTypes.length === 0 && (
+                <>
+                  <label
+                    className={cn(
+                      "relative flex cursor-pointer rounded-lg border p-4 transition-all duration-200 hover:bg-muted/50",
+                      formData.billing_type === 'online_payment' && "border-primary bg-primary/5 ring-2 ring-primary/20"
+                    )}
+                  >
+                    <div className="flex items-start space-x-3 w-full">
+                      <RadioGroupItem value="online_payment" className="mt-1" />
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
+                          <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-foreground">Pay Online</div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Instant activation with credit card
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label
+                    className={cn(
+                      "relative flex cursor-pointer rounded-lg border p-4 transition-all duration-200 hover:bg-muted/50",
+                      formData.billing_type === 'admin_managed' && "border-primary bg-primary/5 ring-2 ring-primary/20"
+                    )}
+                  >
+                    <div className="flex items-start space-x-3 w-full">
+                      <RadioGroupItem value="admin_managed" className="mt-1" />
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900">
+                          <Building2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-foreground">Admin Managed</div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Account managed by our team
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                </>
+              )}
+            </RadioGroup>
+
+            {formData.billing_type === 'admin_managed' && (
+              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                  <div className="text-sm text-blue-800 dark:text-blue-200">
+                    <p className="font-medium">Enterprise Setup Required</p>
+                    <p className="mt-1">
+                      Our team will contact you within 24 hours to set up your custom billing and account configuration.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 6:
         return (
           <div className="space-y-6">
             <CardHeader className="px-0 pt-0">
@@ -687,7 +1025,8 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
         </CardHeader>
 
         <CardContent className="p-6">
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+            {console.log('Form rendering - currentStep:', currentStep, 'Total steps:', steps.length)}
             {renderStepContent()}
 
             {/* Navigation */}
@@ -702,7 +1041,7 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
                 Previous
               </Button>
 
-              {currentStep < 5 ? (
+              {currentStep < 6 ? (
                 <Button type="button" onClick={handleNext}>
                   Continue
                   <ChevronRight className="h-4 w-4 ml-1" />

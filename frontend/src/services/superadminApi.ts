@@ -760,6 +760,174 @@ export interface ProfileAnalysisJob {
   estimated_completion?: string
 }
 
+// ===== SUPERADMIN USER MANAGEMENT API TYPES =====
+// Based on SUPERADMIN_USER_MANAGEMENT_API.md documentation
+
+export interface SuperAdminCreateUserRequest {
+  email: string
+  full_name: string
+  subscription_tier: 'free' | 'standard' | 'premium'
+  billing_type: 'offline' | 'stripe'
+  custom_permissions?: {
+    creator_search?: boolean
+    profile_analysis?: boolean
+    post_analytics?: boolean
+    ai_analysis?: boolean
+    bulk_export?: boolean
+    campaign_management?: boolean
+    team_management?: boolean
+    discovery?: boolean
+    api_access?: boolean
+  }
+  initial_credits?: number
+  admin_notes?: string
+  send_welcome_email?: boolean
+}
+
+export interface SuperAdminUserResponse {
+  id: string
+  email: string
+  full_name: string
+  role: 'user' | 'admin' | 'superadmin'
+  subscription_tier: 'free' | 'standard' | 'premium'
+  billing_type: 'offline' | 'stripe'
+  status: 'active' | 'inactive' | 'suspended' | 'pending'
+  created_at: string
+  permissions: {
+    creator_search: { enabled: boolean; reason: string }
+    profile_analysis: { enabled: boolean; reason: string }
+    post_analytics: { enabled: boolean; reason: string }
+    ai_analysis: { enabled: boolean; reason: string }
+    bulk_export: { enabled: boolean; reason: string }
+    campaign_management: { enabled: boolean; reason: string }
+    team_management: { enabled: boolean; reason: string }
+    discovery: { enabled: boolean; reason: string }
+    api_access: { enabled: boolean; reason: string }
+  }
+  limits: {
+    source: 'individual' | 'team'
+    subscription_tier: 'free' | 'standard' | 'premium'
+    profiles_per_month: number
+    emails_per_month: number
+    posts_per_month: number
+    team_members: number
+    api_calls_per_month: number
+    ai_analysis_enabled: boolean
+    bulk_export_enabled: boolean
+    campaign_management_enabled: boolean
+    current_balance: number
+    credits_spent_this_month: number
+  }
+  credit_balance: number
+  admin_notes?: string
+}
+
+export interface SuperAdminUpdateSubscriptionRequest {
+  subscription_tier: 'free' | 'standard' | 'premium'
+  billing_type?: 'offline' | 'stripe'
+  custom_permissions?: {
+    creator_search?: boolean
+    profile_analysis?: boolean
+    post_analytics?: boolean
+    ai_analysis?: boolean
+    bulk_export?: boolean
+    campaign_management?: boolean
+    team_management?: boolean
+    discovery?: boolean
+    api_access?: boolean
+  }
+  admin_notes?: string
+}
+
+export interface SuperAdminCreditTopupRequest {
+  user_id: string
+  package_type?: 'starter_100' | 'standard_500' | 'premium_1000' | 'enterprise_5000' | 'bonus'
+  custom_credits?: number
+  reason: string
+  expires_in_days?: number
+}
+
+export interface SuperAdminCreditTopupResponse {
+  success: boolean
+  user_id: string
+  user_email: string
+  credits_added: number
+  new_balance: number
+  package_info?: {
+    package: string
+    name: string
+    description: string
+  }
+  reason: string
+  admin: string
+}
+
+export interface SuperAdminBulkCreditTopupRequest {
+  user_ids: string[]
+  package_type?: 'starter_100' | 'standard_500' | 'premium_1000' | 'enterprise_5000' | 'bonus'
+  custom_credits?: number
+  reason: string
+  expires_in_days?: number
+}
+
+export interface SuperAdminBulkCreditTopupResponse {
+  success: number
+  failed: number
+  results: SuperAdminCreditTopupResponse[]
+  errors: Array<{ user_id: string; error: string }>
+}
+
+export interface SuperAdminUserListResponse {
+  users: SuperAdminUserResponse[]
+  total_count: number
+  pagination: {
+    limit: number
+    offset: number
+    has_next: boolean
+  }
+  role_distribution: Record<string, number>
+  status_distribution: Record<string, number>
+}
+
+export interface SuperAdminUserFilters {
+  subscription_tier?: 'free' | 'standard' | 'premium'
+  billing_type?: 'offline' | 'stripe'
+  status?: 'active' | 'inactive' | 'suspended' | 'pending'
+  skip?: number
+  limit?: number
+}
+
+export interface SuperAdminUpdatePermissionsRequest {
+  creator_search?: boolean
+  profile_analysis?: boolean
+  post_analytics?: boolean
+  ai_analysis?: boolean
+  bulk_export?: boolean
+  campaign_management?: boolean
+  team_management?: boolean
+  discovery?: boolean
+  api_access?: boolean
+}
+
+export interface SuperAdminPermissionsResponse {
+  success: boolean
+  user_id: string
+  email: string
+  permissions: SuperAdminUserResponse['permissions']
+  custom_overrides: Record<string, boolean>
+}
+
+export interface SuperAdminGetPermissionsResponse {
+  user_id: string
+  email: string
+  role: 'user' | 'admin' | 'superadmin'
+  subscription_tier: 'free' | 'standard' | 'premium'
+  billing_type: 'offline' | 'stripe'
+  permissions: SuperAdminUserResponse['permissions']
+  limits: SuperAdminUserResponse['limits']
+  is_super_admin: boolean
+}
+
 export class SuperadminApiService {
   private baseUrl: string
 
@@ -2004,6 +2172,60 @@ export class SuperadminApiService {
     return this.makeRequest<any>('/api/v1/admin/superadmin/analytics-completeness/maintenance/optimize-database', {
       method: 'POST'
     })
+  }
+
+  // ===== SUPERADMIN USER MANAGEMENT API METHODS =====
+  // Based on SUPERADMIN_USER_MANAGEMENT_API.md documentation
+
+  async createUserWithPermissions(userData: SuperAdminCreateUserRequest): Promise<ApiResponse<SuperAdminUserResponse>> {
+    return this.makeRequest<SuperAdminUserResponse>('/api/v1/admin/superadmin/users/create', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    })
+  }
+
+  async updateUserSubscription(userId: string, updateData: SuperAdminUpdateSubscriptionRequest): Promise<ApiResponse<SuperAdminUserResponse>> {
+    return this.makeRequest<SuperAdminUserResponse>(`/api/v1/admin/superadmin/users/${userId}/subscription`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData)
+    })
+  }
+
+  async giveCreditTopup(topupData: SuperAdminCreditTopupRequest): Promise<ApiResponse<SuperAdminCreditTopupResponse>> {
+    return this.makeRequest<SuperAdminCreditTopupResponse>('/api/v1/admin/superadmin/credits/topup', {
+      method: 'POST',
+      body: JSON.stringify(topupData)
+    })
+  }
+
+  async giveBulkCreditTopup(bulkTopupData: SuperAdminBulkCreditTopupRequest): Promise<ApiResponse<SuperAdminBulkCreditTopupResponse>> {
+    return this.makeRequest<SuperAdminBulkCreditTopupResponse>('/api/v1/admin/superadmin/credits/bulk-topup', {
+      method: 'POST',
+      body: JSON.stringify(bulkTopupData)
+    })
+  }
+
+  async listAllUsers(filters?: SuperAdminUserFilters): Promise<ApiResponse<SuperAdminUserListResponse>> {
+    const params = new URLSearchParams()
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, value.toString())
+        }
+      })
+    }
+    return this.makeRequest<SuperAdminUserListResponse>(`/api/v1/admin/superadmin/users?${params.toString()}`)
+  }
+
+  async updateUserPermissions(userId: string, permissions: SuperAdminUpdatePermissionsRequest): Promise<ApiResponse<SuperAdminPermissionsResponse>> {
+    return this.makeRequest<SuperAdminPermissionsResponse>(`/api/v1/admin/superadmin/users/${userId}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify(permissions)
+    })
+  }
+
+  async getUserPermissions(userId: string): Promise<ApiResponse<SuperAdminGetPermissionsResponse>> {
+    return this.makeRequest<SuperAdminGetPermissionsResponse>(`/api/v1/admin/superadmin/users/${userId}/permissions`)
   }
 
   // GOD-MODE ENDPOINTS

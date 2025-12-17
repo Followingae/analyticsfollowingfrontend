@@ -1,533 +1,406 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { ExternalLink, CreditCard, Users, Calendar, TrendingUp, Activity, Crown, Sparkles, Zap, Shield, ArrowUp, ArrowDown, Check } from "lucide-react"
-
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from 'sonner'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
-import { AuthGuard } from "@/components/AuthGuard"
-import { creditsApiService } from "@/services/creditsApi"
-import {
-  StripeBillingDashboard,
-  StripeTopupOptions,
-  CreditTransaction,
-} from "@/services/creditsApi"
-import { formatCredits, formatCreditDate } from "@/utils/creditUtils"
-import { toast } from "sonner"
+  CreditCard,
+  Package,
+  Calendar,
+  ExternalLink,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Building2
+} from 'lucide-react'
+import { billingManager, type Subscription, type Product } from '@/services/billingManager'
+import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
+import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
+import { AuthGuard } from '@/components/AuthGuard'
 
 export default function BillingPage() {
-  // Stripe billing state
-  const [stripeBillingDashboard, setStripeBillingDashboard] = useState<StripeBillingDashboard | null>(null)
-  const [stripeTopupOptions, setStripeTopupOptions] = useState<StripeTopupOptions | null>(null)
-  const [recentTransactions, setRecentTransactions] = useState<CreditTransaction[]>([])
+  return (
+    <AuthGuard requireAuth={true}>
+      <BrandUserInterface>
+        <BillingContent />
+      </BrandUserInterface>
+    </AuthGuard>
+  )
+}
+
+function BillingContent() {
+  const router = useRouter()
+  const { user } = useEnhancedAuth()
   const [loading, setLoading] = useState(true)
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loadingPortal, setLoadingPortal] = useState(false)
 
-  // Load Stripe billing data
   useEffect(() => {
-    const loadStripeBillingData = async () => {
-      try {
-        setLoading(true)
-
-        // Load Stripe billing data
-        const [stripeBillingResult, stripeTopupResult, transactionsResult] = await Promise.allSettled([
-          creditsApiService.getStripeBillingDashboard(),
-          creditsApiService.getStripeTopupOptions(),
-          creditsApiService.getRecentTransactions(5)
-        ])
-
-        // Handle Stripe billing dashboard
-        if (stripeBillingResult.status === 'fulfilled' && stripeBillingResult.value.success) {
-          console.log('🔍 Stripe Billing Dashboard Data:', JSON.stringify(stripeBillingResult.value.data, null, 2))
-          setStripeBillingDashboard(stripeBillingResult.value.data)
-        } else {
-          console.error('❌ Stripe Billing Dashboard Error:', stripeBillingResult)
-          toast.error('Failed to load subscription data')
-        }
-
-        // Handle Stripe topup options
-        if (stripeTopupResult.status === 'fulfilled' && stripeTopupResult.value.success) {
-          console.log('🔍 Stripe Topup Options Data:', JSON.stringify(stripeTopupResult.value.data, null, 2))
-          setStripeTopupOptions(stripeTopupResult.value.data)
-        } else {
-          console.error('❌ Stripe Topup Options Error:', stripeTopupResult)
-        }
-
-        // Handle recent transactions (optional - don't block if it fails)
-        if (transactionsResult.status === 'fulfilled' && transactionsResult.value.success) {
-          setRecentTransactions(transactionsResult.value.data || [])
-        } else {
-          console.warn('⚠️ Transactions data not available')
-        }
-
-      } catch (error) {
-        console.error('Error loading billing data:', error)
-        toast.error('Failed to load billing data')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadStripeBillingData()
+    fetchBillingData()
   }, [])
 
-  // Handle subscription changes
-  const handleUpgrade = async (tier: 'standard' | 'premium') => {
+  const fetchBillingData = async () => {
     try {
-      const result = await creditsApiService.upgradeSubscription(tier)
-      if (result.success) {
-        toast.success(result.data?.message || `Successfully upgraded to ${tier}`)
-        window.location.reload()
+      setLoading(true)
+
+      // Check if user is authenticated first
+      if (!user) {
+        console.warn('User not authenticated, showing default state')
+        setSubscription({ status: 'none', tier: 'free' })
+        setProducts([])
+        return
+      }
+
+      // Get subscription data (from dashboard endpoint as primary source)
+      const subData = await billingManager.getSubscription()
+      setSubscription(subData)
+
+      // Only fetch Stripe products if user is online_payment type
+      // Admin-managed users don't need to see Stripe products
+      if (!subData.billing_type || subData.billing_type === 'online_payment') {
+        try {
+          const productsData = await billingManager.getProducts()
+          setProducts(productsData)
+        } catch (error) {
+          console.warn('Could not fetch Stripe products:', error)
+          setProducts([])
+        }
       } else {
-        toast.error(result.error || 'Failed to upgrade subscription')
+        // Admin-managed users don't need product listings
+        setProducts([])
       }
     } catch (error) {
-      toast.error('Error upgrading subscription')
+      console.error('Error fetching billing data:', error)
+      toast.error('Failed to load billing information')
+      // Set default values on error
+      setSubscription({ status: 'none', tier: 'free' })
+      setProducts([])
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleDowngrade = async (tier: 'free' | 'standard') => {
+  const handleUpgrade = async (tier: string) => {
+    // Admin-managed users should contact support
+    if (subscription?.billing_type === 'admin_managed') {
+      toast.info('Please contact support to change your plan')
+      window.location.href = 'mailto:support@following.ae?subject=Plan%20Upgrade%20Request'
+      return
+    }
+
     try {
-      const result = await creditsApiService.downgradeSubscription(tier)
-      if (result.success) {
-        toast.success(result.data?.message || `Downgrade scheduled for period end`)
-        window.location.reload()
-      } else {
-        toast.error(result.error || 'Failed to downgrade subscription')
-      }
+      const checkoutData = await billingManager.createCheckoutSession(tier)
+      router.push(`/checkout?tier=${tier}`)
     } catch (error) {
-      toast.error('Error downgrading subscription')
+      console.error('Error creating checkout:', error)
+      toast.error('Failed to start checkout process')
     }
   }
 
-  const handleTopup = async (topupType: 'starter' | 'professional' | 'enterprise') => {
+  const handleManageSubscription = async () => {
+    // Admin-managed users can't access portal
+    if (subscription?.billing_type === 'admin_managed') {
+      toast.error('Portal access is only available for online payment users')
+      return
+    }
+
+    // Free users need to upgrade first
+    if (!subscription || subscription.tier === 'free' || subscription.status === 'none') {
+      toast.info('Please upgrade to a paid plan to access the billing portal')
+      // Optionally scroll to plans section
+      document.getElementById('available-plans')?.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+
     try {
-      const result = await creditsApiService.createStripeTopupPaymentLink(topupType)
-      if (result.success && result.data?.payment_link?.url) {
-        window.location.href = result.data.payment_link.url
-      } else {
-        toast.error(result.error || 'Failed to create payment link')
-      }
-    } catch (error) {
-      toast.error('Error creating payment link')
+      setLoadingPortal(true)
+      await billingManager.openCustomerPortal()
+    } catch (error: any) {
+      console.error('Error opening portal:', error)
+      // Show specific error message if available
+      toast.error(error.message || 'Failed to open billing portal')
+    } finally {
+      setLoadingPortal(false)
     }
   }
 
-  // Tier configurations
-  const getTierConfig = (tier: string) => {
-    const configs = {
-      free: {
-        icon: Shield,
-        name: 'Free',
-        color: 'text-gray-600',
-        bgColor: 'bg-gray-50',
-        borderColor: 'border-gray-200',
-        price: '$0',
-        description: 'Perfect for getting started'
-      },
-      standard: {
-        icon: Zap,
-        name: 'Standard',
-        color: 'text-blue-600',
-        bgColor: 'bg-blue-50',
-        borderColor: 'border-blue-200',
-        price: '$199',
-        description: 'Great for growing teams'
-      },
-      premium: {
-        icon: Crown,
-        name: 'Premium',
-        color: 'text-primary',
-        bgColor: 'bg-primary/5',
-        borderColor: 'border-primary/20',
-        price: '$499',
-        description: 'Enterprise-grade features'
-      }
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</Badge>
+      case 'past_due':
+        return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Past Due</Badge>
+      case 'admin_managed':
+        return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Admin Managed</Badge>
+      case 'pending':
+        return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">Pending</Badge>
+      case 'cancelled':
+        return <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">Cancelled</Badge>
+      default:
+        return <Badge variant="outline">No Subscription</Badge>
     }
-    return configs[tier as keyof typeof configs] || configs.free
+  }
+
+  const getTierBadge = (tier: string) => {
+    const tierColors = {
+      free: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
+      standard: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      premium: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      enterprise: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'
+    }
+    return <Badge className={tierColors[tier as keyof typeof tierColors] || tierColors.free}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</Badge>
   }
 
   if (loading) {
     return (
-      <AuthGuard>
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <SiteHeader />
-            <main className="flex-1 p-6">
-              <div className="max-w-7xl mx-auto space-y-8">
-                {/* Loading State */}
-                <div className="space-y-6">
-                  <div className="h-8 w-64 bg-muted animate-pulse rounded" />
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {Array.from({length: 6}).map((_, i) => (
-                      <Card key={i} className="h-40">
-                        <CardContent className="p-6">
-                          <div className="space-y-3">
-                            <div className="h-4 w-full bg-muted animate-pulse rounded" />
-                            <div className="h-8 w-3/4 bg-muted animate-pulse rounded" />
-                            <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </main>
-          </SidebarInset>
-        </SidebarProvider>
-      </AuthGuard>
+      <div className="flex-1 p-6 max-w-6xl mx-auto">
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-48" />
+          <div className="grid gap-6 md:grid-cols-2">
+            <Skeleton className="h-[200px]" />
+            <Skeleton className="h-[200px]" />
+          </div>
+          <Skeleton className="h-[400px]" />
+        </div>
+      </div>
     )
   }
-
-  // If no Stripe data available, show fallback
-  if (!stripeBillingDashboard) {
-    return (
-      <AuthGuard>
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <SiteHeader />
-            <main className="flex-1 p-6">
-              <div className="max-w-7xl mx-auto">
-                <Card className="p-8 text-center">
-                  <CardContent>
-                    <div className="mx-auto w-12 h-12 bg-muted rounded-lg flex items-center justify-center mb-4">
-                      <CreditCard className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <h2 className="text-xl font-semibold mb-2">Billing Data Unavailable</h2>
-                    <p className="text-muted-foreground mb-4">
-                      We're unable to load your billing information at the moment.
-                    </p>
-                    <Button onClick={() => window.location.reload()}>
-                      Try Again
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </main>
-          </SidebarInset>
-        </SidebarProvider>
-      </AuthGuard>
-    )
-  }
-
-  const tierConfig = getTierConfig(stripeBillingDashboard.subscription.tier)
-  const TierIcon = tierConfig.icon
 
   return (
-    <AuthGuard>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <SiteHeader />
-          <main className="flex-1 p-6">
-            <div className="max-w-7xl mx-auto space-y-8">
-              {/* Header */}
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <h1 className="text-4xl font-bold tracking-tight">Billing & Subscription</h1>
-                  <p className="text-muted-foreground text-lg mt-2">
-                    Manage your subscription and monitor credit usage
-                  </p>
+    <div className="flex-1 p-6 max-w-6xl mx-auto">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Billing & Subscription</h1>
+          <p className="text-muted-foreground mt-2">Manage your subscription and billing information</p>
+        </div>
+
+        {/* Current Subscription Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Current Subscription
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(subscription?.status || 'none')}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline" className="px-3 py-1">
-                    {stripeBillingDashboard.subscription.status === 'active' ? '✅ Active' : '⚠️ ' + stripeBillingDashboard.subscription.status}
-                  </Badge>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Tier</p>
+                  {getTierBadge(subscription?.tier || 'free')}
                 </div>
               </div>
 
-              {/* Current Plan Hero Card */}
-              <Card className={`border-2 ${tierConfig.borderColor} ${tierConfig.bgColor} relative overflow-hidden`}>
-                <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
-                  <TierIcon className="w-full h-full" />
+              {subscription?.current_period_end && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Current Period Ends</p>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <p className="font-medium">
+                      {new Date(subscription.current_period_end).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
                 </div>
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-xl ${tierConfig.bgColor} border ${tierConfig.borderColor}`}>
-                      <TierIcon className={`h-6 w-6 ${tierConfig.color}`} />
-                    </div>
-                    <div>
-                      <CardTitle className="text-2xl flex items-center gap-2">
-                        {tierConfig.name} Plan
-                        {stripeBillingDashboard.subscription.tier === 'premium' && (
-                          <Crown className="h-5 w-5 text-yellow-500" />
-                        )}
-                      </CardTitle>
-                      <CardDescription className="text-base">
-                        {tierConfig.description} • {tierConfig.price}/month
-                      </CardDescription>
+              )}
+
+              {subscription?.credits_remaining !== undefined && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Credits Remaining</p>
+                  <p className="text-2xl font-bold">{subscription.credits_remaining}</p>
+                </div>
+              )}
+
+              {/* Billing Type Info */}
+              {subscription?.billing_type === 'admin_managed' && (
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-blue-800 dark:text-blue-200">Admin Managed Billing</p>
+                      <p className="text-blue-700 dark:text-blue-300 mt-1">
+                        Your billing is managed by our team. Contact support for changes.
+                      </p>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Usage Progress */}
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-medium">Credit Usage This Cycle</h4>
-                      <span className="text-sm text-muted-foreground">
-                        {formatCredits(stripeBillingDashboard.usage.credits_used_this_cycle)} / {formatCredits(stripeBillingDashboard.tier_limits.monthly_credits)}
-                      </span>
-                    </div>
-                    <Progress
-                      value={stripeBillingDashboard.usage.percentage_used}
-                      className="h-3"
-                    />
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>{stripeBillingDashboard.usage.percentage_used.toFixed(1)}% used</span>
-                      <span>Resets: {formatCreditDate(stripeBillingDashboard.subscription.current_period_end)}</span>
+                </div>
+              )}
+
+              {subscription?.status === 'past_due' && (
+                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-yellow-800 dark:text-yellow-200">Payment Past Due</p>
+                      <p className="text-yellow-700 dark:text-yellow-300 mt-1">
+                        Please update your payment method to continue using all features.
+                      </p>
                     </div>
                   </div>
+                </div>
+              )}
 
-                  {/* Plan Features Grid */}
-                  <div className="grid md:grid-cols-3 gap-4 pt-4 border-t">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{formatCredits(stripeBillingDashboard.tier_limits.monthly_credits)}</div>
-                      <div className="text-sm text-muted-foreground">Monthly Credits</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{stripeBillingDashboard.tier_limits.max_team_members}</div>
-                      <div className="text-sm text-muted-foreground">Team Members</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">{stripeBillingDashboard.tier_limits.features.length}</div>
-                      <div className="text-sm text-muted-foreground">Features</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Action Buttons - Different for each user type */}
+              <div className="flex gap-3 pt-2">
+                {/* Stripe customers with active subscription */}
+                {subscription?.status === 'active' && subscription?.tier !== 'free' && subscription?.billing_type !== 'admin_managed' && (
+                  <Button
+                    onClick={handleManageSubscription}
+                    disabled={loadingPortal}
+                    className="flex items-center gap-2"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Manage Subscription
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                )}
 
-              {/* Action Cards Grid */}
-              <div className="grid gap-6 md:grid-cols-2">
-                {/* Subscription Management */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <ArrowUp className="h-5 w-5 text-green-600" />
-                      Subscription Changes
-                    </CardTitle>
-                    <CardDescription>
-                      Upgrade or downgrade your plan
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {stripeBillingDashboard.subscription.tier === 'free' && (
-                      <>
-                        <Button onClick={() => handleUpgrade('standard')} className="w-full" size="lg">
-                          <Zap className="h-4 w-4 mr-2" />
-                          Upgrade to Standard ($199/month)
-                        </Button>
-                        <Button onClick={() => handleUpgrade('premium')} className="w-full" size="lg">
-                          <Crown className="h-4 w-4 mr-2" />
-                          Upgrade to Premium ($499/month)
-                        </Button>
-                      </>
-                    )}
+                {/* Free users - show upgrade prompt */}
+                {(!subscription || subscription.tier === 'free') && subscription?.billing_type !== 'admin_managed' && (
+                  <Button
+                    onClick={() => document.getElementById('available-plans')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="flex items-center gap-2"
+                  >
+                    <Package className="h-4 w-4" />
+                    Upgrade to Premium
+                  </Button>
+                )}
 
-                    {stripeBillingDashboard.subscription.tier === 'standard' && (
-                      <>
-                        <Button onClick={() => handleUpgrade('premium')} className="w-full" size="lg">
-                          <Crown className="h-4 w-4 mr-2" />
-                          Upgrade to Premium ($499/month)
-                        </Button>
-                        <Button variant="outline" onClick={() => handleDowngrade('free')} className="w-full">
-                          <ArrowDown className="h-4 w-4 mr-2" />
-                          Downgrade to Free (at period end)
-                        </Button>
-                      </>
-                    )}
+                {/* Past due users */}
+                {subscription?.status === 'past_due' && (
+                  <Button
+                    onClick={handleManageSubscription}
+                    variant="destructive"
+                    disabled={loadingPortal}
+                  >
+                    Update Payment Method
+                  </Button>
+                )}
 
-                    {stripeBillingDashboard.subscription.tier === 'premium' && (
-                      <>
-                        <Button variant="outline" onClick={() => handleDowngrade('standard')} className="w-full">
-                          <ArrowDown className="h-4 w-4 mr-2" />
-                          Downgrade to Standard (at period end)
-                        </Button>
-                        <Button variant="outline" onClick={() => handleDowngrade('free')} className="w-full">
-                          <ArrowDown className="h-4 w-4 mr-2" />
-                          Downgrade to Free (at period end)
-                        </Button>
-                      </>
-                    )}
-
-                    {stripeBillingDashboard.subscription.cancel_at_period_end && (
-                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-sm text-yellow-800">
-                          ⚠️ Your subscription will be cancelled at the end of the current period.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Current Balance */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-purple-600" />
-                      Current Balance
-                    </CardTitle>
-                    <CardDescription>
-                      Available credits in your account
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center space-y-2">
-                      <div className="text-4xl font-bold text-primary">
-                        {formatCredits(stripeBillingDashboard.credit_summary.current_balance)}
-                      </div>
-                      <div className="text-muted-foreground">Credits Available</div>
-                      <div className="text-sm text-muted-foreground">
-                        Total spent this cycle: {formatCredits(stripeBillingDashboard.credit_summary.total_spent)}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Admin managed users */}
+                {subscription?.billing_type === 'admin_managed' && (
+                  <Button
+                    onClick={() => window.location.href = 'mailto:support@following.ae?subject=Billing%20Inquiry'}
+                    className="flex items-center gap-2"
+                  >
+                    <Building2 className="h-4 w-4" />
+                    Contact Support
+                  </Button>
+                )}
               </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              {/* Credit Topup Packages */}
-              {stripeTopupOptions && (
-                <Card>
+        {/* Available Plans - Only show upgrade options for online payment users */}
+        {(!subscription?.billing_type || subscription?.billing_type === 'online_payment') && Array.isArray(products) && products.length > 0 && (
+          <div id="available-plans">
+            <h2 className="text-xl font-semibold mb-4">Available Plans</h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {products.map((product) => (
+                <Card key={product.id} className={subscription?.tier === product.tier ? 'ring-2 ring-primary' : ''}>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-green-600" />
-                      Buy Additional Credits
-                      {stripeTopupOptions.eligible_for_discount && (
-                        <Badge className="bg-green-100 text-green-800 border-green-200">
-                          20% Premium Discount!
-                        </Badge>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>{product.name}</span>
+                      {subscription?.tier === product.tier && (
+                        <Badge variant="secondary">Current Plan</Badge>
                       )}
                     </CardTitle>
-                    <CardDescription>
-                      {stripeTopupOptions.eligible_for_discount
-                        ? 'Premium users save 20% on all credit purchases'
-                        : 'Purchase additional credits for your account'}
-                    </CardDescription>
+                    <CardDescription>{product.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid gap-6 md:grid-cols-3">
-                      {stripeTopupOptions.packages.map((pkg) => (
-                        <Card key={pkg.type} className={`relative border-2 transition-all hover:border-primary/50 hover:shadow-lg ${
-                          pkg.type === 'professional' ? 'border-primary/30 bg-primary/5' : 'border-border'
-                        }`}>
-                          {pkg.type === 'professional' && (
-                            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                              <Badge className="bg-primary text-primary-foreground">Most Popular</Badge>
-                            </div>
-                          )}
-                          <CardContent className="p-6 text-center space-y-4">
-                            <div>
-                              <h4 className="text-xl font-bold capitalize">{pkg.type}</h4>
-                              <div className="text-3xl font-bold text-primary mt-2">
-                                {formatCredits(pkg.credits)}
-                              </div>
-                              <div className="text-sm text-muted-foreground">Credits</div>
-                            </div>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-3xl font-bold">
+                          ${product.price}
+                          <span className="text-sm font-normal text-muted-foreground">/month</span>
+                        </p>
+                      </div>
 
-                            <div className="space-y-2">
-                              {pkg.discount_percentage > 0 ? (
-                                <>
-                                  <div className="flex items-center justify-center gap-2">
-                                    <span className="text-lg text-gray-500 line-through">
-                                      ${pkg.base_price}
-                                    </span>
-                                    <Badge variant="secondary" className="bg-green-100 text-green-700">
-                                      {pkg.discount_percentage}% off
-                                    </Badge>
-                                  </div>
-                                  <div className="text-2xl font-bold text-green-600">
-                                    ${pkg.discounted_price}
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="text-2xl font-bold">
-                                  ${pkg.base_price}
-                                </div>
-                              )}
-                            </div>
+                      <ul className="space-y-2">
+                        {product.features.map((feature, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm">
+                            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
 
-                            <Button
-                              onClick={() => handleTopup(pkg.type)}
-                              className="w-full"
-                              size="lg"
-                              variant={pkg.type === 'professional' ? 'default' : 'outline'}
-                            >
-                              <CreditCard className="h-4 w-4 mr-2" />
-                              Buy Credits
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      ))}
+                      {subscription?.tier !== product.tier && (
+                        <Button
+                          onClick={() => handleUpgrade(product.tier)}
+                          className="w-full"
+                          variant={subscription && subscription.tier !== 'free' ? 'outline' : 'default'}
+                        >
+                          {!subscription || subscription.tier === 'free' ? 'Get Started' : 'Switch Plan'}
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
-              )}
-
-              {/* Recent Transactions (if available) */}
-              {recentTransactions.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-5 w-5 text-blue-600" />
-                      Recent Transactions
-                    </CardTitle>
-                    <CardDescription>
-                      Your latest credit transactions
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {recentTransactions.slice(0, 5).map((transaction) => (
-                        <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${
-                              transaction.transaction_type === 'spent' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                            }`}>
-                              {transaction.transaction_type === 'spent' ? '-' : '+'}
-                            </div>
-                            <div>
-                              <p className="font-medium">{transaction.description}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatCreditDate(transaction.created_at)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className={`font-semibold ${
-                              transaction.transaction_type === 'spent' ? 'text-red-600' : 'text-green-600'
-                            }`}>
-                              {transaction.transaction_type === 'spent' ? '-' : '+'}
-                              {formatCredits(transaction.amount)}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Balance: {formatCredits(transaction.balance_after)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              ))}
             </div>
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
-    </AuthGuard>
+          </div>
+        )}
+
+        {/* Admin Managed Users Info */}
+        {subscription?.billing_type === 'admin_managed' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Plan Management</CardTitle>
+              <CardDescription>Your subscription is managed by our admin team</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 text-sm">
+                <p>To make changes to your subscription plan:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Contact your account manager</li>
+                  <li>Email support@following.ae with your request</li>
+                  <li>Call +971 50 123 4567 during business hours</li>
+                </ul>
+                <div className="bg-muted rounded-lg p-3 mt-4">
+                  <p className="font-medium">Benefits of Admin Managed Billing:</p>
+                  <ul className="mt-2 space-y-1 text-muted-foreground">
+                    <li>• Custom payment terms and invoicing</li>
+                    <li>• Dedicated account support</li>
+                    <li>• Flexible billing arrangements</li>
+                    <li>• Priority customer service</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Help Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Need Help?</CardTitle>
+            <CardDescription>Contact our support team for billing assistance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm">
+              <p>Email: support@following.ae</p>
+              <p>Phone: +971 50 123 4567</p>
+              <p>Available Monday - Friday, 9am - 6pm GST</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   )
 }

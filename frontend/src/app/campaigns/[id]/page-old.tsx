@@ -1309,7 +1309,7 @@ export default function CampaignDetailsPage() {
           </div>
 
           {/* Collaboration Metrics - NEW (Matching Theme Colors) */}
-          {stats && (stats.collaborationRate || 0) > 0 ? (
+          {stats && (stats.collaborationRate || 0) > 0 && (
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="border-primary/20 bg-primary/5">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -1339,26 +1339,6 @@ export default function CampaignDetailsPage() {
                 </CardContent>
               </Card>
             </div>
-          ) : (
-            // Temporary notice while backend implements collaboration support
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="py-4">
-                <div className="flex items-center gap-3">
-                  <Users className="h-5 w-5 text-primary" />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">Enhanced Collaboration Support</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Frontend ready for collaboration detection! Backend team is implementing collaboration fields.
-                      <br />
-                      Expected features: Multi-creator posts, collaboration rate, enhanced analytics.
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    Coming Soon
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
           )}
 
           {/* Post Type Breakdown */}

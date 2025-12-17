@@ -115,8 +115,6 @@ export default function MyListsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [sortBy, setSortBy] = useState<string>("updated_at")
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [pagination, setPagination] = useState({
     page: 1,
@@ -215,7 +213,7 @@ export default function MyListsPage() {
   useEffect(() => {
     loadLists()
     loadTemplates()
-  }, [sortBy, sortOrder, searchQuery])
+  }, [searchQuery])
 
   const createList = async () => {
     if (!newListName.trim()) {
@@ -363,7 +361,7 @@ export default function MyListsPage() {
     }
   }
 
-  const filteredAndSortedLists = myLists
+  const filteredLists = myLists
     .filter(list =>
       list.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       list.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -457,24 +455,7 @@ export default function MyListsPage() {
           <div className="flex flex-1 flex-col">
             <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
 
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold">My Lists</h1>
-                  <p className="text-muted-foreground">Organize your creators into custom lists</p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* Create New List Button */}
-                  <Button
-                    onClick={handleCreateList}
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    New List
-                  </Button>
-                </div>
-              </div>
+              {/* Header - Now empty since title moved to top bar and button moved below */}
 
               {/* Search and Filters */}
               <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
@@ -489,30 +470,18 @@ export default function MyListsPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="name">Name</SelectItem>
-                      <SelectItem value="created_at">Created</SelectItem>
-                      <SelectItem value="updated_at">Updated</SelectItem>
-                      <SelectItem value="profile_count">Size</SelectItem>
-                    </SelectContent>
-                  </Select>
-
                   <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                    onClick={handleCreateList}
+                    className="gap-2"
                   >
-                    {sortOrder === "asc" ? "↑" : "↓"}
+                    <Plus className="h-4 w-4" />
+                    New List
                   </Button>
                 </div>
               </div>
 
               {/* Lists Grid */}
-              {filteredAndSortedLists.length === 0 ? (
+              {filteredLists.length === 0 ? (
                 <div className="flex justify-center py-12">
                   <EmptyState
                     title={searchQuery.trim() ? "No lists found" : "No lists yet"}
@@ -529,7 +498,7 @@ export default function MyListsPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredAndSortedLists.map((list) => {
+                  {filteredLists.map((list) => {
                     const bannerColor = list.color || '#5100f3'
 
                     return (

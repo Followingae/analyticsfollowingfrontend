@@ -32,6 +32,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { API_CONFIG } from "@/config/api";
 import { tokenManager } from "@/utils/tokenManager";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
+import { ImageCropper } from "@/components/ui/image-cropper";
 
 interface CampaignPost {
   url: string;
@@ -43,12 +44,18 @@ export default function NewCampaignPage() {
   const { user } = useEnhancedAuth();
   const [campaignName, setCampaignName] = useState("");
   const [brandName, setBrandName] = useState("");
+  const [description, setDescription] = useState("");
+  const [budget, setBudget] = useState<number | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [brandLogo, setBrandLogo] = useState<File | null>(null);
   const [status, setStatus] = useState<"draft" | "active">("draft");
   const [posts, setPosts] = useState<CampaignPost[]>([]);
   const [isAddPostDialogOpen, setIsAddPostDialogOpen] = useState(false);
   const [newPostUrl, setNewPostUrl] = useState("");
   const [logoPreview, setLogoPreview] = useState<string>("");
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
 
   // ROLE-BASED FLOW DETECTION (NO MORE USER CHOICE)
   const isSuperadmin = user?.role === 'superadmin';
@@ -73,14 +80,24 @@ export default function NewCampaignPage() {
         return;
       }
 
-      setBrandLogo(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      toast.success("Logo uploaded successfully");
+      // Store the selected file and open cropper
+      console.log("🎯 Opening cropper with file:", file.name);
+      setSelectedImageFile(file);
+      setIsCropperOpen(true);
+
+      // Clear the file input so user can select same file again if needed
+      e.target.value = "";
     }
+  };
+
+  const handleImageCropped = (croppedFile: File) => {
+    setBrandLogo(croppedFile);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(croppedFile);
+    toast.success("Logo cropped and ready to upload");
   };
 
   const handleAddPost = () => {
@@ -154,12 +171,12 @@ export default function NewCampaignPage() {
         // SUPERADMIN: Create campaign FOR another user
         campaignData = {
           user_id: targetUserId.trim(),
-          name: campaignName,
-          brand_name: brandName,
-          description: "", // Optional
-          budget: undefined, // Optional
-          start_date: undefined, // Optional
-          end_date: undefined, // Optional
+          name: campaignName.trim(),
+          brand_name: brandName.trim(),
+          description: description.trim() || undefined,
+          budget: budget || undefined,
+          start_date: startDate || undefined,
+          end_date: endDate || undefined,
         };
 
         console.log("🏢 Creating MANAGED campaign for user:", campaignData);
@@ -167,12 +184,12 @@ export default function NewCampaignPage() {
       } else {
         // REGULAR USER: Create campaign for themselves
         campaignData = {
-          name: campaignName,
-          brand_name: brandName,
-          description: "", // Optional
-          budget: undefined, // Optional
-          start_date: undefined, // Optional
-          end_date: undefined, // Optional
+          name: campaignName.trim(),
+          brand_name: brandName.trim(),
+          description: description.trim() || undefined,
+          budget: budget || undefined,
+          start_date: startDate || undefined,
+          end_date: endDate || undefined,
         };
 
         console.log("👤 Creating SELF-MANAGED campaign:", campaignData);
@@ -306,15 +323,7 @@ export default function NewCampaignPage() {
                 <Button type="button" variant="ghost" size="icon" onClick={handleCancel}>
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <div className="flex-1">
-                  <h1 className="text-3xl font-bold tracking-tight">Create New Campaign</h1>
-                  <p className="text-muted-foreground mt-1">
-                    {isSuperadmin
-                      ? 'Create a managed campaign with professional workflow for a user'
-                      : 'Set up your self-managed campaign'
-                    }
-                  </p>
-                </div>
+                <div className="flex-1"></div>
                 <Badge variant="outline" className={isSuperadmin ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}>
                   {isSuperadmin ? '🏢 Admin Mode' : '👤 Self-Managed'}
                 </Badge>
@@ -400,6 +409,81 @@ export default function NewCampaignPage() {
                     PNG, JPG or SVG (max. 2MB)
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">
+                Campaign Description
+              </Label>
+              <textarea
+                id="description"
+                placeholder="Describe your campaign goals, target audience, and key messaging..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+              <p className="text-xs text-muted-foreground">
+                Provide details about campaign objectives and requirements
+              </p>
+            </div>
+
+            {/* Budget */}
+            <div className="space-y-2">
+              <Label htmlFor="budget">
+                Campaign Budget
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="budget"
+                  type="number"
+                  placeholder="0"
+                  value={budget?.toString() || ""}
+                  onChange={(e) => setBudget(e.target.value ? parseInt(e.target.value) : null)}
+                  className="pl-8"
+                  min="0"
+                  step="1"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Total budget for this campaign (optional)
+              </p>
+            </div>
+
+            {/* Campaign Dates */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">
+                  Start Date
+                </Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+                <p className="text-xs text-muted-foreground">
+                  When should this campaign begin?
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endDate">
+                  End Date
+                </Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate || new Date().toISOString().split('T')[0]}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Campaign completion deadline
+                </p>
               </div>
             </div>
 
@@ -548,6 +632,16 @@ export default function NewCampaignPage() {
           </div>
         </SidebarInset>
       </SidebarProvider>
+
+      {/* Image Cropper Dialog */}
+      <ImageCropper
+        open={isCropperOpen}
+        onOpenChange={setIsCropperOpen}
+        onImageCropped={handleImageCropped}
+        title="Crop Brand Logo"
+        cropAspectRatio={1} // Square crop
+        preSelectedFile={selectedImageFile}
+      />
     </AuthGuard>
   );
 }

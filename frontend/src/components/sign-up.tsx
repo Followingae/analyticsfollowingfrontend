@@ -27,7 +27,7 @@ interface SignUpPageProps {
   title?: React.ReactNode;
   description?: React.ReactNode;
   testimonials?: Testimonial[];
-  onSignUp?: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSignUp?: (event: React.FormEvent<HTMLFormElement>, formData?: any) => void;
   onSignInRedirect?: () => void;
 }
 
@@ -68,7 +68,6 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
   onSignInRedirect,
 }) => {
   const { theme } = useTheme();
-
   const logoSrc = theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg";
 
   return (

@@ -10,8 +10,11 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minute
-            gcTime: 5 * 60 * 1000, // 5 minutes (replaces cacheTime)
+            staleTime: 5 * 60 * 1000, // 5 minutes - prevent duplicate requests
+            gcTime: 10 * 60 * 1000, // 10 minutes (replaces cacheTime)
+            refetchOnWindowFocus: false, // Prevent refetch on window focus
+            refetchOnMount: 'stale', // Only refetch if data is stale
+            refetchOnReconnect: 'stale', // Only refetch on reconnect if stale
             retry: (failureCount, error: any) => {
               // Don't retry on 4xx errors
               if (error?.status >= 400 && error?.status < 500) {

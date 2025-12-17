@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { authService, User, DashboardStats } from '@/services/authService'
 import { useAuth } from '@/contexts/AuthContext'
 import { EnhancedUser, UserRole, PermissionType, FeatureAccess, SessionContext } from '@/types/auth'
+import { API_CONFIG } from '@/config/api'
 import { toast } from 'sonner'
 
 interface EnhancedAuthContextType extends SessionContext {
@@ -12,7 +13,15 @@ interface EnhancedAuthContextType extends SessionContext {
   isLoading: boolean
   dashboardStats: DashboardStats | null
   login: (email: string, password: string) => Promise<boolean>
-  register: (email: string, password: string, fullName: string) => Promise<boolean>
+  register: (email: string, password: string, fullName: string, enhancedData?: {
+    subscription_tier?: 'free' | 'standard' | 'premium';
+    role?: 'free' | 'standard' | 'premium';  // Backend requires this
+    billing_type?: 'online_payment' | 'admin_managed';  // Fixed to match backend
+    company_name?: string;
+    marketing_consent?: boolean;
+    send_welcome_email?: boolean;
+  }) => Promise<boolean>
+  registerWithPayment: (sessionId: string, email: string, fullName: string, companyName: string, tier: string) => Promise<boolean>
   logout: () => void
   refreshUser: () => Promise<void>
   refreshDashboard: () => Promise<void>
@@ -240,17 +249,180 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     }
   }
 
-  const register = async (email: string, password: string, fullName: string): Promise<boolean> => {
-    return await basicRegister(email, password, fullName)
+  const register = async (
+    email: string,
+    password: string,
+    fullName: string,
+    enhancedData?: {
+      subscription_tier?: 'free' | 'standard' | 'premium';
+      role?: 'free' | 'standard' | 'premium';  // Backend requires this
+      billing_type?: 'online_payment' | 'admin_managed';  // Fixed to match backend
+      company_name?: string;
+      marketing_consent?: boolean;
+      send_welcome_email?: boolean;
+    }
+  ): Promise<boolean> => {
+    try {
+      if (enhancedData) {
+        // Use enhanced registration API with new backend fields
+        console.log('Enhanced data provided:', enhancedData);
+
+        // CRITICAL: Backend requires both 'role' and 'billing_type' fields
+        const registrationData = {
+          email,
+          password,
+          full_name: fullName,
+          billing_type: enhancedData.billing_type || 'online_payment',  // Required field
+          role: enhancedData.role || enhancedData.subscription_tier || 'free',  // Required field - use role or fall back to subscription_tier
+          company: enhancedData.company_name || undefined,
+          // Optional fields for future enhancement
+          job_title: undefined, // Can be added to form later
+          phone_number: undefined, // Can be added to form later
+          timezone: undefined, // Can be auto-detected
+          language: 'en' // Default to English
+        };
+
+        console.log('Sending registration request with data:', {
+          ...registrationData,
+          password: '***' // Don't log password
+        });
+
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(registrationData),
+        });
+
+        // Handle both 200 OK and 201 Created as successful
+        if (!response.ok && response.status !== 201) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Enhanced registration failed with status:', response.status);
+          console.error('Error response:', errorData);
+          console.error('Request URL:', `${API_CONFIG.BASE_URL}/api/v1/auth/register`);
+          console.error('Request body sent:', {
+            ...registrationData,
+            password: '***' // Don't log password
+          });
+          return false;
+        }
+
+        const data = await response.json();
+        console.log('Registration response:', data);
+
+        // Handle new enhanced response format
+        if (data.access_token || data.user) {
+          // Store tokens if provided
+          if (data.access_token) {
+            localStorage.setItem('token', data.access_token);
+          }
+          if (data.refresh_token) {
+            localStorage.setItem('refresh_token', data.refresh_token);
+          }
+
+          // Update auth state with enhanced user
+          if (data.user) {
+            const enhancedUser = enhanceUserData(data.user);
+            setUser(enhancedUser);
+          }
+
+          // Log enhanced response info
+          if (data.next_step) {
+            console.log('Next step:', data.next_step);
+          }
+          if (data.payment_setup_required) {
+            console.log('Payment setup required:', data.payment_setup_required);
+          }
+          if (data.message) {
+            console.log('Backend message:', data.message);
+          }
+
+          return true;
+        }
+
+        console.error('Registration failed: No access token or user data in response');
+        return false;
+      } else {
+        // Fall back to basic registration
+        return await basicRegister(email, password, fullName);
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      return false;
+    }
+  }
+
+  const registerWithPayment = async (
+    sessionId: string,
+    email: string,
+    fullName: string,
+    companyName: string,
+    tier: string
+  ): Promise<boolean> => {
+    try {
+      console.log('Registering with payment verification:', {
+        sessionId,
+        email,
+        fullName,
+        companyName,
+        tier
+      });
+
+      // This function is called from the welcome page after successful payment
+      // The backend will verify payment and create the account
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/billing/v2/verify-and-create-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          email: email,
+          full_name: fullName,
+          company_name: companyName,
+          subscription_tier: tier,
+          marketing_consent: true
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Payment verification failed:', errorData);
+        return false;
+      }
+
+      const data = await response.json();
+      console.log('Payment verification response:', data);
+
+      // Store tokens if provided
+      if (data.access_token) {
+        localStorage.setItem('token', data.access_token);
+        if (data.refresh_token) {
+          localStorage.setItem('refresh_token', data.refresh_token);
+        }
+      }
+
+      // Update auth state with new user
+      if (data.user) {
+        const enhancedUser = enhanceUserData(data.user);
+        setUser(enhancedUser);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Register with payment error:', error);
+      return false;
+    }
   }
 
   const logout = () => {
 
-    
+
     // Clear enhanced auth state first
     setUser(null)
     setDashboardStats(null)
-    
+
     // Then call basic logout
     basicLogout()
   }
@@ -420,6 +592,7 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     dashboardStats,
     login,
     register,
+    registerWithPayment,
     logout,
     refreshUser,
     refreshDashboard,

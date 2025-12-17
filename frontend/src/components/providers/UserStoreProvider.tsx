@@ -18,6 +18,7 @@ export function UserStoreProvider({ children }: { children: React.ReactNode }) {
     // Wait for auth context to finish loading
     if (authLoading) return
 
+    // Only load if authenticated and not already loaded/loading
     if (isAuthenticated && !storeLoading && !hasLoadedRef.current) {
       console.log('🚀 UserStoreProvider: Loading user data (SINGLE CALL)')
       hasLoadedRef.current = true
@@ -27,7 +28,7 @@ export function UserStoreProvider({ children }: { children: React.ReactNode }) {
       hasLoadedRef.current = false
       clearUser()
     }
-  }, [isAuthenticated, authLoading, storeLoading]) // FIXED: Removed function dependencies
+  }, [isAuthenticated, authLoading]) // FIXED: Removed storeLoading and function dependencies
 
   // REMOVED: No longer need to trigger AuthContext refresh
   // AuthContext now uses dashboard API directly and stays in sync

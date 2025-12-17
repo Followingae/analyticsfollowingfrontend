@@ -53,6 +53,7 @@ import { SiteHeader } from "@/components/site-header";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { toast } from "sonner";
+import { ImageCropper } from "@/components/ui/image-cropper";
 
 import { CampaignWorkflow } from "@/components/campaigns/unified/CampaignWorkflow";
 import { InfluencerSelection } from "@/components/campaigns/unified/InfluencerSelection";
@@ -315,6 +316,8 @@ export default function CampaignDetailsPage() {
   const [newLogo, setNewLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
 
   // Add post state (enhanced for batch upload)
   const [isAddPostDialogOpen, setIsAddPostDialogOpen] = useState(false);
@@ -849,13 +852,24 @@ export default function CampaignDetailsPage() {
         return;
       }
 
-      setNewLogo(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Store the selected file and open cropper
+      console.log("🎯 Opening cropper with file:", file.name);
+      setSelectedImageFile(file);
+      setIsCropperOpen(true);
+
+      // Clear the file input so user can select same file again if needed
+      e.target.value = "";
     }
+  };
+
+  const handleImageCropped = (croppedFile: File) => {
+    setNewLogo(croppedFile);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(croppedFile);
+    toast.success("Logo cropped and ready to upload");
   };
 
   const handleDeleteLogo = async () => {
@@ -999,30 +1013,178 @@ export default function CampaignDetailsPage() {
     }
   };
 
+  // MANDATORY: Progress update function for dynamic toast updates
+  const updateProgressToast = (toastId: string | number, progressPercent: number, currentStage: string, postShortcode: string) => {
+    const { ToastLoader } = require("@/components/ui/toast-loader");
+
+    // Create updated toast content
+    const updatedContent = (
+      <div className="flex items-center gap-3">
+        <ToastLoader size={40} text="AI" />
+        <div>
+          <div className="font-medium">AI Post Analytics Processing</div>
+          <div className="text-xs text-gray-400">
+            {progressPercent > 0 ? `${progressPercent}% complete` : 'Starting...'} - {currentStage}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            Analyzing {postShortcode}
+          </div>
+        </div>
+      </div>
+    );
+
+    // Update the existing toast
+    toast.dismiss(toastId);
+    return toast(updatedContent, {
+      duration: Infinity,
+      position: 'bottom-center',
+      className: 'bg-gray-900/95 text-white border-gray-700',
+    });
+  };
+
+  // MANDATORY: Async polling function for job completion
+  const pollForCompletion = async (jobId: string, tokenResult: any, postShortcode: string, initialToastId: string | number) => {
+    const maxAttempts = 60; // 5 minutes max (60 * 5 seconds)
+    const pollInterval = 5000; // 5 seconds as specified
+    let currentToastId = initialToastId;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const statusResponse = await fetch(
+          `${(await import("@/config/api")).API_CONFIG.BASE_URL}/api/v1/campaigns/jobs/${jobId}/status`,
+          {
+            headers: {
+              Authorization: `Bearer ${tokenResult.token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!statusResponse.ok) {
+          throw new Error(`Status check failed: ${statusResponse.status}`);
+        }
+
+        const statusData = await statusResponse.json();
+
+        // MANDATORY: Update UI with progress
+        const progressPercent = statusData.progress_percent || 0;
+        const currentStage = statusData.current_stage || 'Processing...';
+
+        console.log(`Job ${jobId} progress: ${progressPercent}%`);
+        console.log(`Current stage: ${currentStage}`);
+
+        // Update toast with progress
+        currentToastId = updateProgressToast(currentToastId, progressPercent, currentStage, postShortcode);
+
+        if (statusData.job_status === 'completed') {
+          // Get final results
+          const resultResponse = await fetch(
+            `${(await import("@/config/api")).API_CONFIG.BASE_URL}/api/v1/campaigns/jobs/${jobId}/result`,
+            {
+              headers: {
+                Authorization: `Bearer ${tokenResult.token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (!resultResponse.ok) {
+            throw new Error(`Result fetch failed: ${resultResponse.status}`);
+          }
+
+          // Dismiss progress toast before returning
+          toast.dismiss(currentToastId);
+          return await resultResponse.json();
+        }
+
+        if (statusData.job_status === 'failed') {
+          toast.dismiss(currentToastId);
+          throw new Error(statusData.error || 'Job failed');
+        }
+
+        // Wait before next poll
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      } catch (error) {
+        console.error(`Polling attempt ${attempt + 1} failed:`, error);
+
+        // If it's the last attempt, dismiss toast and throw error
+        if (attempt === maxAttempts - 1) {
+          toast.dismiss(currentToastId);
+          throw error;
+        }
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
+    }
+
+    toast.dismiss(currentToastId);
+    throw new Error('Job timeout - taking longer than expected');
+  };
+
   const handleSinglePostAdd = async () => {
     if (!newPostUrl.trim()) {
       toast.error("Please enter a post URL");
       return;
     }
 
-    setIsSaving(true);
+    // Store the URL before clearing the form
+    const postUrl = newPostUrl.trim();
+
+    // Extract shortcode from URL for display
+    const urlMatch = postUrl.match(/\/p\/([A-Za-z0-9_-]+)\//);
+    const postShortcode = urlMatch ? urlMatch[1] : "post";
+
+    // Close dialog immediately and clear form
+    setNewPostUrl("");
+    setIsAddPostDialogOpen(false);
+
+    // Show immediate feedback - processing started
+    toast("Post analytics started! You can continue using the app.", {
+      duration: 3000,
+      position: 'bottom-center',
+      className: 'bg-blue-900/95 text-white border-blue-700',
+    });
+
+    // Show processing toast with progress capability
+    const { ToastLoader } = await import("@/components/ui/toast-loader");
+    let processingToastId = toast(
+      <div className="flex items-center gap-3">
+        <ToastLoader size={40} text="AI" />
+        <div>
+          <div className="font-medium">AI Post Analytics Processing</div>
+          <div className="text-xs text-gray-400" id={`progress-${postShortcode}`}>
+            Starting analytics for {postShortcode}...
+          </div>
+        </div>
+      </div>,
+      {
+        duration: Infinity,
+        position: 'bottom-center',
+        className: 'bg-gray-900/95 text-white border-gray-700',
+      }
+    );
+
     try {
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
       const tokenResult = await tokenManager.getValidTokenWithRefresh();
 
       if (!tokenResult.isValid || !tokenResult.token) {
+        toast.dismiss(processingToastId);
         toast.error("Please log in again");
         return;
       }
 
-      // Use correct field name: instagram_post_url (snake_case)
+      // NEW: Use async endpoint with correct payload format
       const postsPayload = {
-        instagram_post_url: newPostUrl.trim(),
+        instagram_post_url: postUrl // Correct field name for async endpoint
+        // No async_mode flag needed for async endpoint
       };
 
+      // Initial job submission - should be sub-second response
       const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts`,
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts/async`,
         {
           method: "POST",
           headers: {
@@ -1035,25 +1197,92 @@ export default function CampaignDetailsPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to add post");
+        throw new Error(errorData.detail || "Failed to start post processing");
       }
 
-      toast.success("Post added successfully!", {
-        duration: 5000,
+      // Get job data from immediate response (async endpoint format)
+      const responseData = await response.json();
+
+      if (!responseData.success) {
+        throw new Error(responseData.message || "Failed to start post processing");
+      }
+
+      // CRITICAL: Extract job_id as string directly (already a UUID string)
+      const jobId = responseData.job_id; // This is a string, not an object
+      const {
+        status: jobStatus,
+        message,
+        status_url,
+        result_url,
+        estimated_time_seconds
+      } = responseData;
+
+      if (!jobId) {
+        throw new Error("No job ID returned from server");
+      }
+
+      console.log(`🚀 Post processing job started: ${jobId}`);
+      console.log(`📊 Job status: ${jobStatus}`);
+      console.log(`⏱️ Estimated time: ${estimated_time_seconds}s`);
+      console.log(`📍 Status URL: ${status_url}`);
+      console.log(`📍 Result URL: ${result_url}`);
+
+      // Update toast to show polling started with estimated time
+      toast.dismiss(processingToastId);
+      processingToastId = toast(
+        <div className="flex items-center gap-3">
+          <ToastLoader size={40} text="AI" />
+          <div>
+            <div className="font-medium">AI Post Analytics Processing</div>
+            <div className="text-xs text-gray-400">
+              Analyzing {postShortcode} - Background processing...
+            </div>
+            {estimated_time_seconds && (
+              <div className="text-xs text-gray-500">
+                Est. {Math.ceil(estimated_time_seconds / 60)}min
+              </div>
+            )}
+          </div>
+        </div>,
+        {
+          duration: Infinity,
+          position: 'bottom-center',
+          className: 'bg-gray-900/95 text-white border-gray-700',
+        }
+      );
+
+      // MANDATORY: Poll for completion with progress updates
+      const result = await pollForCompletion(jobId, tokenResult, postShortcode, processingToastId);
+
+      // Success - polling function already dismissed toast, just show completion
+      toast.success("Post analytics completed successfully!", {
+        duration: 4000,
+        position: 'bottom-center',
       });
-      setNewPostUrl("");
-      setIsAddPostDialogOpen(false);
 
       // Refresh campaign data to show new post
-      console.log("🔧 DEBUG: Post added successfully, refreshing campaign data...");
+      console.log("🔧 DEBUG: Post processing completed, refreshing campaign data...");
       await fetchCampaignData();
-      console.log("🔧 DEBUG: Campaign data refreshed after adding post");
+      console.log("🔧 DEBUG: Campaign data refreshed after post completion");
+
     } catch (error) {
-      console.error("Error adding post:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to add post";
-      toast.error(errorMessage);
-    } finally {
-      setIsSaving(false);
+      console.error("Error processing post:", error);
+
+      // Polling function already dismissed toast on error, just show appropriate error
+      if (error instanceof Error && error.message.includes('timeout')) {
+        toast("Processing is taking longer than usual. We'll notify you when complete.", {
+          duration: 6000,
+          position: 'bottom-center',
+          className: 'bg-orange-900/95 text-white border-orange-700',
+        });
+        // TODO: Optionally continue polling in background
+      } else {
+        const errorMessage = error instanceof Error ? error.message : "Failed to process post";
+        toast.error(`Failed to process post: ${errorMessage}`, {
+          position: 'bottom-center',
+          duration: 5000,
+        });
+      }
     }
   };
 
@@ -1072,6 +1301,29 @@ export default function CampaignDetailsPage() {
       toast.error("Maximum 50 posts allowed per batch");
       return;
     }
+
+    // Close dialog immediately
+    setBatchPostUrls("");
+    setIsAddPostDialogOpen(false);
+
+    // Show processing toast immediately using ToastLoader component
+    const { ToastLoader } = await import("@/components/ui/toast-loader");
+    const processingToastId = toast(
+      <div className="flex items-center gap-3">
+        <ToastLoader size={40} text="AI" />
+        <div>
+          <div className="font-medium">AI Post Analytics Processing</div>
+          <div className="text-xs text-gray-400">
+            Processing {urls.length} posts with complete analytics
+          </div>
+        </div>
+      </div>,
+      {
+        duration: Infinity,
+        position: 'bottom-center',
+        className: 'bg-gray-900/95 text-white border-gray-700',
+      }
+    );
 
     setIsProcessingBatch(true);
     setBatchProgress({ current: 0, total: urls.length });
@@ -1094,23 +1346,28 @@ export default function CampaignDetailsPage() {
       if (result.success && result.data) {
         const { summary } = result.data;
 
+        // Dismiss processing toast
+        toast.dismiss(processingToastId);
+
         if (summary.successful > 0) {
           toast.success(
-            `✅ Successfully added ${summary.successful}/${summary.total_requested} posts to campaign!`,
-            { duration: 6000 }
+            `✅ Successfully processed ${summary.successful}/${summary.total_requested} posts! Analytics ready.`,
+            {
+              duration: 6000,
+              position: 'bottom-center',
+            }
           );
         }
 
         if (summary.failed > 0) {
           toast.error(
             `❌ ${summary.failed} posts failed to process. Check URLs and try again.`,
-            { duration: 6000 }
+            {
+              duration: 6000,
+              position: 'bottom-center',
+            }
           );
         }
-
-        // Clear form and close dialog
-        setBatchPostUrls("");
-        setIsAddPostDialogOpen(false);
 
         // Refresh campaign data to show new posts
         fetchCampaignData();
@@ -1119,8 +1376,12 @@ export default function CampaignDetailsPage() {
       }
     } catch (error) {
       console.error("Error processing batch:", error);
+      // Dismiss processing toast and show error
+      toast.dismiss(processingToastId);
       const errorMessage = error instanceof Error ? error.message : "Failed to process batch";
-      toast.error(errorMessage);
+      toast.error(errorMessage, {
+        position: 'bottom-center',
+      });
     } finally {
       setIsProcessingBatch(false);
       setBatchProgress(null);
@@ -1356,7 +1617,7 @@ export default function CampaignDetailsPage() {
           </div>
 
           {/* Collaboration Metrics - NEW (Matching Theme Colors) */}
-          {stats && (stats.collaborationRate || 0) > 0 ? (
+          {stats && (stats.collaborationRate || 0) > 0 && (
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="border-primary/20 bg-primary/5">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -1386,26 +1647,6 @@ export default function CampaignDetailsPage() {
                 </CardContent>
               </Card>
             </div>
-          ) : (
-            // Temporary notice while backend implements collaboration support
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="py-4">
-                <div className="flex items-center gap-3">
-                  <Users className="h-5 w-5 text-primary" />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">Enhanced Collaboration Support</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Frontend ready for collaboration detection! Backend team is implementing collaboration fields.
-                      <br />
-                      Expected features: Multi-creator posts, collaboration rate, enhanced analytics.
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    Coming Soon
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
           )}
 
           {/* Post Type Breakdown */}
@@ -2188,6 +2429,16 @@ https://instagram.com/reel/DEF456/
           </div>
         </SidebarInset>
       </SidebarProvider>
+
+      {/* Image Cropper Dialog */}
+      <ImageCropper
+        open={isCropperOpen}
+        onOpenChange={setIsCropperOpen}
+        onImageCropped={handleImageCropped}
+        title="Crop Brand Logo"
+        cropAspectRatio={1} // Square crop
+        preSelectedFile={selectedImageFile}
+      />
     </AuthGuard>
   );
 }

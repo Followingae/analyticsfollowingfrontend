@@ -2,29 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  TrendingUp,
-  Users,
-  Eye,
-  Calendar,
-  Activity,
-  Target,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  ArrowUpRight,
-  ArrowDownRight,
-  Plus,
-  Sparkles,
-  ChevronRight,
-  BarChart3
-} from "lucide-react";
+import { Target, Plus, ChevronRight } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CampaignCard, type CampaignCardData } from "@/components/campaigns/CampaignCard";
 
 interface PerformanceMetric {
   current: number;
@@ -46,31 +28,9 @@ interface CampaignSummary {
   contentProduced: number;
 }
 
-interface RecentCampaign {
-  id: string;
-  name: string;
-  brand_name: string;
-  brand_logo?: string;
-  status: "active" | "completed" | "draft" | "in_review" | "paused";
-  engagement_rate: number;
-  total_reach: number;
-  creators_count: number;
-  created_at: string;
-  updated_at: string;
-  progress: number;
-  budget: string;
-  deadline: string;
-}
+// Use shared Campaign interface
+type RecentCampaign = CampaignCardData;
 
-interface TopCreator {
-  id: string;
-  name: string;
-  handle: string;
-  avatar: string;
-  campaigns_count: number;
-  total_reach: number;
-  avg_engagement: number;
-}
 
 interface CampaignsOverviewProps {
   searchQuery: string;
@@ -80,7 +40,6 @@ export function CampaignsOverviewV2({ searchQuery }: CampaignsOverviewProps) {
   const router = useRouter();
   const [summary, setSummary] = useState<CampaignSummary | null>(null);
   const [recentCampaigns, setRecentCampaigns] = useState<RecentCampaign[]>([]);
-  const [topCreators, setTopCreators] = useState<TopCreator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -91,65 +50,87 @@ export function CampaignsOverviewV2({ searchQuery }: CampaignsOverviewProps) {
     try {
       setIsLoading(true);
 
-      // Import the complete campaign API service
-      const { campaignApi } = await import('@/services/campaignApiComplete');
+      // Use the SAME API call as Active tab to ensure identical data
+      const { dedicatedApiCall } = await import('@/utils/apiDeduplication');
+      const responseData = await dedicatedApiCall.campaignsList({ limit: 10 }); // Get recent 10 campaigns
 
-      const response = await campaignApi.getDashboardOverview();
+      if (responseData.success && responseData.data) {
+        const campaigns = responseData.data.campaigns || [];
 
-      if (response.success && response.data) {
-        // Process summary data to handle missing values gracefully
-        const summary = response.data.summary;
-        if (summary) {
-          // Ensure all metrics have valid values
-          summary.totalReach = summary.totalReach || { current: 0, previous: 0, trend: 'stable', changePercent: 0 };
-          summary.avgEngagementRate = summary.avgEngagementRate || { current: 0, previous: 0, trend: 'stable', changePercent: 0 };
-          summary.totalSpend = summary.totalSpend || { current: 0, previous: 0, trend: 'stable', changePercent: 0 };
-        }
+        // Process campaigns EXACTLY like Active tab
+        const processedCampaigns = campaigns.map(campaign => ({
+          ...campaign,
+          // Ensure numeric fields are properly handled
+          engagement_rate: campaign.engagement_rate || 0,
+          total_reach: campaign.total_reach || 0,
+          creators_count: campaign.creators_count || 0,
+          posts_count: campaign.posts_count || 0,
+          progress: campaign.progress || 0,
+          content_delivered: campaign.content_delivered || 0,
+          content_total: campaign.content_total || 0,
+          // Handle missing created_by field
+          created_by: campaign.created_by || 'user',
+          has_posts: campaign.has_posts || (campaign.posts_count > 0)
+        }));
 
-        setSummary(summary || null);
-        setRecentCampaigns(response.data.recent_campaigns || []);
-        setTopCreators(response.data.top_creators || []);
+        setRecentCampaigns(processedCampaigns);
+
+        // Create a mock summary since we're not using overview endpoint
+        setSummary({
+          totalCampaigns: campaigns.length,
+          totalCreators: 0,
+          totalReach: { current: 0, previous: 0, trend: 'stable' as const, changePercent: 0 },
+          avgEngagementRate: { current: 0, previous: 0, trend: 'stable' as const, changePercent: 0 },
+          activeCampaigns: campaigns.filter(c => c.status === 'active').length,
+          completedCampaigns: campaigns.filter(c => c.status === 'completed').length,
+          pendingProposals: 0,
+          thisMonthCampaigns: campaigns.length,
+          totalSpend: { current: 0, previous: 0, trend: 'stable' as const, changePercent: 0 },
+          contentProduced: 0
+        });
       } else {
-        throw new Error(response.error || 'Failed to fetch overview data');
+        throw new Error(responseData.error || 'Failed to fetch campaigns');
       }
     } catch (error) {
       console.error("Error fetching overview data:", error);
       setSummary(null);
       setRecentCampaigns([]);
-      setTopCreators([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(0)}K`;
-    return num.toString();
-  };
-
-  const formatCurrency = (num: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
+  // Campaign action handler - no actions needed for overview, but required for CampaignCard interface
+  const handleCampaignAction = async (action: string, campaignId: string, campaignName: string) => {
+    // Overview tab doesn't need actions, but we need to provide this for the interface
+    console.log(`Campaign action ${action} on ${campaignName} (${campaignId}) - not implemented in overview`);
   };
 
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="border-0 shadow-sm">
-              <CardContent className="p-6">
-                <div className="h-32 bg-muted rounded animate-pulse" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Loading skeletons for Recent Campaigns */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="h-6 w-40 bg-muted rounded animate-pulse" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-4 p-4">
+                <div className="h-12 w-12 rounded-lg bg-muted animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+                  <div className="h-3 w-64 bg-muted rounded animate-pulse" />
+                </div>
+                <div className="text-right space-y-2">
+                  <div className="h-3 w-16 bg-muted rounded animate-pulse" />
+                  <div className="h-3 w-12 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -165,269 +146,41 @@ export function CampaignsOverviewV2({ searchQuery }: CampaignsOverviewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                <Eye className="h-5 w-5 text-blue-600" />
-              </div>
-              {summary.totalReach.trend === "up" ? (
-                <div className="flex items-center gap-1 text-xs font-medium text-green-600">
-                  <ArrowUpRight className="h-3 w-3" />
-                  {summary.totalReach.changePercent}%
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 text-xs font-medium text-red-600">
-                  <ArrowDownRight className="h-3 w-3" />
-                  {summary.totalReach.changePercent}%
-                </div>
-              )}
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Reach</p>
-              <p className="text-2xl font-bold mt-1">{formatNumber(summary.totalReach.current)}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                vs {formatNumber(summary.totalReach.previous)} last month
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-purple-600" />
-              </div>
-              {summary.avgEngagementRate.trend === "up" ? (
-                <div className="flex items-center gap-1 text-xs font-medium text-green-600">
-                  <ArrowUpRight className="h-3 w-3" />
-                  {summary.avgEngagementRate.changePercent}%
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 text-xs font-medium text-red-600">
-                  <ArrowDownRight className="h-3 w-3" />
-                  {summary.avgEngagementRate.changePercent}%
-                </div>
-              )}
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Avg. Engagement</p>
-              <p className="text-2xl font-bold mt-1">{summary.avgEngagementRate.current}%</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                vs {summary.avgEngagementRate.previous}% last month
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                <Activity className="h-5 w-5 text-green-600" />
-              </div>
-              <Badge variant="outline" className="text-xs">
-                {summary.activeCampaigns} active
-              </Badge>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Campaigns</p>
-              <p className="text-2xl font-bold mt-1">{summary.totalCampaigns}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <Progress value={(summary.activeCampaigns / summary.totalCampaigns) * 100} className="h-1.5" />
-                <span className="text-xs text-muted-foreground">
-                  {Math.round((summary.activeCampaigns / summary.totalCampaigns) * 100)}%
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="h-10 w-10 rounded-lg bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
-                <Users className="h-5 w-5 text-amber-600" />
-              </div>
-              <div className="flex items-center gap-1 text-xs font-medium text-green-600">
-                <Sparkles className="h-3 w-3" />
-                Top tier
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Creators</p>
-              <p className="text-2xl font-bold mt-1">{summary.totalCreators}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {summary.contentProduced} pieces produced
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Campaigns & Top Creators */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Recent Campaigns */}
-        <div className="lg:col-span-2">
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-lg font-semibold">Recent Campaigns</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/campaigns?tab=active')}
-              >
-                View all
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {filteredCampaigns.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-sm text-muted-foreground">No campaigns found</p>
-                </div>
-              ) : (
-                filteredCampaigns.slice(0, 3).map((campaign) => {
-                  return (
-                    <div
-                      key={campaign.id}
-                      className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => router.push(`/campaigns/${campaign.id}`)}
-                    >
-                      <Avatar className="h-10 w-10 rounded-lg">
-                        <AvatarImage src={campaign.brand_logo} />
-                        <AvatarFallback className="rounded-lg text-xs">
-                          {campaign.brand_name.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium truncate">{campaign.name}</p>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>{campaign.brand_name}</span>
-                          <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {campaign.creators_count} creators
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-3 w-3" />
-                            {formatNumber(campaign.total_reach)} reach
-                          </span>
-                        </div>
-                        {campaign.status === "active" && (
-                          <Progress value={campaign.progress} className="h-1 mt-2" />
-                        )}
-                      </div>
-
-                      <div className="text-right">
-                        <p className="text-sm font-medium">{campaign.budget}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(campaign.deadline).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-
-              {filteredCampaigns.length === 0 && (
-                <div className="flex justify-center pt-2">
-                  <Button onClick={() => router.push('/campaigns/new')}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create First Campaign
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Top Creators */}
-        <div>
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-lg font-semibold">Top Creators</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/creators')}
-              >
-                View all
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {topCreators.map((creator) => (
-                <div
-                  key={creator.id}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => router.push(`/creators/${creator.handle.slice(1)}`)}
-                >
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={creator.avatar} />
-                    <AvatarFallback>
-                      {creator.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{creator.name}</p>
-                    <p className="text-xs text-muted-foreground">{creator.handle}</p>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{creator.avg_engagement}%</p>
-                    <p className="text-xs text-muted-foreground">
-                      {creator.campaigns_count} campaigns
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card className="border-0 shadow-sm mt-4">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => router.push('/campaigns/new')}
-              >
+      {/* Recent Campaigns - Full Width */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
+          <CardTitle className="text-lg font-semibold">Recent Campaigns</CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/campaigns?tab=active')}
+          >
+            View all
+            <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {filteredCampaigns.length === 0 ? (
+            <div className="text-center py-12">
+              <Target className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-4">No campaigns found</p>
+              <Button onClick={() => router.push('/campaigns/new')}>
                 <Plus className="mr-2 h-4 w-4" />
-                New Campaign
+                Create First Campaign
               </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => router.push('/creators/discover')}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                Discover Creators
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => router.push('/analytics')}
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                View Analytics
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            </div>
+          ) : (
+            filteredCampaigns.map((campaign) => (
+              <CampaignCard
+                key={campaign.id}
+                campaign={campaign}
+                showActions={false}
+                onAction={handleCampaignAction}
+              />
+            ))
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

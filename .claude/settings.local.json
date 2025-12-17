@@ -93,7 +93,8 @@
       "Bash(start http://localhost:3001)",
       "Bash(start http://localhost:3001/billing)",
       "Bash(start http://localhost:3001/campaigns/1)",
-      "Bash(start http://localhost:3001/campaigns/2)"
+      "Bash(start http://localhost:3001/campaigns/2)",
+      "Bash(nslookup:*)"
     ],
     "deny": [],
     "additionalDirectories": [

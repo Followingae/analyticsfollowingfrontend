@@ -383,13 +383,6 @@ export default function SettingsPage() {
       <SidebarInset>
         <SiteHeader />
         <div className="flex-1 space-y-4 p-6">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-            <p className="text-muted-foreground">
-              Manage your account settings and preferences.
-            </p>
-          </div>
-
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="profile">Profile</TabsTrigger>

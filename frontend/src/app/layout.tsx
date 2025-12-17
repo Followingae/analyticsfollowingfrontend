@@ -16,6 +16,9 @@ import { ServiceWorkerProvider } from "@/components/ServiceWorkerProvider";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+  display: "swap",
+  adjustFontFallback: false, // Reduce retry attempts
+  preload: true,
 });
 
 const aedFont = localFont({

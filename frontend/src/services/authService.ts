@@ -265,6 +265,36 @@ class AuthService {
         if (data.user) {
           localStorage.setItem('user_data', JSON.stringify(data.user))
         }
+
+        // CRITICAL: Store the access token immediately after registration
+        if (data.access_token) {
+          // Use the same method as login to store tokens
+          const tokenData = {
+            access_token: data.access_token,
+            refresh_token: data.refresh_token || '',
+            token_type: data.token_type || 'bearer',
+            expires_at: Date.now() + (data.expires_in || 3600) * 1000 // Default 1 hour
+          }
+
+          // Store tokens using tokenManager for consistency
+          tokenManager.storeTokens(tokenData)
+
+          // Also store in localStorage for immediate access (matching login flow)
+          localStorage.setItem('access_token', data.access_token)
+          if (data.refresh_token) {
+            localStorage.setItem('refresh_token', data.refresh_token)
+          }
+
+          // Update internal token data
+          this.tokenData = tokenData
+          this.lastLoginTime = Date.now()
+
+          console.log('✅ Tokens stored after registration:', {
+            access_token: data.access_token ? 'PRESENT' : 'MISSING',
+            refresh_token: data.refresh_token ? 'PRESENT' : 'MISSING'
+          })
+        }
+
         return {
           success: true,
           data: {

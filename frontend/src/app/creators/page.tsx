@@ -372,101 +372,7 @@ export default function CreatorsPage() {
             <div className="flex-1">
               <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold">Creators</h1>
-                <p className="text-muted-foreground mt-1">
-                  Discover and analyze Instagram creators for your campaigns
-                </p>
-              </div>
-              <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-                <SheetTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Creators
-                  </Button>
-                </SheetTrigger>
-                <SheetContent className="w-[450px] sm:w-[600px] p-8">
-                  <SheetHeader>
-                    <SheetTitle>Add New Creators</SheetTitle>
-                  </SheetHeader>
-                  <div className="space-y-6 mt-6">
-                    {/* Manual Username Entry */}
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">Instagram Username</label>
-                        <Input
-                          placeholder="Enter Instagram username (e.g., @influencer_name)"
-                          className="mt-2"
-                          value={searchUsername}
-                          onChange={(e) => setSearchUsername(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleSearchCreator()}
-                        />
-                      </div>
-                      <Button
-                        className="w-full"
-                        onClick={handleSearchCreator}
-                        disabled={creatorSearchMutation.isPending || !searchUsername.trim()}
-                      >
-                        {creatorSearchMutation.isPending ? (
-                          <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        ) : (
-                          <Search className="h-4 w-4 mr-2" />
-                        )}
-                        {creatorSearchMutation.isPending ? "Searching..." : "Search & Add Creator"}
-                      </Button>
-                    </div>
-
-                    <Separator />
-
-                    {/* Bulk Analysis */}
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">Bulk Analysis</label>
-                        <textarea
-                          placeholder="Enter multiple usernames separated by commas or new lines..."
-                          className="mt-2 w-full min-h-[100px] p-3 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md"
-                          value={bulkUsernames}
-                          onChange={(e) => setBulkUsernames(e.target.value)}
-                        />
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={handleBulkAnalysis}
-                        disabled={bulkLoading || !bulkUsernames.trim()}
-                      >
-                        {bulkLoading ? (
-                          <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <BarChart3 className="h-4 w-4 mr-2" />
-                        )}
-                        {bulkLoading ? "Processing..." : "Bulk Search"}
-                      </Button>
-                    </div>
-
-                    <Separator />
-
-                    {/* AI Verification Tool */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-medium">📊 Analysis Tools</h3>
-                      <AIVerificationTool />
-                    </div>
-
-                    <div className="pt-4 border-t">
-                      <div className="text-xs text-muted-foreground space-y-1">
-                        <p>📊 Comprehensive analysis:</p>
-                        <p>• Content category analysis (20+ categories)</p>
-                        <p>• Audience sentiment and engagement patterns</p>
-                        <p>• Multi-language content detection</p>
-                        <p>• Performance scoring and insights</p>
-                      </div>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
+            {/* Header - Now empty since title moved to top bar and Add Creators moved to card */}
 
             
             {/* Creators Portfolio */}
@@ -474,10 +380,92 @@ export default function CreatorsPage() {
               <CardHeader>
                 <div className="flex items-center justify-between mb-4">
                   <CardTitle>Your Creator Portfolio</CardTitle>
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    <BarChart3 className="h-3 w-3" />
-                    Analytics
-                  </Badge>
+                  <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                    <SheetTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Creators
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent className="w-[450px] sm:w-[600px] p-8">
+                      <SheetHeader>
+                        <SheetTitle>Add New Creators</SheetTitle>
+                      </SheetHeader>
+                      <div className="space-y-6 mt-6">
+                        {/* Manual Username Entry */}
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-sm font-medium">Instagram Username</label>
+                            <Input
+                              placeholder="Enter Instagram username (e.g., @influencer_name)"
+                              className="mt-2"
+                              value={searchUsername}
+                              onChange={(e) => setSearchUsername(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && handleSearchCreator()}
+                            />
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={handleSearchCreator}
+                            disabled={creatorSearchMutation.isPending || !searchUsername.trim()}
+                          >
+                            {creatorSearchMutation.isPending ? (
+                              <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            ) : (
+                              <Search className="h-4 w-4 mr-2" />
+                            )}
+                            {creatorSearchMutation.isPending ? "Searching..." : "Search & Add Creator"}
+                          </Button>
+                        </div>
+
+                        <Separator />
+
+                        {/* Bulk Analysis */}
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-sm font-medium">Bulk Analysis</label>
+                            <textarea
+                              placeholder="Enter multiple usernames separated by commas or new lines..."
+                              className="mt-2 w-full min-h-[100px] p-3 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md"
+                              value={bulkUsernames}
+                              onChange={(e) => setBulkUsernames(e.target.value)}
+                            />
+                          </div>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={handleBulkAnalysis}
+                            disabled={bulkLoading || !bulkUsernames.trim()}
+                          >
+                            {bulkLoading ? (
+                              <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                              <BarChart3 className="h-4 w-4 mr-2" />
+                            )}
+                            {bulkLoading ? "Processing..." : "Bulk Search"}
+                          </Button>
+                        </div>
+
+                        <Separator />
+
+                        {/* AI Verification Tool */}
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-medium">📊 Analysis Tools</h3>
+                          <AIVerificationTool />
+                        </div>
+
+                        <div className="pt-4 border-t">
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <p>📊 Comprehensive analysis:</p>
+                            <p>• Content category analysis (20+ categories)</p>
+                            <p>• Audience sentiment and engagement patterns</p>
+                            <p>• Multi-language content detection</p>
+                            <p>• Performance scoring and insights</p>
+                          </div>
+                        </div>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
                 </div>
                 
                 {/* Search and Filters in one row */}

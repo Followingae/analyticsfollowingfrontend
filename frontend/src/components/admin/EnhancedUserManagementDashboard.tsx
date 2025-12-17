@@ -59,25 +59,28 @@ import {
   Building,
   Fingerprint
 } from 'lucide-react';
-import { superadminApi } from '@/services/superadminApi';
+import {
+  superadminApi,
+  SuperAdminUserResponse,
+  SuperAdminCreateUserRequest,
+  SuperAdminUpdateSubscriptionRequest,
+  SuperAdminCreditTopupRequest,
+  SuperAdminBulkCreditTopupRequest,
+  SuperAdminUpdatePermissionsRequest,
+  SuperAdminUserFilters
+} from '@/services/superadminApi';
 
-interface EnhancedUser {
-  id: string;
-  email: string;
-  full_name: string;
-  role: 'user' | 'admin' | 'super_admin' | 'team_member';
-  status: 'active' | 'inactive' | 'suspended' | 'pending';
-  teams: Array<{ name: string; role: string }>;
-  credits: { balance: number; spent: number };
-  recent_activity: number;
-  security: {
+// Enhanced interface that extends the SuperAdmin API response
+interface EnhancedUser extends SuperAdminUserResponse {
+  teams?: Array<{ name: string; role: string }>;
+  recent_activity?: number;
+  security?: {
     mfa_enabled: boolean;
     last_login: string;
     login_attempts: number;
     sessions_active: number;
   };
-  created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 interface UserActivity {
@@ -124,14 +127,34 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
   const [showSecurityDialog, setShowSecurityDialog] = useState(false);
   const [showBulkDialog, setBulkOpDialog] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<Partial<SuperAdminCreateUserRequest>>({
     email: '',
     full_name: '',
-    role: 'user',
-    status: 'active',
     subscription_tier: 'free',
-    initial_credits: 0
+    billing_type: 'offline',
+    initial_credits: 0,
+    admin_notes: '',
+    send_welcome_email: true
   });
+
+  const [creditTopup, setCreditTopup] = useState<Partial<SuperAdminCreditTopupRequest>>({
+    user_id: '',
+    package_type: 'standard_500',
+    custom_credits: 0,
+    reason: '',
+    expires_in_days: 90
+  });
+
+  const [bulkCreditTopup, setBulkCreditTopup] = useState<Partial<SuperAdminBulkCreditTopupRequest>>({
+    user_ids: [],
+    package_type: 'starter_100',
+    custom_credits: 0,
+    reason: '',
+    expires_in_days: 30
+  });
+
+  const [showCreditTopupDialog, setShowCreditTopupDialog] = useState(false);
+  const [showBulkCreditDialog, setShowBulkCreditDialog] = useState(false);
   const [bulkOperation, setBulkOperation] = useState({
     operation: 'update_role',
     parameters: {}
@@ -145,12 +168,23 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
   const loadUsersData = async () => {
     try {
       setLoading(true);
-      const response = await superadminApi.getUsers({
+      const filters: SuperAdminUserFilters = {
         limit: 100,
-        search: searchTerm || undefined,
-        status_filter: statusFilter !== 'all' ? statusFilter : undefined,
-        role_filter: roleFilter !== 'all' ? roleFilter : undefined
-      });
+        skip: 0
+      };
+
+      if (statusFilter !== 'all') {
+        filters.status = statusFilter as 'active' | 'inactive' | 'suspended' | 'pending';
+      }
+
+      if (roleFilter !== 'all') {
+        // Map legacy role filter to subscription_tier if needed
+        if (roleFilter === 'free' || roleFilter === 'standard' || roleFilter === 'premium') {
+          filters.subscription_tier = roleFilter as 'free' | 'standard' | 'premium';
+        }
+      }
+
+      const response = await superadminApi.listAllUsers(filters);
 
       if (response.success && response.data) {
         setUsers(response.data.users || []);
@@ -198,28 +232,151 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
 
   const handleCreateUser = async () => {
     try {
-      await superadminApi.createUser(newUser);
-      setShowUserDialog(false);
-      setNewUser({
-        email: '',
-        full_name: '',
-        role: 'user',
-        status: 'active',
-        subscription_tier: 'free',
-        initial_credits: 0
-      });
-      loadUsersData();
+      if (!newUser.email || !newUser.full_name || !newUser.subscription_tier || !newUser.billing_type) {
+        setError('Please fill in all required fields');
+        return;
+      }
+
+      const createUserData: SuperAdminCreateUserRequest = {
+        email: newUser.email,
+        full_name: newUser.full_name,
+        subscription_tier: newUser.subscription_tier,
+        billing_type: newUser.billing_type,
+        initial_credits: newUser.initial_credits || 0,
+        admin_notes: newUser.admin_notes || '',
+        send_welcome_email: newUser.send_welcome_email !== false,
+        custom_permissions: newUser.custom_permissions
+      };
+
+      const response = await superadminApi.createUserWithPermissions(createUserData);
+
+      if (response.success) {
+        setShowUserDialog(false);
+        setNewUser({
+          email: '',
+          full_name: '',
+          subscription_tier: 'free',
+          billing_type: 'offline',
+          initial_credits: 0,
+          admin_notes: '',
+          send_welcome_email: true
+        });
+        loadUsersData();
+        setError(null);
+      } else {
+        setError(response.error || 'Failed to create user');
+      }
     } catch (err) {
       console.error('Failed to create user:', err);
+      setError('Failed to create user');
     }
   };
 
-  const handleEditUser = async (userId: string, updates: any) => {
+  const handleEditUser = async (userId: string, updates: SuperAdminUpdateSubscriptionRequest) => {
     try {
-      await superadminApi.editUser(userId, updates);
-      loadUsersData();
+      const response = await superadminApi.updateUserSubscription(userId, updates);
+      if (response.success) {
+        loadUsersData();
+        setError(null);
+      } else {
+        setError(response.error || 'Failed to update user');
+      }
     } catch (err) {
       console.error('Failed to edit user:', err);
+      setError('Failed to update user');
+    }
+  };
+
+  const handleCreditTopup = async () => {
+    try {
+      if (!creditTopup.user_id || !creditTopup.reason) {
+        setError('Please fill in all required fields for credit topup');
+        return;
+      }
+
+      if (!creditTopup.package_type && !creditTopup.custom_credits) {
+        setError('Please select a package or enter custom credits amount');
+        return;
+      }
+
+      const topupData: SuperAdminCreditTopupRequest = {
+        user_id: creditTopup.user_id,
+        reason: creditTopup.reason,
+        expires_in_days: creditTopup.expires_in_days || 90
+      };
+
+      if (creditTopup.package_type) {
+        topupData.package_type = creditTopup.package_type;
+      } else if (creditTopup.custom_credits) {
+        topupData.custom_credits = creditTopup.custom_credits;
+      }
+
+      const response = await superadminApi.giveCreditTopup(topupData);
+
+      if (response.success) {
+        setShowCreditTopupDialog(false);
+        setCreditTopup({
+          user_id: '',
+          package_type: 'standard_500',
+          custom_credits: 0,
+          reason: '',
+          expires_in_days: 90
+        });
+        loadUsersData();
+        setError(null);
+      } else {
+        setError(response.error || 'Failed to process credit topup');
+      }
+    } catch (err) {
+      console.error('Failed to process credit topup:', err);
+      setError('Failed to process credit topup');
+    }
+  };
+
+  const handleBulkCreditTopup = async () => {
+    try {
+      if (!bulkCreditTopup.user_ids?.length || !bulkCreditTopup.reason) {
+        setError('Please select users and provide a reason');
+        return;
+      }
+
+      if (!bulkCreditTopup.package_type && !bulkCreditTopup.custom_credits) {
+        setError('Please select a package or enter custom credits amount');
+        return;
+      }
+
+      const bulkTopupData: SuperAdminBulkCreditTopupRequest = {
+        user_ids: bulkCreditTopup.user_ids,
+        reason: bulkCreditTopup.reason,
+        expires_in_days: bulkCreditTopup.expires_in_days || 30
+      };
+
+      if (bulkCreditTopup.package_type) {
+        bulkTopupData.package_type = bulkCreditTopup.package_type;
+      } else if (bulkCreditTopup.custom_credits) {
+        bulkTopupData.custom_credits = bulkCreditTopup.custom_credits;
+      }
+
+      const response = await superadminApi.giveBulkCreditTopup(bulkTopupData);
+
+      if (response.success) {
+        setShowBulkCreditDialog(false);
+        setBulkCreditTopup({
+          user_ids: [],
+          package_type: 'starter_100',
+          custom_credits: 0,
+          reason: '',
+          expires_in_days: 30
+        });
+        setSelectedUsers([]);
+        loadUsersData();
+        setError(null);
+      } else {
+        setError(response.error || 'Failed to process bulk credit topup');
+      }
+    } catch (err) {
+      console.error('Failed to process bulk credit topup:', err);
+      setError('Failed to process bulk credit topup');
     }
   };
 
@@ -409,10 +566,26 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
           <p className="text-muted-foreground">Advanced user administration with security controls and permission management</p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button onClick={loadUsersData} size="sm">
+          <Button onClick={loadUsersData} size="sm" variant="outline">
             <RefreshCcw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
+          <Dialog open={showCreditTopupDialog} onOpenChange={setShowCreditTopupDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Credit Topup
+              </Button>
+            </DialogTrigger>
+          </Dialog>
+          <Dialog open={showBulkCreditDialog} onOpenChange={setShowBulkCreditDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" disabled={selectedUsers.length === 0}>
+                <Upload className="h-4 w-4 mr-2" />
+                Bulk Credits ({selectedUsers.length})
+              </Button>
+            </DialogTrigger>
+          </Dialog>
           <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
             <DialogTrigger asChild>
               <Button>
@@ -449,29 +622,39 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="role">Role</Label>
-                    <Select value={newUser.role} onValueChange={(value) => setNewUser(prev => ({ ...prev, role: value }))}>
+                    <Label htmlFor="subscription_tier">Subscription Tier *</Label>
+                    <Select
+                      value={newUser.subscription_tier || ''}
+                      onValueChange={(value) => setNewUser(prev => ({
+                        ...prev,
+                        subscription_tier: value as 'free' | 'standard' | 'premium'
+                      }))}
+                    >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Select tier..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="team_member">Team Member</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="free">Free Tier (5 profiles/month)</SelectItem>
+                        <SelectItem value="standard">Standard ($199/month - 500 profiles)</SelectItem>
+                        <SelectItem value="premium">Premium ($499/month - 2000 profiles)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="subscription_tier">Subscription</Label>
-                    <Select value={newUser.subscription_tier} onValueChange={(value) => setNewUser(prev => ({ ...prev, subscription_tier: value }))}>
+                    <Label htmlFor="billing_type">Billing Type *</Label>
+                    <Select
+                      value={newUser.billing_type || ''}
+                      onValueChange={(value) => setNewUser(prev => ({
+                        ...prev,
+                        billing_type: value as 'offline' | 'stripe'
+                      }))}
+                    >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Select billing..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="free">Free</SelectItem>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="premium">Premium</SelectItem>
-                        <SelectItem value="enterprise">Enterprise</SelectItem>
+                        <SelectItem value="offline">Offline (Admin-managed)</SelectItem>
+                        <SelectItem value="stripe">Stripe (Self-managed)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -481,10 +664,29 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
                   <Input
                     id="initial_credits"
                     type="number"
-                    value={newUser.initial_credits}
+                    min="0"
+                    value={newUser.initial_credits || 0}
                     onChange={(e) => setNewUser(prev => ({ ...prev, initial_credits: parseInt(e.target.value) || 0 }))}
-                    placeholder="100"
+                    placeholder="0"
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="admin_notes">Admin Notes</Label>
+                  <Textarea
+                    id="admin_notes"
+                    value={newUser.admin_notes || ''}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, admin_notes: e.target.value }))}
+                    placeholder="Admin notes about this user..."
+                    rows={3}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="send_welcome_email"
+                    checked={newUser.send_welcome_email !== false}
+                    onCheckedChange={(checked) => setNewUser(prev => ({ ...prev, send_welcome_email: !!checked }))}
+                  />
+                  <Label htmlFor="send_welcome_email">Send welcome email to user</Label>
                 </div>
               </div>
               <DialogFooter>
@@ -606,6 +808,187 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
                     </Dialog>
                   </div>
                 )}
+
+      {/* Credit Topup Dialog */}
+      <Dialog open={showCreditTopupDialog} onOpenChange={setShowCreditTopupDialog}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>Credit Topup</DialogTitle>
+            <DialogDescription>Give credits to a specific user</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="topup-user">Select User</Label>
+              <Select
+                value={creditTopup.user_id}
+                onValueChange={(value) => setCreditTopup(prev => ({ ...prev, user_id: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose user..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map(user => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.full_name} ({user.email}) - {user.credit_balance} credits
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="package">Credit Package</Label>
+                <Select
+                  value={creditTopup.package_type || ''}
+                  onValueChange={(value) => setCreditTopup(prev => ({
+                    ...prev,
+                    package_type: value as 'starter_100' | 'standard_500' | 'premium_1000' | 'enterprise_5000' | 'bonus',
+                    custom_credits: value ? undefined : prev.custom_credits
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select package..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="starter_100">Starter (100 credits - 30 days)</SelectItem>
+                    <SelectItem value="standard_500">Standard (500 credits - 60 days)</SelectItem>
+                    <SelectItem value="premium_1000">Premium (1000 credits - 90 days)</SelectItem>
+                    <SelectItem value="enterprise_5000">Enterprise (5000 credits - 180 days)</SelectItem>
+                    <SelectItem value="bonus">Custom Amount</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="custom-amount">Custom Amount</Label>
+                <Input
+                  id="custom-amount"
+                  type="number"
+                  min="0"
+                  value={creditTopup.custom_credits || ''}
+                  onChange={(e) => setCreditTopup(prev => ({
+                    ...prev,
+                    custom_credits: parseInt(e.target.value) || 0,
+                    package_type: e.target.value ? undefined : prev.package_type
+                  }))}
+                  placeholder="Enter credits"
+                  disabled={!!creditTopup.package_type && creditTopup.package_type !== 'bonus'}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="topup-reason">Reason *</Label>
+              <Textarea
+                id="topup-reason"
+                value={creditTopup.reason}
+                onChange={(e) => setCreditTopup(prev => ({ ...prev, reason: e.target.value }))}
+                placeholder="Reason for credit topup..."
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="expires">Expires in (days)</Label>
+              <Input
+                id="expires"
+                type="number"
+                min="1"
+                max="365"
+                value={creditTopup.expires_in_days || 90}
+                onChange={(e) => setCreditTopup(prev => ({ ...prev, expires_in_days: parseInt(e.target.value) || 90 }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreditTopupDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreditTopup}>Give Credits</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Credit Topup Dialog */}
+      <Dialog open={showBulkCreditDialog} onOpenChange={setShowBulkCreditDialog}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>Bulk Credit Topup</DialogTitle>
+            <DialogDescription>Give credits to multiple users ({selectedUsers.length} selected)</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="bulk-package">Credit Package</Label>
+                <Select
+                  value={bulkCreditTopup.package_type || ''}
+                  onValueChange={(value) => setBulkCreditTopup(prev => ({
+                    ...prev,
+                    package_type: value as 'starter_100' | 'standard_500' | 'premium_1000' | 'enterprise_5000' | 'bonus',
+                    custom_credits: value ? undefined : prev.custom_credits,
+                    user_ids: selectedUsers
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select package..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="starter_100">Starter (100 credits - 30 days)</SelectItem>
+                    <SelectItem value="standard_500">Standard (500 credits - 60 days)</SelectItem>
+                    <SelectItem value="premium_1000">Premium (1000 credits - 90 days)</SelectItem>
+                    <SelectItem value="enterprise_5000">Enterprise (5000 credits - 180 days)</SelectItem>
+                    <SelectItem value="bonus">Custom Amount</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="bulk-custom-amount">Custom Amount</Label>
+                <Input
+                  id="bulk-custom-amount"
+                  type="number"
+                  min="0"
+                  value={bulkCreditTopup.custom_credits || ''}
+                  onChange={(e) => setBulkCreditTopup(prev => ({
+                    ...prev,
+                    custom_credits: parseInt(e.target.value) || 0,
+                    package_type: e.target.value ? undefined : prev.package_type,
+                    user_ids: selectedUsers
+                  }))}
+                  placeholder="Enter credits"
+                  disabled={!!bulkCreditTopup.package_type && bulkCreditTopup.package_type !== 'bonus'}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="bulk-reason">Reason *</Label>
+              <Textarea
+                id="bulk-reason"
+                value={bulkCreditTopup.reason}
+                onChange={(e) => setBulkCreditTopup(prev => ({ ...prev, reason: e.target.value, user_ids: selectedUsers }))}
+                placeholder="Reason for bulk credit topup..."
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="bulk-expires">Expires in (days)</Label>
+              <Input
+                id="bulk-expires"
+                type="number"
+                min="1"
+                max="365"
+                value={bulkCreditTopup.expires_in_days || 30}
+                onChange={(e) => setBulkCreditTopup(prev => ({
+                  ...prev,
+                  expires_in_days: parseInt(e.target.value) || 30,
+                  user_ids: selectedUsers
+                }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkCreditDialog(false)}>Cancel</Button>
+            <Button onClick={handleBulkCreditTopup}>Give Credits to {selectedUsers.length} Users</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+                )}
+
+              </CardTitle>
               </CardTitle>
             </CardHeader>
             <CardContent>

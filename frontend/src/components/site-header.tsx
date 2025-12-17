@@ -25,6 +25,21 @@ export function SiteHeader() {
   const router = useRouter()
   const isDashboard = pathname === '/' || pathname === '/dashboard'
   const { user, isLoading, isBrandUser, logout } = useEnhancedAuth()
+
+  // Function to get page title based on current pathname
+  const getPageTitle = () => {
+    if (pathname === '/campaigns') return 'Campaigns'
+    if (pathname === '/campaigns/new') return 'New Campaign'
+    if (pathname.startsWith('/campaigns/')) return 'Campaign Details'
+    if (pathname === '/creators') return 'Creators'
+    if (pathname === '/my-lists') return 'My Lists'
+    if (pathname.startsWith('/my-lists/')) return 'List Details'
+    if (pathname === '/settings') return 'Settings'
+    if (pathname === '/discover') return 'Discover'
+    if (pathname === '/billing') return 'Billing'
+    if (pathname === '/teams') return 'Teams'
+    return null // Don't show title for unknown pages
+  }
   
   // Team context state (replaces individual credit balance)
   const [teamContext, setTeamContext] = useState<TeamContext | null>(null)
@@ -122,7 +137,7 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        {!isDashboard && userDisplayData && userDisplayData.displayName && (
+        {isDashboard && userDisplayData && userDisplayData.displayName && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground font-medium">Welcome,</span>
             <span className="text-sm text-muted-foreground font-medium">{userDisplayData.displayName}</span>
@@ -132,6 +147,11 @@ export function SiteHeader() {
                 <span className="text-sm text-muted-foreground font-medium">{userDisplayData.companyName}</span>
               </>
             )}
+          </div>
+        )}
+        {!isDashboard && getPageTitle() && (
+          <div className="flex items-center gap-2">
+            <h1 className="text-sm font-semibold">{getPageTitle()}</h1>
           </div>
         )}
         <div className="ml-auto flex items-center gap-3">

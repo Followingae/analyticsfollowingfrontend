@@ -18,7 +18,8 @@ export const ENDPOINTS = {
   // Auth & User (/api/v1/auth/)
   auth: {
     login: '/api/v1/auth/login', // POST - User login
-    register: '/api/v1/auth/register', // POST - User registration
+    register: '/api/v1/auth/register', // POST - User registration (201 Created)
+    billingTypes: '/api/v1/auth/billing-types', // GET - Get billing type options
     me: '/api/v1/auth/me', // GET - Current user info
     dashboard: '/api/v1/auth/dashboard', // GET - Dashboard data
     logout: '/api/v1/auth/logout', // POST - User logout
@@ -27,6 +28,7 @@ export const ENDPOINTS = {
     unlockedProfiles: '/api/v1/auth/unlocked-profiles', // GET - Unlocked profiles
     forgotPassword: '/api/v1/auth/forgot-password', // POST - Forgot password
     verifyEmail: (token: string) => `/api/v1/auth/verify-email/${token}`, // GET - Verify email
+    adminCreateManagedUser: '/api/v1/auth/admin/create-managed-user', // POST - Admin creates managed user
   },
 
   // Credits (/api/v1/credits/)
@@ -188,7 +190,36 @@ export const ENDPOINTS = {
     overview: '/api/v1/settings/overview', // GET - Settings overview (legacy)
   },
 
-  // Stripe (/api/v1/stripe/)
+  // Billing (/api/v1/billing/)
+  billing: {
+    // Public endpoints (no auth)
+    products: '/api/v1/billing/products', // GET - Get available products
+
+    // V3 Payment-First Registration Flow (Latest - Better Reliability)
+    preRegistrationCheckout: '/api/v1/billing/v3/pre-registration-checkout', // POST - Payment before registration
+    freeTierRegistration: '/api/v1/billing/v3/free-tier-registration', // POST - Direct free tier signup
+    verifySession: (sessionId: string) => `/api/v1/billing/v3/verify-session/${sessionId}`, // GET - Check account creation status
+
+    // Existing user endpoints
+    createCheckoutSession: '/api/v1/billing/create-checkout-session', // POST - Create checkout session
+    upgradeSubscription: '/api/v1/billing/upgrade-subscription', // POST - Upgrade existing subscription
+    subscription: '/api/v1/billing/subscription-status', // GET - Get subscription status
+    createPortalSession: '/api/v1/billing/create-portal-session', // POST - Create customer portal session
+    portalUrl: '/api/v1/billing/subscription/portal-url', // GET - Get Stripe portal URL (correct endpoint from backend)
+    cancelSubscription: '/api/v1/billing/cancel-subscription', // POST - Cancel subscription
+
+    // Webhooks
+    webhook: '/api/v1/billing/webhook', // POST - Stripe webhook for existing subscriptions
+    webhookCompleteRegistration: '/api/v1/billing/v2/webhook/complete-registration', // POST - Webhook for new registrations
+  },
+
+  // Admin Billing (/api/v1/admin/billing/)
+  adminBilling: {
+    pendingUsers: '/api/v1/admin/billing/pending-users', // GET - Get pending approval users
+    approveUser: '/api/v1/admin/billing/approve-user', // POST - Approve user with custom billing
+  },
+
+  // Stripe (Legacy - keeping for backwards compatibility)
   stripe: {
     createCustomer: '/api/v1/stripe/create-customer', // POST - Create Stripe customer
     portalUrl: '/api/v1/stripe/portal-url', // GET - Customer portal URL
