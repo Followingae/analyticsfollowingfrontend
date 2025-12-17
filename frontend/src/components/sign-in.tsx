@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 // --- HELPER COMPONENTS (ICONS) ---
@@ -68,7 +68,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   // Fix hydration mismatch by ensuring theme is only used after mount
   useEffect(() => {
@@ -79,7 +79,22 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   const logoSrc = mounted && theme === 'dark' ? "/Following Logo Dark Mode.svg" : "/followinglogo.svg";
 
   return (
-    <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw]">
+    <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw] relative">
+      {/* Theme Toggle - Absolute positioned in top right */}
+      {mounted && (
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="absolute top-6 right-6 z-10 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
+          ) : (
+            <Moon className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
+          )}
+        </button>
+      )}
+
       {/* Left column: sign-in form */}
       <section className="flex-[3] flex items-center justify-center p-8">
         <div className="w-full max-w-md">
@@ -88,7 +103,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
             <div className="mb-4">
               <img
                 src={logoSrc}
-                className="h-6 w-auto object-contain animate-element animate-delay-50 opacity-60"
+                className="h-6 w-auto object-contain animate-element animate-delay-50"
                 alt="Following Logo"
               />
             </div>

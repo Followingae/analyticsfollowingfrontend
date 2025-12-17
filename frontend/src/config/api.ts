@@ -192,10 +192,7 @@ export const ENDPOINTS = {
 
   // Billing (/api/v1/billing/)
   billing: {
-    // Public endpoints (no auth)
-    products: '/api/v1/billing/products', // GET - Get available products
-
-    // V3 Payment-First Registration Flow (Latest - Better Reliability)
+    // V3 Payment-First Registration Flow
     preRegistrationCheckout: '/api/v1/billing/v3/pre-registration-checkout', // POST - Payment before registration
     freeTierRegistration: '/api/v1/billing/v3/free-tier-registration', // POST - Direct free tier signup
     verifySession: (sessionId: string) => `/api/v1/billing/v3/verify-session/${sessionId}`, // GET - Check account creation status
@@ -211,6 +208,20 @@ export const ENDPOINTS = {
     // Webhooks
     webhook: '/api/v1/billing/webhook', // POST - Stripe webhook for existing subscriptions
     webhookCompleteRegistration: '/api/v1/billing/v2/webhook/complete-registration', // POST - Webhook for new registrations
+  },
+
+  // Checkout (/api/v1/checkout/)
+  checkout: {
+    pricing: '/api/v1/checkout/pricing', // GET - Get all pricing (monthly & annual)
+    createSession: '/api/v1/checkout/create-session', // POST - Create checkout session for upgrade
+    createTopupSession: '/api/v1/checkout/create-topup-session', // POST - Create credit topup session
+  },
+
+  // Subscription (/api/v1/subscription/)
+  subscription: {
+    status: '/api/v1/subscription/status', // GET - Get subscription status
+    portalUrl: '/api/v1/subscription/portal-url', // GET - Get Stripe portal URL
+    createCustomer: '/api/v1/subscription/create-customer', // POST - Create Stripe customer
   },
 
   // Admin Billing (/api/v1/admin/billing/)

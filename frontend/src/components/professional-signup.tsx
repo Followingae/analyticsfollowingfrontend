@@ -22,7 +22,9 @@ import {
   Crown,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Moon,
+  Sun
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,13 +33,15 @@ import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { ENDPOINTS } from '@/config/api'
+import { ENDPOINTS, API_CONFIG } from '@/config/api'
 
 interface PlanDetails {
   id: 'free' | 'standard' | 'premium' | 'enterprise'
   name: string
   price: string
   priceMonthly: number
+  priceAnnual?: number
+  savings?: number
   description: string
   credits: string
   features: string[]
@@ -70,6 +74,8 @@ const PLANS: PlanDetails[] = [
     name: 'Professional',
     price: '$199',
     priceMonthly: 199,
+    priceAnnual: 1908,
+    savings: 480,
     description: 'For growing businesses and agencies',
     credits: '500 profiles',
     features: [
@@ -90,6 +96,8 @@ const PLANS: PlanDetails[] = [
     name: 'Business',
     price: '$499',
     priceMonthly: 499,
+    priceAnnual: 4788,
+    savings: 1200,
     description: 'For teams requiring advanced features',
     credits: '2,000 profiles',
     features: [
@@ -148,11 +156,13 @@ const checkPasswordStrength = (password: string) => {
 
 export function ProfessionalSignup() {
   const router = useRouter()
-  const { theme } = useTheme()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState<'free' | 'standard' | 'premium' | 'enterprise'>('standard')
+  const [selectedPlan, setSelectedPlan] = useState<'free' | 'standard' | 'premium' | 'enterprise' | null>(null)
   const [passwordFocused, setPasswordFocused] = useState(false)
+  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly')
 
   const [formData, setFormData] = useState({
     email: '',
@@ -164,6 +174,12 @@ export function ProfessionalSignup() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [passwordStrength, setPasswordStrength] = useState<ReturnType<typeof checkPasswordStrength>>()
+  const [isFormValid, setIsFormValid] = useState(false)
+
+  // Handle mounting for theme
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Update password strength on change
   useEffect(() => {
@@ -171,6 +187,18 @@ export function ProfessionalSignup() {
       setPasswordStrength(checkPasswordStrength(formData.password))
     }
   }, [formData.password])
+
+  // Check form validity whenever form data changes (excluding terms)
+  useEffect(() => {
+    const hasValidEmail = formData.email.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
+    const hasValidPassword = formData.password.length >= 8 && (passwordStrength?.score === 'medium' || passwordStrength?.score === 'strong')
+    const hasValidName = formData.fullName.length > 0 && formData.fullName.trim().includes(' ')
+    const hasValidCompany = formData.company.length >= 2
+
+    const isValid = hasValidEmail && hasValidPassword && hasValidName && hasValidCompany
+
+    setIsFormValid(isValid)
+  }, [formData, passwordStrength])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -225,6 +253,11 @@ export function ProfessionalSignup() {
       return
     }
 
+    if (!selectedPlan) {
+      toast.error('Please select a subscription plan')
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -243,7 +276,7 @@ export function ProfessionalSignup() {
   }
 
   const handleFreeSignup = async () => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${ENDPOINTS.billing.freeTierRegistration}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.freeTierRegistration}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -267,29 +300,44 @@ export function ProfessionalSignup() {
   }
 
   const handlePaidSignup = async () => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${ENDPOINTS.billing.preRegistrationCheckout}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: formData.email,
-        password: formData.password,
-        full_name: formData.fullName,
-        plan: selectedPlan
+    try {
+      console.log('Calling API:', `${API_CONFIG.BASE_URL}${ENDPOINTS.billing.preRegistrationCheckout}`)
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.preRegistrationCheckout}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          full_name: formData.fullName,
+          plan: selectedPlan,
+          billing_interval: billingInterval
+        })
       })
-    })
 
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.detail || 'Failed to create checkout session')
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Non-JSON response received:', await response.text())
+        throw new Error('Server error: Invalid response format. Please try again.')
+      }
 
-    if (data.sessionUrl || data.checkout_url) {
-      window.location.href = data.sessionUrl || data.checkout_url
-    } else {
-      throw new Error('No checkout URL received')
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.detail || 'Failed to create checkout session')
+
+      if (data.sessionUrl || data.checkout_url) {
+        window.location.href = data.sessionUrl || data.checkout_url
+      } else {
+        throw new Error('No checkout URL received')
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error)
+      throw error
     }
   }
 
   const handleEnterpriseSignup = async () => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${ENDPOINTS.auth.register}`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.auth.register}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -316,10 +364,26 @@ export function ProfessionalSignup() {
     return 'Continue to Secure Checkout'
   }
 
-  const logoSrc = theme === 'dark' ? '/Following Logo Dark Mode.svg' : '/followinglogo.svg'
+  // Use default logo until mounted to avoid hydration mismatch
+  const logoSrc = mounted && theme === 'dark' ? '/Following Logo Dark Mode.svg' : '/followinglogo.svg'
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-primary/5 flex">
+    <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-primary/5 flex relative">
+      {/* Theme Toggle - Absolute positioned in top right */}
+      {mounted && (
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="absolute top-6 right-6 z-10 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
+          ) : (
+            <Moon className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
+          )}
+        </button>
+      )}
+
       {/* Left Side - Signup Form */}
       <div className="flex-1 flex items-center justify-center p-8 lg:p-12">
         <div className="w-full max-w-md space-y-6">
@@ -328,14 +392,14 @@ export function ProfessionalSignup() {
             <img
               src={logoSrc}
               alt="Following"
-              className="h-8 mx-auto opacity-90"
+              className="h-8 mx-auto"
             />
             <div>
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                Start Your Analytics Journey
+              <h1 className="text-3xl font-bold tracking-tight">
+                Create Your Account
               </h1>
               <p className="mt-2 text-muted-foreground">
-                Join thousands of brands using AI-powered Instagram insights
+                Discover influencers, track campaigns, and scale your brand
               </p>
             </div>
           </div>
@@ -456,62 +520,35 @@ export function ProfessionalSignup() {
                 </button>
               </div>
 
-              {/* Password Strength Indicator */}
-              {(passwordFocused || formData.password) && passwordStrength && (
-                <div className="space-y-2">
-                  <div className="flex gap-1.5">
-                    {[...Array(5)].map((_, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "h-1 flex-1 rounded-full transition-colors",
-                          i < passwordStrength.strength
-                            ? passwordStrength.score === 'strong'
-                              ? "bg-green-500"
-                              : passwordStrength.score === 'medium'
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                            : "bg-muted"
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                    <div className={cn(
-                      "flex items-center gap-1",
-                      passwordStrength.checks.length ? "text-green-600" : "text-muted-foreground"
-                    )}>
-                      {passwordStrength.checks.length ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                      8+ characters
+              {/* Clean Minimal Password Strength */}
+              {formData.password && passwordStrength && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-1">
+                      {[1, 2, 3].map((level) => (
+                        <div
+                          key={level}
+                          className={cn(
+                            "h-0.5 w-8 rounded-full transition-all duration-300",
+                            passwordStrength.strength > level
+                              ? passwordStrength.score === 'strong'
+                                ? "bg-green-500"
+                                : passwordStrength.score === 'medium'
+                                ? "bg-amber-500"
+                                : "bg-red-500"
+                              : "bg-border"
+                          )}
+                        />
+                      ))}
                     </div>
-                    <div className={cn(
-                      "flex items-center gap-1",
-                      passwordStrength.checks.uppercase ? "text-green-600" : "text-muted-foreground"
-                    )}>
-                      {passwordStrength.checks.uppercase ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                      Uppercase
-                    </div>
-                    <div className={cn(
-                      "flex items-center gap-1",
-                      passwordStrength.checks.lowercase ? "text-green-600" : "text-muted-foreground"
-                    )}>
-                      {passwordStrength.checks.lowercase ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                      Lowercase
-                    </div>
-                    <div className={cn(
-                      "flex items-center gap-1",
-                      passwordStrength.checks.number ? "text-green-600" : "text-muted-foreground"
-                    )}>
-                      {passwordStrength.checks.number ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                      Number
-                    </div>
-                    <div className={cn(
-                      "flex items-center gap-1 col-span-2",
-                      passwordStrength.checks.special ? "text-green-600" : "text-muted-foreground"
-                    )}>
-                      {passwordStrength.checks.special ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                      Special character (!@#$%^&*)
-                    </div>
+                    {passwordStrength.score !== 'strong' && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {!passwordStrength.checks.uppercase ? "Add uppercase" :
+                         !passwordStrength.checks.number ? "Add number" :
+                         !passwordStrength.checks.special ? "Add symbol" :
+                         !passwordStrength.checks.length ? "Too short" : ""}
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
@@ -579,19 +616,58 @@ export function ProfessionalSignup() {
             </p>
           </form>
 
-          {/* Security Badge */}
-          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <Shield className="h-3.5 w-3.5" />
-            <span>256-bit SSL encrypted • SOC2 compliant</span>
-          </div>
         </div>
       </div>
 
       {/* Right Side - Simplified Pricing */}
-      <div className="hidden lg:flex flex-1 bg-muted/20 items-center justify-center p-12">
-        <div className="w-full max-w-lg space-y-6">
-          <div className="text-center">
-            <h2 className="text-xl font-medium">Select Your Plan</h2>
+      <div className="hidden lg:flex flex-1 bg-muted/20 items-center justify-center p-12 relative">
+        <div className={cn(
+          "w-full max-w-lg space-y-6 transition-all duration-700",
+          !isFormValid && "opacity-40 scale-[0.98]"
+        )}>
+          <div className="text-center space-y-3">
+            <h2 className="text-xl font-medium">
+              {isFormValid ? "Select Your Plan" : "Choose a plan"}
+            </h2>
+            {!isFormValid && (
+              <p className="text-xs text-muted-foreground animate-in fade-in duration-500">
+                Complete your details to continue
+              </p>
+            )}
+
+            {/* Billing Toggle */}
+            {isFormValid && (
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <span className={cn(
+                  "text-sm transition-colors",
+                  billingInterval === 'monthly' ? "text-foreground font-medium" : "text-muted-foreground"
+                )}>
+                  Monthly
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setBillingInterval(billingInterval === 'monthly' ? 'annual' : 'monthly')}
+                  className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary"
+                  data-state={billingInterval === 'annual' ? 'checked' : 'unchecked'}
+                >
+                  <span className={cn(
+                    "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform",
+                    billingInterval === 'annual' ? "translate-x-5" : "translate-x-0.5"
+                  )} />
+                </button>
+                <span className={cn(
+                  "text-sm transition-colors flex items-center gap-1",
+                  billingInterval === 'annual' ? "text-foreground font-medium" : "text-muted-foreground"
+                )}>
+                  Annual
+                  {billingInterval === 'annual' && (
+                    <span className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-medium">
+                      Save 20%
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Simplified Plan Cards */}
@@ -603,12 +679,14 @@ export function ProfessionalSignup() {
               return (
                 <div
                   key={plan.id}
-                  onClick={() => setSelectedPlan(plan.id)}
+                  onClick={() => isFormValid && setSelectedPlan(plan.id)}
                   className={cn(
-                    "relative rounded-lg border p-4 cursor-pointer transition-all",
-                    isSelected
-                      ? "border-primary bg-background"
-                      : "border-border/50 hover:border-border bg-background/50"
+                    "relative rounded-lg border p-4 transition-all",
+                    isFormValid ? "cursor-pointer" : "cursor-not-allowed",
+                    isSelected && isFormValid
+                      ? "border-primary bg-background shadow-lg shadow-primary/10"
+                      : "border-border/50 bg-background/50",
+                    isFormValid && !isSelected && "hover:border-border"
                   )}
                 >
                   {plan.popular && (
@@ -632,10 +710,30 @@ export function ProfessionalSignup() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-semibold">
-                        {plan.price}
-                        {plan.priceMonthly > 0 && <span className="text-[10px] font-normal text-muted-foreground">/mo</span>}
-                      </p>
+                      {billingInterval === 'monthly' ? (
+                        <p className="text-lg font-semibold">
+                          {plan.price}
+                          {plan.priceMonthly > 0 && <span className="text-[10px] font-normal text-muted-foreground">/mo</span>}
+                        </p>
+                      ) : (
+                        <>
+                          {plan.priceAnnual ? (
+                            <div>
+                              <p className="text-lg font-semibold">
+                                ${Math.floor(plan.priceAnnual / 12)}
+                                <span className="text-[10px] font-normal text-muted-foreground">/mo</span>
+                              </p>
+                              {plan.savings && (
+                                <p className="text-[9px] text-green-600 dark:text-green-400">
+                                  Save ${plan.savings}/year
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-lg font-semibold">{plan.price}</p>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -643,12 +741,63 @@ export function ProfessionalSignup() {
             })}
           </div>
 
-          {/* Minimalist Trust Line */}
-          <div className="pt-8 border-t border-border/50">
-            <p className="text-center text-xs text-muted-foreground">
-              Trusted by 10,000+ brands worldwide • SOC2 Certified
-            </p>
-          </div>
+          {/* Checkout Style Billing */}
+          {isFormValid && selectedPlan && (
+            <div className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              {selectedPlan !== 'enterprise' ? (
+                <div className="bg-background border border-border rounded-lg overflow-hidden">
+                  {/* Main Display */}
+                  <div className="p-6 text-center">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                        {billingInterval === 'annual' ? 'Annual' : 'Monthly'} Total
+                      </p>
+                      <p className="text-3xl font-bold">
+                        {selectedPlan === 'free' ? (
+                          '$0'
+                        ) : (
+                          <>
+                            ${billingInterval === 'annual'
+                              ? PLANS.find(p => p.id === selectedPlan)?.priceAnnual?.toLocaleString()
+                              : PLANS.find(p => p.id === selectedPlan)?.priceMonthly
+                            }
+                            <span className="text-sm font-normal text-muted-foreground ml-1">
+                              {billingInterval === 'annual' ? '/year' : '/month'}
+                            </span>
+                          </>
+                        )}
+                      </p>
+
+                      {/* Show monthly breakdown for annual */}
+                      {billingInterval === 'annual' && selectedPlan !== 'free' && (
+                        <p className="text-sm text-muted-foreground">
+                          ${Math.floor((PLANS.find(p => p.id === selectedPlan)?.priceAnnual || 0) / 12)}/month • Save ${PLANS.find(p => p.id === selectedPlan)?.savings}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stripe Footer */}
+                  {selectedPlan !== 'free' && (
+                    <div className="border-t border-border bg-muted/30 px-4 py-2">
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        Secure payment via Stripe
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Enterprise */
+                <div className="bg-background border border-border rounded-lg p-6">
+                  <div className="text-center">
+                    <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm font-medium">Custom Pricing</p>
+                    <p className="text-xs text-muted-foreground mt-1">Contact sales for quote</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

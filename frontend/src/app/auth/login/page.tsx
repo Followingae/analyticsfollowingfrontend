@@ -51,18 +51,11 @@ export default function LoginPage() {
     <SignInPage
       title={
         <span className="font-light text-foreground tracking-tighter">
-          Welcome
+          Sign In
         </span>
       }
-      description=""
-      testimonials={[
-        {
-          avatarSrc: "/followinglogo.svg",
-          name: "Analytics Following",
-          handle: "Professional Instagram Analytics",
-          text: "Transform your Instagram strategy with AI-powered insights and comprehensive analytics tools."
-        }
-      ]}
+      description="Access your influencer discovery and campaign tools"
+      testimonials={[]}
       isLoading={isLoading}
       onSignIn={handleSubmit}
       onResetPassword={handleResetPassword}

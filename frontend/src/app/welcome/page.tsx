@@ -2,25 +2,25 @@
 
 import { useEffect, useState, Suspense, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, AlertCircle, Loader2, CreditCard, User, Mail, Clock } from 'lucide-react'
+import { CheckCircle, AlertCircle, Loader2, Sparkles, ArrowRight, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { ENDPOINTS } from '@/config/api'
+import { ENDPOINTS, API_CONFIG } from '@/config/api'
+import { cn } from '@/lib/utils'
 
 function WelcomeContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const [status, setStatus] = useState<'loading' | 'processing' | 'success' | 'error'>('loading')
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
   const [userDetails, setUserDetails] = useState<any>(null)
   const [pollCount, setPollCount] = useState(0)
-  const maxPolls = 30 // Maximum 60 seconds of polling (30 * 2 seconds)
+  const maxPolls = 30
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const hasVerifiedRef = useRef(false) // Prevent double processing
 
   useEffect(() => {
-    // Get session ID from URL
     const sessionId = searchParams.get('session_id')
 
     if (!sessionId) {
@@ -29,10 +29,13 @@ function WelcomeContent() {
       return
     }
 
-    // Start polling for verification
+    // Prevent double initialization
+    if (hasVerifiedRef.current) {
+      return
+    }
+
     startPollingVerification(sessionId)
 
-    // Cleanup on unmount
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current)
@@ -41,47 +44,61 @@ function WelcomeContent() {
   }, [searchParams])
 
   const startPollingVerification = (sessionId: string) => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+    }
+
     // Immediately check once
     verifySession(sessionId)
 
     // Then poll every 2 seconds
     pollIntervalRef.current = setInterval(() => {
-      verifySession(sessionId)
+      if (!hasVerifiedRef.current) {
+        verifySession(sessionId)
+      }
     }, 2000)
   }
 
   const verifySession = async (sessionId: string) => {
     try {
-      setPollCount(prev => prev + 1)
-      console.log(`Polling verification attempt ${pollCount + 1}/${maxPolls}`)
-
-      // Check if we've exceeded max polls
-      if (pollCount >= maxPolls) {
-        clearInterval(pollIntervalRef.current!)
-        setStatus('error')
-        setMessage('Account creation is taking longer than expected. Please contact support.')
+      // Prevent concurrent verifications
+      if (hasVerifiedRef.current) {
         return
       }
 
-      // Call the verification endpoint
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}${ENDPOINTS.billing.verifySession(sessionId)}`
-      )
+      const currentPollCount = pollCount
+      setPollCount(prev => prev + 1)
 
-      const data = await response.json()
+      console.log(`Verification attempt #${currentPollCount + 1}`)
 
-      console.log('Verification response:', data)
+      const url = `${API_CONFIG.BASE_URL}${ENDPOINTS.billing.verifySession(sessionId)}`
+      console.log('Calling:', url)
 
-      if (!response.ok) {
-        throw new Error(data.detail || 'Verification failed')
-      }
+      const response = await fetch(url)
 
-      // Handle different statuses
-      if (data.status === 'complete' && data.can_login) {
-        // Success! Account is ready
-        clearInterval(pollIntervalRef.current!)
+      console.log('Verification response status:', response.status)
+      console.log('Response OK?:', response.ok)
 
-        setUserDetails(data.user || {})
+      if (response.ok) {
+        console.log('SUCCESS - Stopping polling NOW')
+
+        // Mark as verified immediately
+        hasVerifiedRef.current = true
+
+        // Stop polling immediately
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+          pollIntervalRef.current = null
+        }
+
+        let data;
+        try {
+          data = await response.json()
+          console.log('Verification SUCCESS! Response data:', data)
+        } catch (e) {
+          console.log('JSON parse failed but treating as success')
+          data = {}
+        }
 
         // Store tokens if provided
         if (data.access_token) {
@@ -91,43 +108,67 @@ function WelcomeContent() {
           }
         }
 
+        // Store user info if provided
+        if (data.user) {
+          setUserDetails(data.user)
+          localStorage.setItem('user', JSON.stringify(data.user))
+        }
+
         setStatus('success')
-        setMessage('Payment verified and account created successfully!')
-        toast.success('Welcome to Following! Your account has been created.')
+        setMessage('Your account has been created successfully!')
+        toast.success('Welcome to Following!')
 
-        // Redirect to login or dashboard
+        // Redirect after success animation
         setTimeout(() => {
-          if (data.access_token) {
-            router.push('/dashboard')
-          } else {
-            router.push('/auth/login')
-          }
-        }, 2000)
+          console.log('Redirecting to:', data.access_token ? '/dashboard' : '/auth/login')
+          router.push(data.access_token ? '/dashboard' : '/auth/login')
+        }, 2500)
 
-      } else if (data.status === 'processing') {
-        // Still processing, update UI
-        setStatus('processing')
-        setMessage('Creating your account... This may take a few moments.')
-      } else if (data.status === 'failed') {
-        // Failed
-        clearInterval(pollIntervalRef.current!)
-        setStatus('error')
-        setMessage(data.message || 'Account creation failed. Please contact support.')
+        return
+
+      } else {
+        let data;
+        try {
+          data = await response.json()
+        } catch {
+          data = {}
+        }
+        console.error('Verification failed with status:', response.status, 'data:', data)
+
+        if (response.status === 404 || response.status === 400) {
+          hasVerifiedRef.current = true
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+          setStatus('error')
+          setMessage('Payment session not found. Please try registering again.')
+          return
+        }
+        else if (currentPollCount >= maxPolls) {
+          hasVerifiedRef.current = true
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+          setStatus('error')
+          setMessage('Account creation is taking too long. Please contact support.')
+          return
+        }
       }
 
     } catch (error: any) {
       console.error('Error verifying session:', error)
 
-      // Don't stop polling on network errors, just continue
-      if (pollCount < 5) {
-        // For first few attempts, ignore errors
-        return
+      if (pollCount >= 5) {
+        hasVerifiedRef.current = true
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+          pollIntervalRef.current = null
+        }
+        setStatus('error')
+        setMessage('Failed to verify payment. Please check your connection.')
       }
-
-      // After 5 attempts, show error
-      clearInterval(pollIntervalRef.current!)
-      setStatus('error')
-      setMessage(error.message || 'Failed to verify payment. Please contact support.')
     }
   }
 
@@ -135,152 +176,171 @@ function WelcomeContent() {
     router.push('/auth/register')
   }
 
-  const handleContactSupport = () => {
-    window.location.href = 'mailto:support@following.ae?subject=Payment%20Verification%20Issue'
-  }
-
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
-          {(status === 'loading' || status === 'processing') && (
-            <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-              <Loader2 className="h-10 w-10 text-blue-600 dark:text-blue-400 animate-spin" />
-            </div>
-          )}
-          {status === 'success' && (
-            <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-              <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
-            </div>
-          )}
-          {status === 'error' && (
-            <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
-              <AlertCircle className="h-10 w-10 text-red-600 dark:text-red-400" />
-            </div>
-          )}
+      {/* Modern gradient background effect */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse delay-1000" />
+      </div>
 
-          <CardTitle className="text-2xl">
-            {status === 'loading' && 'Verifying Your Payment...'}
-            {status === 'processing' && 'Creating Your Account...'}
-            {status === 'success' && 'Welcome to Following!'}
-            {status === 'error' && 'Verification Failed'}
-          </CardTitle>
-
-          <CardDescription className="text-base mt-2">
-            {status === 'loading' && 'Please wait while we confirm your payment with Stripe.'}
-            {status === 'processing' && message}
-            {status === 'success' && message}
-            {status === 'error' && message}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          {status === 'loading' && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
-                <p className="text-sm text-muted-foreground">Verifying payment with Stripe...</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-gray-400" />
-                <p className="text-sm text-muted-foreground">Waiting for account creation...</p>
+      <div className="relative z-10 w-full max-w-md">
+        {/* Loading State */}
+        {status === 'loading' && (
+          <div className="text-center space-y-8">
+            {/* Animated Logo/Icon */}
+            <div className="relative mx-auto w-32 h-32">
+              <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
+              <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping animation-delay-200" />
+              <div className="relative flex items-center justify-center w-full h-full bg-background border-2 border-primary/20 rounded-full">
+                <Sparkles className="w-12 h-12 text-primary animate-pulse" />
               </div>
             </div>
-          )}
 
-          {status === 'processing' && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <p className="text-sm text-muted-foreground">Payment verified successfully</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
-                <p className="text-sm text-muted-foreground">Creating your account...</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
-                <p className="text-sm text-muted-foreground">Setting up your subscription...</p>
-              </div>
-              {pollCount > 10 && (
-                <div className="flex items-center gap-3 mt-2">
-                  <Clock className="h-4 w-4 text-yellow-600" />
-                  <p className="text-xs text-yellow-600">This is taking longer than usual...</p>
-                </div>
-              )}
+            {/* Loading Text */}
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                Setting Up Your Account
+              </h1>
+              <p className="text-muted-foreground">
+                Just a moment while we verify your payment...
+              </p>
             </div>
-          )}
 
-          {status === 'success' && userDetails && (
-            <div className="space-y-4">
-              <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <h3 className="font-semibold text-green-800 dark:text-green-200 mb-3">Account Created Successfully</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <span className="text-green-700 dark:text-green-300">{userDetails.email || searchParams.get('email')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <span className="text-green-700 dark:text-green-300">{userDetails.full_name || searchParams.get('full_name')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <span className="text-green-700 dark:text-green-300">
-                      {searchParams.get('tier')?.charAt(0).toUpperCase() + searchParams.get('tier')?.slice(1)} Plan
-                    </span>
+            {/* Progress Steps */}
+            <div className="space-y-3 text-left max-w-xs mx-auto">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
                   </div>
                 </div>
+                <span className="text-sm font-medium">Verifying payment</span>
               </div>
 
-              <div className="text-center text-sm text-muted-foreground">
-                <p>Redirecting to your dashboard in a moment...</p>
-              </div>
-            </div>
-          )}
-
-          {status === 'error' && (
-            <div className="space-y-4">
-              <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <div className="space-y-2 text-sm text-red-700 dark:text-red-300">
-                  <p>We couldn't verify your payment or create your account.</p>
-                  <p>This could happen if:</p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>The payment session expired</li>
-                    <li>The payment was cancelled</li>
-                    <li>There was a network issue</li>
-                  </ul>
+              <div className="flex items-center gap-3 opacity-50">
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground" />
                 </div>
+                <span className="text-sm text-muted-foreground">Creating account</span>
               </div>
 
-              <div className="flex gap-3 justify-center">
-                <Button
-                  variant="outline"
-                  onClick={handleRetry}
-                >
-                  Try Again
-                </Button>
-                <Button
-                  onClick={handleContactSupport}
-                >
-                  Contact Support
-                </Button>
+              <div className="flex items-center gap-3 opacity-50">
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground" />
+                </div>
+                <span className="text-sm text-muted-foreground">Setting up workspace</span>
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {/* Poll count indicator (subtle) */}
+            {pollCount > 10 && (
+              <p className="text-xs text-muted-foreground animate-in fade-in">
+                This is taking a bit longer than usual...
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Success State */}
+        {status === 'success' && (
+          <div className="text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Success Icon */}
+            <div className="relative mx-auto w-32 h-32">
+              <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping" />
+              <div className="relative flex items-center justify-center w-full h-full bg-background border-2 border-green-500/30 rounded-full">
+                <CheckCircle className="w-16 h-16 text-green-500" />
+              </div>
+            </div>
+
+            {/* Success Text */}
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold">
+                Welcome to Following!
+              </h1>
+              <p className="text-muted-foreground">
+                Your account is ready. Let's get started!
+              </p>
+            </div>
+
+            {/* Checkmarks */}
+            <div className="space-y-3 text-left max-w-xs mx-auto">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <span className="text-sm">Payment verified</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <span className="text-sm">Account created</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <span className="text-sm">Subscription activated</span>
+              </div>
+            </div>
+
+            {/* Redirecting indicator */}
+            <div className="pt-4">
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <span>Redirecting to dashboard</span>
+                <ArrowRight className="w-4 h-4 animate-pulse" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {status === 'error' && (
+          <div className="text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Error Icon */}
+            <div className="relative mx-auto w-32 h-32">
+              <div className="relative flex items-center justify-center w-full h-full bg-background border-2 border-red-500/30 rounded-full">
+                <XCircle className="w-16 h-16 text-red-500" />
+              </div>
+            </div>
+
+            {/* Error Text */}
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold text-red-600">
+                Something Went Wrong
+              </h1>
+              <p className="text-muted-foreground">
+                {message}
+              </p>
+            </div>
+
+            {/* Retry Button */}
+            <div className="pt-4">
+              <Button
+                onClick={handleRetry}
+                className="min-w-[200px]"
+                size="lg"
+              >
+                Try Again
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Support Link */}
+            <p className="text-xs text-muted-foreground">
+              Need help? <a href="mailto:support@following.ae" className="text-primary hover:underline">Contact support</a>
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
 export default function WelcomePage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
       <WelcomeContent />
     </Suspense>
   )
