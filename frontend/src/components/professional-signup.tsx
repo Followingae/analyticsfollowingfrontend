@@ -282,7 +282,12 @@ export function ProfessionalSignup() {
       body: JSON.stringify({
         email: formData.email,
         password: formData.password,
-        full_name: formData.fullName
+        full_name: formData.fullName,
+        company: formData.company, // Now required
+        job_title: '', // Optional
+        phone_number: '', // Optional
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        language: navigator.language.substring(0, 2) || 'en'
       })
     })
 
@@ -310,8 +315,15 @@ export function ProfessionalSignup() {
           email: formData.email,
           password: formData.password,
           full_name: formData.fullName,
-          plan: selectedPlan,
-          billing_interval: billingInterval
+          plan: selectedPlan.toLowerCase(), // Must be lowercase as per backend requirement
+          company: formData.company, // Now required
+          job_title: '', // Optional but included for backend compatibility
+          phone_number: '', // Optional
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+          language: navigator.language.substring(0, 2) || 'en',
+          billing_interval: billingInterval,
+          success_url: `${window.location.origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${window.location.origin}/signup?payment=cancelled`
         })
       })
 
@@ -325,10 +337,14 @@ export function ProfessionalSignup() {
       const data = await response.json()
       if (!response.ok) throw new Error(data.detail || 'Failed to create checkout session')
 
-      if (data.sessionUrl || data.checkout_url) {
-        window.location.href = data.sessionUrl || data.checkout_url
+      // Backend returns sessionUrl as per the instructions
+      if (data.sessionUrl || data.session_url || data.checkout_url) {
+        // Redirect user to Stripe Checkout (handling all possible response formats)
+        const checkoutUrl = data.sessionUrl || data.session_url || data.checkout_url
+        console.log('Redirecting to Stripe checkout:', checkoutUrl)
+        window.location.href = checkoutUrl
       } else {
-        throw new Error('No checkout URL received')
+        throw new Error('No checkout URL received from backend')
       }
     } catch (error: any) {
       console.error('Checkout error:', error)

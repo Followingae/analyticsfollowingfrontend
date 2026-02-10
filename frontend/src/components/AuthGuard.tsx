@@ -109,7 +109,12 @@ export function AuthGuard({
       }
       // Check specific role requirement
       else if (requiredRole) {
-        hasPermission = userRole === requiredRole
+        // Handle admin role check to include super_admin
+        if (requiredRole === 'admin') {
+          hasPermission = userRole === 'admin' || userRole === 'super_admin'
+        } else {
+          hasPermission = userRole === requiredRole
+        }
         if (!hasPermission) {
           redirectPath = '/unauthorized'
         }
@@ -164,8 +169,15 @@ export function AuthGuard({
     }
     
     // Check specific role requirement
-    if (requiredRole && userRole !== requiredRole) {
-      return <UnauthorizedAccess />
+    if (requiredRole) {
+      // Handle admin role check to include super_admin
+      if (requiredRole === 'admin') {
+        if (!(userRole === 'admin' || userRole === 'super_admin')) {
+          return <UnauthorizedAccess />
+        }
+      } else if (userRole !== requiredRole) {
+        return <UnauthorizedAccess />
+      }
     }
   }
 

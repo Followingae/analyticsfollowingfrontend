@@ -1,5 +1,5 @@
-import { ProfessionalSignup } from '@/components/professional-signup'
+import { CleanOnboardingSignup } from '@/components/clean-onboarding-signup'
 
 export default function RegisterPage() {
-  return <ProfessionalSignup />
+  return <CleanOnboardingSignup />
 }

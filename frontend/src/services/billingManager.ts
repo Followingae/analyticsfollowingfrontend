@@ -115,7 +115,7 @@ class BillingManager {
     companyName: string,
     marketingConsent: boolean = false
   ): Promise<{ checkout_url: string; session_id: string }> {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/billing/v2/pre-registration-checkout`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/billing/pre-registration-checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

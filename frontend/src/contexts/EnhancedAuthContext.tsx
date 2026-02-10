@@ -371,19 +371,11 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
       // This function is called from the welcome page after successful payment
       // The backend will verify payment and create the account
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/billing/v2/verify-and-create-account`, {
-        method: 'POST',
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/billing/verify-session/${sessionId}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          session_id: sessionId,
-          email: email,
-          full_name: fullName,
-          company_name: companyName,
-          subscription_tier: tier,
-          marketing_consent: true
-        }),
+        }
       });
 
       if (!response.ok) {

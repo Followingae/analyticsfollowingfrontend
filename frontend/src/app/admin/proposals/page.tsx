@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { SuperadminSidebar } from "@/components/superadmin/SuperadminSidebar"
-import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,10 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
 import {
   Select,
   SelectContent,
@@ -231,35 +225,18 @@ export default function ProposalsPage() {
 
   if (loading) {
     return (
-      <SidebarProvider>
-        <SuperadminSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
-          <div className="flex flex-1 flex-col items-center justify-center">
-            <div className="text-center space-y-4">
-              <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              <p className="text-muted-foreground">Loading proposals...</p>
-            </div>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+      <div className="flex flex-1 flex-col items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-muted-foreground">Loading proposals...</p>
+        </div>
+      </div>
     )
   }
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 66)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <SuperadminSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
 
             {/* Header with Actions */}
             <div className="flex items-center justify-between">
@@ -595,9 +572,7 @@ export default function ProposalsPage() {
                 </CardContent>
               </Card>
             )}
-          </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+    </div>
   )
 }

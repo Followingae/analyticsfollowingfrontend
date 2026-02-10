@@ -18,7 +18,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useIsAuthenticated } from "@/stores/userStore"
-import { formatResetTime } from "@/utils/subscriptionUtils"
 
 const chartConfig = {
   visitors: {
@@ -34,7 +33,6 @@ export function ChartRemainingCreditsV2() {
   const isAuthenticated = useIsAuthenticated()
   const [creditsData, setCreditsData] = useState<{balance: number, maxCredits: number} | null>(null)
   const [loading, setLoading] = useState(true)
-  const [resetTime, setResetTime] = useState<string>("")
 
   // Load credits data (this is separate from user context as it's more dynamic)
   useEffect(() => {
@@ -47,44 +45,56 @@ export function ChartRemainingCreditsV2() {
       try {
         // Use request cache to prevent duplicate calls
         const { requestCache } = await import('@/utils/requestCache')
-        
-        const creditsResponse = await requestCache.get(
-          'credits-balance-v2',
+
+        const walletResponse = await requestCache.get(
+          'wallet-summary-v2',
           async () => {
             const { fetchWithAuth } = await import('@/utils/apiInterceptor')
             const { API_CONFIG, ENDPOINTS } = await import('@/config/api')
 
-            const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.credits.balance}`, {
+            const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.credits.walletSummary}`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
               }
             })
-            
+
             if (!response.ok) {
-              throw new Error(`Credits API failed: ${response.status}`)
+              throw new Error(`Wallet API failed: ${response.status}`)
             }
-            
+
             return response.json()
           },
           1 * 60 * 1000 // Cache for 1 minute
         )
-        
+
         // Handle both wrapped and direct response formats
-        const creditsInfo = creditsResponse.success ? creditsResponse.data : creditsResponse
-        const currentBalance = creditsInfo?.current_balance || creditsInfo?.balance || 0
-        
-        // Set a reasonable max for the chart visualization
-        const maxCredits = Math.max(currentBalance * 1.5, 1000)
-        
+        const walletInfo = walletResponse.success ? walletResponse.data : walletResponse
+
+        // Debug logging to understand the data structure
+        console.log('Wallet Response:', walletInfo)
+
+        const currentBalance = walletInfo?.current_balance || 0
+        const monthlyAllowance = walletInfo?.monthly_allowance || walletInfo?.total_plan_credits || 0
+
+        // Use monthly_allowance as the max for accurate percentage calculation
+        const maxCredits = monthlyAllowance > 0 ? monthlyAllowance : Math.max(currentBalance, 1000)
+
+        console.log('Credits calculation:', {
+          currentBalance,
+          monthlyAllowance,
+          maxCredits,
+          percentage: Math.round((currentBalance / maxCredits) * 100)
+        })
+
         setCreditsData({
           balance: currentBalance,
           maxCredits: maxCredits
         })
 
       } catch (error) {
-        console.warn('Error loading credits:', error)
+        console.warn('Error loading wallet data:', error)
         setCreditsData({ balance: 0, maxCredits: 1000 })
       } finally {
         setLoading(false)
@@ -93,21 +103,6 @@ export function ChartRemainingCreditsV2() {
 
     loadCreditsData()
   }, [isAuthenticated])
-
-  // Update reset timer every minute
-  useEffect(() => {
-    const updateResetTime = () => {
-      setResetTime(formatResetTime())
-    }
-    
-    // Update immediately
-    updateResetTime()
-    
-    // Then update every minute
-    const interval = setInterval(updateResetTime, 60000)
-    
-    return () => clearInterval(interval)
-  }, [])
 
   const chartData = useMemo(() => [
     { browser: "safari", visitors: creditsData?.balance || 0, fill: "oklch(0.4718 0.2853 280.0726)" }
@@ -122,7 +117,9 @@ export function ChartRemainingCreditsV2() {
   // Calculate percentage for badge
   const getPercentage = () => {
     if (!creditsData || creditsData.maxCredits === 0) return 0
-    return Math.round((creditsData.balance / creditsData.maxCredits) * 100)
+    const percentage = Math.round((creditsData.balance / creditsData.maxCredits) * 100)
+    // Cap percentage at 100% to avoid display issues
+    return Math.min(percentage, 100)
   }
 
   return (
@@ -142,7 +139,7 @@ export function ChartRemainingCreditsV2() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium">Remaining Credits</CardTitle>
         <div className="text-xs text-muted-foreground">
-          {loading ? "Loading..." : resetTime || "Real-time balance"}
+          {loading ? "Loading..." : "Real-time balance"}
         </div>
       </CardHeader>
       <CardContent className="p-1">

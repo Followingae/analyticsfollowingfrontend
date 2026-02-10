@@ -76,11 +76,18 @@ function WelcomeContent() {
 
       const response = await fetch(url)
 
-      console.log('Verification response status:', response.status)
-      console.log('Response OK?:', response.ok)
+      let data;
+      try {
+        data = await response.json()
+        console.log('Verification response:', data)
+      } catch (e) {
+        console.log('Failed to parse response')
+        data = {}
+      }
 
-      if (response.ok) {
-        console.log('SUCCESS - Stopping polling NOW')
+      // Handle different status responses as per backend instructions
+      if (data.status === 'complete' && data.access_token) {
+        console.log('Account creation COMPLETE!')
 
         // Mark as verified immediately
         hasVerifiedRef.current = true
@@ -91,24 +98,13 @@ function WelcomeContent() {
           pollIntervalRef.current = null
         }
 
-        let data;
-        try {
-          data = await response.json()
-          console.log('Verification SUCCESS! Response data:', data)
-        } catch (e) {
-          console.log('JSON parse failed but treating as success')
-          data = {}
+        // Store authentication tokens
+        localStorage.setItem('access_token', data.access_token)
+        if (data.refresh_token) {
+          localStorage.setItem('refresh_token', data.refresh_token)
         }
 
-        // Store tokens if provided
-        if (data.access_token) {
-          localStorage.setItem('access_token', data.access_token)
-          if (data.refresh_token) {
-            localStorage.setItem('refresh_token', data.refresh_token)
-          }
-        }
-
-        // Store user info if provided
+        // Store user info
         if (data.user) {
           setUserDetails(data.user)
           localStorage.setItem('user', JSON.stringify(data.user))
@@ -116,45 +112,64 @@ function WelcomeContent() {
 
         setStatus('success')
         setMessage('Your account has been created successfully!')
-        toast.success('Welcome to Following!')
+        toast.success('Welcome to Analytics Following!')
 
-        // Redirect after success animation
+        // Redirect to dashboard since we have tokens
         setTimeout(() => {
-          console.log('Redirecting to:', data.access_token ? '/dashboard' : '/auth/login')
-          router.push(data.access_token ? '/dashboard' : '/auth/login')
+          console.log('Redirecting to dashboard')
+          router.push('/dashboard')
         }, 2500)
 
         return
 
-      } else {
-        let data;
-        try {
-          data = await response.json()
-        } catch {
-          data = {}
-        }
-        console.error('Verification failed with status:', response.status, 'data:', data)
+      } else if (data.status === 'processing') {
+        // Account still being created, keep polling
+        console.log('Account creation in progress, continuing to poll...')
 
-        if (response.status === 404 || response.status === 400) {
+        if (currentPollCount >= maxPolls) {
           hasVerifiedRef.current = true
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current)
             pollIntervalRef.current = null
           }
           setStatus('error')
-          setMessage('Payment session not found. Please try registering again.')
+          setMessage('Account creation is taking longer than expected. Please check your email.')
           return
         }
-        else if (currentPollCount >= maxPolls) {
-          hasVerifiedRef.current = true
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current)
-            pollIntervalRef.current = null
-          }
-          setStatus('error')
-          setMessage('Account creation is taking too long. Please contact support.')
-          return
+        // Continue polling automatically via interval
+
+      } else if (data.status === 'pending_payment') {
+        // Payment not completed
+        hasVerifiedRef.current = true
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+          pollIntervalRef.current = null
         }
+        setStatus('error')
+        setMessage('Payment was not completed. Please try again.')
+        return
+
+      } else if (response.status === 404) {
+        // Session not found
+        hasVerifiedRef.current = true
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+          pollIntervalRef.current = null
+        }
+        setStatus('error')
+        setMessage('Payment session not found. Please try registering again.')
+        return
+
+      } else if (response.status === 400) {
+        // Invalid session
+        hasVerifiedRef.current = true
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+          pollIntervalRef.current = null
+        }
+        setStatus('error')
+        setMessage(data.detail || 'Invalid payment session. Please try again.')
+        return
       }
 
     } catch (error: any) {
