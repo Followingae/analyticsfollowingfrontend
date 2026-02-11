@@ -116,6 +116,13 @@ export const superadminService = {
     return response.data;
   },
 
+  setPassword: async (userId: string, password: string) => {
+    const response = await SuperadminAPI.post(`/api/v1/admin/users/${userId}/set-password`, {
+      password: password
+    });
+    return response.data;
+  },
+
   // Credit Management - Using CORRECT endpoints
   addCredits: async (userId: string, amount: number, reason: string) => {
     const response = await SuperadminAPI.post('/api/v1/admin/credits/add', {
