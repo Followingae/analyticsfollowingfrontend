@@ -121,32 +121,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => clearTimeout(emergencyTimeout)
   }, [isHydrated])
 
-  // Subscribe to token changes for real-time sync like Instagram - only after hydration
+  // Subscribe to token changes for real-time sync - only after hydration
+  // CRITICAL FIX: Removed `user` from deps to prevent re-render loop.
+  // When token changes → setUser → `user` changes → useEffect re-runs → subscribe again → loop.
   useEffect(() => {
     if (!isHydrated || !tokenManager) return
-    
 
     const unsubscribe = tokenManager.subscribe((token: string | null) => {
-
-      
       if (!token) {
         // Token was cleared, clear user state
-
         debugSetUser(null, 'token-cleared')
         setDashboardStats(null)
       } else {
         // Token was updated, verify user state is consistent
-
         const storedUser = authService?.getStoredUser()
-        if (storedUser && (!user || user.email !== storedUser.email)) {
-
-          debugSetUser(storedUser, 'token-sync')
+        if (storedUser) {
+          // Use functional update to avoid stale closure over `user`
+          setUser(prev => {
+            if (!prev || prev.email !== storedUser.email) {
+              return storedUser
+            }
+            return prev
+          })
         }
       }
     })
-    
+
     return unsubscribe
-  }, [user, isHydrated])
+  }, [isHydrated])
 
   // Initialize auth state - only after hydration to prevent SSR issues
   useEffect(() => {
@@ -284,35 +286,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Set user IMMEDIATELY
         setUser(userData)
         localStorage.setItem('user_last_updated', Date.now().toString())
-        
 
-        
-        // Verify data is actually stored
-        setTimeout(() => {
-          const storedUser = localStorage.getItem('user_data')
-          const storedTokens = localStorage.getItem('auth_tokens')
-        }, 100)
-        
-        // If login doesn't return avatar_config, fetch complete profile
+        // If login doesn't return avatar_config, refresh in background (no setTimeout race)
         if (!userData.avatar_config) {
-
-          setTimeout(() => {
-            refreshUser() // This will merge settings data with login data
-          }, 500)
+          refreshUser().catch(() => {}) // fire-and-forget, errors handled inside
         }
-        
-        // FIXED: Don't load dashboard stats in login - let components load their own data
-        // This prevents duplicate API calls on login
-        // await loadDashboardStats() - REMOVED
-        
 
-        
-        // Double check that data is still there
-        setTimeout(() => {
-          const stillThere = authService.isAuthenticated()
-          const stillHasUser = authService.getStoredUser()
-        }, 500)
-        
         toast.success(`Welcome back, ${userData.full_name}!`)
         return true
       } else {

@@ -43,7 +43,7 @@ export function AuthGuard({
   }, [])
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password']
+  const publicRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password', '/welcome']
   const isPublicRoute = publicRoutes.includes(pathname)
 
   // Use enhanced user role directly (no normalization needed)

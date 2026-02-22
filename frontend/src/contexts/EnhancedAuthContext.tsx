@@ -313,29 +313,22 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
         // Handle new enhanced response format
         if (data.access_token || data.user) {
-          // Store tokens if provided
+          // Store tokens in the format TokenManager expects
           if (data.access_token) {
-            localStorage.setItem('token', data.access_token);
-          }
-          if (data.refresh_token) {
-            localStorage.setItem('refresh_token', data.refresh_token);
+            const tokenData = {
+              access_token: data.access_token,
+              refresh_token: data.refresh_token || undefined,
+              token_type: 'bearer',
+              expires_at: Date.now() + (24 * 60 * 60 * 1000)
+            }
+            localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
           }
 
-          // Update auth state with enhanced user
+          // Update auth state with enhanced user and persist
           if (data.user) {
             const enhancedUser = enhanceUserData(data.user);
             setUser(enhancedUser);
-          }
-
-          // Log enhanced response info
-          if (data.next_step) {
-            console.log('Next step:', data.next_step);
-          }
-          if (data.payment_setup_required) {
-            console.log('Payment setup required:', data.payment_setup_required);
-          }
-          if (data.message) {
-            console.log('Backend message:', data.message);
+            localStorage.setItem('user_data', JSON.stringify(data.user));
           }
 
           return true;
@@ -387,18 +380,22 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
       const data = await response.json();
       console.log('Payment verification response:', data);
 
-      // Store tokens if provided
+      // Store tokens in the format TokenManager expects
       if (data.access_token) {
-        localStorage.setItem('token', data.access_token);
-        if (data.refresh_token) {
-          localStorage.setItem('refresh_token', data.refresh_token);
+        const tokenData = {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token || undefined,
+          token_type: 'bearer',
+          expires_at: Date.now() + (24 * 60 * 60 * 1000)
         }
+        localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
       }
 
-      // Update auth state with new user
+      // Update auth state with new user and persist
       if (data.user) {
         const enhancedUser = enhanceUserData(data.user);
         setUser(enhancedUser);
+        localStorage.setItem('user_data', JSON.stringify(data.user));
       }
 
       return true;

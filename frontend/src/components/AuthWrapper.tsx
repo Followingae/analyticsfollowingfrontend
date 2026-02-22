@@ -18,10 +18,12 @@ export function AuthWrapper({ children, fallback }: AuthWrapperProps) {
   const [authError, setAuthError] = useState(false)
 
   useEffect(() => {
-    // Check if we have a token in localStorage
-    const token = localStorage.getItem('access_token')
+    // Check if we have a token in localStorage (check both new and legacy keys)
+    const authTokens = localStorage.getItem('auth_tokens')
+    const legacyToken = localStorage.getItem('access_token')
+    const hasToken = !!(authTokens && authTokens !== 'null') || !!(legacyToken && legacyToken !== 'null')
 
-    if (!isLoading && !user && !token) {
+    if (!isLoading && !user && !hasToken) {
       setAuthError(true)
     } else {
       setAuthError(false)
@@ -41,7 +43,7 @@ export function AuthWrapper({ children, fallback }: AuthWrapperProps) {
   }
 
   // Show authentication error with clear logout option
-  if (authError || (!user && !localStorage.getItem('access_token'))) {
+  if (authError || (!user && !localStorage.getItem('auth_tokens') && !localStorage.getItem('access_token'))) {
     return (
       <div className="flex h-screen items-center justify-center p-4">
         <div className="max-w-md w-full space-y-4">
@@ -56,9 +58,11 @@ export function AuthWrapper({ children, fallback }: AuthWrapperProps) {
           <div className="flex flex-col gap-2">
             <Button
               onClick={() => {
-                // Clear any stale tokens
+                // Clear any stale tokens (both new and legacy keys)
+                localStorage.removeItem('auth_tokens')
                 localStorage.removeItem('access_token')
                 localStorage.removeItem('refresh_token')
+                localStorage.removeItem('user_data')
                 router.push('/auth/login')
               }}
               className="w-full"

@@ -98,16 +98,19 @@ function WelcomeContent() {
           pollIntervalRef.current = null
         }
 
-        // Store authentication tokens
-        localStorage.setItem('access_token', data.access_token)
-        if (data.refresh_token) {
-          localStorage.setItem('refresh_token', data.refresh_token)
+        // Store authentication tokens in the format TokenManager expects
+        const tokenData = {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token || undefined,
+          token_type: 'bearer',
+          expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
         }
+        localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
 
-        // Store user info
+        // Store user info in the key AuthContext expects
         if (data.user) {
           setUserDetails(data.user)
-          localStorage.setItem('user', JSON.stringify(data.user))
+          localStorage.setItem('user_data', JSON.stringify(data.user))
         }
 
         setStatus('success')
