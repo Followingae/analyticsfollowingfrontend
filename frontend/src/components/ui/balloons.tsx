@@ -35,7 +35,14 @@ const Balloons = React.forwardRef<HTMLDivElement, BalloonsProps>(
       })
     }, [])
     
+    const lastLaunchRef = React.useRef<number>(0)
+    const COOLDOWN_MS = 3000
+
     const launchAnimation = React.useCallback(async () => {
+      const now = Date.now()
+      if (now - lastLaunchRef.current < COOLDOWN_MS) return
+      lastLaunchRef.current = now
+
       try {
         if (!balloonsModule) {
           const module = await loadBalloons()

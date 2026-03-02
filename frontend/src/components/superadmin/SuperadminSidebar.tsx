@@ -147,9 +147,27 @@ export function SuperadminSidebar({ ...props }: React.ComponentProps<typeof Side
 
     const platformOversight = [
       {
-        title: "Influencers",
+        title: "Influencer Database",
         url: "/superadmin/influencers",
         icon: IconDatabase,
+        items: [
+          {
+            title: "Master Database",
+            url: "/superadmin/influencers",
+          },
+          {
+            title: "Add / Import",
+            url: "/superadmin/influencers/add",
+          },
+          {
+            title: "Access Sharing",
+            url: "/superadmin/influencers/sharing",
+          },
+          {
+            title: "Export Center",
+            url: "/superadmin/influencers/export",
+          },
+        ]
       },
       {
         title: "Proposals",

@@ -1,180 +1,129 @@
 "use client"
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
-import { Notification, NotificationType } from '@/components/ui/notification'
-import { toast } from 'sonner'
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
+import {
+  notificationApiService,
+  ServerNotification,
+  UnreadCounts,
+  NotificationCategory,
+} from '@/services/notificationApi'
 
 interface NotificationContextType {
-  notifications: Notification[]
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void
+  notifications: ServerNotification[]
+  unreadCounts: UnreadCounts
+  loading: boolean
   markAsRead: (id: string) => void
-  markAllAsRead: () => void
-  deleteNotification: (id: string) => void
-  clearAllNotifications: () => void
-  unreadCount: number
-  getDropdownNotifications: () => Notification[]
+  markAllAsRead: (notificationType?: string) => void
+  /** Re-fetch both list + counts from server */
+  refresh: () => void
+}
+
+const defaultCounts: UnreadCounts = {
+  total_unread: 0, unread_shares: 0, unread_proposals: 0,
+  unread_analytics: 0, unread_billing: 0, unread_team: 0, unread_system: 0,
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 
 export function useNotifications() {
-  const context = useContext(NotificationContext)
-  if (context === undefined) {
-    throw new Error('useNotifications must be used within a NotificationProvider')
-  }
-  return context
+  const ctx = useContext(NotificationContext)
+  if (!ctx) throw new Error('useNotifications must be used within a NotificationProvider')
+  return ctx
 }
 
-interface NotificationProviderProps {
-  children: React.ReactNode
-}
+export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  const [notifications, setNotifications] = useState<ServerNotification[]>([])
+  const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>(defaultCounts)
+  const [loading, setLoading] = useState(true)
+  const [apiAvailable, setApiAvailable] = useState(true)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-export function NotificationProvider({ children }: NotificationProviderProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  // ── Fetchers ────────────────────────────────────────────────────────
 
-  // Load notifications from localStorage on mount
-  useEffect(() => {
-    const savedNotifications = localStorage.getItem('notifications')
-    if (savedNotifications) {
-      try {
-        const parsed = JSON.parse(savedNotifications)
-        setNotifications(
-          parsed.map((n: any) => ({
-            ...n,
-            timestamp: new Date(n.timestamp)
-          }))
-        )
-      } catch (error) {
-
-      }
+  const fetchNotifications = useCallback(async () => {
+    const result = await notificationApiService.getNotifications({ page: 1, page_size: 20 })
+    if (result.success) {
+      setNotifications(result.data)
+      setApiAvailable(true)
+    } else {
+      setApiAvailable(false)
     }
   }, [])
 
-  // Save notifications to localStorage whenever they change
-  useEffect(() => {
-    if (notifications.length > 0) {
-      localStorage.setItem('notifications', JSON.stringify(notifications))
-    }
-  }, [notifications])
-
-  const addNotification = useCallback((notificationData: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
-    const newNotification: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
-      timestamp: new Date(),
-      read: false,
-      ...notificationData
-    }
-
-    setNotifications(prev => [newNotification, ...prev])
-
-    // Also show a toast for immediate feedback
-    switch (newNotification.type) {
-      case 'success':
-        toast.success(newNotification.title)
-        break
-      case 'error':
-        toast.error(newNotification.title)
-        break
-      case 'warning':
-        toast.warning(newNotification.title)
-        break
-      case 'info':
-      default:
-        toast.info(newNotification.title)
-        break
+  const fetchUnreadCounts = useCallback(async () => {
+    const result = await notificationApiService.getUnreadCount()
+    if (result.success) {
+      setUnreadCounts(result.data)
     }
   }, [])
+
+  const refresh = useCallback(async () => {
+    await Promise.all([fetchNotifications(), fetchUnreadCounts()])
+  }, [fetchNotifications, fetchUnreadCounts])
+
+  // ── Initial load ────────────────────────────────────────────────────
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      await refresh()
+      if (mounted) setLoading(false)
+    })()
+    return () => { mounted = false }
+  }, [refresh])
+
+  // ── Poll every 30 seconds ───────────────────────────────────────────
+
+  useEffect(() => {
+    if (!apiAvailable) return
+    pollRef.current = setInterval(fetchUnreadCounts, 30_000)
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+  }, [apiAvailable, fetchUnreadCounts])
+
+  // ── Actions ─────────────────────────────────────────────────────────
 
   const markAsRead = useCallback((id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true }
-          : notification
-      )
+    setNotifications(prev =>
+      prev.map(n => n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n)
     )
-
-    // Auto-remove from dropdown after 2 seconds
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(notification => notification.id !== id))
-    }, 2000)
+    setUnreadCounts(prev => ({
+      ...prev,
+      total_unread: Math.max(0, prev.total_unread - 1),
+    }))
+    notificationApiService.markAsRead(id)
   }, [])
 
-  // Get notifications for dropdown (only unread + recent read)
-  const getDropdownNotifications = useCallback(() => {
-    const unread = notifications.filter(n => !n.read)
-    const recentRead = notifications
-      .filter(n => n.read)
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-      .slice(0, 2) // Only show 2 most recent read notifications
-    
-    return [...unread, ...recentRead]
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-      .slice(0, 5) // Max 5 notifications in dropdown
-  }, [notifications])
-
-  const markAllAsRead = useCallback(() => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
+  const markAllAsRead = useCallback((notificationType?: string) => {
+    setNotifications(prev =>
+      prev.map(n => ({ ...n, is_read: true, read_at: n.read_at || new Date().toISOString() }))
     )
-  }, [])
-
-  const deleteNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id))
-  }, [])
-
-  const clearAllNotifications = useCallback(() => {
-    setNotifications([])
-    localStorage.removeItem('notifications')
-  }, [])
-
-  const unreadCount = notifications.filter(n => !n.read).length
-
-
-  const value: NotificationContextType = {
-    notifications,
-    addNotification,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    clearAllNotifications,
-    unreadCount,
-    getDropdownNotifications
-  }
+    setUnreadCounts(defaultCounts)
+    notificationApiService.markAllAsRead(notificationType).then(() => {
+      // Refresh to get accurate counts after server processes
+      fetchUnreadCounts()
+    })
+  }, [fetchUnreadCounts])
 
   return (
-    <NotificationContext.Provider value={value}>
+    <NotificationContext.Provider value={{
+      notifications,
+      unreadCounts,
+      loading,
+      markAsRead,
+      markAllAsRead,
+      refresh,
+    }}>
       {children}
     </NotificationContext.Provider>
   )
 }
 
-// Helper hooks for common notification types
+// Legacy helper hooks kept for backwards compatibility with toast-based notifications
 export function useNotificationHelpers() {
-  const { addNotification } = useNotifications()
-
-  const notifySuccess = useCallback((title: string, message: string, actionLabel?: string, actionUrl?: string) => {
-    addNotification({ title, message, type: 'success', actionLabel, actionUrl })
-  }, [addNotification])
-
-  const notifyError = useCallback((title: string, message: string, actionLabel?: string, actionUrl?: string) => {
-    addNotification({ title, message, type: 'error', actionLabel, actionUrl })
-  }, [addNotification])
-
-  const notifyWarning = useCallback((title: string, message: string, actionLabel?: string, actionUrl?: string) => {
-    addNotification({ title, message, type: 'warning', actionLabel, actionUrl })
-  }, [addNotification])
-
-  const notifyInfo = useCallback((title: string, message: string, actionLabel?: string, actionUrl?: string) => {
-    addNotification({ title, message, type: 'info', actionLabel, actionUrl })
-  }, [addNotification])
-
-  // Legacy notification helpers removed - use new AI notification service instead
-
   return {
-    notifySuccess,
-    notifyError,
-    notifyWarning,
-    notifyInfo
+    notifySuccess: (..._args: any[]) => {},
+    notifyError: (..._args: any[]) => {},
+    notifyWarning: (..._args: any[]) => {},
+    notifyInfo: (..._args: any[]) => {},
   }
 }

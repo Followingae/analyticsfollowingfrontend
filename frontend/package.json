@@ -61,7 +61,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "enhanced-resolve": "^5.18.3",
-    "framer-motion": "^12.23.26",
+    "framer-motion": "^12.34.3",
     "idb-keyval": "^6.2.2",
     "lodash": "^4.17.21",
     "lucide-react": "^0.526.0",

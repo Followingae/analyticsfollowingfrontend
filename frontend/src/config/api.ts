@@ -200,9 +200,11 @@ export const ENDPOINTS = {
     // Existing user endpoints
     createCheckoutSession: '/api/v1/billing/create-checkout-session', // POST - Create checkout session
     upgradeSubscription: '/api/v1/billing/upgrade-subscription', // POST - Upgrade existing subscription
-    subscription: '/api/v1/billing/subscription-status', // GET - Get subscription status
+    subscription: '/api/v1/billing/subscription-status', // GET - Get subscription status (legacy alias)
+    subscriptionStatus: '/api/v1/billing/subscription-status', // GET - Comprehensive billing status (new)
     createPortalSession: '/api/v1/billing/create-portal-session', // POST - Create customer portal session
-    portalUrl: '/api/v1/billing/subscription/portal-url', // GET - Get Stripe portal URL (correct endpoint from backend)
+    portalSession: '/api/v1/billing/portal-session', // POST - Create fresh Stripe portal URL (new)
+    portalUrl: '/api/v1/billing/subscription/portal-url', // GET - Get Stripe portal URL (legacy)
     cancelSubscription: '/api/v1/billing/cancel-subscription', // POST - Cancel subscription
 
     // Webhooks
@@ -328,8 +330,8 @@ export const ENDPOINTS = {
     revenueAnalytics: '/api/superadmin/billing/revenue-analytics', // GET - Revenue analytics
 
     // === INFLUENCER DATABASE ===
-    influencers: '/api/superadmin/influencers/master-database', // GET - Influencer database
-    influencerDetails: (influencerId: string) => `/api/superadmin/influencers/${influencerId}/detailed`, // GET - Influencer details
+    influencers: '/api/v1/admin/influencers/database', // GET - Influencer database
+    influencerDetails: (influencerId: string) => `/api/v1/admin/influencers/${influencerId}/detailed`, // GET - Influencer details
 
     // === PROPOSALS MANAGEMENT ===
     proposalsOverview: '/api/superadmin/proposals/overview', // GET - Proposals overview
@@ -419,6 +421,34 @@ export const ENDPOINTS = {
     bulkFeatureGrant: '/api/superadmin/features/bulk-grant', // POST - Bulk feature grant
     grantProposalAccess: (userId: string) => `/api/superadmin/users/${userId}/features/proposals/grant`, // POST - Grant proposal access
     revokeProposalAccess: (userId: string) => `/api/superadmin/users/${userId}/features/proposals/revoke`, // POST - Revoke proposal access
+  },
+
+  // Influencer Master Database (/api/v1/admin/influencers/...)
+  influencerDatabase: {
+    database: '/api/v1/admin/influencers/database', // GET - Paginated list with filters
+    add: '/api/v1/admin/influencers/add', // POST - Add single influencer
+    bulkImport: '/api/v1/admin/influencers/bulk-import', // POST - Bulk import by usernames
+    detail: (id: string) => `/api/v1/admin/influencers/${id}/detailed`, // GET - Detail by UUID or username
+    update: (id: string) => `/api/v1/admin/influencers/${id}`, // PUT - Partial update with nested pricing
+    delete: (id: string) => `/api/v1/admin/influencers/${id}`, // DELETE - Delete + clean share references
+    refresh: (id: string) => `/api/v1/admin/influencers/${id}/refresh`, // POST - Re-fetch from Instagram
+    bulkTag: '/api/v1/admin/influencers/bulk-tag', // POST - Bulk add/remove tags
+    bulkPricing: '/api/v1/admin/influencers/bulk-pricing', // POST - Bulk pricing update
+    export: '/api/v1/admin/influencers/export', // POST - CSV/JSON export
+    tags: '/api/v1/admin/influencers/tags', // GET - All unique tags
+    shares: '/api/v1/admin/influencers/shares', // GET/POST - List or create shares
+    shareDetail: (id: string) => `/api/v1/admin/influencers/shares/${id}`, // PUT - Update share
+    shareRevoke: (id: string) => `/api/v1/admin/influencers/shares/${id}/revoke`, // POST - Deactivate share
+    shareExtend: (id: string) => `/api/v1/admin/influencers/shares/${id}/extend`, // POST - Extend expiration
+    sharedForUser: '/api/v1/influencers/shared', // GET - User-facing filtered read access
+  },
+
+  // Notifications (/api/v1/notifications/)
+  notifications: {
+    list: '/api/v1/notifications', // GET - List notifications
+    unreadCount: '/api/v1/notifications/unread-count', // GET - Unread count
+    markRead: (id: string) => `/api/v1/notifications/${id}/read`, // POST - Mark single as read
+    markAllRead: '/api/v1/notifications/mark-all-read', // POST - Mark all as read
   },
 
   // User Settings Endpoints (/api/v1/settings/)

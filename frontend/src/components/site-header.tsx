@@ -9,7 +9,7 @@ import { Balloons } from "@/components/ui/balloons"
 import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { useMemo, useState, useEffect, useRef } from "react"
-import { Crown, Coins, PartyPopper, LogOut } from "lucide-react"
+import { Crown, Coins, PartyPopper, LogOut, Bell } from "lucide-react"
 import { creditsApiService, CreditBalance } from "@/services/creditsApi"
 import { teamApiService, TeamContext } from "@/services/teamApi"
 import { useRouter } from 'next/navigation'
@@ -19,12 +19,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { NotificationBell } from '@/components/ui/notification'
+import { useNotifications } from '@/contexts/NotificationContext'
 
 export function SiteHeader() {
   const pathname = usePathname()
   const router = useRouter()
   const isDashboard = pathname === '/' || pathname === '/dashboard'
   const { user, isLoading, isBrandUser, logout } = useEnhancedAuth()
+  const { notifications, unreadCounts, markAsRead, markAllAsRead } = useNotifications()
 
   // Function to get page title based on current pathname
   const getPageTitle = () => {
@@ -197,6 +200,14 @@ export function SiteHeader() {
 
           {/* Navigation Icons Group */}
           <div className="flex items-center gap-1">
+            {/* Notifications Bell */}
+            <NotificationBell
+              notifications={notifications}
+              unreadCounts={unreadCounts}
+              onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
+            />
+
             {/* Balloon Button */}
             <TooltipProvider>
               <Tooltip>

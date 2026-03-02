@@ -32,8 +32,21 @@ export default function LoginPage() {
     try {
       const success = await login(email, password)
       if (success) {
-        // Use role-based routing instead of hardcoded dashboard
-        router.push('/')
+        // Read the user role stored during login to decide redirect
+        let redirectPath = '/'
+        try {
+          const stored = localStorage.getItem('user_data')
+          if (stored) {
+            const userData = JSON.parse(stored)
+            const role = userData.role?.toLowerCase()
+            if (role === 'superadmin' || role === 'super_admin' || role === 'admin') {
+              redirectPath = '/superadmin'
+            }
+          }
+        } catch {
+          // Fallback to default redirect
+        }
+        router.push(redirectPath)
       } else {
         setErrorMessage('Login failed. Please check your credentials and try again.')
       }

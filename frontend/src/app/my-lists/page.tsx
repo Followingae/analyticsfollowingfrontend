@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 import { AuthGuard } from "@/components/AuthGuard"
 import { instagramApiService, UnlockedProfile } from "@/services/instagramApi"
@@ -34,6 +34,8 @@ import {
   Zap,
   Bookmark,
   Star,
+  Clock,
+  ExternalLink,
 } from "lucide-react"
 
 import {
@@ -55,6 +57,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
+import { superadminApiService } from "@/services/superadminApi"
 import { AppSidebar } from "@/components/app-sidebar"
 import { toast } from "sonner"
 import { SiteHeader } from "@/components/site-header"
@@ -110,12 +113,28 @@ import {
 // Disable static generation for this page
 export const dynamic = 'force-dynamic'
 
+interface SharedListData {
+  share_id: string
+  share_name: string
+  influencers: any[]
+  expires_at: string | null
+  shared_by?: string
+  categories?: string[]
+  is_active?: boolean
+}
+
 export default function MyListsPage() {
+  const [activeTab, setActiveTab] = useState<"my-lists" | "shared">("my-lists")
   const [myLists, setMyLists] = useState<List[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+
+  // Shared lists state
+  const [sharedLists, setSharedLists] = useState<SharedListData[]>([])
+  const [sharedLoading, setSharedLoading] = useState(false)
+  const [sharedError, setSharedError] = useState<string | null>(null)
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -210,10 +229,54 @@ export default function MyListsPage() {
     }
   }
 
+  const loadSharedLists = async () => {
+    try {
+      setSharedLoading(true)
+      setSharedError(null)
+      const response = await superadminApiService.getSharedInfluencersForUser()
+      if (response.success && response.data) {
+        const shares = response.data?.shares || response.data || []
+        if (Array.isArray(shares)) {
+          setSharedLists(shares.map((share: any) => ({
+            share_id: share.share_id || share.id || '',
+            share_name: share.share_name || share.name || 'Shared List',
+            influencers: share.influencers || [],
+            expires_at: share.expires_at || null,
+            shared_by: share.shared_by || share.created_by || '',
+            categories: share.categories || [],
+            is_active: share.is_active !== false,
+          })))
+        }
+      } else {
+        setSharedError(response.error || 'Failed to load shared lists')
+      }
+    } catch (err: any) {
+      setSharedError('Failed to load shared lists')
+    } finally {
+      setSharedLoading(false)
+    }
+  }
+
+  // Check URL params for initial tab
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'shared') {
+      setActiveTab('shared')
+    }
+  }, [searchParams])
+
   useEffect(() => {
     loadLists()
     loadTemplates()
   }, [searchQuery])
+
+  // Load shared lists when switching to shared tab
+  useEffect(() => {
+    if (activeTab === 'shared') {
+      loadSharedLists()
+    }
+  }, [activeTab])
 
   const createList = async () => {
     if (!newListName.trim()) {
@@ -455,8 +518,39 @@ export default function MyListsPage() {
           <div className="flex flex-1 flex-col">
             <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
 
-              {/* Header - Now empty since title moved to top bar and button moved below */}
+              {/* Tab Switcher */}
+              <div className="flex items-center gap-1 rounded-lg bg-muted p-1 w-fit">
+                <button
+                  onClick={() => setActiveTab("my-lists")}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === "my-lists"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  My Lists
+                </button>
+                <button
+                  onClick={() => setActiveTab("shared")}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+                    activeTab === "shared"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  Shared with Me
+                  {sharedLists.length > 0 && (
+                    <Badge variant="secondary" className="text-xs h-5 min-w-5 px-1.5 ml-1">
+                      {sharedLists.length}
+                    </Badge>
+                  )}
+                </button>
+              </div>
 
+              {/* === MY LISTS TAB === */}
+              {activeTab === "my-lists" && (
+                <>
               {/* Search and Filters */}
               <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
                 <div className="relative flex-1 max-w-md">
@@ -594,6 +688,126 @@ export default function MyListsPage() {
                       </Card>
                     )
                   })}
+                </div>
+              )}
+
+                </>
+              )}
+
+              {/* === SHARED WITH ME TAB === */}
+              {activeTab === "shared" && (
+                <div className="space-y-6">
+                  {sharedLoading ? (
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      <p className="text-muted-foreground mt-4">Loading shared lists...</p>
+                    </div>
+                  ) : sharedError ? (
+                    <div className="text-center py-12">
+                      <p className="text-red-600 dark:text-red-400">{sharedError}</p>
+                      <Button variant="outline" className="mt-4" onClick={loadSharedLists}>
+                        Try Again
+                      </Button>
+                    </div>
+                  ) : sharedLists.length === 0 ? (
+                    <div className="flex justify-center py-12">
+                      <EmptyState
+                        title="No shared lists"
+                        description={"No influencer lists have been shared with you yet.\nShared lists from admins will appear here."}
+                        icons={[Share2, Users, FileText]}
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {sharedLists.map((share) => {
+                        const now = new Date()
+                        const expiresAt = share.expires_at ? new Date(share.expires_at) : null
+                        const isExpired = expiresAt && expiresAt < now
+                        const isExpiringSoon = expiresAt && !isExpired && (expiresAt.getTime() - now.getTime()) < 7 * 24 * 60 * 60 * 1000
+
+                        return (
+                          <Card
+                            key={share.share_id}
+                            className="group hover:scale-[1.02] transition-all duration-200 bg-card border border-border"
+                          >
+                            {/* Status banner */}
+                            <div
+                              className={`h-2 w-full ${
+                                isExpired
+                                  ? 'bg-red-500'
+                                  : isExpiringSoon
+                                  ? 'bg-amber-500'
+                                  : 'bg-emerald-500'
+                              }`}
+                            />
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between">
+                                <div className="min-w-0 flex-1">
+                                  <CardTitle className="text-lg leading-tight truncate">
+                                    {share.share_name}
+                                  </CardTitle>
+                                  {share.shared_by && (
+                                    <CardDescription className="mt-1">
+                                      Shared by {share.shared_by}
+                                    </CardDescription>
+                                  )}
+                                </div>
+                                <Badge
+                                  variant={isExpired ? 'destructive' : isExpiringSoon ? 'outline' : 'secondary'}
+                                  className="text-xs ml-2 shrink-0"
+                                >
+                                  {isExpired ? 'Expired' : isExpiringSoon ? 'Expiring Soon' : 'Active'}
+                                </Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              <div className="flex items-center justify-between text-xs mb-3 text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  <span>{share.influencers?.length || 0} influencers</span>
+                                </div>
+                                {expiresAt && (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    <span>
+                                      {isExpired
+                                        ? `Expired ${formatDate(share.expires_at!)}`
+                                        : `Expires ${formatDate(share.expires_at!)}`
+                                      }
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              {share.categories && share.categories.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mb-3">
+                                  {share.categories.slice(0, 3).map((cat) => (
+                                    <Badge key={cat} variant="outline" className="text-xs">
+                                      {cat}
+                                    </Badge>
+                                  ))}
+                                  {share.categories.length > 3 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      +{share.categories.length - 3}
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                              <Button
+                                onClick={() => router.push('/shared-influencers')}
+                                size="sm"
+                                className="w-full"
+                                variant="outline"
+                                disabled={isExpired}
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                View Influencers
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 

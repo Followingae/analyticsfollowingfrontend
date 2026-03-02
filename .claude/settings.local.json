@@ -102,5 +102,9 @@
       "C:\\c\\Users\\user\\Desktop\\analyticsfollowingfrontend\\analyticsfollowingfrontend",
       "C:\\c\\Users\\user\\Desktop\\analyticsfollowingfrontend"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ],
+  "enableAllProjectMcpServers": true
 }

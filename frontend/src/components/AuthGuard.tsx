@@ -68,7 +68,7 @@ export function AuthGuard({
     if (isAuthenticated && isPublicRoute && userRole && !hasAuthRequirements) {
       let redirectPath = '/dashboard'
       if (userRole === 'super_admin' || userRole === 'admin') {
-        redirectPath = '/admin/dashboard'
+        redirectPath = '/superadmin'
       }
 
       router.replace(redirectPath)

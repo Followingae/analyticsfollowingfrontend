@@ -33,6 +33,59 @@ export interface Product {
   features: string[]
 }
 
+export interface BillingStatus {
+  plan: {
+    tier: string
+    status: string
+    price_per_month: number
+    currency: string
+    features: string[]
+    description: string
+    max_team_members: number
+    monthly_profile_limit: number
+    monthly_email_limit: number
+    monthly_posts_limit: number
+    monthly_credits: number
+    topup_discount: number
+  }
+  stripe: {
+    subscription_id: string
+    status: string
+    cancel_at_period_end: boolean
+    current_period_start: number
+    current_period_end: number
+    billing_interval: string
+    payment_method: {
+      brand: string
+      last4: string
+      exp_month: number
+      exp_year: number
+    }
+  } | null
+  credits: {
+    current_balance: number
+    lifetime_earned: number
+    lifetime_spent: number
+    total_earned_this_cycle: number
+    total_spent_this_cycle: number
+  }
+  usage: {
+    profiles_used: number
+    profiles_limit: number
+    emails_used: number
+    emails_limit: number
+    posts_used: number
+    posts_limit: number
+  }
+  portal_url: string | null
+  user: {
+    email: string
+    full_name: string
+    has_stripe_customer: boolean
+    billing_type: string
+  }
+}
+
 class BillingManager {
   private stripePromise: Promise<any> | null = null
 
@@ -295,70 +348,65 @@ class BillingManager {
     return checkout
   }
 
-  // Get current subscription
-  async getSubscription(): Promise<Subscription> {
+  // Get comprehensive billing status from the new endpoint
+  async getBillingStatus(): Promise<BillingStatus | null> {
     try {
       const headers = getAuthHeaders()
-      // Check if user is authenticated
       if (!headers.Authorization) {
         console.warn('No authentication token available')
-        return { status: 'none', tier: 'free' }
+        return null
       }
 
-      // Try billing endpoint first
-      console.log('Fetching subscription from billing endpoint...')
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.subscription}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.subscriptionStatus}`, {
         headers
       })
 
       if (response.ok) {
         const data = await response.json()
-        console.log('Subscription data received:', data)
-        return data
+        return data as BillingStatus
       }
 
-      // Handle various error cases
       if (response.status === 401) {
         console.warn('User not authenticated')
+        return null
+      }
+
+      console.error(`Failed to fetch billing status: ${response.status}`)
+      return null
+    } catch (error) {
+      console.error('Error fetching billing status:', error)
+      return null
+    }
+  }
+
+  // Get current subscription (delegates to getBillingStatus and maps to legacy shape)
+  async getSubscription(): Promise<Subscription> {
+    try {
+      const billingStatus = await this.getBillingStatus()
+
+      if (!billingStatus) {
         return { status: 'none', tier: 'free' }
       }
 
-      if (response.status === 404 || response.status === 500) {
-        console.warn(`Billing endpoint not available (${response.status}), trying dashboard endpoint...`)
-
-        // Fallback to dashboard endpoint for subscription data
-        try {
-          const dashboardResponse = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.auth.dashboard}`, {
-            headers
-          })
-
-          if (dashboardResponse.ok) {
-            const dashboardData = await dashboardResponse.json()
-            console.log('Dashboard data received, extracting subscription info:', dashboardData)
-
-            // Extract subscription info from dashboard data
-            if (dashboardData.subscription) {
-              return dashboardData.subscription
-            }
-
-            // Build subscription object from user data
-            const subscription: Subscription = {
-              status: dashboardData.user?.subscription_status || 'none',
-              tier: dashboardData.user?.subscription_tier || dashboardData.user?.role || 'free',
-              billing_type: dashboardData.user?.billing_type || 'online_payment',
-              credits_remaining: dashboardData.credits?.balance || 0
-            }
-
-            console.log('Built subscription from dashboard:', subscription)
-            return subscription
-          }
-        } catch (dashboardError) {
-          console.error('Dashboard endpoint also failed:', dashboardError)
-        }
+      // Map BillingStatus to the legacy Subscription interface
+      const subscription: Subscription = {
+        status: (billingStatus.plan.status as Subscription['status']) || 'none',
+        tier: (billingStatus.plan.tier as Subscription['tier']) || 'free',
+        billing_type: billingStatus.user.billing_type as Subscription['billing_type'],
+        credits_remaining: billingStatus.credits.current_balance,
       }
 
-      console.error(`Failed to fetch subscription: ${response.status}`)
-      return { status: 'none', tier: 'free' }
+      // Map period end from stripe data (unix timestamp to ISO string)
+      if (billingStatus.stripe?.current_period_end) {
+        subscription.current_period_end = new Date(billingStatus.stripe.current_period_end * 1000).toISOString()
+      }
+
+      // Map stripe subscription ID
+      if (billingStatus.stripe?.subscription_id) {
+        subscription.id = billingStatus.stripe.subscription_id
+      }
+
+      return subscription
     } catch (error) {
       console.error('Error fetching subscription:', error)
       return { status: 'none', tier: 'free' }
@@ -416,27 +464,32 @@ class BillingManager {
   }
 
   // Open Stripe Customer Portal
-  async openCustomerPortal(): Promise<void> {
+  async openCustomerPortal(cachedPortalUrl?: string | null): Promise<void> {
     try {
-      // Use the correct GET endpoint from backend
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.portalUrl}`, {
-        method: 'GET',
-        headers: getAuthHeaders()
+      // If a cached portal_url was provided from getBillingStatus, use it directly
+      if (cachedPortalUrl) {
+        window.location.href = cachedPortalUrl
+        return
+      }
+
+      // Otherwise, create a fresh portal session via the new POST endpoint
+      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.portalSession}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ return_url: window.location.href })
       })
 
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error('You need a paid subscription to access the billing portal. Please upgrade first.')
         }
-        throw new Error('Failed to get portal URL')
+        throw new Error('Failed to create portal session')
       }
 
       const data = await response.json()
-      // Backend returns { "portal_url": "https://billing.stripe.com/session/..." }
-      const portalUrl = data.portal_url
+      const portalUrl = data.portal_url || data.url
 
       if (portalUrl) {
-        // Redirect user to Stripe portal
         window.location.href = portalUrl
       } else {
         throw new Error('No portal URL returned from API')

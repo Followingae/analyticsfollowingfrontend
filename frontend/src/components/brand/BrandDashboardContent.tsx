@@ -242,7 +242,7 @@ export function BrandDashboardContent() {
             showDiscovery ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}>
             <div className="h-[320px]">
-              <SmartDiscovery 
+              <SmartDiscovery
                 onDiscover={() => {
                   // Navigate to discover page
                   router.push('/discover')

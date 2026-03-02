@@ -81,6 +81,20 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     },
   ]
 
+  const platformItems = [
+    {
+      title: "Influencer Database",
+      url: "/superadmin/influencers",
+      icon: Database,
+      items: [
+        { title: "Master Database", url: "/superadmin/influencers" },
+        { title: "Add / Import", url: "/superadmin/influencers/add" },
+        { title: "Access Sharing", url: "/superadmin/influencers/sharing" },
+        { title: "Export Center", url: "/superadmin/influencers/export" },
+      ],
+    },
+  ]
+
   const contentItems = [
     {
       title: "Profiles",
@@ -128,6 +142,14 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <NavMain items={managementItems} />
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Platform Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <NavMain items={platformItems} />
           </SidebarGroupContent>
         </SidebarGroup>
 

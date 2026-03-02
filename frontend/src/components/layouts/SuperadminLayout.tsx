@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { AuthGuard } from "@/components/AuthGuard"
-import { SuperadminSidebar } from "@/components/superadmin/SuperadminSidebar"
+import { SuperAdminSidebar } from "@/components/admin/SuperAdminSidebar"
 import { SiteHeader } from "@/components/site-header"
 import {
   SidebarInset,
@@ -22,8 +22,15 @@ export function SuperadminLayout({
 }: SuperadminLayoutProps) {
   return (
     <AuthGuard requireAuth={requireAuth} requireSuperAdmin={requireSuperAdmin}>
-      <SidebarProvider>
-        <SuperadminSidebar />
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 66)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <SuperAdminSidebar variant="inset" />
         <SidebarInset>
           <SiteHeader />
           <div className="flex flex-1 flex-col">

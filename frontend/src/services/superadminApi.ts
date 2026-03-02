@@ -2250,6 +2250,162 @@ export class SuperadminApiService {
   // Discovery Control - Process all unprocessed profiles
   // CRITICAL: This endpoint blocks until complete (3-5 min per profile)
   // Uses custom fetch with 1-hour timeout instead of default makeRequest
+  // ===== INFLUENCER MASTER DATABASE =====
+
+  // ─── IMD Helpers ────────────────────────────────────────────────────
+  // Backend IMD routes wrap responses in {"success":true,"data":{...}}.
+  // makeRequest already sets success from HTTP status and puts the full
+  // JSON body as `data`, so we unwrap the inner `.data` to avoid double-nesting.
+  private unwrapIMD<T>(raw: ApiResponse<any>): ApiResponse<T> {
+    if (raw.success && raw.data?.data !== undefined) {
+      return { ...raw, data: raw.data.data }
+    }
+    return raw
+  }
+
+  async getInfluencerDatabase(filters?: any): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams()
+    if (filters) {
+      const { page, page_size, search, status, pricing_tier, tags, categories, followers_min, followers_max, engagement_min, engagement_max, is_verified, has_pricing, sort_by, sort_order } = filters
+      if (page) params.append('page', page.toString())
+      if (page_size) params.append('page_size', page_size.toString())
+      if (search) params.append('search', search)
+      if (status && Array.isArray(status) && status.length > 0) params.append('status', status[0])
+      if (pricing_tier && Array.isArray(pricing_tier) && pricing_tier.length > 0) params.append('tier', pricing_tier[0])
+      if (tags && Array.isArray(tags) && tags.length > 0) params.append('tags', tags.join(','))
+      if (categories && Array.isArray(categories) && categories.length > 0) params.append('categories', categories.join(','))
+      if (followers_min !== undefined && followers_min !== null) params.append('min_followers', followers_min.toString())
+      if (followers_max !== undefined && followers_max !== null) params.append('max_followers', followers_max.toString())
+      if (engagement_min !== undefined && engagement_min !== null) params.append('engagement_min', engagement_min.toString())
+      if (engagement_max !== undefined && engagement_max !== null) params.append('engagement_max', engagement_max.toString())
+      if (is_verified !== undefined && is_verified !== null) params.append('is_verified', is_verified.toString())
+      if (has_pricing !== undefined && has_pricing !== null) params.append('has_pricing', has_pricing.toString())
+      if (sort_by) params.append('sort_by', sort_by)
+      if (sort_order) params.append('sort_order', sort_order)
+    }
+    const raw = await this.makeRequest(`${ENDPOINTS.influencerDatabase.database}?${params.toString()}`)
+    return this.unwrapIMD(raw)
+  }
+
+  async addInfluencerToDatabase(username: string, metadata?: any): Promise<ApiResponse<any>> {
+    const payload: any = { username }
+    if (metadata) {
+      if (metadata.categories) payload.categories = metadata.categories
+      if (metadata.tags) payload.tags = metadata.tags
+      if (metadata.internal_notes !== undefined) payload.notes = metadata.internal_notes
+      else if (metadata.notes !== undefined) payload.notes = metadata.notes
+      if (metadata.status) payload.status = metadata.status
+      if (metadata.tier) payload.tier = metadata.tier
+      if (metadata.cost_pricing) payload.cost_pricing = metadata.cost_pricing
+      if (metadata.sell_pricing) payload.sell_pricing = metadata.sell_pricing
+    }
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.add, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async bulkImportInfluencers(usernames: string[]): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.bulkImport, {
+      method: 'POST',
+      body: JSON.stringify({ usernames })
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async updateInfluencerMetadata(id: string, data: any): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.update(id), {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async removeInfluencerFromDatabase(id: string): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.delete(id), {
+      method: 'DELETE'
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async refreshInfluencerAnalytics(id: string): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.refresh(id), {
+      method: 'POST'
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async bulkTagInfluencers(ids: string[], tags: string[], action: 'add' | 'remove'): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.bulkTag, {
+      method: 'POST',
+      body: JSON.stringify({ influencer_ids: ids, tags, action })
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async bulkUpdateInfluencerPricing(updates: any[]): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.bulkPricing, {
+      method: 'POST',
+      body: JSON.stringify({ updates })
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async exportInfluencers(params: any): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.export, {
+      method: 'POST',
+      body: JSON.stringify(params)
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async getAvailableTags(): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.tags)
+    return this.unwrapIMD(raw)
+  }
+
+  async getInfluencerShares(): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.shares)
+    return this.unwrapIMD(raw)
+  }
+
+  async createInfluencerShare(data: any): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.shares, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async updateInfluencerShare(id: string, data: any): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.shareDetail(id), {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async revokeInfluencerShare(id: string): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.shareRevoke(id), {
+      method: 'POST'
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async extendInfluencerShare(id: string, expiresAt: string): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.shareExtend(id), {
+      method: 'POST',
+      body: JSON.stringify({ expires_at: expiresAt })
+    })
+    return this.unwrapIMD(raw)
+  }
+
+  async getSharedInfluencersForUser(): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.sharedForUser)
+    return this.unwrapIMD(raw)
+  }
+
   async processAllUnprocessed(limit?: number): Promise<ApiResponse<ProcessAllUnprocessedResponse>> {
     const params = limit ? `?limit=${limit}` : ''
     const endpoint = `/api/v1/admin/repair/discovery/process-all-unprocessed${params}`

@@ -8,60 +8,142 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  Bell, 
-  Check, 
-  X, 
-  Settings,
-  Filter,
-  ChevronLeft
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Bell,
+  Check,
+  Link2,
+  Clock,
+  FileText,
+  FileCheck,
+  BarChart3,
+  CreditCard,
+  AlertTriangle,
+  UserPlus,
+  Users,
+  ChevronLeft,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import {
+  ServerNotification,
+  ServerNotificationType,
+  UnreadCounts,
+  NOTIFICATION_CATEGORIES,
+  NotificationCategory,
+} from "@/services/notificationApi"
 
-function getRelativeTime(date: Date): string {
-  const now = new Date()
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+// ── Icon + color map (matches bell dropdown) ─────────────────────────
 
-  if (diffInSeconds < 60) return 'Just now'
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`
-  return date.toLocaleDateString()
+const ICON_MAP: Record<ServerNotificationType, {
+  icon: React.ComponentType<{ className?: string }>
+  color: string
+  bg: string
+}> = {
+  share_received:      { icon: Link2,          color: 'text-green-500',  bg: 'bg-green-500/10' },
+  share_revoked:       { icon: Link2,          color: 'text-red-500',    bg: 'bg-red-500/10' },
+  share_extended:      { icon: Clock,          color: 'text-blue-500',   bg: 'bg-blue-500/10' },
+  proposal_received:   { icon: FileText,       color: 'text-blue-500',   bg: 'bg-blue-500/10' },
+  proposal_updated:    { icon: FileCheck,      color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+  analytics_completed: { icon: BarChart3,      color: 'text-purple-500', bg: 'bg-purple-500/10' },
+  credit_purchase:     { icon: CreditCard,     color: 'text-green-500',  bg: 'bg-green-500/10' },
+  low_balance:         { icon: AlertTriangle,  color: 'text-orange-500', bg: 'bg-orange-500/10' },
+  team_invite:         { icon: UserPlus,       color: 'text-blue-500',   bg: 'bg-blue-500/10' },
+  team_update:         { icon: Users,          color: 'text-blue-500',   bg: 'bg-blue-500/10' },
+  system:              { icon: Bell,           color: 'text-muted-foreground', bg: 'bg-muted' },
 }
+
+function NotifIcon({ type }: { type: ServerNotificationType }) {
+  const entry = ICON_MAP[type] || ICON_MAP.system
+  const Icon = entry.icon
+  return (
+    <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", entry.bg)}>
+      <Icon className={cn("h-5 w-5", entry.color)} />
+    </div>
+  )
+}
+
+// ── Relative time ────────────────────────────────────────────────────
+
+function getRelativeTime(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (diff < 60) return 'Just now'
+  if (diff < 3600) { const m = Math.floor(diff / 60); return `${m} minute${m > 1 ? 's' : ''} ago` }
+  if (diff < 86400) { const h = Math.floor(diff / 3600); return `${h} hour${h > 1 ? 's' : ''} ago` }
+  if (diff < 172800) return 'Yesterday'
+  if (diff < 604800) { const d = Math.floor(diff / 86400); return `${d} day${d > 1 ? 's' : ''} ago` }
+  return new Date(iso).toLocaleDateString()
+}
+
+// ── Category tabs ────────────────────────────────────────────────────
+
+interface CategoryTab {
+  key: 'all' | NotificationCategory
+  label: string
+  countKey?: keyof UnreadCounts
+}
+
+const CATEGORY_TABS: CategoryTab[] = [
+  { key: 'all',       label: 'All Notifications' },
+  { key: 'shares',    label: 'Shares',    countKey: 'unread_shares' },
+  { key: 'proposals', label: 'Proposals', countKey: 'unread_proposals' },
+  { key: 'analytics', label: 'Analytics', countKey: 'unread_analytics' },
+  { key: 'billing',   label: 'Billing',   countKey: 'unread_billing' },
+  { key: 'team',      label: 'Team',      countKey: 'unread_team' },
+]
+
+// ── Page ─────────────────────────────────────────────────────────────
 
 export default function NotificationsPage() {
   const router = useRouter()
-  const { 
-    notifications, 
-    markAsRead, 
-    markAllAsRead, 
-    deleteNotification, 
-    clearAllNotifications,
-    unreadCount 
+  const {
+    notifications,
+    unreadCounts,
+    markAsRead,
+    markAllAsRead,
   } = useNotifications()
 
-  const [filter, setFilter] = useState<'all' | 'unread'>('all')
+  const [activeCategory, setActiveCategory] = useState<'all' | NotificationCategory>('all')
+  const [unreadOnly, setUnreadOnly] = useState(false)
 
-  const filteredNotifications = filter === 'unread' 
-    ? notifications.filter(n => !n.read)
-    : notifications
+  const filtered = useMemo(() => {
+    let items = notifications
+    if (activeCategory !== 'all') {
+      const types = NOTIFICATION_CATEGORIES[activeCategory] as readonly string[]
+      items = items.filter(n => types.includes(n.notification_type))
+    }
+    if (unreadOnly) {
+      items = items.filter(n => !n.is_read)
+    }
+    return items
+  }, [notifications, activeCategory, unreadOnly])
 
-  const handleNotificationClick = (notification: any) => {
-    if (!notification.read) {
+  const handleNotificationClick = (notification: ServerNotification) => {
+    if (!notification.is_read) {
       markAsRead(notification.id)
     }
-    
-    if (notification.actionUrl) {
-      router.push(notification.actionUrl)
+    if (notification.action_url) {
+      router.push(notification.action_url)
     }
   }
+
+  const handleMarkAllRead = () => {
+    if (activeCategory !== 'all') {
+      const types = NOTIFICATION_CATEGORIES[activeCategory]
+      markAllAsRead(types[0])
+    } else {
+      markAllAsRead()
+    }
+  }
+
+  const activeCategoryUnread = activeCategory === 'all'
+    ? unreadCounts.total_unread
+    : (unreadCounts[CATEGORY_TABS.find(t => t.key === activeCategory)?.countKey || 'total_unread' as keyof UnreadCounts] ?? 0)
 
   return (
     <AuthGuard requireAuth={true}>
@@ -78,200 +160,172 @@ export default function NotificationsPage() {
           <SiteHeader />
           <div className="flex flex-1 flex-col">
             <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-              
+
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => router.back()}
                     className="h-8 w-8 p-0"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-                      <Bell className="h-8 w-8" />
+                    <h1 className="text-2xl font-bold flex items-center gap-2">
+                      <Bell className="h-6 w-6" />
                       Notifications
+                      {unreadCounts.total_unread > 0 && (
+                        <Badge variant="destructive" className="text-xs">
+                          {unreadCounts.total_unread}
+                        </Badge>
+                      )}
                     </h1>
-                    <p className="text-muted-foreground">
-                      Manage your notifications and activity updates
+                    <p className="text-sm text-muted-foreground">
+                      Stay updated with shares, proposals, analytics, and more
                     </p>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  {unreadCount > 0 && (
-                    <Button variant="outline" size="sm" onClick={markAllAsRead}>
-                      <Check className="h-4 w-4 mr-2" />
-                      Mark all read ({unreadCount})
-                    </Button>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={clearAllNotifications}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Clear all
-                  </Button>
+              </div>
+
+              {/* Main layout: sidebar tabs + content */}
+              <div className="grid grid-cols-12 gap-6">
+
+                {/* Left sidebar - category tabs */}
+                <div className="col-span-3">
+                  <Card>
+                    <CardContent className="p-2">
+                      <nav className="space-y-0.5">
+                        {CATEGORY_TABS.map(tab => {
+                          const count = tab.countKey ? unreadCounts[tab.countKey] : unreadCounts.total_unread
+                          const isActive = activeCategory === tab.key
+                          return (
+                            <button
+                              key={tab.key}
+                              onClick={() => setActiveCategory(tab.key)}
+                              className={cn(
+                                "w-full flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                                isActive
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                              )}
+                            >
+                              <span>{tab.label}</span>
+                              {count > 0 && (
+                                <Badge
+                                  variant={isActive ? "secondary" : "outline"}
+                                  className={cn(
+                                    "h-5 min-w-[20px] px-1.5 text-[11px]",
+                                    isActive && "bg-primary-foreground/20 text-primary-foreground border-0"
+                                  )}
+                                >
+                                  {count}
+                                </Badge>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </nav>
+                    </CardContent>
+                  </Card>
                 </div>
-              </div>
 
-              {/* Stats */}
-              <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <Bell className="h-4 w-4 text-blue-600" />
-                      <div>
-                        <p className="text-sm font-medium">Total</p>
-                        <p className="text-2xl font-bold">{notifications.length}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-blue-600 rounded-full" />
-                      <div>
-                        <p className="text-sm font-medium">Unread</p>
-                        <p className="text-2xl font-bold">{unreadCount}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-600" />
-                      <div>
-                        <p className="text-sm font-medium">Read</p>
-                        <p className="text-2xl font-bold">{notifications.length - unreadCount}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <Settings className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Today</p>
-                        <p className="text-2xl font-bold">
-                          {notifications.filter(n => {
-                            const today = new Date()
-                            const notifDate = new Date(n.timestamp)
-                            return notifDate.toDateString() === today.toDateString()
-                          }).length}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Notifications List */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>All Notifications</CardTitle>
-                    <Tabs value={filter} onValueChange={(value) => setFilter(value as 'all' | 'unread')}>
-                      <TabsList>
-                        <TabsTrigger value="all">All</TabsTrigger>
-                        <TabsTrigger value="unread">
-                          Unread
-                          {unreadCount > 0 && (
-                            <Badge variant="secondary" className="ml-2 h-4 px-1 text-xs">
-                              {unreadCount}
-                            </Badge>
+                {/* Main content */}
+                <div className="col-span-9">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">
+                          {CATEGORY_TABS.find(t => t.key === activeCategory)?.label || 'All Notifications'}
+                        </CardTitle>
+                        <div className="flex items-center gap-3">
+                          {/* Unread only toggle */}
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox
+                              checked={unreadOnly}
+                              onCheckedChange={(checked) => setUnreadOnly(checked === true)}
+                            />
+                            <span className="text-sm text-muted-foreground">Unread only</span>
+                          </label>
+                          {/* Mark all read (scoped) */}
+                          {activeCategoryUnread > 0 && (
+                            <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
+                              <Check className="h-4 w-4 mr-1.5" />
+                              Mark all read
+                            </Button>
                           )}
-                        </TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {filteredNotifications.length > 0 ? (
-                    <ScrollArea className="h-[600px]">
-                      <div className="space-y-0">
-                        {filteredNotifications.map((notification, index) => (
-                          <div
-                            key={notification.id}
-                            onClick={() => handleNotificationClick(notification)}
-                            className={cn(
-                              "px-6 py-4 border-b last:border-b-0 cursor-pointer transition-colors hover:bg-muted/50",
-                              !notification.read && "bg-muted/30"
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <h4 className={cn(
-                                    "font-medium",
-                                    !notification.read && "font-semibold"
-                                  )}>
-                                    {notification.title}
-                                  </h4>
-                                  {!notification.read && (
-                                    <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      {filtered.length > 0 ? (
+                        <ScrollArea className="h-[600px]">
+                          <div className="divide-y">
+                            {filtered.map(n => (
+                              <div
+                                key={n.id}
+                                onClick={() => handleNotificationClick(n)}
+                                className={cn(
+                                  "group flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors hover:bg-muted/50",
+                                  !n.is_read && "bg-muted/30"
+                                )}
+                              >
+                                <NotifIcon type={n.notification_type} />
+                                <div className="flex-1 min-w-0 space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className={cn(
+                                      "text-sm leading-tight",
+                                      !n.is_read ? "font-semibold" : "font-medium"
+                                    )}>
+                                      {n.title}
+                                    </h4>
+                                    {!n.is_read && (
+                                      <div className="h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                                    )}
+                                  </div>
+                                  {n.message && (
+                                    <p className="text-sm text-muted-foreground leading-snug">
+                                      {n.message}
+                                    </p>
                                   )}
-                                  <Badge variant="outline" className="text-xs">
-                                    {notification.type}
-                                  </Badge>
-                                </div>
-                                
-                                <p className="text-sm text-muted-foreground">
-                                  {notification.message}
-                                </p>
-                                
-                                <div className="flex items-center justify-between">
-                                  <p className="text-xs text-muted-foreground">
-                                    {getRelativeTime(notification.timestamp)}
-                                  </p>
-                                  {notification.actionUrl && (
-                                    <span className="text-xs text-blue-600">
-                                      Click to view →
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs text-muted-foreground">
+                                      {getRelativeTime(n.created_at)}
                                     </span>
-                                  )}
+                                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4">
+                                      {n.notification_type.replace(/_/g, ' ')}
+                                    </Badge>
+                                    {n.action_url && (
+                                      <span className="text-xs text-primary">
+                                        View details →
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                              
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  deleteNotification(notification.id)
-                                }}
-                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 hover:text-destructive"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  ) : (
-                    <div className="px-6 py-12 text-center text-muted-foreground">
-                      <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <h3 className="text-lg font-medium mb-2">
-                        {filter === 'unread' ? 'No unread notifications' : 'No notifications'}
-                      </h3>
-                      <p className="text-sm">
-                        {filter === 'unread' 
-                          ? 'All caught up! Check back later for new updates.'
-                          : 'We\'ll notify you about important updates and activities.'
-                        }
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                        </ScrollArea>
+                      ) : (
+                        <div className="px-6 py-16 text-center text-muted-foreground">
+                          <Bell className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                          <h3 className="text-base font-medium mb-1">
+                            {unreadOnly ? 'No unread notifications' : 'No notifications'}
+                          </h3>
+                          <p className="text-sm">
+                            {unreadOnly
+                              ? 'All caught up! Check back later for new updates.'
+                              : 'We\'ll notify you about important updates and activities.'
+                            }
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+              </div>
             </div>
           </div>
         </SidebarInset>
