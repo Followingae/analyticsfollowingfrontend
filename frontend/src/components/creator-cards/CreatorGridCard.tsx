@@ -217,7 +217,7 @@ export function CreatorGridCard({
           </div>
           <div className="p-2 bg-muted/50 rounded-md border border-border">
             <div className="text-sm font-bold text-primary">
-              {creator.engagement_rate ? `${creator.engagement_rate.toFixed(1)}%` : 'N/A'}
+              {creator.engagement_rate != null ? `${creator.engagement_rate.toFixed(1)}%` : 'N/A'}
             </div>
             <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
               <Heart className="h-2.5 w-2.5" />

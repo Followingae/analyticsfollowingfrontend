@@ -4,6 +4,7 @@
  */
 
 import { UsageStatsResponse } from '@/types/creator';
+import { pollJobToCompletion } from '@/hooks/useJobPolling'
 
 // Base API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
@@ -63,7 +64,7 @@ export interface CreatorProfile {
   posts_count: number;
   is_verified: boolean;
   is_business: boolean;
-  engagement_rate: number;
+  engagement_rate: number | null;
   profile_pic_url: string;
   profile_pic_url_hd: string;
   proxied_profile_pic_url?: string;
@@ -351,8 +352,20 @@ const createHeaders = (includeContentType: boolean = true): HeadersInit => {
 
 const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> => {
   try {
+    // Handle 202 Accepted (async job)
+    if (response.status === 202) {
+      const jobData = await response.json();
+      return {
+        success: true,
+        data: jobData as any,
+        message: jobData.message || 'Processing started',
+        isAsync: true,
+        jobId: jobData.job_id,
+      } as any;
+    }
+
     const data = await response.json();
-    
+
     if (!response.ok) {
       return {
         success: false,
@@ -360,7 +373,7 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
         notifications: data.notifications
       };
     }
-    
+
     return {
       success: true,
       data,
@@ -411,7 +424,28 @@ class CreatorApiService {
         })
       });
 
-      return await handleResponse<SearchResponse>(response);
+      const result = await handleResponse<SearchResponse>(response);
+
+      // If backend returned 202, poll for completion
+      if ((result as any).isAsync && (result as any).jobId) {
+        try {
+          const finalResult = await pollJobToCompletion((result as any).jobId, {
+            pollInterval: 4000,
+            maxAttempts: 45, // ~3 minutes for new profiles
+          });
+          return {
+            success: true,
+            data: finalResult,
+          };
+        } catch (pollErr: any) {
+          return {
+            success: false,
+            error: pollErr.message || 'Creator search processing failed',
+          };
+        }
+      }
+
+      return result;
     } catch (error) {
       return {
         success: false,

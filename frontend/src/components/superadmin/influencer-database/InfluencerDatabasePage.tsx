@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { superadminApiService } from "@/services/superadminApi"
 import {
   type MasterInfluencer,
@@ -13,6 +15,7 @@ import {
   COLUMN_DEFINITIONS,
   DEFAULT_FILTERS,
 } from "@/types/influencerDatabase"
+import { useAnalyticsStatusPoller } from "@/hooks/useAnalyticsStatusPoller"
 import { DatabaseHeader } from "./DatabaseHeader"
 import { DatabaseToolbar } from "./DatabaseToolbar"
 import { InfluencerTableView } from "./InfluencerTableView"
@@ -141,6 +144,17 @@ export function InfluencerDatabasePage() {
     }
   }, [fetchData])
 
+  const onDelete = useCallback(async (influencerId: string) => {
+    if (!confirm("Remove this influencer from the database?")) return
+    try {
+      await superadminApiService.removeInfluencerFromDatabase(influencerId)
+      toast.success("Influencer removed")
+      fetchData()
+    } catch {
+      toast.error("Failed to remove influencer")
+    }
+  }, [fetchData])
+
   const onViewDetails = useCallback((influencer: MasterInfluencer) => {
     setDetailInfluencer(influencer)
     setDetailOpen(true)
@@ -193,10 +207,53 @@ export function InfluencerDatabasePage() {
     }
   }, [])
 
+  // --- Analytics Status Polling ---
+  const influencerIds = useMemo(() => influencers.map((i) => String(i.id)), [influencers])
+  const { statusMap, hasActiveJobs, completedSinceMount } = useAnalyticsStatusPoller(
+    influencerIds,
+    influencers.length > 0
+  )
+
+  // Auto-refresh table when analytics complete (synced data now available)
+  useEffect(() => {
+    if (completedSinceMount.length > 0) {
+      fetchData()
+    }
+  }, [completedSinceMount.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const triggerRetry = useCallback(async (influencerId: string) => {
+    try {
+      await superadminApiService.triggerInfluencerAnalytics(influencerId)
+      toast.success("Analytics job queued")
+    } catch (err: any) {
+      if (err?.status === 409 || err?.response?.status === 409) {
+        toast.warning("Analytics already in progress")
+      } else {
+        toast.error("Failed to trigger analytics")
+      }
+    }
+  }, [])
+
+  const activeJobCount = useMemo(
+    () => Object.values(statusMap).filter((s) => !["completed", "failed", "skipped"].includes(s.status)).length,
+    [statusMap]
+  )
+
   const selectedIdsArray = useMemo(() => Array.from(selectedIds), [selectedIds])
 
   return (
     <div className="space-y-6">
+      {hasActiveJobs && (
+        <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <AlertTitle>Analytics Processing</AlertTitle>
+          <AlertDescription>
+            {activeJobCount} influencer(s) are being analyzed in the background.
+            Status updates automatically.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <DatabaseHeader
         totalCount={totalCount}
         loading={loading}
@@ -228,12 +285,16 @@ export function InfluencerDatabasePage() {
           sortBy={filters.sort_by}
           sortOrder={filters.sort_order}
           onViewDetails={onViewDetails}
+          onDelete={onDelete}
           onInlineEdit={onInlineEdit}
           totalCount={totalCount}
           page={filters.page}
           pageSize={filters.page_size}
           totalPages={totalPages}
           onPageChange={onPageChange}
+          analyticsStatusMap={statusMap}
+          completedSinceMount={completedSinceMount}
+          onTriggerAnalytics={triggerRetry}
         />
       ) : (
         <InfluencerCardView

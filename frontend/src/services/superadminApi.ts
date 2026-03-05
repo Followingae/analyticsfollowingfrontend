@@ -2365,6 +2365,19 @@ export class SuperadminApiService {
     return this.unwrapIMD(raw)
   }
 
+  async getAnalyticsStatus(ids: string[]): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(`/api/v1/admin/influencer-database/analytics-status?ids=${ids.join(',')}`)
+    return raw
+  }
+
+  async triggerInfluencerAnalytics(id: string): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(`/api/v1/admin/influencer-database/${id}/trigger-analytics`, {
+      method: 'POST'
+    })
+    return raw
+  }
+
+
   async getInfluencerShares(): Promise<ApiResponse<any>> {
     const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.shares)
     return this.unwrapIMD(raw)
@@ -2403,6 +2416,11 @@ export class SuperadminApiService {
 
   async getSharedInfluencersForUser(): Promise<ApiResponse<any>> {
     const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.sharedForUser)
+    return this.unwrapIMD(raw)
+  }
+
+  async getSharedListsForUser(): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.sharedListsForUser)
     return this.unwrapIMD(raw)
   }
 

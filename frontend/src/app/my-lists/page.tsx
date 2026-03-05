@@ -233,14 +233,15 @@ export default function MyListsPage() {
     try {
       setSharedLoading(true)
       setSharedError(null)
-      const response = await superadminApiService.getSharedInfluencersForUser()
+      const response = await superadminApiService.getSharedListsForUser()
       if (response.success && response.data) {
-        const shares = response.data?.shares || response.data || []
-        if (Array.isArray(shares)) {
-          setSharedLists(shares.map((share: any) => ({
-            share_id: share.share_id || share.id || '',
-            share_name: share.share_name || share.name || 'Shared List',
-            influencers: share.influencers || [],
+        // Backend returns { lists: [...], total_count: N }
+        const lists = response.data?.lists || response.data || []
+        if (Array.isArray(lists)) {
+          setSharedLists(lists.map((share: any) => ({
+            share_id: share.id || '',
+            share_name: share.name || 'Shared List',
+            influencers: Array.from({ length: share.influencer_count || 0 }),
             expires_at: share.expires_at || null,
             shared_by: share.shared_by || share.created_by || '',
             categories: share.categories || [],

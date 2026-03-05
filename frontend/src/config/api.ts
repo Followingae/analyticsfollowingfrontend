@@ -113,12 +113,14 @@ export const ENDPOINTS = {
     createSuperadmin: '/api/v1/campaigns/workflow/superadmin/create', // POST - Superadmin managed campaign
     selectInfluencer: (id: string) => `/api/v1/campaigns/workflow/${id}/select-influencer`, // POST - Select influencer for workflow
 
-    // 8. CAMPAIGN PROPOSALS (5 endpoints)
+    // 8. CAMPAIGN PROPOSALS (7 endpoints)
     proposals: '/api/v1/campaigns/proposals', // GET - List user proposals
-    proposalDetail: (id: string) => `/api/v1/campaigns/proposals/${id}`, // GET - Proposal details
+    proposalDetail: (id: string) => `/api/v1/campaigns/proposals/${id}`, // GET - Proposal details (brand-visible, filtered by visible_fields)
     updateInfluencers: (id: string) => `/api/v1/campaigns/proposals/${id}/influencers`, // PUT - Update influencer selection
+    requestMore: (id: string) => `/api/v1/campaigns/proposals/${id}/request-more`, // POST - Request more influencers
     approveProposal: (id: string) => `/api/v1/campaigns/proposals/${id}/approve`, // POST - Approve proposal
     rejectProposal: (id: string) => `/api/v1/campaigns/proposals/${id}/reject`, // POST - Reject proposal
+    proposalPricingSync: '/api/v1/campaigns/proposals/pricing/influencers', // POST - Sync pricing
 
     // 9. SYSTEM & HEALTH (3 endpoints)
     cleanup: (id: string) => `/api/v1/campaigns/${id}/cleanup`, // POST - Cleanup orphaned creators
@@ -248,6 +250,12 @@ export const ENDPOINTS = {
     teamCurrency: (teamId: string) => `/api/v1/currency/team/${teamId}`, // GET/PUT - Team currency settings
     supported: '/api/v1/currency/supported', // GET - Supported currencies (superadmin)
     format: '/api/v1/currency/format', // POST - Format currency amounts
+  },
+
+  // Jobs - Async job polling (/api/v1/jobs/)
+  jobs: {
+    status: (jobId: string) => `/api/v1/jobs/${jobId}/status`,  // GET - Poll job status
+    result: (jobId: string) => `/api/v1/jobs/${jobId}/result`,  // GET - Get completed result
   },
 
   // System Status (/api/v1/)
@@ -423,6 +431,21 @@ export const ENDPOINTS = {
     revokeProposalAccess: (userId: string) => `/api/superadmin/users/${userId}/features/proposals/revoke`, // POST - Revoke proposal access
   },
 
+  // Admin Proposals Management (/api/v1/admin/proposals/...)
+  adminProposals: {
+    create: '/api/v1/admin/proposals', // POST - Create proposal for brand
+    list: '/api/v1/admin/proposals', // GET - List all proposals (with filters)
+    stats: '/api/v1/admin/proposals/stats', // GET - Dashboard stats
+    detail: (id: string) => `/api/v1/admin/proposals/${id}`, // GET - Full detail with financials
+    update: (id: string) => `/api/v1/admin/proposals/${id}`, // PUT - Update proposal metadata
+    addInfluencers: (id: string) => `/api/v1/admin/proposals/${id}/influencers`, // POST - Add from master DB
+    removeInfluencer: (proposalId: string, influencerId: string) => `/api/v1/admin/proposals/${proposalId}/influencers/${influencerId}`, // DELETE
+    send: (id: string) => `/api/v1/admin/proposals/${id}/send`, // POST - Send to brand
+    addMore: (id: string) => `/api/v1/admin/proposals/${id}/add-more`, // POST - Add more after request
+    templateDownload: '/api/v1/admin/influencer-database/template/download', // GET - Excel template
+    excelImport: '/api/v1/admin/influencer-database/import/excel', // POST - Excel import
+  },
+
   // Influencer Master Database (/api/v1/admin/influencers/...)
   influencerDatabase: {
     database: '/api/v1/admin/influencers/database', // GET - Paginated list with filters
@@ -441,6 +464,7 @@ export const ENDPOINTS = {
     shareRevoke: (id: string) => `/api/v1/admin/influencers/shares/${id}/revoke`, // POST - Deactivate share
     shareExtend: (id: string) => `/api/v1/admin/influencers/shares/${id}/extend`, // POST - Extend expiration
     sharedForUser: '/api/v1/influencers/shared', // GET - User-facing filtered read access
+    sharedListsForUser: '/api/v1/influencers/shared/lists', // GET - User-facing grouped share lists
   },
 
   // Notifications (/api/v1/notifications/)

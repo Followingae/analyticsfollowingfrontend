@@ -9,6 +9,7 @@ import { CreatorProfile, AnalysisStatus, SearchResponse } from '@/types/creator'
 import { requestCache } from '@/utils/requestCache';
 import { sequencedFetch, REQUEST_PRIORITIES } from '@/utils/requestSequencer';
 import { API_CONFIG } from '@/config/api';
+import { pollJobToCompletion } from '@/hooks/useJobPolling'
 
 // UI State Management as per guide
 export const UI_STATES = {
@@ -78,13 +79,25 @@ export class CreatorSearchManager {
       }
     });
 
-    if (!response.ok) {
+    if (!response.ok && response.status !== 202) {
       const errorText = await response.text();
       throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
+    if (response.status === 202) {
+      const jobData = await response.json();
+      const finalResult = await pollJobToCompletion(jobData.job_id, {
+        pollInterval: 4000,
+        maxAttempts: 45,
+      });
+      if (!finalResult.success || !finalResult.profile) {
+        throw new Error('Creator search processing returned incomplete data');
+      }
+      return finalResult;
+    }
+
     const data = await response.json();
-    
+
     if (!data.success || !data.profile) {
       throw new Error(data.error || 'Failed to search creator');
     }

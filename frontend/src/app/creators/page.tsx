@@ -81,7 +81,7 @@ export default function CreatorsPage() {
 
   // Authentication state - moved before React Query
   const { isAuthenticated, isLoading: authLoading, user } = useEnhancedAuth()
-  const { addProcessingToast } = useProcessingToast()
+  const { addProcessingToast, removeProcessingToast } = useProcessingToast()
 
   // Transform backend Profile format to frontend CreatorProfile format
   const transformProfile = (profile: any): CreatorProfile => ({
@@ -94,7 +94,7 @@ export default function CreatorsPage() {
       posts_count: profile.posts_count,
       is_verified: profile.verified,
       is_business: false, // Not provided by unlocked endpoint
-      engagement_rate: 0, // Will be calculated later or from additional field
+      engagement_rate: profile.engagement_rate ?? profile.avg_engagement_rate ?? null,
       // Enhanced profile picture handling with CDN support
       profile_pic_url: profile.profile_pic_url || '',
       profile_pic_url_hd: profile.profile_pic_url_hd || profile.profile_pic_url || '',
@@ -236,6 +236,9 @@ export default function CreatorsPage() {
         return newSet
       })
 
+      // Clear processing toast immediately
+      removeProcessingToast(cleanUsername)
+
       // Invalidate and refetch the unlocked creators query to include the new creator
       unlockedCreatorsQuery.refetch()
 
@@ -248,6 +251,9 @@ export default function CreatorsPage() {
         newSet.delete(cleanUsername)
         return newSet
       })
+
+      // Clear processing toast so it doesn't persist forever
+      removeProcessingToast(cleanUsername)
 
       toast.error("Search failed. Please try again.")
     }

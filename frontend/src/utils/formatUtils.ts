@@ -302,6 +302,43 @@ export const getPriorityColorClass = (priority: string): string => {
   }
 }
 
+// Unicode normalization — convert fancy math/styled Unicode back to plain ASCII
+export const normalizeFancyUnicode = (text: string): string => {
+  const ranges: [number, number, number][] = [
+    [0x1D400, 26, 65], [0x1D41A, 26, 97],
+    [0x1D434, 26, 65], [0x1D44E, 26, 97],
+    [0x1D468, 26, 65], [0x1D482, 26, 97],
+    [0x1D49C, 26, 65], [0x1D4B6, 26, 97],
+    [0x1D4D0, 26, 65], [0x1D4EA, 26, 97],
+    [0x1D504, 26, 65], [0x1D51E, 26, 97],
+    [0x1D538, 26, 65], [0x1D552, 26, 97],
+    [0x1D56C, 26, 65], [0x1D586, 26, 97],
+    [0x1D5A0, 26, 65], [0x1D5BA, 26, 97],
+    [0x1D5D4, 26, 65], [0x1D5EE, 26, 97],
+    [0x1D608, 26, 65], [0x1D622, 26, 97],
+    [0x1D63C, 26, 65], [0x1D656, 26, 97],
+    [0x1D670, 26, 65], [0x1D68A, 26, 97],
+    [0x1D7CE, 10, 48], [0x1D7D8, 10, 48],
+    [0x1D7E2, 10, 48], [0x1D7EC, 10, 48],
+    [0x1D7F6, 10, 48],
+    [0xFF21, 26, 65], [0xFF41, 26, 97], [0xFF10, 10, 48],
+  ]
+  let result = ''
+  for (const char of text) {
+    const cp = char.codePointAt(0)!
+    let replaced = false
+    for (const [start, len, base] of ranges) {
+      if (cp >= start && cp < start + len) {
+        result += String.fromCharCode(base + (cp - start))
+        replaced = true
+        break
+      }
+    }
+    if (!replaced) result += char
+  }
+  return result
+}
+
 // URL and link formatting
 export const formatUrl = (url: string): string => {
   if (!url.startsWith('http://') && !url.startsWith('https://')) {

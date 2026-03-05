@@ -20,6 +20,8 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { InlineEditCell } from "./InlineEditCell"
+import { AnalyticsStatusCell } from "./AnalyticsStatusCell"
+import type { AnalyticsStatusMap } from "@/hooks/useAnalyticsStatusPoller"
 import {
   COLUMN_DEFINITIONS,
   TIER_OPTIONS,
@@ -54,11 +56,15 @@ interface InfluencerTableViewProps {
   onSort: (key: string) => void
   onInlineEdit: (id: string, field: string, value: number | null) => void
   onViewDetails: (influencer: MasterInfluencer) => void
+  onDelete?: (influencerId: string) => void
   totalCount: number
   page: number
   pageSize: number
   totalPages: number
   onPageChange: (page: number) => void
+  analyticsStatusMap?: AnalyticsStatusMap
+  completedSinceMount?: string[]
+  onTriggerAnalytics?: (id: string) => void
 }
 
 function getAvatarGradient(name: string): string {
@@ -88,11 +94,15 @@ export function InfluencerTableView({
   onSort,
   onInlineEdit,
   onViewDetails,
+  onDelete,
   totalCount,
   page,
   pageSize,
   totalPages,
   onPageChange,
+  analyticsStatusMap,
+  completedSinceMount,
+  onTriggerAnalytics,
 }: InfluencerTableViewProps) {
   const columns = COLUMN_DEFINITIONS.filter((col) =>
     visibleColumns.includes(col.key)
@@ -306,6 +316,28 @@ export function InfluencerTableView({
               : "Never"}
           </span>
         )
+      case "analytics_status": {
+        const liveStatus = analyticsStatusMap?.[inf.id]
+        const cellStatus = liveStatus || {
+          status: (inf as any).analytics_status || "pending",
+          progress: (inf as any).analytics_progress || 0,
+          progressMessage: (inf as any).analytics_progress_message,
+          error: (inf as any).analytics_error,
+          completedAt: (inf as any).analytics_completed_at,
+        }
+        const justCompleted = completedSinceMount?.includes(inf.id) ?? false
+        return (
+          <AnalyticsStatusCell
+            status={cellStatus}
+            justCompleted={justCompleted}
+            onRetry={
+              cellStatus.status === "failed" || cellStatus.status === "pending"
+                ? () => onTriggerAnalytics?.(inf.id)
+                : undefined
+            }
+          />
+        )
+      }
       case "actions":
         return (
           <DropdownMenu>
@@ -324,7 +356,10 @@ export function InfluencerTableView({
                 Edit Pricing
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600 focus:text-red-600">
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
+                onClick={() => onDelete?.(inf.id)}
+              >
                 <Trash2 className="size-4" />
                 Remove
               </DropdownMenuItem>

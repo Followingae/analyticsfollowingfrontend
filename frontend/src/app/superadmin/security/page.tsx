@@ -6,6 +6,7 @@ import { superadminApiService, SecurityAlert, SuspiciousActivity } from "@/servi
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { StandardMetricCard } from "@/components/ui/standard-metric-card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AlertTriangle, Shield, RefreshCw, Eye, Ban, CheckCircle } from "lucide-react"
 
@@ -86,47 +87,11 @@ export default function SuperadminSecurityPage() {
               </div>
 
               {/* Security Overview Cards */}
-              <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Alerts</CardTitle>
-                    <AlertTriangle className="h-4 w-4 text-orange-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{securityAlerts.length}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Critical Alerts</CardTitle>
-                    <Shield className="h-4 w-4 text-red-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {securityAlerts.filter(alert => alert.severity === 'critical').length}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Suspicious Activities</CardTitle>
-                    <Eye className="h-4 w-4 text-yellow-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{suspiciousActivities.length}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">High Risk</CardTitle>
-                    <Ban className="h-4 w-4 text-red-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {suspiciousActivities.filter(activity => activity.risk_level === 'high' || activity.risk_level === 'critical').length}
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StandardMetricCard icon={AlertTriangle} label="Total Alerts" value={securityAlerts.length} />
+                <StandardMetricCard icon={Shield} label="Critical Alerts" value={securityAlerts.filter(alert => alert.severity === 'critical').length} />
+                <StandardMetricCard icon={Eye} label="Suspicious Activities" value={suspiciousActivities.length} />
+                <StandardMetricCard icon={Ban} label="High Risk" value={suspiciousActivities.filter(activity => activity.risk_level === 'high' || activity.risk_level === 'critical').length} />
               </div>
 
               {/* Security Alerts Table */}

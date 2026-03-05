@@ -13,6 +13,14 @@ interface ImageCropperProps {
   onImageCropped: (croppedImageFile: File) => void;
   title?: string;
   preSelectedFile?: File | null;
+  /** Aspect ratio for the crop area (default 1 = square). Use 16/5 for banners, 16/9 for video, etc. */
+  aspect?: number;
+  /** Output width in pixels (default 400) */
+  outputWidth?: number;
+  /** Output height in pixels. If omitted, calculated from outputWidth and aspect ratio. */
+  outputHeight?: number;
+  /** Helper text shown below the crop area */
+  cropHint?: string;
 }
 
 export function ImageCropper({
@@ -20,8 +28,14 @@ export function ImageCropper({
   onOpenChange,
   onImageCropped,
   title = "Crop Image",
-  preSelectedFile = null
+  preSelectedFile = null,
+  aspect = 1,
+  outputWidth = 400,
+  outputHeight,
+  cropHint,
 }: ImageCropperProps) {
+  const finalOutputWidth = outputWidth;
+  const finalOutputHeight = outputHeight ?? Math.round(outputWidth / aspect);
   const [imgSrc, setImgSrc] = useState('');
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
@@ -74,7 +88,7 @@ export function ImageCropper({
 
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
-    setCrop(centerAspectCrop(width, height, 1)); // 1 = square aspect ratio
+    setCrop(centerAspectCrop(width, height, aspect));
   }
 
   async function onCropComplete() {
@@ -88,7 +102,9 @@ export function ImageCropper({
         imgRef.current,
         completedCrop,
         originalFile.name,
-        originalFile.type
+        originalFile.type,
+        finalOutputWidth,
+        finalOutputHeight,
       );
 
       if (croppedImageFile) {
@@ -144,7 +160,9 @@ export function ImageCropper({
           ) : (
             <div className="space-y-4">
               <div className="text-sm text-muted-foreground">
-                Drag the corners to crop your image to a perfect square.
+                {cropHint || (aspect === 1
+                  ? "Drag the corners to crop your image to a perfect square."
+                  : `Drag the corners to crop your image (${finalOutputWidth}x${finalOutputHeight}px).`)}
               </div>
 
               <div className="flex justify-center">
@@ -152,7 +170,7 @@ export function ImageCropper({
                   crop={crop}
                   onChange={(_, percentCrop) => setCrop(percentCrop)}
                   onComplete={(c) => setCompletedCrop(c)}
-                  aspect={1} // Force 1:1 aspect ratio (perfect square)
+                  aspect={aspect}
                   minWidth={50}
                   minHeight={50}
                   circularCrop={false}
@@ -198,7 +216,9 @@ async function getCroppedImg(
   image: HTMLImageElement,
   crop: PixelCrop,
   fileName: string,
-  fileType: string
+  fileType: string,
+  outWidth: number = 400,
+  outHeight: number = 400,
 ): Promise<File | null> {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -210,10 +230,8 @@ async function getCroppedImg(
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
 
-  // Set fixed square canvas size for consistent output
-  const outputSize = 400;
-  canvas.width = outputSize;
-  canvas.height = outputSize;
+  canvas.width = outWidth;
+  canvas.height = outHeight;
 
   // Clear canvas to transparent background
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -233,8 +251,8 @@ async function getCroppedImg(
     sourceHeight,
     0,
     0,
-    outputSize,
-    outputSize
+    outWidth,
+    outHeight,
   );
 
   return new Promise((resolve) => {

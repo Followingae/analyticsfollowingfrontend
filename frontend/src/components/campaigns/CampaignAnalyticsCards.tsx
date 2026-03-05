@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { StandardMetricCard } from "@/components/ui/standard-metric-card";
 
 interface PerformanceMetric {
   current: number;
@@ -99,65 +100,10 @@ export function CampaignAnalyticsCards({ className = "" }: CampaignAnalyticsCard
 
   return (
     <div className={`grid gap-4 md:grid-cols-2 lg:grid-cols-4 ${className}`}>
-      {/* Total Reach */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-              <Eye className="h-5 w-5 text-primary" />
-            </div>
-          </div>
-          <div>
-            <p className="text-base text-muted-foreground">Total Reach</p>
-            <p className="text-4xl font-bold mt-2">{formatNumber(summary.totalReach.current)}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Average Engagement */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-primary" />
-            </div>
-          </div>
-          <div>
-            <p className="text-base text-muted-foreground">Avg. Engagement</p>
-            <p className="text-4xl font-bold mt-2">{summary.avgEngagementRate.current}%</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Total Campaigns */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-              <Activity className="h-5 w-5 text-primary" />
-            </div>
-          </div>
-          <div>
-            <p className="text-base text-muted-foreground">Total Campaigns</p>
-            <p className="text-4xl font-bold mt-2">{summary.totalCampaigns}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Total Creators */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-          </div>
-          <div>
-            <p className="text-base text-muted-foreground">Total Creators</p>
-            <p className="text-4xl font-bold mt-2">{summary.totalCreators}</p>
-          </div>
-        </CardContent>
-      </Card>
+      <StandardMetricCard icon={Eye} label="Total Reach" value={formatNumber(summary.totalReach.current)} />
+      <StandardMetricCard icon={TrendingUp} label="Avg. Engagement" value={`${summary.avgEngagementRate.current}%`} />
+      <StandardMetricCard icon={Activity} label="Total Campaigns" value={summary.totalCampaigns} />
+      <StandardMetricCard icon={Users} label="Total Creators" value={summary.totalCreators} />
     </div>
   );
 }

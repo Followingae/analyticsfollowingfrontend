@@ -75,7 +75,27 @@ function BillingContent() {
 
   useEffect(() => {
     fetchBillingData()
-  }, [])
+
+    // Refresh when tab becomes visible (user switches back to billing tab)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchBillingData()
+      }
+    }
+
+    // Refresh when credits are spent elsewhere (e.g. profile unlock)
+    const handleCreditChange = () => {
+      fetchBillingData()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('credit-balance-changed', handleCreditChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('credit-balance-changed', handleCreditChange)
+    }
+  }, [user])
 
   const fetchBillingData = async () => {
     try {

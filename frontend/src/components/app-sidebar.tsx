@@ -59,6 +59,11 @@ const data = {
       icon: Target,
     },
     {
+      title: "Proposals",
+      url: "/proposals",
+      icon: FileText,
+    },
+    {
       title: "Lists",
       url: "/my-lists",
       icon: List,

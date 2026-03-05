@@ -4,6 +4,7 @@ import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { TeamUsageLimitError, TeamAccessError, teamApiService } from './teamApi'
 import { requestCache } from '@/utils/requestCache'
 import { sequencedFetch, REQUEST_PRIORITIES } from '@/utils/requestSequencer'
+import { pollJobToCompletion } from '@/hooks/useJobPolling'
 /**
  * PRODUCTION READY API INTERFACES
  * Updated according to FRONTEND_HANDOVER.md (July 31, 2025)
@@ -566,6 +567,19 @@ export class InstagramApiService {
         signal: controller.signal,
       })
       clearTimeout(timeoutId)
+
+      // Handle 202 Accepted (async job) - poll for completion transparently
+      if (response.status === 202) {
+        const jobData = await response.json()
+        if (jobData.job_id) {
+          const finalResult = await pollJobToCompletion(jobData.job_id, {
+            pollInterval: 4000,
+            maxAttempts: 45, // ~3 minutes
+          })
+          return finalResult as T
+        }
+      }
+
       if (!response.ok) {
         const errorText = await response.text()
         let errorData: any = {}

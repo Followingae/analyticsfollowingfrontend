@@ -3,7 +3,6 @@
 import * as React from "react"
 import {
   Bell,
-  Check,
   Link2,
   Clock,
   FileText,
@@ -76,23 +75,6 @@ function getRelativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
-// ── Tab definitions ───────────────────────────────────────────────────
-
-interface Tab {
-  key: 'all' | NotificationCategory
-  label: string
-  countKey?: keyof UnreadCounts
-}
-
-const TABS: Tab[] = [
-  { key: 'all',       label: 'All' },
-  { key: 'shares',    label: 'Shares',    countKey: 'unread_shares' },
-  { key: 'proposals', label: 'Proposals', countKey: 'unread_proposals' },
-  { key: 'analytics', label: 'Analytics', countKey: 'unread_analytics' },
-  { key: 'billing',   label: 'Billing',   countKey: 'unread_billing' },
-  { key: 'team',      label: 'Team',      countKey: 'unread_team' },
-]
-
 // ── Bell Component ────────────────────────────────────────────────────
 
 interface NotificationBellProps {
@@ -111,15 +93,8 @@ export function NotificationBell({
   className,
 }: NotificationBellProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = React.useState<'all' | NotificationCategory>('all')
 
-  const filtered = React.useMemo(() => {
-    if (activeTab === 'all') return notifications
-    const types = NOTIFICATION_CATEGORIES[activeTab] as readonly string[]
-    return notifications.filter(n => types.includes(n.notification_type))
-  }, [notifications, activeTab])
-
-  const displayItems = filtered.slice(0, 8)
+  const displayItems = notifications.slice(0, 8)
   const total = unreadCounts.total_unread
 
   return (
@@ -153,36 +128,6 @@ export function NotificationBell({
             </Button>
           )}
         </DropdownMenuLabel>
-
-        {/* Tabs */}
-        <div className="flex gap-1 px-2 pb-2 overflow-x-auto">
-          {TABS.map(tab => {
-            const count = tab.countKey ? unreadCounts[tab.countKey] : total
-            const isActive = activeTab === tab.key
-            return (
-              <button
-                key={tab.key}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveTab(tab.key) }}
-                className={cn(
-                  "flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
-                )}
-              >
-                {tab.label}
-                {count > 0 && (
-                  <span className={cn(
-                    "ml-0.5 rounded-full px-1.5 py-0 text-[10px] leading-4",
-                    isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/20"
-                  )}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
 
         <DropdownMenuSeparator />
 

@@ -1,6 +1,7 @@
 // hooks/useCreatorSearch.ts - React Query based creator search
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { pollJobToCompletion } from '@/hooks/useJobPolling'
 import type { ProfileSearchResponse } from '@/types/api'
 
 interface UseCreatorSearchOptions {
@@ -14,11 +15,23 @@ export const useCreatorSearch = (options?: UseCreatorSearchOptions) => {
   return useMutation({
     mutationFn: async (username: string): Promise<ProfileSearchResponse> => {
       const response = await api.get(`/search/creator/${username}`)
-      
-      if (!response.ok) {
+
+      if (!response.ok && response.status !== 202) {
         throw new Error(`Search failed: ${response.statusText}`)
       }
-      
+
+      // Handle 202 async job - poll for completion
+      if (response.status === 202) {
+        const jobData = await response.json()
+        if (jobData.job_id) {
+          const finalResult = await pollJobToCompletion(jobData.job_id, {
+            pollInterval: 4000,
+            maxAttempts: 45, // ~3 minutes
+          })
+          return finalResult as ProfileSearchResponse
+        }
+      }
+
       return response.json()
     },
     onMutate: async (username) => {

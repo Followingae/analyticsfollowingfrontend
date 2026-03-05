@@ -6,6 +6,7 @@ import { superadminApiService, RealtimeAnalytics } from "@/services/superadminAp
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { StandardMetricCard } from "@/components/ui/standard-metric-card"
 import { Progress } from "@/components/ui/progress"
 import { RefreshCw, Users, Activity, Server, TrendingUp, BarChart3, Clock } from "lucide-react"
 
@@ -68,67 +69,11 @@ export default function SuperadminAnalyticsPage() {
               </div>
 
               {/* Real-time Overview Cards */}
-              <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Online Users</CardTitle>
-                    <Users className="h-4 w-4 text-green-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {formatNumber(realtimeData?.online_users)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Active sessions: {formatNumber(realtimeData?.active_sessions)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">System Load</CardTitle>
-                    <Server className="h-4 w-4 text-blue-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {realtimeData?.system_load?.cpu_percent || 0}%
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span>CPU</span>
-                        <span>{realtimeData?.system_load?.cpu_percent || 0}%</span>
-                      </div>
-                      <Progress value={realtimeData?.system_load?.cpu_percent || 0} className="h-1" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Response Time</CardTitle>
-                    <Activity className="h-4 w-4 text-orange-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {formatNumber(realtimeData?.performance_metrics?.response_time_ms)}ms
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Cache hit: {((realtimeData?.performance_metrics?.cache_hit_rate || 0) * 100).toFixed(1)}%
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Credits Flow</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-purple-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {formatNumber(realtimeData?.credit_flows?.net_flow)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Net flow last hour
-                    </p>
-                  </CardContent>
-                </Card>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StandardMetricCard icon={Users} label="Online Users" value={formatNumber(realtimeData?.online_users)} subtitle={`Active sessions: ${formatNumber(realtimeData?.active_sessions)}`} />
+                <StandardMetricCard icon={Server} label="System Load" value={`${realtimeData?.system_load?.cpu_percent || 0}%`} subtitle={`CPU: ${realtimeData?.system_load?.cpu_percent || 0}%`} />
+                <StandardMetricCard icon={Activity} label="Response Time" value={`${formatNumber(realtimeData?.performance_metrics?.response_time_ms)}ms`} subtitle={`Cache hit: ${((realtimeData?.performance_metrics?.cache_hit_rate || 0) * 100).toFixed(1)}%`} />
+                <StandardMetricCard icon={TrendingUp} label="Credits Flow" value={formatNumber(realtimeData?.credit_flows?.net_flow)} subtitle="Net flow last hour" />
               </div>
 
               {/* System Performance Details */}

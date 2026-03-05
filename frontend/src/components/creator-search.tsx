@@ -18,14 +18,24 @@ export const CreatorSearch: React.FC = () => {
   const [username, setUsername] = useState('')
   const [searchResult, setSearchResult] = useState<ProfileSearchResponse | null>(null)
   const [viewMode, setViewMode] = useState<'compact' | 'detailed'>('compact')
-  const { addProcessingToast } = useProcessingToast()
+  const { addProcessingToast, removeProcessingToast } = useProcessingToast()
 
   const creatorSearch = useCreatorSearch({
     onSuccess: (data) => {
       setSearchResult(data)
+      // Clear processing toast immediately on completion
+      const completedUsername = data?.profile?.username || username.trim()
+      if (completedUsername) {
+        removeProcessingToast(completedUsername)
+      }
     },
     onError: (error) => {
       console.error('Search failed:', error)
+      // Clear the processing toast so it doesn't persist forever
+      const failedUsername = username.trim()
+      if (failedUsername) {
+        removeProcessingToast(failedUsername)
+      }
     }
   })
 

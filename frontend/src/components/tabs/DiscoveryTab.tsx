@@ -56,7 +56,7 @@ import { toast } from 'sonner'
 
 export default function DiscoveryTab() {
   const router = useRouter()
-  const { addProcessingToast } = useProcessingToast()
+  const { addProcessingToast, removeProcessingToast } = useProcessingToast()
   const { setOpenMobile } = useSidebar()
   const [mounted, setMounted] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')

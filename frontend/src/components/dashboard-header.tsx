@@ -117,9 +117,16 @@ export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderPr
     setupPolling().then(cleanupFn => {
       cleanup = cleanupFn
     })
-    
+
+    // Instant refresh when credits are spent (don't wait for poll interval)
+    const handleCreditChange = () => {
+      loadBalance()
+    }
+    window.addEventListener('credit-balance-changed', handleCreditChange)
+
     return () => {
       if (cleanup) cleanup()
+      window.removeEventListener('credit-balance-changed', handleCreditChange)
     }
   }, [])
 

@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useOperations } from '@/contexts/OperationsContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { StandardMetricCard } from '@/components/ui/standard-metric-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -231,37 +232,11 @@ export default function OperationsCampaignsPage() {
 
           {/* Quick Stats */}
           {campaigns.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl font-bold">{campaigns.length}</div>
-                  <p className="text-xs text-muted-foreground">Total Campaigns</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl font-bold">
-                    {campaigns.filter(c => c.status === 'active').length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Active Campaigns</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl font-bold">
-                    {campaigns.reduce((sum, c) => sum + ((c as any).total_deliverables || 0), 0)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Total Deliverables</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-2xl font-bold">
-                    {campaigns.reduce((sum, c) => sum + ((c as any).pending_approvals || 0), 0)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Pending Approvals</p>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+              <StandardMetricCard icon={Briefcase} label="Total Campaigns" value={campaigns.length} />
+              <StandardMetricCard icon={CheckCircle} label="Active Campaigns" value={campaigns.filter(c => c.status === 'active').length} />
+              <StandardMetricCard icon={Calendar} label="Total Deliverables" value={campaigns.reduce((sum, c) => sum + ((c as any).total_deliverables || 0), 0)} />
+              <StandardMetricCard icon={Clock} label="Pending Approvals" value={campaigns.reduce((sum, c) => sum + ((c as any).pending_approvals || 0), 0)} />
             </div>
           )}
         </CardContent>

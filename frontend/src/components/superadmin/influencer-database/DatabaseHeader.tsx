@@ -1,11 +1,14 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Plus,
   RefreshCw,
   Loader2,
+  Upload,
 } from "lucide-react"
+import { ExcelImportDialog } from "./ExcelImportDialog"
 
 interface DatabaseHeaderProps {
   totalCount: number
@@ -20,6 +23,8 @@ export function DatabaseHeader({
   onAddClick,
   onRefresh,
 }: DatabaseHeaderProps) {
+  const [importOpen, setImportOpen] = useState(false)
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -39,12 +44,22 @@ export function DatabaseHeader({
               <RefreshCw className="size-4" />
             )}
           </Button>
+          <Button onClick={() => setImportOpen(true)} variant="outline" size="sm">
+            <Upload className="size-4" />
+            Import Excel
+          </Button>
           <Button onClick={onAddClick} size="sm">
             <Plus className="size-4" />
             Add Influencer
           </Button>
         </div>
       </div>
+
+      <ExcelImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImportComplete={onRefresh}
+      />
     </div>
   )
 }

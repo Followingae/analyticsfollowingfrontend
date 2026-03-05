@@ -1,8 +1,9 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { ToastLoader } from '@/components/ui/toast-loader'
+import { useNotifications } from '@/contexts/NotificationContext'
 
 interface ProcessingToast {
   username: string
@@ -21,12 +22,15 @@ const ProcessingToastContext = createContext<ProcessingToastContextType | undefi
 
 const STORAGE_KEY = 'processing-toasts'
 const POLL_INTERVAL = 20000 // 20 seconds
+const STALE_TIMEOUT_MS = 10 * 60 * 1000 // 10 minutes — auto-remove stale toasts
 
 export function ProcessingToastProvider({ children }: { children: React.ReactNode }) {
   const [processingToasts, setProcessingToasts] = useState<ProcessingToast[]>([])
   const [toastIds, setToastIds] = useState<Map<string, string | number>>(new Map())
   const [consolidatedToastId, setConsolidatedToastId] = useState<string | number | null>(null)
   const [completedToasts, setCompletedToasts] = useState<string[]>([])
+  const { refresh: refreshNotifications } = useNotifications()
+  const prevToastCountRef = useRef(0)
 
   // Load from localStorage on mount and check completion
   useEffect(() => {
@@ -86,8 +90,13 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
             console.error('Failed to verify processing status on mount:', error)
           }
 
-          // Fallback: just load the toasts
-          setProcessingToasts(toasts)
+          // Fallback: load toasts but filter out stale ones (>10 min old)
+          const now = Date.now()
+          const fresh = toasts.filter(t => now - t.startedAt < STALE_TIMEOUT_MS)
+          if (fresh.length !== toasts.length) {
+            console.log(`Removed ${toasts.length - fresh.length} stale toasts on mount`)
+          }
+          setProcessingToasts(fresh)
         } catch (error) {
           console.error('Failed to parse stored processing toasts:', error)
         }
@@ -101,6 +110,16 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(processingToasts))
   }, [processingToasts])
+
+  // Refresh notification bell when a processing toast is removed (job completed)
+  useEffect(() => {
+    const prevCount = prevToastCountRef.current
+    const currentCount = processingToasts.length
+    if (prevCount > 0 && currentCount < prevCount) {
+      refreshNotifications()
+    }
+    prevToastCountRef.current = currentCount
+  }, [processingToasts.length, refreshNotifications])
 
   const clearAllProcessingToasts = useCallback(() => {
     // Dismiss consolidated toast
@@ -260,6 +279,73 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
     const interval = setInterval(checkCompletionNow, POLL_INTERVAL)
     return () => clearInterval(interval)
   }, [processingToasts, checkCompletionNow])
+
+  // Listen for job-failed events from useJobPolling and remove matching toasts
+  useEffect(() => {
+    const handleJobFailed = (event: Event) => {
+      const detail = (event as CustomEvent).detail
+      const failedUsername = detail?.username
+      if (failedUsername) {
+        const normalized = failedUsername.toLowerCase()
+        const match = processingToasts.find(
+          t => t.username.toLowerCase() === normalized
+        )
+        if (match) {
+          console.log(`Job failed for ${match.username}, removing processing toast`)
+          removeProcessingToast(match.username)
+          toast.error(`Processing failed for @${match.username}`, {
+            position: 'bottom-center',
+            duration: 5000,
+          })
+        }
+      }
+    }
+
+    // Also listen for job-completed to clear any lingering toasts
+    const handleJobCompleted = (event: Event) => {
+      const detail = (event as CustomEvent).detail
+      const result = detail?.result
+      const username =
+        result?.profile?.username || result?.username
+      if (username) {
+        const normalized = username.toLowerCase()
+        const match = processingToasts.find(
+          t => t.username.toLowerCase() === normalized
+        )
+        if (match) {
+          removeProcessingToast(match.username)
+        }
+      }
+    }
+
+    window.addEventListener('job-failed', handleJobFailed)
+    window.addEventListener('job-completed', handleJobCompleted)
+    return () => {
+      window.removeEventListener('job-failed', handleJobFailed)
+      window.removeEventListener('job-completed', handleJobCompleted)
+    }
+  }, [processingToasts, removeProcessingToast])
+
+  // Staleness safety net: auto-remove toasts older than 10 minutes
+  useEffect(() => {
+    if (processingToasts.length === 0) return
+
+    const interval = setInterval(() => {
+      const now = Date.now()
+      processingToasts.forEach(t => {
+        if (now - t.startedAt > STALE_TIMEOUT_MS) {
+          console.log(`Stale toast detected for ${t.username} (${Math.round((now - t.startedAt) / 60000)}min old), removing`)
+          removeProcessingToast(t.username)
+          toast.error(
+            `Processing timed out for @${t.username}. Please try again.`,
+            { position: 'bottom-center', duration: 6000 }
+          )
+        }
+      })
+    }, 60000) // Check every minute
+
+    return () => clearInterval(interval)
+  }, [processingToasts, removeProcessingToast])
 
   return (
     <ProcessingToastContext.Provider value={{

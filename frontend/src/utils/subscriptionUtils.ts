@@ -20,24 +20,24 @@ export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> =
     price: 0
   },
   standard: {
-    profiles: 500,
-    emails: 250,
-    posts: 125,
+    profiles: 350,
+    emails: 200,
+    posts: 100,
     teamMembers: 2,
     price: 199
   },
   premium: {
-    profiles: 2000,
-    emails: 800,
-    posts: 300,
+    profiles: 1000,
+    emails: 500,
+    posts: 250,
     teamMembers: 5,
     price: 499,
     topupDiscount: 20
   },
   enterprise: {
-    profiles: 2000, // Same as premium unless specified otherwise
-    emails: 800,
-    posts: 300,
+    profiles: 1000, // Same as premium
+    emails: 500,
+    posts: 250,
     teamMembers: 5,
     price: 499,
     topupDiscount: 20

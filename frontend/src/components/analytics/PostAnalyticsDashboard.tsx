@@ -166,7 +166,7 @@ function PostCard({ post, isExpanded, onToggleExpand }: PostCardProps) {
         {post.caption && (
           <div className="space-y-1">
             <span className="text-xs font-medium text-muted-foreground">Caption:</span>
-            <p className="text-sm text-muted-foreground line-clamp-2">
+            <p className="text-sm text-muted-foreground line-clamp-2 font-sans tracking-normal leading-relaxed">
               {post.caption}
             </p>
           </div>

@@ -5,6 +5,7 @@
 
 import { API_CONFIG, ENDPOINTS } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { pollJobToCompletion, isAsyncJobResponse, parseJobAcceptedResponse } from '@/hooks/useJobPolling'
 
 // Verify ENDPOINTS structure on import
 if (typeof window !== 'undefined') {
@@ -213,6 +214,18 @@ class PostAnalyticsApiService {
         }
       }
 
+      // Handle 202 Accepted (async job)
+      if (response.status === 202) {
+        const jobData = await response.json()
+        return {
+          success: true,
+          data: jobData as any,
+          message: jobData.message || 'Processing started',
+          isAsync: true,
+          jobId: jobData.job_id,
+        } as any
+      }
+
       const data = await response.json()
 
       return {
@@ -238,10 +251,32 @@ class PostAnalyticsApiService {
    * Returns complete analysis with CDN-optimized URLs immediately
    */
   async analyzeSinglePost(request: PostAnalysisRequest): Promise<ApiResponse<PostAnalysisData>> {
-    return this.makeRequest<PostAnalysisData>(ENDPOINTS.postAnalytics.analyze, {
+    const result = await this.makeRequest<PostAnalysisData>(ENDPOINTS.postAnalytics.analyze, {
       method: 'POST',
       body: JSON.stringify(request)
     })
+
+    // If backend returned 202, poll for completion
+    if ((result as any).isAsync && (result as any).jobId) {
+      try {
+        const finalResult = await pollJobToCompletion((result as any).jobId, {
+          pollInterval: 3000,
+          maxAttempts: 40, // ~2 minutes
+        })
+        return {
+          success: true,
+          data: finalResult.data || finalResult,
+          message: 'Post analysis completed'
+        }
+      } catch (pollErr: any) {
+        return {
+          success: false,
+          error: pollErr.message || 'Post analysis failed'
+        }
+      }
+    }
+
+    return result
   }
 
   /**
@@ -293,10 +328,32 @@ class PostAnalyticsApiService {
       max_concurrent: request.max_concurrent || 3 // Default to 3 concurrent posts
     }
 
-    return this.makeRequest(ENDPOINTS.postAnalytics.analyzeBatch, {
+    const result = await this.makeRequest(ENDPOINTS.postAnalytics.analyzeBatch, {
       method: 'POST',
       body: JSON.stringify(finalRequest)
     })
+
+    // If backend returned 202, poll for completion
+    if ((result as any).isAsync && (result as any).jobId) {
+      try {
+        const finalResult = await pollJobToCompletion((result as any).jobId, {
+          pollInterval: 5000,
+          maxAttempts: 60, // ~5 minutes for batch
+        })
+        return {
+          success: true,
+          data: finalResult.data || finalResult,
+          message: 'Batch analysis completed'
+        }
+      } catch (pollErr: any) {
+        return {
+          success: false,
+          error: pollErr.message || 'Batch analysis failed'
+        }
+      }
+    }
+
+    return result
   }
 
   // ========================================================================
@@ -603,22 +660,9 @@ class PostAnalyticsApiService {
       max_concurrent: Math.min(Math.max(maxConcurrent, 1), 5)
     })
 
-    // Simulate progress for UI (since backend processes concurrently)
-    if (onProgress) {
-      // The backend processes in parallel, so we can't track real progress
-      // But we can give estimated progress updates
-      const progressInterval = setInterval(() => {
-        const estimatedProgress = Math.min(Math.floor(Math.random() * 30) + 10, 95)
-        onProgress(estimatedProgress, 100)
-      }, 5000)
-
-      // Clear interval when done (this is just UI feedback)
-      setTimeout(() => {
-        clearInterval(progressInterval)
-        if (result.success) {
-          onProgress(100, 100)
-        }
-      }, Math.min(estimatedMinutes * 60 * 1000, 30000)) // Max 30 seconds for UI feedback
+    // Signal completion to progress callback
+    if (onProgress && result.success) {
+      onProgress(100, 100)
     }
 
     return {

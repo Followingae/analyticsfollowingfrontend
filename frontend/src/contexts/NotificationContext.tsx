@@ -80,6 +80,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [apiAvailable, fetchUnreadCounts])
 
+  // ── Refresh on job completion (from useJobPolling window event) ─
+  useEffect(() => {
+    const handler = () => {
+      refresh()
+    }
+    window.addEventListener('job-completed', handler)
+    return () => window.removeEventListener('job-completed', handler)
+  }, [refresh])
+
   // ── Actions ─────────────────────────────────────────────────────────
 
   const markAsRead = useCallback((id: string) => {

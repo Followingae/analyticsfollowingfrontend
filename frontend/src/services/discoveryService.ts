@@ -5,6 +5,7 @@
 
 import { API_CONFIG, ENDPOINTS } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { pollJobToCompletion } from '@/hooks/useJobPolling'
 
 // Types based on actual Discovery API response
 export interface DiscoveryProfile {
@@ -140,6 +141,18 @@ class DiscoveryService {
         }
       }
 
+      // Handle 202 Accepted (async job)
+      if (response.status === 202) {
+        const jobData = await response.json()
+        return {
+          success: true,
+          data: jobData as any,
+          message: jobData.message || 'Processing started',
+          isAsync: true,
+          jobId: jobData.job_id,
+        } as any
+      }
+
       const data = await response.json()
       return {
         success: true,
@@ -188,12 +201,34 @@ class DiscoveryService {
    * Unlock a profile for 30 days access (costs 25 credits)
    */
   async unlockProfile(profileId: string): Promise<ApiResponse<UnlockResult>> {
-    return this.makeRequest<UnlockResult>(ENDPOINTS.discovery.unlockProfile, {
+    const result = await this.makeRequest<UnlockResult>(ENDPOINTS.discovery.unlockProfile, {
       method: 'POST',
       body: JSON.stringify({
         profile_id: profileId
       })
     })
+
+    // If backend returned 202, poll for completion
+    if ((result as any).isAsync && (result as any).jobId) {
+      try {
+        const finalResult = await pollJobToCompletion((result as any).jobId, {
+          pollInterval: 3000,
+          maxAttempts: 40, // ~2 minutes
+        })
+        return {
+          success: true,
+          data: finalResult.data || finalResult,
+          message: finalResult.message || 'Profile unlocked successfully'
+        }
+      } catch (pollErr: any) {
+        return {
+          success: false,
+          error: pollErr.message || 'Profile unlock processing failed'
+        }
+      }
+    }
+
+    return result
   }
 
   /**

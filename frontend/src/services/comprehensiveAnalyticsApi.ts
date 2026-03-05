@@ -16,6 +16,7 @@ import {
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { API_CONFIG } from '@/config/api'
 import { requestCache } from '@/utils/requestCache'
+import { pollJobToCompletion } from '@/hooks/useJobPolling'
 
 // Real profile data structure from backend (comprehensive spec)
 // Based on verification: GET /api/v1/search/creator/{username}
@@ -173,70 +174,34 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getEnhancedProfile(username: string): Promise<EnhancedProfileResponse> {
     try {
-      // console.log('🔍 Attempting to fetch enhanced profile for username:', username)
-      // console.log('🔍 Username type:', typeof username, 'Length:', username?.length)
-      // console.log('🔍 Making request to:', `/search/creator/${username}`)
-
       // Clean the username - remove @ symbol and trim whitespace
       const cleanUsername = username.replace('@', '').trim()
-      // console.log('🔍 Clean username:', cleanUsername)
 
       // Fresh API: Use the verified backend endpoint (base URL already includes /api/v1)
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${cleanUsername}`)
 
-      if (!response.ok) {
-        console.warn(`⚠️ Enhanced profile API returned ${response.status} for ${cleanUsername}`)
-      // console.log('🔍 Response details:', response.status, response.statusText)
+      if (!response.ok && response.status !== 202) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
-      const data: BackendProfileData = await response.json()
-      // console.log('🔍 Raw backend response:', JSON.stringify(data, null, 2))
 
-      // Check if laurazaraa has correct CDN fields after backend fix
-      if (cleanUsername.toLowerCase() === 'laurazaraa') {
-      // console.log('🚨 LAURAZARAA BACKEND CHECK (after backend fix):')
-      // console.log('❌ cdn_avatar_url:', data.profile?.cdn_avatar_url, '(should contain CDN URL)')
-      // console.log('❌ detected_country:', data.profile?.detected_country, '(should be "AE")')
-      // console.log('✅ profile_pic_url:', data.profile?.profile_pic_url, '(contains CDN URL but wrong field)')
-      // console.log('✅ profile_pic_url_hd:', data.profile?.profile_pic_url_hd)
+      let data: BackendProfileData;
 
-      // console.log('\n🚨 BACKEND TEAM: The fix is NOT yet implemented!')
-      // console.log('- CDN URL is still in profile_pic_url instead of cdn_avatar_url')
-      // console.log('- detected_country field is still missing')
+      if (response.status === 202) {
+        const jobData = await response.json()
+        data = await pollJobToCompletion(jobData.job_id, {
+          pollInterval: 4000,
+          maxAttempts: 45,
+        })
+      } else {
+        data = await response.json()
       }
 
-
       if (!data.success || !data.profile) {
-        console.error('🔍 Invalid response structure:', { success: data.success, hasProfile: !!data.profile })
         throw new Error('Invalid response structure from backend')
       }
 
-      // Debug logging commented out to reduce console duplication
-      /*
-      console.log('🔍 Profile fields available:', Object.keys(data.profile))
-      console.log('🔍 AI analysis fields:', {
-        has_ai_analysis: !!data.profile.ai_analysis,
-        primary_content_type: data.profile.ai_analysis?.primary_content_type,
-        has_content_distribution: !!data.profile.ai_analysis?.content_distribution,
-        content_quality_score: data.profile.ai_analysis?.content_quality_score,
-        models_success_rate: data.profile.ai_analysis?.models_success_rate,
-        cdn_avatar_url: !!data.profile.cdn_avatar_url,
-        has_posts: !!data.profile.posts && data.profile.posts.length > 0,
-        posts_count: data.profile.posts?.length || 0
-      })
-      */
-
       // Transform backend data to match frontend expected structure
       const enhancedAiAnalysis = data.profile.ai_analysis
-
-      // console.log('🔬 API SERVICE - CHECKING BACKEND DATA:')
-      // console.log('  - Has audience_demographics?', !!enhancedAiAnalysis?.audience_demographics)
-      // console.log('  - audience_demographics content:', enhancedAiAnalysis?.audience_demographics)
-      // console.log('  - Has comprehensive_insights?', !!enhancedAiAnalysis?.comprehensive_insights)
-      // console.log('  - comprehensive_insights content:', enhancedAiAnalysis?.comprehensive_insights)
-      // console.log('  - Has visual_content_analysis?', !!enhancedAiAnalysis?.visual_content_analysis)
-      // console.log('  - visual_content_analysis content:', enhancedAiAnalysis?.visual_content_analysis)
 
       const transformedProfile = {
         ...data.profile,
@@ -312,13 +277,8 @@ export class ComprehensiveAnalyticsApiService {
         message: 'Profile loaded successfully with comprehensive data'
       }
 
-      // console.log('🚀 API SERVICE - RETURNING TO COMPONENT:')
-      // console.log('  - Has profile.ai_analysis.audience_demographics?', !!result.profile?.ai_analysis?.audience_demographics)
-      // console.log('  - audience_demographics keys:', result.profile?.ai_analysis?.audience_demographics ? Object.keys(result.profile.ai_analysis.audience_demographics) : 'N/A')
-
       return result
     } catch (error) {
-      console.error('❌ Error fetching enhanced profile:', error)
       throw error
     }
   }
@@ -406,7 +366,6 @@ export class ComprehensiveAnalyticsApiService {
         message: 'No posts data available'
       }
     } catch (error) {
-      console.error('Error fetching post analytics:', error)
       throw error
     }
   }
@@ -429,95 +388,87 @@ export class ComprehensiveAnalyticsApiService {
         throw new Error('Invalid response structure from backend')
       }
 
-      // Transform real backend AI insights into comprehensive analysis format
-      const aiInsights = data.profile.ai_insights
-      
+      // Pass through real backend data without hardcoded fallbacks
+      const aiAnalysis = data.profile.ai_analysis
+      const audienceQuality = aiAnalysis?.audience_quality_assessment
+      const comprehensiveInsights = aiAnalysis?.comprehensive_insights
+
       const analysis = {
         behavioral_patterns: {
           posting_consistency: {
-            frequency: 'regular' as const, // Derived from backend data
-            optimal_times: ['18:00', '20:00', '12:00'], // Backend may provide this
-            consistency_score: 0.75 // Backend may provide this
+            frequency: aiAnalysis?.behavioral_patterns_analysis?.posting_frequency || undefined,
+            optimal_times: aiAnalysis?.trend_detection?.optimal_posting_times || undefined,
+            consistency_score: undefined
           },
           engagement_patterns: {
-            average_engagement_rate: data.profile.engagement_rate / 100 || 0.035, // Real engagement rate from backend
-            peak_engagement_times: ['18:00-20:00', '12:00-14:00'],
-            engagement_trend: 'stable' as const
+            average_engagement_rate: data.profile.engagement_rate ? data.profile.engagement_rate / 100 : undefined,
+            peak_engagement_times: undefined,
+            engagement_trend: comprehensiveInsights?.engagement_trend || undefined
           },
           content_evolution: {
-            style_changes: ['High Quality Content'],
-            quality_trend: 'improving' as const,
-            topic_shifts: aiInsights?.top_3_categories?.map(cat => cat.category) || []
+            style_changes: undefined,
+            quality_trend: undefined,
+            topic_shifts: undefined
           }
         },
         audience_quality: {
-          engagement_authenticity: 0.85, // Backend may provide this
-          bot_detection_score: 0.12, // Backend may provide this
-          real_audience_percentage: 88, // Backend may provide this
-          audience_quality_grade: 'A' as const // Derived from content quality
+          engagement_authenticity: audienceQuality?.authenticity_score ?? undefined,
+          bot_detection_score: audienceQuality?.bot_percentage ?? undefined,
+          real_audience_percentage: audienceQuality?.authenticity_score != null
+            ? Math.round(audienceQuality.authenticity_score * 100)
+            : undefined,
+          audience_quality_grade: audienceQuality?.engagement_quality || undefined
         },
         visual_analysis: {
-          image_vs_video_breakdown: aiInsights?.content_distribution || { 'Photos': 70, 'Videos': 30 },
-          visual_themes: [aiInsights?.primary_content_type || 'General'],
-          aesthetic_consistency_score: (aiInsights?.content_quality_score || 0.75), // Real score from backend
-          color_palette_analysis: ['Modern', 'Professional', 'Engaging']
+          image_vs_video_breakdown: aiAnalysis?.content_distribution || undefined,
+          visual_themes: aiAnalysis?.primary_content_type ? [aiAnalysis.primary_content_type] : undefined,
+          aesthetic_consistency_score: aiAnalysis?.visual_content_analysis?.aesthetic_score ?? undefined,
+          color_palette_analysis: undefined
         },
         trend_detection: {
-          trending_topics: aiInsights?.top_3_categories?.map(cat => ({
-            topic: cat.category,
-            relevance_score: cat.percentage / 100, // Real percentages from backend
-            trend_direction: 'rising' as const
-          })) || [],
-          viral_potential_score: (aiInsights?.content_quality_score || 0.6), // Real quality score
-          seasonal_patterns: { 'Current': 0.8 }
+          trending_topics: aiAnalysis?.trend_detection?.trending_hashtags?.map(tag => ({
+            topic: tag,
+            relevance_score: undefined,
+            trend_direction: undefined
+          })) || undefined,
+          viral_potential_score: aiAnalysis?.trend_detection?.viral_potential_score ?? undefined,
+          seasonal_patterns: undefined
         },
         advanced_nlp: {
-          topic_modeling: aiInsights?.top_3_categories?.map(cat => ({
-            topic: cat.category,
-            weight: cat.percentage / 100, // Real percentages from backend
-            keywords: [cat.category.toLowerCase(), 'content']
-          })) || [],
-          keyword_extraction: [
-            { keyword: aiInsights?.primary_content_type?.toLowerCase() || 'content', frequency: 25, sentiment: 0.8 }
-          ],
-          content_depth_score: (aiInsights?.content_quality_score || 0.7), // Real score from backend
-          vocabulary_diversity: 0.75
+          topic_modeling: undefined,
+          keyword_extraction: undefined,
+          content_depth_score: aiAnalysis?.content_quality_score ?? undefined,
+          vocabulary_diversity: undefined
         },
         fraud_detection: {
-          authenticity_score: 0.92, // High authenticity for real profiles
+          authenticity_score: comprehensiveInsights?.overall_authenticity_score ?? undefined,
           suspicious_activity_indicators: [],
-          risk_level: 'low' as const,
-          verification_status: 'verified' as const // Real profiles are typically authentic
+          risk_level: comprehensiveInsights?.fraud_risk_level || undefined,
+          verification_status: undefined
         },
         audience_insights: {
           demographic_predictions: {
-            age_groups: { '18-24': 30, '25-34': 40, '35-44': 20, '45+': 10 },
-            gender_distribution: { 'Male': 45, 'Female': 55 },
-            geographic_distribution: { 'Primary Market': 60, 'Secondary': 25, 'Other': 15 }
+            age_groups: aiAnalysis?.audience_demographics?.age_distribution || undefined,
+            gender_distribution: aiAnalysis?.audience_demographics?.gender_distribution || undefined,
+            geographic_distribution: aiAnalysis?.audience_demographics?.location_distribution || undefined
           },
-          interest_mapping: aiInsights?.top_3_categories?.map(cat => ({
-            interest: cat.category,
-            affinity_score: cat.confidence || 0.8 // Real confidence from backend
-          })) || [
-            { interest: aiInsights?.primary_content_type || 'General', affinity_score: 0.85 }
-          ],
-          engagement_quality_score: data.profile.engagement_rate / 100 * 20 || 0.75 // Derived from real engagement rate
+          interest_mapping: undefined,
+          engagement_quality_score: data.profile.engagement_rate ? data.profile.engagement_rate / 100 : undefined
         }
       }
 
       return {
         success: true,
         analysis,
-        analyzed_at: aiInsights?.comprehensive_analyzed_at || new Date().toISOString(),
+        analyzed_at: new Date().toISOString(),
         model_versions: {
-          'content_analyzer': aiInsights?.comprehensive_analysis_version || 'v2.1',
+          'content_analyzer': 'v2.1',
           'sentiment_analyzer': 'v1.8',
           'audience_analyzer': 'v1.5'
         },
-        message: 'Real analysis data loaded successfully'
+        message: 'Analysis data loaded successfully'
       }
     } catch (error) {
-      console.error('Error fetching comprehensive analysis:', error)
       throw error
     }
   }
@@ -565,7 +516,6 @@ export class ComprehensiveAnalyticsApiService {
         message: 'Performance analytics loaded successfully'
       }
     } catch (error) {
-      console.error('Error fetching content performance:', error)
       throw error
     }
   }
@@ -617,7 +567,6 @@ export class ComprehensiveAnalyticsApiService {
         message: 'Safety analysis completed successfully'
       }
     } catch (error) {
-      console.error('Error fetching safety analysis:', error)
       throw error
     }
   }
@@ -626,42 +575,13 @@ export class ComprehensiveAnalyticsApiService {
    * Mock competitive intelligence (framework ready)
    */
   async getCompetitiveIntelligence(username: string): Promise<CompetitiveIntelligenceResponse> {
-    const competitive = {
-      category_benchmarks: {
-        category: 'Content Creator',
-        user_rank: 1250,
-        total_in_category: 5000,
-        percentile: 75,
-        benchmark_metrics: { engagement_rate: 0.045, growth_rate: 0.15 }
-      },
-      growth_potential: {
-        predicted_growth_rate: 0.12,
-        growth_ceiling: 500000,
-        growth_factors: [
-          { factor: 'Content Quality', impact: 0.8 },
-          { factor: 'Posting Consistency', impact: 0.6 }
-        ]
-      },
-      market_position: {
-        market_share: 0.025,
-        competitive_advantage: ['High Engagement', 'Quality Content'],
-        improvement_opportunities: ['Posting Frequency', 'Video Content']
-      },
-      collaboration_opportunities: [
-        {
-          username: 'similar_creator_1',
-          similarity_score: 0.85,
-          collaboration_type: 'cross-promotion' as const,
-          expected_reach: 25000
-        }
-      ]
-    }
-
+    // STUB: Not implemented - returns mock data
     return {
       success: true,
-      competitive,
-      message: 'Competitive analysis completed successfully'
-    }
+      stub: true,
+      competitive: {},
+      message: 'Competitive intelligence not yet implemented'
+    } as any
   }
 
   /**
@@ -704,7 +624,6 @@ export class ComprehensiveAnalyticsApiService {
         message: 'Status retrieved successfully'
       }
     } catch (error) {
-      console.error('Error fetching analysis status:', error)
       throw error
     }
   }
@@ -713,47 +632,26 @@ export class ComprehensiveAnalyticsApiService {
    * Mock system health
    */
   async getSystemHealth(): Promise<SystemHealthResponse> {
+    // STUB: Not implemented - returns mock data
     return {
       success: true,
-      health: {
-        overall_status: 'healthy' as const,
-        model_availability: {
-          'content_analyzer': true,
-          'sentiment_analyzer': true,
-          'audience_analyzer': true,
-          'safety_analyzer': true
-        },
-        processing_queue: {
-          queue_length: 5,
-          average_wait_time: 30000,
-          processing_capacity: 100
-        },
-        system_performance: {
-          response_time_ms: 250,
-          success_rate: 0.98,
-          error_rate: 0.02
-        }
-      },
+      stub: true,
+      health: {},
       timestamp: new Date().toISOString()
-    }
+    } as any
   }
 
   /**
    * Mock export functionality
    */
   async exportAnalytics(request: ExportRequest): Promise<ExportResponse> {
-    // Mock export functionality
+    // STUB: Not implemented - returns mock data
     return {
       success: true,
-      export: {
-        export_id: `export_${Date.now()}`,
-        download_url: `https://cdn.example.com/exports/${request.username}_analytics.${request.format}`,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        file_size: 2500000,
-        format: request.format
-      },
-      message: 'Export generated successfully'
-    }
+      stub: true,
+      export: {},
+      message: 'Export not yet implemented'
+    } as any
   }
 
   /**
@@ -763,120 +661,60 @@ export class ComprehensiveAnalyticsApiService {
     const cleanUsername = username.replace('@', '').trim()
     const cacheKey = `creator-analytics-${cleanUsername}`
 
-      // console.log('🔍 getCompleteDashboardData called with:', { username, cleanUsername, options })
-      // console.log('🔍 Cache key:', cacheKey)
-      // console.log('🔍 Clean username for API:', cleanUsername)
-
     try {
       const result = await requestCache.get(
         cacheKey,
         async () => {
-      // console.log('🔍 Making API call with sequencing and retry logic')
-
           // Fresh API: SINGLE API CALL using verified backend endpoint (base URL already includes /api/v1)
           const apiUrl = `/api/v1/search/creator/${cleanUsername}`
-      // console.log('🔍 Full API URL being called:', `${API_CONFIG.BASE_URL}${apiUrl}`)
-      // console.log('🔍 API base URL should be:', API_CONFIG.BASE_URL)
 
           const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${apiUrl}`)
 
-          if (!response.ok) {
+          if (!response.ok && response.status !== 202) {
             throw new Error(`HTTP error! status: ${response.status}`)
           }
 
-          const data: BackendProfileData = await response.json()
+          let data: BackendProfileData;
+
+          if (response.status === 202) {
+            const jobData = await response.json()
+            data = await pollJobToCompletion(jobData.job_id, {
+              pollInterval: 4000,
+              maxAttempts: 45,
+            })
+          } else {
+            data = await response.json()
+          }
 
           if (!data.success || !data.profile) {
             throw new Error('Invalid response structure from backend')
           }
 
-          // Debug logging commented out to reduce console duplication
-          /*
-          */
-
-          // 🚨 CRITICAL DEBUG: Log the COMPLETE raw profile data to see exact structure
-      // console.log('🔍 COMPLETE RAW PROFILE DATA:', JSON.stringify(data.profile, null, 2))
-
-          // Also log posts structure
-          if (data.profile.posts && data.profile.posts.length > 0) {
-      // console.log('🔍 RAW POSTS STRUCTURE:', JSON.stringify(data.profile.posts[0], null, 2))
+          // Handle preview/locked state — backend returns preview_mode when profile not unlocked
+          if ((data as any).preview_mode === true || (data as any).unlock_required === true) {
+            return {
+              preview: true,
+              unlockCost: 25,
+              profileId: data.profile.id,
+              profile: data.profile,
+              posts: [],
+              analytics_summary: {}
+            }
           }
 
-          // Log comprehensive AI field availability for debugging
-          const profileAiAnalysis = data.profile.ai_analysis
-      /* Debug logging removed to fix syntax error */
+          // Pass through ALL 10 AI model objects from backend
 
-          // Log posts AI analysis availability
-          if (data.profile.posts?.length > 0) {
-            const samplePost = data.profile.posts[0]
-      /* Debug logging removed to fix syntax error */
-          }
+          // Backend response already includes all structured data via spread:
+          // ai_analysis, audience, content, engagement, security, avg_likes, avg_comments, etc.
+          const transformedProfile = { ...data.profile }
 
-          // CRITICAL FIX: Pass through ALL 10 AI model objects from backend
-          console.log('🔥 RAW BACKEND DATA:', JSON.stringify(data.profile, null, 2))
-
-          const transformedProfile = {
-            ...data.profile,
-            // Pass through ai_analysis object
-            ai_analysis: data.profile.ai_analysis,
-            // Pass through ALL 10 AI model objects explicitly
-            ai_sentiment: data.profile.ai_sentiment,
-            ai_language: data.profile.ai_language,
-            ai_content_category: data.profile.ai_content_category,
-            ai_audience_quality: data.profile.ai_audience_quality,
-            ai_visual_content: data.profile.ai_visual_content,
-            ai_audience_insights: data.profile.ai_audience_insights,
-            ai_trend_detection: data.profile.ai_trend_detection,
-            ai_advanced_nlp: data.profile.ai_advanced_nlp,
-            ai_fraud_detection: data.profile.ai_fraud_detection,
-            ai_behavioral_patterns: data.profile.ai_behavioral_patterns
-          }
-
-          console.log('🔥 TRANSFORMED PROFILE KEYS:', Object.keys(transformedProfile))
-          console.log('🔥 HAS AI MODELS:', {
-            ai_sentiment: !!transformedProfile.ai_sentiment,
-            ai_language: !!transformedProfile.ai_language,
-            ai_content_category: !!transformedProfile.ai_content_category,
-            ai_audience_quality: !!transformedProfile.ai_audience_quality,
-            ai_visual_content: !!transformedProfile.ai_visual_content,
-            ai_audience_insights: !!transformedProfile.ai_audience_insights,
-            ai_trend_detection: !!transformedProfile.ai_trend_detection,
-            ai_advanced_nlp: !!transformedProfile.ai_advanced_nlp,
-            ai_fraud_detection: !!transformedProfile.ai_fraud_detection,
-            ai_behavioral_patterns: !!transformedProfile.ai_behavioral_patterns
-          })
-
-          // Transform posts data - capture ALL AI analysis (25KB+ per post)
+          // Posts already include nested ai_analysis from backend (build_post_data_full)
+          // Don't overwrite - just add convenience aliases
           const transformedPosts = (data.profile.posts || []).map(post => ({
             ...post,
             display_url: post.cdn_thumbnail_url || post.display_url,
-            like_count: post.likes_count,
-            comment_count: post.comments_count,
             timestamp: post.taken_at || post.posted_at || post.created_at,
-            ai_analysis: {
-              content_category: post.ai_content_category,
-              sentiment: post.ai_sentiment,
-              language_code: post.ai_language_code,
-              category_confidence: post.ai_category_confidence,
-              sentiment_score: post.ai_sentiment_score,
-              sentiment_confidence: post.ai_sentiment_confidence,
-              language_confidence: post.ai_language_confidence,
-
-              // Map comprehensive AI analysis fields
-              full_analysis: post.ai_full_analysis,
-              visual_analysis: post.ai_visual_analysis,
-              text_analysis: post.ai_text_analysis,
-              engagement_prediction: post.ai_engagement_prediction,
-              brand_safety: post.ai_brand_safety,
-              hashtag_analysis: post.ai_hashtag_analysis,
-              entity_extraction: post.ai_entity_extraction,
-              topic_modeling: post.ai_topic_modeling,
-              data_size_chars: post.ai_data_size_chars
-            }
           }))
-
-          // Log final transformed data summary
-      /* Debug logging removed to fix syntax error */
 
           // Return the comprehensive data structure
           return {
@@ -922,11 +760,36 @@ export class ComprehensiveAnalyticsApiService {
         }
       )
 
-      // console.log('🔍 requestCache.get completed successfully')
       return result
 
     } catch (error) {
-      console.error('🔍 getCompleteDashboardData error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Unlock a creator profile (spends 25 credits, grants 30-day access)
+   */
+  async unlockProfile(profileId: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/discovery/unlock-profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile_id: profileId })
+      })
+
+      if (response.status === 402) {
+        const err = await response.json()
+        throw new Error(err.detail || 'Insufficient credits')
+      }
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ detail: 'Unlock failed' }))
+        throw new Error(err.detail || `HTTP ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
       throw error
     }
   }
@@ -943,7 +806,6 @@ export class ComprehensiveAnalyticsApiService {
         message: 'Analysis refresh initiated successfully'
       }
     } catch (error) {
-      console.error('Error refreshing analysis:', error)
       throw error
     }
   }

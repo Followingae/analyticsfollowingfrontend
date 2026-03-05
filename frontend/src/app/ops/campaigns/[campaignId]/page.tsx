@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useOperations } from '@/contexts/OperationsContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { StandardMetricCard } from '@/components/ui/standard-metric-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -208,26 +209,10 @@ export default function CampaignOperationsHome() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold">{overview.summary.total_workstreams}</p>
-                  <p className="text-xs text-muted-foreground">Workstreams</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold">{overview.summary.in_production}</p>
-                  <p className="text-xs text-muted-foreground">In Production</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold text-yellow-600">
-                    {overview.summary.pending_approval}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Pending Approval</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold text-red-600">
-                    {overview.summary.overdue}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Overdue</p>
-                </div>
+                <StandardMetricCard icon={Package} label="Workstreams" value={overview.summary.total_workstreams} />
+                <StandardMetricCard icon={Activity} label="In Production" value={overview.summary.in_production} />
+                <StandardMetricCard icon={Clock} label="Pending Approval" value={overview.summary.pending_approval} />
+                <StandardMetricCard icon={AlertTriangle} label="Overdue" value={overview.summary.overdue} />
               </div>
             </div>
           </CardContent>

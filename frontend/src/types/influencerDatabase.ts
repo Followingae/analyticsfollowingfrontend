@@ -164,6 +164,7 @@ export type ColumnKey =
   | 'verified'
   | 'added'
   | 'last_refresh'
+  | 'analytics_status'
   | 'actions'
 
 export interface ColumnDefinition {
@@ -193,6 +194,7 @@ export const COLUMN_DEFINITIONS: ColumnDefinition[] = [
   { key: 'verified', label: 'Verified', defaultVisible: false, sortable: false },
   { key: 'added', label: 'Added', defaultVisible: false, sortable: true, sortKey: 'created_at' },
   { key: 'last_refresh', label: 'Last Refresh', defaultVisible: false, sortable: false },
+  { key: 'analytics_status', label: 'Analytics', defaultVisible: true, sortable: false },
   { key: 'actions', label: 'Actions', defaultVisible: true, sortable: false },
 ]
 

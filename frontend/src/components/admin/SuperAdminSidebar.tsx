@@ -24,6 +24,7 @@ import {
   Database,
   Lock,
   Briefcase,
+  FileText,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -89,8 +90,15 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       items: [
         { title: "Master Database", url: "/superadmin/influencers" },
         { title: "Add / Import", url: "/superadmin/influencers/add" },
-        { title: "Access Sharing", url: "/superadmin/influencers/sharing" },
-        { title: "Export Center", url: "/superadmin/influencers/export" },
+      ],
+    },
+    {
+      title: "Proposals",
+      url: "/superadmin/proposals",
+      icon: FileText,
+      items: [
+        { title: "Overview", url: "/superadmin/proposals" },
+        { title: "Create", url: "/superadmin/proposals/create" },
       ],
     },
   ]

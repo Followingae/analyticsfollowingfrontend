@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { StandardMetricCard } from "@/components/ui/standard-metric-card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -270,63 +271,11 @@ export default function SuperadminCreditsPage() {
               ) : creditOverview ? (
                 <>
                   {/* Credit Overview Cards */}
-                  <div className="grid gap-4 md:grid-cols-4">
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Credits</CardTitle>
-                        <DollarSign className="h-4 w-4 text-[hsl(var(--primary))]" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {formatNumber(creditOverview.overview.total_credits_in_system)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          In circulation
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-[hsl(var(--primary))]" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {formatNumber(creditOverview.overview.total_spent_all_time)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          All time
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Wallets</CardTitle>
-                        <Users className="h-4 w-4 text-[hsl(var(--primary))]" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {formatNumber(creditOverview.overview.active_wallets)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          With credits
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Recent Transactions</CardTitle>
-                        <CreditCard className="h-4 w-4 text-[hsl(var(--primary))]" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {formatNumber(creditOverview.overview.recent_transactions_24h)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Last 24 hours
-                        </p>
-                      </CardContent>
-                    </Card>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <StandardMetricCard icon={DollarSign} label="Total Credits" value={formatNumber(creditOverview.overview.total_credits_in_system)} subtitle="In circulation" />
+                    <StandardMetricCard icon={TrendingUp} label="Total Spent" value={formatNumber(creditOverview.overview.total_spent_all_time)} subtitle="All time" />
+                    <StandardMetricCard icon={Users} label="Active Wallets" value={formatNumber(creditOverview.overview.active_wallets)} subtitle="With credits" />
+                    <StandardMetricCard icon={CreditCard} label="Recent Transactions" value={formatNumber(creditOverview.overview.recent_transactions_24h)} subtitle="Last 24 hours" />
                   </div>
 
                   {/* Top Spenders */}

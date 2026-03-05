@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { superadminApi } from '@/services/superadminApi'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { StandardMetricCard } from '@/components/ui/standard-metric-card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -166,60 +167,10 @@ export function ProposalDashboard() {
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Proposals</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{proposalData?.overview?.total_proposals ?? 0}</div>
-            <div className="flex items-center space-x-2 mt-1">
-              <ArrowUpRight className="w-3 h-3 text-emerald-500" />
-              <span className="text-xs text-emerald-600">+{proposalData?.overview?.monthly_growth ?? 0}%</span>
-              <span className="text-xs text-muted-foreground">this month</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Acceptance Rate</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">{proposalData?.overview?.acceptance_rate ?? 0}%</div>
-            <div className="flex items-center space-x-2 mt-1">
-              <Progress value={proposalData?.overview?.acceptance_rate ?? 0} className="flex-1 h-1" />
-              <span className="text-xs text-muted-foreground">{proposalData?.overview?.accepted_proposals ?? 0} accepted</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Revenue Generated</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{proposalData?.overview?.total_revenue ? `$${proposalData.overview.total_revenue.toLocaleString()}` : '$0'}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              From {proposalData?.overview?.accepted_proposals ?? 0} accepted proposals
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Response Time</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{proposalData?.overview?.average_response_time ?? 0} days</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Average time to respond
-            </p>
-          </CardContent>
-        </Card>
+        <StandardMetricCard icon={FileText} label="Total Proposals" value={proposalData?.overview?.total_proposals ?? 0} subtitle={`+${proposalData?.overview?.monthly_growth ?? 0}% this month`} />
+        <StandardMetricCard icon={Target} label="Acceptance Rate" value={`${proposalData?.overview?.acceptance_rate ?? 0}%`} subtitle={`${proposalData?.overview?.accepted_proposals ?? 0} accepted`} />
+        <StandardMetricCard icon={DollarSign} label="Revenue Generated" value={proposalData?.overview?.total_revenue ? `$${proposalData.overview.total_revenue.toLocaleString()}` : '$0'} subtitle={`From ${proposalData?.overview?.accepted_proposals ?? 0} accepted proposals`} />
+        <StandardMetricCard icon={Clock} label="Response Time" value={`${proposalData?.overview?.average_response_time ?? 0} days`} subtitle="Average time to respond" />
       </div>
 
       {/* Analytics Charts */}

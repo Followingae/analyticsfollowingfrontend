@@ -216,7 +216,7 @@ export interface CreatorProfile {
   is_business: boolean;
   is_business_account: boolean;
   business_category_name?: string;
-  engagement_rate: number;
+  engagement_rate: number | null;
   profile_pic_url: string | null; // Original/fallback profile picture URL
   cdn_url_512: string | null; // CDN 512px profile picture URL (legacy)
   cdn_avatar_url?: string | null; // PRIMARY: Optimized CDN avatar URL (WebP, 512px)
