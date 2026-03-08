@@ -1185,6 +1185,12 @@ export class SuperadminApiService {
     return this.makeRequest(ENDPOINTS.superadmin.influencerDetails(influencerId))
   }
 
+  /** Lookup influencer in master database by username. Returns null-like if not found. */
+  async getInfluencerByUsername(username: string): Promise<ApiResponse<any>> {
+    const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.detail(username))
+    return this.unwrapIMD(raw)
+  }
+
   // Get available influencers for proposal creation
   async getAvailableInfluencers(params?: {
     search?: string

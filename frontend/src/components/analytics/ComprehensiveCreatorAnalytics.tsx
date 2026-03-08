@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import ReactCountryFlag from 'react-country-flag'
 import {
   Card,
@@ -38,6 +38,10 @@ import { toast } from 'sonner'
 import { comprehensiveAnalyticsApi } from '@/services/comprehensiveAnalyticsApi'
 import { getCountryName } from '@/utils/countryNames'
 import { normalizeFancyUnicode } from '@/utils/formatUtils'
+import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
+import { superadminApi } from '@/services/superadminApi'
+import { SuperadminIMDPanel } from '@/components/analytics/SuperadminIMDPanel'
+import type { MasterInfluencer } from '@/types/influencerDatabase'
 
 import { OverviewTab } from '@/components/analytics/creator-tabs/OverviewTab'
 import { AudienceTab } from '@/components/analytics/creator-tabs/AudienceTab'
@@ -65,6 +69,10 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [unlocking, setUnlocking] = useState(false)
+  const [imdInfluencer, setImdInfluencer] = useState<MasterInfluencer | null>(null)
+  const imdFetchedRef = useRef<string | null>(null)
+
+  const { isSuperAdmin } = useEnhancedAuth()
 
   const fetchData = async (forceRefresh = false) => {
     try {
@@ -79,11 +87,29 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
     }
   }
 
+  const fetchIMDData = async () => {
+    try {
+      const res = await superadminApi.getInfluencerByUsername(username)
+      if (res.success && res.data?.influencer) {
+        setImdInfluencer(res.data.influencer)
+      }
+    } catch {
+      // Not in master database — that's fine
+    }
+  }
+
   useEffect(() => {
     if (username) {
       fetchData()
     }
   }, [username])
+
+  useEffect(() => {
+    if (username && isSuperAdmin && imdFetchedRef.current !== username) {
+      imdFetchedRef.current = username
+      fetchIMDData()
+    }
+  }, [username, isSuperAdmin])
 
   const handleUnlock = async () => {
     if (!data?.profileId) return
@@ -375,10 +401,10 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
                   {aiAnalysis.primary_content_type}
                 </Badge>
               )}
-              {data.last_refreshed && (
+              {profile.last_refreshed && (
                 <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  Updated {new Date(data.last_refreshed).toLocaleDateString()}
+                  Updated {new Date(profile.last_refreshed).toLocaleDateString()}
                 </span>
               )}
             </div>
@@ -387,17 +413,35 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
           {/* Divider */}
           <div className="border-t my-5" />
 
-          {/* Stats row — MetricCard pattern matching AudienceTab */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Stats row */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <Card className="relative overflow-hidden">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-muted-foreground">Followers</p>
                     <p className="text-2xl font-bold text-primary">{formatNumber(profile.followers_count)}</p>
+                    {profile.follower_growth_rate != null && (
+                      <p className={`text-xs font-medium ${Number(profile.follower_growth_rate) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {Number(profile.follower_growth_rate) >= 0 ? '+' : ''}{safeToFixed(profile.follower_growth_rate, 1)}% growth
+                      </p>
+                    )}
                   </div>
                   <div className="rounded-lg p-2.5 bg-muted">
                     <Users className="h-5 w-5 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="relative overflow-hidden">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Following</p>
+                    <p className="text-2xl font-bold text-primary">{formatNumber(profile.following_count)}</p>
+                  </div>
+                  <div className="rounded-lg p-2.5 bg-muted">
+                    <Users className="h-5 w-5 text-muted-foreground" />
                   </div>
                 </div>
               </CardContent>
@@ -443,9 +487,32 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
                 </div>
               </CardContent>
             </Card>
+            <Card className="relative overflow-hidden">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Avg Comments</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {profile.avg_comments != null ? formatNumber(profile.avg_comments) : '--'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg p-2.5 bg-muted">
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Superadmin: Master Database Panel ──────────────────────────── */}
+      {isSuperAdmin && imdInfluencer && (
+        <SuperadminIMDPanel
+          influencer={imdInfluencer}
+          onUpdated={fetchIMDData}
+        />
+      )}
 
       {/* ── Tab sections ────────────────────────────────────────────────── */}
       <Tabs defaultValue="overview" className="space-y-6">

@@ -13,6 +13,7 @@ interface InfluencerCardViewProps {
   selectedIds: Set<string>
   onSelectionChange: (ids: Set<string>) => void
   onViewDetails: (influencer: MasterInfluencer) => void
+  onEditDetails: (influencer: MasterInfluencer) => void
   totalCount: number
   page: number
   pageSize: number
@@ -51,6 +52,7 @@ export function InfluencerCardView({
   influencers,
   loading,
   onViewDetails,
+  onEditDetails,
   totalCount,
   page,
   pageSize,
@@ -83,6 +85,7 @@ export function InfluencerCardView({
             key={inf.id}
             influencer={inf}
             onViewDetails={onViewDetails}
+            onEditDetails={onEditDetails}
           />
         ))}
       </div>

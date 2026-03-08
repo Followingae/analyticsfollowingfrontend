@@ -1,14 +1,14 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
+import { useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { MessageSquare, CheckCircle, Save, Loader2, XCircle } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { formatCurrency } from "./proposal-utils"
+import { ProposalStatusBadge } from "./ProposalStatusBadge"
+import { motion, AnimatePresence } from "motion/react"
 
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
 interface ProposalActionBarProps {
   selectedCount: number
   totalCount: number
@@ -23,9 +23,6 @@ interface ProposalActionBarProps {
   status: string
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 export function ProposalActionBar({
   selectedCount,
   totalCount,
@@ -46,88 +43,180 @@ export function ProposalActionBar({
   const canReject = !isTerminal
   const canSave = selectionDirty && !isTerminal
 
-  // H4: Hide action bar entirely for terminal statuses
+  // Magnetic button effect for approve CTA
+  const approveRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const btn = approveRef.current
+    if (!btn || isTerminal) return
+
+    const supportsHover = window.matchMedia("(hover: hover)").matches
+    if (!supportsHover) return
+
+    const handleMove = (e: MouseEvent) => {
+      const rect = btn.getBoundingClientRect()
+      const x = e.clientX - rect.left - rect.width / 2
+      const y = e.clientY - rect.top - rect.height / 2
+      btn.style.transform = `translate(${x * 0.12}px, ${y * 0.12}px)`
+      btn.style.transition = "transform 0.2s cubic-bezier(0.33, 1, 0.68, 1)"
+    }
+    const handleLeave = () => {
+      btn.style.transform = "translate(0, 0)"
+      btn.style.transition = "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)"
+    }
+
+    btn.addEventListener("mousemove", handleMove)
+    btn.addEventListener("mouseleave", handleLeave)
+    return () => {
+      btn.removeEventListener("mousemove", handleMove)
+      btn.removeEventListener("mouseleave", handleLeave)
+    }
+  }, [isTerminal])
+
   if (isTerminal) {
     return (
-      <div className="sticky bottom-0 z-50 border-t bg-background shadow-[0_-4px_6px_-1px_rgb(0_0_0/0.1)]">
-        <Card className="rounded-none border-0 shadow-none">
-          <div className="flex items-center justify-center p-4">
-            <Badge className={status === "approved"
-              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-            }>
-              Proposal {status}
-            </Badge>
-          </div>
-        </Card>
+      <div className="sticky bottom-0 z-50 border-t border-border/30 bg-background/70 backdrop-blur-xl">
+        <div className="flex items-center justify-center p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          >
+            <ProposalStatusBadge status={status} />
+          </motion.div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="sticky bottom-0 z-50 border-t bg-background shadow-[0_-4px_6px_-1px_rgb(0_0_0/0.1)]">
-      <Card className="rounded-none border-0 shadow-none">
-        <div className="flex items-center justify-between p-4">
-          {/* Left: selection counter */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">
-              {selectedCount} of {totalCount} selected
-            </span>
-            {selectedCount > 0 && (
-              <Badge variant="outline" className="text-xs">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                {selectedCount}
-              </Badge>
-            )}
-          </div>
-
-          {/* Center: estimated total */}
-          {showPricing && estimatedTotal !== undefined && estimatedTotal > 0 && (
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Estimated total:
-              </span>
-              <span className="text-lg font-semibold">
-                {formatCurrency(estimatedTotal)}
-              </span>
-            </div>
-          )}
-
-          {/* Right: action buttons */}
-          <div className="flex items-center gap-2">
-            {canSave && onSaveSelection && (
-              <Button
-                variant="outline"
-                onClick={onSaveSelection}
-                disabled={savingSelection}
+    <div className="sticky bottom-0 z-50 border-t border-border/30 bg-background/70 backdrop-blur-xl">
+      <div className="flex items-center justify-between p-4">
+        {/* Left: selection counter + progress */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={selectedCount}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.15 }}
+                className="inline-block"
               >
-                {savingSelection ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                {savingSelection ? "Saving..." : "Save Selection"}
-              </Button>
-            )}
-            {canRequestMore && (
-              <Button variant="outline" onClick={onRequestMore}>
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Request More
-              </Button>
-            )}
-            {canReject && onReject && (
-              <Button variant="outline" onClick={onReject}>
-                <XCircle className="h-4 w-4 mr-2" />
-                Reject
-              </Button>
-            )}
-            <Button onClick={onApprove} disabled={!canApprove}>
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve Selection
-            </Button>
+                {selectedCount}
+              </motion.span>
+            </AnimatePresence>
+            {" "}of {totalCount} selected
+          </span>
+          {/* Mini progress indicator */}
+          <div className="hidden sm:flex items-center gap-1.5">
+            <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+              <motion.div
+                className="h-full bg-primary rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: totalCount > 0 ? `${(selectedCount / totalCount) * 100}%` : "0%" }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              />
+            </div>
           </div>
         </div>
-      </Card>
+
+        {/* Center: estimated total */}
+        {showPricing && estimatedTotal !== undefined && estimatedTotal > 0 && (
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              Estimated total:
+            </span>
+            <span className="text-lg font-semibold font-mono tabular-nums">
+              {formatCurrency(estimatedTotal)}
+            </span>
+          </div>
+        )}
+
+        {/* Right: action buttons with clear hierarchy */}
+        <TooltipProvider delayDuration={200}>
+        <div className="flex items-center gap-2">
+          {/* Secondary actions */}
+          <AnimatePresence>
+            {canSave && onSaveSelection && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+              >
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={onSaveSelection}
+                      disabled={savingSelection}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      {savingSelection ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Save Draft</TooltipContent>
+                </Tooltip>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {canRequestMore && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onRequestMore}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Request More Creators</TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Separator between secondary and primary actions */}
+          {(canSave || canRequestMore) && (canReject || canApprove) && (
+            <div className="h-6 w-px bg-border" />
+          )}
+
+          {/* Primary actions */}
+          {canReject && onReject && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onReject}
+                  className="text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Reject Proposal</TooltipContent>
+            </Tooltip>
+          )}
+
+          <Button
+            ref={approveRef}
+            onClick={onApprove}
+            disabled={!canApprove}
+            className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow px-6"
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Approve
+          </Button>
+        </div>
+        </TooltipProvider>
+      </div>
     </div>
   )
 }

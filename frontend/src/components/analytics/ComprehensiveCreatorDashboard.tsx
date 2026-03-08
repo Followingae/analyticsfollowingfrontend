@@ -163,6 +163,14 @@ interface BackendCreatorData {
       professional_quality_score: number
       faces_detected: number
       brand_logo_detected: string[]
+      // CLIP visual analysis fields
+      brands_detected?: Array<{ brand: string; confidence: number; post_count: number }>
+      scene_distribution?: Record<string, number>
+      content_types?: Record<string, number>
+      visual_consistency?: number | null
+      production_quality?: string | null
+      professional_score?: number | null
+      analysis_method?: string | null
     }
     content_themes: {
       topic_modeling: {
@@ -518,6 +526,14 @@ function ComprehensiveCreatorDashboardComponent({ username }: ComprehensiveCreat
                 },
                 professional_quality_score: response.profile.ai_analysis?.visual_content_analysis?.professional_quality_score || 0,
                 faces_detected: response.profile.ai_analysis?.visual_content_analysis?.faces_detected || 0,
+                // CLIP visual analysis fields
+                brands_detected: response.profile.ai_analysis?.visual_content_analysis?.brands_detected || response.profile.content?.visual_analysis?.brands_detected || [],
+                scene_distribution: response.profile.ai_analysis?.visual_content_analysis?.scene_distribution || response.profile.content?.visual_analysis?.scene_distribution || {},
+                content_types: response.profile.ai_analysis?.visual_content_analysis?.content_types || response.profile.content?.visual_analysis?.content_types || {},
+                visual_consistency: response.profile.ai_analysis?.visual_content_analysis?.visual_consistency ?? response.profile.content?.visual_analysis?.visual_consistency ?? null,
+                production_quality: response.profile.ai_analysis?.visual_content_analysis?.production_quality || response.profile.content?.visual_analysis?.production_quality || null,
+                professional_score: response.profile.ai_analysis?.visual_content_analysis?.professional_score ?? response.profile.content?.visual_analysis?.professional_score ?? null,
+                analysis_method: response.profile.ai_analysis?.visual_content_analysis?.analysis_method || response.profile.content?.visual_analysis?.analysis_method || null,
                 brand_logo_detected: (() => {
                   // Extract brand names from the brand mentions data
                   const brandLogos = new Set()
@@ -1769,89 +1785,56 @@ function ComprehensiveCreatorDashboardComponent({ username }: ComprehensiveCreat
             <CardContent>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.aesthetic_score?.toFixed(1) ?? 'N/A'}</div>
-                  <div className="text-sm text-muted-foreground">Aesthetic Score</div>
+                  <div className="text-2xl font-bold text-primary capitalize">{data.content.visual_analysis.production_quality ?? 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">Production Quality</div>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.professional_quality_score?.toFixed(1) ?? 'N/A'}</div>
-                  <div className="text-sm text-muted-foreground">Professional Quality</div>
+                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.professional_score?.toFixed(0) ?? data.content.visual_analysis.professional_quality_score?.toFixed(1) ?? 'N/A'}%</div>
+                  <div className="text-sm text-muted-foreground">Professional Score</div>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.faces_detected}</div>
-                  <div className="text-sm text-muted-foreground">Faces Detected</div>
+                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.visual_consistency != null ? (data.content.visual_analysis.visual_consistency * 100).toFixed(0) + '%' : 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">Visual Consistency</div>
                 </div>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.image_quality_metrics?.average_quality?.toFixed(1) ?? 'N/A'}</div>
-                  <div className="text-sm text-muted-foreground">Image Quality</div>
+                  <div className="text-2xl font-bold text-primary">{data.content.visual_analysis.brands_detected?.length ?? data.content.visual_analysis.brand_logo_detected?.length ?? 0}</div>
+                  <div className="text-sm text-muted-foreground">Brands Detected</div>
                 </div>
               </div>
 
               <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <h4 className="font-semibold">Quality Metrics</h4>
-                  <div className="space-y-3">
-                    <ChartContainer
-                      config={{
-                        value: {
-                          label: "Quality",
-                          color: "var(--chart-1)",
-                        },
-                      } satisfies ChartConfig}
-                      className="h-[80px] w-full"
-                    >
-                      <BarChart
-                        accessibilityLayer
-                        data={[
-                          {
-                            category: "Quality Consistency",
-                            value: data.content.visual_analysis.image_quality_metrics.quality_consistency * 100,
-                            label: formatPercentage(data.content.visual_analysis.image_quality_metrics.quality_consistency)
-                          }
-                        ]}
-                        layout="vertical"
-                        margin={{ left: -20 }}
-                      >
-                        <XAxis type="number" dataKey="value" hide />
-                        <YAxis
-                          dataKey="category"
-                          type="category"
-                          width={120}
-                          tick={false}
-                          axisLine={false}
-                        />
-                        <ChartTooltip
-                          cursor={false}
-                          content={<ChartTooltipContent indicator="line" />}
-                        />
-                        <Bar dataKey="value" fill="var(--color-value)" radius={4} />
-                      </BarChart>
-                    </ChartContainer>
+                  <h4 className="font-semibold">Scene Distribution</h4>
+                  <div className="space-y-2">
+                    {data.content.visual_analysis.scene_distribution && Object.keys(data.content.visual_analysis.scene_distribution).length > 0 ? (
+                      Object.entries(data.content.visual_analysis.scene_distribution as Record<string, number>)
+                        .sort(([, a], [, b]) => b - a)
+                        .slice(0, 5)
+                        .map(([scene, pct]) => (
+                          <div key={scene} className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground capitalize">{scene.replace(/_/g, ' ')}</span>
+                            <Badge variant="outline">{Number(pct).toFixed(0)}%</Badge>
+                          </div>
+                        ))
+                    ) : (
+                      <div className="text-sm text-muted-foreground">Scene data not available</div>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="font-semibold">Brand Elements</h4>
+                  <h4 className="font-semibold">Brands in Images</h4>
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Brand Logos Detected</span>
-                      <Badge variant="outline">{data.content.visual_analysis.brand_logo_detected?.length ?? 0}</Badge>
-                    </div>
-                    {(data.content.visual_analysis.dominant_colors?.length ?? 0) > 0 ? (
-                      <div>
-                        <span className="text-sm text-muted-foreground">Dominant Colors</span>
-                        <div className="flex gap-2 mt-1">
-                          {(data.content.visual_analysis.dominant_colors || []).slice(0, 5).map((color, index) => (
-                            <div
-                              key={index}
-                              className="w-6 h-6 rounded-full border-2 border-border"
-                              style={{ backgroundColor: color }}
-                              title={color}
-                            />
-                          ))}
-                        </div>
+                    {(data.content.visual_analysis.brands_detected?.length ?? 0) > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {(data.content.visual_analysis.brands_detected as Array<{ brand: string; post_count: number }>).slice(0, 8).map((b) => (
+                          <Badge key={b.brand} variant="secondary">
+                            {b.brand} {b.post_count > 1 && `(${b.post_count})`}
+                          </Badge>
+                        ))}
                       </div>
                     ) : (
-                      <div className="text-sm text-muted-foreground">No dominant colors detected</div>
+                      <div className="text-sm text-muted-foreground">No brand logos detected in images</div>
                     )}
                   </div>
                 </div>
@@ -2438,12 +2421,12 @@ function ComprehensiveCreatorDashboardComponent({ username }: ComprehensiveCreat
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <div className="text-lg font-bold text-primary">{data.content.visual_analysis?.aesthetic_score?.toFixed(1) ?? 'N/A'}</div>
-                      <div className="text-xs text-muted-foreground">Avg Aesthetic Score</div>
+                      <div className="text-lg font-bold text-primary capitalize">{data.content.visual_analysis?.production_quality ?? 'N/A'}</div>
+                      <div className="text-xs text-muted-foreground">Production Quality</div>
                     </div>
                     <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <div className="text-lg font-bold text-primary">{data.content.visual_analysis.faces_detected}</div>
-                      <div className="text-xs text-muted-foreground">Total Faces Detected</div>
+                      <div className="text-lg font-bold text-primary">{data.content.visual_analysis.brands_detected?.length ?? data.content.visual_analysis.brand_logo_detected?.length ?? 0}</div>
+                      <div className="text-xs text-muted-foreground">Brands Detected</div>
                     </div>
                   </div>
 

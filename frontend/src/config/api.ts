@@ -473,6 +473,7 @@ export const ENDPOINTS = {
     unreadCount: '/api/v1/notifications/unread-count', // GET - Unread count
     markRead: (id: string) => `/api/v1/notifications/${id}/read`, // POST - Mark single as read
     markAllRead: '/api/v1/notifications/mark-all-read', // POST - Mark all as read
+    markReadByReference: '/api/v1/notifications/mark-read-by-reference', // POST - Mark read by reference
   },
 
   // User Settings Endpoints (/api/v1/settings/)

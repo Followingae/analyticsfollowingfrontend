@@ -38,6 +38,7 @@ import {
   ArrowDown,
   MoreHorizontal,
   Eye,
+  Pencil,
   DollarSign,
   Trash2,
   ChevronLeft,
@@ -56,6 +57,7 @@ interface InfluencerTableViewProps {
   onSort: (key: string) => void
   onInlineEdit: (id: string, field: string, value: number | null) => void
   onViewDetails: (influencer: MasterInfluencer) => void
+  onEditDetails: (influencer: MasterInfluencer) => void
   onDelete?: (influencerId: string) => void
   totalCount: number
   page: number
@@ -94,6 +96,7 @@ export function InfluencerTableView({
   onSort,
   onInlineEdit,
   onViewDetails,
+  onEditDetails,
   onDelete,
   totalCount,
   page,
@@ -349,11 +352,11 @@ export function InfluencerTableView({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onViewDetails(inf)}>
                 <Eye className="size-4" />
-                View
+                View Analytics
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onViewDetails(inf)}>
-                <DollarSign className="size-4" />
-                Edit Pricing
+              <DropdownMenuItem onClick={() => onEditDetails(inf)}>
+                <Pencil className="size-4" />
+                Edit Details
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

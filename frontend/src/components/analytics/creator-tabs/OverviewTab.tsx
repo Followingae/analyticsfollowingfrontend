@@ -32,12 +32,28 @@ import {
 import {
   Globe,
   BarChart3,
-  Target,
   Sparkles,
-  TrendingUp,
-  Quote,
+  Zap,
+  Activity,
+  Lightbulb,
+  Flame,
+  Palette,
+  Shirt,
+  Utensils,
+  Dumbbell,
+  Plane,
+  Music,
+  Gamepad2,
+  GraduationCap,
+  Heart,
+  Camera,
+  Briefcase,
+  Home,
+  Car,
+  Baby,
+  Dog,
+  Laptop,
 } from 'lucide-react'
-import { normalizeFancyUnicode } from '@/utils/formatUtils'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -107,6 +123,49 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 const getLanguageName = (code: string): string =>
   LANGUAGE_NAMES[code.toLowerCase()] || code.toUpperCase()
+
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  beauty: Palette,
+  fashion: Shirt,
+  food: Utensils,
+  fitness: Dumbbell,
+  travel: Plane,
+  music: Music,
+  gaming: Gamepad2,
+  education: GraduationCap,
+  health: Heart,
+  photography: Camera,
+  lifestyle: Home,
+  business: Briefcase,
+  automotive: Car,
+  parenting: Baby,
+  pets: Dog,
+  technology: Laptop,
+  entertainment: Sparkles,
+  sports: Dumbbell,
+  art: Palette,
+}
+
+const RECOMMENDATION_LABELS: Record<string, string> = {
+  create_more_content: 'Post more frequently to build momentum',
+  increase_posting_frequency: 'Increase posting frequency for better reach',
+  consider_reducing_posting_frequency: 'Reduce posting frequency to maintain quality',
+  maintain_current_strategy: 'Current strategy is working — keep it up',
+  revise_content_strategy: 'Consider refreshing your content approach',
+  focus_on_consistent_quality: 'Focus on more consistent content quality',
+  increase_hashtag_usage: 'Use more hashtags to improve discoverability',
+  optimize_hashtag_selection: 'Use fewer, more targeted hashtags',
+  diversify_content_types: 'Try mixing up content formats',
+  install_trend_dependencies: 'Trend analysis data is limited',
+  insufficient_data_for_trend_analysis: 'Not enough data for trend analysis yet',
+}
+
+const humanizeRecommendation = (raw: string): string => {
+  if (RECOMMENDATION_LABELS[raw]) return RECOMMENDATION_LABELS[raw]
+  return raw
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
 // ---------------------------------------------------------------------------
 // Sub-components (matching AudienceTab MetricCard pattern)
@@ -213,11 +272,24 @@ function OverviewTab({
     return { data, config, primaryLang, primaryValue }
   }, [aiAnalysis?.language_distribution])
 
+  // --- Engagement patterns data ---
+  const behavioral = engagement?.behavioral_patterns
+  const trendAnalysis = engagement?.trend_analysis
+
+  const hasEngagementData =
+    (behavioral?.posting_consistency != null ||
+      behavioral?.engagement_optimization != null ||
+      behavioral?.content_strategy_maturity != null ||
+      behavioral?.current_stage) ||
+    (trendAnalysis?.viral_potential != null ||
+      (Array.isArray(trendAnalysis?.optimization_recommendations) &&
+        trendAnalysis.optimization_recommendations.length > 0))
+
   const hasCharts = contentDistData || langDistData
   const hasSummary = aiAnalysis && Object.keys(aiAnalysis).length > 0
 
   // Empty state
-  if (!hasCharts && !hasSummary) {
+  if (!hasCharts && !hasSummary && !hasEngagementData) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-16">
@@ -240,74 +312,185 @@ function OverviewTab({
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
             Profile Summary
           </h3>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Target className="h-4 w-4" />
-                Creator Profile Summary
-              </CardTitle>
-              <CardDescription>
-                AI-powered overview of this creator's content and style
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {/* Bio */}
-              {profile.biography && (
-                <div className="flex items-start gap-2.5">
-                  <span className="shrink-0 mt-0.5 inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                    bio
-                  </span>
-                  <p className="text-sm text-muted-foreground font-sans tracking-normal leading-relaxed capitalize">
-                    {normalizeFancyUnicode(profile.biography).toLowerCase()}
-                  </p>
-                </div>
-              )}
-
-              {/* Metric cards grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {aiAnalysis.primary_content_type && (
-                  <div className="flex items-center justify-between sm:flex-col sm:items-start sm:gap-1">
-                    <span className="text-sm text-muted-foreground">Primary Content</span>
-                    <Badge variant="default" className="capitalize text-sm">
-                      {aiAnalysis.primary_content_type}
-                    </Badge>
-                  </div>
-                )}
-
-                {aiAnalysis.content_quality_score != null && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Content Quality</span>
-                      <span className="text-sm font-semibold">
-                        {safeToFixed(aiAnalysis.content_quality_score, 1)}/100
-                      </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Content Category */}
+            {aiAnalysis.primary_content_type && (() => {
+              const category = (aiAnalysis.primary_content_type as string).toLowerCase()
+              const CategoryIcon = CATEGORY_ICONS[category] || Sparkles
+              return (
+                <Card className="relative overflow-hidden">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Content Category</p>
+                        <p className="text-xl font-bold capitalize">{category}</p>
+                        {aiAnalysis.top_3_categories && aiAnalysis.top_3_categories.length > 1 && (
+                          <div className="flex flex-wrap gap-1 pt-0.5">
+                            {aiAnalysis.top_3_categories.slice(1).map((cat: string) => (
+                              <Badge key={cat} variant="secondary" className="text-[10px] capitalize">
+                                {cat}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="rounded-lg p-2.5 bg-muted">
+                        <CategoryIcon className="h-5 w-5 text-primary" />
+                      </div>
                     </div>
-                    <Progress
-                      value={Math.min(Number(aiAnalysis.content_quality_score), 100)}
-                      className="h-2"
-                    />
-                  </div>
-                )}
+                  </CardContent>
+                </Card>
+              )
+            })()}
 
-                {aiAnalysis.avg_sentiment_score != null && (
-                  <div className="flex items-center justify-between sm:flex-col sm:items-start sm:gap-1">
-                    <span className="text-sm text-muted-foreground">Content Tone</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {Number(aiAnalysis.avg_sentiment_score) >= 0.3
-                        ? 'Positive'
-                        : Number(aiAnalysis.avg_sentiment_score) >= -0.1
-                          ? 'Neutral'
-                          : 'Mixed'}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            {/* Content Quality */}
+            {aiAnalysis.content_quality_score != null && (() => {
+              const score = Number(aiAnalysis.content_quality_score)
+              const grade = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Average' : 'Low'
+              return (
+                <Card className="relative overflow-hidden">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1.5 flex-1">
+                        <p className="text-sm font-medium text-muted-foreground">Content Quality</p>
+                        <p className="text-xl font-bold">{safeToFixed(score, 0)}<span className="text-sm font-normal text-muted-foreground">/100</span></p>
+                        <Progress
+                          value={Math.min(score, 100)}
+                          className="h-1.5"
+                        />
+                      </div>
+                      <Badge variant="secondary" className="text-[10px] shrink-0 ml-3">{grade}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })()}
+
+          </div>
         </div>
       )}
 
-      {/* ─── Section 2: Content & Language Distribution ─── */}
+      {/* ─── Section 2: Engagement Patterns ─── */}
+      {hasEngagementData && (
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Engagement Patterns
+          </h3>
+
+          {/* Metric cards row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            {behavioral?.current_stage && (
+              <Card className="relative overflow-hidden">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Lifecycle Stage</p>
+                      <p className="text-xl font-bold capitalize">{behavioral.current_stage}</p>
+                    </div>
+                    <div className="rounded-lg p-2.5 bg-muted">
+                      <Activity className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {trendAnalysis?.viral_potential != null && (() => {
+              const pct = Number(trendAnalysis.viral_potential) > 1
+                ? Number(trendAnalysis.viral_potential)
+                : Number(trendAnalysis.viral_potential) * 100
+              const grade = pct >= 70 ? 'High' : pct >= 40 ? 'Medium' : 'Low'
+              const gradeColor = pct >= 70
+                ? 'text-green-600 dark:text-green-400'
+                : pct >= 40
+                  ? 'text-yellow-600 dark:text-yellow-400'
+                  : 'text-muted-foreground'
+              return (
+                <Card className="relative overflow-hidden">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Viral Potential</p>
+                        <p className={`text-xl font-bold ${gradeColor}`}>{grade}</p>
+                        <p className="text-xs text-muted-foreground">{safePercentage(trendAnalysis.viral_potential)}% score</p>
+                      </div>
+                      <div className="rounded-lg p-2.5 bg-muted">
+                        <Flame className={`h-5 w-5 ${gradeColor}`} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })()}
+
+            {behavioral?.posting_consistency != null && (
+              <Card className="relative overflow-hidden">
+                <CardContent className="p-5">
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium text-muted-foreground">Posting Consistency</p>
+                    <p className="text-xl font-bold">{safePercentage(behavioral.posting_consistency)}%</p>
+                    <Progress
+                      value={Number(behavioral.posting_consistency) > 1
+                        ? Number(behavioral.posting_consistency)
+                        : Number(behavioral.posting_consistency) * 100}
+                      className="h-1.5"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {behavioral?.content_strategy_maturity != null && (
+              <Card className="relative overflow-hidden">
+                <CardContent className="p-5">
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium text-muted-foreground">Strategy Maturity</p>
+                    <p className="text-xl font-bold">{safePercentage(behavioral.content_strategy_maturity)}%</p>
+                    <Progress
+                      value={Number(behavioral.content_strategy_maturity) > 1
+                        ? Number(behavioral.content_strategy_maturity)
+                        : Number(behavioral.content_strategy_maturity) * 100}
+                      className="h-1.5"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* AI Recommendations */}
+          {Array.isArray(trendAnalysis?.optimization_recommendations) &&
+            trendAnalysis.optimization_recommendations.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Lightbulb className="h-4 w-4 text-yellow-500" />
+                    AI Recommendations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {trendAnalysis.optimization_recommendations.map(
+                      (rec: string, idx: number) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-2.5 rounded-lg border bg-muted/30 px-3 py-2.5"
+                        >
+                          <Zap className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          <p className="text-sm text-muted-foreground">
+                            {humanizeRecommendation(rec)}
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+        </div>
+      )}
+
+      {/* ─── Section 3: Content & Language Distribution ─── */}
       {hasCharts && (
         <div>
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">

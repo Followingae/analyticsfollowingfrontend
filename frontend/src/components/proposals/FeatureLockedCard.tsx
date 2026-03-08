@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { motion } from "motion/react"
+import { proposalMotion } from "./proposal-utils"
 import {
   Card,
   CardContent,
@@ -93,35 +95,49 @@ export function FeatureLockedCard({
     <div className="flex items-center justify-center min-h-[70vh] p-6">
       <div className="w-full max-w-lg mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-6">
+        <motion.div
+          variants={proposalMotion.staggerContainer}
+          initial="hidden"
+          animate="visible"
+          className="text-center mb-8"
+        >
+          <motion.div variants={proposalMotion.staggerItem} className="flex items-center justify-center mb-6">
             {getFeatureLogo()}
-          </div>
-          <h1 className="text-2xl font-semibold text-foreground mb-3">
+          </motion.div>
+          <motion.h1 variants={proposalMotion.staggerItem} className="text-2xl font-semibold text-foreground mb-3">
             {featureInfo.title}
-          </h1>
+          </motion.h1>
           {featureInfo.description && (
             <p className="text-muted-foreground text-base leading-relaxed">
               {featureInfo.description}
             </p>
           )}
-        </div>
+        </motion.div>
 
         {/* Benefits */}
-        <div className="bg-card border border-border/50 rounded-xl p-6 mb-8 text-center">
-          <h3 className="font-medium text-foreground mb-4 flex items-center justify-center gap-2">
-            <Zap className="h-4 w-4 text-primary" />
-            What's included
-          </h3>
-          <ul className="space-y-3">
-            {featureInfo.benefits.map((benefit, index) => (
-              <li key={index} className="flex items-start justify-center gap-3 text-sm text-muted-foreground">
-                <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                <span className="leading-relaxed text-left">{benefit}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Card className="mb-8 text-center">
+          <CardHeader>
+            <CardTitle className="text-base font-medium flex items-center justify-center gap-2">
+              <Zap className="h-4 w-4 text-primary" />
+              What&apos;s included
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <motion.ul
+              variants={proposalMotion.staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="space-y-3"
+            >
+              {featureInfo.benefits.map((benefit, index) => (
+                <motion.li key={index} variants={proposalMotion.staggerItem} className="flex items-start justify-center gap-3 text-sm text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <span className="leading-relaxed text-left">{benefit}</span>
+                </motion.li>
+              ))}
+            </motion.ul>
+          </CardContent>
+        </Card>
 
         {/* Actions */}
         <div className="space-y-4">

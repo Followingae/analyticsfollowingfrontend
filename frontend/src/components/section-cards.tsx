@@ -1,6 +1,6 @@
 "use client"
 
-import { IconTrendingDown, IconTrendingUp, IconUsers, IconHeart, IconMessage, IconEye } from "@tabler/icons-react"
+import { TrendingDown, TrendingUp, Users, Heart, MessageCircle, Eye } from "lucide-react"
 import { useState, useEffect } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -70,7 +70,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingUp className="size-3" />
+                <TrendingUp className="size-3" />
                 {brandData?.currentPlan ? 'Active' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -85,7 +85,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingUp className="size-3" />
+                <TrendingUp className="size-3" />
                 {brandData?.unlockedProfiles ? 'Available' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -100,7 +100,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingUp className="size-3" />
+                <TrendingUp className="size-3" />
                 {brandData?.totalReach ? 'Cumulative' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -115,7 +115,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingUp className="size-3" />
+                <TrendingUp className="size-3" />
                 {brandData?.activeCampaigns !== undefined ? 'Running' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -137,7 +137,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingUp className="size-3" />
+                <TrendingUp className="size-3" />
                 {creatorsData?.unlockedCreators ? 'Available' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -152,7 +152,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconEye className="size-3" />
+                <Eye className="size-3" />
                 {creatorsData?.portfolioReach ? 'Combined' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -167,7 +167,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconHeart className="size-3" />
+                <Heart className="size-3" />
                 {creatorsData?.avgEngagement ? 'Portfolio' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -182,7 +182,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingUp className="size-3" />
+                <TrendingUp className="size-3" />
                 {creatorsData?.inCampaigns !== undefined ? 'Active' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -204,7 +204,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingUp className="size-3" />
+                <TrendingUp className="size-3" />
                 {campaignsData?.totalCampaigns !== undefined ? 'Total' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -219,7 +219,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingUp className="size-3" />
+                <TrendingUp className="size-3" />
                 {campaignsData?.totalBudget ? 'Allocated' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -234,7 +234,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconEye className="size-3" />
+                <Eye className="size-3" />
                 {campaignsData?.totalReach ? 'Combined' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -249,7 +249,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingUp className="size-3" />
+                <TrendingUp className="size-3" />
                 {campaignsData?.avgPerformance ? 'ROI' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -271,7 +271,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconUsers className="size-3" />
+                <Users className="size-3" />
                 {discoverData?.totalCreators ? 'Available' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -286,7 +286,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingUp className="size-3" />
+                <TrendingUp className="size-3" />
                 {discoverData?.brandReady ? 'Quality' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -301,7 +301,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconTrendingUp className="size-3" />
+                <TrendingUp className="size-3" />
                 {discoverData?.avgROI ? 'Platform' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -316,7 +316,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             </CardTitle>
             <CardAction>
               <Badge variant="outline" className="gap-1">
-                <IconHeart className="size-3" />
+                <Heart className="size-3" />
                 {discoverData?.successRate ? 'Success' : 'Loading...'}
               </Badge>
             </CardAction>
@@ -377,14 +377,14 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
           </CardTitle>
           <CardAction>
             <Badge variant="outline" className="gap-1">
-              <IconUsers className="size-3" />
+              <Users className="size-3" />
               {data.profile.is_verified && "✓ Verified"}
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {formatNumber(data.profile.following)} Following <IconUsers className="size-4" />
+            {formatNumber(data.profile.following)} Following <Users className="size-4" />
           </div>
           <div className="text-muted-foreground">
             {formatNumber(data.profile.posts_count)} posts total
@@ -402,17 +402,17 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             <Badge variant="outline" className="gap-1">
               {data.profile.engagement_rate > 3 ? (
                 <>
-                  <IconTrendingUp className="size-3" />
+                  <TrendingUp className="size-3" />
                   Excellent
                 </>
               ) : data.profile.engagement_rate > 1 ? (
                 <>
-                  <IconTrendingUp className="size-3" />
+                  <TrendingUp className="size-3" />
                   Good
                 </>
               ) : (
                 <>
-                  <IconTrendingDown className="size-3" />
+                  <TrendingDown className="size-3" />
                   Low
                 </>
               )}
@@ -421,7 +421,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Avg {formatNumber(data.profile.avg_likes)} likes <IconHeart className="size-4" />
+            Avg {formatNumber(data.profile.avg_likes)} likes <Heart className="size-4" />
           </div>
           <div className="text-muted-foreground">
             {formatNumber(data.profile.avg_comments)} comments per post
@@ -439,17 +439,17 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             <Badge variant="outline" className="gap-1">
               {data.profile.content_quality_score > 7 ? (
                 <>
-                  <IconTrendingUp className="size-3" />
+                  <TrendingUp className="size-3" />
                   High
                 </>
               ) : data.profile.content_quality_score > 5 ? (
                 <>
-                  <IconEye className="size-3" />
+                  <Eye className="size-3" />
                   Good
                 </>
               ) : (
                 <>
-                  <IconTrendingDown className="size-3" />
+                  <TrendingDown className="size-3" />
                   Needs Work
                 </>
               )}
@@ -476,17 +476,17 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
             <Badge variant="outline" className="gap-1">
               {isPositiveGrowth ? (
                 <>
-                  <IconTrendingUp className="size-3" />
+                  <TrendingUp className="size-3" />
                   Growing
                 </>
               ) : growthRate < 0 ? (
                 <>
-                  <IconTrendingDown className="size-3" />
+                  <TrendingDown className="size-3" />
                   Declining
                 </>
               ) : (
                 <>
-                  <IconMessage className="size-3" />
+                  <MessageCircle className="size-3" />
                   Stable
                 </>
               )}
@@ -496,7 +496,7 @@ export function SectionCards({ profileData, mode = 'profile', brandData, creator
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
             {isPositiveGrowth ? 'Positive momentum' : 'Focus on engagement'} 
-            {isPositiveGrowth ? <IconTrendingUp className="size-4" /> : <IconMessage className="size-4" />}
+            {isPositiveGrowth ? <TrendingUp className="size-4" /> : <MessageCircle className="size-4" />}
           </div>
           <div className="text-muted-foreground">
             Monthly follower change

@@ -6,25 +6,19 @@ import {
   Plus,
   Users,
   FileText,
-  Calendar,
   DollarSign,
   TrendingUp,
   Eye,
-  Clock,
   CheckCircle,
-  XCircle,
-  AlertCircle,
   MessageSquare,
   Filter,
   ChevronDown,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +27,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { FeatureLockedCard } from "@/components/proposals/FeatureLockedCard";
+import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge";
+import { formatCount, formatCurrency, proposalMotion } from "@/components/proposals/proposal-utils";
+import { motion } from "motion/react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Proposal {
   id: string;
@@ -88,56 +86,6 @@ export function ProposalsTab({ searchQuery }: ProposalsTabProps) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const getStatusConfig = (status: string) => {
-    const configs = {
-      draft: {
-        label: "Draft",
-        icon: FileText,
-        className: "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800/30 dark:text-gray-400 dark:border-gray-700",
-      },
-      sent: {
-        label: "Sent",
-        icon: Clock,
-        className: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800",
-      },
-      in_review: {
-        label: "In Review",
-        icon: AlertCircle,
-        className: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800",
-      },
-      approved: {
-        label: "Approved",
-        icon: CheckCircle,
-        className: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800",
-      },
-      rejected: {
-        label: "Rejected",
-        icon: XCircle,
-        className: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800",
-      },
-    };
-    return configs[status as keyof typeof configs] || configs.draft;
-  };
-
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
-    }
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
-    }
-    return num.toString();
-  };
-
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
   };
 
   const filteredProposals = proposals.filter(proposal => {
@@ -245,23 +193,22 @@ export function ProposalsTab({ searchQuery }: ProposalsTabProps) {
 
         {/* Proposals Grid */}
         {filteredProposals.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <motion.div
+            variants={proposalMotion.staggerContainer}
+            initial="hidden"
+            animate="visible"
+            className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          >
             {filteredProposals.map((proposal) => {
-              const statusConfig = getStatusConfig(proposal.status);
-              const StatusIcon = statusConfig.icon;
-
               return (
+                <motion.div key={proposal.id} variants={proposalMotion.staggerItem} whileHover={{ y: -3, transition: { type: "spring", stiffness: 400, damping: 17 } }}>
                 <Card
-                  key={proposal.id}
-                  className="cursor-pointer hover:shadow-lg transition-all duration-200 group"
+                  className="cursor-pointer hover:shadow-lg transition-shadow duration-200 group"
                   onClick={() => router.push(`/campaigns/proposals/${proposal.id}`)}
                 >
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <Badge variant="outline" className={statusConfig.className}>
-                        <StatusIcon className="mr-1 h-3 w-3" />
-                        {statusConfig.label}
-                      </Badge>
+                      <ProposalStatusBadge status={proposal.status} />
                       <div className="text-xs text-muted-foreground">
                         {new Date(proposal.updated_at).toLocaleDateString()}
                       </div>
@@ -305,7 +252,7 @@ export function ProposalsTab({ searchQuery }: ProposalsTabProps) {
                               <Eye className="h-4 w-4 text-purple-600" />
                               <div>
                                 <div className="text-sm font-medium">
-                                  {formatNumber(proposal.expected_reach)}
+                                  {formatCount(proposal.expected_reach)}
                                 </div>
                                 <div className="text-xs text-muted-foreground">Est. Reach</div>
                               </div>
@@ -355,31 +302,22 @@ export function ProposalsTab({ searchQuery }: ProposalsTabProps) {
                     </div>
                   </CardContent>
                 </Card>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">No proposals found</h3>
-              <p className="text-muted-foreground text-center max-w-md">
-                {searchQuery
-                  ? "No proposals match your search criteria. Try adjusting your search or filters."
-                  : "You don't have any proposals yet. Your agency team will create proposals for you to review and approve."
-                }
-              </p>
-              {!searchQuery && (
-                <Button
-                  className="mt-4"
-                  onClick={() => router.push("/campaigns/request-proposal")}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Request a Proposal
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="No proposals yet"
+            description={searchQuery
+              ? "No proposals match your search criteria. Try adjusting your search or filters."
+              : "Proposals will appear here once created."}
+            icons={[FileText, Users, MessageSquare]}
+            action={!searchQuery ? {
+              label: "Request a Proposal",
+              onClick: () => router.push("/campaigns/request-proposal"),
+            } : undefined}
+          />
         )}
       </div>
     </div>

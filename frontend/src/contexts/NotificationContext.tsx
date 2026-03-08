@@ -14,6 +14,8 @@ interface NotificationContextType {
   loading: boolean
   markAsRead: (id: string) => void
   markAllAsRead: (notificationType?: string) => void
+  /** Mark notifications as read by reference (e.g. when visiting a proposal page) */
+  markReadByReference: (referenceType: string, referenceId?: string) => void
   /** Re-fetch both list + counts from server */
   refresh: () => void
 }
@@ -72,13 +74,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return () => { mounted = false }
   }, [refresh])
 
-  // ── Poll every 30 seconds ───────────────────────────────────────────
+  // ── Poll every 30 seconds (both list + counts) ─────────────────────
 
   useEffect(() => {
     if (!apiAvailable) return
-    pollRef.current = setInterval(fetchUnreadCounts, 30_000)
+    pollRef.current = setInterval(refresh, 30_000)
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [apiAvailable, fetchUnreadCounts])
+  }, [apiAvailable, refresh])
 
   // ── Refresh on job completion (from useJobPolling window event) ─
   useEffect(() => {
@@ -108,7 +110,22 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     )
     setUnreadCounts(defaultCounts)
     notificationApiService.markAllAsRead(notificationType).then(() => {
-      // Refresh to get accurate counts after server processes
+      fetchUnreadCounts()
+    })
+  }, [fetchUnreadCounts])
+
+  const markReadByReference = useCallback((referenceType: string, referenceId?: string) => {
+    // Optimistic update: mark matching notifications as read locally
+    setNotifications(prev =>
+      prev.map(n => {
+        if (n.reference_type !== referenceType) return n
+        if (referenceId && n.reference_id !== referenceId) return n
+        if (n.is_read) return n
+        return { ...n, is_read: true, read_at: new Date().toISOString() }
+      })
+    )
+    // Fire API call and refresh counts
+    notificationApiService.markReadByReference(referenceType, referenceId).then(() => {
       fetchUnreadCounts()
     })
   }, [fetchUnreadCounts])
@@ -120,6 +137,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       loading,
       markAsRead,
       markAllAsRead,
+      markReadByReference,
       refresh,
     }}>
       {children}

@@ -9,12 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { AppSidebar } from "@/components/app-sidebar";
+import { EnhancedAppSidebar } from "@/components/brand/EnhancedAppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { toast } from "sonner";
+import { motion } from "motion/react";
+import { proposalMotion } from "@/components/proposals/proposal-utils";
 
 interface ProposalSection {
   id: string;
@@ -172,7 +174,7 @@ export default function CampaignProposalPage() {
     return (
       <AuthGuard>
         <SidebarProvider>
-          <AppSidebar />
+          <EnhancedAppSidebar variant="inset" />
           <SidebarInset>
             <SiteHeader />
             <div className="container mx-auto py-8 px-4">
@@ -199,7 +201,7 @@ export default function CampaignProposalPage() {
           } as React.CSSProperties
         }
       >
-        <AppSidebar />
+        <EnhancedAppSidebar variant="inset" />
         <SidebarInset>
           <SiteHeader />
           <div className="container mx-auto py-8 px-4 space-y-6">

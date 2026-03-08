@@ -134,6 +134,18 @@ class NotificationApiService {
       return res.ok
     } catch { return false }
   }
+
+  async markReadByReference(referenceType: string, referenceId?: string): Promise<boolean> {
+    try {
+      const q = new URLSearchParams({ reference_type: referenceType })
+      if (referenceId) q.set('reference_id', referenceId)
+      const res = await fetchWithAuth(
+        `${this.baseUrl}${ENDPOINTS.notifications.markReadByReference}?${q.toString()}`,
+        { method: 'POST', headers }
+      )
+      return res.ok
+    } catch { return false }
+  }
 }
 
 export const notificationApiService = new NotificationApiService()

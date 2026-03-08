@@ -27,6 +27,8 @@ import {
 } from "lucide-react"
 import { ImageCropper } from "@/components/ui/image-cropper"
 import { DatePicker } from "@/components/ui/date-picker"
+import { formatCount, proposalMotion, STOCK_IMAGES } from "@/components/proposals/proposal-utils"
+import { motion, AnimatePresence } from "motion/react"
 
 export const dynamic = "force-dynamic"
 
@@ -51,17 +53,24 @@ interface MasterInfluencer {
   engagement_rate: number
   categories: string[]
   tier?: string
+  sell_post_usd_cents?: number | null
+  sell_story_usd_cents?: number | null
+  sell_reel_usd_cents?: number | null
+  sell_carousel_usd_cents?: number | null
+  sell_video_usd_cents?: number | null
+  sell_bundle_usd_cents?: number | null
+  sell_monthly_usd_cents?: number | null
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatCount(n: number): string {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M"
-  if (n >= 1000) return (n / 1000).toFixed(1) + "K"
-  return n.toString()
-}
+const DELIVERABLE_TYPES = [
+  { key: "post", label: "Post", priceField: "sell_post_usd_cents" },
+  { key: "story", label: "Story", priceField: "sell_story_usd_cents" },
+  { key: "reel", label: "Reel", priceField: "sell_reel_usd_cents" },
+  { key: "carousel", label: "Carousel", priceField: "sell_carousel_usd_cents" },
+  { key: "video", label: "Video", priceField: "sell_video_usd_cents" },
+  { key: "bundle", label: "Bundle", priceField: "sell_bundle_usd_cents" },
+  { key: "monthly", label: "Monthly", priceField: "sell_monthly_usd_cents" },
+] as const
 
 const TIER_OPTIONS = ["all", "nano", "micro", "mid", "macro", "mega"]
 const CATEGORY_OPTIONS = [
@@ -98,6 +107,7 @@ export default function CreateProposalPage() {
   const [coverImageUrl, setCoverImageUrl] = useState("")
   const [coverUploading, setCoverUploading] = useState(false)
   const [cropperOpen, setCropperOpen] = useState(false)
+  const [showStockPicker, setShowStockPicker] = useState(false)
   const [visibility, setVisibility] = useState({
     show_sell_pricing: true,
     show_analytics: true,
@@ -116,6 +126,10 @@ export default function CreateProposalPage() {
 
   // -- Added influencers ----------------------------------------------------
   const [addedInfluencers, setAddedInfluencers] = useState<MasterInfluencer[]>([])
+  // Per-influencer deliverable assignments: { influencer_id: [{ type: "reel", quantity: 2 }] }
+  const [deliverableAssignments, setDeliverableAssignments] = useState<
+    Record<string, Array<{ type: string; quantity: number }>>
+  >({})
 
   // =========================================================================
   // Data fetching
@@ -245,7 +259,52 @@ export default function CreateProposalPage() {
 
   function removeAdded(id: string) {
     setAddedInfluencers((prev) => prev.filter((i) => i.id !== id))
+    setDeliverableAssignments((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
   }
+
+  function toggleDeliverable(influencerId: string, type: string) {
+    setDeliverableAssignments((prev) => {
+      const current = prev[influencerId] || []
+      const exists = current.find((d) => d.type === type)
+      if (exists) {
+        return { ...prev, [influencerId]: current.filter((d) => d.type !== type) }
+      }
+      return { ...prev, [influencerId]: [...current, { type, quantity: 1 }] }
+    })
+  }
+
+  function updateDeliverableQuantity(influencerId: string, type: string, quantity: number) {
+    if (quantity < 1) return
+    setDeliverableAssignments((prev) => {
+      const current = prev[influencerId] || []
+      return {
+        ...prev,
+        [influencerId]: current.map((d) =>
+          d.type === type ? { ...d, quantity } : d
+        ),
+      }
+    })
+  }
+
+  function getInfluencerDeliverableTotal(inf: MasterInfluencer): number {
+    const assignments = deliverableAssignments[inf.id] || []
+    return assignments.reduce((sum, d) => {
+      const priceField = DELIVERABLE_TYPES.find((dt) => dt.key === d.type)?.priceField
+      if (!priceField) return sum
+      const cents = (inf as any)[priceField]
+      if (cents == null) return sum
+      return sum + (cents / 100) * d.quantity
+    }, 0)
+  }
+
+  const proposalDeliverableTotal = addedInfluencers.reduce(
+    (sum, inf) => sum + getInfluencerDeliverableTotal(inf),
+    0
+  )
 
   // -- Submit: Add-more mode ------------------------------------------------
   async function handleAddMore() {
@@ -255,8 +314,13 @@ export default function CreateProposalPage() {
     }
     setSubmitting(true)
     try {
+      const delAssignments = Object.entries(deliverableAssignments)
+        .filter(([id, dels]) => dels.length > 0)
+        .map(([influencer_db_id, deliverables]) => ({ influencer_db_id, deliverables }))
+
       await adminProposalApi.addMoreInfluencers(addMoreId!, {
         influencer_ids: addedInfluencers.map((i) => i.id),
+        deliverable_assignments: delAssignments.length > 0 ? delAssignments : undefined,
       })
       toast.success("More influencers added and brand notified!")
       router.push(`/superadmin/proposals/${addMoreId}`)
@@ -285,8 +349,13 @@ export default function CreateProposalPage() {
 
       // Add any new influencers
       if (addedInfluencers.length) {
+        const delAssignments = Object.entries(deliverableAssignments)
+          .filter(([id, dels]) => dels.length > 0)
+          .map(([influencer_db_id, deliverables]) => ({ influencer_db_id, deliverables }))
+
         await adminProposalApi.addInfluencers(editId!, {
           influencer_ids: addedInfluencers.map((i) => i.id),
+          deliverable_assignments: delAssignments.length > 0 ? delAssignments : undefined,
         })
       }
 
@@ -319,8 +388,13 @@ export default function CreateProposalPage() {
         cover_image_url: coverImageUrl.trim() || undefined,
       })
 
+      const delAssignments = Object.entries(deliverableAssignments)
+        .filter(([id, dels]) => dels.length > 0)
+        .map(([influencer_db_id, deliverables]) => ({ influencer_db_id, deliverables }))
+
       await adminProposalApi.addInfluencers(proposal.id, {
         influencer_ids: addedInfluencers.map((i) => i.id),
+        deliverable_assignments: delAssignments.length > 0 ? delAssignments : undefined,
       })
 
       if (sendAfter) {
@@ -365,9 +439,14 @@ export default function CreateProposalPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-6">
+      <motion.div
+        variants={proposalMotion.staggerContainer}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <motion.div variants={proposalMotion.staggerItem} className="flex items-center gap-4">
           <Button
             variant="outline"
             onClick={() =>
@@ -385,12 +464,13 @@ export default function CreateProposalPage() {
             <h1 className="text-3xl font-bold">{pageTitle}</h1>
             <p className="text-muted-foreground">{pageDescription}</p>
           </div>
-        </div>
+        </motion.div>
 
         {/* =============================================================== */}
         {/* Section 1 - Proposal Details (hidden in addMore mode)          */}
         {/* =============================================================== */}
         {!isAddMoreMode && (
+          <motion.div variants={proposalMotion.staggerItem}>
           <Card>
             <CardHeader>
               <CardTitle>Proposal Details</CardTitle>
@@ -497,7 +577,15 @@ export default function CreateProposalPage() {
                           size="sm"
                           onClick={() => setCropperOpen(true)}
                         >
-                          Replace
+                          Upload New
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setShowStockPicker(true)}
+                        >
+                          Stock
                         </Button>
                         <Button
                           type="button"
@@ -510,23 +598,82 @@ export default function CreateProposalPage() {
                       </div>
                     </div>
                   ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="mt-1 w-full h-20 border-dashed"
-                      onClick={() => setCropperOpen(true)}
-                      disabled={coverUploading}
-                    >
-                      {coverUploading ? (
-                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      ) : (
-                        <Upload className="h-5 w-5 mr-2 text-muted-foreground" />
-                      )}
-                      <span className="text-muted-foreground">
-                        {coverUploading ? "Uploading..." : "Upload cover image"}
-                      </span>
-                    </Button>
+                    <div className="mt-1 flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setCropperOpen(true)}
+                        disabled={coverUploading}
+                      >
+                        {coverUploading ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Upload className="h-4 w-4 mr-2" />
+                        )}
+                        {coverUploading ? "Uploading..." : "Upload"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setShowStockPicker(true)}
+                      >
+                        <Image className="h-4 w-4 mr-2" />
+                        Stock photos
+                      </Button>
+                    </div>
                   )}
+
+                  {/* Stock image picker */}
+                  <AnimatePresence>
+                    {showStockPicker && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-2 rounded-md border p-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-muted-foreground">Choose a stock image</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => setShowStockPicker(false)}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-5 gap-1.5">
+                            {STOCK_IMAGES.map((url, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                className={`relative h-14 rounded overflow-hidden border-2 transition-all hover:opacity-100 ${
+                                  coverImageUrl === url
+                                    ? "border-primary ring-1 ring-primary"
+                                    : "border-transparent opacity-75"
+                                }`}
+                                onClick={() => {
+                                  setCoverImageUrl(url)
+                                  setShowStockPicker(false)
+                                }}
+                              >
+                                <img
+                                  src={url.replace("w=1920", "w=200").replace("h=600", "h=80")}
+                                  alt={`Stock ${i + 1}`}
+                                  className="h-full w-full object-cover"
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 
@@ -563,6 +710,7 @@ export default function CreateProposalPage() {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
         )}
 
         {/* =============================================================== */}
@@ -731,44 +879,128 @@ export default function CreateProposalPage() {
                   </Label>
                   <div className="space-y-2">
                     {addedInfluencers.map((inf) => (
-                      <div
-                        key={inf.id}
-                        className="flex items-center justify-between border rounded-md px-3 py-2"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-7 w-7">
-                            <AvatarImage src={inf.profile_image_url} />
-                            <AvatarFallback>
-                              {(inf.username?.[0] ?? "?").toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm font-medium">
-                            @{inf.username}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatCount(inf.followers_count ?? 0)} followers
-                          </span>
-                          {inf.tier && (
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {inf.tier}
-                            </Badge>
-                          )}
-                          {(inf.categories ?? []).slice(0, 2).map((c) => (
-                            <Badge key={c} variant="secondary" className="text-xs">
-                              {c}
-                            </Badge>
-                          ))}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeAdded(inf.id)}
+                      <div key={inf.id}>
+                        <div
+                          className="flex items-center justify-between border rounded-md px-3 py-2"
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-7 w-7">
+                              <AvatarImage src={inf.profile_image_url} />
+                              <AvatarFallback>
+                                {(inf.username?.[0] ?? "?").toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm font-medium">
+                              @{inf.username}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatCount(inf.followers_count ?? 0)} followers
+                            </span>
+                            {inf.tier && (
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {inf.tier}
+                              </Badge>
+                            )}
+                            {(inf.categories ?? []).slice(0, 2).map((c) => (
+                              <Badge key={c} variant="secondary" className="text-xs">
+                                {c}
+                              </Badge>
+                            ))}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAdded(inf.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                        {/* Deliverable Assignments */}
+                        <div className="mt-2 mb-3 ml-12 p-3 rounded-lg bg-muted/30 border border-border/40">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            Assign Deliverables
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {DELIVERABLE_TYPES.map((dt) => {
+                              const cents = (inf as any)[dt.priceField]
+                              if (cents == null) return null
+                              const price = cents / 100
+                              const assignment = (deliverableAssignments[inf.id] || []).find(
+                                (d) => d.type === dt.key
+                              )
+                              const isActive = Boolean(assignment)
+                              return (
+                                <div key={dt.key} className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleDeliverable(inf.id, dt.key)}
+                                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all ${
+                                      isActive
+                                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                        : "bg-background text-muted-foreground border-border/50 hover:border-primary/50 hover:text-foreground"
+                                    }`}
+                                  >
+                                    {dt.label}
+                                    <span className="text-[10px] opacity-70">
+                                      ${price}
+                                    </span>
+                                  </button>
+                                  {isActive && (
+                                    <div className="flex items-center border rounded-md">
+                                      <button
+                                        type="button"
+                                        className="px-1.5 py-0.5 text-xs hover:bg-muted"
+                                        onClick={() =>
+                                          updateDeliverableQuantity(
+                                            inf.id,
+                                            dt.key,
+                                            (assignment?.quantity || 1) - 1
+                                          )
+                                        }
+                                      >
+                                        -
+                                      </button>
+                                      <span className="px-1.5 py-0.5 text-xs font-medium tabular-nums min-w-[20px] text-center">
+                                        {assignment?.quantity || 1}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        className="px-1.5 py-0.5 text-xs hover:bg-muted"
+                                        onClick={() =>
+                                          updateDeliverableQuantity(
+                                            inf.id,
+                                            dt.key,
+                                            (assignment?.quantity || 1) + 1
+                                          )
+                                        }
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                          {getInfluencerDeliverableTotal(inf) > 0 && (
+                            <p className="text-xs text-foreground font-medium mt-2">
+                              Subtotal: ${getInfluencerDeliverableTotal(inf).toLocaleString()}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
+                  {addedInfluencers.length > 0 && proposalDeliverableTotal > 0 && (
+                    <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                      <p className="text-sm font-semibold">
+                        Total Deliverable Cost: <span className="text-primary">${proposalDeliverableTotal.toLocaleString()}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Across {addedInfluencers.length} creator{addedInfluencers.length !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -812,7 +1044,7 @@ export default function CreateProposalPage() {
             </>
           )}
         </div>
-      </div>
+      </motion.div>
     </SuperadminLayout>
   )
 }

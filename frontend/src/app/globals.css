@@ -474,3 +474,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* FreelancerProfileCard transparent banner — allows FlickeringGrid to show through */
+.card-transparent-banner {
+  background: linear-gradient(
+    180deg,
+    transparent 8rem,
+    oklch(var(--card)) 8rem
+  ) !important;
+}
+
+@keyframes subtle-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}

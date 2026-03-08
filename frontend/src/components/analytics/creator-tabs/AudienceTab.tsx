@@ -41,7 +41,14 @@ import {
   AlertTriangle,
   CheckCircle,
   MapPin,
+  Info,
 } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -106,9 +113,119 @@ const COUNTRY_NAME_TO_CODE: Record<string, string> = {
   zimbabwe: 'ZW',
 }
 
+/** Reverse map: ISO code → English display name */
+const CODE_TO_ENGLISH_NAME: Record<string, string> = {
+  US: 'United States', GB: 'United Kingdom', AE: 'United Arab Emirates',
+  SA: 'Saudi Arabia', KR: 'South Korea', ZA: 'South Africa',
+  NZ: 'New Zealand', CZ: 'Czech Republic', DO: 'Dominican Republic',
+  CR: 'Costa Rica', PR: 'Puerto Rico', LK: 'Sri Lanka', HK: 'Hong Kong',
+  MK: 'North Macedonia', BA: 'Bosnia And Herzegovina', TT: 'Trinidad And Tobago',
+  AF: 'Afghanistan', AL: 'Albania', DZ: 'Algeria', AR: 'Argentina',
+  AM: 'Armenia', AU: 'Australia', AT: 'Austria', AZ: 'Azerbaijan',
+  BH: 'Bahrain', BD: 'Bangladesh', BY: 'Belarus', BE: 'Belgium',
+  BO: 'Bolivia', BR: 'Brazil', BN: 'Brunei', BG: 'Bulgaria',
+  KH: 'Cambodia', CM: 'Cameroon', CA: 'Canada', CL: 'Chile',
+  CN: 'China', CO: 'Colombia', HR: 'Croatia', CU: 'Cuba',
+  CY: 'Cyprus', DK: 'Denmark', EC: 'Ecuador', EG: 'Egypt',
+  EE: 'Estonia', ET: 'Ethiopia', FI: 'Finland', FR: 'France',
+  GE: 'Georgia', DE: 'Germany', GH: 'Ghana', GR: 'Greece',
+  GT: 'Guatemala', HN: 'Honduras', HU: 'Hungary', IS: 'Iceland',
+  IN: 'India', ID: 'Indonesia', IR: 'Iran', IQ: 'Iraq',
+  IE: 'Ireland', IL: 'Israel', IT: 'Italy', JM: 'Jamaica',
+  JP: 'Japan', JO: 'Jordan', KZ: 'Kazakhstan', KE: 'Kenya',
+  KW: 'Kuwait', LV: 'Latvia', LB: 'Lebanon', LY: 'Libya',
+  LT: 'Lithuania', LU: 'Luxembourg', MY: 'Malaysia', MT: 'Malta',
+  MX: 'Mexico', MN: 'Mongolia', MA: 'Morocco', MM: 'Myanmar',
+  NP: 'Nepal', NL: 'Netherlands', NG: 'Nigeria', NO: 'Norway',
+  OM: 'Oman', PK: 'Pakistan', PA: 'Panama', PY: 'Paraguay',
+  PE: 'Peru', PH: 'Philippines', PL: 'Poland', PT: 'Portugal',
+  QA: 'Qatar', RO: 'Romania', RU: 'Russia', RW: 'Rwanda',
+  SN: 'Senegal', RS: 'Serbia', SG: 'Singapore', SK: 'Slovakia',
+  SI: 'Slovenia', SO: 'Somalia', ES: 'Spain', SD: 'Sudan',
+  SE: 'Sweden', CH: 'Switzerland', SY: 'Syria', TW: 'Taiwan',
+  TZ: 'Tanzania', TH: 'Thailand', TN: 'Tunisia', TR: 'Turkey',
+  UG: 'Uganda', UA: 'Ukraine', UY: 'Uruguay', UZ: 'Uzbekistan',
+  VE: 'Venezuela', VN: 'Vietnam', YE: 'Yemen', ZM: 'Zambia', ZW: 'Zimbabwe',
+}
+
+/** Map native/official pycountry names to ISO codes */
+const NATIVE_NAME_TO_CODE: Record<string, string> = {
+  // Arabic
+  'الإمارات العربية المتحدة': 'AE',
+  'المملكة العربية السعودية': 'SA',
+  'مصر': 'EG',
+  'العراق': 'IQ',
+  'الأردن': 'JO',
+  'الكويت': 'KW',
+  'لبنان': 'LB',
+  'ليبيا': 'LY',
+  'المغرب': 'MA',
+  'عُمان': 'OM',
+  'قطر': 'QA',
+  'السودان': 'SD',
+  'سوريا': 'SY',
+  'تونس': 'TN',
+  'اليمن': 'YE',
+  'البحرين': 'BH',
+  'فلسطين': 'PS',
+  // pycountry official names
+  'schweiz/suisse/svizzera/svizra': 'CH',
+  'éire / ireland': 'IE',
+  'éire': 'IE',
+  'türkiye': 'TR',
+  'brasil': 'BR',
+  'deutschland': 'DE',
+  'españa': 'ES',
+  'italia': 'IT',
+  '日本': 'JP',
+  '中国': 'CN',
+  '대한민국': 'KR',
+  'भारत': 'IN',
+  'ایران': 'IR',
+  'پاکستان': 'PK',
+  'nederland': 'NL',
+  'sverige': 'SE',
+  'norge': 'NO',
+  'danmark': 'DK',
+  'suomi': 'FI',
+  'polska': 'PL',
+  'česko': 'CZ',
+  'slovensko': 'SK',
+  'slovenija': 'SI',
+  'hrvatska': 'HR',
+  'srbija': 'RS',
+  'србија': 'RS',
+  'україна': 'UA',
+  'беларусь': 'BY',
+  'россия': 'RU',
+  'ελλάδα': 'GR',
+  'مصر': 'EG',
+  'ישראל': 'IL',
+  'philippines': 'PH',
+  'pilipinas': 'PH',
+  'việt nam': 'VN',
+  'ไทย': 'TH',
+  'indonesia': 'ID',
+  'malaysia': 'MY',
+  'méxico': 'MX',
+  'argentina': 'AR',
+  'colombia': 'CO',
+  'perú': 'PE',
+  'portugal': 'PT',
+  'österreich': 'AT',
+  'belgique/belgië': 'BE',
+  'luxembourg': 'LU',
+  'România': 'RO',
+  'българия': 'BG',
+  'magyarország': 'HU',
+  'ísland': 'IS',
+  'cymru': 'GB',
+  'alba': 'GB',
+}
+
 /**
  * Resolve a country name or ISO code to a 2-letter ISO code.
- * Accepts "United States", "US", "united states", etc.
+ * Handles English names, native names, and ISO codes.
  */
 function resolveCountryCode(nameOrCode: string): string | null {
   if (!nameOrCode) return null
@@ -116,8 +233,30 @@ function resolveCountryCode(nameOrCode: string): string | null {
   // Already a 2-letter code
   if (/^[A-Z]{2}$/.test(trimmed)) return trimmed
   if (/^[a-z]{2}$/.test(trimmed)) return trimmed.toUpperCase()
-  // Look up by name
-  return COUNTRY_NAME_TO_CODE[trimmed.toLowerCase()] ?? null
+  // Look up by English name
+  const byEnglish = COUNTRY_NAME_TO_CODE[trimmed.toLowerCase()]
+  if (byEnglish) return byEnglish
+  // Look up by native name
+  const byNative = NATIVE_NAME_TO_CODE[trimmed.toLowerCase()] || NATIVE_NAME_TO_CODE[trimmed]
+  if (byNative) return byNative
+  return null
+}
+
+/**
+ * Normalize any country name/code to { name: 'English Name', code: 'XX' }.
+ * Always returns English title-case name for display.
+ */
+function normalizeCountry(nameOrCode: string): { name: string; code: string | null } {
+  const code = resolveCountryCode(nameOrCode)
+  if (code && CODE_TO_ENGLISH_NAME[code]) {
+    return { name: CODE_TO_ENGLISH_NAME[code], code }
+  }
+  // Fallback: title-case the input, strip non-latin scripts
+  const cleaned = nameOrCode.trim()
+  return {
+    name: cleaned.replace(/\b\w/g, c => c.toUpperCase()),
+    code,
+  }
 }
 
 /** Natural sort order for age group strings like "13-17", "18-24", etc. */
@@ -254,6 +393,26 @@ function RiskLevelBadge({ level }: { level: string | null | undefined }) {
   )
 }
 
+// ── Confidence Label ─────────────────────────────────────────────────────
+
+function AIEstimateLabel({ tooltip }: { tooltip: string }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-normal cursor-help ml-2">
+            <Info className="h-3 w-3" />
+            AI-estimated
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs">
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
 // ── Main Component ───────────────────────────────────────────────────────
 
 function AudienceTab({ audience, security }: AudienceTabProps) {
@@ -350,11 +509,14 @@ function AudienceTab({ audience, security }: AudienceTabProps) {
   const countryChartData = useMemo(() => {
     if (!hasCountryData) return []
     return Object.entries(demographics.countries)
-      .map(([name, val]) => ({
-        country: name,
-        code: resolveCountryCode(name),
-        value: Number(val),
-      }))
+      .map(([name, val]) => {
+        const normalized = normalizeCountry(name)
+        return {
+          country: normalized.name,
+          code: normalized.code,
+          value: Number(val),
+        }
+      })
       .sort((a, b) => b.value - a.value)
       .slice(0, 8)
   }, [demographics?.countries, hasCountryData])
@@ -421,8 +583,9 @@ function AudienceTab({ audience, security }: AudienceTabProps) {
       {/* ─── Section 2: Demographics ─── */}
       {(hasGenderData || hasAgeData) && (
         <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center">
             Demographics
+            <AIEstimateLabel tooltip="Estimated from caption language, hashtags, post locations, and content themes. Not derived from actual follower data." />
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Gender Split - Donut */}
@@ -577,8 +740,9 @@ function AudienceTab({ audience, security }: AudienceTabProps) {
       {/* ─── Section 3: Geographic Distribution ─── */}
       {(hasCountryData || hasGeoInsights) && (
         <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center">
             Geographic Distribution
+            <AIEstimateLabel tooltip="Derived from post locations, caption language, and regional hashtags. Based on content signals, not actual audience location data." />
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Country bar chart */}
@@ -751,17 +915,17 @@ function AudienceTab({ audience, security }: AudienceTabProps) {
                       <div className="flex flex-wrap gap-1.5">
                         {geoInsights.primary_regions.map(
                           (region: string, idx: number) => {
-                            const code = resolveCountryCode(region)
+                            const normalized = normalizeCountry(region)
                             return (
                               <Badge key={idx} variant="secondary" className="text-xs flex items-center gap-1.5">
-                                {code && (
+                                {normalized.code && (
                                   <ReactCountryFlag
-                                    countryCode={code}
+                                    countryCode={normalized.code}
                                     svg
                                     style={{ width: '14px', height: '10px' }}
                                   />
                                 )}
-                                {region}
+                                {normalized.name}
                               </Badge>
                             )
                           }

@@ -22,7 +22,6 @@ import {
   Users,
   DollarSign,
   Database,
-  Lock,
   Briefcase,
   FileText,
 } from "lucide-react"
@@ -103,18 +102,9 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     },
   ]
 
-  const contentItems = [
-    {
-      title: "Profiles",
-      url: "/admin/content/profiles",
-      icon: Database,
-    },
-    {
-      title: "Unlocks",
-      url: "/admin/content/unlocks",
-      icon: Lock,
-    },
-  ]
+  // Content pages not yet built — removing dead links
+  // Backend endpoints exist at /admin/content/profiles and /admin/content/unlocks
+  // but frontend pages haven't been created yet
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -161,13 +151,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Content Section */}
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel>Content</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <NavMain items={contentItems} />
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Content section removed — pages not yet built */}
       </SidebarContent>
 
       <SidebarFooter>

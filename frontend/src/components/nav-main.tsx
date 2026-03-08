@@ -1,8 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { type Icon } from "@tabler/icons-react"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, type LucideIcon } from "lucide-react"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -26,7 +25,7 @@ export function NavMain({
   items: {
     title: string
     url: string
-    icon?: Icon
+    icon?: LucideIcon
     items?: {
       title: string
       url: string

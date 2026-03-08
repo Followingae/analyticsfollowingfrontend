@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { StandardMetricCard } from '@/components/ui/standard-metric-card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ProposalStatusBadge } from '@/components/proposals/ProposalStatusBadge'
+import { formatDate as sharedFormatDate } from '@/components/proposals/proposal-utils'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -16,6 +18,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Bar, BarChart, Line, LineChart, Area, AreaChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Pie, PieChart, Cell } from 'recharts'
+import { motion } from "motion/react"
+import { proposalMotion } from "@/components/proposals/proposal-utils"
 import {
   FileText,
   Plus,
@@ -89,15 +93,15 @@ export function ProposalDashboard() {
   const chartConfig = {
     proposals: {
       label: 'Total Proposals',
-      color: 'hsl(var(--primary))'
+      color: 'hsl(var(--chart-1))'
     },
     accepted: {
       label: 'Accepted',
-      color: 'hsl(var(--primary))'
+      color: 'hsl(var(--chart-2))'
     },
     revenue: {
       label: 'Revenue',
-      color: 'hsl(var(--primary))'
+      color: 'hsl(var(--chart-1))'
     }
   }
 
@@ -111,37 +115,21 @@ export function ProposalDashboard() {
     })
   }, [searchQuery, statusFilter, proposalData])
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'accepted': return 'default'
-      case 'pending': return 'secondary'
-      case 'under_review': return 'outline'
-      case 'negotiating': return 'secondary'
-      case 'rejected': return 'destructive'
-      default: return 'outline'
-    }
-  }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'text-red-600'
-      case 'medium': return 'text-amber-600'
-      case 'low': return 'text-blue-600'
-      default: return 'text-gray-600'
-    }
-  }
-
   const formatCurrency = (amountCents: number) => {
     return formatAmount(amountCents)
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    return sharedFormatDate(dateString)
+  }
+
+  const getPriorityBadgeVariant = (priority: string): "destructive" | "default" | "secondary" => {
+    switch (priority) {
+      case 'high': return 'destructive'
+      case 'medium': return 'default'
+      case 'low': return 'secondary'
+      default: return 'secondary'
+    }
   }
 
   return (
@@ -166,12 +154,25 @@ export function ProposalDashboard() {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StandardMetricCard icon={FileText} label="Total Proposals" value={proposalData?.overview?.total_proposals ?? 0} subtitle={`+${proposalData?.overview?.monthly_growth ?? 0}% this month`} />
-        <StandardMetricCard icon={Target} label="Acceptance Rate" value={`${proposalData?.overview?.acceptance_rate ?? 0}%`} subtitle={`${proposalData?.overview?.accepted_proposals ?? 0} accepted`} />
-        <StandardMetricCard icon={DollarSign} label="Revenue Generated" value={proposalData?.overview?.total_revenue ? `$${proposalData.overview.total_revenue.toLocaleString()}` : '$0'} subtitle={`From ${proposalData?.overview?.accepted_proposals ?? 0} accepted proposals`} />
-        <StandardMetricCard icon={Clock} label="Response Time" value={`${proposalData?.overview?.average_response_time ?? 0} days`} subtitle="Average time to respond" />
-      </div>
+      <motion.div
+        variants={proposalMotion.staggerContainer}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        <motion.div variants={proposalMotion.staggerItem}>
+          <StandardMetricCard icon={FileText} label="Total Proposals" value={proposalData?.overview?.total_proposals ?? 0} subtitle={`+${proposalData?.overview?.monthly_growth ?? 0}% this month`} />
+        </motion.div>
+        <motion.div variants={proposalMotion.staggerItem}>
+          <StandardMetricCard icon={Target} label="Acceptance Rate" value={`${proposalData?.overview?.acceptance_rate ?? 0}%`} subtitle={`${proposalData?.overview?.accepted_proposals ?? 0} accepted`} />
+        </motion.div>
+        <motion.div variants={proposalMotion.staggerItem}>
+          <StandardMetricCard icon={DollarSign} label="Revenue Generated" value={proposalData?.overview?.total_revenue ? `$${proposalData.overview.total_revenue.toLocaleString()}` : '$0'} subtitle={`From ${proposalData?.overview?.accepted_proposals ?? 0} accepted proposals`} />
+        </motion.div>
+        <motion.div variants={proposalMotion.staggerItem}>
+          <StandardMetricCard icon={Clock} label="Response Time" value={`${proposalData?.overview?.average_response_time ?? 0} days`} subtitle="Average time to respond" />
+        </motion.div>
+      </motion.div>
 
       {/* Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -189,8 +190,8 @@ export function ProposalDashboard() {
                 <AreaChart data={proposalData?.trends || []}>
                   <defs>
                     <linearGradient id="proposalGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.05} />
+                      <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.05} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -207,7 +208,7 @@ export function ProposalDashboard() {
                   <Area
                     type="monotone"
                     dataKey="proposals"
-                    stroke="hsl(var(--primary))"
+                    stroke="hsl(var(--chart-1))"
                     fillOpacity={1}
                     fill="url(#proposalGradient)"
                     strokeWidth={2}
@@ -215,9 +216,9 @@ export function ProposalDashboard() {
                   <Area
                     type="monotone"
                     dataKey="accepted"
-                    stroke="hsl(var(--primary))"
-                    fillOpacity={0.5}
-                    fill="hsl(var(--primary))"
+                    stroke="hsl(var(--chart-2))"
+                    fillOpacity={0.3}
+                    fill="hsl(var(--chart-2))"
                     strokeWidth={1}
                   />
                 </AreaChart>
@@ -366,14 +367,12 @@ export function ProposalDashboard() {
                           {formatCurrency(proposal.value)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusBadgeVariant(proposal.status)} className="capitalize">
-                            {proposal.status.replace('_', ' ')}
-                          </Badge>
+                          <ProposalStatusBadge status={proposal.status} />
                         </TableCell>
                         <TableCell>
-                          <div className={`text-xs font-medium ${getPriorityColor(proposal.priority)}`}>
+                          <Badge variant={getPriorityBadgeVariant(proposal.priority)} className="text-xs">
                             {proposal.priority.toUpperCase()}
-                          </div>
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="text-xs text-muted-foreground flex items-center justify-end gap-1">
@@ -505,7 +504,7 @@ export function ProposalDashboard() {
                       />
                       <Bar
                         dataKey="revenue"
-                        fill="hsl(var(--primary))"
+                        fill="hsl(var(--chart-1))"
                         radius={[4, 4, 0, 0]}
                       />
                     </BarChart>
@@ -533,17 +532,15 @@ export function ProposalDashboard() {
                   <div className="flex-1">
                     <DialogTitle className="flex items-center gap-2">
                       {selectedProposal.brand}
-                      <Badge variant={getStatusBadgeVariant(selectedProposal.status)} className="capitalize">
-                        {selectedProposal.status.replace('_', ' ')}
-                      </Badge>
+                      <ProposalStatusBadge status={selectedProposal.status} />
                     </DialogTitle>
                     <DialogDescription>{selectedProposal.service}</DialogDescription>
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold">{formatCurrency(selectedProposal.value)}</div>
-                    <div className={`text-xs ${getPriorityColor(selectedProposal.priority)}`}>
+                    <Badge variant={getPriorityBadgeVariant(selectedProposal.priority)} className="text-xs">
                       {selectedProposal.priority.toUpperCase()} PRIORITY
-                    </div>
+                    </Badge>
                   </div>
                 </div>
               </DialogHeader>

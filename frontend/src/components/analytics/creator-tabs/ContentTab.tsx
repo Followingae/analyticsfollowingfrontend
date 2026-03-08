@@ -31,9 +31,10 @@ import {
   AtSign,
   BookOpen,
   FileText,
-  MessageCircle,
-  Building2,
-  Tag,
+  Eye,
+  Layers,
+  CheckCircle,
+  Image as ImageIcon,
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -110,191 +111,217 @@ function MetricCard({
 }
 
 // ---------------------------------------------------------------------------
-// Section: Visual Content Quality
+// Label maps for CLIP scene/content keys
 // ---------------------------------------------------------------------------
 
-function ContentQualityScores({ content }: { content: any }) {
+const SCENE_LABELS: Record<string, string> = {
+  outdoor_nature: 'Outdoor / Nature',
+  beach: 'Beach',
+  city_urban: 'City / Urban',
+  gym_fitness: 'Gym / Fitness',
+  restaurant_food: 'Restaurant / Food',
+  home_indoor: 'Home / Indoor',
+  studio: 'Studio',
+  office: 'Office',
+  travel: 'Travel',
+  event_party: 'Event / Party',
+  shopping: 'Shopping',
+  pool_resort: 'Pool / Resort',
+  sports: 'Sports',
+}
+
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+  selfie: 'Selfie',
+  group_photo: 'Group Photo',
+  product: 'Product / Flat Lay',
+  food: 'Food & Drink',
+  fashion: 'Fashion / OOTD',
+  fitness: 'Fitness',
+  landscape: 'Landscape',
+  pet: 'Pet / Animal',
+  lifestyle: 'Lifestyle',
+  art: 'Art / Creative',
+  car: 'Automotive',
+  tech: 'Tech / Gadgets',
+}
+
+// ---------------------------------------------------------------------------
+// Section: Visual Analysis (CLIP-based)
+// ---------------------------------------------------------------------------
+
+function VisualAnalysis({ content }: { content: any }) {
   const visual = content?.visual_analysis
   if (!visual) return null
 
-  const aestheticScore = Math.round((Number(visual.aesthetic_score) || 0) * 100)
-  const professionalScore = Math.round(
-    (Number(visual.professional_quality_score) || 0) * 100
-  )
+  const isClip = visual.analysis_method === 'clip'
+  const brands: Array<{ brand: string; confidence: number; post_count: number }> =
+    visual.brands_detected ?? []
+  const scenes: Record<string, number> = visual.scene_distribution ?? {}
+  const contentTypes: Record<string, number> = visual.content_types ?? {}
+  const consistency = visual.visual_consistency
+  const quality = visual.production_quality as string | null
+  const professionalScore = Number(visual.professional_score) || 0
 
-  if (!aestheticScore && !professionalScore) return null
+  const hasClipData =
+    brands.length > 0 ||
+    Object.keys(scenes).length > 0 ||
+    Object.keys(contentTypes).length > 0
+
+  // Nothing to show if no CLIP data and no old scores
+  if (!hasClipData && !visual.aesthetic_score) return null
+
+  // If old data without CLIP, don't show fake scores
+  if (!isClip && !hasClipData) return null
+
+  const qualityColor =
+    quality === 'professional'
+      ? 'border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400'
+      : quality === 'mixed'
+        ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+        : 'border-muted-foreground/30'
+
+  const sortedScenes = Object.entries(scenes).sort(([, a], [, b]) => b - a)
+  const sortedTypes = Object.entries(contentTypes).sort(([, a], [, b]) => b - a)
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {aestheticScore > 0 && (
-        <MetricCard
-          label="Aesthetic Score"
-          value={String(aestheticScore)}
-          suffix="/100"
-          icon={Camera}
-          colorClass="text-primary"
-        />
+    <div className="space-y-4">
+      {/* Top metric cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {quality && (
+          <Card className="relative overflow-hidden">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Production Quality
+                  </p>
+                  <Badge variant="outline" className={qualityColor}>
+                    {capitalize(quality)}
+                  </Badge>
+                  {professionalScore > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {safeToFixed(professionalScore, 0)}% professional
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-lg p-2.5 bg-muted">
+                  <Camera className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {consistency != null && (
+          <MetricCard
+            label="Visual Consistency"
+            value={safeToFixed(Number(consistency) * 100, 0)}
+            suffix="%"
+            subtitle="Similarity across posts"
+            icon={Layers}
+            colorClass="text-primary"
+          />
+        )}
+
+        {brands.length > 0 && (
+          <MetricCard
+            label="Brands Detected"
+            value={String(brands.length)}
+            subtitle="From post images"
+            icon={Eye}
+            colorClass="text-primary"
+          />
+        )}
+      </div>
+
+      {/* Brands detected from images */}
+      {brands.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Eye className="h-4 w-4" />
+              Brands Detected in Images
+            </CardTitle>
+            <CardDescription>
+              Brand logos and products identified by visual AI across post images
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {brands.map((b) => (
+                <Badge
+                  key={b.brand}
+                  variant="default"
+                  className="text-sm px-3 py-1.5"
+                >
+                  {b.brand}
+                  {b.post_count > 1 && (
+                    <span className="ml-1.5 text-xs opacity-70">
+                      ({b.post_count})
+                    </span>
+                  )}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
-      {professionalScore > 0 && (
-        <MetricCard
-          label="Professional Quality"
-          value={String(professionalScore)}
-          suffix="/100"
-          icon={Sparkles}
-          colorClass="text-primary"
-        />
+
+      {/* Scene distribution + Content types side by side */}
+      {(sortedScenes.length > 0 || sortedTypes.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {sortedScenes.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ImageIcon className="h-4 w-4" />
+                  Scene Types
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2.5">
+                {sortedScenes.map(([key, pct]) => (
+                  <div key={key} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>{SCENE_LABELS[key] ?? capitalize(key.replace(/_/g, ' '))}</span>
+                      <span className="font-medium">{safeToFixed(pct, 0)}%</span>
+                    </div>
+                    <Progress value={Number(pct)} className="h-1.5" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {sortedTypes.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Layers className="h-4 w-4" />
+                  Content Types
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2.5">
+                {sortedTypes.map(([key, pct]) => (
+                  <div key={key} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>{CONTENT_TYPE_LABELS[key] ?? capitalize(key.replace(/_/g, ' '))}</span>
+                      <span className="font-medium">{safeToFixed(pct, 0)}%</span>
+                    </div>
+                    <Progress value={Number(pct)} className="h-1.5" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Section: Brands & Organizations
-// ---------------------------------------------------------------------------
-
-function BrandDetection({ posts }: { posts: any[] }) {
-  const { brands, organizations } = useMemo(() => {
-    const brandCounts: Record<string, number> = {}
-    const orgCounts: Record<string, number> = {}
-
-    if (!Array.isArray(posts)) return { brands: [], organizations: [] }
-
-    for (const post of posts) {
-      const ai = post?.ai_analysis
-
-      const logoDetected = ai?.visual_analysis?.brand_logo_detected
-      if (Array.isArray(logoDetected)) {
-        for (const item of logoDetected) {
-          const name = typeof item === 'string' ? item : item?.brand
-          if (name) {
-            const normalized = name.trim()
-            brandCounts[normalized] = (brandCounts[normalized] || 0) + 1
-          }
-        }
-      }
-
-      const brandMentions = ai?.entity_extraction?.brand_mentions
-      if (Array.isArray(brandMentions)) {
-        for (const item of brandMentions) {
-          const name = typeof item === 'string' ? item : item?.mention
-          if (name) {
-            const normalized = name.trim()
-            brandCounts[normalized] = (brandCounts[normalized] || 0) + 1
-          }
-        }
-      }
-
-      const brandEntities = ai?.entity_extraction?.entities?.BRAND
-      if (Array.isArray(brandEntities)) {
-        for (const item of brandEntities) {
-          const name = typeof item === 'string' ? item : item?.text
-          if (name) {
-            const normalized = name.trim()
-            brandCounts[normalized] = (brandCounts[normalized] || 0) + 1
-          }
-        }
-      }
-
-      const orgEntities = ai?.entity_extraction?.entities?.ORG
-      if (Array.isArray(orgEntities)) {
-        for (const item of orgEntities) {
-          const name = typeof item === 'string' ? item : item?.text
-          if (name) {
-            const normalized = name.trim()
-            orgCounts[normalized] = (orgCounts[normalized] || 0) + 1
-          }
-        }
-      }
-
-      const productEntities = ai?.entity_extraction?.entities?.PRODUCT
-      if (Array.isArray(productEntities)) {
-        for (const item of productEntities) {
-          const name = typeof item === 'string' ? item : item?.text
-          if (name) {
-            const normalized = name.trim()
-            brandCounts[normalized] = (brandCounts[normalized] || 0) + 1
-          }
-        }
-      }
-    }
-
-    const brands = Object.entries(brandCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 12)
-
-    const organizations = Object.entries(orgCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 8)
-
-    return { brands, organizations }
-  }, [posts])
-
-  if (brands.length === 0 && organizations.length === 0) return null
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Building2 className="h-4 w-4" />
-          Brands & Organizations
-        </CardTitle>
-        <CardDescription>
-          Brands and organizations detected across this creator's content
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {brands.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium mb-3 flex items-center gap-1.5">
-              <Tag className="h-4 w-4 text-muted-foreground" />
-              Brand Mentions
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {brands.map(([name, count]) => (
-                <Badge
-                  key={name}
-                  variant="default"
-                  className="text-sm px-3 py-1.5"
-                >
-                  {name}
-                  {count > 1 && (
-                    <span className="ml-1.5 text-xs opacity-70">
-                      ({count})
-                    </span>
-                  )}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-        {organizations.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium mb-3 flex items-center gap-1.5">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              Organizations
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {organizations.map(([name, count]) => (
-                <Badge
-                  key={name}
-                  variant="secondary"
-                  className="text-sm px-3 py-1.5"
-                >
-                  {name}
-                  {count > 1 && (
-                    <span className="ml-1.5 text-xs text-muted-foreground">
-                      ({count})
-                    </span>
-                  )}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
+// BrandDetection removed — NLP entity extraction (spaCy NER) produced unreliable
+// results (hashtags, random text classified as brands/orgs). Real brand detection
+// is handled by the CLIP visual analyzer in the VisualAnalysis section above.
 
 // ---------------------------------------------------------------------------
 // Section: Caption Quality (NLP)
@@ -411,21 +438,24 @@ function EntityExtraction({ posts }: { posts: any[] }) {
     }
 
     for (const post of posts) {
-      const entities = post?.ai_analysis?.entity_extraction
-
-      const hashtags = Array.isArray(entities?.hashtags) ? entities.hashtags : []
-      for (const tag of hashtags) {
-        const normalised = String(tag).replace(/^#/, '').toLowerCase()
-        if (normalised) {
-          hashtagCounts[normalised] = (hashtagCounts[normalised] || 0) + 1
+      // Extract hashtags and mentions directly from caption text
+      // Backend entity_extraction stores counts (integers), not arrays
+      const caption = post?.caption || ''
+      if (typeof caption === 'string') {
+        const hashtags = caption.match(/#\w+/g) || []
+        for (const tag of hashtags) {
+          const normalised = tag.replace(/^#/, '').toLowerCase()
+          if (normalised && normalised.length > 1) {
+            hashtagCounts[normalised] = (hashtagCounts[normalised] || 0) + 1
+          }
         }
-      }
 
-      const mentions = Array.isArray(entities?.mentions) ? entities.mentions : []
-      for (const mention of mentions) {
-        const normalised = String(mention).replace(/^@/, '').toLowerCase()
-        if (normalised) {
-          mentionCounts[normalised] = (mentionCounts[normalised] || 0) + 1
+        const mentions = caption.match(/@[\w.]+/g) || []
+        for (const mention of mentions) {
+          const normalised = mention.replace(/^@/, '').toLowerCase()
+          if (normalised && normalised.length > 1) {
+            mentionCounts[normalised] = (mentionCounts[normalised] || 0) + 1
+          }
         }
       }
     }
@@ -538,196 +568,6 @@ function EntityExtraction({ posts }: { posts: any[] }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Section: Sentiment Breakdown
-// ---------------------------------------------------------------------------
-
-function SentimentBreakdown({ posts }: { posts: any[] }) {
-  const { counts, avgScore, total } = useMemo(() => {
-    const counts: Record<string, number> = {
-      positive: 0,
-      neutral: 0,
-      negative: 0,
-    }
-    let scoreSum = 0
-    let scoreCount = 0
-
-    if (!Array.isArray(posts)) {
-      return { counts, avgScore: 0, total: 0 }
-    }
-
-    for (const post of posts) {
-      const sentiment = post?.ai_analysis?.sentiment
-      const score = Number(post?.ai_analysis?.sentiment_score)
-
-      if (sentiment) {
-        const normalised = sentiment.toLowerCase()
-        if (normalised in counts) {
-          counts[normalised] += 1
-        } else {
-          counts['neutral'] += 1
-        }
-      }
-
-      if (!isNaN(score)) {
-        scoreSum += score
-        scoreCount += 1
-      }
-    }
-
-    const total = counts.positive + counts.neutral + counts.negative
-    const avgScore = scoreCount > 0 ? scoreSum / scoreCount : 0
-
-    return { counts, avgScore, total }
-  }, [posts])
-
-  if (total === 0) return null
-
-  const sentimentConfig = {
-    positive: {
-      label: 'Positive',
-      color: 'var(--chart-1)',
-    },
-    neutral: {
-      label: 'Neutral',
-      color: 'var(--chart-4)',
-    },
-    negative: {
-      label: 'Negative',
-      color: 'var(--chart-5)',
-    },
-  } satisfies ChartConfig
-
-  const stackedData = [
-    {
-      name: 'Sentiment',
-      positive: counts.positive,
-      neutral: counts.neutral,
-      negative: counts.negative,
-    },
-  ]
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <MessageCircle className="h-4 w-4" />
-          Sentiment Breakdown
-        </CardTitle>
-        <CardDescription>
-          Overall tone and mood across this creator's content
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {/* Overall tone + count boxes */}
-        <div className="flex items-center gap-4">
-          <div className="text-center">
-            <p className="text-3xl font-bold text-primary">
-              {avgScore >= 0.6
-                ? 'Very Positive'
-                : avgScore >= 0.3
-                  ? 'Positive'
-                  : avgScore >= -0.1
-                    ? 'Neutral'
-                    : avgScore >= -0.5
-                      ? 'Negative'
-                      : 'Very Negative'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Overall Tone
-            </p>
-          </div>
-          <div className="flex-1 grid grid-cols-3 gap-2 text-center text-sm">
-            <div className="rounded-md border p-2">
-              <p className="font-semibold">{counts.positive}</p>
-              <p className="text-xs text-muted-foreground">Positive</p>
-            </div>
-            <div className="rounded-md border p-2">
-              <p className="font-semibold">{counts.neutral}</p>
-              <p className="text-xs text-muted-foreground">Neutral</p>
-            </div>
-            <div className="rounded-md border p-2">
-              <p className="font-semibold">{counts.negative}</p>
-              <p className="text-xs text-muted-foreground">Negative</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Stacked horizontal bar */}
-        <ChartContainer
-          config={sentimentConfig}
-          className="h-[60px] w-full"
-        >
-          <BarChart
-            accessibilityLayer
-            data={stackedData}
-            layout="vertical"
-            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-            stackOffset="expand"
-          >
-            <YAxis dataKey="name" type="category" hide />
-            <XAxis type="number" hide />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent indicator="dot" />}
-            />
-            <Bar
-              dataKey="positive"
-              stackId="sentiment"
-              fill="var(--color-positive)"
-              radius={[4, 0, 0, 4]}
-              barSize={28}
-            />
-            <Bar
-              dataKey="neutral"
-              stackId="sentiment"
-              fill="var(--color-neutral)"
-              radius={0}
-              barSize={28}
-            />
-            <Bar
-              dataKey="negative"
-              stackId="sentiment"
-              fill="var(--color-negative)"
-              radius={[0, 4, 4, 0]}
-              barSize={28}
-            />
-          </BarChart>
-        </ChartContainer>
-
-        {/* Percentage breakdown labels */}
-        {total > 0 && (
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <span
-                className="inline-block h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: 'var(--chart-1)' }}
-              />
-              Positive{' '}
-              {safeToFixed((counts.positive / total) * 100, 1)}%
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="inline-block h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: 'var(--chart-4)' }}
-              />
-              Neutral{' '}
-              {safeToFixed((counts.neutral / total) * 100, 1)}%
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="inline-block h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: 'var(--chart-5)' }}
-              />
-              Negative{' '}
-              {safeToFixed((counts.negative / total) * 100, 1)}%
-            </span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
 
 // ---------------------------------------------------------------------------
 // Main Component
@@ -738,37 +578,35 @@ function ContentTab({ content, aiAnalysis, engagement, posts }: ContentTabProps)
 
   return (
     <div className="space-y-6">
-      {/* ─── Section 1: Visual Quality ─── */}
+      {/* ─── Section 1: Visual Analysis (CLIP-based) ─── */}
       {content?.visual_analysis && (
         <div>
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Visual Quality
+            Visual Analysis
           </h3>
-          <ContentQualityScores content={content} />
+          <VisualAnalysis content={content} />
         </div>
       )}
 
-      {/* ─── Section 2: Brands & Caption Quality ─── */}
-      <div>
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Content Analysis
-        </h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <BrandDetection posts={safePosts} />
+      {/* ─── Section 2: Caption & Text Analysis ─── */}
+      {content?.nlp_insights && (
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Content Analysis
+          </h3>
           <NlpTextAnalysis content={content} />
         </div>
-      </div>
+      )}
 
-      {/* ─── Section 3: Hashtags & Sentiment ─── */}
-      <div>
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Engagement Signals
-        </h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* ─── Section 3: Hashtags & Mentions ─── */}
+      {safePosts.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Engagement Signals
+          </h3>
           <EntityExtraction posts={safePosts} />
-          <SentimentBreakdown posts={safePosts} />
         </div>
-      </div>
+      )}
 
       {/* Fallback when no data at all */}
       {!content?.visual_analysis &&

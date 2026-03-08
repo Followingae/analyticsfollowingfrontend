@@ -192,6 +192,9 @@ function PostImage({
 function ExpandedAIDetails({ ai }: { ai: any }) {
   if (!ai) return null
 
+  const sentimentScore = Number(ai.sentiment_score)
+  const hasValidSentiment = !isNaN(sentimentScore) && ai.sentiment
+
   return (
     <div className="space-y-3 pt-2 border-t">
       {/* Classification Accuracy */}
@@ -205,37 +208,26 @@ function ExpandedAIDetails({ ai }: { ai: any }) {
         </div>
       )}
 
-      {/* Visual analysis summary */}
-      {ai.visual_analysis && typeof ai.visual_analysis === 'object' && Object.keys(ai.visual_analysis).length > 0 && (
+      {/* Sentiment Score */}
+      {hasValidSentiment && (
         <div className="space-y-1">
-          <span className="text-xs text-muted-foreground font-medium">Image Details</span>
-          <div className="text-xs bg-muted/50 rounded-md p-2 space-y-1">
-            {Object.entries(ai.visual_analysis).map(([key, value]) => (
-              <div key={key} className="flex justify-between gap-2">
-                <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</span>
-                <span className="font-medium truncate max-w-[60%] text-right">
-                  {typeof value === 'number' ? safeToFixed(value, 2) : String(value ?? '')}
-                </span>
-              </div>
-            ))}
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Sentiment Score</span>
+            <span className="font-medium">
+              {sentimentScore >= 0.3 ? 'Positive' : sentimentScore >= -0.1 ? 'Neutral' : 'Negative'}
+              {' '}({safeToFixed(sentimentScore, 2)})
+            </span>
           </div>
         </div>
       )}
 
-      {/* Entity extraction */}
-      {ai.entity_extraction && typeof ai.entity_extraction === 'object' && Object.keys(ai.entity_extraction).length > 0 && (
-        <div className="space-y-1">
-          <span className="text-xs text-muted-foreground font-medium">Tags & Mentions</span>
-          <div className="flex flex-wrap gap-1">
-            {Object.entries(ai.entity_extraction).map(([key, values]) => {
-              const items = Array.isArray(values) ? values : [values]
-              return items.map((item, idx) => (
-                <Badge key={`${key}-${idx}`} variant="outline" className="text-[10px]">
-                  {String(item)}
-                </Badge>
-              ))
-            })}
-          </div>
+      {/* Language */}
+      {ai.language_code && ai.language_confidence != null && (
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">Language</span>
+          <span className="font-medium">
+            {ai.language_code.toUpperCase()} ({safeToFixed(Number(ai.language_confidence) * 100, 0)}% confidence)
+          </span>
         </div>
       )}
     </div>

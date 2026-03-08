@@ -36,20 +36,12 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { adminProposalApi, AdminProposal, AdminProposalStats } from "@/services/adminProposalMasterApi"
+import { motion } from "motion/react"
+import { proposalMotion } from "@/components/proposals/proposal-utils"
 
 export const dynamic = "force-dynamic"
 
-function getStatusVariant(status: string) {
-  switch (status) {
-    case "draft": return "secondary"
-    case "sent": return "default"
-    case "in_review": return "outline"
-    case "approved": return "default"
-    case "rejected": return "destructive"
-    case "more_requested": return "outline"
-    default: return "secondary"
-  }
-}
+import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
 
 export default function SuperadminProposalsPage() {
   const [proposals, setProposals] = useState<AdminProposal[]>([])
@@ -109,12 +101,25 @@ export default function SuperadminProposalsPage() {
 
           {/* KPI Cards */}
           {stats && (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <StandardMetricCard icon={FileText} label="Total" value={stats.total_proposals} subtitle="proposals created" />
-              <StandardMetricCard icon={Clock} label="Active" value={stats.active_proposals} subtitle="awaiting response" />
-              <StandardMetricCard icon={CheckCircle} label="Approved" value={stats.approved_proposals} subtitle={`${stats.approval_rate}% rate`} />
-              <StandardMetricCard icon={DollarSign} label="Total Margin" value={`$${stats.total_margin.toLocaleString()}`} subtitle={`avg ${stats.avg_margin_percentage.toFixed(1)}%`} />
-            </div>
+            <motion.div
+              variants={proposalMotion.staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+            >
+              <motion.div variants={proposalMotion.staggerItem}>
+                <StandardMetricCard icon={FileText} label="Total" value={stats.total_proposals} subtitle="proposals created" />
+              </motion.div>
+              <motion.div variants={proposalMotion.staggerItem}>
+                <StandardMetricCard icon={Clock} label="Active" value={stats.active_proposals} subtitle="awaiting response" />
+              </motion.div>
+              <motion.div variants={proposalMotion.staggerItem}>
+                <StandardMetricCard icon={CheckCircle} label="Approved" value={stats.approved_proposals} subtitle={`${stats.approval_rate}% rate`} />
+              </motion.div>
+              <motion.div variants={proposalMotion.staggerItem}>
+                <StandardMetricCard icon={DollarSign} label="Total Margin" value={`$${stats.total_margin.toLocaleString()}`} subtitle={`avg ${stats.avg_margin_percentage.toFixed(1)}%`} />
+              </motion.div>
+            </motion.div>
           )}
 
           {/* Filter Bar */}
@@ -189,9 +194,7 @@ export default function SuperadminProposalsPage() {
                           {p.user_email || "—"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusVariant(p.status) as any}>
-                            {p.status.replace(/_/g, " ")}
-                          </Badge>
+                          <ProposalStatusBadge status={p.status} />
                         </TableCell>
                         <TableCell className="text-right">
                           {p.selected_count}/{p.total_influencers}

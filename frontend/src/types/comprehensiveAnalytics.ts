@@ -94,6 +94,14 @@ export interface ComprehensiveAnalysisResponse {
       visual_themes: string[]
       aesthetic_consistency_score: number
       color_palette_analysis: string[]
+      // CLIP-based visual analysis
+      brands_detected?: Array<{ brand: string; confidence: number; post_count: number }>
+      scene_distribution?: Record<string, number>
+      content_types?: Record<string, number>
+      visual_consistency?: number | null
+      production_quality?: string | null
+      professional_score?: number | null
+      analysis_method?: string | null
     }
     
     // Trend Detection

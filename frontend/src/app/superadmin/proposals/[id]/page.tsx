@@ -32,6 +32,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
+import { StandardMetricCard } from "@/components/ui/standard-metric-card"
+import { Progress } from "@/components/ui/progress"
+import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
+import { formatCurrency, formatCount, formatDate, proposalMotion, chartColorVar } from "@/components/proposals/proposal-utils"
+import { motion, useInView } from "motion/react"
 import {
   ArrowLeft,
   Send,
@@ -46,6 +51,7 @@ import {
   DollarSign,
   Users,
   TrendingUp,
+  Loader2,
 } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -54,41 +60,6 @@ export const dynamic = "force-dynamic"
 // HELPERS
 // =============================================================================
 
-function formatCurrency(amount?: number): string {
-  if (!amount) return "$0"
-  return (
-    "$" +
-    amount.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    })
-  )
-}
-
-function formatCount(n?: number): string {
-  if (!n) return "0"
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M"
-  if (n >= 1000) return (n / 1000).toFixed(1) + "K"
-  return n.toString()
-}
-
-function getStatusBadge(status: string) {
-  const map: Record<string, { variant: "default" | "secondary" | "outline" | "destructive"; className?: string; label: string }> = {
-    draft: { variant: "secondary", label: "Draft" },
-    sent: { variant: "default", label: "Sent" },
-    in_review: { variant: "outline", label: "In Review" },
-    approved: { variant: "default", className: "bg-green-600 hover:bg-green-700 text-white", label: "Approved" },
-    rejected: { variant: "destructive", label: "Rejected" },
-    more_requested: { variant: "outline", label: "More Requested" },
-  }
-  const cfg = map[status] || { variant: "secondary" as const, label: status }
-  return (
-    <Badge variant={cfg.variant} className={cfg.className}>
-      {cfg.label}
-    </Badge>
-  )
-}
-
 const TIMELINE_ICONS: Record<string, React.ElementType> = {
   created: FileText,
   sent: Send,
@@ -96,17 +67,6 @@ const TIMELINE_ICONS: Record<string, React.ElementType> = {
   more_added: Plus,
   approved: CheckCircle,
   rejected: XCircle,
-}
-
-function formatTimestamp(ts: string): string {
-  const d = new Date(ts)
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  })
 }
 
 function getSellPrice(inf: AdminProposalInfluencer): number {
@@ -177,7 +137,7 @@ export default function ProposalDetailPage() {
     return (
       <SuperadminLayout>
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       </SuperadminLayout>
     )
@@ -246,7 +206,7 @@ export default function ProposalDetailPage() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
-                {getStatusBadge(status)}
+                <ProposalStatusBadge status={status} />
                 {canEdit && (
                   <Button
                     variant="outline"
@@ -293,12 +253,17 @@ export default function ProposalDetailPage() {
             <CardContent>
               <div className="relative pl-6">
                 <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-border" />
-                <div className="space-y-6">
+                <motion.div
+                  variants={proposalMotion.staggerContainer}
+                  initial="hidden"
+                  animate="visible"
+                  className="space-y-6"
+                >
                   {timeline.map((event, idx) => {
                     const Icon = TIMELINE_ICONS[event.event] || Clock
                     const isActive = event.event === lastTimelineEvent
                     return (
-                      <div key={idx} className="relative flex gap-4 items-start">
+                      <motion.div key={idx} variants={proposalMotion.staggerItem} className="relative flex gap-4 items-start">
                         <div
                           className={`absolute -left-6 flex h-6 w-6 items-center justify-center rounded-full border-2 bg-background ${
                             isActive
@@ -317,7 +282,7 @@ export default function ProposalDetailPage() {
                             {event.event.replace(/_/g, " ")}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {formatTimestamp(event.timestamp)}
+                            {formatDate(event.timestamp)}
                           </p>
                           {event.notes && (
                             <p className="text-sm text-muted-foreground mt-1">
@@ -325,10 +290,10 @@ export default function ProposalDetailPage() {
                             </p>
                           )}
                         </div>
-                      </div>
+                      </motion.div>
                     )
                   })}
-                </div>
+                </motion.div>
               </div>
             </CardContent>
           </Card>
@@ -342,50 +307,34 @@ export default function ProposalDetailPage() {
             <CardTitle className="text-lg">Financial Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="text-xs font-medium">Total Sell</span>
-                  </div>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(financials.total_sell)}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="text-xs font-medium">Total Cost</span>
-                  </div>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(financials.total_cost)}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <TrendingUp className="h-4 w-4" />
-                    <span className="text-xs font-medium">Margin %</span>
-                  </div>
-                  <p className="text-2xl font-bold">
-                    {financials.margin_percentage?.toFixed(1) ?? "0.0"}%
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <Users className="h-4 w-4" />
-                    <span className="text-xs font-medium">Influencers</span>
-                  </div>
-                  <p className="text-2xl font-bold">{influencers.length}</p>
-                </CardContent>
-              </Card>
-            </div>
+            <motion.div
+              variants={proposalMotion.staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-2 md:grid-cols-4 gap-4"
+            >
+              <motion.div variants={proposalMotion.staggerItem}>
+                <StandardMetricCard icon={DollarSign} label="Total Sell" value={formatCurrency(financials.total_sell)} />
+              </motion.div>
+              <motion.div variants={proposalMotion.staggerItem}>
+                <StandardMetricCard icon={DollarSign} label="Total Cost" value={formatCurrency(financials.total_cost)} />
+              </motion.div>
+              <motion.div variants={proposalMotion.staggerItem}>
+                <StandardMetricCard icon={TrendingUp} label="Margin %" value={`${financials.margin_percentage?.toFixed(1) ?? "0.0"}%`} />
+              </motion.div>
+              <motion.div variants={proposalMotion.staggerItem}>
+                <StandardMetricCard icon={Users} label="Influencers" value={influencers.length} />
+              </motion.div>
+            </motion.div>
+            <Card className="mt-4">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-muted-foreground">Profit Margin</span>
+                  <span className="text-sm font-medium">{financials.margin_percentage?.toFixed(1) ?? "0.0"}%</span>
+                </div>
+                <Progress value={financials.margin_percentage ?? 0} />
+              </CardContent>
+            </Card>
           </CardContent>
         </Card>
 
@@ -485,7 +434,7 @@ export default function ProposalDetailPage() {
                           </TableCell>
                           <TableCell>
                             {inf.selected_by_user ? (
-                              <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                              <Badge variant="default">
                                 Selected
                               </Badge>
                             ) : (

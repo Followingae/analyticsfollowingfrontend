@@ -156,6 +156,10 @@ export function InfluencerDatabasePage() {
   }, [fetchData])
 
   const onViewDetails = useCallback((influencer: MasterInfluencer) => {
+    router.push(`/creator-analytics/${influencer.username}`)
+  }, [router])
+
+  const onEditDetails = useCallback((influencer: MasterInfluencer) => {
     setDetailInfluencer(influencer)
     setDetailOpen(true)
   }, [])
@@ -285,6 +289,7 @@ export function InfluencerDatabasePage() {
           sortBy={filters.sort_by}
           sortOrder={filters.sort_order}
           onViewDetails={onViewDetails}
+          onEditDetails={onEditDetails}
           onDelete={onDelete}
           onInlineEdit={onInlineEdit}
           totalCount={totalCount}
@@ -303,6 +308,7 @@ export function InfluencerDatabasePage() {
           selectedIds={selectedIds}
           onSelectionChange={onSelectionChange}
           onViewDetails={onViewDetails}
+          onEditDetails={onEditDetails}
           totalCount={totalCount}
           page={filters.page}
           pageSize={filters.page_size}

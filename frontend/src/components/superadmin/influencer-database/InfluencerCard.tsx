@@ -12,11 +12,12 @@ import {
   computeMarginPercent,
   type MasterInfluencer,
 } from "@/types/influencerDatabase"
-import { BadgeCheck } from "lucide-react"
+import { BadgeCheck, Pencil } from "lucide-react"
 
 interface InfluencerCardProps {
   influencer: MasterInfluencer
   onViewDetails: (influencer: MasterInfluencer) => void
+  onEditDetails: (influencer: MasterInfluencer) => void
 }
 
 function getAvatarGradient(name: string): string {
@@ -38,6 +39,7 @@ function getAvatarGradient(name: string): string {
 export function InfluencerCard({
   influencer: inf,
   onViewDetails,
+  onEditDetails,
 }: InfluencerCardProps) {
   const tierOpt = inf.tier ? TIER_OPTIONS.find((t) => t.value === inf.tier) : null
   const statusOpt = STATUS_OPTIONS.find((s) => s.value === inf.status)
@@ -152,14 +154,24 @@ export function InfluencerCard({
         </div>
 
         {/* Footer */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={() => onViewDetails(inf)}
-        >
-          View Details
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={() => onViewDetails(inf)}
+          >
+            View Analytics
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="px-2.5"
+            onClick={() => onEditDetails(inf)}
+          >
+            <Pencil className="size-3.5" />
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )

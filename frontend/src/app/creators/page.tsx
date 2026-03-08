@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
@@ -8,38 +8,31 @@ import { useCreatorSearch } from "@/hooks/useCreatorSearch"
 import { useProcessingToast } from "@/contexts/ProcessingToastContext"
 import { useQuery } from "@tanstack/react-query"
 import { CreatorProfile, Profile, UnlockedCreatorsResponse } from "@/services/creatorApi"
-// CDN migration: preloadPageImages no longer needed with CDN
+import { discoveryService } from "@/services/discoveryService"
 import {
   Plus,
   Users,
-  Eye,
   Heart,
   BarChart3,
-  Download,
   Search,
   X,
-  Building,
   TrendingUp,
-  Calendar,
-  Target,
   Brain,
   Sparkles,
-  Globe,
   RefreshCw,
   AlertCircle,
   CheckCircle,
+  Instagram,
+  Loader2,
+  Unlock,
 } from "lucide-react"
 import { AppSidebar } from "@/components/app-sidebar"
-import { SectionCards } from "@/components/section-cards"
 import { toast } from "sonner"
-import { handleNotificationsWithFallback } from "@/utils/notifications"
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CreatorsSkeleton } from "@/components/skeletons"
-import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
 import {
   Select,
   SelectContent,
@@ -50,19 +43,21 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { UserAvatar } from "@/components/UserAvatar"
 import { ProfileImage } from "@/components/ProfileImage"
 import {
   SidebarInset,
   SidebarProvider,
-  useSidebar,
 } from "@/components/ui/sidebar"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { AIVerificationTool } from "@/components/ui/ai-verification-tool"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { CreatorGridCard } from "@/components/creator-cards"
 import ReactCountryFlag from "react-country-flag"
 import { getCountryCode } from "@/lib/countryUtils"
@@ -73,10 +68,9 @@ export const dynamic = 'force-dynamic'
 export default function CreatorsPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchUsername, setSearchUsername] = useState("")
-  const [bulkUsernames, setBulkUsernames] = useState("")
-  const [bulkLoading, setBulkLoading] = useState(false)
   const [analyzingCreators, setAnalyzingCreators] = useState<Set<string>>(new Set())
   const [currentPage, setCurrentPage] = useState(1)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   // Authentication state - moved before React Query
@@ -189,7 +183,7 @@ export default function CreatorsPage() {
     unlockedCreatorsQuery.refetch()
   }
 
-  // Handle individual creator search with modern React Query
+  // Handle individual creator search with auto-unlock
   const handleSearchCreator = async () => {
     if (!searchUsername.trim()) {
       toast.error("Please enter an Instagram username")
@@ -198,36 +192,34 @@ export default function CreatorsPage() {
 
     const cleanUsername = searchUsername.trim().replace('@', '')
 
-    // Add processing toast for AI analytics
-    addProcessingToast(cleanUsername)
-
-    // Close the sheet only
+    // Close dialog and add processing toast
     setIsSearchOpen(false)
-
-    // Add creator to analyzing set
+    addProcessingToast(cleanUsername)
     setAnalyzingCreators(prev => new Set([...prev, cleanUsername]))
-
-    // Create a placeholder creator and add it to the list immediately
-    const placeholderCreator: CreatorProfile = {
-      id: `temp-${cleanUsername}`,
-      username: cleanUsername,
-      full_name: cleanUsername,
-      biography: '',
-      followers_count: 0,
-      following_count: 0,
-      posts_count: 0,
-      is_verified: false,
-      is_business: false,
-      engagement_rate: 0,
-      profile_pic_url: '',
-      profile_pic_url_hd: '',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      ai_insights: undefined
-    }
+    setSearchUsername("")
 
     try {
       const result = await creatorSearchMutation.mutateAsync(cleanUsername)
+
+      // Auto-unlock if profile requires it
+      if (result.preview_mode || result.unlock_required) {
+        if (!result.profile?.id) {
+          throw new Error('Profile not found')
+        }
+
+        toast.loading(`Unlocking @${cleanUsername}...`, { id: `unlock-${cleanUsername}` })
+
+        const unlockResult = await discoveryService.unlockProfile(result.profile.id)
+
+        toast.dismiss(`unlock-${cleanUsername}`)
+
+        if (!unlockResult.success) {
+          throw new Error(unlockResult.error || 'Unlock failed')
+        }
+
+        // Dispatch credit balance update
+        window.dispatchEvent(new CustomEvent('credit-balance-changed'))
+      }
 
       // Remove from analyzing set
       setAnalyzingCreators(prev => {
@@ -235,80 +227,25 @@ export default function CreatorsPage() {
         newSet.delete(cleanUsername)
         return newSet
       })
-
-      // Clear processing toast immediately
       removeProcessingToast(cleanUsername)
 
-      // Invalidate and refetch the unlocked creators query to include the new creator
+      // Refetch unlocked creators — the new creator will now appear
       unlockedCreatorsQuery.refetch()
-
-      setSearchUsername("")
-      toast.success(`Found profile for @${cleanUsername}!`)
-    } catch (error) {
-      // Remove from analyzing set on error
+      toast.success(`@${cleanUsername} unlocked and added to your portfolio!`)
+    } catch (error: any) {
       setAnalyzingCreators(prev => {
         const newSet = new Set(prev)
         newSet.delete(cleanUsername)
         return newSet
       })
-
-      // Clear processing toast so it doesn't persist forever
       removeProcessingToast(cleanUsername)
+      toast.dismiss(`unlock-${cleanUsername}`)
 
-      toast.error("Search failed. Please try again.")
-    }
-  }
-
-  const handleBulkAnalysis = async () => {
-    if (!bulkUsernames.trim()) {
-      toast.error("Please enter usernames for bulk analysis")
-      return
-    }
-    
-    const usernames = bulkUsernames
-      .split(/[,\n]/)
-      .map(u => u.trim().replace('@', ''))
-      .filter(u => u.length > 0)
-      
-    if (usernames.length === 0) {
-      toast.error("No valid usernames found")
-      return
-    }
-    
-    if (usernames.length > 10) {
-      toast.error("Maximum 10 usernames allowed for bulk analysis")
-      return
-    }
-
-    setBulkLoading(true)
-    toast.info(`Starting bulk analysis for ${usernames.length} creators...`)
-    
-    try {
-      const results = await Promise.allSettled(
-        usernames.map(username => 
-          creatorApiService.searchCreator(username, { force_refresh: false })
-        )
-      )
-
-      const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length
-      const failed = results.length - successful
-
-      if (successful > 0) {
-        toast.success(`Successfully analyzed ${successful} creators${failed > 0 ? `, ${failed} failed` : ''}`)
-        
-        // Reload the unlocked creators list
-        unlockedCreatorsQuery.refetch()
-        
-        setIsSearchOpen(false)
-        setBulkUsernames("")
+      if (error.message?.includes('Insufficient credits') || error.message?.includes('402')) {
+        toast.error('Insufficient credits. Please top up to unlock this creator.')
       } else {
-        toast.error("All bulk analyses failed. Please check the usernames and try again.")
+        toast.error(error.message || "Search failed. Please try again.")
       }
-    } catch (error) {
-
-      toast.error("Bulk analysis failed. Please try again.")
-    } finally {
-      setBulkLoading(false)
     }
   }
 
@@ -386,92 +323,73 @@ export default function CreatorsPage() {
               <CardHeader>
                 <div className="flex items-center justify-between mb-4">
                   <CardTitle>Your Creator Portfolio</CardTitle>
-                  <Sheet open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-                    <SheetTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Creators
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent className="w-[450px] sm:w-[600px] p-8">
-                      <SheetHeader>
-                        <SheetTitle>Add New Creators</SheetTitle>
-                      </SheetHeader>
-                      <div className="space-y-6 mt-6">
-                        {/* Manual Username Entry */}
-                        <div className="space-y-4">
-                          <div>
-                            <label className="text-sm font-medium">Instagram Username</label>
-                            <Input
-                              placeholder="Enter Instagram username (e.g., @influencer_name)"
-                              className="mt-2"
-                              value={searchUsername}
-                              onChange={(e) => setSearchUsername(e.target.value)}
-                              onKeyPress={(e) => e.key === 'Enter' && handleSearchCreator()}
-                            />
-                          </div>
-                          <Button
-                            className="w-full"
-                            onClick={handleSearchCreator}
-                            disabled={creatorSearchMutation.isPending || !searchUsername.trim()}
-                          >
-                            {creatorSearchMutation.isPending ? (
-                              <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                            ) : (
-                              <Search className="h-4 w-4 mr-2" />
-                            )}
-                            {creatorSearchMutation.isPending ? "Searching..." : "Search & Add Creator"}
-                          </Button>
+                  <Button onClick={() => setIsSearchOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Creator
+                  </Button>
+
+                  {/* Search Dialog */}
+                  <Dialog open={isSearchOpen} onOpenChange={(open) => {
+                    setIsSearchOpen(open)
+                    if (!open) setSearchUsername("")
+                  }}>
+                    <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden border-border/40">
+                      {/* Header gradient */}
+                      <div className="bg-gradient-to-b from-primary/5 to-transparent px-6 pt-6 pb-4">
+                        <DialogHeader>
+                          <DialogTitle className="text-lg font-semibold">Add Creator</DialogTitle>
+                          <DialogDescription className="text-sm text-muted-foreground">
+                            Enter an Instagram username to unlock their full analytics.
+                          </DialogDescription>
+                        </DialogHeader>
+                      </div>
+
+                      {/* Search input */}
+                      <div className="px-6 pb-6 space-y-4">
+                        <div className="relative">
+                          <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            ref={searchInputRef}
+                            placeholder="username"
+                            value={searchUsername}
+                            onChange={(e) => setSearchUsername(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearchCreator()}
+                            className="pl-9 h-11 text-sm"
+                            autoFocus
+                          />
+                          {searchUsername && (
+                            <button
+                              onClick={() => setSearchUsername("")}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
 
-                        <Separator />
+                        <Button
+                          className="w-full h-10 gap-2"
+                          onClick={handleSearchCreator}
+                          disabled={creatorSearchMutation.isPending || !searchUsername.trim()}
+                        >
+                          {creatorSearchMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Unlock className="h-4 w-4" />
+                          )}
+                          {creatorSearchMutation.isPending ? "Searching..." : "Search & Unlock"}
+                        </Button>
 
-                        {/* Bulk Analysis */}
-                        <div className="space-y-4">
-                          <div>
-                            <label className="text-sm font-medium">Bulk Analysis</label>
-                            <textarea
-                              placeholder="Enter multiple usernames separated by commas or new lines..."
-                              className="mt-2 w-full min-h-[100px] p-3 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md"
-                              value={bulkUsernames}
-                              onChange={(e) => setBulkUsernames(e.target.value)}
-                            />
-                          </div>
-                          <Button
-                            variant="outline"
-                            className="w-full"
-                            onClick={handleBulkAnalysis}
-                            disabled={bulkLoading || !bulkUsernames.trim()}
-                          >
-                            {bulkLoading ? (
-                              <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                            ) : (
-                              <BarChart3 className="h-4 w-4 mr-2" />
-                            )}
-                            {bulkLoading ? "Processing..." : "Bulk Search"}
-                          </Button>
-                        </div>
-
-                        <Separator />
-
-                        {/* AI Verification Tool */}
-                        <div className="space-y-4">
-                          <h3 className="text-sm font-medium">📊 Analysis Tools</h3>
-                          <AIVerificationTool />
-                        </div>
-
-                        <div className="pt-4 border-t">
-                          <div className="text-xs text-muted-foreground space-y-1">
-                            <p>📊 Comprehensive analysis:</p>
-                            <p>• Content category analysis (20+ categories)</p>
-                            <p>• Audience sentiment and engagement patterns</p>
-                            <p>• Multi-language content detection</p>
-                            <p>• Performance scoring and insights</p>
-                          </div>
+                        <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground pt-1">
+                          <span className="flex items-center gap-1"><Sparkles className="h-3 w-3" /> AI analysis</span>
+                          <span className="text-border">|</span>
+                          <span className="flex items-center gap-1"><BarChart3 className="h-3 w-3" /> Full analytics</span>
+                          <span className="text-border">|</span>
+                          <span className="font-medium text-primary">25 credits</span>
                         </div>
                       </div>
-                    </SheetContent>
-                  </Sheet>
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 
                 {/* Search and Filters in one row */}

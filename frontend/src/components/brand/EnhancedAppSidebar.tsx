@@ -128,6 +128,11 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         icon: IconTarget,
       },
       {
+        title: "Proposals",
+        url: "/proposals",
+        icon: IconFileText,
+      },
+      {
         title: "Lists",
         url: "/my-lists",
         icon: IconList,

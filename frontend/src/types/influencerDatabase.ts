@@ -321,6 +321,19 @@ export interface BulkImportResult {
   failed: Array<{ username: string; reason: string }>
 }
 
+export interface ExcelImportResult {
+  imported: number
+  updated: number
+  analytics_queued: number
+  analytics_skipped: number
+  analytics_failures: Array<{ username: string; reason: string }>
+  errors: Array<{ row: number; error: string }>
+  total_processed: number
+  imported_ids: string[]
+  imported_usernames: string[]
+  queue_status: { depth: number; max_depth: number; utilization_percent: number }
+}
+
 // ─── View State ───────────────────────────────────────────────────────
 
 export type ViewMode = 'table' | 'card'

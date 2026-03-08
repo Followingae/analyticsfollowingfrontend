@@ -85,6 +85,8 @@ export interface AdminProposalInfluencer {
   sell_price_snapshot?: Record<string, number | null>
   cost_price_snapshot?: Record<string, number | null>
   custom_sell_pricing?: Record<string, number | null>
+  assigned_deliverables?: Array<{ type: string; quantity: number }>
+  selected_deliverables?: string[]
 }
 
 export interface BrandProposalView {
@@ -138,6 +140,9 @@ export interface BrandInfluencer {
   avg_comments?: number
   avg_views?: number
   sell_pricing?: Record<string, number | null>
+  available_deliverables?: string[]
+  selected_deliverables?: string[]
+  assigned_deliverables?: Array<{ type: string; quantity: number }>
 }
 
 export interface AdminProposalStats {
@@ -147,6 +152,24 @@ export interface AdminProposalStats {
   approval_rate: number
   total_margin: number
   avg_margin_percentage: number
+}
+
+export interface AISnapshotResponse {
+  headline: string
+  insights: Array<{
+    type: string
+    title: string
+    data: any
+  }>
+  recommendations: string[]
+  scores: {
+    authenticity: number
+    sentiment: number
+    avg_engagement: number
+    total_reach: number
+    creators_with_ai_data: number
+    total_selected: number
+  }
 }
 
 // =============================================================================
@@ -307,6 +330,10 @@ export class AdminProposalApiService {
   async addInfluencers(proposalId: string, data: {
     influencer_ids: string[]
     custom_pricing?: Record<string, Record<string, number | null>>
+    deliverable_assignments?: Array<{
+      influencer_db_id: string
+      deliverables: Array<{ type: string; quantity: number }>
+    }>
   }): Promise<{
     added_count: number
     influencer_ids: string[]
@@ -372,6 +399,10 @@ export class AdminProposalApiService {
   async addMoreInfluencers(proposalId: string, data: {
     influencer_ids: string[]
     custom_pricing?: Record<string, Record<string, number | null>>
+    deliverable_assignments?: Array<{
+      influencer_db_id: string
+      deliverables: Array<{ type: string; quantity: number }>
+    }>
   }): Promise<{
     added_count: number
     influencer_ids: string[]
@@ -456,6 +487,7 @@ export class BrandProposalViewApiService {
   // ---------------------------------------------------------------------------
   async updateInfluencerSelection(proposalId: string, data: {
     selected_influencer_ids: string[]
+    deliverable_selections?: { influencer_id: string; deliverables: string[] }[]
     notes?: string
   }): Promise<{
     updated_count: number
@@ -557,6 +589,28 @@ export class BrandProposalViewApiService {
     if (!response.ok) {
       const errorText = await response.text()
       throw new Error(`Failed to reject proposal: ${errorText}`)
+    }
+    const result = await response.json()
+    return result.data
+  }
+
+  // ---------------------------------------------------------------------------
+  // POST /api/v1/campaigns/proposals/{id}/ai-snapshot - AI selection insights
+  // ---------------------------------------------------------------------------
+  async getAISnapshot(proposalId: string, data: {
+    selected_influencer_ids: string[]
+  }): Promise<AISnapshotResponse> {
+    const response = await fetchWithAuth(
+      `${this.baseUrl}/${proposalId}/ai-snapshot`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      }
+    )
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Failed to get AI snapshot: ${errorText}`)
     }
     const result = await response.json()
     return result.data

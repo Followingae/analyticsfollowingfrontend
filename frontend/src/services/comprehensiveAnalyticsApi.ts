@@ -708,9 +708,9 @@ export class ComprehensiveAnalyticsApiService {
           // ai_analysis, audience, content, engagement, security, avg_likes, avg_comments, etc.
           const transformedProfile = { ...data.profile }
 
-          // Posts already include nested ai_analysis from backend (build_post_data_full)
-          // Don't overwrite - just add convenience aliases
-          const transformedPosts = (data.profile.posts || []).map(post => ({
+          // Posts may be inside profile.posts (unlocked/new paths) or at top-level data.posts (legacy)
+          const rawPosts = data.profile.posts || (data as any).posts || []
+          const transformedPosts = rawPosts.map((post: any) => ({
             ...post,
             display_url: post.cdn_thumbnail_url || post.display_url,
             timestamp: post.taken_at || post.posted_at || post.created_at,
