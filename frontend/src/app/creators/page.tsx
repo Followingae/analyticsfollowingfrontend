@@ -79,14 +79,14 @@ export default function CreatorsPage() {
 
   // Transform backend Profile format to frontend CreatorProfile format
   const transformProfile = (profile: any): CreatorProfile => ({
-      id: profile.id,
+      id: profile.id || profile.profile_id,
       username: profile.username,
       full_name: profile.full_name || '',
       biography: profile.biography || '',
       followers_count: profile.followers_count,
       following_count: profile.following_count,
       posts_count: profile.posts_count,
-      is_verified: profile.verified,
+      is_verified: profile.verified || profile.is_verified,
       is_business: false, // Not provided by unlocked endpoint
       engagement_rate: profile.engagement_rate ?? profile.avg_engagement_rate ?? null,
       // Enhanced profile picture handling with CDN support
@@ -96,8 +96,11 @@ export default function CreatorsPage() {
       cdn_avatar_url: profile.cdn_avatar_url || null,
       cdn_url_512: profile.cdn_url_512 || null,
       cdn_urls: profile.cdn_urls || null,
-      created_at: profile.unlocked_at,
-      updated_at: profile.unlocked_at,
+      created_at: profile.unlocked_at || profile.access_granted_at,
+      updated_at: profile.unlocked_at || profile.access_granted_at,
+      // Unlock expiry data from backend
+      access_granted_at: profile.access_granted_at,
+      days_remaining: profile.days_remaining,
       ai_insights: undefined // Not available in unlocked list
     })
 
@@ -241,7 +244,9 @@ export default function CreatorsPage() {
       removeProcessingToast(cleanUsername)
       toast.dismiss(`unlock-${cleanUsername}`)
 
-      if (error.message?.includes('Insufficient credits') || error.message?.includes('402')) {
+      if (error.message?.includes('team_limit_exceeded') || error.response?.data?.error === 'team_limit_exceeded') {
+        toast.error('Monthly profile limit reached. Upgrade your plan for more unlocks.')
+      } else if (error.message?.includes('Insufficient credits') || error.message?.includes('402')) {
         toast.error('Insufficient credits. Please top up to unlock this creator.')
       } else {
         toast.error(error.message || "Search failed. Please try again.")

@@ -9,7 +9,7 @@ import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
 import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
 import { MetricCard } from "@/components/analytics-cards"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
-import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
 import { UserAvatar } from "@/components/UserAvatar"
 import { SmartDiscovery } from "@/components/smart-discovery"
 import { 
@@ -203,7 +203,12 @@ export function BrandDashboardContent() {
                     <div className="flex flex-col">
                       <div className="welcome-text-primary font-semibold italic text-muted-foreground">Welcome,</div>
                       {userDisplayData.companyName && (
-                        <div className="welcome-text-brand font-bold tracking-tight">{userDisplayData.companyName}</div>
+                        <div
+                          className="welcome-text-brand font-bold tracking-tight"
+                          title={userDisplayData.companyName}
+                        >
+                          {userDisplayData.companyName}
+                        </div>
                       )}
                     </div>
                   </div>

@@ -16,7 +16,8 @@ import {
   Star,
   Crown,
   Zap,
-  TrendingUp
+  TrendingUp,
+  Clock
 } from 'lucide-react'
 import ReactCountryFlag from 'react-country-flag'
 
@@ -200,9 +201,15 @@ export function CreatorGridCard({
             <p className="text-xs text-muted-foreground">@{creator.username}</p>
           </div>
 
-          {/* Tier badge */}
-          <div className="flex justify-center">
+          {/* Tier badge + expiry */}
+          <div className="flex justify-center items-center gap-1.5">
             <TierBadge tier={tier} />
+            {creator.days_remaining != null && (
+              <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground gap-0.5">
+                <Clock className="h-2.5 w-2.5" />
+                {creator.days_remaining}d
+              </Badge>
+            )}
           </div>
         </div>
 

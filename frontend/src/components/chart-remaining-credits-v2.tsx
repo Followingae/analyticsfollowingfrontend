@@ -114,12 +114,11 @@ export function ChartRemainingCreditsV2() {
     return (creditsData.balance / creditsData.maxCredits) * 360
   }
 
-  // Calculate percentage for badge
-  const getPercentage = () => {
-    if (!creditsData || creditsData.maxCredits === 0) return 0
-    const percentage = Math.round((creditsData.balance / creditsData.maxCredits) * 100)
-    // Cap percentage at 100% to avoid display issues
-    return Math.min(percentage, 100)
+  // Calculate days until end of month (billing reset)
+  const getDaysUntilReset = () => {
+    const now = new Date()
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    return Math.ceil((endOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
   }
 
   return (
@@ -130,10 +129,7 @@ export function ChartRemainingCreditsV2() {
           variant="outline" 
           className="absolute top-3 right-3 z-20 text-xs text-muted-foreground border-border bg-muted/30"
         >
-          {creditsData.balance > 0 
-            ? `${getPercentage()}% of max`
-            : "0 credits"
-          }
+          {`resets in ${getDaysUntilReset()}d`}
         </Badge>
       )}
       <CardHeader className="pb-2">

@@ -15,9 +15,11 @@ export interface TeamSubscription {
 }
 
 export interface CreditBalance {
-  balance: number
-  is_locked: boolean
-  next_reset_date: string
+  current_balance: number
+  monthly_allowance: number
+  package_name: string
+  billing_cycle_start: string
+  wallet_status: 'active' | 'locked' | 'suspended'
 }
 
 export interface WalletSummary {
@@ -64,6 +66,8 @@ export interface CreditsInOutSummary {
   credits_expired: number
   net_credits: number
   current_balance: number
+  period_start?: string
+  period_end?: string
   monthly_breakdown: Array<{
     month: string
     credits_in: number
@@ -90,18 +94,6 @@ export interface MonthlyUsage {
 
 export interface PricingRule {
   action_type: string
-  cost_per_action: number
-  description: string
-}
-
-export interface StripePortal {
-  portal_url: string
-  expires_at: string
-}
-
-
-export interface PricingRule {
-  action_type: string
   credits_per_action: number
   free_allowance_per_month: number
   cost_per_action?: number
@@ -110,6 +102,11 @@ export interface PricingRule {
     min_quantity: number
     discount_percentage: number
   }>
+}
+
+export interface StripePortal {
+  portal_url: string
+  expires_at: string
 }
 
 // New Stripe Billing Interfaces
@@ -197,31 +194,6 @@ export interface SystemStats {
   average_credits_per_action: number
 }
 
-export interface CreditsInOutSummary {
-  total_credits_in: number
-  credits_earned: number        // Monthly allowances
-  credits_purchased: number     // Topup purchases
-  credits_bonus: number         // Promotional credits
-  credits_refunded: number      // Refunded credits
-
-  total_credits_out: number
-  credits_spent: number         // Used for actions
-  credits_expired: number       // Expired credits
-
-  net_credits: number           // Credits in - Credits out
-  current_balance: number       // Current wallet balance
-
-  period_start: string
-  period_end: string
-
-  monthly_breakdown: Array<{    // For charts/graphs
-    month: string
-    credits_in: number
-    credits_out: number
-    net: number
-  }>
-}
-
 interface ApiResponse<T> {
   success: boolean
   data?: T
@@ -243,14 +215,14 @@ class CreditsApiService {
     try {
       const { tokenManager } = await import('@/utils/tokenManager')
       const tokenResult = await tokenManager.getValidToken()
-      
+
       if (!tokenResult.isValid || !tokenResult.token) {
         return {
           success: false,
           error: 'No valid authentication token available'
         }
       }
-      
+
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
@@ -270,7 +242,7 @@ class CreditsApiService {
             data: errorData
           }
         }
-        
+
         const errorText = await response.text()
         return {
           success: false,
@@ -301,49 +273,33 @@ class CreditsApiService {
     package_name: string
     current_balance: number
   }>> {
-    return this.makeRequest('/api/v1/credits/total-plan-credits')
+    return this.makeRequest(ENDPOINTS.credits.totalPlanCredits)
   }
 
   async getBalance(): Promise<ApiResponse<CreditBalance>> {
     try {
       const response = await this.makeRequest<any>(ENDPOINTS.credits.balance)
-      
 
-
-      
       if (response.success && response.data) {
         const rawData = response.data
 
-
-        
-        // Log specific fields we're looking for
-
-
-
-
-
-
-        
-        // Handle potential field mapping - backend might use different field names
+        // Map backend fields to CreditBalance interface
         const mappedData: CreditBalance = {
-          current_balance: rawData.balance ?? rawData.current_balance ?? rawData.credits ?? 0,
+          current_balance: rawData.current_balance ?? rawData.balance ?? rawData.credits ?? 0,
           monthly_allowance: rawData.monthly_allowance ?? rawData.monthly_limit ?? 0,
           package_name: rawData.package_name ?? rawData.subscription_tier ?? rawData.plan ?? rawData.tier ?? 'Free',
           billing_cycle_start: rawData.billing_cycle_start ?? rawData.cycle_start ?? rawData.next_reset_date ?? new Date().toISOString(),
-          wallet_status: rawData.is_locked ? 'locked' : 'active'
+          wallet_status: rawData.is_locked ? 'locked' : (rawData.wallet_status ?? 'active')
         }
-        
 
-        
         return {
           success: true,
           data: mappedData
         }
       }
-      
+
       return response
     } catch (error) {
-
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -351,12 +307,12 @@ class CreditsApiService {
     }
   }
 
-  async getWalletSummary(): Promise<ApiResponse<CreditWalletSummary>> {
-    return this.makeRequest<CreditWalletSummary>(ENDPOINTS.credits.walletSummary)
+  async getWalletSummary(): Promise<ApiResponse<WalletSummary>> {
+    return this.makeRequest<WalletSummary>(ENDPOINTS.credits.walletSummary)
   }
 
-  async getDashboard(): Promise<ApiResponse<CreditDashboard>> {
-    return this.makeRequest<CreditDashboard>(ENDPOINTS.credits.dashboard)
+  async getDashboard(): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>(ENDPOINTS.credits.dashboard)
   }
 
   async createWallet(): Promise<ApiResponse<any>> {
@@ -390,7 +346,7 @@ class CreditsApiService {
 
     const queryString = params.toString()
     const endpoint = `${ENDPOINTS.credits.transactions}${queryString ? `?${queryString}` : ''}`
-    
+
     return this.makeRequest(endpoint)
   }
 
@@ -406,7 +362,11 @@ class CreditsApiService {
     if (limit) params.append('limit', limit.toString())
     if (offset) params.append('offset', offset.toString())
 
-    return this.makeRequest(`/api/v1/credits/transactions/search?${params.toString()}`)
+    return this.makeRequest(`${ENDPOINTS.credits.transactions}/search?${params.toString()}`)
+  }
+
+  async getRecentTransactions(limit: number = 5): Promise<ApiResponse<CreditTransaction[]>> {
+    return this.makeRequest<CreditTransaction[]>(`${ENDPOINTS.credits.transactions}?limit=${limit}`)
   }
 
   async getMonthlyUsage(
@@ -419,20 +379,20 @@ class CreditsApiService {
 
     const queryString = params.toString()
     const endpoint = `${ENDPOINTS.credits.usageMonthly}${queryString ? `?${queryString}` : ''}`
-    
+
     return this.makeRequest<MonthlyUsage>(endpoint)
   }
 
   async getSpendingAnalytics(
     period?: 'week' | 'month' | 'quarter' | 'year'
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<SpendingAnalytics>> {
     const params = new URLSearchParams()
     if (period) params.append('period', period)
 
     const queryString = params.toString()
     const endpoint = `/api/v1/credits/analytics/spending${queryString ? `?${queryString}` : ''}`
 
-    return this.makeRequest(endpoint)
+    return this.makeRequest<SpendingAnalytics>(endpoint)
   }
 
   async getTransactionsSummary(
@@ -446,29 +406,24 @@ class CreditsApiService {
     if (include_monthly !== undefined) params.append('include_monthly', include_monthly.toString())
 
     const queryString = params.toString()
-    const endpoint = `/api/v1/credits/transactions/summary${queryString ? `?${queryString}` : ''}`
+    const endpoint = `${ENDPOINTS.credits.transactions}/summary${queryString ? `?${queryString}` : ''}`
 
     return this.makeRequest<CreditsInOutSummary>(endpoint)
   }
 
-  // Correct Backend API Methods
+  // Team Subscription (derived from dashboard)
   async getTeamSubscription(): Promise<ApiResponse<any>> {
-    // Dashboard returns user, subscription, team, and stats data
-    // Extract subscription info from the dashboard response
     const result = await this.makeRequest<any>('/api/v1/auth/dashboard')
 
     if (result.success && result.data) {
-      // Extract subscription/team data from dashboard response
       const dashboardData = result.data
 
-      // Create subscription-like object from dashboard data
       const subscriptionData = {
         tier: dashboardData.user?.role || dashboardData.subscription?.tier || 'free',
         billing_cycle_start: dashboardData.subscription?.billing_cycle_start || null,
         billing_cycle_end: dashboardData.subscription?.billing_cycle_end || null,
         member_count: dashboardData.team?.member_count || 1,
         member_limit: dashboardData.team?.member_limit || 1,
-        // Include full dashboard data for debugging
         _raw_dashboard_data: dashboardData
       }
 
@@ -481,49 +436,13 @@ class CreditsApiService {
     return result
   }
 
-  async getCreditBalance(): Promise<ApiResponse<CreditBalance>> {
-    return this.makeRequest<CreditBalance>('/api/v1/credits/balance')
-  }
-
-  async getWalletSummary(): Promise<ApiResponse<WalletSummary>> {
-    return this.makeRequest<WalletSummary>('/api/v1/credits/wallet/summary')
-  }
-
-  async getMonthlyUsage(): Promise<ApiResponse<MonthlyUsage>> {
-    return this.makeRequest<MonthlyUsage>('/api/v1/credits/usage/monthly')
-  }
-
-  async getRecentTransactions(limit: number = 5): Promise<ApiResponse<CreditTransaction[]>> {
-    return this.makeRequest<CreditTransaction[]>(`/api/v1/credits/transactions?limit=${limit}`)
-  }
-
-  async getSpendingAnalytics(months: number = 3): Promise<ApiResponse<SpendingAnalytics>> {
-    return this.makeRequest<SpendingAnalytics>(`/api/v1/credits/analytics/spending?months=${months}`)
-  }
-
+  // Pricing
   async getAllPricing(): Promise<ApiResponse<PricingRule[]>> {
-    return this.makeRequest<PricingRule[]>('/api/v1/credits/pricing')
-  }
-
-  // Keep existing method for compatibility
-  async getTransactionsSummary(
-    start_date?: string,
-    end_date?: string,
-    include_monthly?: boolean
-  ): Promise<ApiResponse<CreditsInOutSummary>> {
-    const params = new URLSearchParams()
-    if (start_date) params.append('start_date', start_date)
-    if (end_date) params.append('end_date', end_date)
-    if (include_monthly !== undefined) params.append('include_monthly', include_monthly.toString())
-
-    const queryString = params.toString()
-    const endpoint = `/api/v1/credits/transactions/summary${queryString ? `?${queryString}` : ''}`
-
-    return this.makeRequest<CreditsInOutSummary>(endpoint)
+    return this.makeRequest<PricingRule[]>(ENDPOINTS.credits.pricing)
   }
 
   async getActionPricing(actionType: string): Promise<ApiResponse<PricingRule>> {
-    return this.makeRequest<PricingRule>(`/api/v1/credits/pricing/${actionType}`)
+    return this.makeRequest<PricingRule>(`${ENDPOINTS.credits.pricing}/${actionType}`)
   }
 
   async calculatePricing(
@@ -537,7 +456,7 @@ class CreditsApiService {
     discount_applied?: number
     bulk_savings?: number
   }>> {
-    return this.makeRequest('/api/v1/credits/pricing/calculate', {
+    return this.makeRequest(`${ENDPOINTS.credits.pricing}/calculate`, {
       method: 'POST',
       body: JSON.stringify({
         action_type: actionType,
@@ -546,9 +465,13 @@ class CreditsApiService {
     })
   }
 
-  // Allowances & System Info
+  // Permissions & Allowances
+  async canPerform(actionType: string): Promise<ApiResponse<CanPerformResult>> {
+    return this.makeRequest<CanPerformResult>(ENDPOINTS.credits.canPerform(actionType))
+  }
+
   async getAllowances(): Promise<ApiResponse<AllowanceInfo>> {
-    return this.makeRequest<AllowanceInfo>(ENDPOINTS.credits.allowances)
+    return this.makeRequest<AllowanceInfo>(ENDPOINTS.credits.totalPlanCredits)
   }
 
   async getSystemStats(): Promise<ApiResponse<SystemStats>> {
@@ -564,7 +487,7 @@ class CreditsApiService {
     currency: string
     payment_methods_available: string[]
   }>> {
-    return this.makeRequest('/api/v1/credits/top-up/estimate', {
+    return this.makeRequest(ENDPOINTS.credits.topUpEstimate, {
       method: 'POST',
       body: JSON.stringify({ credits })
     })
@@ -580,7 +503,7 @@ class CreditsApiService {
 
     const queryString = params.toString()
     const endpoint = `/api/v1/credits/top-up/history${queryString ? `?${queryString}` : ''}`
-    
+
     return this.makeRequest(endpoint)
   }
 
@@ -672,7 +595,7 @@ class CreditsApiService {
       stripe_subscription_id: string
     }
   }>> {
-    return this.makeRequest('/api/v1/credits/balance')
+    return this.makeRequest(ENDPOINTS.credits.balance)
   }
 }
 

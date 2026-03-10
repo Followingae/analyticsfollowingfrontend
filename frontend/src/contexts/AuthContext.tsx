@@ -512,29 +512,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const updateProfile = async (profileData: any): Promise<boolean> => {
     try {
-      const { settingsService } = await import('@/services/settingsService')
-      const result = await settingsService.updateProfile(profileData)
-      
-      if (result.success && result.data) {
-        
-        // Update the local auth state with the fresh data from API response
-        updateUserState({
-          first_name: result.data.first_name,
-          last_name: result.data.last_name,
-          full_name: result.data.full_name,
-          company: result.data.company,
-          job_title: result.data.job_title,
-          phone_number: result.data.phone_number,
-          bio: result.data.bio,
-          avatar_config: result.data.avatar_config
-        })
-        
-        toast.success(result.data.message || 'Profile updated successfully')
-        return true
-      } else {
-        toast.error(result.error || 'Failed to update profile')
-        return false
-      }
+      const { userSettingsService } = await import('@/services/userSettingsService')
+      const result = await userSettingsService.updateProfile(profileData)
+
+      // userSettingsService returns the profile directly (not wrapped)
+      updateUserState({
+        first_name: result.first_name,
+        last_name: result.last_name,
+        full_name: result.full_name,
+        company: result.company,
+        job_title: result.job_title,
+        phone_number: result.phone_number,
+        bio: result.bio,
+        avatar_config: result.avatar_config
+      })
+
+      toast.success('Profile updated successfully')
+      return true
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Network error'
       toast.error(errorMessage)

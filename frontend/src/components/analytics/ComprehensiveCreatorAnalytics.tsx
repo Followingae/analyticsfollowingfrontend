@@ -32,6 +32,7 @@ import {
   MessageCircle,
   Lock,
   Unlock,
+  Coins,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -124,8 +125,9 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
       // Refetch full data now that profile is unlocked
       await fetchData(true)
     } catch (err: any) {
-      if (err.message?.includes('Insufficient credits') || err.message?.includes('402')) {
-        // Show insufficient credits feedback
+      if (err.message?.includes('team_limit_exceeded') || err.response?.data?.error === 'team_limit_exceeded') {
+        toast.error('Monthly profile limit reached. Upgrade your plan for more unlocks.')
+      } else if (err.message?.includes('Insufficient credits') || err.message?.includes('402')) {
         toast.error('Insufficient credits. Please purchase more credits to unlock this profile.')
       } else {
         toast.error(err.message || 'Failed to unlock profile')
@@ -520,7 +522,12 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="audience">Audience</TabsTrigger>
-          <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
+          <TabsTrigger value="posts" className="gap-1.5">
+            Posts ({posts.length})
+            <span className="hidden sm:inline-flex items-center gap-0.5 text-[10px] text-muted-foreground font-normal">
+              <Coins className="h-2.5 w-2.5" />5
+            </span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">

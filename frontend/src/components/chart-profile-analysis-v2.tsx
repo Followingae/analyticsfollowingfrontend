@@ -57,10 +57,11 @@ export function ChartProfileAnalysisV2() {
     return (usageData.remaining / usageData.limit) * 360
   }
 
-  // Calculate percentage for badge
-  const getPercentage = () => {
-    if (!usageData || usageData.limit === 0) return 0
-    return Math.round((usageData.remaining / usageData.limit) * 100)
+  // Calculate days until end of month (billing reset)
+  const getDaysUntilReset = () => {
+    const now = new Date()
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    return Math.ceil((endOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
   }
 
   const isLoading = !subscription
@@ -73,10 +74,7 @@ export function ChartProfileAnalysisV2() {
           variant="outline" 
           className="absolute top-3 right-3 z-20 text-xs text-muted-foreground border-border bg-muted/30"
         >
-          {usageData.remaining > 0 
-            ? `${getPercentage()}% available`
-            : "0% available"
-          }
+          {`resets in ${getDaysUntilReset()}d`}
         </Badge>
       )}
       <CardHeader className="pb-2">

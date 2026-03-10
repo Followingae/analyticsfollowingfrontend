@@ -58,7 +58,7 @@ interface PostCardProps {
     creator_profile_pic_url?: string | null
     creator_profile_pic_url_hd?: string | null
   }
-  onRemove: (postId: string) => void
+  onRemove?: (postId: string) => void
 }
 
 const formatNumber = (num: number): string => {
@@ -314,26 +314,28 @@ export function PostCard({ post, onRemove }: PostCardProps) {
             <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
             View Post
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="px-2 hover:bg-muted transition-colors"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                onClick={() => onRemove(post.id)}
-                className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400 cursor-pointer"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Remove from Campaign
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {onRemove && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="px-2 hover:bg-muted transition-colors"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={() => onRemove(post.id)}
+                  className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400 cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Remove from Campaign
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </CardContent>
     </Card>

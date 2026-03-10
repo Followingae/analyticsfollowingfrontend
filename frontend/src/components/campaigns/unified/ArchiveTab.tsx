@@ -48,9 +48,10 @@ interface ArchivedCampaign {
 
 interface ArchiveTabProps {
   searchQuery: string;
+  typeFilter?: 'all' | 'influencer' | 'ugc';
 }
 
-export function ArchiveTab({ searchQuery }: ArchiveTabProps) {
+export function ArchiveTab({ searchQuery, typeFilter = 'all' }: ArchiveTabProps) {
   const router = useRouter();
   const [archivedCampaigns, setArchivedCampaigns] = useState<ArchivedCampaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -224,6 +225,12 @@ export function ArchiveTab({ searchQuery }: ArchiveTabProps) {
   };
 
   const filteredCampaigns = archivedCampaigns.filter(campaign => {
+    // Type filter
+    if (typeFilter !== 'all') {
+      const ct = (campaign as any).campaign_type || 'influencer';
+      if (ct !== typeFilter) return false;
+    }
+
     const matchesSearch = campaign.name.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
       campaign.brand_name.toLowerCase().includes(localSearchQuery.toLowerCase());
 

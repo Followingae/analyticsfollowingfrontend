@@ -95,7 +95,9 @@
       "Bash(start http://localhost:3001/campaigns/1)",
       "Bash(start http://localhost:3001/campaigns/2)",
       "Bash(nslookup:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "mcp__plugin_figma_figma__generate_figma_design",
+      "Bash(start:*)"
     ],
     "deny": [],
     "additionalDirectories": [
@@ -103,8 +105,8 @@
       "C:\\c\\Users\\user\\Desktop\\analyticsfollowingfrontend"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "shadcn"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

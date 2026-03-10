@@ -47,6 +47,9 @@ export function SiteHeader() {
   // Team context state (replaces individual credit balance)
   const [teamContext, setTeamContext] = useState<TeamContext | null>(null)
   const [contextLoading, setContextLoading] = useState(true)
+
+  // Credit balance state
+  const [creditBalance, setCreditBalance] = useState<number | null>(null)
   
   // Balloons ref for triggering animation
   const balloonsRef = useRef<{ launchAnimation: () => void }>(null)
@@ -131,6 +134,32 @@ export function SiteHeader() {
     }
   }, [user, isBrandUser])
 
+  // Load credit balance and listen for changes
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!user || !isBrandUser) return
+      try {
+        const result = await creditsApiService.getBalance()
+        if (result.success && result.data) {
+          setCreditBalance(result.data.current_balance)
+        }
+      } catch {
+        // Silently fail — balance is a nice-to-have
+      }
+    }
+
+    fetchBalance()
+
+    const handleCreditChange = () => {
+      fetchBalance()
+    }
+
+    window.addEventListener('credit-balance-changed', handleCreditChange)
+    return () => {
+      window.removeEventListener('credit-balance-changed', handleCreditChange)
+    }
+  }, [user, isBrandUser])
+
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -164,6 +193,25 @@ export function SiteHeader() {
             <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 font-normal text-muted-foreground border-muted-foreground/30">
               SUPERADMIN
             </Badge>
+          )}
+
+          {/* Credit Balance for Brand Users */}
+          {isBrandUser && user && creditBalance != null && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="text-xs cursor-default">
+                    <Coins className="w-3 h-3 mr-1" />
+                    {creditBalance >= 10000
+                      ? `${(creditBalance / 1000).toFixed(1)}K`
+                      : creditBalance.toLocaleString()}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{creditBalance.toLocaleString()} credits available</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
           {/* Live Team Context Display for Brand Users */}

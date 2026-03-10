@@ -34,9 +34,10 @@ type RecentCampaign = CampaignCardData;
 
 interface CampaignsOverviewProps {
   searchQuery: string;
+  typeFilter?: 'all' | 'influencer' | 'ugc';
 }
 
-export function CampaignsOverviewV2({ searchQuery }: CampaignsOverviewProps) {
+export function CampaignsOverviewV2({ searchQuery, typeFilter = 'all' }: CampaignsOverviewProps) {
   const router = useRouter();
   const [summary, setSummary] = useState<CampaignSummary | null>(null);
   const [recentCampaigns, setRecentCampaigns] = useState<RecentCampaign[]>([]);
@@ -138,6 +139,11 @@ export function CampaignsOverviewV2({ searchQuery }: CampaignsOverviewProps) {
   if (!summary) return null;
 
   const filteredCampaigns = recentCampaigns.filter(campaign => {
+    // Type filter
+    if (typeFilter !== 'all') {
+      const ct = (campaign as any).campaign_type || 'influencer';
+      if (ct !== typeFilter) return false;
+    }
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return campaign.name.toLowerCase().includes(query) ||

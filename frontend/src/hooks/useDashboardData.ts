@@ -10,14 +10,15 @@ export const useDashboardData = () => {
   // REMOVED: Prefetch calls that may cause duplicate requests
   // These queries will be fetched on-demand with proper deduplication
 
-  // Teams overview query
+  // Teams overview query with /teams/context fallback
   const teamsQuery = useQuery({
     queryKey: ['teams-overview', user?.id],
     queryFn: async () => {
       const { API_CONFIG, ENDPOINTS } = await import('@/config/api')
       const { fetchWithAuth } = await import('@/utils/apiInterceptor')
-      
+
       try {
+        // Try /teams/overview first
         const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.teams.overview}`, {
           method: 'GET',
           headers: {
@@ -25,52 +26,72 @@ export const useDashboardData = () => {
             'Accept': 'application/json'
           }
         })
-        
-        if (!response.ok) {
-          console.error('🚨 Teams Overview API Error:', response.status, response.statusText)
 
-          // Don't throw on auth errors - let API interceptor handle them
-          if (response.status === 401 || response.status === 403) {
-            return null
-          }
+        if (response.ok) {
+          const data = await response.json()
+          return data
+        }
 
-          // Handle 404 - team management endpoints might not be implemented yet
-          if (response.status === 404) {
-            console.warn('⚠️ Team management endpoints not implemented yet, returning default data')
-            return {
-              team_name: 'Personal Account',
-              user_role: 'owner',
-              subscription_tier: 'free',
-              subscription_status: 'active',
-              monthly_limits: { profiles: 5, emails: 0, posts: 0 },
-              current_usage: { profiles: 0, emails: 0, posts: 0 },
-              remaining_capacity: { profiles: 5, emails: 0, posts: 0 },
-              user_permissions: {
-                can_analyze_profiles: true,
-                can_unlock_emails: false,
-                can_analyze_posts: false,
-                can_manage_team: false,
-                can_invite_members: false,
-                can_view_billing: false
+        // Don't throw on auth errors - let API interceptor handle them
+        if (response.status === 401 || response.status === 403) {
+          return null
+        }
+
+        // On 404, try /teams/context as fallback
+        if (response.status === 404) {
+          console.warn('⚠️ /teams/overview returned 404, trying /teams/context fallback')
+          try {
+            const { teamApiService } = await import('@/services/teamApi')
+            const contextResult = await teamApiService.getTeamContext()
+            if (contextResult.success && contextResult.data) {
+              // Map TeamContext to the shape the dashboard expects
+              const ctx = contextResult.data
+              return {
+                team_name: ctx.team_name,
+                user_role: ctx.user_role,
+                subscription_tier: ctx.subscription_tier,
+                subscription_status: ctx.subscription_status,
+                monthly_limits: ctx.monthly_limits,
+                current_usage: ctx.current_usage,
+                remaining_capacity: ctx.remaining_capacity,
+                user_permissions: ctx.user_permissions
               }
             }
+          } catch (ctxError) {
+            console.warn('⚠️ /teams/context fallback also failed:', ctxError)
           }
 
-          throw new Error(`Failed to fetch teams overview: ${response.statusText}`)
+          // Both endpoints failed — use hardcoded Free tier as last resort
+          console.warn('⚠️ Both team endpoints failed, using Free tier defaults')
+          return {
+            team_name: 'Personal Account',
+            user_role: 'owner',
+            subscription_tier: 'free',
+            subscription_status: 'active',
+            monthly_limits: { profiles: 5, emails: 0, posts: 0 },
+            current_usage: { profiles: 0, emails: 0, posts: 0 },
+            remaining_capacity: { profiles: 5, emails: 0, posts: 0 },
+            user_permissions: {
+              can_analyze_profiles: true,
+              can_unlock_emails: false,
+              can_analyze_posts: false,
+              can_manage_team: false,
+              can_invite_members: false,
+              can_view_billing: false
+            }
+          }
         }
-        
-        const data = await response.json()
-        
-        return data
+
+        throw new Error(`Failed to fetch teams overview: ${response.statusText}`)
       } catch (error) {
         console.error('🚨 Teams Overview API Exception:', error)
-        
+
         // For auth-related errors, return null instead of throwing
-        if (error instanceof Error && 
+        if (error instanceof Error &&
            (error.message.includes('Authentication') || error.message.includes('token'))) {
           return null
         }
-        
+
         throw error
       }
     },
@@ -79,7 +100,7 @@ export const useDashboardData = () => {
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error) => {
       // Don't retry auth errors
-      if (error instanceof Error && 
+      if (error instanceof Error &&
          (error.message.includes('Authentication') || error.message.includes('token'))) {
         return false
       }

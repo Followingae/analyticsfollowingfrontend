@@ -115,14 +115,22 @@ export function CampaignCard({
     if (isUserCampaign(campaign)) {
       return {
         label: "Self-managed",
-        color: "bg-muted text-muted-foreground" // Subtle shadcn styling
+        color: "bg-muted text-muted-foreground"
       };
     } else {
       return {
         label: "Managed",
-        color: "bg-muted text-muted-foreground" // Subtle shadcn styling
+        color: "bg-muted text-muted-foreground"
       };
     }
+  };
+
+  const getCampaignKindBadge = (campaign: CampaignCardData) => {
+    const ct = (campaign as any).campaign_type;
+    if (ct === 'ugc') {
+      return { label: "UGC", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" };
+    }
+    return { label: "Influencer", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" };
   };
 
   const getStatusConfig = (status: string) => {
@@ -211,6 +219,7 @@ export function CampaignCard({
   const flowActions = getCampaignFlowActions(campaign);
   const workflowStage = getWorkflowStageDisplay(campaign);
   const campaignType = getCampaignTypeDisplay(campaign);
+  const campaignKind = getCampaignKindBadge(campaign);
 
 
   return (
@@ -220,16 +229,17 @@ export function CampaignCard({
         isUrgent && "ring-2 ring-amber-500/20"
       )}
       onClick={() => {
-        // FIXED ROUTING: User campaigns go to simple interface, superadmin campaigns go to workflow
-        const userCampaign = isUserCampaign(campaign);
-        const targetRoute = userCampaign ? `/campaigns/${campaign.id}/posts` : `/campaigns/${campaign.id}`;
+        // Route based on campaign_type: UGC campaigns go to /ugc, all others go to /posts
+        const campaignType = (campaign as any).campaign_type;
+        const targetRoute = campaignType === 'ugc'
+          ? `/campaigns/${campaign.id}/ugc`
+          : `/campaigns/${campaign.id}/posts`;
 
-        console.log(`🚨 DEBUG: CAMPAIGN CARD CLICK - "${campaign.name}":`, {
+        console.log(`CAMPAIGN CARD CLICK - "${campaign.name}":`, {
           campaign_id: campaign.id,
+          campaign_type: campaignType,
           created_by: campaign.created_by,
-          isUserCampaign: userCampaign,
           targetRoute: targetRoute,
-          about_to_navigate_to: targetRoute
         });
 
         router.push(targetRoute);
@@ -267,6 +277,11 @@ export function CampaignCard({
                     {/* Campaign Type Badge - Subtle */}
                     <Badge variant="secondary" className="text-xs shrink-0">
                       {campaignType.label}
+                    </Badge>
+
+                    {/* Campaign Kind Badge (Influencer/UGC) */}
+                    <Badge variant="outline" className={`text-xs shrink-0 ${campaignKind.color}`}>
+                      {campaignKind.label}
                     </Badge>
 
                     {/* Workflow Stage Badge (Superadmin campaigns only) */}
@@ -310,12 +325,8 @@ export function CampaignCard({
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={(e) => {
                         e.stopPropagation();
-                        // FIXED ROUTING: User campaigns go to simple interface
-                        if (isUserCampaign(campaign)) {
-                          router.push(`/campaigns/${campaign.id}/posts`);
-                        } else {
-                          router.push(`/campaigns/${campaign.id}`);
-                        }
+                        const ct = (campaign as any).campaign_type;
+                        router.push(ct === 'ugc' ? `/campaigns/${campaign.id}/ugc` : `/campaigns/${campaign.id}/posts`);
                       }}>
                         <Eye className="mr-2 h-4 w-4" />
                         View Details

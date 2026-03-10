@@ -124,10 +124,10 @@ class BillingManager {
     }
   }
 
-  // Get available products
+  // Get available products (fetches pricing from backend)
   async getProducts(): Promise<Product[]> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.products}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.checkout.pricing}`, {
         headers: getAuthHeaders()
       })
       if (!response.ok) {
@@ -150,15 +150,9 @@ class BillingManager {
     }
   }
 
-  // Get price ID for a tier
-  private getPriceId(tier: string): string {
-    const priceIds: Record<string, string> = {
-      free: 'price_1SGatNADTNbHc8P6fCY0pBLS',
-      standard: 'price_1SGasqADTNbHc8P6v7VNl7sc',
-      premium: 'price_1SGatBADTNbHc8P6FlTcQbWI'
-    }
-    return priceIds[tier.toLowerCase()] || priceIds.free
-  }
+  // Price ID resolution is handled server-side. The frontend sends the tier name
+  // (e.g. "standard", "premium") and the backend maps it to the correct Stripe
+  // price ID. DO NOT hardcode price IDs in the frontend.
 
   // Create pre-registration checkout session (payment before account creation)
   async createPreRegistrationCheckout(

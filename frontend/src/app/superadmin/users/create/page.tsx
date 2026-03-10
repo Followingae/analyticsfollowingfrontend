@@ -26,11 +26,23 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+// Validate password meets Supabase requirements
+function validatePassword(password: string): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+  if (password.length < 8) errors.push('At least 8 characters')
+  if (!/[a-z]/.test(password)) errors.push('A lowercase letter')
+  if (!/[A-Z]/.test(password)) errors.push('An uppercase letter')
+  if (!/[0-9]/.test(password)) errors.push('A number')
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|<>?,./`~]/.test(password)) errors.push('A special character')
+  return { valid: errors.length === 0, errors }
+}
+
 export default function CreateBrandAccountPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
 
   // Form state with comprehensive fields
   const [formData, setFormData] = useState({
@@ -40,8 +52,8 @@ export default function CreateBrandAccountPage() {
     company: '',
     phone_number: '',
     subscription_tier: 'free',
-    initial_credits: 0,
-    create_team: false,
+    initial_credits: 125,
+    create_team: true,
     team_name: '',
     max_team_members: 1,
     monthly_profile_limit: 5,
@@ -49,29 +61,29 @@ export default function CreateBrandAccountPage() {
     monthly_posts_limit: 0,
   })
 
-  // Subscription tier presets
+  // Subscription tier presets — matches SUBSCRIPTION_TIER_LIMITS in backend
   const tierPresets = {
     free: {
-      initial_credits: 0,
+      initial_credits: 125,       // 5 profiles × 25 credits
       monthly_profile_limit: 5,
       monthly_email_limit: 0,
       monthly_posts_limit: 0,
       max_team_members: 1,
-      create_team: false,
+      create_team: true,          // Always create team — required for platform
     },
     standard: {
-      initial_credits: 1000,
-      monthly_profile_limit: 500,
-      monthly_email_limit: 250,
-      monthly_posts_limit: 125,
+      initial_credits: 8750,      // $199 tier canonical credits
+      monthly_profile_limit: 350,
+      monthly_email_limit: 200,
+      monthly_posts_limit: 100,
       max_team_members: 2,
       create_team: true,
     },
     premium: {
-      initial_credits: 5000,
-      monthly_profile_limit: 2000,
-      monthly_email_limit: 800,
-      monthly_posts_limit: 300,
+      initial_credits: 25000,     // $499 tier canonical credits
+      monthly_profile_limit: 1000,
+      monthly_email_limit: 500,
+      monthly_posts_limit: 250,
       max_team_members: 5,
       create_team: true,
     },
@@ -89,21 +101,28 @@ export default function CreateBrandAccountPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
 
     // Validation
     if (!formData.email.trim() || !formData.full_name.trim() || !formData.password.trim()) {
-      toast.error("Please fill in email, name, and password")
+      setFormError("Please fill in email, name, and password")
       return
     }
 
-    if (formData.password.length < 8) {
-      toast.error("Password must be at least 8 characters")
+    // Password strength validation
+    const pwCheck = validatePassword(formData.password)
+    if (!pwCheck.valid) {
+      setFormError(`Password must contain: ${pwCheck.errors.join(', ')}`)
       return
     }
 
+    // Auto-fill team name from company if not set
     if (formData.create_team && !formData.team_name.trim()) {
-      toast.error("Team name is required when creating a team")
-      return
+      if (formData.company.trim()) {
+        setFormData(prev => ({ ...prev, team_name: formData.company.trim() }))
+      } else {
+        setFormData(prev => ({ ...prev, team_name: `${formData.full_name}'s Team` }))
+      }
     }
 
     setIsSubmitting(true)
@@ -122,9 +141,7 @@ export default function CreateBrandAccountPage() {
         status: 'active'
       }
 
-      console.log('📤 Creating user with data:', payload)
       const result = await superadminApiService.createUser(payload)
-      console.log('📥 API Response:', result)
 
       if (result.success) {
         setCreatedCredentials({
@@ -134,21 +151,11 @@ export default function CreateBrandAccountPage() {
         setShowSuccess(true)
         toast.success("Brand account created successfully!")
       } else {
-        console.error('❌ Create user failed:', result.error)
         const errorMsg = result.error || 'Failed to create user'
-
-        // Check if it's a 404 error
-        if (errorMsg.includes('Not Found')) {
-          toast.error('Backend endpoint not implemented yet. Contact backend team to implement POST /api/v1/superadmin/users/create', {
-            duration: 5000
-          })
-        } else {
-          toast.error(errorMsg)
-        }
+        setFormError(errorMsg)
       }
     } catch (error: any) {
-      console.error('❌ Create user exception:', error)
-      toast.error(error.response?.data?.detail || error.message || 'Network error while creating user')
+      setFormError(error.response?.data?.detail || error.message || 'Network error while creating user')
     } finally {
       setIsSubmitting(false)
     }
@@ -249,8 +256,8 @@ export default function CreateBrandAccountPage() {
                       company: '',
                       phone_number: '',
                       subscription_tier: 'free',
-                      initial_credits: 0,
-                      create_team: false,
+                      initial_credits: 125,
+                      create_team: true,
                       team_name: '',
                       max_team_members: 1,
                       monthly_profile_limit: 5,
@@ -283,6 +290,12 @@ export default function CreateBrandAccountPage() {
             <p className="text-muted-foreground">Create a complete brand account with subscription, credits, and team setup</p>
           </div>
         </div>
+
+        {formError && (
+          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/50 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+            {formError}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -418,19 +431,19 @@ export default function CreateBrandAccountPage() {
                 <SelectItem value="free">
                   <div className="flex flex-col">
                     <span className="font-medium">Free</span>
-                    <span className="text-xs text-muted-foreground">5 profiles/month • No credits</span>
+                    <span className="text-xs text-muted-foreground">5 profiles/month • 125 credits • 1 member</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="standard">
                   <div className="flex flex-col">
                     <span className="font-medium">Standard - $199/month</span>
-                    <span className="text-xs text-muted-foreground">500 profiles • 1000 credits • 2 team members</span>
+                    <span className="text-xs text-muted-foreground">350 profiles • 8,750 credits • 2 members</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="premium">
                   <div className="flex flex-col">
                     <span className="font-medium">Premium - $499/month</span>
-                    <span className="text-xs text-muted-foreground">2000 profiles • 5000 credits • 5 team members</span>
+                    <span className="text-xs text-muted-foreground">1,000 profiles • 25,000 credits • 5 members</span>
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -441,42 +454,33 @@ export default function CreateBrandAccountPage() {
         {/* Team Setup */}
         <Card>
           <CardHeader>
-            <CardTitle>Team Setup (Optional)</CardTitle>
-            <CardDescription>Create a team for brand collaboration</CardDescription>
+            <CardTitle>Team Setup</CardTitle>
+            <CardDescription>A team is always created for platform features to work. Customize the team name below.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="create_team"
-                checked={formData.create_team}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, create_team: checked === true }))}
-              />
-              <label htmlFor="create_team" className="text-sm font-medium cursor-pointer">
-                Create team for this account
-              </label>
-            </div>
-            {formData.create_team && (
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div>
-                  <label className="text-sm font-medium">Team Name *</label>
-                  <Input
-                    placeholder="Digital Marketing Agency"
-                    value={formData.team_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, team_name: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Max Team Members</label>
-                  <Input
-                    type="number"
-                    value={formData.max_team_members}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_team_members: parseInt(e.target.value) || 1 }))}
-                    className="mt-1"
-                  />
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Team Name</label>
+                <Input
+                  placeholder={formData.company || `${formData.full_name || 'User'}'s Team`}
+                  value={formData.team_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, team_name: e.target.value }))}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Defaults to company name if left empty
+                </p>
               </div>
-            )}
+              <div>
+                <label className="text-sm font-medium">Max Team Members</label>
+                <Input
+                  type="number"
+                  value={formData.max_team_members}
+                  onChange={(e) => setFormData(prev => ({ ...prev, max_team_members: parseInt(e.target.value) || 1 }))}
+                  className="mt-1"
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 

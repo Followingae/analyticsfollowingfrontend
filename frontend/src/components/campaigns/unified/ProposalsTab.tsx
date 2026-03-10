@@ -48,6 +48,7 @@ interface Proposal {
 
 interface ProposalsTabProps {
   searchQuery: string;
+  typeFilter?: 'all' | 'influencer' | 'ugc';
 }
 
 export function ProposalsTab({ searchQuery }: ProposalsTabProps) {

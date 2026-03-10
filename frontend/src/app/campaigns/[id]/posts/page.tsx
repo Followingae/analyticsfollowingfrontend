@@ -111,6 +111,8 @@ interface BackendCampaignDetails {
   brand_name: string;
   brand_logo_url: string | null;
   status: "active" | "completed" | "draft";
+  created_by?: "user" | "superadmin";
+  campaign_type?: "influencer" | "ugc";
   created_at: string;
   updated_at: string;
   posts_count?: number;
@@ -327,6 +329,39 @@ export default function CampaignDetailsPage() {
   const [isProcessingBatch, setIsProcessingBatch] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
 
+  // View-only mode: superadmin-created campaigns are read-only for non-superadmin users
+  const isSuperadmin = user?.role === 'superadmin' || user?.role === 'super_admin' || user?.role === 'admin';
+  const isViewOnly = campaign?.created_by === 'superadmin' && !isSuperadmin;
+
+  // Export handler
+  const handleExport = async (format: 'csv' | 'json' = 'csv') => {
+    try {
+      const { API_CONFIG } = await import("@/config/api");
+      const { tokenManager } = await import("@/utils/tokenManager");
+      const tokenResult = await tokenManager.getValidTokenWithRefresh();
+      if (!tokenResult.isValid || !tokenResult.token) {
+        toast.error("Please log in again");
+        return;
+      }
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/export?format=${format}`,
+        { headers: { 'Authorization': `Bearer ${tokenResult.token}` } }
+      );
+      if (!response.ok) throw new Error('Export failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `campaign_export.${format}`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success(`Campaign exported as ${format.toUpperCase()}`);
+    } catch (err) {
+      console.error('Export error:', err);
+      toast.error('Failed to export campaign data');
+    }
+  };
+
   // Check authentication and fetch data
   useEffect(() => {
     // Wait for auth context to load
@@ -418,6 +453,8 @@ export default function CampaignDetailsPage() {
         brand_name: processedCampaignData.brand_name,
         brand_logo_url: processedCampaignData.brand_logo_url,
         status: processedCampaignData.status,
+        created_by: processedCampaignData.created_by,
+        campaign_type: processedCampaignData.campaign_type,
         created_at: processedCampaignData.created_at,
         updated_at: processedCampaignData.updated_at,
         posts_count: processedCampaignData.posts_count,
@@ -1455,9 +1492,11 @@ export default function CampaignDetailsPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
-                <Button variant="ghost" size="icon" onClick={handleOpenEditDialog}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                {!isViewOnly && (
+                  <Button variant="ghost" size="icon" onClick={handleOpenEditDialog}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">{campaign.brand_name}</p>
             </div>
@@ -1465,15 +1504,17 @@ export default function CampaignDetailsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Badge>{campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : 'Draft'}</Badge>
-          <Button
-            variant="default"
-            onClick={() => setIsAddPostDialogOpen(true)}
-            className="h-10"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Posts
-          </Button>
-          <Button variant="outline" className="h-10">
+          {!isViewOnly && (
+            <Button
+              variant="default"
+              onClick={() => setIsAddPostDialogOpen(true)}
+              className="h-10"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Posts
+            </Button>
+          )}
+          <Button variant="outline" className="h-10" onClick={() => handleExport('csv')}>
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
@@ -2079,10 +2120,12 @@ export default function CampaignDetailsPage() {
                 {posts.length} {posts.length === 1 ? "post" : "posts"} in this campaign
               </p>
             </div>
-            <Button onClick={() => setIsAddPostDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Post
-            </Button>
+            {!isViewOnly && (
+              <Button onClick={() => setIsAddPostDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Post
+              </Button>
+            )}
           </div>
 
           {posts.length === 0 ? (
@@ -2091,12 +2134,14 @@ export default function CampaignDetailsPage() {
                 <Image className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-medium mb-2">No posts yet</h3>
                 <p className="text-muted-foreground mb-4">
-                  Start adding posts to track campaign performance
+                  {isViewOnly ? 'No posts have been added to this campaign yet.' : 'Start adding posts to track campaign performance'}
                 </p>
-                <Button onClick={() => setIsAddPostDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Post
-                </Button>
+                {!isViewOnly && (
+                  <Button onClick={() => setIsAddPostDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Post
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -2105,7 +2150,7 @@ export default function CampaignDetailsPage() {
                 <PostCard
                   key={`${post.id}-${post.engagementRate?.toFixed(2)}`}
                   post={post}
-                  onRemove={async (postId) => {
+                  onRemove={isViewOnly ? undefined : async (postId) => {
                     if (!confirm("Remove this post from the campaign?")) return;
 
                     try {

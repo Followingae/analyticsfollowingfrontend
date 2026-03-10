@@ -60,6 +60,7 @@ export default function NewCampaignPage() {
   // ROLE-BASED FLOW DETECTION (NO MORE USER CHOICE)
   const isSuperadmin = user?.role === 'superadmin';
   const [targetUserId, setTargetUserId] = useState<string>('');
+  const [selectedType, setSelectedType] = useState<'influencer' | 'ugc' | null>(null);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -177,9 +178,10 @@ export default function NewCampaignPage() {
           budget: budget || undefined,
           start_date: startDate || undefined,
           end_date: endDate || undefined,
+          campaign_type: selectedType || 'influencer',
         };
 
-        console.log("🏢 Creating MANAGED campaign for user:", campaignData);
+        console.log("Creating MANAGED campaign for user:", campaignData);
         response = await campaignApi.createSuperadminCampaign(campaignData);
       } else {
         // REGULAR USER: Create campaign for themselves
@@ -190,9 +192,10 @@ export default function NewCampaignPage() {
           budget: budget || undefined,
           start_date: startDate || undefined,
           end_date: endDate || undefined,
+          campaign_type: selectedType || 'influencer',
         };
 
-        console.log("👤 Creating SELF-MANAGED campaign:", campaignData);
+        console.log("Creating SELF-MANAGED campaign:", campaignData);
         response = await campaignApi.createUserCampaign(campaignData);
       }
 
@@ -284,8 +287,12 @@ export default function NewCampaignPage() {
       toast.dismiss(loadingToast);
       toast.success("Campaign created successfully!");
 
-      // Redirect to campaigns list
-      router.push(`/campaigns`);
+      // Redirect based on campaign type
+      if (selectedType === 'ugc') {
+        router.push(`/campaigns/${campaignId}/ugc`);
+      } else {
+        router.push(`/campaigns`);
+      }
     } catch (error) {
       console.error("❌ Error creating campaign:", error);
       if (error instanceof Error) {
@@ -320,15 +327,57 @@ export default function NewCampaignPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Header */}
               <div className="flex items-center gap-4">
-                <Button type="button" variant="ghost" size="icon" onClick={handleCancel}>
+                <Button type="button" variant="ghost" size="icon" onClick={() => {
+                  if (selectedType) {
+                    setSelectedType(null);
+                  } else {
+                    handleCancel();
+                  }
+                }}>
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <div className="flex-1"></div>
+                <div className="flex-1">
+                  {selectedType && (
+                    <h2 className="text-lg font-semibold">
+                      New {selectedType === 'ugc' ? 'UGC' : 'Influencer'} Campaign
+                    </h2>
+                  )}
+                </div>
                 <Badge variant="outline" className={isSuperadmin ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}>
-                  {isSuperadmin ? '🏢 Admin Mode' : '👤 Self-Managed'}
+                  {isSuperadmin ? 'Admin Mode' : 'Self-Managed'}
                 </Badge>
               </div>
 
+        {/* Campaign Type Selector */}
+        {!selectedType ? (
+          <div className="py-12">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold tracking-tight mb-2">Choose Campaign Type</h2>
+              <p className="text-muted-foreground">Select the type of campaign you want to create</p>
+            </div>
+            <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
+              <button
+                type="button"
+                onClick={() => setSelectedType('influencer')}
+                className="p-8 rounded-2xl border-2 border-zinc-700 hover:border-blue-500 transition-all bg-zinc-900/50 text-left group"
+              >
+                <div className="text-3xl mb-4">📊</div>
+                <h3 className="text-xl font-bold text-white mb-2">Influencer Campaign</h3>
+                <p className="text-sm text-zinc-400">Track posts, analyze reach, and measure ROI from influencer collaborations</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedType('ugc')}
+                className="p-8 rounded-2xl border-2 border-zinc-700 hover:border-purple-500 transition-all bg-zinc-900/50 text-left group"
+              >
+                <div className="text-3xl mb-4">🎬</div>
+                <h3 className="text-xl font-bold text-white mb-2">UGC Campaign</h3>
+                <p className="text-sm text-zinc-400">Creative concepts, model casting, video production & delivery management</p>
+              </button>
+            </div>
+          </div>
+        ) : (
+        <>
         {/* Campaign Details */}
         <Card>
           <CardHeader>
@@ -618,6 +667,9 @@ export default function NewCampaignPage() {
 
         {/* Form Actions */}
         <div className="flex items-center justify-end gap-4">
+          <Button type="button" variant="outline" onClick={() => setSelectedType(null)}>
+            Back
+          </Button>
           <Button type="button" variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
@@ -628,6 +680,8 @@ export default function NewCampaignPage() {
             {isSuperadmin ? 'Create Managed Campaign' : 'Create My Campaign'}
           </Button>
         </div>
+        </>
+        )}
               </form>
           </div>
         </SidebarInset>

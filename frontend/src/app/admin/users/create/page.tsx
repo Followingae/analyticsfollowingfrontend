@@ -39,11 +39,11 @@ function CreateUserContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // CORRECT TIER CREDITS - MUST MATCH BACKEND
+  // Canonical tier credits — matches SUBSCRIPTION_TIER_LIMITS in backend
   const TIER_CREDITS = {
     user: 125,        // Free: 5 profiles × 25 credits
-    standard: 12500,  // Standard: 500 profiles × 25 credits
-    premium: 50000    // Premium: 2000 profiles × 25 credits
+    standard: 8750,   // Standard: $199/month canonical
+    premium: 25000    // Premium: $499/month canonical
   };
 
   const getTierCredits = (role: string): number => {
@@ -112,6 +112,17 @@ function CreateUserContent() {
       return;
     }
 
+    // Password strength validation (must match Supabase requirements)
+    const pwErrors: string[] = [];
+    if (!/[a-z]/.test(form.password)) pwErrors.push('a lowercase letter');
+    if (!/[A-Z]/.test(form.password)) pwErrors.push('an uppercase letter');
+    if (!/[0-9]/.test(form.password)) pwErrors.push('a number');
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|<>?,./`~]/.test(form.password)) pwErrors.push('a special character');
+    if (pwErrors.length > 0) {
+      setError(`Password must contain: ${pwErrors.join(', ')}`);
+      return;
+    }
+
 
     setLoading(true);
 
@@ -143,8 +154,23 @@ function CreateUserContent() {
       });
 
       if (!userResponse.ok) {
-        const errorData = await userResponse.json();
-        throw new Error(errorData.detail || 'Failed to create user');
+        let errorMessage = 'Failed to create user';
+        try {
+          const errorData = await userResponse.json();
+          // detail can be a string or an object with message
+          if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else if (errorData.detail?.message) {
+            errorMessage = errorData.detail.message;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch {
+          // If JSON parsing fails, try text
+          const text = await userResponse.text().catch(() => '');
+          if (text) errorMessage = text;
+        }
+        throw new Error(errorMessage);
       }
 
       const userData = await userResponse.json();
@@ -437,7 +463,7 @@ function CreateUserContent() {
                       <Label htmlFor="standard" className="font-medium cursor-pointer">
                         Standard Tier
                       </Label>
-                      <p className="text-xs text-muted-foreground">12,500 credits/month • 500 profile unlocks • 200 email unlocks</p>
+                      <p className="text-xs text-muted-foreground">8,750 credits/month • 350 profile unlocks • 200 email unlocks</p>
                     </div>
                   </div>
 
@@ -447,7 +473,7 @@ function CreateUserContent() {
                       <Label htmlFor="premium" className="font-medium cursor-pointer">
                         Premium Tier
                       </Label>
-                      <p className="text-xs text-muted-foreground">50,000 credits/month • 2000 profile unlocks • 800 email unlocks</p>
+                      <p className="text-xs text-muted-foreground">25,000 credits/month • 1,000 profile unlocks • 500 email unlocks</p>
                     </div>
                   </div>
                 </div>
@@ -488,7 +514,7 @@ function CreateUserContent() {
                 disabled
               />
               <p className="text-xs text-muted-foreground">
-                Credits are automatically set based on the selected tier. Free: 125, Standard: 12,500, Premium: 50,000
+                Credits are automatically set based on the selected tier. Free: 125, Standard: 8,750, Premium: 25,000
               </p>
             </div>
           </CardContent>

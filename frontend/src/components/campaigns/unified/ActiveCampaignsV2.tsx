@@ -13,9 +13,10 @@ type Campaign = CampaignCardData;
 
 interface ActiveCampaignsProps {
   searchQuery: string;
+  typeFilter?: 'all' | 'influencer' | 'ugc';
 }
 
-export function ActiveCampaignsV2({ searchQuery }: ActiveCampaignsProps) {
+export function ActiveCampaignsV2({ searchQuery, typeFilter = 'all' }: ActiveCampaignsProps) {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,6 +112,12 @@ export function ActiveCampaignsV2({ searchQuery }: ActiveCampaignsProps) {
 
 
   const filteredCampaigns = campaigns.filter(campaign => {
+    // Type filter
+    if (typeFilter !== 'all') {
+      const ct = (campaign as any).campaign_type || 'influencer';
+      if (ct !== typeFilter) return false;
+    }
+    // Search filter
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (

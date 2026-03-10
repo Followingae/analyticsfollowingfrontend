@@ -28,6 +28,7 @@ interface SignInPageProps {
   description?: React.ReactNode;
   testimonials?: Testimonial[];
   isLoading?: boolean;
+  error?: string;
   onSignIn?: (event: React.FormEvent<HTMLFormElement>) => void;
   onResetPassword?: () => void;
   onCreateAccount?: () => void;
@@ -62,6 +63,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   description = "",
   testimonials = [],
   isLoading = false,
+  error,
   onSignIn,
   onResetPassword,
   onCreateAccount,
@@ -133,6 +135,12 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               <div className="animate-element animate-delay-500 flex items-center justify-end text-sm">
                 <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-muted-foreground transition-colors">Reset password</a>
               </div>
+
+              {error && (
+                <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/50 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+                  {error}
+                </div>
+              )}
 
               <button 
                 type="submit" 

@@ -24,6 +24,7 @@ export default function UnifiedCampaignsDashboard() {
   const { user } = useEnhancedAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<'all' | 'influencer' | 'ugc'>('all');
   const [stats, setStats] = useState({
     active: 0,
     proposals: 0,
@@ -84,7 +85,31 @@ export default function UnifiedCampaignsDashboard() {
 
           {/* Tabs Content */}
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+            {/* Campaign Type Filter Pills */}
+            <div className="flex items-center gap-2 mt-6">
+              <span className="text-sm text-muted-foreground mr-1">Type:</span>
+              {(['all', 'influencer', 'ugc'] as const).map((type) => (
+                <Button
+                  key={type}
+                  variant={typeFilter === type ? 'default' : 'outline'}
+                  size="sm"
+                  className={`h-7 px-3 text-xs ${
+                    typeFilter === type
+                      ? type === 'ugc'
+                        ? 'bg-purple-600 hover:bg-purple-700'
+                        : type === 'influencer'
+                        ? 'bg-blue-600 hover:bg-blue-700'
+                        : ''
+                      : ''
+                  }`}
+                  onClick={() => setTypeFilter(type)}
+                >
+                  {type === 'all' ? 'All' : type === 'influencer' ? 'Influencer' : 'UGC'}
+                </Button>
+              ))}
+            </div>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
               {/* Tabs with Search */}
               <div className="flex items-center justify-between gap-4">
                 <TabsList className="bg-muted/30 p-1 h-auto">
@@ -133,7 +158,7 @@ export default function UnifiedCampaignsDashboard() {
                   const TabComponent = tab.component;
                   return (
                     <TabsContent key={tab.id} value={tab.id} className="mt-0 space-y-4">
-                      <TabComponent searchQuery={searchQuery} />
+                      <TabComponent searchQuery={searchQuery} typeFilter={typeFilter} />
                     </TabsContent>
                   );
                 })}

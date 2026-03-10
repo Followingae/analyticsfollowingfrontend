@@ -185,13 +185,6 @@ export const ENDPOINTS = {
     health: '/api/v1/post-analytics/health', // GET - Health check
   },
 
-  // Settings (/api/v1/settings/)
-  settings: {
-    user: '/api/v1/settings/user', // GET/PUT - User settings and preferences
-    profile: '/api/v1/settings/profile', // GET/PUT - User profile settings (legacy)
-    overview: '/api/v1/settings/overview', // GET - Settings overview (legacy)
-  },
-
   // Billing (/api/v1/billing/)
   billing: {
     // Payment-First Registration Flow (v3 removed - using clean URLs)
@@ -478,26 +471,13 @@ export const ENDPOINTS = {
 
   // User Settings Endpoints (/api/v1/settings/)
   settings: {
-    // Profile Management
     profile: '/api/v1/settings/profile', // GET/PUT - User profile
-    account: '/api/v1/settings/account', // GET - Account status
     preferences: '/api/v1/settings/preferences', // GET/PUT - User preferences
-    security: '/api/v1/settings/security', // GET - Security info
-
-    // Profile Actions
-    uploadAvatar: '/api/v1/settings/upload-avatar', // POST - Upload profile picture
-
-    // Security Actions
-    changePassword: '/api/v1/settings/change-password', // POST - Change password
-    enable2FA: '/api/v1/settings/2fa/enable', // POST - Enable 2FA
-    disable2FA: '/api/v1/settings/2fa/disable', // DELETE - Disable 2FA
-
-    // Data Actions
-    exportData: '/api/v1/settings/export-data', // GET - Export user data
-
-    // Legacy
-    user: '/api/v1/settings/user', // GET/PUT - User settings and preferences
-    overview: '/api/v1/settings/overview', // GET - Settings overview (legacy)
+    notifications: '/api/v1/settings/notifications', // GET/PUT - Notification preferences
+    privacy: '/api/v1/settings/security/privacy', // PUT - Privacy settings
+    changePassword: '/api/v1/settings/security/password', // POST - Change password
+    toggle2FA: '/api/v1/settings/security/2fa', // POST - Enable/disable 2FA
+    overview: '/api/v1/settings/overview', // GET - Complete settings overview
   },
 
   // Teams Additional Endpoints

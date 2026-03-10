@@ -351,70 +351,65 @@ class AuthService {
     }
   }
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // Use request deduplication to prevent multiple simultaneous login attempts
-    const cacheKey = `login:${credentials.email}`
-
-    return requestCache.get(cacheKey, async () => {
-      try {
-
-        const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.login}`, {
-          method: 'POST',
-          headers: REQUEST_HEADERS,
-          body: JSON.stringify(credentials)
-        })
-
+    // No caching for login — each attempt must hit the backend
+    try {
+      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.login}`, {
+        method: 'POST',
+        headers: REQUEST_HEADERS,
+        body: JSON.stringify(credentials)
+      })
 
       if (!response.ok) {
-
-        const error = await response.text()
+        // Parse JSON error response to extract user-friendly message
+        let errorMessage = `Login failed (${response.status})`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.detail || errorData.message || errorMessage
+        } catch {
+          // If not JSON, try plain text
+          const text = await response.text().catch(() => '')
+          if (text) errorMessage = text
+        }
         return {
           success: false,
-          error: error || `HTTP ${response.status}: ${response.statusText}`
+          error: errorMessage
         }
       }
 
       const data = await response.json()
-      
-      if (data.access_token && data.user) {
 
-        
+      if (data.access_token && data.user) {
         // Validate access token before processing
-        if (data.access_token === 'null' || 
-            data.access_token === 'undefined' || 
-            typeof data.access_token !== 'string' || 
+        if (data.access_token === 'null' ||
+            data.access_token === 'undefined' ||
+            typeof data.access_token !== 'string' ||
             data.access_token.split('.').length !== 3) {
           return {
             success: false,
             error: 'Invalid authentication token received from server'
-          };
+          }
         }
-        
-        // Calculate expiration (default to 24 hours if not provided - backend standard)
-        const expiresIn = data.expires_in || 86400 // 24 hours in seconds
+
+        // Calculate expiration (default to 24 hours if not provided)
+        const expiresIn = data.expires_in || 86400
         const expiresAt = Date.now() + (expiresIn * 1000)
-        
-        // Create token data with expiration
+
         const tokenData: TokenData = {
           access_token: data.access_token,
           refresh_token: data.refresh_token || '',
           token_type: data.token_type || 'bearer',
           expires_at: expiresAt
         }
-        
-        // Store both in localStorage and in-memory using TokenManager
+
         tokenManager.setTokenData(tokenData)
         this.saveTokenData(tokenData)
-        
-        // Validate user data before storing
+
         if (data.user && typeof data.user === 'object') {
           localStorage.setItem('user_data', JSON.stringify(data.user))
-        } else {
-
         }
-        
-        // Set login grace period to prevent immediate token validation
+
         this.lastLoginTime = Date.now()
-        
+
         return {
           success: true,
           data: data
@@ -425,13 +420,12 @@ class AuthService {
         success: false,
         error: 'Invalid response format'
       }
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Login failed'
-        }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Login failed'
       }
-    }, 30000) // 30 second TTL for login requests, no retry for failed logins
+    }
   }
 
   // Register user

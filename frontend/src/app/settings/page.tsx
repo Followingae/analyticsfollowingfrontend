@@ -1,36 +1,38 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import {
   User,
-  Bell,
   Shield,
   CreditCard,
   Globe,
   Key,
-  Mail,
   Save,
   Eye,
   EyeOff,
-  Download,
-  Upload,
   Loader2,
-  CheckCircle,
-  AlertCircle,
   Users as TeamIcon,
-  Clock,
   BarChart3,
   Settings as SettingsIcon,
-  Lock,
-  Smartphone,
   RefreshCw,
+  Bell,
 } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
-import { userSettingsService, type UserProfile, type UserAccount, type UserPreferences, type UserSecurity, type MyTeam, type MyTeamUsage } from "@/services/userSettingsService"
+import {
+  userSettingsService,
+  type UserProfile,
+  type UserAccount,
+  type UserPreferences,
+  type UserSecurity,
+  type NotificationPreferences,
+  type PrivacySettings,
+  type MyTeam,
+  type MyTeamUsage,
+} from "@/services/userSettingsService"
 import { UserAvatar } from "@/components/UserAvatar"
 import { AvatarSelectionDialog } from "@/components/AvatarSelectionDialog"
 import { Badge } from "@/components/ui/badge"
@@ -69,7 +71,6 @@ import {
 } from "@/components/ui/dialog"
 
 export default function SettingsPage() {
-  // Loading states
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState("profile")
@@ -79,12 +80,16 @@ export default function SettingsPage() {
   const [account, setAccount] = useState<UserAccount | null>(null)
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
   const [security, setSecurity] = useState<UserSecurity | null>(null)
+  const [notifications, setNotifications] = useState<NotificationPreferences | null>(null)
+  const [privacy, setPrivacy] = useState<PrivacySettings | null>(null)
   const [myTeam, setMyTeam] = useState<MyTeam | null>(null)
   const [myTeamUsage, setMyTeamUsage] = useState<MyTeamUsage | null>(null)
 
   // Form states
   const [profileForm, setProfileForm] = useState<Partial<UserProfile>>({})
   const [preferencesForm, setPreferencesForm] = useState<Partial<UserPreferences>>({})
+  const [notificationsForm, setNotificationsForm] = useState<Partial<NotificationPreferences>>({})
+  const [privacyForm, setPrivacyForm] = useState<PrivacySettings>({})
   const [passwordForm, setPasswordForm] = useState({
     current_password: '',
     new_password: '',
@@ -93,53 +98,115 @@ export default function SettingsPage() {
 
   // UI states
   const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false
+    current: false, new: false, confirm: false
   })
-  const [enable2FADialog, setEnable2FADialog] = useState(false)
-  const [disable2FADialog, setDisable2FADialog] = useState(false)
-  const [disable2FACode, setDisable2FACode] = useState('')
+  const [toggle2FADialog, setToggle2FADialog] = useState<'enable' | 'disable' | null>(null)
+  const [twoFAPassword, setTwoFAPassword] = useState('')
   const [avatarConfig, setAvatarConfig] = useState<any>(null)
-
 
   const { user, refreshUser } = useEnhancedAuth()
 
-  // Initialize avatar config from user data
   useEffect(() => {
     if (user?.avatar_config && !avatarConfig) {
       setAvatarConfig(user.avatar_config)
     }
   }, [user?.avatar_config, avatarConfig])
 
-  // Simple static currency formatting
-  const formatAmount = (amountCents: number) => `AED ${(amountCents / 100).toFixed(2)}`
-  const currencyInfo = { code: 'AED', symbol: 'AED' }
-
-  // Load all settings data
+  // Load all settings data from backend
   const loadSettingsData = async () => {
     try {
       setLoading(true)
 
-      // Load profile data
-      const profileData = await userSettingsService.getProfile()
-      setProfile(profileData)
+      // Try overview endpoint first (single call for everything)
+      let overviewLoaded = false
+      try {
+        const overview = await userSettingsService.getOverview()
+        if (overview) {
+          // Profile from overview
+          setProfile(overview.profile)
+          setProfileForm(overview.profile)
 
-      // Use real user data from auth context instead of mock account data
+          // Security from overview
+          setSecurity({
+            two_factor_enabled: overview.security?.two_factor_enabled ?? false,
+            email_verified: overview.security?.email_verified ?? true,
+            last_sign_in_at: new Date().toISOString()
+          })
+
+          // Notifications from overview
+          if (overview.notifications) {
+            setNotifications(overview.notifications)
+            setNotificationsForm(overview.notifications)
+          }
+
+          // Privacy from overview
+          if (overview.privacy) {
+            setPrivacy(overview.privacy)
+            setPrivacyForm(overview.privacy)
+          }
+
+          // Preferences from overview
+          if (overview.preferences) {
+            setPreferences(overview.preferences)
+            setPreferencesForm(overview.preferences)
+          }
+
+          overviewLoaded = true
+        }
+      } catch {
+        console.log('Overview endpoint unavailable, loading individually')
+      }
+
+      // Fallback: load individual endpoints if overview failed
+      if (!overviewLoaded) {
+        const profileData = await userSettingsService.getProfile()
+        setProfile(profileData)
+        setProfileForm(profileData)
+
+        try {
+          const prefsData = await userSettingsService.getPreferences()
+          setPreferences(prefsData)
+          setPreferencesForm(prefsData)
+        } catch {
+          setPreferences({ timezone: 'UTC', language: 'en' })
+          setPreferencesForm({ timezone: 'UTC', language: 'en' })
+        }
+
+        try {
+          const notifData = await userSettingsService.getNotifications()
+          setNotifications(notifData)
+          setNotificationsForm(notifData)
+        } catch {
+          const defaults: NotificationPreferences = {
+            email_notifications: true,
+            push_notifications: true,
+            marketing_emails: false,
+            security_alerts: true,
+            weekly_reports: true
+          }
+          setNotifications(defaults)
+          setNotificationsForm(defaults)
+        }
+
+        setSecurity({
+          two_factor_enabled: false,
+          email_verified: true,
+          last_sign_in_at: new Date().toISOString()
+        })
+
+        setPrivacy({ profile_visibility: false, data_analytics_enabled: true })
+        setPrivacyForm({ profile_visibility: false, data_analytics_enabled: true })
+      }
+
+      // Account data from auth context
       if (user) {
-        // Map role to display-friendly format
         const displayRole = user.role ? user.role.replace('brand_', '').replace('_', ' ') : 'user'
-
-        // Extract subscription tier from role or use the tier field
         let subscriptionTier = 'free'
         if (user.subscription_tier) {
           subscriptionTier = user.subscription_tier.replace('brand_', '')
-        } else if (user.role?.startsWith('brand_')) {
-          subscriptionTier = user.role.replace('brand_', '')
         } else if (user.role === 'super_admin' || user.role === 'admin') {
           subscriptionTier = 'admin'
         }
-
         setAccount({
           role: displayRole,
           subscription_tier: subscriptionTier,
@@ -148,32 +215,7 @@ export default function SettingsPage() {
         })
       }
 
-      // Set default preferences and security data since endpoints don't exist
-      setPreferences({
-        timezone: 'UTC',
-        language: 'en',
-        notification_preferences: { email: true, push: true },
-        profile_visibility: 'private',
-        data_analytics_enabled: true
-      })
-
-      setSecurity({
-        two_factor_enabled: false,
-        email_verified: true,
-        last_sign_in_at: new Date().toISOString()
-      })
-
-      // Set form initial values
-      setProfileForm(profileData)
-      setPreferencesForm({
-        timezone: 'UTC',
-        language: 'en',
-        notification_preferences: { email: true, push: true },
-        profile_visibility: 'private',
-        data_analytics_enabled: true
-      })
-
-      // Load team data if available
+      // Team data
       try {
         const [teamData, teamUsageData] = await Promise.all([
           userSettingsService.getMyTeam(),
@@ -181,8 +223,7 @@ export default function SettingsPage() {
         ])
         setMyTeam(teamData)
         setMyTeamUsage(teamUsageData)
-      } catch (error) {
-        // Team data might not be available for all users
+      } catch {
         console.log('No team data available')
       }
 
@@ -202,8 +243,9 @@ export default function SettingsPage() {
   const saveProfile = async () => {
     try {
       setSaving(true)
-      await userSettingsService.updateProfile(profileForm)
-      setProfile({ ...profile!, ...profileForm })
+      const result = await userSettingsService.updateProfile(profileForm)
+      setProfile(result)
+      setProfileForm(result)
       toast.success('Profile updated successfully')
       await refreshUser()
     } catch (error) {
@@ -229,26 +271,56 @@ export default function SettingsPage() {
     }
   }
 
+  // Save notifications
+  const saveNotifications = async () => {
+    try {
+      setSaving(true)
+      const result = await userSettingsService.updateNotifications(notificationsForm)
+      setNotifications(result)
+      setNotificationsForm(result)
+      toast.success('Notification preferences updated')
+    } catch (error) {
+      console.error('Failed to save notifications:', error)
+      toast.error('Failed to save notification preferences')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Save privacy
+  const savePrivacy = async () => {
+    try {
+      setSaving(true)
+      const result = await userSettingsService.updatePrivacy(privacyForm)
+      setPrivacy(result)
+      setPrivacyForm(result)
+      toast.success('Privacy settings updated')
+    } catch (error) {
+      console.error('Failed to save privacy settings:', error)
+      toast.error('Failed to save privacy settings')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // Change password
   const changePassword = async () => {
     if (passwordForm.new_password !== passwordForm.confirm_password) {
       toast.error('New passwords do not match')
       return
     }
-
     if (passwordForm.new_password.length < 8) {
       toast.error('Password must be at least 8 characters long')
       return
     }
-
     try {
       setSaving(true)
       await userSettingsService.changePassword(passwordForm.current_password, passwordForm.new_password)
       setPasswordForm({ current_password: '', new_password: '', confirm_password: '' })
       toast.success('Password changed successfully')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to change password:', error)
-      toast.error('Failed to change password')
+      toast.error(error.message || 'Failed to change password')
     } finally {
       setSaving(false)
     }
@@ -259,104 +331,50 @@ export default function SettingsPage() {
     try {
       setSaving(true)
       setAvatarConfig(config)
-
-      // Save to backend via profile update (include avatar_config)
-      const updatedProfile = {
-        ...profileForm,
-        avatar_config: config
-      }
-
+      const updatedProfile = { ...profileForm, avatar_config: config }
       const result = await userSettingsService.updateProfile(updatedProfile)
       setProfile(result)
       setProfileForm(result)
-
-      // Update user state in auth context
       await refreshUser()
-
       toast.success('Avatar updated successfully!')
     } catch (error) {
       console.error('Failed to save avatar config:', error)
       toast.error('Failed to update avatar')
-      // Revert avatar config on error
       setAvatarConfig(user?.avatar_config || null)
     } finally {
       setSaving(false)
     }
   }
 
-  // Enable 2FA
-  const enable2FA = async () => {
-    try {
-      setSaving(true)
-      const result = await userSettingsService.enable2FA()
-      // Show QR code and backup codes to user
-      toast.success('2FA enabled successfully')
-      setEnable2FADialog(false)
-      await loadSettingsData()
-    } catch (error) {
-      console.error('Failed to enable 2FA:', error)
-      toast.error('Failed to enable 2FA')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // Disable 2FA
-  const disable2FA = async () => {
-    if (!disable2FACode.trim()) {
-      toast.error('Please enter verification code')
+  // Toggle 2FA
+  const handleToggle2FA = async () => {
+    if (!twoFAPassword.trim()) {
+      toast.error('Please enter your password')
       return
     }
-
+    const enabling = toggle2FADialog === 'enable'
     try {
       setSaving(true)
-      await userSettingsService.disable2FA(disable2FACode)
-      toast.success('2FA disabled successfully')
-      setDisable2FADialog(false)
-      setDisable2FACode('')
-      await loadSettingsData()
-    } catch (error) {
-      console.error('Failed to disable 2FA:', error)
-      toast.error('Failed to disable 2FA')
+      const result = await userSettingsService.toggle2FA(enabling, twoFAPassword)
+      toast.success(result.message || `2FA ${enabling ? 'enabled' : 'disabled'} successfully`)
+      setSecurity(prev => prev ? { ...prev, two_factor_enabled: enabling } : prev)
+      setToggle2FADialog(null)
+      setTwoFAPassword('')
+    } catch (error: any) {
+      console.error(`Failed to ${enabling ? 'enable' : 'disable'} 2FA:`, error)
+      toast.error(error.message || `Failed to ${enabling ? 'enable' : 'disable'} 2FA`)
     } finally {
       setSaving(false)
     }
   }
 
-  // Export data
-  const exportData = async () => {
-    try {
-      setSaving(true)
-      const result = await userSettingsService.exportData()
-      // Create download link
-      const link = document.createElement('a')
-      link.href = result.export_url
-      link.download = 'my-data-export.zip'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      toast.success('Data export started')
-    } catch (error) {
-      console.error('Failed to export data:', error)
-      toast.error('Failed to export data')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // Format date
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'Not available'
-
     const date = new Date(dateString)
     if (isNaN(date.getTime())) return 'Invalid date'
-
     return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     })
   }
 
@@ -384,10 +402,11 @@ export default function SettingsPage() {
         <SiteHeader />
         <div className="flex-1 space-y-4 p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="account">Account</TabsTrigger>
               <TabsTrigger value="security">Security</TabsTrigger>
+              <TabsTrigger value="notifications">Notifications</TabsTrigger>
               <TabsTrigger value="preferences">Preferences</TabsTrigger>
               <TabsTrigger value="team">Team</TabsTrigger>
             </TabsList>
@@ -562,7 +581,6 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
 
-              {/* Credits & Usage */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -570,7 +588,7 @@ export default function SettingsPage() {
                     Credits & Usage
                   </CardTitle>
                   <CardDescription>
-                    Your current credit balance and usage statistics
+                    Your current credit balance
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -578,34 +596,10 @@ export default function SettingsPage() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Current Balance:</span>
                       <span className="font-medium">
-                        {user?.credits_balance ? formatAmount(user.credits_balance) : 'AED 0.00'}
+                        {user?.credits_balance?.toLocaleString() ?? '0'} credits
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Currency:</span>
-                      <span>{currencyInfo?.code} ({currencyInfo?.symbol})</span>
-                    </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Data Export */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Download className="h-5 w-5" />
-                    Data Export
-                  </CardTitle>
-                  <CardDescription>
-                    Download all your account data
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button variant="outline" onClick={exportData} disabled={saving}>
-                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    <Download className="h-4 w-4 mr-2" />
-                    Export My Data
-                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -646,47 +640,51 @@ export default function SettingsPage() {
                       <Badge variant={security?.two_factor_enabled ? 'default' : 'secondary'}>
                         {security?.two_factor_enabled ? 'Enabled' : 'Disabled'}
                       </Badge>
-                      {security?.two_factor_enabled ? (
-                        <Dialog open={disable2FADialog} onOpenChange={setDisable2FADialog}>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              Disable
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Disable Two-Factor Authentication</DialogTitle>
-                              <DialogDescription>
-                                Enter your verification code to disable 2FA
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div className="space-y-2">
-                                <Label>Verification Code</Label>
-                                <Input
-                                  value={disable2FACode}
-                                  onChange={(e) => setDisable2FACode(e.target.value)}
-                                  placeholder="000000"
-                                />
-                              </div>
-                              <div className="flex gap-2">
-                                <Button variant="outline" onClick={() => setDisable2FADialog(false)}>
-                                  Cancel
-                                </Button>
-                                <Button variant="destructive" onClick={disable2FA} disabled={saving}>
-                                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                                  Disable 2FA
-                                </Button>
-                              </div>
+                      <Dialog open={toggle2FADialog !== null} onOpenChange={(open) => { if (!open) { setToggle2FADialog(null); setTwoFAPassword('') } }}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setToggle2FADialog(security?.two_factor_enabled ? 'disable' : 'enable')}
+                          >
+                            {security?.two_factor_enabled ? 'Disable' : 'Enable'}
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>
+                              {toggle2FADialog === 'enable' ? 'Enable' : 'Disable'} Two-Factor Authentication
+                            </DialogTitle>
+                            <DialogDescription>
+                              Enter your password to confirm
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label>Password</Label>
+                              <Input
+                                type="password"
+                                value={twoFAPassword}
+                                onChange={(e) => setTwoFAPassword(e.target.value)}
+                                placeholder="Enter your password"
+                              />
                             </div>
-                          </DialogContent>
-                        </Dialog>
-                      ) : (
-                        <Button variant="outline" size="sm" onClick={enable2FA} disabled={saving}>
-                          {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                          Enable
-                        </Button>
-                      )}
+                            <div className="flex gap-2">
+                              <Button variant="outline" onClick={() => { setToggle2FADialog(null); setTwoFAPassword('') }}>
+                                Cancel
+                              </Button>
+                              <Button
+                                variant={toggle2FADialog === 'disable' ? 'destructive' : 'default'}
+                                onClick={handleToggle2FA}
+                                disabled={saving || !twoFAPassword.trim()}
+                              >
+                                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                                {toggle2FADialog === 'enable' ? 'Enable 2FA' : 'Disable 2FA'}
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
 
@@ -789,6 +787,91 @@ export default function SettingsPage() {
               </Card>
             </TabsContent>
 
+            {/* Notifications Tab */}
+            <TabsContent value="notifications" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="h-5 w-5" />
+                    Notification Preferences
+                  </CardTitle>
+                  <CardDescription>
+                    Choose which notifications you want to receive
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Email Notifications</Label>
+                      <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                    </div>
+                    <Switch
+                      checked={notificationsForm.email_notifications ?? true}
+                      onCheckedChange={(checked) => setNotificationsForm(prev => ({ ...prev, email_notifications: checked }))}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Push Notifications</Label>
+                      <p className="text-sm text-muted-foreground">Receive push notifications in your browser</p>
+                    </div>
+                    <Switch
+                      checked={notificationsForm.push_notifications ?? true}
+                      onCheckedChange={(checked) => setNotificationsForm(prev => ({ ...prev, push_notifications: checked }))}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Security Alerts</Label>
+                      <p className="text-sm text-muted-foreground">Get notified about security events on your account</p>
+                    </div>
+                    <Switch
+                      checked={notificationsForm.security_alerts ?? true}
+                      onCheckedChange={(checked) => setNotificationsForm(prev => ({ ...prev, security_alerts: checked }))}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Weekly Reports</Label>
+                      <p className="text-sm text-muted-foreground">Receive a weekly summary of your analytics</p>
+                    </div>
+                    <Switch
+                      checked={notificationsForm.weekly_reports ?? true}
+                      onCheckedChange={(checked) => setNotificationsForm(prev => ({ ...prev, weekly_reports: checked }))}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Marketing Emails</Label>
+                      <p className="text-sm text-muted-foreground">Receive product updates and promotional content</p>
+                    </div>
+                    <Switch
+                      checked={notificationsForm.marketing_emails ?? false}
+                      onCheckedChange={(checked) => setNotificationsForm(prev => ({ ...prev, marketing_emails: checked }))}
+                    />
+                  </div>
+
+                  <Button onClick={saveNotifications} disabled={saving}>
+                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Notification Preferences
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* Preferences Tab */}
             <TabsContent value="preferences" className="space-y-4">
               <Card>
@@ -798,7 +881,7 @@ export default function SettingsPage() {
                     Personal Preferences
                   </CardTitle>
                   <CardDescription>
-                    Customize your experience and notification settings
+                    Customize your experience
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -806,7 +889,7 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                       <Label htmlFor="timezone">Timezone</Label>
                       <Select
-                        value={preferencesForm.timezone || ''}
+                        value={preferencesForm.timezone || 'UTC'}
                         onValueChange={(value) => setPreferencesForm(prev => ({ ...prev, timezone: value }))}
                       >
                         <SelectTrigger>
@@ -820,6 +903,7 @@ export default function SettingsPage() {
                           <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
                           <SelectItem value="Europe/London">London</SelectItem>
                           <SelectItem value="Europe/Paris">Paris</SelectItem>
+                          <SelectItem value="Asia/Dubai">Dubai</SelectItem>
                           <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
                         </SelectContent>
                       </Select>
@@ -828,7 +912,7 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                       <Label htmlFor="language">Language</Label>
                       <Select
-                        value={preferencesForm.language || ''}
+                        value={preferencesForm.language || 'en'}
                         onValueChange={(value) => setPreferencesForm(prev => ({ ...prev, language: value }))}
                       >
                         <SelectTrigger>
@@ -841,42 +925,9 @@ export default function SettingsPage() {
                           <SelectItem value="de">German</SelectItem>
                           <SelectItem value="it">Italian</SelectItem>
                           <SelectItem value="pt">Portuguese</SelectItem>
+                          <SelectItem value="ar">Arabic</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Privacy Settings</h4>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Profile Visibility</Label>
-                        <p className="text-sm text-muted-foreground">Make your profile visible to other users</p>
-                      </div>
-                      <Switch
-                        checked={preferencesForm.profile_visibility === 'public'}
-                        onCheckedChange={(checked) => setPreferencesForm(prev => ({
-                          ...prev,
-                          profile_visibility: checked ? 'public' : 'private'
-                        }))}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Data Analytics</Label>
-                        <p className="text-sm text-muted-foreground">Allow us to analyze your usage data to improve our service</p>
-                      </div>
-                      <Switch
-                        checked={preferencesForm.data_analytics_enabled || false}
-                        onCheckedChange={(checked) => setPreferencesForm(prev => ({
-                          ...prev,
-                          data_analytics_enabled: checked
-                        }))}
-                      />
                     </div>
                   </div>
 
@@ -884,6 +935,50 @@ export default function SettingsPage() {
                     {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     <Save className="h-4 w-4 mr-2" />
                     Save Preferences
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Privacy Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Privacy
+                  </CardTitle>
+                  <CardDescription>
+                    Control your data and visibility
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Profile Visibility</Label>
+                      <p className="text-sm text-muted-foreground">Make your profile visible to other users</p>
+                    </div>
+                    <Switch
+                      checked={privacyForm.profile_visibility === true || privacyForm.profile_visibility === 'public'}
+                      onCheckedChange={(checked) => setPrivacyForm(prev => ({ ...prev, profile_visibility: checked }))}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Data Analytics</Label>
+                      <p className="text-sm text-muted-foreground">Allow us to analyze your usage data to improve our service</p>
+                    </div>
+                    <Switch
+                      checked={privacyForm.data_analytics_enabled ?? true}
+                      onCheckedChange={(checked) => setPrivacyForm(prev => ({ ...prev, data_analytics_enabled: checked }))}
+                    />
+                  </div>
+
+                  <Button onClick={savePrivacy} disabled={saving}>
+                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Privacy Settings
                   </Button>
                 </CardContent>
               </Card>

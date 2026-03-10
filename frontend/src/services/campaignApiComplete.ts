@@ -39,6 +39,7 @@ export interface Campaign {
   total_reach: number
   creators_count: number
   posts_count: number
+  campaign_type?: 'influencer' | 'ugc'
   created_by: 'user' | 'superadmin'
   proposal_id?: string
   created_at: string
@@ -271,6 +272,7 @@ class CampaignApiComplete {
     budget?: number
     start_date?: string
     end_date?: string
+    campaign_type?: 'influencer' | 'ugc'
   }): Promise<ApiResponse<Campaign>> {
     const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/workflow/user/create`, {
       method: 'POST',
@@ -295,6 +297,7 @@ class CampaignApiComplete {
     budget?: number
     start_date?: string
     end_date?: string
+    campaign_type?: 'influencer' | 'ugc'
   }): Promise<ApiResponse<Campaign>> {
     const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/workflow/superadmin/create`, {
       method: 'POST',
@@ -917,6 +920,196 @@ class CampaignApiComplete {
    */
   async getCampaignHealth(campaignId: string): Promise<ApiResponse<CampaignHealth>> {
     const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.detail(campaignId)}/health`)
+    return response.json()
+  }
+
+  // =========================================================================
+  // UGC MODEL POOL (Superadmin)
+  // =========================================================================
+
+  async listUGCModels(params?: { status?: string; search?: string; limit?: number; offset?: number }) {
+    const searchParams = new URLSearchParams()
+    if (params?.status) searchParams.set('status', params.status)
+    if (params?.search) searchParams.set('search', params.search)
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.offset) searchParams.set('offset', params.offset.toString())
+    const qs = searchParams.toString()
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/ugc/models${qs ? '?' + qs : ''}`)
+    return response.json()
+  }
+
+  async createUGCModel(data: any) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/ugc/models`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return response.json()
+  }
+
+  async getUGCModel(modelId: string) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/ugc/models/${modelId}`)
+    return response.json()
+  }
+
+  async updateUGCModel(modelId: string, data: any) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/ugc/models/${modelId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return response.json()
+  }
+
+  async deleteUGCModel(modelId: string) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/ugc/models/${modelId}`, {
+      method: 'DELETE'
+    })
+    return response.json()
+  }
+
+  // =========================================================================
+  // UGC CAMPAIGN MODELS
+  // =========================================================================
+
+  async assignModelsToUGCCampaign(campaignId: string, modelIds: string[]) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/models`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model_ids: modelIds })
+    })
+    return response.json()
+  }
+
+  async getCampaignUGCModels(campaignId: string) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/models`)
+    return response.json()
+  }
+
+  async removeModelFromUGCCampaign(campaignId: string, modelId: string) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/models/${modelId}`, {
+      method: 'DELETE'
+    })
+    return response.json()
+  }
+
+  async selectUGCModel(campaignId: string, modelId: string, selected: boolean, feedback?: string) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/models/${modelId}/select`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selected, feedback })
+    })
+    return response.json()
+  }
+
+  // =========================================================================
+  // UGC CONCEPTS
+  // =========================================================================
+
+  async createUGCConcept(campaignId: string, data: any) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/concepts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return response.json()
+  }
+
+  async listUGCConcepts(campaignId: string, status?: string) {
+    const qs = status ? `?status=${status}` : ''
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/concepts${qs}`)
+    return response.json()
+  }
+
+  async getUGCConcept(campaignId: string, conceptId: string) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/concepts/${conceptId}`)
+    return response.json()
+  }
+
+  async updateUGCConcept(campaignId: string, conceptId: string, data: any) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/concepts/${conceptId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return response.json()
+  }
+
+  async deleteUGCConcept(campaignId: string, conceptId: string) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/concepts/${conceptId}`, {
+      method: 'DELETE'
+    })
+    return response.json()
+  }
+
+  async bulkCreateUGCConcepts(campaignId: string, concepts: any[]) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/concepts/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ concepts })
+    })
+    return response.json()
+  }
+
+  async updateUGCConceptStatus(campaignId: string, conceptId: string, status: string, feedback?: string) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/concepts/${conceptId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, brand_feedback: feedback })
+    })
+    return response.json()
+  }
+
+  // =========================================================================
+  // UGC VIDEOS
+  // =========================================================================
+
+  async createUGCVideo(campaignId: string, data: any) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/videos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return response.json()
+  }
+
+  async listUGCVideos(campaignId: string, status?: string) {
+    const qs = status ? `?status=${status}` : ''
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/videos${qs}`)
+    return response.json()
+  }
+
+  async updateUGCVideo(campaignId: string, videoId: string, data: any) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/videos/${videoId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    return response.json()
+  }
+
+  async reviewUGCVideo(campaignId: string, videoId: string, status: string, feedback?: string) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/videos/${videoId}/review`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, brand_feedback: feedback })
+    })
+    return response.json()
+  }
+
+  async deleteUGCVideo(campaignId: string, videoId: string) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/videos/${videoId}`, {
+      method: 'DELETE'
+    })
+    return response.json()
+  }
+
+  // =========================================================================
+  // UGC STATS
+  // =========================================================================
+
+  async getUGCCampaignStats(campaignId: string) {
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/${campaignId}/ugc/stats`)
     return response.json()
   }
 }

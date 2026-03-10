@@ -5,39 +5,41 @@ import { useRouter } from 'next/navigation'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { toast } from 'sonner'
 import { SignInPage } from '@/components/sign-in'
-import Image from 'next/image'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
   const { login } = useEnhancedAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
+    setError('')
+
     const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
     const password = formData.get('password') as string
-    
+
     if (!email || !password) {
-      toast.error('Please fill in all fields')
+      setError('Please fill in all fields')
       return
     }
 
     setIsLoading(true)
-    
+
     try {
       const success = await login(email, password)
-      
+
       if (success) {
         router.push('/dashboard')
       }
-    } catch (error) {
+      // Error toast is already shown by AuthContext.login()
+    } catch (error: any) {
+      setError(error?.message || 'An unexpected error occurred')
     } finally {
       setIsLoading(false)
     }
   }
-
 
   const handleResetPassword = () => {
     toast.info('Password reset functionality coming soon!')
@@ -57,6 +59,7 @@ export default function LoginPage() {
       description="Access your influencer discovery and campaign tools"
       testimonials={[]}
       isLoading={isLoading}
+      error={error}
       onSignIn={handleSubmit}
       onResetPassword={handleResetPassword}
       onCreateAccount={handleCreateAccount}

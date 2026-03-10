@@ -30,18 +30,11 @@ export default function CheckoutPage() {
       setLoading(true)
       setError(null)
 
-      // DEBUG: Check if token exists
+      // Check if user is authenticated
       const token = localStorage.getItem('access_token')
       const authTokens = localStorage.getItem('auth_tokens')
-      console.log('🔍 Checkout Debug:', {
-        'Token exists?': !!token,
-        'Token value': token ? token.substring(0, 20) + '...' : 'NULL',
-        'Auth tokens exist?': !!authTokens,
-        'Auth tokens': authTokens ? JSON.parse(authTokens) : 'NULL'
-      })
 
       if (!token && !authTokens) {
-        console.error('❌ NO TOKEN FOUND! User not authenticated')
         toast.error('Not authenticated. Please log in first.')
         router.push('/auth/login')
         return
@@ -81,7 +74,6 @@ export default function CheckoutPage() {
         setLoading(false)
       }
     } catch (err) {
-      console.error('Checkout initialization error:', err)
       setError(err instanceof Error ? err.message : 'Failed to initialize checkout')
       setLoading(false)
       toast.error('Failed to load checkout. Please try again.')

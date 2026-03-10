@@ -957,12 +957,19 @@ export class SuperadminApiService {
       console.log('📡 RESPONSE OK:', response.ok)
 
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ SUPERADMIN API ERROR:', errorText)
+        let errorMessage = `Request failed with status ${response.status}`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.detail || errorData.message || errorData.error || errorMessage
+        } catch {
+          const errorText = await response.text().catch(() => '')
+          if (errorText) errorMessage = errorText
+        }
+        console.error('❌ SUPERADMIN API ERROR:', errorMessage)
         console.error('❌ STATUS CODE:', response.status)
         return {
           success: false,
-          error: errorText || `Request failed with status ${response.status}`
+          error: errorMessage
         }
       }
 
