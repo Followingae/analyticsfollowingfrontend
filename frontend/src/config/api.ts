@@ -279,22 +279,22 @@ export const ENDPOINTS = {
   // Admin/Superadmin Endpoints - Complete 46+ Endpoint Implementation
   admin: {
     // User Management
-    getUser: (userId: string) => `/admin/users/${userId}`, // GET - Get user details
-    updateUser: (userId: string) => `/admin/users/${userId}`, // PUT - Update user
-    deleteUser: (userId: string) => `/admin/users/${userId}`, // DELETE - Delete user
-    bulkUpdateUsers: '/admin/users/bulk-update', // POST - Bulk operations
-    getUserActivity: (userId: string) => `/admin/users/${userId}/activity`, // GET - User activity
+    getUser: (userId: string) => `/api/v1/admin/users/${userId}`, // GET - Get user details
+    updateUser: (userId: string) => `/api/v1/admin/users/${userId}`, // PUT - Update user
+    deleteUser: (userId: string) => `/api/v1/admin/users/${userId}`, // DELETE - Delete user
+    bulkUpdateUsers: '/api/v1/admin/users/bulk-update', // POST - Bulk operations
+    getUserActivity: (userId: string) => `/api/v1/admin/users/${userId}/activity`, // GET - User activity
 
     // Credits Management
-    adjustCredits: '/admin/credits/adjust', // POST - Adjust user credits
+    adjustCredits: '/api/v1/admin/credits/adjust', // POST - Adjust user credits
 
     // Security Actions
-    verifyUserEmail: (userId: string) => `/admin/users/${userId}/verify-email`, // POST - Verify email
-    resetUser2FA: (userId: string) => `/admin/users/${userId}/reset-2fa`, // POST - Reset 2FA
+    verifyUserEmail: (userId: string) => `/api/v1/admin/users/${userId}/verify-email`, // POST - Verify email
+    resetUser2FA: (userId: string) => `/api/v1/admin/users/${userId}/reset-2fa`, // POST - Reset 2FA
 
     // Legacy
-    proposals: '../admin/proposals', // GET - Admin proposals
-    dashboard: '../superadmin/dashboard', // GET - Superadmin dashboard
+    proposals: '/api/v1/admin/proposals', // GET - Admin proposals
+    dashboard: '/api/superadmin/dashboard', // GET - Superadmin dashboard
   },
 
   // 🚀 COMPLETE SUPERADMIN ENDPOINTS - Full 46+ Endpoint Guide Implementation

@@ -941,8 +941,6 @@ export class SuperadminApiService {
   ): Promise<ApiResponse<T>> {
     try {
       const fullUrl = `${this.baseUrl}${endpoint}`
-      console.log('🌐 SUPERADMIN API CALL:', fullUrl)
-      console.log('🔑 Auth Headers:', options.headers || 'Using fetchWithAuth default headers')
 
       const response = await fetchWithAuth(fullUrl, {
         ...options,
@@ -952,9 +950,6 @@ export class SuperadminApiService {
           ...options.headers,
         },
       })
-
-      console.log('📡 RESPONSE STATUS:', response.status)
-      console.log('📡 RESPONSE OK:', response.ok)
 
       if (!response.ok) {
         let errorMessage = `Request failed with status ${response.status}`
@@ -974,7 +969,6 @@ export class SuperadminApiService {
       }
 
       const data = await response.json()
-      console.log('✅ SUPERADMIN API SUCCESS:', data)
       return {
         success: true,
         data,
@@ -2443,8 +2437,6 @@ export class SuperadminApiService {
 
     try {
       const fullUrl = `${this.baseUrl}${endpoint}`
-      console.log('🌐 DISCOVERY BATCH PROCESS:', fullUrl)
-      console.log('⏱️  WARNING: Long-running operation (3-5 min per profile)')
 
       // Create AbortController with 1-hour timeout
       const controller = new AbortController()
@@ -2461,8 +2453,6 @@ export class SuperadminApiService {
 
       clearTimeout(timeoutId)
 
-      console.log('📡 RESPONSE STATUS:', response.status)
-
       if (!response.ok) {
         const errorText = await response.text()
         console.error('❌ DISCOVERY BATCH ERROR:', errorText)
@@ -2473,7 +2463,6 @@ export class SuperadminApiService {
       }
 
       const data = await response.json()
-      console.log('✅ DISCOVERY BATCH SUCCESS:', data)
       return {
         success: true,
         data
