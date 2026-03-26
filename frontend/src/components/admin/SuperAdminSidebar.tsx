@@ -24,6 +24,11 @@ import {
   Database,
   Briefcase,
   FileText,
+  LayoutDashboard,
+  Store,
+  Megaphone,
+  ClipboardCheck,
+  Banknote,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -102,6 +107,15 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     },
   ]
 
+  const followingAppItems = [
+    { title: "Overview", url: "/superadmin/fa", icon: LayoutDashboard },
+    { title: "Members", url: "/superadmin/fa/members", icon: Users },
+    { title: "Merchants", url: "/superadmin/fa/merchants", icon: Store },
+    { title: "Campaigns", url: "/superadmin/fa/campaigns", icon: Megaphone },
+    { title: "Deliverables", url: "/superadmin/fa/deliverables", icon: ClipboardCheck },
+    { title: "Withdrawals", url: "/superadmin/fa/withdrawals", icon: Banknote },
+  ]
+
   // Content pages not yet built — removing dead links
   // Backend endpoints exist at /admin/content/profiles and /admin/content/unlocks
   // but frontend pages haven't been created yet
@@ -151,7 +165,13 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Content section removed — pages not yet built */}
+        {/* Following App Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Following App</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <NavMain items={followingAppItems} />
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>

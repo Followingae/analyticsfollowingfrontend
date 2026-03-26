@@ -12,6 +12,7 @@ import {
   CreditCard,
   Compass,
   List,
+  Wallet,
 } from "lucide-react"
 import Image from "next/image"
 import { useTheme } from "next-themes"
@@ -57,6 +58,16 @@ const data = {
       title: "Campaigns",
       url: "/campaigns",
       icon: Target,
+    },
+    {
+      title: "Influencer Campaigns",
+      url: "/campaigns/fa",
+      icon: Users,
+    },
+    {
+      title: "Cashback Pool",
+      url: "/cashback-pool",
+      icon: Wallet,
     },
     {
       title: "Proposals",
