@@ -143,8 +143,8 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
         {/* Header skeleton */}
         <Card className="border-0 bg-gradient-to-r from-primary/5 to-secondary/5">
           <CardContent className="p-6">
-            <div className="flex items-start gap-8 animate-pulse">
-              <div className="h-32 w-32 rounded-full bg-muted" />
+            <div className="flex flex-col sm:flex-row items-start gap-6 sm:gap-8 animate-pulse">
+              <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full bg-muted shrink-0" />
               <div className="flex-1 space-y-3">
                 <div className="h-8 bg-muted rounded w-1/3" />
                 <div className="h-5 bg-muted rounded w-1/4" />
@@ -213,8 +213,8 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
         {/* Preview Header */}
         <Card className="border-0 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5">
           <CardContent className="p-6">
-            <div className="flex items-start gap-8">
-              <Avatar className="h-32 w-32 border-4 border-primary/30 shadow-xl ring-4 ring-primary/10 shrink-0">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-8">
+              <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-primary/30 shadow-xl ring-4 ring-primary/10 shrink-0">
                 <AvatarImage
                   src={previewProfile.cdn_avatar_url || previewProfile.profile_pic_url_hd || previewProfile.profile_pic_url}
                   className="object-cover"
@@ -223,9 +223,9 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
                   {previewProfile.full_name?.charAt(0) || previewProfile.username?.charAt(0)}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0 space-y-3">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-3xl font-bold truncate">{previewProfile.full_name || previewProfile.username}</h1>
+              <div className="flex-1 min-w-0 space-y-3 text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-3 flex-wrap">
+                  <h1 className="text-2xl sm:text-3xl font-bold truncate">{previewProfile.full_name || previewProfile.username}</h1>
                   {previewProfile.is_verified && <CheckCircle className="h-6 w-6 text-blue-500 shrink-0" />}
                 </div>
                 <p className="text-xl text-muted-foreground">@{previewProfile.username}</p>
@@ -239,7 +239,7 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
                     </p>
                   </div>
                 )}
-                <div className="flex items-center gap-5 flex-wrap">
+                <div className="flex items-center justify-center sm:justify-start gap-5 flex-wrap">
                   <div className="flex items-center gap-1.5">
                     <Users className="h-4 w-4 text-primary" />
                     <span className="font-semibold">{formatNumber(previewProfile.followers_count)}</span>
@@ -518,7 +518,7 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
 
       {/* ── Tab sections ────────────────────────────────────────────────── */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="audience">Audience</TabsTrigger>

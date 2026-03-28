@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { AuthGuard } from "@/components/AuthGuard"
@@ -123,7 +123,7 @@ interface SharedListData {
   is_active?: boolean
 }
 
-export default function MyListsPage() {
+function MyListsContent() {
   const [activeTab, setActiveTab] = useState<"my-lists" | "shared">("my-lists")
   const [myLists, setMyLists] = useState<List[]>([])
   const [loading, setLoading] = useState(true)
@@ -466,11 +466,18 @@ export default function MyListsPage() {
   if (loading && myLists.length === 0) {
     return (
       <AuthGuard requireAuth={true}>
-        <SidebarProvider>
+        <SidebarProvider
+          style={
+            {
+              "--sidebar-width": "calc(var(--spacing) * 66)",
+              "--header-height": "calc(var(--spacing) * 12)",
+            } as React.CSSProperties
+          }
+        >
           <AppSidebar variant="inset" />
           <SidebarInset>
             <SiteHeader />
-            <div className="flex flex-1 flex-col items-center justify-center">
+            <div className="flex flex-1 flex-col items-center justify-center p-4">
               <div className="text-center space-y-4">
                 <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 <p className="text-muted-foreground">Loading your lists...</p>
@@ -485,11 +492,18 @@ export default function MyListsPage() {
   if (error) {
     return (
       <AuthGuard requireAuth={true}>
-        <SidebarProvider>
+        <SidebarProvider
+          style={
+            {
+              "--sidebar-width": "calc(var(--spacing) * 66)",
+              "--header-height": "calc(var(--spacing) * 12)",
+            } as React.CSSProperties
+          }
+        >
           <AppSidebar variant="inset" />
           <SidebarInset>
             <SiteHeader />
-            <div className="flex flex-1 flex-col items-center justify-center">
+            <div className="flex flex-1 flex-col items-center justify-center p-4">
               <div className="text-center space-y-4">
                 <p className="text-red-600 dark:text-red-400">{error}</p>
                 <Button variant="outline" onClick={() => loadLists()}>
@@ -981,5 +995,13 @@ export default function MyListsPage() {
         </SidebarInset>
       </SidebarProvider>
     </AuthGuard>
+  )
+}
+
+export default function MyListsPage() {
+  return (
+    <Suspense>
+      <MyListsContent />
+    </Suspense>
   )
 }

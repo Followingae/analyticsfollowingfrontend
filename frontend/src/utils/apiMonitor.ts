@@ -43,13 +43,7 @@ class APIMonitor {
     )
 
     if (recentCalls.length > 1) {
-      console.warn(`🚨 DUPLICATE API CALL DETECTED:`, {
-        url: newCall.url,
-        method: newCall.method,
-        count: recentCalls.length,
-        timestamps: recentCalls.map(c => new Date(c.timestamp).toISOString()),
-        durations: recentCalls.map(c => c.duration),
-      })
+      // Duplicate API call detected - tracked internally
     }
   }
 
@@ -89,12 +83,7 @@ class APIMonitor {
   printStats() {
     if (!this.isEnabled) return
 
-    const stats = this.getStats()
-    console.log('📊 API Call Statistics:', stats)
-
-    if (stats.duplicates.length > 0) {
-      console.warn('🚨 Duplicate API calls detected:', stats.duplicates)
-    }
+    // Stats available via getStats() method
   }
 }
 

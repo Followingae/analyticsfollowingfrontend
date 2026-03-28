@@ -111,7 +111,7 @@ export function ActualPostAnalytics({ post, index }: ActualPostAnalyticsProps) {
 
 
                 if (!imageUrl) {
-                  console.warn('⚠️ NO IMAGE URL FOUND in analytics data')
+
                   return (
                     <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                       <p className="text-red-600 text-sm">❌ No image URL found in post data</p>

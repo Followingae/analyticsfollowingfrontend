@@ -433,8 +433,7 @@ class TokenManager {
     if (this.tokenData.expires_at) {
       const timeToExpiry = this.tokenData.expires_at - now
       if (timeToExpiry > 0 && timeToExpiry < this.TOKEN_REFRESH_BUFFER) {
-        this.refreshToken().catch((error) => {
-          console.warn('Token refresh failed during proactive refresh:', error)
+        this.refreshToken().catch(() => {
           // Don't clear tokens here - let API calls handle auth failures
         })
       }

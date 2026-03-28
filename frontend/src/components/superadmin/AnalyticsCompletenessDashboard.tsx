@@ -69,23 +69,23 @@ export default function AnalyticsCompletenessDashboard() {
     setError(null)
 
     try {
-      console.log('🔄 Loading analytics completeness dashboard...')
+
 
       const response = await superadminApiService.getAnalyticsCompletenessDashboard()
 
       if (response.success && response.data) {
         setData(response.data)
         setLastUpdated(new Date())
-        console.log('✅ Analytics completeness dashboard loaded successfully')
+
       } else {
         setError(response.error || 'Failed to load dashboard')
-        console.log('❌ Dashboard load failed:', response.error)
+
         toast.error(response.error || 'Failed to load dashboard')
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Network error'
       setError(errorMessage)
-      console.error('💥 Dashboard error:', err)
+
       toast.error('Failed to load dashboard. Please try again.')
     } finally {
       setLoading(false)

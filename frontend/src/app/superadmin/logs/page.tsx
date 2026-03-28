@@ -63,11 +63,11 @@ export default function SuperadminLogsPage() {
       if (result.success && result.data) {
         setAuditLogs(result.data.audit_logs || [])
       } else {
-        console.warn('Audit logs API failed:', result.error)
+
         toast.error('Failed to load audit logs')
       }
     } catch (error) {
-      console.error('Failed to load audit logs:', error)
+
       toast.error('Network error loading audit logs')
     } finally {
       setLoading(false)

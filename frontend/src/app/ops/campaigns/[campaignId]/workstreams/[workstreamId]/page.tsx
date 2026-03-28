@@ -134,7 +134,7 @@ const DeliverablesTab = ({
       const data = await operationsApi.getDeliverables(workstreamId);
       setDeliverables(data.deliverables || []);
     } catch (error) {
-      console.error('Failed to load deliverables:', error);
+
       toast.error('Failed to load deliverables');
     } finally {
       setLoading(false);

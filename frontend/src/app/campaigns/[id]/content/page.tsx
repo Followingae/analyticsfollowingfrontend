@@ -184,7 +184,7 @@ export default function CampaignContentPage() {
       setCampaign(mockCampaign);
       setContentItems(mockContentItems);
     } catch (error) {
-      console.error("Error loading content data:", error);
+
     } finally {
       setIsLoading(false);
     }

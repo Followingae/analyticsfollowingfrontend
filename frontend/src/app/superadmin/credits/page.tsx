@@ -61,10 +61,10 @@ export default function SuperadminCreditsPage() {
         if (overviewResult.success && overviewResult.data) {
           setCreditOverview(overviewResult.data)
         } else {
-          console.warn('Credits overview API returned error:', overviewResult.error)
+
         }
       } catch (error) {
-        console.error('Failed to load credits overview:', error)
+
       }
 
       // Load transactions with error handling
@@ -73,10 +73,10 @@ export default function SuperadminCreditsPage() {
         if (transactionsResult.success && transactionsResult.data) {
           setTransactions(transactionsResult.data.transactions || [])
         } else {
-          console.warn('Transactions API returned error:', transactionsResult.error)
+
         }
       } catch (error) {
-        console.error('Failed to load transactions:', error)
+
       }
 
       // Load revenue analytics with error handling
@@ -85,14 +85,14 @@ export default function SuperadminCreditsPage() {
         if (revenueResult.success && revenueResult.data) {
           setRevenueAnalytics(revenueResult.data)
         } else {
-          console.warn('Revenue analytics API returned error:', revenueResult.error)
+
         }
       } catch (error) {
-        console.error('Failed to load revenue analytics:', error)
+
       }
     } catch (error) {
       toast.error('Failed to load credits data')
-      console.error(error)
+
     } finally {
       setLoading(false)
     }

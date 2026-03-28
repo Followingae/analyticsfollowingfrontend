@@ -55,10 +55,6 @@ export function ChartProfileAnalysis() {
 
       try {
         // Use data from UserStore instead of making API call
-        console.log('🔍 Using UserStore data for profiles chart:', {
-          userStoreData,
-          subscription
-        })
 
         // Get subscription tier and usage from UserStore
         const subscriptionTier = user?.role || subscription.tier || 'free'
@@ -81,17 +77,7 @@ export function ChartProfileAnalysis() {
           fill: "hsl(var(--primary))"
         }])
         
-        console.log('🔥 Profile unlocks calculated from UserStore:', {
-          user_role: user?.role,
-          subscription_tier: subscriptionTier,
-          normalized_tier: profileData.tier,
-          tier_display: profileData.tierDisplay,
-          subscription_limit: profileData.limit,
-          profiles_used: profilesUsed,
-          profiles_remaining: profileData.remaining
-        })
       } catch (error) {
-        console.warn('Error loading profile data:', error)
         setUsageData({
           used: 0,
           limit: 0,

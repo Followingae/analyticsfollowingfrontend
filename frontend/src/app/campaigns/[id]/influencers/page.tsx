@@ -62,7 +62,7 @@ export default function CampaignInfluencersPage() {
       //   setSelectedInfluencers(["1", "3"]);
       // }
     } catch (error) {
-      console.error("Error loading campaign data:", error);
+
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +70,7 @@ export default function CampaignInfluencersPage() {
 
   const handleSelectionChange = (selected: string[]) => {
     setSelectedInfluencers(selected);
-    console.log("Selected influencers updated:", selected);
+
   };
 
   if (authLoading || isLoading || !user) {
@@ -157,7 +157,7 @@ export default function CampaignInfluencersPage() {
                   <Button
                     disabled={selectedInfluencers.length === 0}
                     onClick={() => {
-                      console.log("Proceeding with selected influencers:", selectedInfluencers);
+
                       router.push(`/campaigns/${campaignId}/content`);
                     }}
                   >

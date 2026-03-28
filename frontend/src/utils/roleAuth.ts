@@ -46,14 +46,6 @@ export const isAuthorized = (userRole: string, requiredRole: string): boolean =>
   const requiredLevel = ROLE_LEVELS[requiredRole] || 0
   
   const authorized = userLevel >= requiredLevel
-  
-
-    userRole,
-    requiredRole,
-    userLevel,
-    requiredLevel,
-    authorized
-  })
 
   return authorized
 }
@@ -66,13 +58,7 @@ export const isAuthorized = (userRole: string, requiredRole: string): boolean =>
 export const canAccessSuperAdmin = (userRole: string): boolean => {
   const allowedRoles = ['superadmin', 'super_admin']
   const canAccess = allowedRoles.includes(userRole)
-  
 
-    userRole,
-    allowedRoles,
-    canAccess
-  })
-  
   return canAccess
 }
 
@@ -84,13 +70,7 @@ export const canAccessSuperAdmin = (userRole: string): boolean => {
 export const canAccessAdmin = (userRole: string): boolean => {
   const allowedRoles = ['superadmin', 'super_admin', 'admin']
   const canAccess = allowedRoles.includes(userRole)
-  
 
-    userRole,
-    allowedRoles,
-    canAccess
-  })
-  
   return canAccess
 }
 
@@ -102,13 +82,7 @@ export const canAccessAdmin = (userRole: string): boolean => {
 export const isPremiumUser = (userRole: string): boolean => {
   const premiumRoles = ['premium', 'brand_premium', 'superadmin', 'super_admin', 'admin']
   const isPremium = premiumRoles.includes(userRole)
-  
 
-    userRole,
-    premiumRoles,
-    isPremium
-  })
-  
   return isPremium
 }
 
@@ -120,13 +94,7 @@ export const isPremiumUser = (userRole: string): boolean => {
 export const isBrandUser = (userRole: string): boolean => {
   const brandRoles = ['premium', 'brand_premium', 'standard', 'brand_standard', 'free', 'brand_free']
   const isBrand = brandRoles.includes(userRole)
-  
 
-    userRole,
-    brandRoles,
-    isBrand
-  })
-  
   return isBrand
 }
 
@@ -165,12 +133,7 @@ export const normalizeRole = (backendRole: string): string => {
   }
   
   const normalized = roleMap[backendRole] || backendRole
-  
 
-    backendRole,
-    normalized
-  })
-  
   return normalized
 }
 

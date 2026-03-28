@@ -89,7 +89,6 @@ export function CreatorProfilePage({ username, onError }: CreatorProfilePageProp
     if (followerCount >= 10000) return { tier: 'micro', color: 'bg-[#d3ff02] text-foreground' }
     return { tier: 'nano', color: 'bg-gray-100 text-foreground border' }
   }
-      })
 
   // Loading state
   if (isLoading) {

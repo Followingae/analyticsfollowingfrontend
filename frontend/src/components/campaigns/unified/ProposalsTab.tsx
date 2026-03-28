@@ -82,7 +82,7 @@ export function ProposalsTab({ searchQuery }: ProposalsTabProps) {
         throw new Error(response.error || 'Failed to fetch proposals');
       }
     } catch (error) {
-      console.error("Error fetching proposals:", error);
+
       setProposals([]);
     } finally {
       setIsLoading(false);

@@ -28,8 +28,8 @@ export default function DiscoverPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Discover Creators</h1>
-                <p className="text-muted-foreground mt-2">
+                <h1 className="text-2xl sm:text-3xl font-bold">Discover Creators</h1>
+                <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
                   Discover the perfect creators for your brand using our AI-powered matching system.
                 </p>
               </div>

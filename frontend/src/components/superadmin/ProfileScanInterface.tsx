@@ -65,7 +65,7 @@ export default function ProfileScanInterface({ onScanComplete }: ProfileScanInte
     setScanning(true)
 
     try {
-      console.log('🔍 Starting profile scan with params:', scanParams)
+
 
       const cleanParams: AnalyticsCompletenessScanRequest = {
         ...(scanParams.limit && { limit: scanParams.limit }),
@@ -77,15 +77,15 @@ export default function ProfileScanInterface({ onScanComplete }: ProfileScanInte
 
       if (response.success && response.data) {
         setResults(response.data)
-        console.log(`✅ Scan completed: ${response.data.summary.total_profiles} profiles analyzed`)
+
         toast.success(`Scan completed: ${response.data.summary.total_profiles} profiles analyzed`)
         onScanComplete?.(response.data)
       } else {
-        console.log('❌ Scan failed:', response.error)
+
         toast.error(response.error || 'Scan failed')
       }
     } catch (err) {
-      console.error('💥 Scan error:', err)
+
       toast.error('Network error. Please check your connection and try again.')
     } finally {
       setScanning(false)
@@ -106,7 +106,7 @@ export default function ProfileScanInterface({ onScanComplete }: ProfileScanInte
         toast.error(response.error || `Failed to repair ${profile.username}`)
       }
     } catch (err) {
-      console.error('Repair error:', err)
+
       toast.error('Network error during repair')
     }
   }

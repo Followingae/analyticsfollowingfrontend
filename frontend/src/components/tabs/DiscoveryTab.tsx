@@ -99,7 +99,6 @@ export default function DiscoveryTab() {
       return
     }
 
-    console.log(`🚀 Direct creator search for: ${username}`)
     addProcessingToast(username)
     setOpenMobile(false) // Close sidebar on mobile
     router.push(`/creator-analytics/${username}`)
@@ -115,12 +114,6 @@ export default function DiscoveryTab() {
     }
 
     try {
-      console.log('🔍 Searching profiles with filters:', {
-        search: searchTerm.trim() || undefined,
-        category: category !== 'all' ? category : undefined,
-        min_followers: getMinFollowersFromTier(tierFilter),
-        page: pageToUse
-      })
 
       const result = await discoveryService.browseProfiles({
         search: searchTerm.trim() || undefined,
@@ -130,22 +123,18 @@ export default function DiscoveryTab() {
         sort_order: 'desc'
       }, pageToUse, itemsPerPage)
 
-      console.log('📊 Discovery API response:', result)
 
       if (result.success && result.data) {
         setProfiles(result.data.profiles)
         setTotalCount(result.data.total_count)
-        console.log(`✅ Loaded ${result.data.profiles.length} profiles with CDN images`)
       } else {
         setProfiles([])
         setTotalCount(0)
-        console.log('❌ No profiles returned:', result.error)
         if (result.error) {
           toast.error(`Discovery failed: ${result.error}`)
         }
       }
     } catch (err) {
-      console.error('💥 Discovery error:', err)
       setProfiles([])
       setTotalCount(0)
       toast.error('Failed to load profiles. Please try again.')
@@ -204,11 +193,9 @@ export default function DiscoveryTab() {
     // No confirmation needed here - handled by AlertDialog
 
     try {
-      console.log(`🔓 Attempting to unlock profile: ${profile.username} (ID: ${profile.id})`)
 
       const result = await discoveryService.unlockProfile(profile.id)
 
-      console.log('🔐 Unlock response:', result)
 
       if (result.success && result.data) {
         toast.success(`Successfully unlocked ${profile.full_name || profile.username}! Access granted for 30 days.`)
@@ -228,12 +215,10 @@ export default function DiscoveryTab() {
         ))
 
         // Navigate to analytics
-        console.log(`🚀 Navigating to analytics for: ${profile.username}`)
         addProcessingToast(profile.username)
         setOpenMobile(false) // Close sidebar on mobile
         router.push(`/creator-analytics/${profile.username}`)
       } else {
-        console.log('❌ Unlock failed:', result.error)
         if (result.error?.includes('credits') || result.error?.includes('insufficient')) {
           toast.error('Insufficient credits. Please top up your account to unlock this profile.')
         } else if (result.error?.includes('already unlocked')) {
@@ -246,7 +231,6 @@ export default function DiscoveryTab() {
         }
       }
     } catch (err) {
-      console.error('💥 Unlock error:', err)
       toast.error('Network error. Please check your connection and try again.')
     }
   }
@@ -280,8 +264,8 @@ export default function DiscoveryTab() {
     <div className="space-y-6">
       {/* Search and Filters Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-1 items-center gap-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-1 flex-wrap items-center gap-3">
+          <div className="relative w-full sm:flex-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search creators..."
@@ -293,7 +277,7 @@ export default function DiscoveryTab() {
           </div>
 
           <Select value={category} onValueChange={(value) => handleFilterChange(value, 'category')}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -306,7 +290,7 @@ export default function DiscoveryTab() {
           </Select>
 
           <Select value={tierFilter} onValueChange={(value) => handleFilterChange(value, 'tier')}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue placeholder="Tier" />
             </SelectTrigger>
             <SelectContent>

@@ -102,21 +102,27 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <UserCircle className="size-4" />
-                Account
+              <DropdownMenuItem asChild>
+                <a href="/settings" className="cursor-pointer">
+                  <UserCircle className="size-4" />
+                  Account
+                </a>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard className="size-4" />
-                Billing
+              <DropdownMenuItem asChild>
+                <a href="/billing" className="cursor-pointer">
+                  <CreditCard className="size-4" />
+                  Billing
+                </a>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="size-4" />
-                Notifications
+              <DropdownMenuItem asChild>
+                <a href="/settings" className="cursor-pointer">
+                  <Bell className="size-4" />
+                  Notifications
+                </a>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout}>
+            <DropdownMenuItem onClick={logout} className="cursor-pointer text-muted-foreground">
               <LogOut className="size-4" />
               Log out
             </DropdownMenuItem>

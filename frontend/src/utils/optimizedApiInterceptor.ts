@@ -89,7 +89,6 @@ class OptimizedApiInterceptor {
       
       return response
     } catch (error) {
-      console.error(`Request failed: ${url}`, error)
       throw error
     }
   }
@@ -163,7 +162,6 @@ class OptimizedApiInterceptor {
 
       // Handle authentication errors
       if (response.status === 401) {
-        console.log('🔐 Authentication error, clearing tokens')
         tokenManager.clearAllTokens()
         throw new Error('Authentication required')
       }

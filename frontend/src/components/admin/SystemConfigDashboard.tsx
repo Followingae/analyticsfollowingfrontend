@@ -67,17 +67,17 @@ export function SystemConfigDashboard() {
       if (configResult.success) {
         setConfigData(configResult.data!)
       } else {
-        console.warn('Config API failed:', configResult.error)
+
       }
 
       if (flagsResult.success) {
         setFeatureFlagsData(flagsResult.data)
       } else {
-        console.warn('Feature flags API failed:', flagsResult.error)
+
       }
     } catch (error) {
       setError('Failed to load system configuration data')
-      console.error('System config error:', error)
+
     } finally {
       setLoading(false)
     }
@@ -94,10 +94,10 @@ export function SystemConfigDashboard() {
       if (result.success) {
         await loadConfigData() // Reload to get updated data
       } else {
-        console.error('Failed to update config:', result.error)
+
       }
     } catch (error) {
-      console.error('Config update error:', error)
+
     } finally {
       setSaving(null)
     }
@@ -110,10 +110,10 @@ export function SystemConfigDashboard() {
       if (result.success) {
         await loadConfigData() // Reload to get updated data
       } else {
-        console.error('Failed to toggle feature flag:', result.error)
+
       }
     } catch (error) {
-      console.error('Feature flag update error:', error)
+
     } finally {
       setSaving(null)
     }

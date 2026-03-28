@@ -54,11 +54,11 @@ export function UnauthorizedAccess() {
             </div>
           )}
 
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-1.5">
             <p className="text-sm text-muted-foreground">
-              The page you're trying to access requires different permissions.
+              The page you are trying to access requires different permissions.
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground/70">
               If you believe this is an error, please contact your administrator.
             </p>
           </div>

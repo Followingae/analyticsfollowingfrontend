@@ -265,8 +265,6 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     try {
       if (enhancedData) {
         // Use enhanced registration API with new backend fields
-        console.log('Enhanced data provided:', enhancedData);
-
         // CRITICAL: Backend requires both 'role' and 'billing_type' fields
         const registrationData = {
           email,
@@ -282,11 +280,6 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
           language: 'en' // Default to English
         };
 
-        console.log('Sending registration request with data:', {
-          ...registrationData,
-          password: '***' // Don't log password
-        });
-
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/auth/register`, {
           method: 'POST',
           headers: {
@@ -297,19 +290,10 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
         // Handle both 200 OK and 201 Created as successful
         if (!response.ok && response.status !== 201) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('Enhanced registration failed with status:', response.status);
-          console.error('Error response:', errorData);
-          console.error('Request URL:', `${API_CONFIG.BASE_URL}/api/v1/auth/register`);
-          console.error('Request body sent:', {
-            ...registrationData,
-            password: '***' // Don't log password
-          });
           return false;
         }
 
         const data = await response.json();
-        console.log('Registration response:', data);
 
         // Handle new enhanced response format
         if (data.access_token || data.user) {
@@ -334,14 +318,12 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
           return true;
         }
 
-        console.error('Registration failed: No access token or user data in response');
         return false;
       } else {
         // Fall back to basic registration
         return await basicRegister(email, password, fullName);
       }
-    } catch (error) {
-      console.error('Registration error:', error);
+    } catch {
       return false;
     }
   }
@@ -354,14 +336,6 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     tier: string
   ): Promise<boolean> => {
     try {
-      console.log('Registering with payment verification:', {
-        sessionId,
-        email,
-        fullName,
-        companyName,
-        tier
-      });
-
       // This function is called from the welcome page after successful payment
       // The backend will verify payment and create the account
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/billing/verify-session/${sessionId}`, {
@@ -372,13 +346,10 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Payment verification failed:', errorData);
         return false;
       }
 
       const data = await response.json();
-      console.log('Payment verification response:', data);
 
       // Store tokens in the format TokenManager expects
       if (data.access_token) {
@@ -399,8 +370,7 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
       }
 
       return true;
-    } catch (error) {
-      console.error('Register with payment error:', error);
+    } catch {
       return false;
     }
   }

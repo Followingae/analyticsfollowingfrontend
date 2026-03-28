@@ -39,7 +39,7 @@ export const useDashboardData = () => {
 
         // On 404, try /teams/context as fallback
         if (response.status === 404) {
-          console.warn('⚠️ /teams/overview returned 404, trying /teams/context fallback')
+
           try {
             const { teamApiService } = await import('@/services/teamApi')
             const contextResult = await teamApiService.getTeamContext()
@@ -58,11 +58,11 @@ export const useDashboardData = () => {
               }
             }
           } catch (ctxError) {
-            console.warn('⚠️ /teams/context fallback also failed:', ctxError)
+
           }
 
           // Both endpoints failed — use hardcoded Free tier as last resort
-          console.warn('⚠️ Both team endpoints failed, using Free tier defaults')
+
           return {
             team_name: 'Personal Account',
             user_role: 'owner',
@@ -84,7 +84,7 @@ export const useDashboardData = () => {
 
         throw new Error(`Failed to fetch teams overview: ${response.statusText}`)
       } catch (error) {
-        console.error('🚨 Teams Overview API Exception:', error)
+
 
         // For auth-related errors, return null instead of throwing
         if (error instanceof Error &&
@@ -121,7 +121,7 @@ export const useDashboardData = () => {
         })
         
         if (!result.success) {
-          console.error('🚨 Unlocked Profiles API Error:', result.error)
+
 
           // For auth-related errors, return fallback data
           if (result.error &&
@@ -131,7 +131,7 @@ export const useDashboardData = () => {
 
           // Handle 404 - unlocked profiles endpoint might not be implemented yet
           if (result.error && result.error.includes('Not Found')) {
-            console.warn('⚠️ Unlocked profiles endpoint not found, returning empty data')
+
             return { count: 0, profiles: [] }
           }
 
@@ -151,7 +151,7 @@ export const useDashboardData = () => {
           profiles: result.data?.profiles || []
         }
       } catch (error) {
-        console.error('🚨 Unlocked Profiles API Exception:', error)
+
         
         // For auth-related errors, return fallback data instead of throwing
         if (error instanceof Error && 
@@ -194,7 +194,7 @@ export const useDashboardData = () => {
         })
         
         if (!response.ok) {
-          console.error('🚨 Campaigns API Error:', response.status, response.statusText)
+
           
           // Don't throw on auth errors - let API interceptor handle them
           if (response.status === 401 || response.status === 403) {
@@ -225,7 +225,7 @@ export const useDashboardData = () => {
           campaigns: campaigns
         }
       } catch (error) {
-        console.error('🚨 Campaigns API Exception:', error)
+
         
         // For auth-related errors, return fallback data instead of throwing
         if (error instanceof Error && 

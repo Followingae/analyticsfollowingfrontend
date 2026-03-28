@@ -95,7 +95,7 @@ export function useCreatorAnalytics({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profile'
       setError(errorMessage)
-      console.error('Profile fetch error:', err)
+
     } finally {
       setLoading(false)
     }
@@ -204,7 +204,7 @@ export function useCreatorPosts(username: string, enabled: boolean = false) {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch posts'
       setPostsError(errorMessage)
-      console.error('Posts fetch error:', err)
+
     } finally {
       setPostsLoading(false)
     }

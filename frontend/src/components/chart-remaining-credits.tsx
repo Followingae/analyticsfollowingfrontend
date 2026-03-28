@@ -93,7 +93,6 @@ export function ChartRemainingCredits() {
           fill: "hsl(var(--primary))"
         }])
       } catch (error) {
-        console.warn('Error loading credits:', error)
         setCreditsData({ balance: 0, maxCredits: 1000 })
       } finally {
         setLoading(false)

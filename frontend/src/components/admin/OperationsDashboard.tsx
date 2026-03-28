@@ -179,7 +179,7 @@ const OperationsDashboard: React.FC<OperationsDashboardProps> = () => {
       setError(null);
     } catch (err) {
       setError('Failed to load operations data');
-      console.error('Operations dashboard error:', err);
+
     } finally {
       setLoading(false);
     }
@@ -202,7 +202,7 @@ const OperationsDashboard: React.FC<OperationsDashboardProps> = () => {
       });
       loadDashboardData();
     } catch (err) {
-      console.error('Failed to create maintenance task:', err);
+
     }
   };
 
@@ -211,7 +211,7 @@ const OperationsDashboard: React.FC<OperationsDashboardProps> = () => {
       await superadminApi.initiateBackup({ backup_type: type });
       loadDashboardData();
     } catch (err) {
-      console.error('Failed to start backup:', err);
+
     }
   };
 

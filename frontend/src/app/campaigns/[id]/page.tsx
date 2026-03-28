@@ -220,7 +220,7 @@ export default function CleanCampaignDetailsPage() {
 
       await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
-      console.error("Error fetching campaign:", error);
+
       toast.error("Failed to load campaign");
     } finally {
       setIsLoading(false);

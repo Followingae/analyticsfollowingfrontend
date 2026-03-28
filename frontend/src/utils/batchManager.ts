@@ -175,7 +175,6 @@ export class BatchManager {
         })
 
         stats.failedRequests++
-        console.error(`❌ ${request.id} failed after ${duration}ms:`, error)
 
         // Retry if configured
         if (request.retryConfig && request.retryConfig.maxRetries > 0) {
@@ -196,8 +195,8 @@ export class BatchManager {
               stats.successfulRequests++
               stats.failedRequests--
             }
-          } catch (retryError) {
-            console.error(`❌ Retry failed for ${request.id}:`, retryError)
+          } catch {
+            // Retry failed
           }
         }
       }

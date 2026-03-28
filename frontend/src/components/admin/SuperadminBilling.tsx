@@ -97,7 +97,7 @@ export default function SuperadminBilling() {
       setChartData(revenueData.chart_data || []);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load billing data');
-      console.error('Billing load error:', err);
+
     } finally {
       setLoading(false);
     }

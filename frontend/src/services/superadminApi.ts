@@ -960,8 +960,6 @@ export class SuperadminApiService {
           const errorText = await response.text().catch(() => '')
           if (errorText) errorMessage = errorText
         }
-        console.error('❌ SUPERADMIN API ERROR:', errorMessage)
-        console.error('❌ STATUS CODE:', response.status)
         return {
           success: false,
           error: errorMessage
@@ -976,7 +974,6 @@ export class SuperadminApiService {
         pagination: data.pagination
       }
     } catch (error) {
-      console.error('❌ SUPERADMIN NETWORK ERROR:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error occurred'
@@ -2455,7 +2452,6 @@ export class SuperadminApiService {
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('❌ DISCOVERY BATCH ERROR:', errorText)
         return {
           success: false,
           error: errorText || `Request failed with status ${response.status}`
@@ -2469,13 +2465,11 @@ export class SuperadminApiService {
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.error('❌ DISCOVERY BATCH TIMEOUT: Operation took longer than 1 hour')
         return {
           success: false,
           error: 'Request timeout: Operation took longer than 1 hour. The batch processing may still be running on the server.'
         }
       }
-      console.error('❌ DISCOVERY BATCH NETWORK ERROR:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error occurred'

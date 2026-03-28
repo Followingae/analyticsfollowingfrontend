@@ -162,7 +162,7 @@ const ShortlistTab = ({ event, isInternal, onUpdate }: any) => {
               }
             });
           } catch (error) {
-            console.error('Failed to enroll creator:', error);
+
           }
         }
       }
@@ -729,7 +729,7 @@ export default function EventsPage() {
         setSelectedEvent(data.events[0]);
       }
     } catch (error) {
-      console.error('Failed to load events:', error);
+
       toast.error('Failed to load events');
     } finally {
       setLoading(false);

@@ -63,17 +63,17 @@ export function FinancialDashboard() {
       if (creditResult.success && creditResult.data) {
         setCreditOverview(creditResult.data)
       } else {
-        console.warn('Credit overview API failed:', creditResult.error)
+
       }
 
       if (transactionsResult.success && transactionsResult.data) {
         setTransactions(transactionsResult.data.transactions || [])
       } else {
-        console.warn('Transactions API failed:', transactionsResult.error)
+
       }
     } catch (error) {
       setError('Failed to load financial data')
-      console.error('Financial data error:', error)
+
     } finally {
       setLoading(false)
     }

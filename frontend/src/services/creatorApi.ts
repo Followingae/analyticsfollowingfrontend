@@ -527,7 +527,6 @@ class CreatorApiService {
         message: 'Comprehensive AI analysis retrieved successfully'
       };
     } catch (error) {
-      console.error('❌ Comprehensive AI Analysis Error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch comprehensive AI analysis',
@@ -682,7 +681,6 @@ class CreatorApiService {
 
       // Handle 404 - endpoint might not be implemented yet
       if (response.status === 404) {
-        console.warn('⚠️ Unlocked creators endpoint not found, returning empty response')
         return {
           success: false,
           error: 'Not Found'

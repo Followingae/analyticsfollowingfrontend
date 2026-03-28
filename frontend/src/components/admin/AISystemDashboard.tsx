@@ -58,23 +58,23 @@ export function AISystemDashboard() {
       if (statusResult.success) {
         setAiStatus(statusResult.data!)
       } else {
-        console.warn('AI Status API failed:', statusResult.error)
+
       }
 
       if (queueResult.success) {
         setQueueData(queueResult.data)
       } else {
-        console.warn('AI Queue API failed:', queueResult.error)
+
       }
 
       if (statsResult.success) {
         setAnalysisStats(statsResult.data)
       } else {
-        console.warn('AI Stats API failed:', statsResult.error)
+
       }
     } catch (error) {
       setError('Failed to load AI system data')
-      console.error('AI system data error:', error)
+
     } finally {
       setLoading(false)
     }

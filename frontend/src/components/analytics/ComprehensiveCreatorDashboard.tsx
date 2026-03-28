@@ -372,41 +372,10 @@ function ComprehensiveCreatorDashboardComponent({ username }: ComprehensiveCreat
         // Removed excessive logging to reduce console duplication
         // Debug logging can be re-enabled by uncommenting below:
         /*
-        console.log('🔍 COMPLETE BACKEND RESPONSE for', username)
-        console.log('📊 OVERVIEW TAB DATA:', {
-          followers: response?.profile?.followers_count,
-          posts: response?.profile?.posts_count,
-          engagement_rate: response?.profile?.engagement_rate,
-          avg_likes: response?.profile?.avg_likes,
-          avg_comments: response?.profile?.avg_comments,
-          primary_content_type: response?.profile?.ai_analysis?.primary_content_type,
-          content_distribution: response?.profile?.ai_analysis?.content_distribution,
-          content_quality_score: response?.profile?.ai_analysis?.content_quality_score
-        })
 
-        console.log('👥 AUDIENCE TAB DATA:', {
-          audience_demographics: response?.profile?.ai_analysis?.audience_demographics,
-          audience_quality: response?.profile?.ai_analysis?.audience_quality_assessment,
-          audience_insights: response?.profile?.ai_analysis?.audience_insights
-        })
 
-        console.log('💬 ENGAGEMENT TAB DATA:', {
-          behavioral_patterns: response?.profile?.ai_analysis?.behavioral_patterns_analysis,
-          lifecycle_stage: response?.profile?.ai_analysis?.comprehensive_insights?.lifecycle_stage,
-          engagement_trend: response?.profile?.ai_analysis?.comprehensive_insights?.engagement_trend
-        })
 
-        console.log('📝 CONTENT TAB DATA:', {
-          visual_content: response?.profile?.ai_analysis?.visual_content_analysis,
-          fraud_detection: response?.profile?.ai_analysis?.fraud_detection_analysis,
-          advanced_nlp: response?.profile?.ai_analysis?.advanced_nlp_analysis
-        })
 
-        console.log('📸 POSTS TAB DATA:', {
-          posts_count: response?.profile?.posts?.length,
-          first_post_ai: response?.profile?.posts?.[0]?.ai_analysis,
-          analytics_summary: response?.analytics_summary
-        })
         */
 
         // Transform the existing API response to match our comprehensive structure
@@ -747,7 +716,6 @@ function ComprehensiveCreatorDashboardComponent({ username }: ComprehensiveCreat
           setData(transformedData)
         } else {
           // No fallback - if API doesn't return expected structure, show error
-          console.error('❌ Invalid API response structure:', response)
           throw new Error('Invalid API response structure')
         }
         setLoading(false)

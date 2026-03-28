@@ -154,7 +154,7 @@ export default function SettingsPage() {
           overviewLoaded = true
         }
       } catch {
-        console.log('Overview endpoint unavailable, loading individually')
+
       }
 
       // Fallback: load individual endpoints if overview failed
@@ -224,11 +224,11 @@ export default function SettingsPage() {
         setMyTeam(teamData)
         setMyTeamUsage(teamUsageData)
       } catch {
-        console.log('No team data available')
+
       }
 
     } catch (error) {
-      console.error('Failed to load settings data:', error)
+
       toast.error('Failed to load settings data')
     } finally {
       setLoading(false)
@@ -249,7 +249,7 @@ export default function SettingsPage() {
       toast.success('Profile updated successfully')
       await refreshUser()
     } catch (error) {
-      console.error('Failed to save profile:', error)
+
       toast.error('Failed to save profile')
     } finally {
       setSaving(false)
@@ -264,7 +264,7 @@ export default function SettingsPage() {
       setPreferences({ ...preferences!, ...preferencesForm })
       toast.success('Preferences updated successfully')
     } catch (error) {
-      console.error('Failed to save preferences:', error)
+
       toast.error('Failed to save preferences')
     } finally {
       setSaving(false)
@@ -280,7 +280,7 @@ export default function SettingsPage() {
       setNotificationsForm(result)
       toast.success('Notification preferences updated')
     } catch (error) {
-      console.error('Failed to save notifications:', error)
+
       toast.error('Failed to save notification preferences')
     } finally {
       setSaving(false)
@@ -296,7 +296,7 @@ export default function SettingsPage() {
       setPrivacyForm(result)
       toast.success('Privacy settings updated')
     } catch (error) {
-      console.error('Failed to save privacy settings:', error)
+
       toast.error('Failed to save privacy settings')
     } finally {
       setSaving(false)
@@ -319,7 +319,7 @@ export default function SettingsPage() {
       setPasswordForm({ current_password: '', new_password: '', confirm_password: '' })
       toast.success('Password changed successfully')
     } catch (error: any) {
-      console.error('Failed to change password:', error)
+
       toast.error(error.message || 'Failed to change password')
     } finally {
       setSaving(false)
@@ -338,7 +338,7 @@ export default function SettingsPage() {
       await refreshUser()
       toast.success('Avatar updated successfully!')
     } catch (error) {
-      console.error('Failed to save avatar config:', error)
+
       toast.error('Failed to update avatar')
       setAvatarConfig(user?.avatar_config || null)
     } finally {
@@ -361,7 +361,7 @@ export default function SettingsPage() {
       setToggle2FADialog(null)
       setTwoFAPassword('')
     } catch (error: any) {
-      console.error(`Failed to ${enabling ? 'enable' : 'disable'} 2FA:`, error)
+
       toast.error(error.message || `Failed to ${enabling ? 'enable' : 'disable'} 2FA`)
     } finally {
       setSaving(false)
@@ -380,11 +380,18 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <SidebarProvider>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 66)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
         <AppSidebar variant="inset" />
         <SidebarInset>
           <SiteHeader />
-          <div className="flex flex-1 flex-col items-center justify-center p-6">
+          <div className="flex flex-1 flex-col items-center justify-center p-4 md:p-6">
             <div className="text-center space-y-4">
               <Loader2 className="h-8 w-8 mx-auto animate-spin" />
               <p className="text-muted-foreground">Loading settings...</p>
@@ -396,13 +403,20 @@ export default function SettingsPage() {
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 66)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <div className="flex-1 space-y-4 p-6">
+        <div className="flex-1 space-y-4 p-4 md:p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-6">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="account">Account</TabsTrigger>
               <TabsTrigger value="security">Security</TabsTrigger>

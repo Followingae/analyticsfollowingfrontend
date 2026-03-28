@@ -85,11 +85,11 @@ export function InfluencerDatabasePage() {
         setTotalCount(data.total_count || 0)
         setTotalPages(data.total_pages || 0)
       } else {
-        console.warn("Failed to load influencer database:", result.error)
+
       }
     } catch (error) {
       toast.error("Failed to load influencer database")
-      console.error(error)
+
     } finally {
       setLoading(false)
     }

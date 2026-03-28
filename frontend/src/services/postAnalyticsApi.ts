@@ -7,14 +7,6 @@ import { API_CONFIG, ENDPOINTS } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { pollJobToCompletion, isAsyncJobResponse, parseJobAcceptedResponse } from '@/hooks/useJobPolling'
 
-// Verify ENDPOINTS structure on import
-if (typeof window !== 'undefined') {
-  console.log('PostAnalyticsApi: ENDPOINTS structure check', {
-    hasPostAnalytics: !!ENDPOINTS.postAnalytics,
-    hasAnalyzeBatch: !!ENDPOINTS.postAnalytics?.analyzeBatch,
-    endpoints: ENDPOINTS.postAnalytics
-  })
-}
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -234,7 +226,6 @@ class PostAnalyticsApiService {
         message: data.message
       }
     } catch (error) {
-      console.error('Post Analytics API Error:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error occurred'
@@ -304,8 +295,6 @@ class PostAnalyticsApiService {
       success_rate: number
     }
   }>> {
-    console.log('🚀 Starting batch analysis for', request.post_urls.length, 'posts')
-
     // Ensure the endpoint exists before making the request
     if (!ENDPOINTS.postAnalytics?.analyzeBatch) {
       return {
@@ -493,8 +482,6 @@ class PostAnalyticsApiService {
     total_successful: number
     total_failed: number
   }> {
-    console.log('🚀 Using new enhanced batch endpoint for', postUrls.length, 'posts')
-
     // Use the new batch endpoint for better performance
     const batchResult = await this.batchAnalyzePosts({
       post_urls: postUrls,
@@ -504,7 +491,6 @@ class PostAnalyticsApiService {
 
     if (!batchResult.success || !batchResult.data) {
       // Fallback to sequential processing if batch fails
-      console.warn('⚠️ Batch endpoint failed, falling back to sequential processing')
       return this._sequentialAnalysis(postUrls, campaignId)
     }
 
@@ -573,7 +559,6 @@ class PostAnalyticsApiService {
    * Legacy method for backward compatibility
    */
   async monitorAnalysis(postUrl: string, campaignId?: string): Promise<PostAnalysisData> {
-    console.warn('monitorAnalysis is deprecated. Use analyzePostDirect instead.')
     return this.analyzePostDirect(postUrl, campaignId)
   }
 
@@ -588,7 +573,6 @@ class PostAnalyticsApiService {
     total_successful: number
     total_failed: number
   }> {
-    console.warn('monitorBatchAnalysis is deprecated. Use analyzePostsBatch instead.')
     return this.analyzePostsBatch(postUrls, campaignId)
   }
 
@@ -739,9 +723,6 @@ class PostAnalyticsApiService {
     }
 
     const cleanUrl = url.trim()
-
-    console.log('Validating URL:', cleanUrl)
-    console.log('Regex test result:', instagramPostRegex.test(cleanUrl))
 
     if (!instagramPostRegex.test(cleanUrl)) {
       return {

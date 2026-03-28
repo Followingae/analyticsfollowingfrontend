@@ -57,7 +57,6 @@ export default function LoginPage() {
         </span>
       }
       description="Access your influencer discovery and campaign tools"
-      testimonials={[]}
       isLoading={isLoading}
       error={error}
       onSignIn={handleSubmit}

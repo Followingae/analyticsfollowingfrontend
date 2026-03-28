@@ -165,7 +165,7 @@ const DataExportDashboard: React.FC<DataExportDashboardProps> = () => {
       setError(null);
     } catch (err) {
       setError('Failed to load data export dashboard');
-      console.error('Data export dashboard error:', err);
+
     } finally {
       setLoading(false);
     }
@@ -176,7 +176,7 @@ const DataExportDashboard: React.FC<DataExportDashboardProps> = () => {
       const jobsData = await superadminApi.getExportJobs({ time_range: selectedTimeRange });
       setExportJobs(jobsData);
     } catch (err) {
-      console.error('Failed to refresh export jobs:', err);
+
     }
   };
 
@@ -194,7 +194,7 @@ const DataExportDashboard: React.FC<DataExportDashboardProps> = () => {
       });
       loadDashboardData();
     } catch (err) {
-      console.error('Failed to create export job:', err);
+
     }
   };
 
@@ -212,7 +212,7 @@ const DataExportDashboard: React.FC<DataExportDashboardProps> = () => {
       });
       loadDashboardData();
     } catch (err) {
-      console.error('Failed to create template:', err);
+
     }
   };
 
@@ -227,7 +227,7 @@ const DataExportDashboard: React.FC<DataExportDashboardProps> = () => {
       }
       loadExportJobsData();
     } catch (err) {
-      console.error(`Failed to ${action} export job:`, err);
+
     }
   };
 
@@ -240,7 +240,7 @@ const DataExportDashboard: React.FC<DataExportDashboardProps> = () => {
       }
       loadDashboardData();
     } catch (err) {
-      console.error(`Failed to ${action} integration:`, err);
+
     }
   };
 

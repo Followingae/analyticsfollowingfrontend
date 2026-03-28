@@ -130,8 +130,6 @@ export const useUserStore = create<UserStore>()(
           const dashboardUrl = `${API_CONFIG.BASE_URL}${ENDPOINTS.auth.dashboard}`
           const url = bustCache ? `${dashboardUrl}?_t=${Date.now()}` : dashboardUrl
 
-          console.log('🔍 UserStore: Dashboard API URL:', url)
-          console.log('🔍 UserStore: Base URL from config:', API_CONFIG.BASE_URL)
 
           // Add retry logic for database timeout issues
           let response: Response
@@ -139,8 +137,6 @@ export const useUserStore = create<UserStore>()(
 
           for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-              console.log(`🔍 UserStore: Dashboard API attempt ${attempt}/${maxRetries}`)
-
               response = await fetchWithAuth(
                 url,
                 {
@@ -155,12 +151,10 @@ export const useUserStore = create<UserStore>()(
               )
 
               if (response.ok) {
-                console.log('🔍 UserStore: Dashboard API succeeded')
                 break
               } else if (response.status >= 500 && attempt < maxRetries) {
                 // Server error - retry with exponential backoff
                 const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
-                console.log(`🔍 UserStore: Server error ${response.status}, retrying in ${delay}ms`)
                 await new Promise(resolve => setTimeout(resolve, delay))
                 continue
               } else {
@@ -170,7 +164,6 @@ export const useUserStore = create<UserStore>()(
               if (error.name === 'TimeoutError' || error.message?.includes('timeout')) {
                 if (attempt < maxRetries) {
                   const delay = Math.min(2000 * attempt, 5000)
-                  console.log(`🔍 UserStore: Timeout error, retrying in ${delay}ms`)
                   await new Promise(resolve => setTimeout(resolve, delay))
                   continue
                 } else {
@@ -189,8 +182,8 @@ export const useUserStore = create<UserStore>()(
           if (data.user && typeof window !== 'undefined') {
             try {
               localStorage.setItem('user_data', JSON.stringify(data.user))
-            } catch (error) {
-              console.error('Failed to update localStorage:', error)
+            } catch {
+              // Failed to update localStorage
             }
           }
 
@@ -208,7 +201,6 @@ export const useUserStore = create<UserStore>()(
           
 
         } catch (error) {
-          console.error('Failed to load user data:', error)
           
           set({
             user: null,

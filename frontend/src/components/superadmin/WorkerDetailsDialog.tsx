@@ -84,7 +84,7 @@ export default function WorkerDetailsDialog({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Network error'
       setError(errorMessage)
-      console.error('Worker details error:', err)
+
     } finally {
       setLoading(false)
     }
@@ -106,7 +106,7 @@ export default function WorkerDetailsDialog({
         toast.error(response.error || `Failed to ${action} worker`)
       }
     } catch (err) {
-      console.error(`Worker control error (${action}):`, err)
+
       toast.error(`Network error while ${action}ing worker`)
     }
   }

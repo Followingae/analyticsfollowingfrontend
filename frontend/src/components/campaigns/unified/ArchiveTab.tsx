@@ -74,7 +74,7 @@ export function ArchiveTab({ searchQuery, typeFilter = 'all' }: ArchiveTabProps)
       const storedTokens = localStorage.getItem('auth_tokens');
 
       if (!storedTokens) {
-        console.error("No auth tokens found");
+
         setArchivedCampaigns([]);
         return;
       }
@@ -94,7 +94,7 @@ export function ArchiveTab({ searchQuery, typeFilter = 'all' }: ArchiveTabProps)
       const data = await response.json();
       setArchivedCampaigns(data.campaigns || []);
     } catch (error) {
-      console.error("Error fetching archived campaigns:", error);
+
       setArchivedCampaigns([]);
     } finally {
       setIsLoading(false);

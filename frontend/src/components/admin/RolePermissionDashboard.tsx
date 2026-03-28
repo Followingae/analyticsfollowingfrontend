@@ -155,7 +155,7 @@ const RolePermissionDashboard: React.FC<RolePermissionDashboardProps> = () => {
       setError(null);
     } catch (err) {
       setError('Failed to load role management data');
-      console.error('Role management dashboard error:', err);
+
     } finally {
       setLoading(false);
     }
@@ -173,7 +173,7 @@ const RolePermissionDashboard: React.FC<RolePermissionDashboardProps> = () => {
       });
       loadRoleManagementData();
     } catch (err) {
-      console.error('Failed to create role:', err);
+
     }
   };
 
@@ -182,7 +182,7 @@ const RolePermissionDashboard: React.FC<RolePermissionDashboardProps> = () => {
       await superadminApi.updateRolePermissions(roleId, permissions, true);
       loadRoleManagementData();
     } catch (err) {
-      console.error('Failed to update role permissions:', err);
+
     }
   };
 
@@ -199,7 +199,7 @@ const RolePermissionDashboard: React.FC<RolePermissionDashboardProps> = () => {
       });
       loadRoleManagementData();
     } catch (err) {
-      console.error('Failed to grant feature access:', err);
+
     }
   };
 

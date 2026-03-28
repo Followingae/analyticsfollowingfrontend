@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { StandardMetricCard } from "@/components/ui/standard-metric-card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -27,12 +26,10 @@ import {
   Eye,
   Clock,
   DollarSign,
-  Users,
   Plus,
   MoreHorizontal,
   Send,
   CheckCircle,
-  Loader2,
 } from "lucide-react"
 import Link from "next/link"
 import { adminProposalApi, AdminProposal, AdminProposalStats } from "@/services/adminProposalMasterApi"
@@ -81,13 +78,12 @@ export default function SuperadminProposalsPage() {
 
   return (
     <SuperadminLayout>
-      <div className="flex flex-1 flex-col">
-        <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+      <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold">Proposals</h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground mt-1">
                 Create and manage influencer proposals for brands
               </p>
             </div>
@@ -100,7 +96,7 @@ export default function SuperadminProposalsPage() {
           </div>
 
           {/* KPI Cards */}
-          {stats && (
+          {stats ? (
             <motion.div
               variants={proposalMotion.staggerContainer}
               initial="hidden"
@@ -108,7 +104,7 @@ export default function SuperadminProposalsPage() {
               className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
             >
               <motion.div variants={proposalMotion.staggerItem}>
-                <StandardMetricCard icon={FileText} label="Total" value={stats.total_proposals} subtitle="proposals created" />
+                <StandardMetricCard icon={FileText} label="Total" value={stats.total_proposals} subtitle="proposals" />
               </motion.div>
               <motion.div variants={proposalMotion.staggerItem}>
                 <StandardMetricCard icon={Clock} label="Active" value={stats.active_proposals} subtitle="awaiting response" />
@@ -117,9 +113,25 @@ export default function SuperadminProposalsPage() {
                 <StandardMetricCard icon={CheckCircle} label="Approved" value={stats.approved_proposals} subtitle={`${stats.approval_rate}% rate`} />
               </motion.div>
               <motion.div variants={proposalMotion.staggerItem}>
-                <StandardMetricCard icon={DollarSign} label="Total Margin" value={`$${stats.total_margin.toLocaleString()}`} subtitle={`avg ${stats.avg_margin_percentage.toFixed(1)}%`} />
+                <StandardMetricCard icon={DollarSign} label="Margin" value={`$${stats.total_margin.toLocaleString()}`} subtitle={`avg ${stats.avg_margin_percentage.toFixed(1)}%`} />
               </motion.div>
             </motion.div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 bg-muted animate-pulse rounded-lg" />
+                      <div className="space-y-1.5 flex-1">
+                        <div className="h-3.5 w-16 bg-muted animate-pulse rounded" />
+                        <div className="h-5 w-24 bg-muted animate-pulse rounded" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
 
           {/* Filter Bar */}
@@ -142,95 +154,114 @@ export default function SuperadminProposalsPage() {
 
           {/* Proposals Table */}
           <Card>
-            <CardContent className="p-0">
-              <Table>
+            <CardContent className="p-0 overflow-x-auto">
+              <div className="overflow-x-auto">
+              <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Title</TableHead>
+                    <TableHead className="min-w-[200px]">Title</TableHead>
                     <TableHead>Brand</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Influencers</TableHead>
                     <TableHead className="text-right">Sell</TableHead>
                     <TableHead className="text-right">Margin</TableHead>
                     <TableHead>Deadline</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                      </TableCell>
-                    </TableRow>
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell>
+                          <div className="space-y-1.5">
+                            <div className="h-4 w-40 bg-muted animate-pulse rounded" />
+                            <div className="h-3 w-28 bg-muted animate-pulse rounded" />
+                          </div>
+                        </TableCell>
+                        <TableCell><div className="h-4 w-32 bg-muted animate-pulse rounded" /></TableCell>
+                        <TableCell><div className="h-5 w-16 bg-muted animate-pulse rounded-full" /></TableCell>
+                        <TableCell className="text-right"><div className="h-4 w-10 bg-muted animate-pulse rounded ml-auto" /></TableCell>
+                        <TableCell className="text-right"><div className="h-4 w-16 bg-muted animate-pulse rounded ml-auto" /></TableCell>
+                        <TableCell className="text-right"><div className="h-4 w-12 bg-muted animate-pulse rounded ml-auto" /></TableCell>
+                        <TableCell><div className="h-4 w-20 bg-muted animate-pulse rounded" /></TableCell>
+                        <TableCell className="text-right"><div className="h-8 w-8 bg-muted animate-pulse rounded ml-auto" /></TableCell>
+                      </TableRow>
+                    ))
                   ) : proposals.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-12">
-                        <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                        <p className="text-sm text-muted-foreground">No proposals found</p>
+                      <TableCell colSpan={8} className="text-center py-16">
+                        <FileText className="h-8 w-8 mx-auto text-muted-foreground/60 mb-3" />
+                        <p className="text-sm font-medium mb-1">No proposals found</p>
+                        <p className="text-xs text-muted-foreground mb-4">Create a proposal to get started</p>
                         <Link href="/superadmin/proposals/create">
-                          <Button variant="outline" size="sm" className="mt-3">
+                          <Button variant="outline" size="sm">
                             <Plus className="mr-2 h-4 w-4" />
-                            Create your first proposal
+                            Create Proposal
                           </Button>
                         </Link>
                       </TableCell>
                     </TableRow>
                   ) : (
                     proposals.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">
+                      <TableRow key={p.id} className="group transition-colors duration-150 hover:bg-muted/50">
+                        <TableCell>
                           <Link
                             href={`/superadmin/proposals/${p.id}`}
-                            className="hover:underline"
+                            className="hover:underline font-medium text-sm"
                           >
                             {p.title}
                           </Link>
-                          <div className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             {p.campaign_name}
-                          </div>
+                          </p>
                         </TableCell>
-                        <TableCell className="text-sm">
-                          {p.user_email || "—"}
+                        <TableCell className="text-sm text-muted-foreground">
+                          {p.user_email || "--"}
                         </TableCell>
                         <TableCell>
                           <ProposalStatusBadge status={p.status} />
                         </TableCell>
-                        <TableCell className="text-right">
-                          {p.selected_count}/{p.total_influencers}
+                        <TableCell className="text-right tabular-nums text-sm">
+                          <span className="font-medium">{p.selected_count}</span>
+                          <span className="text-muted-foreground">/{p.total_influencers}</span>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right tabular-nums text-sm font-medium">
                           {p.total_sell_amount
                             ? `$${p.total_sell_amount.toLocaleString()}`
-                            : "—"}
+                            : "--"}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right tabular-nums text-sm">
                           {p.margin_percentage
                             ? `${p.margin_percentage.toFixed(1)}%`
-                            : "—"}
+                            : "--"}
                         </TableCell>
-                        <TableCell className="text-sm">
+                        <TableCell className="text-sm text-muted-foreground">
                           {p.deadline_at
-                            ? new Date(p.deadline_at).toLocaleDateString()
-                            : "—"}
+                            ? new Date(p.deadline_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : "--"}
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-150 data-[state=open]:opacity-100"
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem asChild>
                                 <Link href={`/superadmin/proposals/${p.id}`}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Detail
+                                  <Eye className="mr-2 h-3.5 w-3.5" />
+                                  View Details
                                 </Link>
                               </DropdownMenuItem>
                               {p.status === "draft" && (
                                 <DropdownMenuItem onClick={() => handleSend(p.id)}>
-                                  <Send className="mr-2 h-4 w-4" />
+                                  <Send className="mr-2 h-3.5 w-3.5" />
                                   Send to Brand
                                 </DropdownMenuItem>
                               )}
@@ -242,9 +273,9 @@ export default function SuperadminProposalsPage() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
-        </div>
       </div>
     </SuperadminLayout>
   )

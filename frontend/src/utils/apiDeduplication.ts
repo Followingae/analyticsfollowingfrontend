@@ -22,7 +22,6 @@ class APIDeduplication {
     // Check if request is already pending
     const pending = this.pendingRequests.get(key)
     if (pending && this.isRequestValid(pending)) {
-      console.log(`🔄 API DEDUPLICATION: Returning existing request for ${key}`)
       return pending.promise
     }
 
@@ -30,7 +29,6 @@ class APIDeduplication {
     this.cleanupExpiredRequests()
 
     // Create new request
-    console.log(`🚀 API NEW REQUEST: ${key}`)
     const startTime = Date.now()
     const promise = fetchWithAuth(url, {
       ...options,

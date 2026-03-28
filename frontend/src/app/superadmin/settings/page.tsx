@@ -68,7 +68,7 @@ export default function SuperadminSettingsPage() {
       }
     } catch (error) {
       toast.error('Failed to load settings data')
-      console.error(error)
+
     } finally {
       setLoading(false)
     }

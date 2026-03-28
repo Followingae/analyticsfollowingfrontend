@@ -186,7 +186,7 @@ export function InfluencerSelectionV3({
       await new Promise(resolve => setTimeout(resolve, 600));
       setInfluencers(mockInfluencers);
     } catch (error) {
-      console.error("Error fetching influencers:", error);
+
     } finally {
       setIsLoading(false);
     }
@@ -199,8 +199,8 @@ export function InfluencerSelectionV3({
   };
 
   const handleInfluencerToggle = (influencerId: string) => {
-    console.log("Toggle influencer:", influencerId);
-    console.log("Current selection:", localSelected);
+
+
 
     let newSelection: string[];
     if (localSelected.includes(influencerId)) {
@@ -209,7 +209,7 @@ export function InfluencerSelectionV3({
       newSelection = [...localSelected, influencerId];
     }
 
-    console.log("New selection:", newSelection);
+
     setLocalSelected(newSelection);
     onSelectionChange(newSelection);
   };

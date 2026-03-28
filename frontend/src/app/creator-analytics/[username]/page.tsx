@@ -42,8 +42,8 @@ export default function CreatorAnalyticsPage() {
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold">@{username}</h1>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold truncate">@{username}</h1>
                 <p className="text-muted-foreground text-sm">Creator Analytics</p>
               </div>
             </div>

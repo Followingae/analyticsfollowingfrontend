@@ -192,7 +192,7 @@ export default function AssetsPage() {
       ];
       setAssets(mockAssets);
     } catch (error) {
-      console.error('Failed to load assets:', error);
+
       toast.error('Failed to load assets');
     } finally {
       setLoading(false);

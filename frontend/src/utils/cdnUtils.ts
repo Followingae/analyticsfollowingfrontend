@@ -26,18 +26,8 @@ interface CDNMediaSource {
  * Priority: cdn_avatar_url > profile_pic_url_hd > cdn_url_512 > cdn_urls.avatar_512 > cdn_urls.avatar_256 > profile_pic_url
  */
 export function getOptimizedProfilePicture(source: CDNMediaSource): string | null {
-  // Debug specifically for laurazaraa
-  if (source.username?.toLowerCase().includes('laurazaraa') || JSON.stringify(source).toLowerCase().includes('laurazaraa')) {
-    console.log('🚨 LAURAZARAA CDN CHECK:', {
-      cdn_avatar_url: source.cdn_avatar_url,
-      detected_country: source.detected_country,
-      sourceKeys: Object.keys(source)
-    })
-  }
-
   // 1. PRIMARY: CDN avatar URL (optimized WebP, 512px)
   if (source.cdn_avatar_url) {
-    console.log('✅ CDN avatar found:', source.cdn_avatar_url)
     return source.cdn_avatar_url;
   }
 
@@ -112,18 +102,8 @@ export function getOptimizedCountry(source: {
   country_block?: string | null;       // FALLBACK: Legacy country detection
   username?: string;                   // For debugging
 }): string | null {
-  // Debug specifically for laurazaraa
-  if (source.username?.toLowerCase().includes('laurazaraa') || JSON.stringify(source).toLowerCase().includes('laurazaraa')) {
-    console.log('🚨 LAURAZARAA COUNTRY CHECK:', {
-      detected_country: source.detected_country,
-      country_block: source.country_block,
-      sourceKeys: Object.keys(source)
-    })
-  }
-
   // 1. PRIMARY: detected_country field (ISO country codes)
   if (source.detected_country) {
-    console.log('✅ Country found:', source.detected_country)
     return source.detected_country;
   }
 

@@ -74,12 +74,10 @@ export function ProposalDashboard() {
           dashboard: dashboardResult.data
         })
       } else {
-        console.warn('Proposal API failed:', { overviewResult, proposalsResult, dashboardResult })
       }
       setError(null)
     } catch (err) {
       setError('Failed to load proposal data')
-      console.error('Proposal data loading error:', err)
     } finally {
       setLoading(false)
     }

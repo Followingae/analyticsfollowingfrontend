@@ -289,10 +289,6 @@ class AuthService {
           this.tokenData = tokenData
           this.lastLoginTime = Date.now()
 
-          console.log('✅ Tokens stored after registration:', {
-            access_token: data.access_token ? 'PRESENT' : 'MISSING',
-            refresh_token: data.refresh_token ? 'PRESENT' : 'MISSING'
-          })
         }
 
         return {
@@ -499,9 +495,7 @@ class AuthService {
     } catch (error) {
       // FIXED: Don't logout here - let API interceptor handle auth failures
       // The API interceptor is better positioned to determine if logout is needed
-      console.log('❌ AuthService.getCurrentUser: Error fetching user, but not forcing logout')
-      
-      return { 
+      return {
         success: false, 
         error: error instanceof Error ? error.message : 'Network error fetching user' 
       }

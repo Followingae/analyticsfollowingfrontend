@@ -156,7 +156,7 @@ export default function FinancePage() {
         }
       ]);
     } catch (error) {
-      console.error('Failed to load finance data:', error);
+
       toast.error('Failed to load finance data');
     } finally {
       setLoading(false);

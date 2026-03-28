@@ -47,13 +47,7 @@ export function useProfileAccess(): UseProfileAccessResult {
             result.data.notifications,
             `🎉 Profile unlocked! Full access granted ${expirationText}`
           )
-          
 
-            username,
-            hasAccess,
-            expiresInDays
-          })
-          
           return result.data
         } else {
           // Still no access - might be restricted profile or other issue

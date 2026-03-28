@@ -25,8 +25,8 @@ class AdminAPIClient {
       if (tokenResult.isValid && tokenResult.token) {
         return tokenResult.token;
       }
-    } catch (error) {
-      console.warn('TokenManager failed, falling back to localStorage');
+    } catch {
+      // TokenManager failed, falling back to localStorage
     }
 
     // Fallback to direct localStorage access
@@ -87,8 +87,8 @@ class AdminAPIClient {
               return await retryResponse.json();
             }
           }
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
+        } catch {
+          // Token refresh failed
         }
 
         // Auth failed, redirect to login
@@ -108,8 +108,6 @@ class AdminAPIClient {
       // Parse and return JSON
       return await response.json();
     } catch (error) {
-      console.error('API request failed:', error);
-
       // If it's an auth error, show user-friendly message
       if (error instanceof Error && error.message.includes('authentication')) {
         toast.error('Please log in to continue');

@@ -319,7 +319,6 @@ class CampaignApiComplete {
     budget?: number
     tags?: string[]
   }): Promise<ApiResponse<Campaign>> {
-    console.warn('⚠️ DEPRECATED: Use createUserCampaign() instead')
     const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.list}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

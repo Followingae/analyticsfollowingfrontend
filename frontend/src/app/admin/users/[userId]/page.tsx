@@ -232,27 +232,7 @@ export default function UserEditPage() {
   useEffect(() => {
     // Debug: Check what tokens are available
     if (typeof window !== 'undefined') {
-      console.log('🔍 Token Debug:', {
-        access_token: !!localStorage.getItem('access_token'),
-        auth_tokens: !!localStorage.getItem('auth_tokens'),
-        access_token_value: localStorage.getItem('access_token')?.substring(0, 20) + '...',
-        auth_tokens_parsed: (() => {
-          try {
-            const authTokens = localStorage.getItem('auth_tokens');
-            if (authTokens) {
-              const parsed = JSON.parse(authTokens);
-              return {
-                has_access_token: !!parsed.access_token,
-                has_access: !!parsed.access,
-                token_preview: (parsed.access_token || parsed.access || '').substring(0, 20) + '...'
-              };
-            }
-            return null;
-          } catch (e) {
-            return 'parse error';
-          }
-        })()
-      });
+
     }
 
     fetchUserData();
@@ -300,7 +280,7 @@ export default function UserEditPage() {
           const parsed = JSON.parse(authTokens);
           token = parsed.access_token || parsed.access;
         } catch (e) {
-          console.warn('Failed to parse auth_tokens:', e);
+
         }
       }
 
@@ -310,7 +290,7 @@ export default function UserEditPage() {
       }
 
       if (!token || token === 'null' || token === 'undefined' || token === '') {
-        console.warn('No authentication token found, skipping credits fetch');
+
         // Don't redirect immediately - user might be logged in but token not loaded yet
         return;
       }
@@ -327,21 +307,21 @@ export default function UserEditPage() {
       if (response.ok) {
         const data = await response.json();
         setUserCreditsData(data);
-        console.log('Credits fetched successfully:', data);
+
       } else if (response.status === 401 || response.status === 403) {
-        console.error('Authentication error:', response.status);
+
         toast.error('Session expired. Please log in again.');
         // Clear tokens and redirect
         localStorage.removeItem('access_token');
         localStorage.removeItem('auth_tokens');
         router.push('/auth/login');
       } else {
-        console.error('Failed to fetch credits:', response.status);
+
         const errorText = await response.text();
-        console.error('Error details:', errorText);
+
       }
     } catch (err) {
-      console.error('Error fetching credits:', err);
+
     }
   };
 
@@ -383,7 +363,7 @@ export default function UserEditPage() {
       }
     } catch (err: any) {
       toast.error('Failed to load user data');
-      console.error(err);
+
     } finally {
       setLoading(false);
     }
@@ -421,12 +401,12 @@ export default function UserEditPage() {
         }));
         setCreditHistory(transactions);
       } else {
-        console.error('Failed to fetch credit history:', response.status);
+
         // Fallback to empty array instead of mock data
         setCreditHistory([]);
       }
     } catch (err) {
-      console.error('Failed to load credit history:', err);
+
       setCreditHistory([]);
     } finally {
       setLoadingCredits(false);
@@ -442,7 +422,7 @@ export default function UserEditPage() {
         const parsed = JSON.parse(authTokens);
         token = parsed.access_token || parsed.access;
       } catch (e) {
-        console.warn('Failed to parse auth_tokens');
+
       }
     }
     if (!token) {
@@ -468,7 +448,7 @@ export default function UserEditPage() {
         }
       ]);
     } catch (err) {
-      console.error('Failed to load activity log:', err);
+
     } finally {
       setLoadingActivities(false);
     }
@@ -564,7 +544,7 @@ export default function UserEditPage() {
         toast.error(error.detail || 'Failed to upload logo');
       }
     } catch (err) {
-      console.error('Logo upload error:', err);
+
       toast.error('Failed to upload logo');
     } finally {
       setUploadingLogo(false);
@@ -603,7 +583,7 @@ export default function UserEditPage() {
         toast.error(error.detail || 'Failed to upload document');
       }
     } catch (err) {
-      console.error('Document upload error:', err);
+
       toast.error('Failed to upload document');
     } finally {
       setUploadingDocument(false);
@@ -628,10 +608,10 @@ export default function UserEditPage() {
         const data = await response.json();
         setDocuments(data.documents || []);
       } else {
-        console.error('Failed to fetch documents');
+
       }
     } catch (err) {
-      console.error('Error fetching documents:', err);
+
     } finally {
       setLoadingDocuments(false);
     }
@@ -698,7 +678,7 @@ export default function UserEditPage() {
         toast.error('Failed to delete document');
       }
     } catch (err) {
-      console.error('Error deleting document:', err);
+
       toast.error('Failed to delete document');
     }
   };
@@ -1635,6 +1615,7 @@ export default function UserEditPage() {
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                       ) : creditHistory.length > 0 ? (
+                        <div className="overflow-x-auto">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -1680,6 +1661,7 @@ export default function UserEditPage() {
                             ))}
                           </TableBody>
                         </Table>
+                        </div>
                       ) : (
                         <p className="text-center py-8 text-muted-foreground">
                           No transaction history available
@@ -1805,6 +1787,7 @@ export default function UserEditPage() {
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : activities.length > 0 ? (
+                    <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -1833,6 +1816,7 @@ export default function UserEditPage() {
                         ))}
                       </TableBody>
                     </Table>
+                    </div>
                   ) : (
                     <p className="text-center py-8 text-muted-foreground">
                       No activity recorded
@@ -2019,7 +2003,7 @@ export default function UserEditPage() {
                   fetchUserData();
                   fetchCreditHistory();
                 } catch (error) {
-                  console.error('Credit operation failed:', error);
+
                 }
               }}
               disabled={!creditForm.amount || !creditForm.reason}

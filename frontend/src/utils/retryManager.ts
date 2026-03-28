@@ -146,7 +146,6 @@ export async function withRetry<T>(
   }
 
   // All retries exhausted
-  console.error(`💥 All ${fullConfig.maxRetries + 1} attempts failed. Total delay: ${stats.totalDelay}ms`)
   throw lastError
 }
 

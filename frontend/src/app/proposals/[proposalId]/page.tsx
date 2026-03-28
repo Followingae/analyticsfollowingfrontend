@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/popover"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import {
   Table,
   TableBody,
@@ -159,6 +160,9 @@ export default function BrandProposalViewPage() {
 
   // DND
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
+
+  // Mobile sidebar sheet
+  const [mobileSelectionOpen, setMobileSelectionOpen] = useState(false)
 
   // Dialogs
   const [requestMoreOpen, setRequestMoreOpen] = useState(false)
@@ -794,6 +798,38 @@ export default function BrandProposalViewPage() {
                   />
                 </div>
               </div>
+            )}
+
+            {/* Mobile floating button + Sheet for selection sidebar */}
+            {!isTerminal && (
+              <Sheet open={mobileSelectionOpen} onOpenChange={setMobileSelectionOpen}>
+                <SheetTrigger asChild>
+                  <button className="lg:hidden fixed bottom-4 right-4 z-50 flex items-center gap-2 bg-primary text-primary-foreground shadow-lg rounded-full px-4 py-3 text-sm font-medium hover:bg-primary/90 transition-colors">
+                    <UserCheck className="h-4 w-4" />
+                    View Selection{selectedIds.size > 0 && ` (${selectedIds.size})`}
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:max-w-[400px] p-0 flex flex-col">
+                  <SheetTitle className="sr-only">Selected Creators</SheetTitle>
+                  <AISnapshotPanel
+                    proposalId={proposalId}
+                    selectedIds={selectedIds}
+                    onFetchSnapshot={fetchAISnapshot}
+                  />
+                  <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                    <SelectedCreatorsPanel
+                      influencers={data.influencers}
+                      selectedIds={selectedIds}
+                      onDeselect={deselectInfluencer}
+                      showPricing={showPricing}
+                      estimatedTotal={estimatedTotal}
+                      deliverableSelections={deliverableSelections}
+                      selectedReach={selectedReach}
+                      selectedAvgEngagement={selectedAvgEngagement}
+                    />
+                  </div>
+                </SheetContent>
+              </Sheet>
             )}
           </div>
 

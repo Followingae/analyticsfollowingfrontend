@@ -8,7 +8,6 @@ import { ArrowLeft, UserPlus, Check } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -174,15 +173,15 @@ export default function CreateBrandAccountPage() {
           </div>
 
           {/* Success Card */}
-          <Card className="border-green-200 dark:border-green-800">
+          <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                  <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Check className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-green-900 dark:text-green-100">Brand Account Created!</CardTitle>
-                  <CardDescription>The user can login immediately with these credentials</CardDescription>
+                  <CardTitle>Brand Account Created</CardTitle>
+                  <CardDescription>The user can log in immediately with these credentials</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -226,21 +225,19 @@ export default function CreateBrandAccountPage() {
               </div>
 
               {/* Important Notice */}
-              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong className="block mb-2">Important:</strong>
-                  • Save these credentials securely<br />
-                  • No email confirmation required - user can login immediately<br />
-                  • Email has been auto-verified
-                </p>
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <p className="text-sm font-medium mb-2">Important</p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>Save these credentials securely</li>
+                  <li>No email confirmation required -- user can log in immediately</li>
+                  <li>Email has been auto-verified</li>
+                </ul>
               </div>
 
               {/* Actions */}
               <div className="flex gap-3">
                 <Button
                   onClick={() => router.push('/superadmin/users')}
-                  style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }}
-                  className="hover:opacity-90"
                 >
                   View All Users
                 </Button>
@@ -286,13 +283,13 @@ export default function CreateBrandAccountPage() {
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Create Brand Account</h1>
-            <p className="text-muted-foreground">Create a complete brand account with subscription, credits, and team setup</p>
+            <h1 className="text-2xl font-semibold">Create Brand Account</h1>
+            <p className="text-sm text-muted-foreground mt-1">Set up a brand account with subscription, credits, and team</p>
           </div>
         </div>
 
         {formError && (
-          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/50 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {formError}
           </div>
         )}

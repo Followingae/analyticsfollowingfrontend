@@ -72,29 +72,18 @@ export function ChartRemainingCreditsV2() {
         // Handle both wrapped and direct response formats
         const walletInfo = walletResponse.success ? walletResponse.data : walletResponse
 
-        // Debug logging to understand the data structure
-        console.log('Wallet Response:', walletInfo)
-
         const currentBalance = walletInfo?.current_balance || 0
         const monthlyAllowance = walletInfo?.monthly_allowance || walletInfo?.total_plan_credits || 0
 
         // Use monthly_allowance as the max for accurate percentage calculation
         const maxCredits = monthlyAllowance > 0 ? monthlyAllowance : Math.max(currentBalance, 1000)
 
-        console.log('Credits calculation:', {
-          currentBalance,
-          monthlyAllowance,
-          maxCredits,
-          percentage: Math.round((currentBalance / maxCredits) * 100)
-        })
-
         setCreditsData({
           balance: currentBalance,
           maxCredits: maxCredits
         })
 
-      } catch (error) {
-        console.warn('Error loading wallet data:', error)
+      } catch {
         setCreditsData({ balance: 0, maxCredits: 1000 })
       } finally {
         setLoading(false)

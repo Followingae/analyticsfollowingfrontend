@@ -357,7 +357,7 @@ export default function CampaignDetailsPage() {
       window.URL.revokeObjectURL(url);
       toast.success(`Campaign exported as ${format.toUpperCase()}`);
     } catch (err) {
-      console.error('Export error:', err);
+
       toast.error('Failed to export campaign data');
     }
   };
@@ -421,7 +421,7 @@ export default function CampaignDetailsPage() {
 
       if (!campaignResponse.ok) {
         if (campaignResponse.status === 404) {
-          console.log('🔧 DEBUG: Campaign not found (404)');
+
           setCampaign(null);
           return;
         }
@@ -429,21 +429,21 @@ export default function CampaignDetailsPage() {
       }
 
       const campaignData = await campaignResponse.json();
-      console.log('🔧 DEBUG: FULL CAMPAIGN DETAILS RESPONSE:', JSON.stringify(campaignData, null, 2));
-      console.log('🔧 DEBUG: Campaign response structure keys:', Object.keys(campaignData));
+
+
 
       // Check for nested data structure
       let processedCampaignData = campaignData;
       if (campaignData.data) {
-        console.log('🔧 DEBUG: Campaign has nested data structure');
+
         processedCampaignData = campaignData.data;
-        console.log('🔧 DEBUG: Processed campaign data keys:', Object.keys(processedCampaignData));
+
       }
 
       // Log all available campaign fields
-      console.log('🔧 DEBUG: Available campaign fields:');
+
       Object.keys(processedCampaignData).forEach(key => {
-        console.log(`  - ${key}:`, typeof processedCampaignData[key], processedCampaignData[key]);
+
       });
 
       // Extract campaign details using processed data
@@ -463,42 +463,42 @@ export default function CampaignDetailsPage() {
         engagement_rate: processedCampaignData.engagement_rate,
       };
 
-      console.log('🔧 DEBUG: Extracted campaign details for UI:', campaignDetails);
+
 
       // Validate interface completeness
       const requiredFields = ['id', 'name', 'brand_name', 'status', 'created_at', 'updated_at'];
       const optionalFields = ['brand_logo_url', 'posts_count', 'creators_count', 'total_reach', 'engagement_rate'];
       const allInterfaceFields = [...requiredFields, ...optionalFields];
 
-      console.log('🔧 DEBUG: Campaign interface validation:');
+
       const missingRequired = requiredFields.filter(field => !processedCampaignData.hasOwnProperty(field));
       const missingOptional = optionalFields.filter(field => !processedCampaignData.hasOwnProperty(field));
 
       if (missingRequired.length > 0) {
-        console.log('  ❌ MISSING REQUIRED FIELDS:', missingRequired);
+
       }
       if (missingOptional.length > 0) {
-        console.log('  ⚠️ MISSING OPTIONAL FIELDS:', missingOptional);
+
       }
       if (missingRequired.length === 0 && missingOptional.length === 0) {
-        console.log('  ✅ ALL INTERFACE FIELDS PRESENT');
+
       }
 
       // Check for any additional rich fields not in our interface
       const unusedFields = Object.keys(processedCampaignData).filter(key => !allInterfaceFields.includes(key));
       if (unusedFields.length > 0) {
-        console.log('🔧 DEBUG: EXTRA CAMPAIGN FIELDS (not in interface):', unusedFields);
+
         unusedFields.forEach(field => {
-          console.log(`  - EXTRA ${field}:`, typeof processedCampaignData[field], processedCampaignData[field]);
+
         });
       }
 
       // Check data types for critical fields
-      console.log('🔧 DEBUG: Campaign data type validation:');
-      console.log('  - posts_count type:', typeof processedCampaignData.posts_count, 'value:', processedCampaignData.posts_count);
-      console.log('  - creators_count type:', typeof processedCampaignData.creators_count, 'value:', processedCampaignData.creators_count);
-      console.log('  - total_reach type:', typeof processedCampaignData.total_reach, 'value:', processedCampaignData.total_reach);
-      console.log('  - engagement_rate type:', typeof processedCampaignData.engagement_rate, 'value:', processedCampaignData.engagement_rate);
+
+
+
+
+
 
       setCampaign(campaignDetails);
 
@@ -518,7 +518,7 @@ export default function CampaignDetailsPage() {
       if (postsResponse.ok) {
         const postsData = await postsResponse.json();
         // Log basic status for monitoring
-        console.log('✅ Posts API Response: Retrieved', postsData.data?.posts?.length || 0, 'posts');
+
 
         // Handle the response structure properly
         if (Array.isArray(postsData)) {
@@ -541,9 +541,9 @@ export default function CampaignDetailsPage() {
             post.views > 0 ? ((post.likes + post.comments) / post.views) * 100 : 0
         }));
 
-        console.log('✅ Enhanced Posts: Applied video detection and engagement rate fixes to', campaignPosts.length, 'posts');
+
       } else {
-        console.log('❌ Posts fetch failed:', postsResponse.status);
+
       }
       setPosts(campaignPosts);
 
@@ -562,7 +562,7 @@ export default function CampaignDetailsPage() {
 
         if (analyticsResponse.ok) {
           const analyticsData = await analyticsResponse.json();
-          console.log('✅ Analytics API Response: Retrieved campaign analytics data');
+
 
           // Handle analytics data parsing similar to posts
           let processedAnalyticsData = analyticsData;
@@ -580,18 +580,18 @@ export default function CampaignDetailsPage() {
               ...(processedAnalyticsData.demographics && { demographics: processedAnalyticsData.demographics }),
               ...(processedAnalyticsData.audience_insights && { insights: processedAnalyticsData.audience_insights })
             };
-            console.log('✅ Audience Data: Extracted from analytics totals - reach:', audienceData.total_reach);
+
             setAudience(audienceData);
           }
 
           // Extract performance insights from analytics (backend sends rich performance data)
           if (processedAnalyticsData.performance_insights) {
-            console.log('✅ Performance Insights: Available');
+
           }
 
           // Extract daily stats for trend analysis
           if (processedAnalyticsData.daily_stats && Array.isArray(processedAnalyticsData.daily_stats)) {
-            console.log('✅ Daily Stats: Available for', processedAnalyticsData.daily_stats.length, 'days');
+
           }
 
           // Set AI insights if available
@@ -604,10 +604,10 @@ export default function CampaignDetailsPage() {
             setCreators(processedAnalyticsData.creators);
           }
         } else {
-          console.log('❌ Analytics fetch failed:', analyticsResponse.status);
+
         }
       } catch (analyticsError) {
-        console.log('⚠️ Analytics fetch error (non-critical):', analyticsError);
+
       }
 
       // Calculate stats from real data
@@ -619,7 +619,7 @@ export default function CampaignDetailsPage() {
           story: 0
         };
 
-        console.log('✅ Post Types Calculated:', postTypes);
+
 
         const totalLikes = campaignPosts.reduce((sum, post) => sum + post.likes, 0);
         const totalComments = campaignPosts.reduce((sum, post) => sum + post.comments, 0);
@@ -636,12 +636,7 @@ export default function CampaignDetailsPage() {
         // Calculate estimated reach
         const totalReach = calculateCampaignReach(campaignPosts);
 
-        console.log('✅ Campaign Stats:', {
-          posts: campaignPosts.length,
-          creators: uniqueCreators.size,
-          reach: totalReach,
-          engagement: `${avgEngagement.toFixed(2)}%`
-        });
+
 
         setStats({
           totalCreators: uniqueCreators.size,
@@ -677,7 +672,7 @@ export default function CampaignDetailsPage() {
       }
 
     } catch (error: any) {
-      console.error("Campaign data fetch error:", error);
+
 
       // Handle authentication errors
       if (error.message?.includes('authentication') || error.message?.includes('token') || error.message?.includes('401')) {
@@ -890,7 +885,7 @@ export default function CampaignDetailsPage() {
       }
 
       // Store the selected file and open cropper
-      console.log("🎯 Opening cropper with file:", file.name);
+
       setSelectedImageFile(file);
       setIsCropperOpen(true);
 
@@ -943,7 +938,7 @@ export default function CampaignDetailsPage() {
       setLogoPreview("");
       toast.success("Logo deleted successfully");
     } catch (error) {
-      console.error("Error deleting logo:", error);
+
       toast.error("Failed to delete logo");
     }
   };
@@ -1035,7 +1030,7 @@ export default function CampaignDetailsPage() {
       setIsEditDialogOpen(false);
       toast.success("Campaign updated successfully");
     } catch (error) {
-      console.error("Error saving changes:", error);
+
       toast.error("Failed to save changes");
     } finally {
       setIsSaving(false);
@@ -1107,8 +1102,8 @@ export default function CampaignDetailsPage() {
         const progressPercent = statusData.progress_percent || 0;
         const currentStage = statusData.current_stage || 'Processing...';
 
-        console.log(`Job ${jobId} progress: ${progressPercent}%`);
-        console.log(`Current stage: ${currentStage}`);
+
+
 
         // Update toast with progress
         currentToastId = updateProgressToast(currentToastId, progressPercent, currentStage, postShortcode);
@@ -1142,7 +1137,7 @@ export default function CampaignDetailsPage() {
         // Wait before next poll
         await new Promise(resolve => setTimeout(resolve, pollInterval));
       } catch (error) {
-        console.error(`Polling attempt ${attempt + 1} failed:`, error);
+
 
         // If it's the last attempt, dismiss toast and throw error
         if (attempt === maxAttempts - 1) {
@@ -1258,11 +1253,11 @@ export default function CampaignDetailsPage() {
         throw new Error("No job ID returned from server");
       }
 
-      console.log(`🚀 Post processing job started: ${jobId}`);
-      console.log(`📊 Job status: ${jobStatus}`);
-      console.log(`⏱️ Estimated time: ${estimated_time_seconds}s`);
-      console.log(`📍 Status URL: ${status_url}`);
-      console.log(`📍 Result URL: ${result_url}`);
+
+
+
+
+
 
       // Update toast to show polling started with estimated time
       toast.dismiss(processingToastId);
@@ -1298,12 +1293,12 @@ export default function CampaignDetailsPage() {
       });
 
       // Refresh campaign data to show new post
-      console.log("🔧 DEBUG: Post processing completed, refreshing campaign data...");
+
       await fetchCampaignData();
-      console.log("🔧 DEBUG: Campaign data refreshed after post completion");
+
 
     } catch (error) {
-      console.error("Error processing post:", error);
+
 
       // Polling function already dismissed toast on error, just show appropriate error
       if (error instanceof Error && error.message.includes('timeout')) {
@@ -1412,7 +1407,7 @@ export default function CampaignDetailsPage() {
         throw new Error(result.message || "Batch processing failed");
       }
     } catch (error) {
-      console.error("Error processing batch:", error);
+
       // Dismiss processing toast and show error
       toast.dismiss(processingToastId);
       const errorMessage = error instanceof Error ? error.message : "Failed to process batch";
@@ -2180,7 +2175,7 @@ export default function CampaignDetailsPage() {
                       toast.success("Post removed from campaign");
                       fetchCampaignData();
                     } catch (error) {
-                      console.error("Error removing post:", error);
+
                       toast.error("Failed to remove post");
                     }
                   }}

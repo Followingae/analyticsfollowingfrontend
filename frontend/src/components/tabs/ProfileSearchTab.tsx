@@ -25,7 +25,6 @@ export default function ProfileSearchTab() {
       setSearchResult(data) // Store full response including cached field
     },
     onError: (error) => {
-      console.error('Search failed:', error)
     }
   })
   const [batchUsernames, setBatchUsernames] = useState('')

@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { superadminApiService } from "@/services/superadminApi"
@@ -70,7 +70,7 @@ function getTierColor(tier?: string | null) {
   }
 }
 
-export default function SharedInfluencersPage() {
+function SharedInfluencersContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const shareId = searchParams.get("share_id")
@@ -370,5 +370,13 @@ export default function SharedInfluencersPage() {
         </SidebarInset>
       </SidebarProvider>
     </AuthGuard>
+  )
+}
+
+export default function SharedInfluencersPage() {
+  return (
+    <Suspense>
+      <SharedInfluencersContent />
+    </Suspense>
   )
 }

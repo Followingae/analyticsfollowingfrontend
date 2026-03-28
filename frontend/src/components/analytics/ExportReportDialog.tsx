@@ -151,7 +151,7 @@ export function ExportReportDialog({ username, trigger }: ExportReportDialogProp
         setExportResult({ success: false, error: 'Export failed' })
       }
     } catch (error) {
-      console.error('Export error:', error)
+
       setExportResult({ 
         success: false, 
         error: error instanceof Error ? error.message : 'Export failed' 

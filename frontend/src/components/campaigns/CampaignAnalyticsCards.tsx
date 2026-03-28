@@ -64,7 +64,7 @@ export function CampaignAnalyticsCards({ className = "" }: CampaignAnalyticsCard
           throw new Error(response.error || 'Failed to fetch overview data');
         }
       } catch (error) {
-        console.error("Error fetching overview data:", error);
+
         setSummary(null);
       } finally {
         setIsLoading(false);

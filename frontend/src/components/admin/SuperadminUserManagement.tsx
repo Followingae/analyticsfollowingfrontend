@@ -104,7 +104,7 @@ export default function SuperadminUserManagement() {
       const stats = await superadminService.getDashboardStats();
       setDashboardStats(stats);
     } catch (error) {
-      console.error('Failed to fetch dashboard stats:', error);
+
     }
   };
 
@@ -127,7 +127,7 @@ export default function SuperadminUserManagement() {
       setUsers(filteredUsers);
       setTotalPages(Math.ceil((response.total || 0) / pageSize));
     } catch (error) {
-      console.error('Failed to fetch users:', error);
+
       toast.error('Failed to load users');
     } finally {
       setLoading(false);

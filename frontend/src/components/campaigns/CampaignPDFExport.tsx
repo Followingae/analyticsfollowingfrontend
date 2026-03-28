@@ -88,7 +88,7 @@ const convertWebPToPNG = async (blob: Blob): Promise<Blob> => {
 
       canvas.toBlob((pngBlob) => {
         if (pngBlob) {
-          console.log('🔄 Converted WebP to PNG, size:', pngBlob.size)
+
           resolve(pngBlob)
         } else {
           reject(new Error('Failed to convert to PNG'))
@@ -104,7 +104,7 @@ const convertWebPToPNG = async (blob: Blob): Promise<Blob> => {
 // Convert image to base64 for @react-pdf/renderer - PROPER IMPLEMENTATION
 const imageToBase64 = async (url: string): Promise<string> => {
   try {
-    console.log('🖼️ Converting image to base64:', url)
+
 
     // For our CDN images, try a simple fetch first
     const response = await fetch(url, {
@@ -114,13 +114,13 @@ const imageToBase64 = async (url: string): Promise<string> => {
     })
 
     if (!response.ok) {
-      console.error(`❌ Failed to fetch image: ${response.status}`)
+
       return ''
     }
 
     const blob = await response.blob()
     if (blob.size === 0) {
-      console.warn('⚠️ Empty image blob')
+
       return ''
     }
 
@@ -129,13 +129,13 @@ const imageToBase64 = async (url: string): Promise<string> => {
       const reader = new FileReader()
       reader.onload = () => resolve(reader.result as string)
       reader.onerror = () => {
-        console.error('❌ FileReader error')
+
         resolve('')
       }
       reader.readAsDataURL(blob)
     })
   } catch (error) {
-    console.error('❌ Image conversion failed:', error)
+
     return ''
   }
 }
@@ -143,11 +143,11 @@ const imageToBase64 = async (url: string): Promise<string> => {
 // Use the brand logo directly from campaign data
 const getBrandLogo = (logoUrl?: string): string => {
   if (!logoUrl) {
-    console.log('📋 No brand logo available')
+
     return ''
   }
 
-  console.log('📋 Using brand logo URL directly:', logoUrl)
+
   return logoUrl
 }
 
@@ -163,7 +163,7 @@ export const CampaignPDFExportButton: React.FC<ExportButtonProps> = ({ data, cla
   const handleExport = async () => {
     setIsGenerating(true)
     try {
-      console.log('🚀 Starting PDF export with image preloading...')
+
 
       // Preload all images first
       const images: { logo?: string; creatorProfiles?: Record<string, string>; postThumbnails?: Record<string, string> } = {}
@@ -171,49 +171,49 @@ export const CampaignPDFExportButton: React.FC<ExportButtonProps> = ({ data, cla
       // Note: Logo will be added later if brand_logo_url is available
 
       // EMBED IMAGES FROM OUR CDN - These should work since they're our own images!
-      console.log('📥 Downloading and embedding images from our CDN...')
+
 
       // Use creator profile image URLs directly
-      console.log('👥 Processing creator profile images...', data.creators?.length || 0, 'creators')
+
       images.creatorProfiles = {}
       if (data.creators) {
         data.creators.forEach((creator) => {
           if (creator.profile_pic_url) {
             const imageUrl = getImageUrl(creator.profile_pic_url)
-            console.log(`👤 Using profile URL for ${creator.username}:`, imageUrl)
+
             images.creatorProfiles![creator.username] = processImageUrl(imageUrl)
-            console.log(`✅ Profile URL ready for ${creator.username}`)
+
           }
         })
       }
 
       // Use post thumbnail URLs directly
-      console.log('🖼️ Processing post thumbnail images...', data.posts?.length || 0, 'posts')
+
       images.postThumbnails = {}
       if (data.posts) {
         data.posts.forEach((post) => {
           if (post.thumbnail) {
             const imageUrl = getImageUrl(post.thumbnail)
-            console.log(`📷 Using thumbnail URL for post ${post.id}:`, imageUrl)
+
             images.postThumbnails![post.id] = processImageUrl(imageUrl)
-            console.log(`✅ Thumbnail URL ready for post ${post.id}`)
+
           }
         })
       }
 
       // Add brand logo if available
       if (data.campaign.brand_logo_url) {
-        console.log('📋 Using brand logo URL:', data.campaign.brand_logo_url)
+
         images.logo = getBrandLogo(data.campaign.brand_logo_url)
       }
 
       // Log image summary
       const readyCreatorImages = Object.keys(images.creatorProfiles || {}).length
       const readyPostImages = Object.keys(images.postThumbnails || {}).length
-      console.log('📊 Image URL summary:')
-      console.log('  📷 Brand logo:', images.logo ? '✅ Ready' : '❌ Not available')
-      console.log(`  👥 Creator profiles: ${readyCreatorImages}/${data.creators?.length || 0}`)
-      console.log(`  🖼️ Post thumbnails: ${readyPostImages}/${data.posts?.length || 0}`)
+
+
+
+
 
       // Generate PDF with preloaded images using CompleteCampaignPDFDocument
       const enhancedData: EnhancedCampaignPDFData = {
@@ -225,7 +225,7 @@ export const CampaignPDFExportButton: React.FC<ExportButtonProps> = ({ data, cla
         .toISOString()
         .split('T')[0]}.pdf`
 
-      console.log('📄 Generating PDF with CleanCampaignPDFDocument...')
+
       const doc = <CleanCampaignPDFDocument data={enhancedData} />
       const pdfBlob = await pdf(doc).toBlob()
 
@@ -239,10 +239,10 @@ export const CampaignPDFExportButton: React.FC<ExportButtonProps> = ({ data, cla
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
 
-      console.log('✅ PDF export completed successfully!')
+
 
     } catch (error) {
-      console.error('❌ Failed to generate PDF:', error)
+
       alert('Failed to generate PDF. Please try again.')
     } finally {
       setIsGenerating(false)
@@ -273,39 +273,39 @@ export const CampaignPDFExportButton: React.FC<ExportButtonProps> = ({ data, cla
 
 // Direct download function for API usage
 export const downloadCampaignPDF = async (data: CampaignPDFData) => {
-  console.log('🚀 Starting direct PDF export with image preloading...')
+
 
   // Preload all images
   const images: { logo?: string; creatorProfiles?: Record<string, string>; postThumbnails?: Record<string, string> } = {}
 
   // Use brand logo directly if available
   if (data.campaign.brand_logo_url) {
-    console.log('📋 Using brand logo URL for direct export:', data.campaign.brand_logo_url)
+
     images.logo = getBrandLogo(data.campaign.brand_logo_url)
   }
 
   // Use creator profile URLs directly
-  console.log('👥 Processing creator profiles for direct export...')
+
   images.creatorProfiles = {}
   if (data.creators) {
     data.creators.forEach((creator) => {
       if (creator.profile_pic_url) {
         const imageUrl = getImageUrl(creator.profile_pic_url)
         images.creatorProfiles[creator.username] = processImageUrl(imageUrl)
-        console.log(`✅ Profile URL ready for ${creator.username}`)
+
       }
     })
   }
 
   // Use post thumbnail URLs directly
-  console.log('🖼️ Processing post thumbnails for direct export...')
+
   images.postThumbnails = {}
   if (data.posts) {
     data.posts.forEach((post) => {
       if (post.thumbnail) {
         const imageUrl = getImageUrl(post.thumbnail)
         images.postThumbnails[post.id] = processImageUrl(imageUrl)
-        console.log(`✅ Thumbnail URL ready for post ${post.id}`)
+
       }
     })
   }
@@ -320,7 +320,7 @@ export const downloadCampaignPDF = async (data: CampaignPDFData) => {
     .toISOString()
     .split('T')[0]}.pdf`
 
-  console.log('📄 Generating PDF with CleanCampaignPDFDocument for direct export...')
+
   const blob = await pdf(<CleanCampaignPDFDocument data={enhancedData} />).toBlob()
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -329,7 +329,7 @@ export const downloadCampaignPDF = async (data: CampaignPDFData) => {
   link.click()
   URL.revokeObjectURL(url)
 
-  console.log('✅ Direct PDF export completed!')
+
 }
 
 export default CampaignPDFExportButton

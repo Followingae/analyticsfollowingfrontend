@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,7 +12,7 @@ import { brandPoolApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
 
-export default function CashbackPoolPage() {
+function CashbackPoolContent() {
   const searchParams = useSearchParams()
   const [balance, setBalance] = useState<any>(null)
   const [transactions, setTransactions] = useState<any[]>([])
@@ -172,5 +172,13 @@ export default function CashbackPoolPage() {
         </div>
       </BrandUserInterface>
     </AuthGuard>
+  )
+}
+
+export default function CashbackPoolPage() {
+  return (
+    <Suspense>
+      <CashbackPoolContent />
+    </Suspense>
   )
 }

@@ -50,7 +50,6 @@ export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderPr
         }
         return false // Failed
       } catch (error) {
-        console.error('Failed to load credit balance:', error)
         return false // Failed
       } finally {
         setLoading(false)
@@ -73,7 +72,6 @@ export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderPr
         lastActivity = Date.now()
         if (!userActive) {
           userActive = true
-          console.log('🔄 User active - resuming credit polling')
         }
       }
       
@@ -90,7 +88,6 @@ export function DashboardHeader({ currentPage = "Dashboard" }: DashboardHeaderPr
           const inactiveTime = Date.now() - lastActivity
           if (inactiveTime > 10 * 60 * 1000) {
             userActive = false
-            console.log('😴 User inactive - skipping credit polling')
             return true // Skip this cycle but keep polling active
           }
           

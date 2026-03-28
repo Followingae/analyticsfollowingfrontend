@@ -6,10 +6,7 @@ import { useTheme } from "next-themes"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 
 import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import {
   Sidebar,
   SidebarContent,
@@ -22,20 +19,17 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
 import {
   Crown,
-  BarChart3 as IconChartBar,
   LayoutDashboard as IconDashboard,
   HelpCircle as IconHelp,
-  FileText as IconReport,
   Settings as IconSettings,
   Users as IconUsers,
   Target as IconTarget,
   CreditCard as IconCreditCard,
   Compass as IconCompass,
   List as IconList,
-  FileText as IconFileText
+  FileText as IconFileText,
 } from "lucide-react"
 
 function ThemeLogo() {
@@ -73,7 +67,7 @@ function ThemeLogo() {
 }
 
 export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, isLoading, hasRole, checkSubscriptionGate } = useEnhancedAuth()
+  const { user, isLoading, hasRole } = useEnhancedAuth()
 
   // Dynamic user data
   const dynamicUser = React.useMemo(() => {
@@ -99,7 +93,6 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
       avatar_config: user.avatar_config,
     }
   }, [user])
-
 
   // Base navigation items - only actual existing pages
   const getNavigationData = () => {
@@ -168,7 +161,6 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
 
   const data = getNavigationData()
 
-
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -181,9 +173,8 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        
       </SidebarHeader>
-      
+
       <SidebarContent>
         {/* Search & Analytics Section */}
         <SidebarGroup>
@@ -200,7 +191,6 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
             <NavMain items={data.management} />
           </SidebarGroupContent>
         </SidebarGroup>
-
 
         {/* More Section */}
         <SidebarGroup className="mt-auto">

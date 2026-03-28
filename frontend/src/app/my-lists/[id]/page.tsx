@@ -109,7 +109,7 @@ export default function ListDetailPage() {
         }
         setLoading(false)
       } catch (error) {
-        console.error('Error loading list data:', error)
+
         setLoading(false)
       }
     }
@@ -122,11 +122,11 @@ export default function ListDetailPage() {
   const loadAvailableCreators = async () => {
     setSearchLoading(true)
     try {
-      console.log('Loading available creators for list:', listId)
+
 
       // The lists/available-profiles endpoint has UUID validation issues
       // Let's use the auth/unlocked-profiles endpoint instead
-      console.log('Using auth/unlocked-profiles endpoint...')
+
       const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.auth.unlockedProfiles}`, {
         method: 'GET',
         headers: {
@@ -138,20 +138,20 @@ export default function ListDetailPage() {
       let data
       if (response.ok) {
         data = await response.json()
-        console.log('Raw unlocked profiles response:', data)
+
       } else {
         const errorData = await response.json()
-        console.log('Auth unlocked profiles error:', errorData)
+
         throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData)}`)
       }
 
       // Convert response to our expected format
       const apiResponse = { success: response.ok, data }
-      console.log('Available creators API response:', apiResponse)
-      console.log('Response data structure:', JSON.stringify(data, null, 2))
+
+
 
       if (apiResponse.success) {
-        console.log('Response is successful, checking data structure...')
+
 
         // Handle different possible response structures
         let profiles = []
@@ -159,28 +159,28 @@ export default function ListDetailPage() {
         // Try different potential data structures
         if (data && data.profiles && Array.isArray(data.profiles)) {
           profiles = data.profiles
-          console.log('Found profiles in data.profiles:', profiles.length)
+
         } else if (data && data.items && Array.isArray(data.items)) {
           profiles = data.items
-          console.log('Found profiles in data.items:', profiles.length)
+
         } else if (data && Array.isArray(data)) {
           profiles = data
-          console.log('Found profiles in data:', profiles.length)
+
         } else if (Array.isArray(data)) {
           profiles = data
-          console.log('Data itself is array:', profiles.length)
+
         } else {
-          console.log('Could not find profiles array in response structure')
-          console.log('Available keys in data:', Object.keys(data || {}))
+
+
         }
 
         if (profiles.length > 0) {
           // Log a sample profile to understand the structure
-          console.log('Sample profile structure:', profiles[0])
+
 
           // Convert unlocked profiles to expected format using high-quality CDN images
           const convertedProfiles = profiles.map((profile, index) => {
-            console.log(`Converting profile ${index}:`, profile)
+
 
             // Create safe profile object with fallbacks
             const safeProfile = {
@@ -192,26 +192,26 @@ export default function ListDetailPage() {
               is_verified: profile.is_verified || false
             }
 
-            console.log(`Converted profile ${index}:`, safeProfile)
+
             return safeProfile
           })
-          console.log('Successfully converted available profiles:', convertedProfiles)
+
           setAllAvailableCreators(convertedProfiles)
           setSearchResults(convertedProfiles)
         } else {
-          console.log('No profiles found in the response structure')
-          console.log('Setting empty arrays...')
+
+
           setAllAvailableCreators([])
           setSearchResults([])
         }
       } else {
-        console.log('API call was not successful. ApiResponse:', apiResponse)
+
         setAllAvailableCreators([])
         setSearchResults([])
         toast.error('Failed to load unlocked creators')
       }
     } catch (error) {
-      console.error('Error loading available creators:', error)
+
       setAllAvailableCreators([])
       setSearchResults([])
       toast.error('Network error while loading creators')
@@ -255,7 +255,7 @@ export default function ListDetailPage() {
           setSearchResults(profiles)
         }
       } catch (error) {
-        console.error('Error searching creators:', error)
+
         toast.error('Failed to search creators')
       } finally {
         setSearchLoading(false)

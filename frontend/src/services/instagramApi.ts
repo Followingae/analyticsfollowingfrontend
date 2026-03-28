@@ -794,8 +794,6 @@ export class InstagramApiService {
           return sequencedFetch(
             `profile-search-${cleanUsername}`,
             async () => {
-              console.log(`🔍 Making sequenced API call for profile: ${cleanUsername}`)
-
               const response = await this.makeRequest<ProfileResponse>(ENDPOINTS.creator.search(cleanUsername), {
                 method: 'GET', // Fresh API uses GET method
                 headers: {
@@ -835,7 +833,6 @@ export class InstagramApiService {
       }
 
     } catch (error: any) {
-      console.error(`❌ Profile fetch failed for ${cleanUsername}:`, error.message)
 
       if (error.message.includes('profile_not_accessible') ||
           error.message.includes('search for this profile first')) {
@@ -978,8 +975,6 @@ export class InstagramApiService {
           return sequencedFetch(
             `unlocked-profiles-${page}`,
             async () => {
-              console.log(`🔍 Fetching unlocked profiles page ${page}`)
-
               const response = await this.makeRequest<UnlockedProfilesResponse>(
                 `${ENDPOINTS.creator.unlocked}?page=${page}&page_size=${pageSize}`,
                 { method: 'GET' }
@@ -1003,7 +998,6 @@ export class InstagramApiService {
         data: result
       }
     } catch (error: any) {
-      console.error(`❌ Failed to load unlocked profiles:`, error.message)
       return {
         success: false,
         error: error.message || 'Failed to load unlocked profiles'

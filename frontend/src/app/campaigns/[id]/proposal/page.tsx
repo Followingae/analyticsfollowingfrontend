@@ -121,7 +121,7 @@ export default function CampaignProposalPage() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       setProposal(mockProposal);
     } catch (error) {
-      console.error("Error loading proposal data:", error);
+
     } finally {
       setIsLoading(false);
     }

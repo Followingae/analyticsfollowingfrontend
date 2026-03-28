@@ -512,7 +512,7 @@ export const HTMLToPDFExportButton: React.FC<HTMLToPDFExportButtonProps> = ({ da
   const handleExport = async () => {
     try {
       setIsGenerating(true)
-      console.log('🚀 Generating PDF from HTML...')
+
 
       // Generate HTML content
       const htmlContent = generateCampaignHTML(data)
@@ -535,10 +535,10 @@ export const HTMLToPDFExportButton: React.FC<HTMLToPDFExportButtonProps> = ({ da
         }, 1000)
       }
 
-      console.log('✅ PDF generation initiated!')
+
 
     } catch (error) {
-      console.error('❌ Failed to generate PDF:', error)
+
       alert('Failed to generate PDF. Please try again.')
     } finally {
       setIsGenerating(false)

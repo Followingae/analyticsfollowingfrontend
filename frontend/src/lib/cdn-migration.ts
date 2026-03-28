@@ -54,11 +54,7 @@ export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) 
 export function flagLegacyImageUsage(componentName: string, url?: string) {
   if (process.env.NODE_ENV === 'development') {
     if (url && cdnMediaService.isInstagramUrl(url)) {
-
-        `🚨 Legacy image usage detected in ${componentName}:`,
-        'Instagram URL found. Consider migrating to CDN system.',
-        '\n📖 See: /frontend/FRONTEND_MIGRATION_GUIDE.md'
-      )
+      // Legacy image usage detected - consider migrating to CDN system
     }
   }
 }

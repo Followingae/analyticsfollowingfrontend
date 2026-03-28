@@ -29,7 +29,6 @@ class RequestSequencer {
   ): Promise<T> {
     // If request with same ID is already active, wait for it
     if (this.activeRequests.has(id)) {
-      console.log(`⏳ Request ${id} already in progress, waiting...`)
       return new Promise((resolve, reject) => {
         const checkCompletion = () => {
           if (!this.activeRequests.has(id)) {
@@ -61,8 +60,6 @@ class RequestSequencer {
         this.queue.splice(insertIndex, 0, queuedRequest)
       }
 
-      console.log(`📋 Queued request ${id} (priority: ${priority}, queue size: ${this.queue.length})`)
-
       this.processQueue()
     })
   }
@@ -82,12 +79,10 @@ class RequestSequencer {
       }
 
       this.activeRequests.add(request.id)
-      console.log(`🚀 Executing request ${request.id} (active: ${this.activeRequests.size}/${this.maxConcurrent})`)
 
       // Execute request asynchronously
       this.executeRequest(request).finally(() => {
         this.activeRequests.delete(request.id)
-        console.log(`✅ Completed request ${request.id} (active: ${this.activeRequests.size}/${this.maxConcurrent})`)
 
         // Continue processing queue
         if (this.queue.length > 0) {
@@ -109,7 +104,6 @@ class RequestSequencer {
       const result = await request.executor()
       request.resolve(result)
     } catch (error) {
-      console.error(`❌ Request ${request.id} failed:`, error)
       request.reject(error)
     }
   }
@@ -124,7 +118,6 @@ class RequestSequencer {
         request.reject(new Error('Request cancelled'))
       }
     }
-    console.log('🚫 Cancelled all pending requests')
   }
 
   /**
@@ -135,7 +128,6 @@ class RequestSequencer {
     if (index !== -1) {
       const request = this.queue.splice(index, 1)[0]
       request.reject(new Error('Request cancelled'))
-      console.log(`🚫 Cancelled request ${id}`)
       return true
     }
     return false

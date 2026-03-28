@@ -38,20 +38,22 @@ export function SmartDiscovery({
       {/* Content overlay */}
       <div className="relative z-20 p-6 h-full flex flex-col items-center justify-center pointer-events-none">
         <div className="text-center">
-        
-        {/* Content with large font styles */}
-        <h1 className="text-white dark:text-foreground group-hover:text-foreground font-black text-4xl md:text-5xl relative z-10 transition-colors duration-700 ease-out tracking-tight leading-tight">Creator Discovery</h1>
-        <p className="text-white/80 dark:text-foreground/80 group-hover:text-foreground/80 text-lg mt-2 whitespace-pre-line mb-6 relative z-10 transition-colors duration-700 ease-out">AI-powered insights to find the right voices instantly</p>
-        <Button
-          onClick={onDiscover}
-          variant="outline"
-          className={cn(
-            "pointer-events-auto",
-            "shadow-sm active:shadow-none"
-          )}
-        >
-          Discover Now
-        </Button>
+          <h2 className="text-white dark:text-foreground group-hover:text-foreground font-black text-4xl md:text-5xl relative z-10 transition-colors duration-700 ease-out tracking-tight leading-tight">
+            Creator Discovery
+          </h2>
+          <p className="text-white/80 dark:text-foreground/80 group-hover:text-foreground/80 text-lg mt-3 mb-6 relative z-10 transition-colors duration-700 ease-out">
+            AI-powered insights to find the right voices instantly
+          </p>
+          <Button
+            onClick={onDiscover}
+            variant="outline"
+            className={cn(
+              "pointer-events-auto transition-all duration-200",
+              "shadow-sm hover:shadow-md active:shadow-none"
+            )}
+          >
+            Discover Now
+          </Button>
         </div>
       </div>
     </Card>

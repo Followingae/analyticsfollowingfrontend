@@ -195,7 +195,7 @@ export function CampaignCard({
         : await campaignApi.createSuperadminCampaign(duplicateData);
 
       if (response.success) {
-        console.log(`Campaign "${campaign.name}" has been duplicated`);
+
         toast.success(`"${campaign.name}" duplicated successfully`);
 
         // Refresh the page to show the new campaign
@@ -204,7 +204,7 @@ export function CampaignCard({
         throw new Error(response.error || 'Failed to duplicate campaign');
       }
     } catch (error) {
-      console.error('Error duplicating campaign:', error);
+
       const errorMessage = error instanceof Error ? error.message : 'Failed to duplicate campaign';
       toast.error(`Duplication failed: ${errorMessage}`);
     } finally {
@@ -235,12 +235,7 @@ export function CampaignCard({
           ? `/campaigns/${campaign.id}/ugc`
           : `/campaigns/${campaign.id}/posts`;
 
-        console.log(`CAMPAIGN CARD CLICK - "${campaign.name}":`, {
-          campaign_id: campaign.id,
-          campaign_type: campaignType,
-          created_by: campaign.created_by,
-          targetRoute: targetRoute,
-        });
+
 
         router.push(targetRoute);
       }}

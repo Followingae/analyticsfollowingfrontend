@@ -93,17 +93,17 @@ export default function SuperadminAccessPage() {
       if (rolesResult.success && rolesResult.data) {
         setRoles(rolesResult.data)
       } else {
-        console.warn('Roles API failed:', rolesResult.error)
+
       }
 
       if (matrixResult.success && matrixResult.data) {
         setPermissionMatrix(matrixResult.data)
       } else {
-        console.warn('Permission matrix API failed:', matrixResult.error)
+
       }
 
     } catch (error) {
-      console.error('Failed to load access data:', error)
+
       toast.error('Failed to load access control data')
     } finally {
       setLoading(false)

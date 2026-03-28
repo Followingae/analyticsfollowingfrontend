@@ -16,13 +16,7 @@ import {
   Edit,
   Ban,
   Unlock,
-  Trash2,
   MoreHorizontal,
-  Crown,
-  CreditCard,
-  Mail,
-  Calendar,
-  Activity,
 } from "lucide-react"
 
 import { toast } from "sonner"
@@ -137,13 +131,13 @@ export default function SuperadminUsersPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-      case 'suspended': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-      case 'deactivated': return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+      case 'active': return 'default'
+      case 'suspended': return 'destructive'
+      case 'pending': return 'secondary'
+      case 'deactivated': return 'outline'
+      default: return 'outline'
     }
   }
 
@@ -170,11 +164,43 @@ export default function SuperadminUsersPage() {
   if (loading && users.length === 0) {
     return (
       <SuperadminLayout>
-        <div className="flex flex-1 flex-col items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <p className="text-muted-foreground">Loading users...</p>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="h-7 w-48 bg-muted animate-pulse rounded" />
+              <div className="h-4 w-72 bg-muted animate-pulse rounded mt-2" />
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-24 bg-muted animate-pulse rounded" />
+              <div className="h-9 w-44 bg-muted animate-pulse rounded" />
+            </div>
           </div>
+          <div className="flex gap-3">
+            <div className="h-9 w-[250px] bg-muted animate-pulse rounded" />
+            <div className="h-9 w-[140px] bg-muted animate-pulse rounded" />
+            <div className="h-9 w-[140px] bg-muted animate-pulse rounded" />
+          </div>
+          <Card>
+            <CardHeader>
+              <div className="h-5 w-36 bg-muted animate-pulse rounded" />
+              <div className="h-4 w-64 bg-muted animate-pulse rounded mt-1" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    <div className="h-4 w-48 bg-muted animate-pulse rounded" />
+                    <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+                    <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                    <div className="h-5 w-16 bg-muted animate-pulse rounded-full" />
+                    <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+                    <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                    <div className="h-8 w-8 bg-muted animate-pulse rounded" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </SuperadminLayout>
     )
@@ -187,17 +213,15 @@ export default function SuperadminUsersPage() {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold">User Management</h1>
-                  <p className="text-muted-foreground">Create, manage, and monitor platform users</p>
+                  <h1 className="text-2xl font-semibold">User Management</h1>
+                  <p className="text-sm text-muted-foreground mt-1">Create, manage, and monitor platform users</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={loadUsers}>
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                  <Button variant="outline" size="sm" onClick={loadUsers} disabled={loading}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                     Refresh
                   </Button>
                   <Button
-                    style={{ backgroundColor: 'hsl(var(--primary))', color: 'white' }}
-                    className="hover:opacity-90"
                     onClick={() => router.push('/superadmin/users/create')}
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
@@ -257,63 +281,74 @@ export default function SuperadminUsersPage() {
                   </Select>
                 </div>
                 
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2">
                   <Download className="h-4 w-4" />
-                  Export Users
+                  Export
                 </Button>
               </div>
 
               {/* Users Table */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Platform Users ({users.length})</CardTitle>
-                  <CardDescription>Complete user management and administration</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base">Platform Users</CardTitle>
+                      <CardDescription>{users.length} total users</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <Table>
+                <CardContent className="p-0 overflow-x-auto">
+                  <div className="overflow-x-auto">
+                  <Table className="min-w-[700px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Plan</TableHead>
+                        <TableHead className="min-w-[200px]">User</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Team</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Credits</TableHead>
-                        <TableHead>Last Login</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead className="text-right">Credits</TableHead>
+                        <TableHead>Last Updated</TableHead>
+                        <TableHead className="text-right w-[60px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {users.map((user) => (
-                        <TableRow key={user.id}>
+                        <TableRow key={user.id} className="group transition-colors duration-150 hover:bg-muted/50">
                           <TableCell>
-                            <div className="space-y-1">
-                              <div className="font-medium">{user.full_name}</div>
-                              <div className="text-sm text-muted-foreground">{user.email}</div>
+                            <div>
+                              <p className="font-medium text-sm">{user.full_name || 'Unnamed'}</p>
+                              <p className="text-xs text-muted-foreground">{user.email}</p>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="capitalize">
+                            <Badge variant="outline" className="capitalize text-xs">
                               {user.role}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="capitalize">
+                            <span className="text-sm text-muted-foreground">
                               {user.teams?.[0]?.name || 'Individual'}
-                            </Badge>
+                            </span>
                           </TableCell>
                           <TableCell>
-                            <Badge className={getStatusColor(user.status)}>
+                            <Badge variant={getStatusVariant(user.status)} className="capitalize text-xs">
                               {user.status}
                             </Badge>
                           </TableCell>
-                          <TableCell>{formatNumber(user.credits?.balance || 0)}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {user.updated_at ? formatDate(user.updated_at) : 'N/A'}
+                          <TableCell className="text-right tabular-nums font-medium text-sm">
+                            {formatNumber(user.credits?.balance || 0)}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {user.updated_at ? formatDate(user.updated_at) : '--'}
+                          </TableCell>
+                          <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-150 data-[state=open]:opacity-100"
+                                >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -322,28 +357,29 @@ export default function SuperadminUsersPage() {
                                   setSelectedUser(user)
                                   setIsUserDetailsOpen(true)
                                 }}>
-                                  <Eye className="h-3 w-3 mr-2" />
+                                  <Eye className="h-3.5 w-3.5 mr-2" />
                                   View Details
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => {
                                   router.push(`/superadmin/users/${user.id}`)
                                 }}>
-                                  <Edit className="h-3 w-3 mr-2" />
+                                  <Edit className="h-3.5 w-3.5 mr-2" />
                                   Edit User
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                  className={user.status === 'active' ? 'text-destructive focus:text-destructive' : ''}
                                   onClick={() => handleUpdateUserStatus(user.id,
                                     user.status === 'active' ? 'suspended' : 'active'
                                   )}
                                 >
                                   {user.status === 'active' ? (
                                     <>
-                                      <Ban className="h-3 w-3 mr-2" />
+                                      <Ban className="h-3.5 w-3.5 mr-2" />
                                       Suspend User
                                     </>
                                   ) : (
                                     <>
-                                      <Unlock className="h-3 w-3 mr-2" />
+                                      <Unlock className="h-3.5 w-3.5 mr-2" />
                                       Activate User
                                     </>
                                   )}
@@ -356,11 +392,12 @@ export default function SuperadminUsersPage() {
                     </TableBody>
                   </Table>
                   
+                  </div>
                   {users.length === 0 && !loading && (
-                    <div className="py-12 flex justify-center">
+                    <div className="py-16 flex justify-center border-t">
                       <EmptyState
                         title="No users found"
-                        description="Try adjusting your search or filter criteria\nto find the users you're looking for."
+                        description="Try adjusting your search or filter criteria to find the users you're looking for."
                         icons={[Users, Search, Filter]}
                       />
                     </div>

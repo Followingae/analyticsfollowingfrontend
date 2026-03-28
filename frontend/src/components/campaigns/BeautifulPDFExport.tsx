@@ -925,7 +925,7 @@ export const BeautifulPDFExportButton: React.FC<BeautifulPDFExportProps> = ({ da
   const handleExport = async () => {
     try {
       setIsGenerating(true)
-      console.log('🎨 Generating BEAUTIFUL PDF...')
+
 
       const htmlContent = generateBeautifulHTML(data)
 
@@ -970,14 +970,14 @@ export const BeautifulPDFExportButton: React.FC<BeautifulPDFExportProps> = ({ da
 
         // Fallback timeout in case images don't load
         setTimeout(() => {
-          console.log('📄 Timeout reached, printing anyway...')
+
           printWindow.print()
         }, 5000)
       }
 
-      console.log('✨ Beautiful PDF ready!')
+
     } catch (error) {
-      console.error('❌ PDF generation failed:', error)
+
       alert('Failed to generate PDF. Please try again.')
     } finally {
       setIsGenerating(false)

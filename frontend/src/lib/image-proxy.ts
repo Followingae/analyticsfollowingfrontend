@@ -11,12 +11,6 @@ import { getBestImageUrl } from './cdn-migration';
  * Legacy function redirects to CDN migration utility
  */
 export function proxyInstagramUrl(url: string | null | undefined): string {
-
-    '🚨 DEPRECATED: proxyInstagramUrl() is deprecated.',
-    'Use ProfileAvatar or CDNImage components from @/components/ui/cdn-image instead.',
-    '\n📖 Migration guide: /frontend/FRONTEND_MIGRATION_GUIDE.md'
-  );
-  
   return getBestImageUrl(null, url);
 }
 
@@ -24,12 +18,6 @@ export function proxyInstagramUrl(url: string | null | undefined): string {
  * @deprecated Use CDN components with automatic fallbacks instead
  */
 export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
-
-    '🚨 DEPRECATED: handleImageError() is deprecated.',
-    'Use CDNImage or ProfileAvatar components with automatic fallbacks.',
-    '\n📖 Migration guide: /frontend/FRONTEND_MIGRATION_GUIDE.md'
-  );
-  
   const target = event.currentTarget;
   target.src = 'https://cdn.following.ae/placeholders/avatar-512.webp';
 };

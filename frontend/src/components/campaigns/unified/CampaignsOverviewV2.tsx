@@ -93,7 +93,7 @@ export function CampaignsOverviewV2({ searchQuery, typeFilter = 'all' }: Campaig
         throw new Error(responseData.error || 'Failed to fetch campaigns');
       }
     } catch (error) {
-      console.error("Error fetching overview data:", error);
+
       setSummary(null);
       setRecentCampaigns([]);
     } finally {
@@ -104,7 +104,7 @@ export function CampaignsOverviewV2({ searchQuery, typeFilter = 'all' }: Campaig
   // Campaign action handler - no actions needed for overview, but required for CampaignCard interface
   const handleCampaignAction = async (action: string, campaignId: string, campaignName: string) => {
     // Overview tab doesn't need actions, but we need to provide this for the interface
-    console.log(`Campaign action ${action} on ${campaignName} (${campaignId}) - not implemented in overview`);
+
   };
 
 

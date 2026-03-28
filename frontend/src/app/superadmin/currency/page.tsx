@@ -49,7 +49,7 @@ const TeamCurrencyRow: React.FC<TeamCurrencyRowProps> = ({ team }) => {
         decimal_places: teamCurrency.decimal_places
       });
     } catch (error) {
-      console.error('Failed to fetch team currency:', error);
+
     }
   };
 
@@ -58,7 +58,7 @@ const TeamCurrencyRow: React.FC<TeamCurrencyRowProps> = ({ team }) => {
       const currencies = await currencyService.getSupportedCurrencies();
       setSupportedCurrencies(currencies);
     } catch (error) {
-      console.error('Failed to fetch supported currencies:', error);
+
     }
   };
 
@@ -240,7 +240,7 @@ export default function TeamCurrencyManagement() {
         setTeams(Array.from(teamMap.values()));
       }
     } catch (error) {
-      console.error('Failed to fetch teams:', error);
+
       toast.error('Failed to load team data');
     } finally {
       setIsLoading(false);

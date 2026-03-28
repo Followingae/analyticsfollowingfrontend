@@ -46,11 +46,11 @@ export function InfluencerDashboard() {
         setTotalCount(result.data.total_count || 0)
       } else {
         setError(result.error || 'Failed to load influencers')
-        console.warn('Influencers API failed:', result.error)
+
       }
     } catch (error) {
       setError('Network error while loading influencers')
-      console.error('Error loading influencers:', error)
+
     } finally {
       setLoading(false)
     }

@@ -67,29 +67,29 @@ export function ContentManagementDashboard() {
       if (moderationResult.success) {
         setModerationData(moderationResult.data!)
       } else {
-        console.warn('Moderation API failed:', moderationResult.error)
+
       }
 
       if (categoriesResult.success) {
         setCategoriesData(categoriesResult.data)
       } else {
-        console.warn('Categories API failed:', categoriesResult.error)
+
       }
 
       if (cdnResult.success) {
         setCdnData(cdnResult.data)
       } else {
-        console.warn('CDN API failed:', cdnResult.error)
+
       }
 
       if (assetsResult.success) {
         setAssetsData(assetsResult.data)
       } else {
-        console.warn('Assets API failed:', assetsResult.error)
+
       }
     } catch (error) {
       setError('Failed to load content management data')
-      console.error('Content management error:', error)
+
     } finally {
       setLoading(false)
     }

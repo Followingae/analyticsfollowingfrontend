@@ -48,7 +48,6 @@ export const isSafeMode = (): boolean => {
 export const enableSafeMode = (): void => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('safe_mode', 'true')
-    console.warn('🛡️ Safe mode enabled - memory-intensive features disabled')
   }
 }
 
@@ -98,17 +97,5 @@ export const safeCache = {
  * Log safe mode status
  */
 export const logSafeModeStatus = (): void => {
-  if (isSafeMode()) {
-    console.warn(`
-🛡️ SAFE MODE ACTIVE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Polling: ${SAFE_MODE_CONFIG.DISABLE_POLLING ? 'DISABLED' : 'enabled'}
-• Advanced Caching: ${SAFE_MODE_CONFIG.DISABLE_ADVANCED_CACHING ? 'DISABLED' : 'enabled'}  
-• Performance Monitoring: ${SAFE_MODE_CONFIG.DISABLE_PERFORMANCE_MONITORING ? 'DISABLED' : 'enabled'}
-• Batching: ${SAFE_MODE_CONFIG.DISABLE_BATCHING ? 'DISABLED' : 'enabled'}
-
-To disable safe mode: localStorage.removeItem('safe_mode')
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    `)
-  }
+  // Safe mode status check - no logging in production
 }

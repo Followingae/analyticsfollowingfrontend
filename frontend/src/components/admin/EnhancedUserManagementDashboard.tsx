@@ -194,7 +194,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
       }
     } catch (err) {
       setError('Failed to load users data');
-      console.error('Enhanced user management error:', err);
     } finally {
       setLoading(false);
     }
@@ -207,7 +206,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
         setPermissionMatrix(response.data);
       }
     } catch (err) {
-      console.error('Failed to load permission matrix:', err);
     }
   };
 
@@ -226,7 +224,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
         setLoginHistory(historyResponse.data.login_history || []);
       }
     } catch (err) {
-      console.error('Failed to load user details:', err);
     }
   };
 
@@ -267,7 +264,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
         setError(response.error || 'Failed to create user');
       }
     } catch (err) {
-      console.error('Failed to create user:', err);
       setError('Failed to create user');
     }
   };
@@ -282,7 +278,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
         setError(response.error || 'Failed to update user');
       }
     } catch (err) {
-      console.error('Failed to edit user:', err);
       setError('Failed to update user');
     }
   };
@@ -328,7 +323,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
         setError(response.error || 'Failed to process credit topup');
       }
     } catch (err) {
-      console.error('Failed to process credit topup:', err);
       setError('Failed to process credit topup');
     }
   };
@@ -375,7 +369,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
         setError(response.error || 'Failed to process bulk credit topup');
       }
     } catch (err) {
-      console.error('Failed to process bulk credit topup:', err);
       setError('Failed to process bulk credit topup');
     }
   };
@@ -385,7 +378,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
       await superadminApi.deleteUser(userId, permanent);
       loadUsersData();
     } catch (err) {
-      console.error('Failed to delete user:', err);
     }
   };
 
@@ -394,7 +386,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
       await superadminApi.updateUserStatus(userId, status);
       loadUsersData();
     } catch (err) {
-      console.error('Failed to update user status:', err);
     }
   };
 
@@ -416,7 +407,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
       }
       loadUsersData();
     } catch (err) {
-      console.error(`Failed to perform security action ${action}:`, err);
     }
   };
 
@@ -425,7 +415,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
       await superadminApi.updateUserPermissions(userId, permissions);
       loadUsersData();
     } catch (err) {
-      console.error('Failed to update permissions:', err);
     }
   };
 
@@ -441,7 +430,6 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
       setBulkOperation({ operation: 'update_role', parameters: {} });
       loadUsersData();
     } catch (err) {
-      console.error('Failed to perform bulk operation:', err);
     }
   };
 
@@ -455,10 +443,8 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
 
       if (response.success) {
         // Handle impersonation token or redirect
-        console.log('Impersonation token:', response.data);
       }
     } catch (err) {
-      console.error('Failed to impersonate user:', err);
     }
   };
 

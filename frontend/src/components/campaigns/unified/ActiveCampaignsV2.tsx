@@ -57,7 +57,7 @@ export function ActiveCampaignsV2({ searchQuery, typeFilter = 'all' }: ActiveCam
         throw new Error(responseData.error || 'Failed to fetch campaigns');
       }
     } catch (error) {
-      console.error("Error fetching campaigns:", error);
+
       setCampaigns([]);
     } finally {
       setIsLoading(false);
@@ -98,14 +98,14 @@ export function ActiveCampaignsV2({ searchQuery, typeFilter = 'all' }: ActiveCam
       }
 
       if (response.success) {
-        console.log(successMessage);
+
         // Refresh campaigns list
         await fetchCampaigns();
       } else {
         throw new Error(response.error || `Failed to ${action} campaign`);
       }
     } catch (error) {
-      console.error(`Error ${action}ing campaign:`, error);
+
       alert(`Failed to ${action} campaign. Please try again.`);
     }
   };

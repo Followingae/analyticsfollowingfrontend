@@ -258,7 +258,7 @@ async function getCroppedImg(
   return new Promise((resolve) => {
     canvas.toBlob((blob) => {
       if (!blob) {
-        console.error('Canvas is empty');
+
         resolve(null);
         return;
       }

@@ -87,7 +87,7 @@ function CreateUserContent() {
         const token = parsed.access_token || parsed.access;
         if (token) return token;
       } catch (e) {
-        console.error('Failed to parse auth_tokens');
+
       }
     }
     const directToken = localStorage.getItem('access_token');
@@ -177,10 +177,10 @@ function CreateUserContent() {
       const userId = userData.user?.id || userData.user?.user_id || userData.id;
 
       // DEBUG: Log response to verify credits
-      console.log('User Creation Response:', userData);
-      console.log('Credits from billing_info:', userData.billing_info?.credits_allocated);
-      console.log('Credits from user:', userData.user?.initial_credits);
-      console.log('Tier:', userData.user?.role);
+
+
+
+
 
       // Extract billing info from response
       const billingInfo = userData.billing_info || {};
@@ -200,7 +200,7 @@ function CreateUserContent() {
 
     } catch (err: any) {
       setError(err.message || 'Failed to create user');
-      console.error('Error creating user:', err);
+
     } finally {
       setLoading(false);
     }

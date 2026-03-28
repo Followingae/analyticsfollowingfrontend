@@ -94,11 +94,9 @@ export function UserManagementDashboard() {
         setTotalCount(result.data.total_count || 0)
       } else {
         setError(result.error || 'Failed to load users')
-        console.warn('Users API failed:', result.error)
       }
     } catch (error) {
       setError('Network error while loading users')
-      console.error('Error loading users:', error)
     } finally {
       setIsLoading(false)
     }

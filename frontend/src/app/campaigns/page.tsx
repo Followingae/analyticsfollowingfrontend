@@ -55,7 +55,7 @@ export default function UnifiedCampaignsDashboard() {
           });
         }
       } catch (error) {
-        console.error("Error fetching campaign stats:", error);
+
       }
     };
 
@@ -111,8 +111,8 @@ export default function UnifiedCampaignsDashboard() {
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
               {/* Tabs with Search */}
-              <div className="flex items-center justify-between gap-4">
-                <TabsList className="bg-muted/30 p-1 h-auto">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <TabsList className="bg-muted/30 p-1 h-auto overflow-x-auto w-full sm:w-auto">
                   {tabConfig.map(tab => (
                     <TabsTrigger
                       key={tab.id}
@@ -140,7 +140,7 @@ export default function UnifiedCampaignsDashboard() {
                       placeholder="Search campaigns..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 h-10 w-64"
+                      className="pl-10 h-10 w-full sm:w-64"
                     />
                   </div>
                   <Button

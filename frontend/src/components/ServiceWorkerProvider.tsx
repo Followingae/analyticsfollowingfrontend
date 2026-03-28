@@ -26,7 +26,7 @@ export function ServiceWorkerProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     if (isRegistered) {
-      console.log('✅ Service Worker: Caching enabled for better performance')
+
     }
   }, [isRegistered])
 

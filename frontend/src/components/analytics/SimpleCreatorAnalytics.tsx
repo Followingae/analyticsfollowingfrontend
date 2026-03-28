@@ -22,13 +22,13 @@ function SimpleCreatorAnalyticsComponent({ username }: SimpleCreatorAnalyticsPro
     const fetchData = async () => {
       try {
         setLoading(true)
-        console.log('Fetching data for username:', username)
+
         const result = await comprehensiveAnalyticsApi.getCreatorAnalytics(username)
-        console.log('Received data:', result)
+
         setData(result)
         setError(null)
       } catch (err) {
-        console.error('Error fetching data:', err)
+
         setError(err instanceof Error ? err.message : 'Failed to fetch data')
       } finally {
         setLoading(false)

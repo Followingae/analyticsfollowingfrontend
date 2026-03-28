@@ -578,7 +578,7 @@ export default function CampaignDetailsPage() {
         collaborationPosts,
       });
     } catch (error: any) {
-      console.error("Error fetching campaign data:", error);
+
 
       // For demo purposes, don't redirect on errors
       // if (error.message?.includes('authentication') || error.message?.includes('token')) {
@@ -830,7 +830,7 @@ export default function CampaignDetailsPage() {
       setLogoPreview("");
       toast.success("Logo deleted successfully (Demo Mode)");
     } catch (error) {
-      console.error("Error deleting logo:", error);
+
       toast.error("Failed to delete logo");
     }
   };
@@ -933,7 +933,7 @@ export default function CampaignDetailsPage() {
       setIsEditDialogOpen(false);
       toast.success("Campaign updated successfully (Demo Mode)");
     } catch (error) {
-      console.error("Error saving changes:", error);
+
       toast.error("Failed to save changes");
     } finally {
       setIsSaving(false);
@@ -1002,7 +1002,7 @@ export default function CampaignDetailsPage() {
       // Refresh campaign data to show new post
       // fetchCampaignData(); // Commented out for demo
     } catch (error) {
-      console.error("Error adding post:", error);
+
       const errorMessage = error instanceof Error ? error.message : "Failed to add post";
       toast.error(errorMessage);
     } finally {
@@ -1071,7 +1071,7 @@ export default function CampaignDetailsPage() {
         throw new Error(result.message || "Batch processing failed");
       }
     } catch (error) {
-      console.error("Error processing batch:", error);
+
       const errorMessage = error instanceof Error ? error.message : "Failed to process batch";
       toast.error(errorMessage);
     } finally {
@@ -1827,7 +1827,7 @@ export default function CampaignDetailsPage() {
                       toast.success("Post removed from campaign");
                       fetchCampaignData();
                     } catch (error) {
-                      console.error("Error removing post:", error);
+
                       toast.error("Failed to remove post");
                     }
                   }}

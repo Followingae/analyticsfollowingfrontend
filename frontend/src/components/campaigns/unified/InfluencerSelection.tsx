@@ -190,7 +190,7 @@ export function InfluencerSelection({
 
       setInfluencers(mockInfluencers);
     } catch (error) {
-      console.error("Error fetching influencers:", error);
+
     } finally {
       setIsLoading(false);
     }

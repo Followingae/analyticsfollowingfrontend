@@ -176,7 +176,7 @@ export default function CreatorsPage() {
   // Modern React Query based creator search
   const creatorSearchMutation = useCreatorSearch({
     onError: (error) => {
-      console.error('Search failed:', error)
+
     }
   })
 
@@ -398,17 +398,17 @@ export default function CreatorsPage() {
                 </div>
                 
                 {/* Search and Filters in one row */}
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search creators..."
-                      className="pl-10 w-[200px]"
+                      className="pl-10 w-full sm:w-[200px]"
                     />
                   </div>
                   
                   <Select>
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-full sm:w-[140px]">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -422,7 +422,7 @@ export default function CreatorsPage() {
                   </Select>
 
                   <Select>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-full sm:w-[120px]">
                       <SelectValue placeholder="Tier" />
                     </SelectTrigger>
                     <SelectContent>

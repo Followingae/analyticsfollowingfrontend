@@ -95,7 +95,7 @@ export default function SuperadminNotificationsPage() {
       }
     } catch (error) {
       toast.error('Failed to load notifications data')
-      console.error(error)
+
     } finally {
       setLoading(false)
     }

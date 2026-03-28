@@ -174,7 +174,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       setError(null);
     } catch (err) {
       setError('Failed to load security dashboard');
-      console.error('Security dashboard error:', err);
+
     } finally {
       setLoading(false);
     }
@@ -188,7 +188,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       });
       setThreats(threatsData);
     } catch (err) {
-      console.error('Failed to refresh security data:', err);
+
     }
   };
 
@@ -206,7 +206,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       });
       loadDashboardData();
     } catch (err) {
-      console.error('Failed to create security rule:', err);
+
     }
   };
 
@@ -215,7 +215,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       await superadminApi.activateEmergencyControl(controlId);
       loadDashboardData();
     } catch (err) {
-      console.error('Failed to activate emergency control:', err);
+
     }
   };
 
@@ -224,7 +224,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       await superadminApi.deactivateEmergencyControl(controlId);
       loadDashboardData();
     } catch (err) {
-      console.error('Failed to deactivate emergency control:', err);
+
     }
   };
 
@@ -239,7 +239,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       }
       loadSecurityData();
     } catch (err) {
-      console.error(`Failed to ${action} threat:`, err);
+
     }
   };
 
@@ -248,7 +248,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       await superadminApi.toggleSecurityRule(ruleId);
       loadDashboardData();
     } catch (err) {
-      console.error('Failed to toggle security rule:', err);
+
     }
   };
 

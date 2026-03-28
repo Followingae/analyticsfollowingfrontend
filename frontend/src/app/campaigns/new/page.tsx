@@ -82,7 +82,7 @@ export default function NewCampaignPage() {
       }
 
       // Store the selected file and open cropper
-      console.log("🎯 Opening cropper with file:", file.name);
+
       setSelectedImageFile(file);
       setIsCropperOpen(true);
 
@@ -181,7 +181,7 @@ export default function NewCampaignPage() {
           campaign_type: selectedType || 'influencer',
         };
 
-        console.log("Creating MANAGED campaign for user:", campaignData);
+
         response = await campaignApi.createSuperadminCampaign(campaignData);
       } else {
         // REGULAR USER: Create campaign for themselves
@@ -195,19 +195,14 @@ export default function NewCampaignPage() {
           campaign_type: selectedType || 'influencer',
         };
 
-        console.log("Creating SELF-MANAGED campaign:", campaignData);
+
         response = await campaignApi.createUserCampaign(campaignData);
       }
 
-      console.log("🚨 DEBUG: Campaign creation response:", response);
-      console.log("🚨 DEBUG: Created campaign object:", response.data);
+
+
       if (response.data) {
-        console.log("🚨 DEBUG: Campaign created_by field:", {
-          created_by: response.data.created_by,
-          created_by_type: typeof response.data.created_by,
-          isSuperadmin: isSuperadmin,
-          expectedCreatedBy: isSuperadmin ? 'superadmin' : 'user'
-        });
+
       }
 
       if (!response.success || !response.data) {
@@ -217,15 +212,15 @@ export default function NewCampaignPage() {
       const campaignId = response.data.id;
 
       if (!campaignId) {
-        console.error("No campaign ID in response:", response);
+
         throw new Error("No campaign ID returned from server");
       }
 
-      console.log("✅ Campaign created successfully:", campaignId);
+
 
       // STEP 2: Upload logo if provided (separate multipart request)
       if (brandLogo) {
-        console.log("Uploading campaign logo...");
+
         const tokenResult = await tokenManager.getValidTokenWithRefresh();
         if (!tokenResult.isValid || !tokenResult.token) {
           throw new Error('Authentication required for logo upload');
@@ -245,16 +240,16 @@ export default function NewCampaignPage() {
         );
 
         if (!logoResponse.ok) {
-          console.warn("Failed to upload logo, but campaign was created:", logoResponse.status);
+
           toast.warning("Campaign created but logo upload failed");
         } else {
-          console.log("Logo uploaded successfully");
+
         }
       }
 
       // STEP 3: Add posts to campaign if any (optional)
       if (posts.length > 0) {
-        console.log("Adding posts to campaign:", posts.length);
+
         const tokenResult = await tokenManager.getValidTokenWithRefresh();
         if (!tokenResult.isValid || !tokenResult.token) {
           throw new Error('Authentication required for adding posts');
@@ -276,10 +271,10 @@ export default function NewCampaignPage() {
         );
 
         if (!postsResponse.ok) {
-          console.warn("Failed to add posts, but campaign was created:", postsResponse.status);
+
           toast.warning("Campaign created but posts could not be added");
         } else {
-          console.log("Posts added successfully");
+
         }
       }
 
@@ -294,11 +289,11 @@ export default function NewCampaignPage() {
         router.push(`/campaigns`);
       }
     } catch (error) {
-      console.error("❌ Error creating campaign:", error);
+
       if (error instanceof Error) {
-        console.error("❌ Error name:", error.name);
-        console.error("❌ Error message:", error.message);
-        console.error("❌ Error stack:", error.stack);
+
+
+
       }
       toast.dismiss(loadingToast);
       const errorMessage = error instanceof Error ? error.message : "Failed to create campaign";

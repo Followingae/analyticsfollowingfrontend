@@ -83,18 +83,18 @@ export function AdminDashboard() {
       if (dashboardResult.success && dashboardResult.data) {
         setDashboardData(dashboardResult.data)
       } else {
-        console.warn('Dashboard API failed:', dashboardResult.error)
+
       }
 
       if (realtimeResult.success && realtimeResult.data) {
         setRealtimeData(realtimeResult.data)
       } else {
-        console.warn('Realtime API failed:', realtimeResult.error)
+
       }
 
     } catch (error) {
       setError('Failed to load dashboard data')
-      console.error('Dashboard error:', error)
+
     } finally {
       setLoading(false)
     }

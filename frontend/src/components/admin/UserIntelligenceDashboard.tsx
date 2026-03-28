@@ -61,23 +61,23 @@ export function UserIntelligenceDashboard() {
       if (intelligenceResult.success) {
         setIntelligenceData(intelligenceResult.data!)
       } else {
-        console.warn('User intelligence API failed:', intelligenceResult.error)
+
       }
 
       if (segmentationResult.success) {
         setSegmentationData(segmentationResult.data)
       } else {
-        console.warn('User segmentation API failed:', segmentationResult.error)
+
       }
 
       if (forecastResult.success) {
         setForecastData(forecastResult.data)
       } else {
-        console.warn('Business forecast API failed:', forecastResult.error)
+
       }
     } catch (error) {
       setError('Failed to load user intelligence data')
-      console.error('User intelligence error:', error)
+
     } finally {
       setLoading(false)
     }

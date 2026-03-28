@@ -76,7 +76,7 @@ export default function RepairProfilesInterface({ onRepairComplete }: RepairProf
     setRepairing(true)
 
     try {
-      console.log('🔧 Starting profile repair with params:', repairParams)
+
 
       const cleanParams: AnalyticsCompletenessRepairRequest = {
         ...(repairParams.max_profiles && { max_profiles: repairParams.max_profiles }),
@@ -90,20 +90,20 @@ export default function RepairProfilesInterface({ onRepairComplete }: RepairProf
         setResults(response.data)
 
         if (response.data.dry_run) {
-          console.log(`✅ Dry run completed: ${response.data.profiles_to_repair} profiles would be repaired`)
+
           toast.success(`Dry run completed: ${response.data.profiles_to_repair} profiles would be repaired`)
         } else {
-          console.log(`✅ Repair completed: ${response.data.summary?.successful_repairs}/${response.data.summary?.total_profiles} profiles repaired`)
+
           toast.success(`Repair completed: ${response.data.summary?.successful_repairs}/${response.data.summary?.total_profiles} profiles repaired`)
         }
 
         onRepairComplete?.(response.data)
       } else {
-        console.log('❌ Repair failed:', response.error)
+
         toast.error(response.error || 'Repair operation failed')
       }
     } catch (err) {
-      console.error('💥 Repair error:', err)
+
       toast.error('Network error. Please check your connection and try again.')
     } finally {
       setRepairing(false)

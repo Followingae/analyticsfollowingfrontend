@@ -30,7 +30,6 @@ export const CreatorSearch: React.FC = () => {
       }
     },
     onError: (error) => {
-      console.error('Search failed:', error)
       // Clear the processing toast so it doesn't persist forever
       const failedUsername = username.trim()
       if (failedUsername) {
@@ -171,7 +170,6 @@ export const CreatorSearch: React.FC = () => {
                 showAdvancedAI={true}
                 isUnlocked={!!searchResult.profile.access_granted_at}
                 onUnlock={(username) => {
-                  console.log('Unlock requested for:', username)
                   // TODO: Implement unlock functionality
                 }}
               />

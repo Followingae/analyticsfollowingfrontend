@@ -33,10 +33,11 @@ export function NavSecondary({
             const isActive = pathname === item.url
             return (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton 
+                <SidebarMenuButton
                   asChild
                   className={cn(
-                    isActive && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+                    "transition-colors duration-150",
+                    isActive && "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
                   )}
                 >
                   <a href={item.url}>

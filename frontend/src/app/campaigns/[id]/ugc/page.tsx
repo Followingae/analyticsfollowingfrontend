@@ -312,7 +312,6 @@ export default function UGCCampaignPage() {
         updated_at: campaignData.updated_at,
       });
     } catch (error: any) {
-      console.error("Campaign fetch error:", error);
       if (
         error.message?.includes("401") ||
         error.message?.includes("authentication")
@@ -336,7 +335,6 @@ export default function UGCCampaignPage() {
         setStats(data.data || data);
       }
     } catch (error) {
-      console.error("Stats fetch error:", error);
     }
   }, [campaignId]);
 
@@ -350,7 +348,6 @@ export default function UGCCampaignPage() {
         setModels(data.data || []);
       }
     } catch (error) {
-      console.error("Models fetch error:", error);
     }
   }, [campaignId]);
 
@@ -369,7 +366,6 @@ export default function UGCCampaignPage() {
           setConcepts(data.data || []);
         }
       } catch (error) {
-        console.error("Concepts fetch error:", error);
       }
     },
     [campaignId]
@@ -390,7 +386,6 @@ export default function UGCCampaignPage() {
           setVideos(data.data || []);
         }
       } catch (error) {
-        console.error("Videos fetch error:", error);
       }
     },
     [campaignId]
@@ -448,7 +443,6 @@ export default function UGCCampaignPage() {
         setModelPoolResults(result.models || []);
       }
     } catch (error) {
-      console.error("Model pool search error:", error);
       toast.error("Failed to search model pool");
     } finally {
       setIsSearchingModels(false);

@@ -50,23 +50,23 @@ export default function SuperadminAnalyticsHealthPage() {
     setError(null)
 
     try {
-      console.log('🔄 Loading system health data...')
+
 
       const response = await superadminApiService.getSystemHealth()
 
       if (response.success && response.data) {
         setData(response.data)
         setLastUpdated(new Date())
-        console.log('✅ System health data loaded successfully')
+
       } else {
         setError(response.error || 'Failed to load system health')
-        console.log('❌ System health load failed:', response.error)
+
         toast.error(response.error || 'Failed to load system health')
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Network error'
       setError(errorMessage)
-      console.error('💥 System health error:', err)
+
       toast.error('Failed to load system health. Please try again.')
     } finally {
       setLoading(false)

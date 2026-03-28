@@ -66,23 +66,23 @@ export function PlatformAnalyticsDashboard() {
       if (usageResult.success) {
         setUsageData(usageResult.data!)
       } else {
-        console.warn('Usage analytics API failed:', usageResult.error)
+
       }
 
       if (performanceResult.success) {
         setPerformanceData(performanceResult.data)
       } else {
-        console.warn('Performance metrics API failed:', performanceResult.error)
+
       }
 
       if (apiResult.success) {
         setApiData(apiResult.data)
       } else {
-        console.warn('API analytics API failed:', apiResult.error)
+
       }
     } catch (error) {
       setError('Failed to load platform analytics data')
-      console.error('Platform analytics error:', error)
+
     } finally {
       setLoading(false)
     }

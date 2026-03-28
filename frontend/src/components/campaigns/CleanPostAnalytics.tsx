@@ -56,20 +56,9 @@ export function CleanPostAnalytics({ post, index }: CleanPostAnalyticsProps) {
   const analytics = post.analytics
 
   // DEBUG: Log the actual data structure
-  console.log('📊 POST ANALYTICS DATA:', JSON.stringify(analytics, null, 2))
-  console.log('📊 POST ANALYTICS KEYS:', Object.keys(analytics))
-  console.log('📊 SAMPLE VALUES:', {
-    id: analytics.id,
-    shortcode: analytics.shortcode,
-    likes_count: analytics.likes_count,
-    comments_count: analytics.comments_count,
-    engagement_rate: analytics.engagement_rate,
-    media_type: analytics.media_type,
-    profile: analytics.profile,
-    caption: analytics.caption,
-    hashtags: analytics.hashtags,
-    mentions: analytics.mentions
-  })
+
+
+
 
   const formatNumber = (num: number) => {
     if (num === -1) return "Hidden"

@@ -21,8 +21,7 @@ SuperadminAPI.interceptors.request.use(
       if (tokenResult.isValid && tokenResult.token) {
         config.headers.Authorization = `Bearer ${tokenResult.token}`;
       }
-    } catch (error) {
-      console.warn('Failed to get auth token:', error);
+    } catch {
       // Continue without token - let server handle auth
     }
 
@@ -53,8 +52,8 @@ SuperadminAPI.interceptors.response.use(
           // Retry the original request
           return SuperadminAPI(originalRequest);
         }
-      } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
+      } catch {
+        // Token refresh failed
       }
     }
 

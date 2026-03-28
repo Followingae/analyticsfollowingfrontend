@@ -97,7 +97,7 @@ export function ActiveCampaigns({ searchQuery }: ActiveCampaignsProps) {
 
       setCampaigns([]);
     } catch (error) {
-      console.error("Error fetching campaigns:", error);
+
       setCampaigns([]);
     } finally {
       setIsLoading(false);

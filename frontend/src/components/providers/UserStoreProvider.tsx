@@ -19,12 +19,10 @@ export function UserStoreProvider({ children }: { children: React.ReactNode }) {
     if (authLoading) return
 
     // Only load if authenticated and not already loaded/loading
-    if (isAuthenticated && !storeLoading && !hasLoadedRef.current) {
-      console.log('🚀 UserStoreProvider: Loading user data (SINGLE CALL)')
+    if (isAuthenticated && !storeLoading && !hasLoadedRef.current && !storeUser) {
       hasLoadedRef.current = true
       loadUser() // Single API call to /api/v1/auth/dashboard
     } else if (!isAuthenticated && hasLoadedRef.current) {
-      console.log('🧹 UserStoreProvider: Clearing user data')
       hasLoadedRef.current = false
       clearUser()
     }

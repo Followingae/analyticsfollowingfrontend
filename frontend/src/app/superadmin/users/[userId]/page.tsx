@@ -201,7 +201,7 @@ export default function UserEditPage() {
       setSupportedCurrencies(currenciesResult || [])
 
     } catch (error) {
-      console.error('Failed to load user data:', error)
+
       toast.error('Failed to load user data')
     } finally {
       setLoading(false)

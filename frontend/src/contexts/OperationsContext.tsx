@@ -154,7 +154,7 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const response = await operationsApi.getCampaigns();
       setCampaigns(response.campaigns);
     } catch (error) {
-      console.error('Failed to load campaigns:', error);
+
       toast.error('Failed to load campaigns');
     } finally {
       setUiState(prev => ({ ...prev, isLoading: false }));
@@ -175,7 +175,7 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setDeliverables([]);
       setSelectedDeliverables([]);
     } catch (error) {
-      console.error('Failed to load campaign:', error);
+
       toast.error('Failed to load campaign details');
     } finally {
       setUiState(prev => ({ ...prev, isLoading: false }));
@@ -198,7 +198,7 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setDeliverables(deliverablesData.deliverables);
       setSelectedDeliverables([]);
     } catch (error) {
-      console.error('Failed to load workstream:', error);
+
       toast.error('Failed to load workstream details');
     } finally {
       setUiState(prev => ({ ...prev, isLoading: false }));
@@ -267,7 +267,7 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setWorkstreams(prev => [...prev, newWorkstream]);
       toast.success('Workstream created successfully');
     } catch (error) {
-      console.error('Failed to create workstream:', error);
+
       toast.error('Failed to create workstream');
     }
   }, [currentCampaign, userAccess]);
@@ -288,7 +288,7 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setDeliverables(prev => [...prev, newDeliverable]);
       toast.success('Deliverable created successfully');
     } catch (error) {
-      console.error('Failed to create deliverable:', error);
+
       toast.error('Failed to create deliverable');
     }
   }, [currentWorkstream, userAccess]);
@@ -304,7 +304,7 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ));
       toast.success('Status updated successfully');
     } catch (error: any) {
-      console.error('Failed to update status:', error);
+
       toast.error(error.message || 'Failed to update status');
     }
   }, []);
@@ -342,7 +342,7 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         await selectWorkstream(currentWorkstream.id);
       }
     } catch (error) {
-      console.error('Bulk operation failed:', error);
+
       toast.error('Bulk operation failed');
     }
   }, [selectedDeliverables, currentWorkstream, selectWorkstream, userAccess]);

@@ -3,8 +3,6 @@
 import { usePathname } from "next/navigation"
 import { ChevronRight, type LucideIcon } from "lucide-react"
 import {
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -35,74 +33,71 @@ export function NavMain({
   const pathname = usePathname()
 
   return (
-    <SidebarGroup>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => {
-            const isActive = pathname === item.url
-            const hasSubItems = item.items && item.items.length > 0
-            
-            if (hasSubItems) {
-              const isSubActive = item.items?.some(subItem => pathname === subItem.url)
-              
-              return (
-                <Collapsible
-                  key={item.title}
-                  asChild
-                  defaultOpen={isSubActive}
-                  className="group/collapsible"
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={item.title}>
-                        {item.icon && <item.icon className="size-4" />}
-                        <span>{item.title}</span>
-                        <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.items?.map((subItem) => {
-                          const isSubItemActive = pathname === subItem.url
-                          return (
-                            <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton 
-                                asChild
-                                isActive={isSubItemActive}
-                              >
-                                <a href={subItem.url}>
-                                  <span>{subItem.title}</span>
-                                </a>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          )
-                        })}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
-              )
-            }
+    <SidebarMenu>
+      {items.map((item) => {
+        const isActive = pathname === item.url
+        const hasSubItems = item.items && item.items.length > 0
 
-            return (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton 
-                  tooltip={item.title} 
-                  asChild
-                  className={cn(
-                    isActive && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
-                  )}
-                >
-                  <a href={item.url}>
+        if (hasSubItems) {
+          const isSubActive = item.items?.some(subItem => pathname === subItem.url)
+
+          return (
+            <Collapsible
+              key={item.title}
+              asChild
+              defaultOpen={isSubActive}
+              className="group/collapsible"
+            >
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton tooltip={item.title}>
                     {item.icon && <item.icon className="size-4" />}
                     <span>{item.title}</span>
-                  </a>
-                </SidebarMenuButton>
+                    <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    {item.items?.map((subItem) => {
+                      const isSubItemActive = pathname === subItem.url
+                      return (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={isSubItemActive}
+                          >
+                            <a href={subItem.url}>
+                              <span>{subItem.title}</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      )
+                    })}
+                  </SidebarMenuSub>
+                </CollapsibleContent>
               </SidebarMenuItem>
-            )
-          })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+            </Collapsible>
+          )
+        }
+
+        return (
+          <SidebarMenuItem key={item.title}>
+            <SidebarMenuButton
+              tooltip={item.title}
+              asChild
+              className={cn(
+                "transition-colors duration-150",
+                isActive && "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+              )}
+            >
+              <a href={item.url}>
+                {item.icon && <item.icon className="size-4" />}
+                <span>{item.title}</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )
+      })}
+    </SidebarMenu>
   )
 }

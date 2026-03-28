@@ -124,7 +124,6 @@ async function testApiCall() {
 // Export for use in browser console
 if (typeof window !== 'undefined') {
   (window as any).debugTokens = debugTokens;
-  console.log('💡 Token debug utility loaded. Run debugTokens() in console to check token status.');
 }
 
 export default debugTokens;

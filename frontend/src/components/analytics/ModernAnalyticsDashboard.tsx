@@ -40,7 +40,7 @@ interface ModernAnalyticsDashboardProps {
 }
 
 // Add component initialization logging
-console.log('🚀 ModernAnalyticsDashboard component loaded/imported')
+
 
 interface DashboardData {
   profile?: {
@@ -129,7 +129,7 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
   // Only log on username change, not on every render
   const prevUsernameRef = useRef<string>()
   if (prevUsernameRef.current !== username && process.env.NODE_ENV === 'development') {
-    console.log('🚀 ModernAnalyticsDashboard username changed:', username)
+
     prevUsernameRef.current = username
   }
   const router = useRouter()
@@ -144,12 +144,12 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
 
   const loadDashboardData = useCallback(async (forceRefresh = false) => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 loadDashboardData called with:', { username, forceRefresh, isLoadingRef: loadingRef.current })
+
     }
     // Prevent multiple simultaneous calls using ref
     if (loadingRef.current && !forceRefresh) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 Skipping API call - already loading (ref check)')
+
       }
       return
     }
@@ -158,13 +158,13 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
 
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 Starting API call to getCompleteDashboardData')
+
       }
       setStatus(prev => ({ ...prev, loading: true, error: null }))
 
       const result = await comprehensiveAnalyticsApi.getCompleteDashboardData(username, { forceRefresh })
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 API call completed with result:', result)
+
       }
 
       setData(result)
@@ -176,12 +176,12 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
       loadingRef.current = false
 
     } catch (error) {
-      console.error('🔍 Error in loadDashboardData:', error)
+
       // Handle specific error types
       let errorMessage = 'Failed to load analytics data'
       if (error instanceof Error) {
         if (process.env.NODE_ENV === 'development') {
-          console.log('🔍 Error message:', error.message)
+
         }
         if (error.message.includes('PAYMENT_REQUIRED')) {
           errorMessage = 'This profile requires unlocking to view analytics. Please unlock it first.'
@@ -195,7 +195,7 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 Setting error status:', errorMessage)
+
       }
       setStatus({
         loading: false,
@@ -209,12 +209,8 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 ModernAnalyticsDashboard useEffect triggered with username:', username)
-      console.log('🔍 Current component mount status:', {
-        hasUsername: !!username,
-        usernameValue: username,
-        loadingRefCurrent: loadingRef.current
-      })
+
+
     }
 
     let isCancelled = false
@@ -222,7 +218,7 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
     const loadData = async () => {
       if (username && !isCancelled) {
         if (process.env.NODE_ENV === 'development') {
-          console.log('🔍 Starting 2-second delay before API call for username:', username)
+
         }
         // Add delay to let other API calls complete first
         // This prevents database connection conflicts from AuthContext, UserStore, SiteHeader, etc.
@@ -230,19 +226,19 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
 
         if (!isCancelled) {
           if (process.env.NODE_ENV === 'development') {
-            console.log('🔍 Delay complete, calling loadDashboardData for username:', username)
+
           }
           await loadDashboardData()
         } else if (process.env.NODE_ENV === 'development') {
-          console.log('🔍 Effect was cancelled during delay')
+
         }
       } else if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 Skipping data load - no username or cancelled:', { username, isCancelled })
+
       }
     }
 
     loadData().catch(error => {
-      console.error('🔍 Error in loadData:', error)
+
       setStatus({
         loading: false,
         error: error.message || 'Failed to load analytics data',
@@ -290,17 +286,7 @@ export function ModernAnalyticsDashboard({ username }: ModernAnalyticsDashboardP
   const analytics = data.analytics_summary || {}
 
   // Debug: Log what AI analysis data is available for rendering
-  console.log('🎯 ModernAnalyticsDashboard - Profile data received:', {
-    username: profile.username,
-    hasAiAnalysis: !!profile.ai_analysis,
-    aiAnalysisFields: profile.ai_analysis ? Object.keys(profile.ai_analysis) : [],
-    hasContentDistribution: !!profile.ai_analysis?.content_distribution,
-    hasAudienceInsights: !!profile.ai_analysis?.audience_insights,
-    hasBehavioralPatterns: !!profile.ai_analysis?.behavioral_patterns_analysis,
-    hasVisualContent: !!profile.ai_analysis?.visual_content_analysis,
-    contentDistributionPreview: profile.ai_analysis?.content_distribution,
-    postsCount: posts.length
-  })
+
 
   const engagementTrend = getEngagementTrend(profile.engagement_rate || 0)
 

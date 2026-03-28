@@ -145,11 +145,6 @@ export const imageCache = new ImageCache()
  * @deprecated Use CDN system instead
  */
 export function proxyInstagramUrlCached(url: string | null | undefined): string {
-  console.warn(
-    '🚨 DEPRECATED: proxyInstagramUrlCached() is deprecated.',
-    'Use CDN system with ProfileAvatar or CDNImage components.',
-    '\n📖 Migration guide: /frontend/FRONTEND_MIGRATION_GUIDE.md'
-  );
 
   if (!url) return '';
   
@@ -167,11 +162,6 @@ export function proxyInstagramUrlCached(url: string | null | undefined): string 
 import { useEffect, useState } from 'react'
 
 export function useCachedImage(url: string | null | undefined) {
-  console.warn(
-    '🚨 DEPRECATED: useCachedImage() is deprecated.',
-    'Use useProfileWithCDN or useCDNMedia hooks instead.',
-    '\n📖 Migration guide: /frontend/FRONTEND_MIGRATION_GUIDE.md'
-  );
 
   const [cachedUrl, setCachedUrl] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)

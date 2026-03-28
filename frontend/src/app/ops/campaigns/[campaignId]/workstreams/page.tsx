@@ -126,7 +126,7 @@ export default function WorkstreamsPage() {
       setNewWorkstream({ type: 'ugc', name: '', description: '', status: 'draft' });
       toast.success('Workstream created successfully');
     } catch (error) {
-      console.error('Failed to create workstream:', error);
+
     } finally {
       setCreating(false);
     }

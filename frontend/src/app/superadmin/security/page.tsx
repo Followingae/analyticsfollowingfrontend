@@ -33,7 +33,7 @@ export default function SuperadminSecurityPage() {
         setSuspiciousActivities(activitiesResult.data.activities || [])
       }
     } catch (error) {
-      console.error('Failed to load security data:', error)
+
     } finally {
       setLoading(false)
     }

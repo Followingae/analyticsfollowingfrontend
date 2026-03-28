@@ -39,31 +39,27 @@ export function MetricCard({ title, value, change, icon, loading }: MetricCardPr
   }
 
   return (
-    <Card>
+    <Card className="transition-shadow duration-200 hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-        {change !== undefined && (
-          <Badge 
-            variant="outline" 
-            className={`text-xs ${
-              change > 0 ? "text-success border-success/20 bg-success/10" : 
-              change < 0 ? "text-destructive border-destructive/20 bg-destructive/10" : 
-              "text-muted-foreground border-border bg-muted/50"
-            }`}
-          >
-            {change > 0 ? (
-              <>+{change}%</>
-            ) : change < 0 ? (
-              <>{change}%</>
-            ) : (
-              <>0%</>
-            )}
-          </Badge>
-        )}
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <div className="flex items-center gap-2">
+          {change !== undefined && (
+            <Badge
+              variant="outline"
+              className={`text-xs ${
+                change > 0 ? "text-success border-success/20 bg-success/10" :
+                change < 0 ? "text-destructive border-destructive/20 bg-destructive/10" :
+                "text-muted-foreground border-border bg-muted/50"
+              }`}
+            >
+              {change > 0 ? `+${change}%` : change < 0 ? `${change}%` : '0%'}
+            </Badge>
+          )}
+          {icon}
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-bold tracking-tight text-foreground">{value}</div>
       </CardContent>
     </Card>
   )

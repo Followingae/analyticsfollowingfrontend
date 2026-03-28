@@ -152,7 +152,6 @@ class PollingManager {
 
     // Check max retries
     if (instance.config.maxRetries && instance.retryCount >= instance.config.maxRetries) {
-      console.warn(`⚠️ Max retries exceeded for polling: ${instance.id}`)
       this.stopPolling(instance.id)
       return
     }
@@ -187,8 +186,7 @@ class PollingManager {
           instance.config.maxInterval
         )
       }
-    } catch (error) {
-      console.error(`💥 Polling error: ${instance.id}`, error)
+    } catch {
       
       // Increase retry count and backoff interval
       instance.retryCount++
