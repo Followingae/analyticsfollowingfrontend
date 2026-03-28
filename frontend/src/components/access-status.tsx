@@ -107,8 +107,8 @@ export function AccessStatus({
           </AlertDescription>
         </Alert>
         
-        <Button 
-          onClick={onUnlock}
+        <Button
+          onClick={() => onUnlock?.()}
           disabled={isUnlocking || pricingLoading}
           className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
           size="lg"
@@ -213,8 +213,8 @@ export function AccessUpgradePrompt({ username, onUnlock, isUnlocking }: {
       <p className="text-orange-600 dark:text-orange-400 mb-4 max-w-md mx-auto">
         Get full access to @{username}'s analytics, demographics, and AI insights for 30 days.
       </p>
-      <Button 
-        onClick={onUnlock}
+      <Button
+        onClick={() => onUnlock?.()}
         disabled={isUnlocking || pricingLoading}
         className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
       >

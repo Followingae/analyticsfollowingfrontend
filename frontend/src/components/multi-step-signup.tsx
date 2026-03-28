@@ -174,7 +174,7 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
           }
         }
       } catch (error) {
-        console.error('Failed to fetch billing types:', error);
+
         // Use default billing types as fallback
         setBillingTypes([
           {
@@ -251,11 +251,11 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
         if (value.length < 2) return 'Company name must be at least 2 characters';
         return '';
       case 'terms_accepted':
-        console.log('Validating terms_accepted:', value, typeof value);
+
         if (!value || value !== true) return 'Must accept terms and conditions';
         return '';
       case 'privacy_accepted':
-        console.log('Validating privacy_accepted:', value, typeof value);
+
         if (!value || value !== true) return 'Must accept privacy policy';
         return '';
       default:
@@ -268,7 +268,7 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
     let processedValue = value;
     if (field === 'terms_accepted' || field === 'privacy_accepted' || field === 'marketing_consent') {
       processedValue = Boolean(value);
-      console.log(`Boolean field ${field} updated:`, processedValue);
+
     }
 
     setFormData(prev => ({ ...prev, [field]: processedValue }));
@@ -297,22 +297,22 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
     const newErrors: ValidationErrors = {};
     let isValid = true;
 
-    console.log('Validating step', currentStep, 'fields:', fieldsToValidate);
+
 
     fieldsToValidate.forEach(field => {
       const fieldValue = formData[field as keyof SignupFormData];
-      console.log(`Checking field ${field}:`, fieldValue);
+
 
       const error = validateField(field, fieldValue);
       if (error) {
-        console.log(`Validation error for ${field}:`, error);
+
         newErrors[field] = error;
         isValid = false;
       }
     });
 
-    console.log('Validation result for step', currentStep, ':', isValid);
-    console.log('Current form data:', formData);
+
+
 
     setErrors(prev => ({ ...prev, ...newErrors }));
     return isValid;
@@ -347,25 +347,21 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    console.log('MultiStepSignup handleSubmit called, current step:', currentStep);
-    console.log('Current form data state:', formData);
-    console.log('Boolean fields specifically:', {
-      terms_accepted: formData.terms_accepted,
-      privacy_accepted: formData.privacy_accepted,
-      marketing_consent: formData.marketing_consent
-    });
+
+
+
 
     const validationResult = validateCurrentStep();
-    console.log('Validation result:', validationResult);
+
 
     if (currentStep === 6 && validationResult) {
-      console.log('Step 6 validation passed');
+
       setIsLoading(true);
 
       // NEW PAYMENT-FIRST FLOW LOGIC
       // For paid plans with online payment, redirect to pre-registration checkout
       if (formData.subscription_tier !== 'free' && formData.billing_type === 'online_payment') {
-        console.log('Paid plan with online payment detected - redirecting to pre-registration checkout');
+
 
         try {
           // Build success and cancel URLs
@@ -407,13 +403,13 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
             throw new Error('No checkout URL received');
           }
         } catch (error: any) {
-          console.error('Pre-registration checkout error:', error);
+
           setIsLoading(false);
           toast.error(error.message || 'Failed to create payment session');
         }
       } else if (formData.subscription_tier === 'free') {
         // Free tier - use direct registration endpoint
-        console.log('Free tier - using free tier registration');
+
 
         try {
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${ENDPOINTS.billing.freeTierRegistration}`, {
@@ -439,11 +435,17 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
             throw new Error(data.detail || 'Registration failed');
           }
 
-          // Store tokens and redirect
+          // Store tokens in correct format for auth system
           if (data.access_token) {
-            localStorage.setItem('access_token', data.access_token);
-            if (data.refresh_token) {
-              localStorage.setItem('refresh_token', data.refresh_token);
+            const tokenData = {
+              access_token: data.access_token,
+              refresh_token: data.refresh_token || '',
+              token_type: 'bearer',
+              expires_at: Date.now() + (24 * 60 * 60 * 1000)
+            };
+            localStorage.setItem('auth_tokens', JSON.stringify(tokenData));
+            if (data.user) {
+              localStorage.setItem('user_data', JSON.stringify(data.user));
             }
           }
 
@@ -451,19 +453,19 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
           window.location.href = '/dashboard';
 
         } catch (error: any) {
-          console.error('Free tier registration error:', error);
+
           setIsLoading(false);
           toast.error(error.message || 'Registration failed');
         }
       } else {
         // Admin-managed billing - use normal registration flow
-        console.log('Admin-managed billing - using normal registration flow');
+
         onSignUp?.(e, formData);
       }
     } else {
-      console.log('Validation failed or not on final step');
+
       if (currentStep === 6) {
-        console.log('Current errors object:', errors);
+
       }
     }
   };
@@ -477,7 +479,7 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
   };
 
   const renderStepContent = () => {
-    console.log('Rendering step content for currentStep:', currentStep);
+
     switch (currentStep) {
       case 1:
         return (
@@ -1026,7 +1028,6 @@ export const MultiStepSignup: React.FC<MultiStepSignupProps> = ({
 
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
-            {console.log('Form rendering - currentStep:', currentStep, 'Total steps:', steps.length)}
             {renderStepContent()}
 
             {/* Navigation */}

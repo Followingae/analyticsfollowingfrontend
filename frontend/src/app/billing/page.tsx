@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -21,12 +22,15 @@ import {
   Users,
   Mail,
   Image,
-  Zap
+  Zap,
+  Receipt
 } from 'lucide-react'
 import { billingManager, type BillingStatus } from '@/services/billingManager'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { AuthGuard } from '@/components/AuthGuard'
+import { TrialBanner } from '@/components/billing/TrialBanner'
+import { TrialDailyLimitsCard } from '@/components/billing/TrialDailyLimitsCard'
 
 export default function BillingPage() {
   return (
@@ -102,7 +106,6 @@ function BillingContent() {
       setLoading(true)
 
       if (!user) {
-        console.warn('User not authenticated, showing default state')
         setStatus(null)
         return
       }
@@ -110,7 +113,6 @@ function BillingContent() {
       const billingStatus = await billingManager.getBillingStatus()
       setStatus(billingStatus)
     } catch (error) {
-      console.error('Error fetching billing data:', error)
       toast.error('Failed to load billing information')
       setStatus(null)
     } finally {
@@ -129,7 +131,6 @@ function BillingContent() {
       await billingManager.createCheckoutSession(tier)
       router.push(`/checkout?tier=${tier}`)
     } catch (error) {
-      console.error('Error creating checkout:', error)
       toast.error('Failed to start checkout process')
     }
   }
@@ -149,7 +150,6 @@ function BillingContent() {
       setLoadingPortal(true)
       await billingManager.openCustomerPortal(status.portal_url)
     } catch (error: any) {
-      console.error('Error opening portal:', error)
       toast.error(error.message || 'Failed to open billing portal')
     } finally {
       setLoadingPortal(false)
@@ -160,6 +160,8 @@ function BillingContent() {
     switch (planStatus) {
       case 'active':
         return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</Badge>
+      case 'trialing':
+        return <Badge className="bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200">Trial</Badge>
       case 'past_due':
         return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Past Due</Badge>
       case 'admin_managed':
@@ -239,6 +241,8 @@ function BillingContent() {
   const isAdminManaged = status.user.billing_type === 'admin_managed'
   const isFreeTier = status.plan.tier === 'free'
   const hasStripeCustomer = status.user.has_stripe_customer
+  const isTrialing = billingManager.isTrialing(status)
+  const trialInfo = status.trial_info
 
   return (
     <div className="flex-1 p-6 max-w-6xl mx-auto">
@@ -247,6 +251,48 @@ function BillingContent() {
           <h1 className="text-3xl font-bold">Billing & Subscription</h1>
           <p className="text-muted-foreground mt-2">Manage your subscription and billing information</p>
         </div>
+
+        {/* Trial Banner */}
+        {isTrialing && trialInfo && (
+          <TrialBanner
+            trialEnd={trialInfo.trial_end ? String(trialInfo.trial_end) : null}
+            trialDurationDays={trialInfo.trial_duration_days}
+            dailyUsage={trialInfo.limits}
+            dailyCreditLimit={trialInfo.daily_credit_limit}
+          />
+        )}
+
+        {/* Trial Daily Limits */}
+        {isTrialing && trialInfo?.limits && (
+          <TrialDailyLimitsCard
+            limits={trialInfo.limits}
+            totalCreditsAllowed={trialInfo.total_credits_allowed}
+            dailyCreditLimit={trialInfo.daily_credit_limit}
+          />
+        )}
+
+        {/* Trial End Info */}
+        {isTrialing && trialInfo?.trial_end && (
+          <Card>
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3 text-sm">
+                <Clock className="h-4 w-4 text-violet-500 shrink-0" />
+                <p>
+                  <span className="font-medium">Your trial ends on{' '}
+                    {new Date(
+                      typeof trialInfo.trial_end === 'number'
+                        ? trialInfo.trial_end * 1000
+                        : trialInfo.trial_end
+                    ).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </span>
+                  <span className="text-muted-foreground">
+                    . After your trial, you will be charged $199/month for the Standard plan. You can cancel anytime.
+                  </span>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Plan & Status */}
         <div className="grid gap-6 md:grid-cols-2">
@@ -424,6 +470,16 @@ function BillingContent() {
                       </div>
                     </div>
                   )}
+
+                  <div className="pt-2 border-t">
+                    <Link
+                      href="/billing/invoices"
+                      className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                    >
+                      <Receipt className="h-4 w-4" />
+                      View invoice history
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-6 text-muted-foreground">

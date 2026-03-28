@@ -193,14 +193,14 @@ export function ModernSignup() {
         await handlePaidSignup()
       }
     } catch (error: any) {
-      console.error('Signup error:', error)
+
       toast.error(error.message || 'Something went wrong. Please try again.')
       setIsLoading(false)
     }
   }
 
   const handleFreeSignup = async () => {
-    console.log('Processing free tier signup...')
+
 
     // V3 API simplified - only requires essential fields
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${ENDPOINTS.billing.freeTierRegistration}`, {
@@ -222,14 +222,17 @@ export function ModernSignup() {
       throw new Error(data.detail || 'Registration failed')
     }
 
-    // Store tokens and redirect
+    // Store tokens in correct format for auth system
     if (data.access_token) {
-      localStorage.setItem('access_token', data.access_token)
-      if (data.refresh_token) {
-        localStorage.setItem('refresh_token', data.refresh_token)
+      const tokenData = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token || '',
+        token_type: 'bearer',
+        expires_at: Date.now() + (24 * 60 * 60 * 1000)
       }
+      localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
       if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user))
+        localStorage.setItem('user_data', JSON.stringify(data.user))
       }
     }
 
@@ -238,7 +241,7 @@ export function ModernSignup() {
   }
 
   const handlePaidSignup = async () => {
-    console.log(`Processing ${selectedPlan} plan signup with payment...`)
+
 
     // V3 API simplified - only requires essential fields
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${ENDPOINTS.billing.preRegistrationCheckout}`, {
@@ -261,7 +264,7 @@ export function ModernSignup() {
       throw new Error(data.detail || 'Failed to create checkout session')
     }
 
-    console.log('Checkout session created:', data)
+
 
     // Redirect to Stripe checkout
     if (data.sessionUrl || data.checkout_url) {
@@ -272,7 +275,7 @@ export function ModernSignup() {
   }
 
   const handleEnterpriseSignup = async () => {
-    console.log('Processing enterprise signup...')
+
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${ENDPOINTS.auth.register}`, {
       method: 'POST',

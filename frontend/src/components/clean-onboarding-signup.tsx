@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import {
@@ -8,41 +8,24 @@ import {
   Loader2,
   Eye,
   EyeOff,
-  Mail,
-  User,
-  Building2,
-  Lock,
-  Sparkles,
   TrendingUp,
-  ArrowRight,
-  ArrowLeft,
-  Crown,
-  Zap,
-  Globe,
-  BriefcaseIcon,
   CheckCircle,
-  XCircle,
   Search,
   Users,
   BarChart3,
   Shield,
-  TrendingDown,
-  DollarSign,
   RefreshCw
 } from 'lucide-react'
 import { Sun } from '@/components/animate-ui/icons/sun'
 import { Moon } from '@/components/animate-ui/icons/moon'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AnimatedInput } from '@/components/ui/animated-input'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { ENDPOINTS, API_CONFIG } from '@/config/api'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'motion/react'
 
 // Step definitions
 const STEPS = [
@@ -381,7 +364,6 @@ export function CleanOnboardingSignup() {
         await handlePaidSignup()
       }
     } catch (error: any) {
-      console.error('Signup error:', error)
       toast.error(error.message || 'Something went wrong. Please try again.')
       setIsLoading(false)
     }
@@ -412,13 +394,20 @@ export function CleanOnboardingSignup() {
     if (!response.ok) throw new Error(data.detail || 'Registration failed')
 
     if (data.access_token) {
-      localStorage.setItem('access_token', data.access_token)
-      if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token)
-      if (data.user) localStorage.setItem('user', JSON.stringify(data.user))
+      const tokenData = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token || '',
+        token_type: 'bearer',
+        expires_at: Date.now() + (24 * 60 * 60 * 1000)
+      }
+      localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
+      if (data.user) {
+        localStorage.setItem('user_data', JSON.stringify(data.user))
+      }
     }
 
     toast.success('Welcome! Redirecting to dashboard...')
-    setTimeout(() => router.push('/dashboard'), 1500)
+    router.push('/dashboard')
   }
 
   const handlePaidSignup = async () => {
@@ -547,7 +536,7 @@ export function CleanOnboardingSignup() {
                 variant="ghost"
                 onClick={handleBack}
                 disabled={isLoading}
-                className="text-muted-foreground"
+                className="text-muted-foreground min-h-[44px]"
               >
                 Back
               </Button>
@@ -560,7 +549,7 @@ export function CleanOnboardingSignup() {
                 variant="ghost"
                 onClick={handleSkip}
                 disabled={isLoading}
-                className="text-muted-foreground"
+                className="text-muted-foreground min-h-[44px]"
               >
                 Skip
               </Button>
@@ -570,12 +559,15 @@ export function CleanOnboardingSignup() {
               onClick={handleNext}
               disabled={isLoading}
               className={cn(
-                "min-w-[120px]",
+                "min-w-[140px] min-h-[44px] transition-all duration-150",
                 currentStep === STEPS.length && "bg-primary"
               )}
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Setting up...
+                </>
               ) : currentStep === STEPS.length ? (
                 'Complete setup'
               ) : (
@@ -607,8 +599,9 @@ function StepWelcome({
       <div className="grid grid-cols-2 gap-4">
         <button
           onClick={() => setSelectedTheme('light')}
+          aria-label="Select light theme"
           className={cn(
-            "relative p-6 rounded-lg border-2 transition-all duration-300 text-center group",
+            "relative p-6 rounded-lg border-2 transition-all duration-150 text-center group min-h-[44px]",
             selectedTheme === 'light'
               ? "border-foreground bg-muted/30"
               : "border-border hover:border-muted-foreground/50"
@@ -635,8 +628,9 @@ function StepWelcome({
 
         <button
           onClick={() => setSelectedTheme('dark')}
+          aria-label="Select dark theme"
           className={cn(
-            "relative p-6 rounded-lg border-2 transition-all duration-300 text-center group",
+            "relative p-6 rounded-lg border-2 transition-all duration-150 text-center group min-h-[44px]",
             selectedTheme === 'dark'
               ? "border-foreground bg-muted/30"
               : "border-border hover:border-muted-foreground/50"
@@ -691,7 +685,9 @@ function StepAccount({
           placeholder="Enter your full name"
           value={formData.fullName}
           onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+          autoComplete="name"
           error={errors.fullName}
+          autoFocus
           required
         />
 
@@ -702,6 +698,7 @@ function StepAccount({
           placeholder="name@company.com"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          autoComplete="email"
           error={errors.email}
           required
         />
@@ -717,6 +714,7 @@ function StepAccount({
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               onFocus={() => setPasswordFocused(true)}
               onBlur={() => setPasswordFocused(false)}
+              autoComplete="new-password"
               error={errors.password}
               className="pr-20"
               required
@@ -725,7 +723,8 @@ function StepAccount({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors duration-150"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -736,8 +735,9 @@ function StepAccount({
                   setFormData({ ...formData, password: newPassword })
                   setShowPassword(true)
                 }}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors duration-150"
                 title="Generate strong password"
+                aria-label="Generate strong password"
               >
                 <RefreshCw className="h-4 w-4" />
               </button>
@@ -884,7 +884,9 @@ function StepProfile({
           placeholder="Acme Inc."
           value={formData.company}
           onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+          autoComplete="organization"
           error={errors.company}
+          autoFocus
           required
         />
 
@@ -1010,7 +1012,7 @@ function StepPlan({
               key={plan.id}
               onClick={() => setSelectedPlan(plan.id)}
               className={cn(
-                "p-4 rounded-lg border-2 transition-all text-left relative",
+                "p-4 rounded-lg border-2 transition-all duration-150 text-left relative",
                 isSelected
                   ? "border-foreground bg-muted/20"
                   : "border-border hover:border-muted-foreground/50"

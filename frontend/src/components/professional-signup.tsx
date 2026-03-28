@@ -269,7 +269,7 @@ export function ProfessionalSignup() {
         await handlePaidSignup()
       }
     } catch (error: any) {
-      console.error('Signup error:', error)
+
       toast.error(error.message || 'Something went wrong. Please try again.')
       setIsLoading(false)
     }
@@ -295,18 +295,25 @@ export function ProfessionalSignup() {
     if (!response.ok) throw new Error(data.detail || 'Registration failed')
 
     if (data.access_token) {
-      localStorage.setItem('access_token', data.access_token)
-      if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token)
-      if (data.user) localStorage.setItem('user', JSON.stringify(data.user))
+      const tokenData = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token || '',
+        token_type: 'bearer',
+        expires_at: Date.now() + (24 * 60 * 60 * 1000)
+      }
+      localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
+      if (data.user) {
+        localStorage.setItem('user_data', JSON.stringify(data.user))
+      }
     }
 
     toast.success('Welcome aboard! Redirecting to your dashboard...')
-    setTimeout(() => router.push('/dashboard'), 1500)
+    router.push('/dashboard')
   }
 
   const handlePaidSignup = async () => {
     try {
-      console.log('Calling API:', `${API_CONFIG.BASE_URL}${ENDPOINTS.billing.preRegistrationCheckout}`)
+
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.preRegistrationCheckout}`, {
         method: 'POST',
@@ -330,7 +337,7 @@ export function ProfessionalSignup() {
       // Check if response is JSON
       const contentType = response.headers.get('content-type')
       if (!contentType || !contentType.includes('application/json')) {
-        console.error('Non-JSON response received:', await response.text())
+
         throw new Error('Server error: Invalid response format. Please try again.')
       }
 
@@ -341,13 +348,13 @@ export function ProfessionalSignup() {
       if (data.sessionUrl || data.session_url || data.checkout_url) {
         // Redirect user to Stripe Checkout (handling all possible response formats)
         const checkoutUrl = data.sessionUrl || data.session_url || data.checkout_url
-        console.log('Redirecting to Stripe checkout:', checkoutUrl)
+
         window.location.href = checkoutUrl
       } else {
         throw new Error('No checkout URL received from backend')
       }
     } catch (error: any) {
-      console.error('Checkout error:', error)
+
       throw error
     }
   }

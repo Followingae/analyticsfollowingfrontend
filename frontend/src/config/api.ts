@@ -1,15 +1,15 @@
 export const API_CONFIG = {
   BASE_URL: (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, ''), // Base URL without /api/v1
-  RETRY_ATTEMPTS: 3,
+  RETRY_ATTEMPTS: 1,
   RETRY_DELAY: 1000,
   TIMEOUT: 30000, // 30 seconds default timeout
   // AGGRESSIVE CACHING CONFIGURATION
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
-  CACHE_RETRY_ATTEMPTS: 3,
+  CACHE_RETRY_ATTEMPTS: 1,
   CACHE_RETRY_DELAY: 1000,
   // REQUEST SEQUENCING
-  MAX_CONCURRENT_REQUESTS: 2, // Limit concurrent requests
-  REQUEST_DELAY: 100, // Delay between requests in ms
+  MAX_CONCURRENT_REQUESTS: 10, // Limit concurrent requests
+  REQUEST_DELAY: 0, // Delay between requests in ms
 }
 
 export const ENDPOINTS = {
@@ -201,6 +201,12 @@ export const ENDPOINTS = {
     portalSession: '/api/v1/billing/portal-session', // POST - Create fresh Stripe portal URL (new)
     portalUrl: '/api/v1/billing/subscription/portal-url', // GET - Get Stripe portal URL (legacy)
     cancelSubscription: '/api/v1/billing/cancel-subscription', // POST - Cancel subscription
+
+    // Trial
+    trialDailyUsage: '/api/v1/billing/trial/daily-usage', // GET - Trial daily usage summary
+
+    // Invoices
+    invoices: '/api/v1/billing/invoices', // GET - User's Stripe invoices
 
     // Webhooks
     webhook: '/api/v1/billing/webhook', // POST - Stripe webhook for existing subscriptions

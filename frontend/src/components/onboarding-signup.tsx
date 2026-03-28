@@ -271,7 +271,7 @@ export function OnboardingSignup() {
         await handlePaidSignup()
       }
     } catch (error: any) {
-      console.error('Signup error:', error)
+
       toast.error(error.message || 'Something went wrong. Please try again.')
       setIsLoading(false)
     }
@@ -297,13 +297,20 @@ export function OnboardingSignup() {
     if (!response.ok) throw new Error(data.detail || 'Registration failed')
 
     if (data.access_token) {
-      localStorage.setItem('access_token', data.access_token)
-      if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token)
-      if (data.user) localStorage.setItem('user', JSON.stringify(data.user))
+      const tokenData = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token || '',
+        token_type: 'bearer',
+        expires_at: Date.now() + (24 * 60 * 60 * 1000)
+      }
+      localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
+      if (data.user) {
+        localStorage.setItem('user_data', JSON.stringify(data.user))
+      }
     }
 
     toast.success('Welcome aboard! Redirecting to your dashboard...')
-    setTimeout(() => router.push('/dashboard'), 1500)
+    router.push('/dashboard')
   }
 
   const handlePaidSignup = async () => {

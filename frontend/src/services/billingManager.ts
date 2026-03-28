@@ -33,6 +33,30 @@ export interface Product {
   features: string[]
 }
 
+export interface TrialLimitItem {
+  current_usage: number
+  daily_limit: number
+  remaining: number
+  display_name: string
+}
+
+export interface TrialDailyUsageResponse {
+  trial_active: boolean
+  message?: string
+  limits?: Record<string, TrialLimitItem>
+  total_credits_allowed?: number
+  daily_credit_limit?: number
+}
+
+export interface TrialInfo {
+  trial_active: boolean
+  limits: Record<string, TrialLimitItem>
+  total_credits_allowed: number
+  daily_credit_limit: number
+  trial_duration_days: number
+  trial_end: number | string | null
+}
+
 export interface BillingStatus {
   plan: {
     tier: string
@@ -78,6 +102,7 @@ export interface BillingStatus {
     posts_limit: number
   }
   portal_url: string | null
+  trial_info: TrialInfo | null
   user: {
     email: string
     full_name: string
@@ -104,8 +129,7 @@ class BillingManager {
       }
       const data = await response.json()
       return data.billing_types || []
-    } catch (error) {
-      console.error('Error fetching billing types:', error)
+    } catch {
       // Return default billing types as fallback
       return [
         {
@@ -141,11 +165,9 @@ class BillingManager {
         // Handle case where products might be nested
         return data.products
       } else {
-        console.warn('Unexpected products response format:', data)
         return []
       }
-    } catch (error) {
-      console.error('Error fetching products:', error)
+    } catch {
       return []
     }
   }
@@ -168,10 +190,10 @@ class BillingManager {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        subscription_tier: tier,
+        plan: tier,
         email: email,
         full_name: fullName,
-        company_name: companyName,
+        company: companyName,
         marketing_consent: marketingConsent
       })
     })
@@ -342,12 +364,43 @@ class BillingManager {
     return checkout
   }
 
+  // Get trial daily usage (only meaningful when user is trialing)
+  async getTrialDailyUsage(): Promise<TrialDailyUsageResponse> {
+    try {
+      const headers = getAuthHeaders()
+      if (!('Authorization' in headers)) {
+        return { trial_active: false, message: 'Not authenticated' }
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.trialDailyUsage}`, {
+        headers,
+      })
+
+      if (!response.ok) {
+        return { trial_active: false, message: 'Failed to fetch trial usage' }
+      }
+
+      return await response.json()
+    } catch {
+      return { trial_active: false, message: 'Network error' }
+    }
+  }
+
+  // Check if a billing status indicates an active trial
+  isTrialing(status: BillingStatus | null): boolean {
+    if (!status) return false
+    return (
+      status.plan.status === 'trialing' ||
+      status.stripe?.status === 'trialing' ||
+      !!status.trial_info?.trial_active
+    )
+  }
+
   // Get comprehensive billing status from the new endpoint
   async getBillingStatus(): Promise<BillingStatus | null> {
     try {
       const headers = getAuthHeaders()
-      if (!headers.Authorization) {
-        console.warn('No authentication token available')
+      if (!('Authorization' in headers)) {
         return null
       }
 
@@ -361,14 +414,11 @@ class BillingManager {
       }
 
       if (response.status === 401) {
-        console.warn('User not authenticated')
         return null
       }
 
-      console.error(`Failed to fetch billing status: ${response.status}`)
       return null
-    } catch (error) {
-      console.error('Error fetching billing status:', error)
+    } catch {
       return null
     }
   }
@@ -401,8 +451,7 @@ class BillingManager {
       }
 
       return subscription
-    } catch (error) {
-      console.error('Error fetching subscription:', error)
+    } catch {
       return { status: 'none', tier: 'free' }
     }
   }
@@ -489,7 +538,6 @@ class BillingManager {
         throw new Error('No portal URL returned from API')
       }
     } catch (error) {
-      console.error('Error opening customer portal:', error)
       throw error
     }
   }

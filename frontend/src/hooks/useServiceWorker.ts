@@ -1,5 +1,5 @@
 // hooks/useServiceWorker.ts
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 interface ServiceWorkerStatus {
   isSupported: boolean
@@ -15,6 +15,8 @@ export const useServiceWorker = (): ServiceWorkerStatus => {
   const [isUpdating, setIsUpdating] = useState(false)
   const [needRefresh, setNeedRefresh] = useState(false)
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const controllerChangeHandlerRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     // Check if service worker is supported
@@ -22,11 +24,24 @@ export const useServiceWorker = (): ServiceWorkerStatus => {
       setIsSupported(true)
       registerServiceWorker()
     }
+
+    return () => {
+      // Cleanup interval
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      // Cleanup controllerchange listener
+      if (controllerChangeHandlerRef.current && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('controllerchange', controllerChangeHandlerRef.current)
+        controllerChangeHandlerRef.current = null
+      }
+    }
   }, [])
 
   const registerServiceWorker = async () => {
     try {
-      console.log('Service Worker: Registering...')
+
       const reg = await navigator.serviceWorker.register('/sw.js', {
         scope: '/',
         updateViaCache: 'none'
@@ -34,7 +49,7 @@ export const useServiceWorker = (): ServiceWorkerStatus => {
 
       setRegistration(reg)
       setIsRegistered(true)
-      console.log('Service Worker: Registered successfully', reg)
+
 
       // Check for updates
       reg.addEventListener('updatefound', () => {
@@ -46,10 +61,10 @@ export const useServiceWorker = (): ServiceWorkerStatus => {
               if (navigator.serviceWorker.controller) {
                 // New update available
                 setNeedRefresh(true)
-                console.log('Service Worker: New version available')
+
               } else {
                 // First install
-                console.log('Service Worker: First install complete')
+
               }
               setIsUpdating(false)
             }
@@ -58,19 +73,20 @@ export const useServiceWorker = (): ServiceWorkerStatus => {
       })
 
       // Handle controller change (when new SW takes control)
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (needRefresh) {
-          window.location.reload()
-        }
-      })
+      const onControllerChange = () => {
+        // needRefresh is checked via closure at time of event
+        window.location.reload()
+      }
+      controllerChangeHandlerRef.current = onControllerChange
+      navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
 
       // Periodic update check
-      setInterval(() => {
+      intervalRef.current = setInterval(() => {
         reg.update()
       }, 60000) // Check every minute
 
     } catch (error) {
-      console.error('Service Worker: Registration failed', error)
+
       setIsRegistered(false)
     }
   }

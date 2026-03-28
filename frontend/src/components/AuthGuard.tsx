@@ -35,12 +35,8 @@ export function AuthGuard({
   const router = useRouter()
   const pathname = usePathname()
   
-  // CRITICAL FIX: Track hydration status to prevent premature redirects
-  const [isHydrated, setIsHydrated] = useState(false)
-  
-  useEffect(() => {
-    setIsHydrated(true)
-  }, [])
+  // PERF FIX: Start hydrated to avoid extra render cycle and flash
+  const [isHydrated] = useState(true)
 
   // Public routes that don't require authentication
   const publicRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password', '/welcome']

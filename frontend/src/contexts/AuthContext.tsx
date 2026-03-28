@@ -49,8 +49,14 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
 
   
-  // HYDRATION FIX: Initialize with null to match server-side render, then hydrate from localStorage
-  const [user, setUser] = useState<User | null>(null)
+  // PERF FIX: Initialize user state synchronously from localStorage to avoid flash
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window === 'undefined') return null
+    try {
+      const stored = localStorage.getItem('user_data')
+      return stored ? JSON.parse(stored) : null
+    } catch { return null }
+  })
   const [isHydrated, setIsHydrated] = useState(false)
   
   // Debug wrapper for setUser to track all state changes
@@ -202,14 +208,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
           debugSetUser(storedUser, 'init-auth-restore')
         }
         
-        // CRITICAL FIX: Always refresh user data on page load to ensure role sync
-        // The backend team confirmed this is needed for role synchronization
-        
-        try {
-          await refreshUser()
-          localStorage.setItem('user_last_updated', Date.now().toString())
-        } catch (error) {
-          console.error('❌ AuthContext: Failed to refresh user on init:', error)
+        // PERF FIX: Only refresh if cached user is stale (>5 min) to avoid API call on every page load
+        const lastUpdated = localStorage.getItem('user_last_updated')
+        const isStale = !lastUpdated || (Date.now() - parseInt(lastUpdated)) > 5 * 60 * 1000
+        if (isStale) {
+          try {
+            await refreshUser()
+            localStorage.setItem('user_last_updated', Date.now().toString())
+          } catch {
+            // Failed to refresh user on init - use cached data
+          }
         }
         
         // FIXED: Don't load dashboard stats during initialization to prevent duplicate calls
@@ -474,11 +482,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(mergedUserData)
         localStorage.setItem('user_data', JSON.stringify(mergedUserData))
         localStorage.setItem('user_last_updated', Date.now().toString())
-      } else {
-        console.error('❌ AuthContext.refreshUser: No user data in dashboard response')
       }
     } catch (error) {
-      console.error('❌ AuthContext.refreshUser: Failed to get dashboard data:', error)
       
       // Fallback to basic profile API if dashboard API fails
       try {
@@ -487,8 +492,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(result.data)
           localStorage.setItem('user_data', JSON.stringify(result.data))
         }
-      } catch (fallbackError) {
-        console.error('❌ AuthContext.refreshUser: Fallback also failed:', fallbackError)
+      } catch {
+        // Fallback also failed
       }
     }
   }

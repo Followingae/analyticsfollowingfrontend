@@ -3,10 +3,9 @@
 import { useEffect, useState, Suspense, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, AlertCircle, Loader2, Sparkles, ArrowRight, XCircle } from 'lucide-react'
+import { CheckCircle, Loader2, Sparkles, ArrowRight, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { ENDPOINTS, API_CONFIG } from '@/config/api'
-import { cn } from '@/lib/utils'
 
 function WelcomeContent() {
   const searchParams = useSearchParams()
@@ -69,26 +68,18 @@ function WelcomeContent() {
       const currentPollCount = pollCount
       setPollCount(prev => prev + 1)
 
-      console.log(`Verification attempt #${currentPollCount + 1}`)
-
       const url = `${API_CONFIG.BASE_URL}${ENDPOINTS.billing.verifySession(sessionId)}`
-      console.log('Calling:', url)
-
       const response = await fetch(url)
 
       let data;
       try {
         data = await response.json()
-        console.log('Verification response:', data)
-      } catch (e) {
-        console.log('Failed to parse response')
+      } catch {
         data = {}
       }
 
       // Handle different status responses as per backend instructions
       if (data.status === 'complete' && data.access_token) {
-        console.log('Account creation COMPLETE!')
-
         // Mark as verified immediately
         hasVerifiedRef.current = true
 
@@ -117,18 +108,13 @@ function WelcomeContent() {
         setMessage('Your account has been created successfully!')
         toast.success('Welcome to Analytics Following!')
 
-        // Redirect to dashboard since we have tokens
-        setTimeout(() => {
-          console.log('Redirecting to dashboard')
-          router.push('/dashboard')
-        }, 2500)
+        // Redirect to dashboard immediately
+        router.push('/dashboard')
 
         return
 
       } else if (data.status === 'processing') {
         // Account still being created, keep polling
-        console.log('Account creation in progress, continuing to poll...')
-
         if (currentPollCount >= maxPolls) {
           hasVerifiedRef.current = true
           if (pollIntervalRef.current) {
@@ -176,7 +162,6 @@ function WelcomeContent() {
       }
 
     } catch (error: any) {
-      console.error('Error verifying session:', error)
 
       if (pollCount >= 5) {
         hasVerifiedRef.current = true
@@ -319,7 +304,7 @@ function WelcomeContent() {
 
             {/* Error Text */}
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold text-red-600">
+              <h1 className="text-3xl font-bold text-red-600 dark:text-red-400">
                 Something Went Wrong
               </h1>
               <p className="text-muted-foreground">
@@ -331,7 +316,7 @@ function WelcomeContent() {
             <div className="pt-4">
               <Button
                 onClick={handleRetry}
-                className="min-w-[200px]"
+                className="min-w-[200px] min-h-[44px]"
                 size="lg"
               >
                 Try Again

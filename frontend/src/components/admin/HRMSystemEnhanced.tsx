@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { superadminService } from '@/utils/superadminApi';
 import { format } from 'date-fns';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
 import { toast } from 'sonner';
 
 // Types
@@ -158,7 +158,7 @@ export default function HRMSystemEnhanced() {
           }));
         }
       } catch (error) {
-        console.error('Error checking employee code:', error);
+
         setValidationState(prev => ({
           ...prev,
           employee_code: { error: 'Unable to validate employee code', checking: false }
@@ -198,7 +198,7 @@ export default function HRMSystemEnhanced() {
           }));
         }
       } catch (error) {
-        console.error('Error checking email:', error);
+
         setValidationState(prev => ({
           ...prev,
           email: { error: 'Unable to validate email', checking: false }
@@ -262,7 +262,7 @@ export default function HRMSystemEnhanced() {
       const overview = await superadminService.hrm.getHRMOverview();
       setStats(overview);
     } catch (err) {
-      console.error('Failed to load dashboard:', err);
+
     }
   };
 

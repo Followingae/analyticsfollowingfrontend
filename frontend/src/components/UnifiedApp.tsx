@@ -14,10 +14,7 @@ export function UnifiedApp() {
   const { user, isLoading, isAuthenticated, updateActivity } = useEnhancedAuth()
   const router = useRouter()
 
-  // REMOVED: Debug logging to prevent infinite render loops
-  // The excessive console.log calls were causing performance issues
-
-  // Track user activity
+  // Track user activity with throttled high-frequency events
   useEffect(() => {
     const handleActivity = () => {
       if (isAuthenticated) {
@@ -25,16 +22,34 @@ export function UnifiedApp() {
       }
     }
 
-    // Track mouse movements, clicks, keyboard events
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart']
-    events.forEach(event => {
+    // Throttle high-frequency events (mousemove, scroll) to fire at most once per 2s
+    let throttleTimer: ReturnType<typeof setTimeout> | null = null
+    const throttledActivity = () => {
+      if (throttleTimer) return
+      handleActivity()
+      throttleTimer = setTimeout(() => { throttleTimer = null }, 2000)
+    }
+
+    // Direct listeners for low-frequency events only
+    const directEvents = ['mousedown', 'keypress', 'touchstart']
+    directEvents.forEach(event => {
       document.addEventListener(event, handleActivity, true)
     })
 
+    // Throttled listeners for high-frequency events
+    const throttledEvents = ['mousemove', 'scroll']
+    throttledEvents.forEach(event => {
+      document.addEventListener(event, throttledActivity, true)
+    })
+
     return () => {
-      events.forEach(event => {
+      directEvents.forEach(event => {
         document.removeEventListener(event, handleActivity, true)
       })
+      throttledEvents.forEach(event => {
+        document.removeEventListener(event, throttledActivity, true)
+      })
+      if (throttleTimer) clearTimeout(throttleTimer)
     }
   }, [isAuthenticated, updateActivity])
 
@@ -54,7 +69,6 @@ export function UnifiedApp() {
 
   // Show loading screen while auth is being determined
   if (isLoading) {
-    console.log('🔄 UnifiedApp: Showing loading screen - auth loading')
     return <LoadingScreen />
   }
 
@@ -91,5 +105,3 @@ export function UnifiedApp() {
       return <UnauthorizedAccess />
   }
 }
-
-// REMOVED: RoleBasedRedirect function - this was causing competing redirects with AuthGuard
