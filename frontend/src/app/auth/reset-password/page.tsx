@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Moon, Sun, ArrowLeft, Check } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
@@ -12,7 +12,7 @@ const GlassInputWrapper = ({ children }: { children: React.ReactNode }) => (
   </div>
 )
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -22,7 +22,6 @@ export default function ResetPasswordPage() {
   const [mounted, setMounted] = useState(false)
 
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { theme, setTheme } = useTheme()
 
   useEffect(() => { setMounted(true) }, [])
@@ -250,5 +249,17 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-[100dvh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-foreground border-t-transparent" />
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   )
 }
