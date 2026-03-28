@@ -41,8 +41,27 @@ export default function LoginPage() {
     }
   }
 
-  const handleResetPassword = () => {
-    toast.info('Password reset functionality coming soon!')
+  const handleResetPassword = async () => {
+    // Get email from the form if available
+    const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement
+    const email = emailInput?.value?.trim()
+
+    if (!email) {
+      toast.error('Please enter your email address first')
+      return
+    }
+
+    try {
+      const { authService } = await import('@/services/authService')
+      const result = await authService.forgotPassword(email)
+      if (result.success) {
+        toast.success('Password reset link sent! Check your email.')
+      } else {
+        toast.error(result.error || 'Failed to send reset email')
+      }
+    } catch {
+      toast.error('Something went wrong. Please try again.')
+    }
   }
 
   const handleCreateAccount = () => {
