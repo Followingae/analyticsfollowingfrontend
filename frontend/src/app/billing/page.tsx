@@ -121,7 +121,7 @@ function BillingContent() {
   }
 
   const handleUpgrade = async (tier: string) => {
-    if (status?.user.billing_type === 'admin_managed') {
+    if (status?.user?.billing_type === 'admin_managed') {
       toast.info('Please contact support to change your plan')
       window.location.href = 'mailto:support@following.ae?subject=Plan%20Upgrade%20Request'
       return
@@ -136,19 +136,19 @@ function BillingContent() {
   }
 
   const handleManageSubscription = async () => {
-    if (status?.user.billing_type === 'admin_managed') {
+    if (status?.user?.billing_type === 'admin_managed') {
       toast.error('Portal access is only available for online payment users')
       return
     }
 
-    if (!status || status.plan.tier === 'free' || status.plan.status === 'none') {
+    if (!status || !status.plan || status.plan.tier === 'free' || status.plan.status === 'none') {
       toast.info('Please upgrade to a paid plan to access the billing portal')
       return
     }
 
     try {
       setLoadingPortal(true)
-      await billingManager.openCustomerPortal(status.portal_url)
+      await billingManager.openCustomerPortal(status?.portal_url)
     } catch (error: any) {
       toast.error(error.message || 'Failed to open billing portal')
     } finally {
@@ -214,7 +214,7 @@ function BillingContent() {
   }
 
   // No billing data — show a minimal state
-  if (!status) {
+  if (!status || !status.plan || !status.credits || !status.usage) {
     return (
       <div className="flex-1 p-6 max-w-6xl mx-auto">
         <div className="space-y-6">
@@ -238,9 +238,9 @@ function BillingContent() {
     )
   }
 
-  const isAdminManaged = status.user.billing_type === 'admin_managed'
-  const isFreeTier = status.plan.tier === 'free'
-  const hasStripeCustomer = status.user.has_stripe_customer
+  const isAdminManaged = status.user?.billing_type === 'admin_managed'
+  const isFreeTier = status.plan?.tier === 'free'
+  const hasStripeCustomer = status.user?.has_stripe_customer
   const isTrialing = billingManager.isTrialing(status)
   const trialInfo = status.trial_info
 
@@ -302,18 +302,18 @@ function BillingContent() {
                 <Package className="h-5 w-5" />
                 Current Plan
               </CardTitle>
-              <CardDescription>{status.plan.description}</CardDescription>
+              <CardDescription>{status.plan?.description}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Status</p>
-                    {getStatusBadge(status.plan.status)}
+                    {getStatusBadge(status.plan?.status ?? 'none')}
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Tier</p>
-                    {getTierBadge(status.plan.tier)}
+                    {getTierBadge(status.plan?.tier ?? 'free')}
                   </div>
                 </div>
 
@@ -321,17 +321,17 @@ function BillingContent() {
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Price</p>
                     <p className="text-2xl font-bold">
-                      {formatCurrency(status.plan.price_per_month, status.plan.currency)}
+                      {formatCurrency(status.plan?.price_per_month ?? 0, status.plan?.currency ?? 'USD')}
                       <span className="text-sm font-normal text-muted-foreground">/month</span>
                     </p>
                   </div>
                 )}
 
-                {status.plan.features.length > 0 && (
+                {(status.plan?.features?.length ?? 0) > 0 && (
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Features</p>
                     <ul className="space-y-1.5">
-                      {status.plan.features.map((feature, i) => (
+                      {status.plan.features?.map((feature, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm">
                           <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
                           <span>{feature}</span>
@@ -355,7 +355,7 @@ function BillingContent() {
                   </div>
                 )}
 
-                {status.plan.status === 'past_due' && (
+                {status.plan?.status === 'past_due' && (
                   <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
                     <div className="flex items-start gap-2">
                       <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
@@ -371,7 +371,7 @@ function BillingContent() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-2">
-                  {hasStripeCustomer && status.plan.status === 'active' && !isAdminManaged && (
+                  {hasStripeCustomer && status.plan?.status === 'active' && !isAdminManaged && (
                     <Button
                       onClick={handleManageSubscription}
                       disabled={loadingPortal}
@@ -393,7 +393,7 @@ function BillingContent() {
                     </Button>
                   )}
 
-                  {status.plan.status === 'past_due' && hasStripeCustomer && (
+                  {status.plan?.status === 'past_due' && hasStripeCustomer && (
                     <Button
                       onClick={handleManageSubscription}
                       variant="destructive"
@@ -432,39 +432,39 @@ function BillingContent() {
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">Payment Method</p>
                       <p className="font-medium">
-                        {status.stripe.payment_method.brand.charAt(0).toUpperCase() + status.stripe.payment_method.brand.slice(1)} ending in {status.stripe.payment_method.last4}
+                        {(status.stripe?.payment_method?.brand ?? 'Card').charAt(0).toUpperCase() + (status.stripe?.payment_method?.brand ?? 'card').slice(1)} ending in {status.stripe?.payment_method?.last4 ?? '****'}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Expires {status.stripe.payment_method.exp_month}/{status.stripe.payment_method.exp_year}
+                        Expires {status.stripe?.payment_method?.exp_month}/{status.stripe?.payment_method?.exp_year}
                       </p>
                     </div>
                   )}
 
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Billing Interval</p>
-                    <p className="font-medium capitalize">{status.stripe.billing_interval || 'Monthly'}</p>
+                    <p className="font-medium capitalize">{status.stripe?.billing_interval || 'Monthly'}</p>
                   </div>
 
-                  {status.stripe.current_period_end && (
+                  {status.stripe?.current_period_end && (
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">
-                        {status.stripe.cancel_at_period_end ? 'Cancels On' : 'Next Billing Date'}
+                        {status.stripe?.cancel_at_period_end ? 'Cancels On' : 'Next Billing Date'}
                       </p>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <p className="font-medium">{formatDate(status.stripe.current_period_end)}</p>
+                        <p className="font-medium">{formatDate(status.stripe?.current_period_end ?? 0)}</p>
                       </div>
                     </div>
                   )}
 
-                  {status.stripe.cancel_at_period_end && (
+                  {status.stripe?.cancel_at_period_end && (
                     <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
                       <div className="flex items-start gap-2">
                         <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                         <div className="text-sm">
                           <p className="font-medium text-yellow-800 dark:text-yellow-200">Subscription Cancelling</p>
                           <p className="text-yellow-700 dark:text-yellow-300 mt-1">
-                            Your subscription will end on {formatDate(status.stripe.current_period_end)}. You can reactivate anytime before then.
+                            Your subscription will end on {formatDate(status.stripe?.current_period_end ?? 0)}. You can reactivate anytime before then.
                           </p>
                         </div>
                       </div>

@@ -72,6 +72,7 @@ import {
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState("profile")
 
@@ -116,6 +117,7 @@ export default function SettingsPage() {
   const loadSettingsData = async () => {
     try {
       setLoading(true)
+      setLoadError(null)
 
       // Try overview endpoint first (single call for everything)
       let overviewLoaded = false
@@ -229,6 +231,7 @@ export default function SettingsPage() {
 
     } catch (error) {
 
+      setLoadError('Failed to load settings data. Please try again.')
       toast.error('Failed to load settings data')
     } finally {
       setLoading(false)
@@ -237,6 +240,19 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadSettingsData()
+
+    // Safety timeout: force loading to end after 5 seconds to prevent infinite spinner
+    const safetyTimeout = setTimeout(() => {
+      setLoading(prev => {
+        if (prev) {
+          setLoadError('Loading took too long. Some settings may not be available.')
+          return false
+        }
+        return prev
+      })
+    }, 5000)
+
+    return () => clearTimeout(safetyTimeout)
   }, [])
 
   // Save profile
@@ -395,6 +411,34 @@ export default function SettingsPage() {
             <div className="text-center space-y-4">
               <Loader2 className="h-8 w-8 mx-auto animate-spin" />
               <p className="text-muted-foreground">Loading settings...</p>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    )
+  }
+
+  if (loadError && !profile) {
+    return (
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 66)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col items-center justify-center p-4 md:p-6">
+            <div className="text-center space-y-4">
+              <SettingsIcon className="h-8 w-8 mx-auto text-muted-foreground" />
+              <p className="text-muted-foreground">{loadError}</p>
+              <Button variant="outline" onClick={() => loadSettingsData()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
             </div>
           </div>
         </SidebarInset>

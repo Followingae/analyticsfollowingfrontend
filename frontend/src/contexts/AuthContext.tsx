@@ -114,16 +114,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [])
 
-  // Emergency timeout to prevent infinite loading
+  // Emergency timeout to prevent infinite loading — runs even if hydration fails
   useEffect(() => {
-    if (!isHydrated) return
-    
-
-    const emergencyTimeout = setTimeout(() => {
-
+    const absoluteTimeout = setTimeout(() => {
+      if (!isHydrated) {
+        setIsHydrated(true)
+      }
       setIsLoading(false)
     }, 3000)
-    
+
+    return () => clearTimeout(absoluteTimeout)
+  }, [])
+
+  // Secondary safety: once hydrated, ensure loading resolves within 3s
+  useEffect(() => {
+    if (!isHydrated) return
+
+    const emergencyTimeout = setTimeout(() => {
+      setIsLoading(false)
+    }, 3000)
+
     return () => clearTimeout(emergencyTimeout)
   }, [isHydrated])
 
