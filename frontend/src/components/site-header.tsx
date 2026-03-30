@@ -113,10 +113,23 @@ export function SiteHeader() {
   useEffect(() => {
     const fetchBalance = async () => {
       if (!user || !isBrandUser) return
+
+      // Check cache first
+      const cached = sessionStorage.getItem('credits_balance')
+      const cachedTime = sessionStorage.getItem('credits_balance_time')
+      if (cached && cachedTime && (Date.now() - parseInt(cachedTime)) < 60000) {
+        setCreditBalance(parseInt(cached))
+        setContextLoading(false)
+        return
+      }
+
       try {
         const result = await creditsApiService.getBalance()
         if (result.success && result.data) {
-          setCreditBalance(result.data.current_balance)
+          const balance = result.data.current_balance
+          setCreditBalance(balance)
+          sessionStorage.setItem('credits_balance', String(balance))
+          sessionStorage.setItem('credits_balance_time', String(Date.now()))
         }
       } catch {
         // Silently fail -- balance is a nice-to-have
@@ -125,7 +138,12 @@ export function SiteHeader() {
 
     fetchBalance()
 
-    const handleCreditChange = () => { fetchBalance() }
+    const handleCreditChange = () => {
+      // Invalidate cache on explicit credit change events
+      sessionStorage.removeItem('credits_balance')
+      sessionStorage.removeItem('credits_balance_time')
+      fetchBalance()
+    }
     window.addEventListener('credit-balance-changed', handleCreditChange)
     return () => {
       window.removeEventListener('credit-balance-changed', handleCreditChange)

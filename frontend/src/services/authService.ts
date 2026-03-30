@@ -332,11 +332,7 @@ class AuthService {
     } catch (error) {
       let errorMessage = 'Connection failed'
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        if (this.baseURL.includes('localhost')) {
-          errorMessage = 'Cannot connect to local backend server. Please make sure the backend is running on http://localhost:8000'
-        } else {
-          errorMessage = 'CORS error: Cannot connect to production backend from localhost. The backend needs to allow requests from http://localhost:3000'
-        }
+        errorMessage = 'Cannot connect to the server. Please check your connection and try again.'
       } else if (error instanceof Error) {
         errorMessage = error.message
       }

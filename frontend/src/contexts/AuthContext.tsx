@@ -220,7 +220,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         
         // PERF FIX: Only refresh if cached user is stale (>5 min) to avoid API call on every page load
         const lastUpdated = localStorage.getItem('user_last_updated')
-        const isStale = !lastUpdated || (Date.now() - parseInt(lastUpdated)) > 5 * 60 * 1000
+        const isStale = !lastUpdated || (Date.now() - parseInt(lastUpdated)) > 10 * 60 * 1000
         if (isStale) {
           try {
             await refreshUser()
