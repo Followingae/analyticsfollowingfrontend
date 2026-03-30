@@ -70,7 +70,7 @@ export function ArchiveTab({ searchQuery, typeFilter = 'all' }: ArchiveTabProps)
     try {
       setIsLoading(true);
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
       const storedTokens = localStorage.getItem('auth_tokens');
 
       if (!storedTokens) {
