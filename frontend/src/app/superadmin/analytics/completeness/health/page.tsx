@@ -173,7 +173,10 @@ export default function SuperadminAnalyticsHealthPage() {
     )
   }
 
-  const { overall_status, system_components, performance_metrics, recent_issues } = data
+  const overall_status = data?.overall_status || { status: 'unknown', score: 0, message: 'No data available' }
+  const system_components = data?.system_components || []
+  const performance_metrics = data?.performance_metrics || []
+  const recent_issues = data?.recent_issues || []
 
   return (
     <SuperadminLayout>
