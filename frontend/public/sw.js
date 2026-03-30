@@ -3,12 +3,8 @@ const CACHE_NAME = 'following-analytics-v3'
 const OFFLINE_CACHE_NAME = 'following-offline-v3'
 
 // Cache static assets and API responses
+// Only cache truly static assets — NOT dynamic Next.js pages (they require auth)
 const STATIC_ASSETS = [
-  '/',
-  '/dashboard',
-  '/creators',
-  '/auth/login',
-  '/auth/register',
   '/manifest.json'
 ]
 
