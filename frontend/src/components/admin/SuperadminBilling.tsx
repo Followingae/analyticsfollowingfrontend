@@ -88,7 +88,7 @@ export default function SuperadminBilling() {
     try {
       const [transactionData, revenueData] = await Promise.all([
         superadminService.getTransactions(currentPage),
-        superadminService.getRevenueSummary(selectedPeriod)
+        superadminService.getRevenueSummary(selectedPeriod === 'yearly' ? 12 : selectedPeriod === 'quarterly' ? 3 : 6)
       ]);
 
       setTransactions(transactionData.transactions || []);
@@ -96,8 +96,8 @@ export default function SuperadminBilling() {
       setRevenueStats(revenueData.stats || null);
       setChartData(revenueData.chart_data || []);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to load billing data');
-
+      const detail = err.response?.data?.detail;
+      setError(typeof detail === 'string' ? detail : 'Failed to load billing data');
     } finally {
       setLoading(false);
     }

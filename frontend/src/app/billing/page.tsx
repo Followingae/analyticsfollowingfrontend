@@ -334,7 +334,7 @@ function BillingContent() {
                       {status.plan.features?.map((feature, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm">
                           <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
-                          <span>{feature}</span>
+                          <span>{feature.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}</span>
                         </li>
                       ))}
                     </ul>

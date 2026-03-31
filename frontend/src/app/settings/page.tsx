@@ -105,7 +105,8 @@ export default function SettingsPage() {
   const [twoFAPassword, setTwoFAPassword] = useState('')
   const [avatarConfig, setAvatarConfig] = useState<any>(null)
 
-  const { user, refreshUser } = useEnhancedAuth()
+  const { user, refreshUser, hasRole } = useEnhancedAuth()
+  const isFreeTier = hasRole('brand_free')
 
   useEffect(() => {
     if (user?.avatar_config && !avatarConfig) {
@@ -1104,6 +1105,39 @@ export default function SettingsPage() {
                             </span>
                           </div>
                         </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {isFreeTier && (
+                    <Card className="border-primary/20 bg-gradient-to-b from-background to-primary/5">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <TeamIcon className="h-5 w-5 text-primary" />
+                          Invite Team Members
+                        </CardTitle>
+                        <CardDescription>
+                          Your Free plan is limited to 1 team member (you). Upgrade to collaborate with your team.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-3 gap-3 text-center text-sm mb-4">
+                          <div className="p-3 rounded-lg bg-muted/50 border border-border/40">
+                            <p className="text-lg font-bold">1</p>
+                            <p className="text-muted-foreground text-xs">Free</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                            <p className="text-lg font-bold text-primary">2</p>
+                            <p className="text-muted-foreground text-xs">Standard</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                            <p className="text-lg font-bold text-primary">5</p>
+                            <p className="text-muted-foreground text-xs">Premium</p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm" className="w-full" onClick={() => window.location.href = '/billing'}>
+                          View Plans
+                        </Button>
                       </CardContent>
                     </Card>
                   )}

@@ -58,7 +58,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { CreatorGridCard } from "@/components/creator-cards"
+import { CreatorGridCard, ProcessingCreatorCard } from "@/components/creator-cards"
 import ReactCountryFlag from "react-country-flag"
 import { getCountryCode } from "@/lib/countryUtils"
 
@@ -75,7 +75,7 @@ export default function CreatorsPage() {
 
   // Authentication state - moved before React Query
   const { isAuthenticated, isLoading: authLoading, user } = useEnhancedAuth()
-  const { addProcessingToast, removeProcessingToast } = useProcessingToast()
+  const { addProcessingToast, removeProcessingToast, processingToasts } = useProcessingToast()
 
   // Transform backend Profile format to frontend CreatorProfile format
   const transformProfile = (profile: any): CreatorProfile => ({
@@ -299,6 +299,10 @@ export default function CreatorsPage() {
     );
   }
 
+  // Get processing creators not already in the unlocked list
+  const processingUsernames = processingToasts
+    .filter(t => !unlockedCreators.some(c => c.username?.toLowerCase() === t.username?.toLowerCase()))
+
   return (
     <AuthGuard requireAuth={true}>
       <SidebarProvider
@@ -474,7 +478,7 @@ export default function CreatorsPage() {
                   )}
                   
                   {/* Empty State */}
-                  {!unlockedLoading && !unlockedError && unlockedCreators.length === 0 && (
+                  {!unlockedLoading && !unlockedError && unlockedCreators.length === 0 && processingUsernames.length === 0 && (
                     <div className="col-span-full flex items-center justify-center py-12">
                       <div className="text-center space-y-4">
                         <Users className="h-12 w-12 mx-auto text-muted-foreground" />
@@ -490,6 +494,15 @@ export default function CreatorsPage() {
                     </div>
                   )}
                   
+                  {/* Processing Creator Cards */}
+                  {!unlockedLoading && processingUsernames.map((pt) => (
+                    <ProcessingCreatorCard
+                      key={`processing-${pt.username}`}
+                      username={pt.username}
+                      startedAt={pt.startedAt}
+                    />
+                  ))}
+
                   {/* Creator Cards */}
                   {!unlockedLoading && unlockedCreators.map((creator, index) => (
                     <CreatorGridCard

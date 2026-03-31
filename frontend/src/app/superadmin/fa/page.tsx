@@ -18,12 +18,12 @@ export default function FADashboardPage() {
   }, [])
 
   const cards = [
-    { label: "Total Members", value: stats?.total_members ?? "—", icon: Users, href: "/superadmin/fa/members", color: "text-blue-500" },
-    { label: "Pending Approvals", value: stats?.pending_approvals ?? "—", icon: Clock, href: "/superadmin/fa/members", color: "text-amber-500" },
-    { label: "Active Merchants", value: stats?.active_merchants ?? "—", icon: Store, href: "/superadmin/fa/merchants", color: "text-green-500" },
-    { label: "Active Campaigns", value: stats?.active_campaigns ?? "—", icon: Megaphone, href: "/superadmin/fa/campaigns", color: "text-purple-500" },
-    { label: "Pending Deliverables", value: stats?.pending_deliverables ?? "—", icon: ClipboardCheck, href: "/superadmin/fa/deliverables", color: "text-orange-500" },
-    { label: "Pending Withdrawals", value: stats?.pending_withdrawals ?? "—", icon: Banknote, href: "/superadmin/fa/withdrawals", color: "text-red-500" },
+    { label: "Total Members", value: stats?.total_members ?? 0, icon: Users, href: "/superadmin/fa/members", color: "text-blue-500" },
+    { label: "Pending Approvals", value: stats?.pending_approvals ?? 0, icon: Clock, href: "/superadmin/fa/members", color: "text-amber-500" },
+    { label: "Active Merchants", value: stats?.active_merchants ?? 0, icon: Store, href: "/superadmin/fa/merchants", color: "text-green-500" },
+    { label: "Active Campaigns", value: stats?.active_campaigns ?? 0, icon: Megaphone, href: "/superadmin/fa/campaigns", color: "text-purple-500" },
+    { label: "Pending Deliverables", value: stats?.pending_deliverables ?? 0, icon: ClipboardCheck, href: "/superadmin/fa/deliverables", color: "text-orange-500" },
+    { label: "Pending Withdrawals", value: stats?.pending_withdrawals ?? 0, icon: Banknote, href: "/superadmin/fa/withdrawals", color: "text-red-500" },
   ]
 
   return (

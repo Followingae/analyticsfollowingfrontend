@@ -270,7 +270,7 @@ export default function HRMSystemEnhanced() {
     setLoading(true);
     try {
       const data = await superadminService.hrm.getEmployees();
-      setEmployees(data.employees || []);
+      setEmployees(Array.isArray(data) ? data : (data.employees || []));
     } catch (err) {
       setError('Failed to load employees');
     } finally {

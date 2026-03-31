@@ -27,6 +27,8 @@ import { proposalMotion } from "@/components/proposals/proposal-utils"
 import { ProposalOverviewCard } from "@/components/proposals/ProposalOverviewCard"
 import { motion } from "motion/react"
 import NumberFlow from "@number-flow/react"
+import { PremiumFeatureGate } from "@/components/ui/premium-feature-gate"
+import { Send, BarChart3, ShieldCheck } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -54,9 +56,10 @@ interface ProposalListItem {
 // Page
 // ---------------------------------------------------------------------------
 export default function ProposalsPage() {
-  const { user, loading: authLoading } = useEnhancedAuth()
+  const { user, loading: authLoading, hasRole } = useEnhancedAuth()
   const router = useRouter()
   const { markReadByReference } = useNotifications()
+  const isFreeTier = hasRole('brand_free')
 
   const [proposals, setProposals] = useState<ProposalListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -72,7 +75,7 @@ export default function ProposalsPage() {
   }, [user, authLoading, router])
 
   useEffect(() => {
-    if (!authLoading && user && !user.role.startsWith("super_admin") && user.role !== "admin") {
+    if (!authLoading && user && !user.role.startsWith("super_admin") && user.role !== "admin" && user.role !== "brand_free") {
       loadProposals()
     }
   }, [user, authLoading])
@@ -173,6 +176,35 @@ export default function ProposalsPage() {
               </div>
             </motion.div>
 
+            {/* Premium gate for free users */}
+            {isFreeTier ? (
+              <motion.div variants={proposalMotion.staggerItem} className="mt-8">
+                <PremiumFeatureGate
+                  featureName="Proposals"
+                  headline="Agency-Curated Influencer Proposals"
+                  description="Get hand-picked influencer recommendations from our agency team, complete with pricing, deliverables, and one-click approval workflows."
+                  requiredTier="Standard"
+                  highlights={[
+                    {
+                      icon: Send,
+                      title: "Receive curated proposals",
+                      description: "Our team selects the best creators for your brand and sends detailed proposals directly to your dashboard.",
+                    },
+                    {
+                      icon: BarChart3,
+                      title: "Compare pricing & analytics",
+                      description: "View sell pricing, engagement metrics, audience demographics, and content quality scores for every influencer.",
+                    },
+                    {
+                      icon: ShieldCheck,
+                      title: "Approve with confidence",
+                      description: "Select influencers, choose deliverable types, and approve campaigns — all from a single streamlined interface.",
+                    },
+                  ]}
+                />
+              </motion.div>
+            ) : (
+            <>
             {/* KPIs */}
             <motion.div variants={proposalMotion.staggerItem}>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border/40 rounded-xl overflow-hidden border border-border/40 mt-6">
@@ -294,6 +326,8 @@ export default function ProposalsPage() {
                 </Tabs>
               )}
             </div>
+            </>
+            )}
           </motion.div>
         </div>
       </SidebarInset>

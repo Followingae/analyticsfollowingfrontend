@@ -3,6 +3,8 @@
 import { useState, useEffect, Suspense } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
+import { PremiumFeatureGate } from "@/components/ui/premium-feature-gate"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +15,8 @@ import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
 
 function CashbackPoolContent() {
+  const { hasRole } = useEnhancedAuth()
+  const isFreeTier = hasRole('brand_free')
   const searchParams = useSearchParams()
   const [balance, setBalance] = useState<any>(null)
   const [transactions, setTransactions] = useState<any[]>([])
@@ -56,6 +60,7 @@ function CashbackPoolContent() {
               <h1 className="text-2xl font-bold">Cashback Pool</h1>
               <p className="text-muted-foreground text-sm">Manage your AED cashback pool for influencer campaigns</p>
             </div>
+            {!isFreeTier && (
             <div className="flex gap-2">
               <Link href="/cashback-pool/transactions">
                 <Button variant="outline" size="sm"><History className="h-4 w-4 mr-2" />All Transactions</Button>
@@ -64,8 +69,23 @@ function CashbackPoolContent() {
                 <Button size="sm"><Plus className="h-4 w-4 mr-2" />Top Up</Button>
               </Link>
             </div>
+            )}
           </div>
 
+          {isFreeTier ? (
+            <PremiumFeatureGate
+              featureName="Cashback Pool"
+              headline="Influencer Cashback Pool"
+              description="Fund a cashback pool to power influencer campaigns. Influencers earn commission on every purchase they drive through your brand."
+              requiredTier="Standard"
+              highlights={[
+                { icon: Wallet, title: "AED cashback wallet", description: "Top up your pool in AED and allocate funds across multiple influencer campaigns simultaneously." },
+                { icon: TrendingUp, title: "Real-time tracking", description: "Monitor available balance, reserved funds, and distributed payouts with live transaction history." },
+                { icon: PiggyBank, title: "Campaign funding", description: "Automatically reserve and distribute funds as influencers complete deliverables and drive conversions." },
+              ]}
+            />
+          ) : (
+          <>
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
@@ -169,6 +189,8 @@ function CashbackPoolContent() {
               </CardContent>
             </Card>
           )}
+        </>
+        )}
         </div>
       </BrandUserInterface>
     </AuthGuard>

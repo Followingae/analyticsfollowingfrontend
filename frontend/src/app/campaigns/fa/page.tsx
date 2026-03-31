@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
+import { PremiumFeatureGate } from "@/components/ui/premium-feature-gate"
+import { QrCode as QrCodeGate, DollarSign as DollarSignGate, Gift as GiftGate } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -72,6 +75,9 @@ function CampaignList({ type }: { type: "cashback" | "paid_deal" | "barter" }) {
 }
 
 export default function FACampaignsPage() {
+  const { hasRole } = useEnhancedAuth()
+  const isFreeTier = hasRole('brand_free')
+
   return (
     <AuthGuard requireAuth={true}>
       <BrandUserInterface>
@@ -81,6 +87,19 @@ export default function FACampaignsPage() {
             <p className="text-muted-foreground text-sm">Cashback, paid deals, and barter campaigns with influencers</p>
           </div>
 
+          {isFreeTier ? (
+            <PremiumFeatureGate
+              featureName="Influencer Campaigns"
+              headline="Run Influencer Campaigns at Scale"
+              description="Launch cashback, paid deal, and barter campaigns directly with influencers through the Following App network."
+              requiredTier="Standard"
+              highlights={[
+                { icon: QrCodeGate, title: "Cashback campaigns", description: "Set up QR-based cashback campaigns where influencers earn commission on every purchase they drive." },
+                { icon: DollarSignGate, title: "Paid deals & barter", description: "Create paid collaborations or product barter deals with pre-vetted influencers in your market." },
+                { icon: GiftGate, title: "Deliverable tracking", description: "Track influencer deliverables, review content, and manage payouts — all from one dashboard." },
+              ]}
+            />
+          ) : (
           <Tabs defaultValue="cashback">
             <TabsList>
               <TabsTrigger value="cashback">Cashback</TabsTrigger>
@@ -97,6 +116,7 @@ export default function FACampaignsPage() {
               <CampaignList type="barter" />
             </TabsContent>
           </Tabs>
+          )}
         </div>
       </BrandUserInterface>
     </AuthGuard>

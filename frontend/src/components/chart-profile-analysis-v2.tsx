@@ -57,11 +57,12 @@ export function ChartProfileAnalysisV2() {
     return (usageData.remaining / usageData.limit) * 360
   }
 
-  // Calculate days until end of month (billing reset)
+  // Calculate days until first of next month (billing reset)
   const getDaysUntilReset = () => {
     const now = new Date()
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    return Math.ceil((endOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    const firstOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    const days = Math.ceil((firstOfNextMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    return Math.max(days, 0)
   }
 
   const isLoading = !subscription
@@ -74,7 +75,7 @@ export function ChartProfileAnalysisV2() {
           variant="outline" 
           className="absolute top-3 right-3 z-20 text-xs text-muted-foreground border-border bg-muted/30"
         >
-          {`resets in ${getDaysUntilReset()}d`}
+          {getDaysUntilReset() === 0 ? 'resets today' : `resets in ${getDaysUntilReset()}d`}
         </Badge>
       )}
       <CardHeader className="pb-2">

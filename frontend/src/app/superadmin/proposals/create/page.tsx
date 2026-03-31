@@ -833,7 +833,7 @@ function CreateProposalContent() {
                           className={`transition-colors duration-150 ${alreadyAdded ? "opacity-40" : "hover:bg-muted/50 cursor-pointer"}`}
                           onClick={!alreadyAdded ? () => toggleSelect(inf.id) : undefined}
                         >
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <Checkbox
                               disabled={alreadyAdded}
                               checked={selectedIds.has(inf.id)}

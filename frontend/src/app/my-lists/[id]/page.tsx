@@ -78,6 +78,30 @@ interface ListDetail {
   items: ListItem[]
 }
 
+function transformListResponse(data: any): ListDetail {
+  const items: ListItem[] = (data.items || []).map((item: any) => {
+    const profile = item.profile || {}
+    return {
+      id: item.id,
+      username: profile.username || item.username || '',
+      display_name: profile.full_name || item.display_name || profile.username || item.username || '',
+      notes: item.notes || '',
+      added_at: item.added_at,
+      avatar_url: profile.profile_pic_url || item.avatar_url || '',
+    }
+  })
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description || '',
+    color: data.color || '#3B82F6',
+    creator_count: data.items_count ?? items.length,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+    items,
+  }
+}
+
 export default function ListDetailPage() {
   const params = useParams()
   const listId = params.id as string
@@ -104,12 +128,11 @@ export default function ListDetailPage() {
     const loadListData = async () => {
       try {
         const response = await listsApiService.getListDetails(listId, { include_profiles: true })
-        if (response.success) {
-          setList(response.data)
+        if (response.success && response.data) {
+          setList(transformListResponse(response.data))
         }
         setLoading(false)
       } catch (error) {
-
         setLoading(false)
       }
     }
@@ -305,8 +328,8 @@ export default function ListDetailPage() {
 
         // Reload list data
         const updatedResponse = await listsApiService.getListDetails(listId, { include_profiles: true })
-        if (updatedResponse.success) {
-          setList(updatedResponse.data)
+        if (updatedResponse.success && updatedResponse.data) {
+          setList(transformListResponse(updatedResponse.data))
         }
       } else {
         toast.error("Failed to add creators to list")
@@ -328,8 +351,8 @@ export default function ListDetailPage() {
         setCreatorToDelete(null)
         // Reload list data
         const updatedResponse = await listsApiService.getListDetails(listId, { include_profiles: true })
-        if (updatedResponse.success) {
-          setList(updatedResponse.data)
+        if (updatedResponse.success && updatedResponse.data) {
+          setList(transformListResponse(updatedResponse.data))
         }
       } else {
         toast.error("Failed to remove creator")
@@ -354,8 +377,8 @@ export default function ListDetailPage() {
         setCreatorNotes("")
         // Reload list data
         const updatedResponse = await listsApiService.getListDetails(listId, { include_profiles: true })
-        if (updatedResponse.success) {
-          setList(updatedResponse.data)
+        if (updatedResponse.success && updatedResponse.data) {
+          setList(transformListResponse(updatedResponse.data))
         }
       } else {
         toast.error("Failed to update notes")
@@ -462,9 +485,13 @@ export default function ListDetailPage() {
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center space-x-3">
+                              {creator.avatar_url ? (
+                                <img src={creator.avatar_url} alt={creator.display_name || creator.username} className="w-12 h-12 rounded-full object-cover" />
+                              ) : (
                               <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center text-primary font-semibold text-lg">
                                 {creator.display_name?.charAt(0) || creator.username?.charAt(0)?.toUpperCase() || '?'}
                               </div>
+                              )}
                               <div className="min-w-0 flex-1">
                                 <h3 className="font-semibold truncate">{creator.display_name || creator.username}</h3>
                                 <p className="text-sm text-muted-foreground flex items-center">
