@@ -40,8 +40,8 @@ export default function UnifiedCampaignsDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const { campaignApi } = await import('@/services/campaignApiComplete');
-        const response = await campaignApi.getDashboardOverview();
+        const { dedicatedApiCall } = await import('@/utils/apiDeduplication');
+        const response = await dedicatedApiCall.campaignsOverview();
 
         if (response.success && response.data) {
           const { summary } = response.data;
