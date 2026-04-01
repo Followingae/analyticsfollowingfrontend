@@ -339,10 +339,42 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
                   </Button>
                 </div>
               )}
-              {approvalStatus === "rejected" && (
-                <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-red-300">
-                  <ShieldX className="h-3 w-3 mr-1" />Rejected
-                </Badge>
+              {approvalStatus === "rejected" && !deleteConfirm && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-red-300">
+                    <ShieldX className="h-3 w-3 mr-1" />Rejected
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setDeleteConfirm(true)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 px-2"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+              {approvalStatus === "rejected" && deleteConfirm && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-600 font-medium">Permanently delete?</span>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={acting}
+                    className="h-7 px-2 text-xs"
+                  >
+                    {acting ? "Deleting..." : "Yes, Delete"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setDeleteConfirm(false)}
+                    className="h-7 px-2 text-xs"
+                  >
+                    Cancel
+                  </Button>
+                </div>
               )}
             </div>
           </div>
