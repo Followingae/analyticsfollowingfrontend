@@ -45,6 +45,17 @@ export const faMerchantApi = {
   delete: (id: string) => del(`/api/v1/admin/fa/merchants/${id}`),
 }
 
+// ─── SUPERADMIN: Clients (for campaign creation dropdowns) ──────────
+export const faClientApi = {
+  list: (params?: { search?: string; limit?: number }) => {
+    const qs = new URLSearchParams()
+    if (params?.search) qs.set('search', params.search)
+    if (params?.limit) qs.set('limit', String(params.limit))
+    const q = qs.toString()
+    return get(`/api/v1/admin/clients${q ? `?${q}` : ''}`)
+  },
+}
+
 // ─── SUPERADMIN: FA Campaigns ────────────────────────────────────────
 export const faCampaignApi = {
   list: (type?: string, status?: string) => {

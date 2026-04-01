@@ -31,8 +31,7 @@ import {
   QrCode,
 } from "lucide-react"
 import Link from "next/link"
-import { faCampaignApi, faMerchantApi, faPoolApi } from "@/services/faAdminApi"
-import { clientApi } from "@/services/clientManagementApi"
+import { faCampaignApi, faMerchantApi, faPoolApi, faClientApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -91,7 +90,7 @@ export default function CreateCashbackCampaignPage() {
     async function load() {
       try {
         const [clientRes, merchantRes, poolRes] = await Promise.all([
-          clientApi.list({ limit: 200 }),
+          faClientApi.list({ limit: 200 }),
           faMerchantApi.list(),
           faPoolApi.listAll(),
         ])
