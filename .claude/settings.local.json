@@ -99,7 +99,9 @@
       "mcp__plugin_figma_figma__generate_figma_design",
       "Bash(start:*)",
       "Bash(git pull:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(python3 -c ':*)",
+      "Bash(py -c ':*)"
     ],
     "deny": [],
     "additionalDirectories": [

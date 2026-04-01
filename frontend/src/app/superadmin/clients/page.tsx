@@ -170,7 +170,12 @@ export default function ClientsPage() {
                     <h3 className="truncate font-semibold group-hover:text-primary transition-colors">
                       {client.company_name}
                     </h3>
-                    <p className="text-sm text-muted-foreground truncate">
+                    {client.owner_name && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {client.owner_name}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground/70 truncate">
                       {client.industry || client.subscription_tier}
                     </p>
                   </div>

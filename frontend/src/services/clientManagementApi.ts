@@ -27,6 +27,8 @@ export interface Client {
   id: string;
   name: string;
   company_name: string;
+  owner_name: string | null;
+  owner_email: string | null;
   logo_url: string | null;
   industry: string | null;
   primary_contact_name: string | null;
