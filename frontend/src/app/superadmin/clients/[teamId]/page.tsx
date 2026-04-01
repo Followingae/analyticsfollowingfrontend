@@ -95,7 +95,7 @@ export default function ClientDetailPage() {
   const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('scope');
-  const [scopeYear, setScopeYear] = useState<string>('');
+  const [scopeYear, setScopeYear] = useState<string>('all');
 
   useEffect(() => {
     if (!teamId) return;
@@ -104,7 +104,7 @@ export default function ClientDetailPage() {
       try {
         const [detailRes, scopeRes, financeRes] = await Promise.all([
           clientApi.getDetail(teamId),
-          clientApi.getScope(teamId, scopeYear ? parseInt(scopeYear) : undefined),
+          clientApi.getScope(teamId, scopeYear && scopeYear !== 'all' ? parseInt(scopeYear) : undefined),
           clientApi.getFinance(teamId),
         ]);
         setClient(detailRes.data);
@@ -245,7 +245,7 @@ export default function ClientDetailPage() {
                   <SelectValue placeholder="All Years" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Years</SelectItem>
+                  <SelectItem value="all">All Years</SelectItem>
                   <SelectItem value="2026">2026</SelectItem>
                   <SelectItem value="2025">2025</SelectItem>
                 </SelectContent>
@@ -255,7 +255,7 @@ export default function ClientDetailPage() {
                 size="sm"
                 onClick={() => {
                   const token = localStorage.getItem('access_token');
-                  const yearParam = scopeYear ? `?year=${scopeYear}` : '';
+                  const yearParam = scopeYear && scopeYear !== 'all' ? `?year=${scopeYear}` : '';
                   window.open(
                     `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/admin/clients/${teamId}/export${yearParam}`,
                     '_blank'

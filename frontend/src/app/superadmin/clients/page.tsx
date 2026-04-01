@@ -23,7 +23,7 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [industry, setIndustry] = useState<string>('');
+  const [industry, setIndustry] = useState<string>('all');
   const [error, setError] = useState<string | null>(null);
 
   const fetchClients = async () => {
@@ -32,7 +32,7 @@ export default function ClientsPage() {
       setError(null);
       const res = await clientApi.list({
         search: search || undefined,
-        industry: industry || undefined,
+        industry: industry && industry !== 'all' ? industry : undefined,
       });
       setClients(res.data || []);
     } catch (err: any) {
@@ -97,7 +97,7 @@ export default function ClientsPage() {
             <SelectValue placeholder="All Industries" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Industries</SelectItem>
+            <SelectItem value="all">All Industries</SelectItem>
             <SelectItem value="Food & Beverage">Food & Beverage</SelectItem>
             <SelectItem value="Fashion">Fashion</SelectItem>
             <SelectItem value="Technology">Technology</SelectItem>
