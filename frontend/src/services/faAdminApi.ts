@@ -86,7 +86,8 @@ export const faMemberApi = {
   },
   get: (id: string) => get(`/api/v1/admin/fa/members/${id}`),
   approve: (id: string) => put(`/api/v1/admin/fa/members/${id}`, { is_approved: 1 }),
-  reject: (id: string) => put(`/api/v1/admin/fa/members/${id}`, { is_approved: 2 }),
+  reject: (id: string, reason?: string) => put(`/api/v1/admin/fa/members/${id}`, { is_approved: 2, rejection_reason: reason }),
+  triggerAnalytics: (memberId: string) => post(`/api/v1/admin/fa/members/${memberId}/analyze`),
 }
 
 // ─── SUPERADMIN: FA Deliverables ─────────────────────────────────────
