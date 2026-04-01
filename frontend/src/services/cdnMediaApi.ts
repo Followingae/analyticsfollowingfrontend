@@ -184,7 +184,7 @@ class CDNMediaService {
               large: cdnData.avatar['512'],
               available: cdnData.avatar.available,
             },
-            posts: cdnData.posts.map(post => ({
+            posts: (Array.isArray(cdnData.posts) ? cdnData.posts : []).map(post => ({
               mediaId: post.mediaId,
               thumbnail: post.thumb['256'],
               fullSize: post.thumb['512'],

@@ -63,11 +63,11 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
                 if (response.ok) {
                   const data = await response.json()
                   let unlockedUsernames: string[] = []
-                  if (data.profiles) {
+                  if (Array.isArray(data.profiles)) {
                     unlockedUsernames = data.profiles.map((p: any) => p.username?.toLowerCase())
                   } else if (Array.isArray(data)) {
                     unlockedUsernames = data.map((p: any) => p.username?.toLowerCase())
-                  } else if (data.data?.profiles) {
+                  } else if (Array.isArray(data.data?.profiles)) {
                     unlockedUsernames = data.data.profiles.map((p: any) => p.username?.toLowerCase())
                   }
 
@@ -242,11 +242,11 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
 
           // Handle different possible response structures
           let unlockedUsernames: string[] = []
-          if (data.profiles) {
+          if (Array.isArray(data.profiles)) {
             unlockedUsernames = data.profiles.map((p: any) => p.username?.toLowerCase())
           } else if (Array.isArray(data)) {
             unlockedUsernames = data.map((p: any) => p.username?.toLowerCase())
-          } else if (data.data?.profiles) {
+          } else if (Array.isArray(data.data?.profiles)) {
             unlockedUsernames = data.data.profiles.map((p: any) => p.username?.toLowerCase())
           }
 

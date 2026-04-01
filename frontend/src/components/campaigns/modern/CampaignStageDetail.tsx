@@ -121,7 +121,7 @@ export function CampaignStageDetail({ stage, campaign, onAction }: StageDetailPr
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y">
-              {stage.tasks.items.map((task: any) => (
+              {(Array.isArray(stage.tasks?.items) ? stage.tasks.items : []).map((task: any) => (
                 <motion.div
                   key={task.id}
                   initial={{ opacity: 0, y: 10 }}

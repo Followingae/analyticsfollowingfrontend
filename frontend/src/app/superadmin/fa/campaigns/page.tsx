@@ -31,7 +31,7 @@ export default function FACampaignsPage() {
     try {
       const type = tab === "all" ? undefined : tab
       const res = await faCampaignApi.list(type)
-      if (res.success) setCampaigns(res.data || [])
+      if (res.success) setCampaigns(Array.isArray(res.data) ? res.data : [])
     } catch { toast.error("Failed to load campaigns") }
     finally { setLoading(false) }
   }, [tab])

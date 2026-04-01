@@ -127,7 +127,7 @@ export default function CreatorsPage() {
   })
 
   // Transform data for component use
-  const rawProfiles = unlockedCreatorsQuery.data?.profiles || []
+  const rawProfiles = Array.isArray(unlockedCreatorsQuery.data?.profiles) ? unlockedCreatorsQuery.data.profiles : []
   const unlockedCreators = rawProfiles.map(transformProfile)
   const unlockedLoading = unlockedCreatorsQuery.isLoading
   const unlockedError = unlockedCreatorsQuery.error?.message || null

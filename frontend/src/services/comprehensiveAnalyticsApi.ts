@@ -306,8 +306,9 @@ export class ComprehensiveAnalyticsApiService {
       const profileData: BackendProfileData = await profileResponse.json()
 
       // If profile response includes posts, use them (posts are nested in profile)
-      if (profileData.profile.posts && profileData.profile.posts.length > 0) {
-        const realPosts = profileData.profile.posts.slice(options?.offset || 0, (options?.offset || 0) + (options?.limit || 20)).map(post => ({
+      const profilePosts = Array.isArray(profileData.profile?.posts) ? profileData.profile.posts : []
+      if (profilePosts.length > 0) {
+        const realPosts = profilePosts.slice(options?.offset || 0, (options?.offset || 0) + (options?.limit || 20)).map(post => ({
           id: post.id,
           media_type: 'photo' as const, // Will be determined by backend later
           caption: post.caption, // REAL caption from database
@@ -426,7 +427,7 @@ export class ComprehensiveAnalyticsApiService {
           color_palette_analysis: undefined
         },
         trend_detection: {
-          trending_topics: aiAnalysis?.trend_detection?.trending_hashtags?.map(tag => ({
+          trending_topics: (Array.isArray(aiAnalysis?.trend_detection?.trending_hashtags) ? aiAnalysis.trend_detection.trending_hashtags : [])?.map(tag => ({
             topic: tag,
             relevance_score: undefined,
             trend_direction: undefined
@@ -487,18 +488,18 @@ export class ComprehensiveAnalyticsApiService {
       const data = await response.json()
       
       const performance = {
-        top_categories: data.ai_analysis?.top_3_categories?.map((cat, index) => ({
+        top_categories: (Array.isArray(data.ai_analysis?.top_3_categories) ? data.ai_analysis.top_3_categories : []).map((cat, index) => ({
           category: cat,
           avg_engagement: 0.05 - (index * 0.005),
           post_count: 10 - (index * 2),
           growth_rate: 5.2 - (index * 1.1)
-        })) || [],
-        
+        })),
+
         sentiment_timeline: [], // No mock data - require real API data
-        
+
         recommendations: [], // No mock recommendations - require real API data
-        
-        engagement_prediction: data.ai_analysis?.top_3_categories?.map(cat => ({
+
+        engagement_prediction: (Array.isArray(data.ai_analysis?.top_3_categories) ? data.ai_analysis.top_3_categories : []).map(cat => ({
           content_type: cat,
           predicted_engagement_rate: data.engagement_rate || 0,
           confidence_interval: [0.03, 0.07] as [number, number]

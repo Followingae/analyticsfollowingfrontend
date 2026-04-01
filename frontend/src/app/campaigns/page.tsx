@@ -246,7 +246,7 @@ function AllCampaignsTab({
 
       // The unified endpoint returns { campaigns: [...], total_count, ... }
       const raw = data?.campaigns || data?.data?.campaigns || [];
-      const processed = raw.map((c: any) => ({
+      const processed = (Array.isArray(raw) ? raw : []).map((c: any) => ({
         ...c,
         engagement_rate: c.engagement_rate || 0,
         total_reach: c.total_reach || 0,
@@ -270,7 +270,7 @@ function AllCampaignsTab({
         if (responseData.success && responseData.data) {
           const raw = responseData.data.campaigns || [];
           setCampaigns(
-            raw.map((c: any) => ({
+            (Array.isArray(raw) ? raw : []).map((c: any) => ({
               ...c,
               engagement_rate: c.engagement_rate || 0,
               total_reach: c.total_reach || 0,
@@ -765,7 +765,7 @@ function ArchiveTabContent({ searchQuery }: { searchQuery: string }) {
         });
         const raw = data?.campaigns || data?.data?.campaigns || [];
         setCampaigns(
-          raw.map((c: any) => ({
+          (Array.isArray(raw) ? raw : []).map((c: any) => ({
             ...c,
             engagement_rate: c.engagement_rate || 0,
             total_reach: c.total_reach || 0,
@@ -789,7 +789,7 @@ function ArchiveTabContent({ searchQuery }: { searchQuery: string }) {
         if (responseData.success && responseData.data) {
           const raw = responseData.data.campaigns || [];
           setCampaigns(
-            raw.map((c: any) => ({
+            (Array.isArray(raw) ? raw : []).map((c: any) => ({
               ...c,
               engagement_rate: c.engagement_rate || 0,
               total_reach: c.total_reach || 0,
