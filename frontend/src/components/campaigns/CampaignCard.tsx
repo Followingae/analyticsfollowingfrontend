@@ -304,7 +304,7 @@ export function CampaignCard({
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {campaign.brand_name} • {campaign.budget ? `$${campaign.budget.toLocaleString()}` : 'Budget TBD'}
+                  {campaign.brand_name} • {campaign.budget ? `د.إ${campaign.budget.toLocaleString()}` : 'Budget TBD'}
                 </p>
               </div>
 

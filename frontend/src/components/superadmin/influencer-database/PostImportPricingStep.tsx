@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { CheckCircle, DollarSign, Users, SkipForward } from "lucide-react"
+import { CheckCircle, Coins, Users, SkipForward } from "lucide-react"
 import { superadminApiService } from "@/services/superadminApi"
 import { BulkPricingDialog } from "./BulkPricingDialog"
 
@@ -43,7 +43,7 @@ export function PostImportPricingStep({
           {pricingApplied ? (
             <CheckCircle className="h-5 w-5 text-green-600" />
           ) : (
-            <DollarSign className="h-5 w-5 text-green-600" />
+            <Coins className="h-5 w-5 text-green-600" />
           )}
         </div>
         <h3 className="text-base font-semibold">
@@ -65,7 +65,7 @@ export function PostImportPricingStep({
           size="lg"
           onClick={() => setPricingDialogOpen(true)}
         >
-          <DollarSign className="h-4 w-4" />
+          <Coins className="h-4 w-4" />
           Apply Pricing to All {importedIds.length} Creators
         </Button>
       )}

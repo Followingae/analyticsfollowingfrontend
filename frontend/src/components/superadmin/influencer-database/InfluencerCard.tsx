@@ -44,8 +44,8 @@ export function InfluencerCard({
   const tierOpt = inf.tier ? TIER_OPTIONS.find((t) => t.value === inf.tier) : null
   const statusOpt = STATUS_OPTIONS.find((s) => s.value === inf.status)
 
-  const costPost = inf.cost_post_usd_cents
-  const sellPost = inf.sell_post_usd_cents
+  const costPost = inf.cost_post_aed_cents
+  const sellPost = inf.sell_post_aed_cents
   const margin = computeMarginPercent(costPost, sellPost)
 
   return (

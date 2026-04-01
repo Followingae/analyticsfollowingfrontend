@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, FileText, DollarSign, Users, Target, Calendar, MessageSquare, Check, X, Eye, Download } from "lucide-react";
+import { ArrowLeft, FileText, Coins, Users, Target, Calendar, MessageSquare, Check, X, Eye, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,7 +111,7 @@ export default function CampaignProposalPage() {
           {
             id: "budget",
             title: "Budget Breakdown",
-            content: "Total investment of $18,500 including influencer fees, content rights, and management...",
+            content: "Total investment of د.إ18,500 including influencer fees, content rights, and management...",
             status: "needs_revision"
           }
         ] as ProposalSection[]
@@ -237,7 +237,7 @@ export default function CampaignProposalPage() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <Coins className="h-4 w-4 text-green-600" />
                     <div>
                       <div className="text-lg font-semibold">${proposal.total_budget.toLocaleString()}</div>
                       <div className="text-xs text-muted-foreground">Total Budget</div>

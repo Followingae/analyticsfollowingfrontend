@@ -66,10 +66,10 @@ const USE_CASES = [
 
 // Marketing budget options
 const MARKETING_BUDGETS = [
-  { value: 'under_5k', label: 'Under $5K' },
-  { value: '5k_25k', label: '$5K - $25K' },
-  { value: '25k_100k', label: '$25K - $100K' },
-  { value: 'over_100k', label: 'Over $100K' },
+  { value: 'under_5k', label: 'Under د.إ5K' },
+  { value: '5k_25k', label: 'د.إ5K - د.إ25K' },
+  { value: '25k_100k', label: 'د.إ25K - د.إ100K' },
+  { value: 'over_100k', label: 'Over د.إ100K' },
   { value: 'not_sure', label: 'Not sure' }
 ]
 
@@ -92,7 +92,7 @@ const PLANS: PlanDetails[] = [
   {
     id: 'free',
     name: 'Free',
-    price: '$0',
+    price: 'د.إ0',
     priceMonthly: 0,
     profiles: '5 profile unlocks',
     emails: '0 email reveals',
@@ -109,7 +109,7 @@ const PLANS: PlanDetails[] = [
   {
     id: 'standard',
     name: 'Standard',
-    price: '$199',
+    price: 'د.إ199',
     priceMonthly: 199,
     profiles: '500 profile unlocks',
     emails: '250 email reveals',
@@ -128,7 +128,7 @@ const PLANS: PlanDetails[] = [
   {
     id: 'premium',
     name: 'Premium',
-    price: '$499',
+    price: 'د.إ499',
     priceMonthly: 499,
     profiles: '2,000 profile unlocks',
     emails: '800 email reveals',
@@ -864,7 +864,7 @@ function StepProfile({
   }
 
   const getBudgetLabel = (value: number) => {
-    const budgets = ['Not sure', 'Under $5K', '$5K-25K', '$25K-100K', 'Over $100K']
+    const budgets = ['Not sure', 'Under د.إ5K', 'د.إ5K-25K', 'د.إ25K-100K', 'Over د.إ100K']
     return budgets[value] || 'Not sure'
   }
 
@@ -948,7 +948,7 @@ function StepProfile({
               <span className="font-medium text-foreground">
                 {getBudgetLabel(budgetToSlider(formData.marketingBudget))}
               </span>
-              <span>$100K+</span>
+              <span>د.إ100K+</span>
             </div>
           </div>
         </div>
@@ -1037,7 +1037,7 @@ function StepPlan({
                   </div>
                   <p className="text-xl font-semibold">
                     {billingCycle === 'annual' && plan.priceMonthly > 0
-                      ? `$${Math.round(plan.priceMonthly * 0.8)}`
+                      ? `د.إ${Math.round(plan.priceMonthly * 0.8)}`
                       : plan.price}
                     {plan.priceMonthly > 0 && <span className="text-xs font-normal text-muted-foreground">/mo</span>}
                   </p>

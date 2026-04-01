@@ -5,19 +5,19 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { PremiumFeatureGate } from "@/components/ui/premium-feature-gate"
-import { QrCode as QrCodeGate, DollarSign as DollarSignGate, Gift as GiftGate } from "lucide-react"
+import { QrCode as QrCodeGate, Coins as CoinsGate, Gift as GiftGate } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Users, QrCode, Gift, DollarSign, ArrowRight } from "lucide-react"
+import { Users, QrCode, Gift, Coins, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { brandCampaignApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
 const TYPE_BADGE: Record<string, { icon: any; label: string; variant: "default" | "secondary" | "outline" }> = {
   cashback: { icon: QrCode, label: "Cashback", variant: "default" },
-  paid_deal: { icon: DollarSign, label: "Paid Deal", variant: "secondary" },
+  paid_deal: { icon: Coins, label: "Paid Deal", variant: "secondary" },
   barter: { icon: Gift, label: "Barter", variant: "outline" },
 }
 
@@ -95,7 +95,7 @@ export default function FACampaignsPage() {
               requiredTier="Standard"
               highlights={[
                 { icon: QrCodeGate, title: "Cashback campaigns", description: "Set up QR-based cashback campaigns where influencers earn commission on every purchase they drive." },
-                { icon: DollarSignGate, title: "Paid deals & barter", description: "Create paid collaborations or product barter deals with pre-vetted influencers in your market." },
+                { icon: CoinsGate, title: "Paid deals & barter", description: "Create paid collaborations or product barter deals with pre-vetted influencers in your market." },
                 { icon: GiftGate, title: "Deliverable tracking", description: "Track influencer deliverables, review content, and manage payouts — all from one dashboard." },
               ]}
             />

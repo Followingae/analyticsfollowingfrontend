@@ -17,7 +17,7 @@ import {
   AlertTriangle,
   Info,
   X,
-  DollarSign,
+  Coins,
 } from "lucide-react"
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
@@ -372,7 +372,7 @@ export function ExcelImportPanel() {
           <div className="flex gap-3">
             {result.imported > 0 && (
               <Button className="flex-1 gap-2" onClick={() => setStep(3)}>
-                <DollarSign className="h-4 w-4" />
+                <Coins className="h-4 w-4" />
                 Set Pricing
               </Button>
             )}

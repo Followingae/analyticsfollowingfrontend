@@ -18,7 +18,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Area, AreaChart, Bar, BarChart, Line, LineChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
 import {
-  DollarSign,
   TrendingUp,
   TrendingDown,
   Coins,
@@ -242,7 +241,7 @@ export function FinancialDashboard() {
         <Card className="relative overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(creditOverview?.overview?.total_revenue || 0)}</div>
@@ -325,7 +324,7 @@ export function FinancialDashboard() {
                     stroke="hsl(var(--muted-foreground))"
                     fontSize={12}
                     tickFormatter={(value) => {
-                      const symbol = currencyInfo?.symbol || '$'
+                      const symbol = currencyInfo?.symbol || 'د.إ'
                       return `${symbol}${(value / 1000).toFixed(0)}k`
                     }}
                   />
@@ -418,7 +417,7 @@ export function FinancialDashboard() {
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                   tickFormatter={(value) => {
-                    const symbol = currencyInfo?.symbol || '$'
+                    const symbol = currencyInfo?.symbol || 'د.إ'
                     return `${symbol}${(value / 1000).toFixed(1)}k`
                   }}
                 />

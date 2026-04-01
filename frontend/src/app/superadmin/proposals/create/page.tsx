@@ -53,23 +53,23 @@ interface MasterInfluencer {
   engagement_rate: number
   categories: string[]
   tier?: string
-  sell_post_usd_cents?: number | null
-  sell_story_usd_cents?: number | null
-  sell_reel_usd_cents?: number | null
-  sell_carousel_usd_cents?: number | null
-  sell_video_usd_cents?: number | null
-  sell_bundle_usd_cents?: number | null
-  sell_monthly_usd_cents?: number | null
+  sell_post_aed_cents?: number | null
+  sell_story_aed_cents?: number | null
+  sell_reel_aed_cents?: number | null
+  sell_carousel_aed_cents?: number | null
+  sell_video_aed_cents?: number | null
+  sell_bundle_aed_cents?: number | null
+  sell_monthly_aed_cents?: number | null
 }
 
 const DELIVERABLE_TYPES = [
-  { key: "post", label: "Post", priceField: "sell_post_usd_cents" },
-  { key: "story", label: "Story", priceField: "sell_story_usd_cents" },
-  { key: "reel", label: "Reel", priceField: "sell_reel_usd_cents" },
-  { key: "carousel", label: "Carousel", priceField: "sell_carousel_usd_cents" },
-  { key: "video", label: "Video", priceField: "sell_video_usd_cents" },
-  { key: "bundle", label: "Bundle", priceField: "sell_bundle_usd_cents" },
-  { key: "monthly", label: "Monthly", priceField: "sell_monthly_usd_cents" },
+  { key: "post", label: "Post", priceField: "sell_post_aed_cents" },
+  { key: "story", label: "Story", priceField: "sell_story_aed_cents" },
+  { key: "reel", label: "Reel", priceField: "sell_reel_aed_cents" },
+  { key: "carousel", label: "Carousel", priceField: "sell_carousel_aed_cents" },
+  { key: "video", label: "Video", priceField: "sell_video_aed_cents" },
+  { key: "bundle", label: "Bundle", priceField: "sell_bundle_aed_cents" },
+  { key: "monthly", label: "Monthly", priceField: "sell_monthly_aed_cents" },
 ] as const
 
 const TIER_OPTIONS = ["all", "nano", "micro", "mid", "macro", "mega"]

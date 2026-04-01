@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import {
-  Users, Calendar, DollarSign, FileText, Upload, Plus, Edit, Trash2,
+  Users, Calendar, Coins, FileText, Upload, Plus, Edit, Trash2,
   CheckCircle, XCircle, Clock, AlertCircle, RefreshCw, Download,
   Briefcase, CreditCard, UserCheck, FileUp, TrendingUp, Camera,
   Eye, PlusCircle, CalendarDays, Receipt, FileCheck, UserPlus,
@@ -611,7 +611,7 @@ export default function HRMSystemEnhanced() {
                 </Button>
                 <Button onClick={() => setMainView('payroll')} variant="outline" className="h-20">
                   <div className="flex flex-col items-center">
-                    <DollarSign className="h-6 w-6 mb-2" />
+                    <Coins className="h-6 w-6 mb-2" />
                     <span>Payroll</span>
                   </div>
                 </Button>

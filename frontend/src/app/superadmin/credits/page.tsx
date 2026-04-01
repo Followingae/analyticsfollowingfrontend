@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { RefreshCw, DollarSign, CreditCard, TrendingUp, Users, Search } from "lucide-react"
+import { RefreshCw, Coins, CreditCard, TrendingUp, Users, Search } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
 
@@ -159,7 +159,7 @@ export default function SuperadminCreditsPage() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'AED'
     }).format(amount / 100) // Convert cents to dollars
   }
 
@@ -272,7 +272,7 @@ export default function SuperadminCreditsPage() {
                 <>
                   {/* Credit Overview Cards */}
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <StandardMetricCard icon={DollarSign} label="Total Credits" value={formatNumber(creditOverview.overview.total_credits_in_system)} subtitle="In circulation" />
+                    <StandardMetricCard icon={Coins} label="Total Credits" value={formatNumber(creditOverview.overview.total_credits_in_system)} subtitle="In circulation" />
                     <StandardMetricCard icon={TrendingUp} label="Total Spent" value={formatNumber(creditOverview.overview.total_spent_all_time)} subtitle="All time" />
                     <StandardMetricCard icon={Users} label="Active Wallets" value={formatNumber(creditOverview.overview.active_wallets)} subtitle="With credits" />
                     <StandardMetricCard icon={CreditCard} label="Recent Transactions" value={formatNumber(creditOverview.overview.recent_transactions_24h)} subtitle="Last 24 hours" />
@@ -337,7 +337,7 @@ export default function SuperadminCreditsPage() {
               ) : (
                 <div className="text-center py-12">
                   <div className="mb-4">
-                    <DollarSign className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                    <Coins className="h-12 w-12 mx-auto text-muted-foreground/50" />
                   </div>
                   <h3 className="text-lg font-medium mb-2">Credits Data Unavailable</h3>
                   <p className="text-muted-foreground mb-4">

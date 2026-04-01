@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Download, Upload, FileSpreadsheet, Loader2, CheckCircle, AlertTriangle, RefreshCw, Info, DollarSign } from "lucide-react"
+import { Download, Upload, FileSpreadsheet, Loader2, CheckCircle, AlertTriangle, RefreshCw, Info, Coins } from "lucide-react"
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import type { ExcelImportResult } from "@/types/influencerDatabase"
@@ -310,7 +310,7 @@ export function ExcelImportDialog({ open, onOpenChange, onImportComplete }: Exce
             )}
             {step === 2 && result && result.imported > 0 && (
               <Button className="gap-2" onClick={() => setStep(3)}>
-                <DollarSign className="h-4 w-4" />
+                <Coins className="h-4 w-4" />
                 Set Pricing
               </Button>
             )}

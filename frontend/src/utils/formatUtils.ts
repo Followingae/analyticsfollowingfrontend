@@ -4,8 +4,8 @@
 
 // Currency formatting
 export const formatCurrency = (
-  amount: number, 
-  currency: string = 'USD',
+  amount: number,
+  currency: string = 'AED',
   locale: string = 'en-US'
 ): string => {
   return new Intl.NumberFormat(locale, {
@@ -17,8 +17,8 @@ export const formatCurrency = (
 }
 
 export const formatCurrencyDetailed = (
-  amount: number, 
-  currency: string = 'USD',
+  amount: number,
+  currency: string = 'AED',
   locale: string = 'en-US'
 ): string => {
   return new Intl.NumberFormat(locale, {

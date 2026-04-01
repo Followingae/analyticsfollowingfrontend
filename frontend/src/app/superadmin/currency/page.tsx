@@ -152,7 +152,7 @@ const TeamCurrencyRow: React.FC<TeamCurrencyRowProps> = ({ team }) => {
                   id="symbol"
                   value={editForm.currency_symbol}
                   onChange={(e) => setEditForm(prev => ({ ...prev, currency_symbol: e.target.value }))}
-                  placeholder="$"
+                  placeholder="د.إ"
                 />
               </div>
             </div>
@@ -168,8 +168,8 @@ const TeamCurrencyRow: React.FC<TeamCurrencyRowProps> = ({ team }) => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">0 (¥100)</SelectItem>
-                  <SelectItem value="2">2 ($1.00)</SelectItem>
-                  <SelectItem value="3">3 ($1.000)</SelectItem>
+                  <SelectItem value="2">2 (د.إ1.00)</SelectItem>
+                  <SelectItem value="3">3 (د.إ1.000)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

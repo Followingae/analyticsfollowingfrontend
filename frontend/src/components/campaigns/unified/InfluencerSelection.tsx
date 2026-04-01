@@ -11,7 +11,7 @@ import {
   Share2,
   MapPin,
   Calendar,
-  DollarSign,
+  Coins,
   Filter,
   Grid3X3,
   List,
@@ -209,7 +209,7 @@ export function InfluencerSelection({
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'AED',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -504,7 +504,7 @@ export function InfluencerSelection({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <Coins className="h-4 w-4 text-green-600" />
                     <div>
                       <div className="font-medium">
                         {formatCurrency(influencer.estimated_rate.min)}-{formatCurrency(influencer.estimated_rate.max)}

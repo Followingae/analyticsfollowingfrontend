@@ -28,7 +28,7 @@ import {
   Heart,
   MessageCircle,
   Eye,
-  DollarSign,
+  Coins,
 } from "lucide-react"
 
 interface SharedInfluencer {
@@ -50,13 +50,13 @@ interface SharedInfluencer {
   avg_likes?: number | null
   avg_comments?: number | null
   avg_views?: number | null
-  sell_post_usd_cents?: number | null
-  sell_story_usd_cents?: number | null
-  sell_reel_usd_cents?: number | null
-  sell_carousel_usd_cents?: number | null
-  sell_video_usd_cents?: number | null
-  sell_bundle_usd_cents?: number | null
-  sell_monthly_usd_cents?: number | null
+  sell_post_aed_cents?: number | null
+  sell_story_aed_cents?: number | null
+  sell_reel_aed_cents?: number | null
+  sell_carousel_aed_cents?: number | null
+  sell_video_aed_cents?: number | null
+  sell_bundle_aed_cents?: number | null
+  sell_monthly_aed_cents?: number | null
 }
 
 function getTierColor(tier?: string | null) {
@@ -111,9 +111,9 @@ function SharedInfluencersContent() {
 
   const hasPricing = influencers.some(
     (inf) =>
-      inf.sell_post_usd_cents != null ||
-      inf.sell_reel_usd_cents != null ||
-      inf.sell_story_usd_cents != null
+      inf.sell_post_aed_cents != null ||
+      inf.sell_reel_aed_cents != null ||
+      inf.sell_story_aed_cents != null
   )
 
   return (
@@ -295,55 +295,55 @@ function SharedInfluencersContent() {
                         {hasPricing && (
                           <div className="border-t pt-3">
                             <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                              <DollarSign className="h-3 w-3" />
+                              <Coins className="h-3 w-3" />
                               Pricing
                             </p>
                             <div className="grid grid-cols-3 gap-2 text-xs">
-                              {inf.sell_post_usd_cents != null && (
+                              {inf.sell_post_aed_cents != null && (
                                 <div>
                                   <p className="text-muted-foreground">Post</p>
-                                  <p className="font-medium">{formatCents(inf.sell_post_usd_cents)}</p>
+                                  <p className="font-medium">{formatCents(inf.sell_post_aed_cents)}</p>
                                 </div>
                               )}
-                              {inf.sell_reel_usd_cents != null && (
+                              {inf.sell_reel_aed_cents != null && (
                                 <div>
                                   <p className="text-muted-foreground">Reel</p>
-                                  <p className="font-medium">{formatCents(inf.sell_reel_usd_cents)}</p>
+                                  <p className="font-medium">{formatCents(inf.sell_reel_aed_cents)}</p>
                                 </div>
                               )}
-                              {inf.sell_story_usd_cents != null && (
+                              {inf.sell_story_aed_cents != null && (
                                 <div>
                                   <p className="text-muted-foreground">Story</p>
-                                  <p className="font-medium">{formatCents(inf.sell_story_usd_cents)}</p>
+                                  <p className="font-medium">{formatCents(inf.sell_story_aed_cents)}</p>
                                 </div>
                               )}
-                              {inf.sell_carousel_usd_cents != null && (
+                              {inf.sell_carousel_aed_cents != null && (
                                 <div>
                                   <p className="text-muted-foreground">Carousel</p>
-                                  <p className="font-medium">{formatCents(inf.sell_carousel_usd_cents)}</p>
+                                  <p className="font-medium">{formatCents(inf.sell_carousel_aed_cents)}</p>
                                 </div>
                               )}
-                              {inf.sell_video_usd_cents != null && (
+                              {inf.sell_video_aed_cents != null && (
                                 <div>
                                   <p className="text-muted-foreground">Video</p>
-                                  <p className="font-medium">{formatCents(inf.sell_video_usd_cents)}</p>
+                                  <p className="font-medium">{formatCents(inf.sell_video_aed_cents)}</p>
                                 </div>
                               )}
-                              {inf.sell_bundle_usd_cents != null && (
+                              {inf.sell_bundle_aed_cents != null && (
                                 <div>
                                   <p className="text-muted-foreground">Bundle</p>
-                                  <p className="font-medium">{formatCents(inf.sell_bundle_usd_cents)}</p>
+                                  <p className="font-medium">{formatCents(inf.sell_bundle_aed_cents)}</p>
                                 </div>
                               )}
-                              {inf.sell_monthly_usd_cents != null && (
+                              {inf.sell_monthly_aed_cents != null && (
                                 <div>
                                   <p className="text-muted-foreground">Monthly</p>
-                                  <p className="font-medium">{formatCents(inf.sell_monthly_usd_cents)}</p>
+                                  <p className="font-medium">{formatCents(inf.sell_monthly_aed_cents)}</p>
                                 </div>
                               )}
-                              {inf.sell_post_usd_cents == null &&
-                                inf.sell_reel_usd_cents == null &&
-                                inf.sell_story_usd_cents == null && (
+                              {inf.sell_post_aed_cents == null &&
+                                inf.sell_reel_aed_cents == null &&
+                                inf.sell_story_aed_cents == null && (
                                   <p className="text-muted-foreground col-span-3">No pricing set</p>
                                 )}
                             </div>

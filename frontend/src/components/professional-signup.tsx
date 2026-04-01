@@ -72,7 +72,7 @@ const PLANS: PlanDetails[] = [
   {
     id: 'standard',
     name: 'Professional',
-    price: '$199',
+    price: 'د.إ199',
     priceMonthly: 199,
     priceAnnual: 1908,
     savings: 480,
@@ -94,7 +94,7 @@ const PLANS: PlanDetails[] = [
   {
     id: 'premium',
     name: 'Business',
-    price: '$499',
+    price: 'د.إ499',
     priceMonthly: 499,
     priceAnnual: 4788,
     savings: 1200,
@@ -777,10 +777,10 @@ export function ProfessionalSignup() {
                       </p>
                       <p className="text-3xl font-bold">
                         {selectedPlan === 'free' ? (
-                          '$0'
+                          'د.إ0'
                         ) : (
                           <>
-                            ${billingInterval === 'annual'
+                            د.إ{billingInterval === 'annual'
                               ? PLANS.find(p => p.id === selectedPlan)?.priceAnnual?.toLocaleString()
                               : PLANS.find(p => p.id === selectedPlan)?.priceMonthly
                             }

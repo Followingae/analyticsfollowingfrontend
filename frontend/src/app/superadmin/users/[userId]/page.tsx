@@ -52,7 +52,7 @@ import {
   CreditCard,
   Shield,
   Settings,
-  DollarSign,
+  Coins,
   Users,
   Mail,
   Trash2,
@@ -178,8 +178,8 @@ export default function UserEditPage() {
         })
 
         setCurrencySettings({
-          currency_code: userData.currency_code || 'USD',
-          currency_symbol: userData.currency_symbol || '$',
+          currency_code: userData.currency_code || 'AED',
+          currency_symbol: userData.currency_symbol || 'د.إ',
           decimal_places: userData.decimal_places || 2
         })
 
@@ -336,7 +336,7 @@ export default function UserEditPage() {
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return `${user?.currency_symbol || '$'}${(amount / 100).toFixed(user?.decimal_places || 2)}`
+    return `${user?.currency_symbol || 'د.إ'}${(amount / 100).toFixed(user?.decimal_places || 2)}`
   }
 
   if (loading) {
@@ -626,7 +626,7 @@ export default function UserEditPage() {
                   disabled={saving || creditsAdjustment.amount <= 0 || !creditsAdjustment.reason.trim()}
                   variant={creditsAdjustment.action === 'remove' ? 'destructive' : 'default'}
                 >
-                  <DollarSign className="h-4 w-4 mr-2" />
+                  <Coins className="h-4 w-4 mr-2" />
                   {creditsAdjustment.action === 'add' ? 'Add' : 'Remove'} Credits
                 </Button>
               </div>
@@ -637,7 +637,7 @@ export default function UserEditPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
+                <Coins className="h-5 w-5" />
                 Currency Settings
               </CardTitle>
               <CardDescription>

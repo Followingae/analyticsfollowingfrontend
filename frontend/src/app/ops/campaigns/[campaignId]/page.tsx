@@ -33,7 +33,7 @@ import {
   Film,
   CalendarDays,
   Link2,
-  DollarSign,
+  Coins,
   Eye,
   EyeOff
 } from 'lucide-react';
@@ -542,7 +542,7 @@ export default function CampaignOperationsHome() {
               className="h-24 flex flex-col items-center justify-center gap-2"
               onClick={() => navigateToSection('finance')}
             >
-              <DollarSign className="h-6 w-6" />
+              <Coins className="h-6 w-6" />
               <span>Finance</span>
             </Button>
             <Button

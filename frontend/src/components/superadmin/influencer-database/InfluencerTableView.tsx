@@ -39,7 +39,7 @@ import {
   MoreHorizontal,
   Eye,
   Pencil,
-  DollarSign,
+  Coins,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -228,56 +228,56 @@ export function InfluencerTableView({
       case "ig_post_cost":
         return (
           <InlineEditCell
-            value={inf.cost_post_usd_cents}
-            onSave={(v) => onInlineEdit(inf.id, "cost_post_usd_cents", v)}
+            value={inf.cost_post_aed_cents}
+            onSave={(v) => onInlineEdit(inf.id, "cost_post_aed_cents", v)}
           />
         )
       case "ig_post_sell":
         return (
           <InlineEditCell
-            value={inf.sell_post_usd_cents}
-            onSave={(v) => onInlineEdit(inf.id, "sell_post_usd_cents", v)}
+            value={inf.sell_post_aed_cents}
+            onSave={(v) => onInlineEdit(inf.id, "sell_post_aed_cents", v)}
           />
         )
       case "ig_reel_cost":
         return (
           <InlineEditCell
-            value={inf.cost_reel_usd_cents}
-            onSave={(v) => onInlineEdit(inf.id, "cost_reel_usd_cents", v)}
+            value={inf.cost_reel_aed_cents}
+            onSave={(v) => onInlineEdit(inf.id, "cost_reel_aed_cents", v)}
           />
         )
       case "ig_reel_sell":
         return (
           <InlineEditCell
-            value={inf.sell_reel_usd_cents}
-            onSave={(v) => onInlineEdit(inf.id, "sell_reel_usd_cents", v)}
+            value={inf.sell_reel_aed_cents}
+            onSave={(v) => onInlineEdit(inf.id, "sell_reel_aed_cents", v)}
           />
         )
       case "ig_story_cost":
         return (
           <InlineEditCell
-            value={inf.cost_story_usd_cents}
-            onSave={(v) => onInlineEdit(inf.id, "cost_story_usd_cents", v)}
+            value={inf.cost_story_aed_cents}
+            onSave={(v) => onInlineEdit(inf.id, "cost_story_aed_cents", v)}
           />
         )
       case "video_cost":
         return (
           <InlineEditCell
-            value={inf.cost_video_usd_cents}
-            onSave={(v) => onInlineEdit(inf.id, "cost_video_usd_cents", v)}
+            value={inf.cost_video_aed_cents}
+            onSave={(v) => onInlineEdit(inf.id, "cost_video_aed_cents", v)}
           />
         )
       case "video_sell":
         return (
           <InlineEditCell
-            value={inf.sell_video_usd_cents}
-            onSave={(v) => onInlineEdit(inf.id, "sell_video_usd_cents", v)}
+            value={inf.sell_video_aed_cents}
+            onSave={(v) => onInlineEdit(inf.id, "sell_video_aed_cents", v)}
           />
         )
       case "margin": {
         const margin = computeMarginPercent(
-          inf.cost_post_usd_cents,
-          inf.sell_post_usd_cents
+          inf.cost_post_aed_cents,
+          inf.sell_post_aed_cents
         )
         if (margin === null)
           return <span className="text-muted-foreground">--</span>

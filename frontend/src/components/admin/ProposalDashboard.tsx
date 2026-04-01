@@ -25,7 +25,7 @@ import {
   Plus,
   TrendingUp,
   Users,
-  DollarSign,
+  Coins,
   Clock,
   Search,
   Filter,
@@ -165,7 +165,7 @@ export function ProposalDashboard() {
           <StandardMetricCard icon={Target} label="Acceptance Rate" value={`${proposalData?.overview?.acceptance_rate ?? 0}%`} subtitle={`${proposalData?.overview?.accepted_proposals ?? 0} accepted`} />
         </motion.div>
         <motion.div variants={proposalMotion.staggerItem}>
-          <StandardMetricCard icon={DollarSign} label="Revenue Generated" value={proposalData?.overview?.total_revenue ? `$${proposalData.overview.total_revenue.toLocaleString()}` : '$0'} subtitle={`From ${proposalData?.overview?.accepted_proposals ?? 0} accepted proposals`} />
+          <StandardMetricCard icon={Coins} label="Revenue Generated" value={proposalData?.overview?.total_revenue ? `د.إ${proposalData.overview.total_revenue.toLocaleString()}` : 'د.إ0'} subtitle={`From ${proposalData?.overview?.accepted_proposals ?? 0} accepted proposals`} />
         </motion.div>
         <motion.div variants={proposalMotion.staggerItem}>
           <StandardMetricCard icon={Clock} label="Response Time" value={`${proposalData?.overview?.average_response_time ?? 0} days`} subtitle="Average time to respond" />
@@ -492,7 +492,7 @@ export function ProposalDashboard() {
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
                         tickFormatter={(value) => {
-                          const symbol = currencyInfo?.symbol || '$'
+                          const symbol = currencyInfo?.symbol || 'د.إ'
                           return `${symbol}${(value / 1000).toFixed(0)}k`
                         }}
                       />

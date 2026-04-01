@@ -46,7 +46,7 @@ const PLANS: PlanDetails[] = [
   {
     id: 'free',
     name: 'Free',
-    price: '$0',
+    price: 'د.إ0',
     priceMonthly: 0,
     credits: '5 profile unlocks',
     features: [
@@ -61,7 +61,7 @@ const PLANS: PlanDetails[] = [
   {
     id: 'standard',
     name: 'Standard',
-    price: '$199',
+    price: 'د.إ199',
     priceMonthly: 199,
     credits: '500 profile unlocks',
     features: [
@@ -79,7 +79,7 @@ const PLANS: PlanDetails[] = [
   {
     id: 'premium',
     name: 'Premium',
-    price: '$499',
+    price: 'د.إ499',
     priceMonthly: 499,
     credits: '2000 profile unlocks',
     features: [

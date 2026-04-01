@@ -10,7 +10,7 @@ import {
   Check,
   Plus,
   ChevronRight,
-  DollarSign,
+  Coins,
   Eye,
   Heart,
   MessageCircle,
@@ -624,10 +624,10 @@ export function InfluencerSelectionV3({
 
                       <div className="p-3 rounded-lg bg-muted/50 border">
                         <div className="flex items-center justify-between mb-1">
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          <Coins className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <p className="text-2xl font-bold">
-                          ${selectedData.totalBudget.toLocaleString()}
+                          د.إ{selectedData.totalBudget.toLocaleString()}
                         </p>
                         <p className="text-xs text-muted-foreground">Total Budget</p>
                       </div>

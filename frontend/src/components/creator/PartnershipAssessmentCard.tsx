@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Handshake, DollarSign, Star, TrendingUp, Shield, Target, Clock, Users } from "lucide-react"
+import { Handshake, Coins, Star, TrendingUp, Shield, Target, Clock, Users } from "lucide-react"
 import type { PartnershipPotential } from "@/types/creatorTypes"
 
 interface PartnershipAssessmentCardProps {
@@ -87,7 +87,7 @@ export function PartnershipAssessmentCard({ partnershipPotential }: PartnershipA
         <div className="pt-4 border-t">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-green-500" />
+              <Coins className="h-4 w-4 text-green-500" />
               <span className="text-sm font-medium">Recommended Budget</span>
             </div>
             <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-sm px-3 py-1">

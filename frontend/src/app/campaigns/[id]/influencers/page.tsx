@@ -47,7 +47,7 @@ export default function CampaignInfluencersPage() {
                     campaignId === "2" ? "TechNova" :
                     campaignId === "3" ? "Lifestyle Co" : "Demo Brand",
         status: "active",
-        budget_range: "$10,000 - $25,000",
+        budget_range: "د.إ10,000 - د.إ25,000",
         target_reach: "500K - 1M",
         content_requirements: "3 posts per influencer, mix of static and reels",
         timeline: "4 weeks",

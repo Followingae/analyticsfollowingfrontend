@@ -18,7 +18,7 @@ import {
 import {
   BarChart3,
   Users,
-  DollarSign,
+  Coins,
   FileText,
   Monitor,
   Database,
@@ -61,7 +61,7 @@ export function AdminLayout({
     {
       id: 'finance' as AdminView,
       label: 'Financial Management',
-      icon: DollarSign,
+      icon: Coins,
       available: isSuperAdmin && hasPermission('can_view_all_transactions')
     },
     {

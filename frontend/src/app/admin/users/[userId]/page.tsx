@@ -34,7 +34,7 @@ import {
   RefreshCw,
   User,
   Shield,
-  DollarSign,
+  Coins,
   Database,
   Plus,
   Minus,
@@ -1201,11 +1201,11 @@ export default function UserEditPage() {
                           <SelectValue placeholder="Select budget range" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="$0-$1000">$0-$1,000</SelectItem>
-                          <SelectItem value="$1000-$5000">$1,000-$5,000</SelectItem>
-                          <SelectItem value="$5000-$10000">$5,000-$10,000</SelectItem>
-                          <SelectItem value="$10000-$50000">$10,000-$50,000</SelectItem>
-                          <SelectItem value="$50000+">$50,000+</SelectItem>
+                          <SelectItem value="$0-$1000">د.إ0-1,000</SelectItem>
+                          <SelectItem value="$1000-$5000">د.إ1,000-5,000</SelectItem>
+                          <SelectItem value="$5000-$10000">د.إ5,000-10,000</SelectItem>
+                          <SelectItem value="$10000-$50000">د.إ10,000-50,000</SelectItem>
+                          <SelectItem value="$50000+">د.إ50,000+</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

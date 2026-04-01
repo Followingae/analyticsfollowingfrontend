@@ -83,8 +83,8 @@ function CheckoutContent() {
   const getPlanDisplayName = (planTier: string) => {
     const names: Record<string, string> = {
       free: 'Free',
-      standard: 'Standard ($199/mo)',
-      premium: 'Premium ($499/mo)'
+      standard: 'Standard (د.إ199/mo)',
+      premium: 'Premium (د.إ499/mo)'
     }
     return names[planTier] || planTier
   }

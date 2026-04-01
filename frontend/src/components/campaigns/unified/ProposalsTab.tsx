@@ -6,7 +6,7 @@ import {
   Plus,
   Users,
   FileText,
-  DollarSign,
+  Coins,
   TrendingUp,
   Eye,
   CheckCircle,
@@ -226,7 +226,7 @@ export function ProposalsTab({ searchQuery }: ProposalsTabProps) {
                       {/* Key Metrics */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-green-600" />
+                          <Coins className="h-4 w-4 text-green-600" />
                           <div>
                             <div className="text-sm font-medium">
                               {formatCurrency(proposal.total_budget)}

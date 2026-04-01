@@ -44,7 +44,7 @@ const subscriptionTiers = [
     name: 'Standard',
     description: 'For growing businesses',
     features: ['500 profile unlocks/month', 'Advanced analytics', 'Email support'],
-    price: '$29/month',
+    price: 'د.إ29/month',
     popular: true
   },
   {
@@ -52,7 +52,7 @@ const subscriptionTiers = [
     name: 'Premium',
     description: 'For enterprise teams',
     features: ['2000 profile unlocks/month', 'Premium analytics', 'Priority support'],
-    price: '$99/month',
+    price: 'د.إ99/month',
     popular: false
   }
 ];

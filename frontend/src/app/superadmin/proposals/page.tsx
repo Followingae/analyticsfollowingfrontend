@@ -25,7 +25,7 @@ import {
   FileText,
   Eye,
   Clock,
-  DollarSign,
+  Coins,
   Plus,
   MoreHorizontal,
   Send,
@@ -113,7 +113,7 @@ export default function SuperadminProposalsPage() {
                 <StandardMetricCard icon={CheckCircle} label="Approved" value={stats.approved_proposals} subtitle={`${stats.approval_rate}% rate`} />
               </motion.div>
               <motion.div variants={proposalMotion.staggerItem}>
-                <StandardMetricCard icon={DollarSign} label="Margin" value={`$${stats.total_margin.toLocaleString()}`} subtitle={`avg ${stats.avg_margin_percentage.toFixed(1)}%`} />
+                <StandardMetricCard icon={Coins} label="Margin" value={`د.إ${stats.total_margin.toLocaleString()}`} subtitle={`avg ${stats.avg_margin_percentage.toFixed(1)}%`} />
               </motion.div>
             </motion.div>
           ) : (
@@ -228,7 +228,7 @@ export default function SuperadminProposalsPage() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums text-sm font-medium">
                           {p.total_sell_amount
-                            ? `$${p.total_sell_amount.toLocaleString()}`
+                            ? `د.إ${p.total_sell_amount.toLocaleString()}`
                             : "--"}
                         </TableCell>
                         <TableCell className="text-right tabular-nums text-sm">

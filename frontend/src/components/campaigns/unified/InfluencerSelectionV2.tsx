@@ -9,7 +9,7 @@ import {
   Heart,
   MessageCircle,
   MapPin,
-  DollarSign,
+  Coins,
   Filter,
   Grid3X3,
   List,
@@ -253,7 +253,7 @@ export function InfluencerSelectionV2({
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'AED',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);

@@ -4,7 +4,7 @@ import {
   TrendingUp,
   Users,
   Eye,
-  DollarSign,
+  Coins,
   Calendar,
   Target,
   Zap,
@@ -33,9 +33,9 @@ export function CampaignQuickStats({ campaign, stages }: CampaignQuickStatsProps
   const stats: QuickStat[] = [
     {
       label: "Campaign Budget",
-      value: "$25,000",
+      value: "د.إ25,000",
       change: 0,
-      icon: DollarSign,
+      icon: Coins,
       color: "text-green-600 bg-green-50",
       progress: 65,
     },

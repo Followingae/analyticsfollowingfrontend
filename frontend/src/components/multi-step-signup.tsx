@@ -105,7 +105,7 @@ const subscriptionTiers = [
     name: 'Standard',
     description: 'For growing businesses',
     features: ['500 profile unlocks/month', 'All features enabled', 'Email support', '10,000 API calls/month', '2 team members'],
-    price: '$199/month',
+    price: 'د.إ199/month',
     popular: true,
     icon: Zap
   },
@@ -114,7 +114,7 @@ const subscriptionTiers = [
     name: 'Premium',
     description: 'For enterprise teams',
     features: ['2000 profile unlocks/month', 'All features enabled', 'Priority support', '50,000 API calls/month', '5 team members', '20% topup discount'],
-    price: '$499/month',
+    price: 'د.إ499/month',
     popular: false,
     icon: Crown
   }

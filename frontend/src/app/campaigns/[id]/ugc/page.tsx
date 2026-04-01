@@ -69,7 +69,7 @@ interface UGCModel {
   age_range?: string;
   languages?: string[];
   specialties?: string[];
-  day_rate_usd_cents?: number;
+  day_rate_aed_cents?: number;
   previous_brands?: string[];
   notes?: string;
   status?: string;

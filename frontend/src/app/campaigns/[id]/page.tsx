@@ -69,7 +69,7 @@ export default function CleanCampaignDetailsPage() {
           id: campaignId,
           name: "New Product Launch Q1 2024",
           status: "created",
-          budget: "$25,000",
+          budget: "د.إ25,000",
           duration: "Jan 15 - Feb 28, 2024",
           currentStage: "proposal",
           stats: {
@@ -96,7 +96,7 @@ export default function CleanCampaignDetailsPage() {
           id: campaignId,
           name: "Summer Collection Launch 2024",
           status: "active",
-          budget: "$25,000",
+          budget: "د.إ25,000",
           duration: "May 1 - Jun 30, 2024",
           currentStage: "content",
           stats: {
@@ -133,7 +133,7 @@ export default function CleanCampaignDetailsPage() {
           id: campaignId,
           name: "Back to School Campaign",
           status: "live",
-          budget: "$30,000",
+          budget: "د.إ30,000",
           duration: "Aug 1 - Sep 15, 2024",
           currentStage: "live",
           stats: {
@@ -159,7 +159,7 @@ export default function CleanCampaignDetailsPage() {
           id: campaignId,
           name: "Holiday Season 2023",
           status: "completed",
-          budget: "$40,000",
+          budget: "د.إ40,000",
           duration: "Nov 15 - Dec 31, 2023",
           currentStage: "report",
           stats: {
@@ -176,8 +176,8 @@ export default function CleanCampaignDetailsPage() {
             topInfluencer: "@luxury_life",
             topContent: "Holiday Gift Guide Reel",
             sentiment: "92% positive",
-            budgetSpent: "$38,500",
-            costPerEngagement: "$0.11",
+            budgetSpent: "د.إ38,500",
+            costPerEngagement: "د.إ0.11",
             newFollowers: 12500,
           }
         };
@@ -188,7 +188,7 @@ export default function CleanCampaignDetailsPage() {
           id: campaignId,
           name: "Upcoming Campaign",
           status: "draft",
-          budget: "$10,000",
+          budget: "د.إ10,000",
           duration: "TBD",
           currentStage: "proposal",
           stats: {

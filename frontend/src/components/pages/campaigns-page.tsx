@@ -10,7 +10,7 @@ import {
   Heart, 
   TrendingUp,
   Calendar,
-  DollarSign,
+  Coins,
   BarChart3,
   ExternalLink,
   MoreHorizontal,
@@ -247,7 +247,7 @@ export default function CampaignsPage() {
           title="Total Budget"
           value={`AED ${totalBudget.toLocaleString()}`}
           change={12}
-          icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+          icon={<Coins className="h-4 w-4 text-muted-foreground" />}
         />
         <MetricCard
           title="Total Spent"
@@ -448,7 +448,7 @@ export default function CampaignsPage() {
                     <MetricCard
                       title="Budget Used"
                       value={`${((selectedCampaign.spent / selectedCampaign.budget) * 100).toFixed(1)}%`}
-                      icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
+                      icon={<Coins className="h-4 w-4 text-muted-foreground" />}
                     />
                     <MetricCard
                       title="Avg. Engagement"

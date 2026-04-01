@@ -31,7 +31,7 @@ export default function UnifiedCampaignsDashboard() {
     completed: 0,
     totalReach: "0",
     engagement: "0%",
-    totalSpend: "$0"
+    totalSpend: "د.إ0"
   });
 
   const isAgencyClient = user?.role === 'premium' || user?.role === 'enterprise' || false;
@@ -51,7 +51,7 @@ export default function UnifiedCampaignsDashboard() {
             completed: summary.completedCampaigns || 0,
             totalReach: summary.totalReach.current.toString(),
             engagement: `${summary.avgEngagementRate.current}%`,
-            totalSpend: `$${summary.totalSpend.current}`
+            totalSpend: `د.إ${summary.totalSpend.current}`
           });
         }
       } catch (error) {

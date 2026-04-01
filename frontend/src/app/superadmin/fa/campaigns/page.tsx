@@ -9,13 +9,13 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Plus, Megaphone, QrCode, DollarSign, Gift } from "lucide-react"
+import { Plus, Megaphone, QrCode, Coins, Gift } from "lucide-react"
 import { faCampaignApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
 const TYPE_CONFIG: Record<string, { icon: any; label: string; color: string }> = {
   cashback: { icon: QrCode, label: "Cashback", color: "bg-green-500/10 text-green-600" },
-  paid_deal: { icon: DollarSign, label: "Paid Deal", color: "bg-purple-500/10 text-purple-600" },
+  paid_deal: { icon: Coins, label: "Paid Deal", color: "bg-purple-500/10 text-purple-600" },
   barter: { icon: Gift, label: "Barter", color: "bg-blue-500/10 text-blue-600" },
 }
 
@@ -63,7 +63,7 @@ export default function FACampaignsPage() {
             <Dialog open={!!createType} onOpenChange={(o) => { if (!o) { setCreateType(null); setForm({}) } }}>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setCreateType("cashback")}><QrCode className="h-4 w-4 mr-1" />Cashback</Button>
-                <Button size="sm" variant="outline" onClick={() => setCreateType("paid_deal")}><DollarSign className="h-4 w-4 mr-1" />Paid Deal</Button>
+                <Button size="sm" variant="outline" onClick={() => setCreateType("paid_deal")}><Coins className="h-4 w-4 mr-1" />Paid Deal</Button>
                 <Button size="sm" variant="outline" onClick={() => setCreateType("barter")}><Gift className="h-4 w-4 mr-1" />Barter</Button>
               </div>
               <DialogContent className="max-w-lg">

@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import {
   Users,
-  DollarSign,
+  Coins,
   FileText,
   TrendingUp,
   TrendingDown,
@@ -245,11 +245,11 @@ export function AdminDashboard() {
         <Card className="relative overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${dashboardData?.revenue_metrics?.monthly_revenue ? formatNumber(dashboardData.revenue_metrics.monthly_revenue) : '0'}
+              د.إ{dashboardData?.revenue_metrics?.monthly_revenue ? formatNumber(dashboardData.revenue_metrics.monthly_revenue) : '0'}
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
               <ArrowUpRight className="h-3 w-3 text-emerald-500" />

@@ -159,7 +159,7 @@ export function TrialUpgradeModal({
             className="w-full text-white border-0 bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 shadow-sm"
           >
             <Zap className="h-4 w-4" />
-            Upgrade Now - $199/mo
+            Upgrade Now - د.إ199/mo
             <ArrowRight className="h-4 w-4" />
           </Button>
           <Button

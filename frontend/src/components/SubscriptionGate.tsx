@@ -62,21 +62,21 @@ function SubscriptionUpgradePrompt({ requiredTier, currentTier, feature }: Subsc
           name: 'Free',
           color: 'bg-muted/500',
           description: 'Basic features for getting started',
-          price: '$0/month'
+          price: 'د.إ0/month'
         }
       case 'brand_standard':
         return {
           name: 'Standard',
           color: 'bg-blue-500',
           description: 'Enhanced features for growing brands',
-          price: '$29/month'
+          price: 'د.إ29/month'
         }
       case 'brand_premium':
         return {
           name: 'Premium',
           color: 'bg-gradient-to-r from-orange-500 to-pink-600',
           description: 'Advanced features for professional teams',
-          price: '$99/month'
+          price: 'د.إ99/month'
         }
       case 'brand_enterprise':
         return {

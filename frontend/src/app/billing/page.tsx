@@ -185,7 +185,7 @@ function BillingContent() {
     return <Badge className={tierColors[tier] || tierColors.free}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</Badge>
   }
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
+  const formatCurrency = (amount: number, currency: string = 'AED') => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)
   }
 
@@ -286,7 +286,7 @@ function BillingContent() {
                     ).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                   </span>
                   <span className="text-muted-foreground">
-                    . After your trial, you will be charged $199/month for the Standard plan. You can cancel anytime.
+                    . After your trial, you will be charged د.إ199/month for the Standard plan. You can cancel anytime.
                   </span>
                 </p>
               </div>
@@ -321,7 +321,7 @@ function BillingContent() {
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Price</p>
                     <p className="text-2xl font-bold">
-                      {formatCurrency(status.plan?.price_per_month ?? 0, status.plan?.currency ?? 'USD')}
+                      {formatCurrency(status.plan?.price_per_month ?? 0, status.plan?.currency ?? 'AED')}
                       <span className="text-sm font-normal text-muted-foreground">/month</span>
                     </p>
                   </div>

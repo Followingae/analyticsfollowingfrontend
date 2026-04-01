@@ -71,7 +71,7 @@ export default function CreateBrandAccountPage() {
       create_team: true,          // Always create team — required for platform
     },
     standard: {
-      initial_credits: 8750,      // $199 tier canonical credits
+      initial_credits: 8750,      // د.إ199 tier canonical credits
       monthly_profile_limit: 350,
       monthly_email_limit: 200,
       monthly_posts_limit: 100,
@@ -79,7 +79,7 @@ export default function CreateBrandAccountPage() {
       create_team: true,
     },
     premium: {
-      initial_credits: 25000,     // $499 tier canonical credits
+      initial_credits: 25000,     // د.إ499 tier canonical credits
       monthly_profile_limit: 1000,
       monthly_email_limit: 500,
       monthly_posts_limit: 250,
@@ -433,13 +433,13 @@ export default function CreateBrandAccountPage() {
                 </SelectItem>
                 <SelectItem value="standard">
                   <div className="flex flex-col">
-                    <span className="font-medium">Standard - $199/month</span>
+                    <span className="font-medium">Standard - د.إ199/month</span>
                     <span className="text-xs text-muted-foreground">350 profiles • 8,750 credits • 2 members</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="premium">
                   <div className="flex flex-col">
-                    <span className="font-medium">Premium - $499/month</span>
+                    <span className="font-medium">Premium - د.إ499/month</span>
                     <span className="text-xs text-muted-foreground">1,000 profiles • 25,000 credits • 5 members</span>
                   </div>
                 </SelectItem>

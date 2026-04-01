@@ -40,7 +40,7 @@ import {
   Camera,
   Calendar,
   Users,
-  DollarSign,
+  Coins,
   Gift,
   Layers,
   ChevronRight,
@@ -55,7 +55,7 @@ import { toast } from 'sonner';
 
 const WORKSTREAM_ICONS: Record<WorkstreamType, any> = {
   ugc: Video,
-  influencer_paid: DollarSign,
+  influencer_paid: Coins,
   influencer_barter: Gift,
   video_shoot: Video,
   photo_shoot: Camera,

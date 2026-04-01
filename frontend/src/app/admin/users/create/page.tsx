@@ -42,8 +42,8 @@ function CreateUserContent() {
   // Canonical tier credits — matches SUBSCRIPTION_TIER_LIMITS in backend
   const TIER_CREDITS = {
     user: 125,        // Free: 5 profiles × 25 credits
-    standard: 8750,   // Standard: $199/month canonical
-    premium: 25000    // Premium: $499/month canonical
+    standard: 8750,   // Standard: د.إ199/month canonical
+    premium: 25000    // Premium: د.إ499/month canonical
   };
 
   const getTierCredits = (role: string): number => {
@@ -414,11 +414,11 @@ function CreateUserContent() {
                     <SelectValue placeholder="Select budget range" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="$0-$1000">$0-$1,000</SelectItem>
-                    <SelectItem value="$1000-$5000">$1,000-$5,000</SelectItem>
-                    <SelectItem value="$5000-$10000">$5,000-$10,000</SelectItem>
-                    <SelectItem value="$10000-$50000">$10,000-$50,000</SelectItem>
-                    <SelectItem value="$50000+">$50,000+</SelectItem>
+                    <SelectItem value="$0-$1000">د.إ0-1,000</SelectItem>
+                    <SelectItem value="$1000-$5000">د.إ1,000-5,000</SelectItem>
+                    <SelectItem value="$5000-$10000">د.إ5,000-10,000</SelectItem>
+                    <SelectItem value="$10000-$50000">د.إ10,000-50,000</SelectItem>
+                    <SelectItem value="$50000+">د.إ50,000+</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

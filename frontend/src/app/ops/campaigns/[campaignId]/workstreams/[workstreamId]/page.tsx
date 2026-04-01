@@ -65,7 +65,7 @@ import {
   Calendar,
   User,
   Link2,
-  DollarSign,
+  Coins,
   Activity,
   Filter,
   Download,
@@ -1008,7 +1008,7 @@ export default function WorkstreamDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <Alert>
-                    <DollarSign className="h-4 w-4" />
+                    <Coins className="h-4 w-4" />
                     <AlertDescription>
                       Internal-only financial tracking
                     </AlertDescription>

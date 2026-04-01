@@ -21,7 +21,7 @@ import {
   BarChart3,
   Activity,
   Clock,
-  DollarSign,
+  Coins,
   AlertCircle,
   RefreshCw,
   Download,
@@ -508,11 +508,11 @@ export function UserIntelligenceDashboard() {
                         <YAxis
                           stroke="hsl(var(--muted-foreground))"
                           fontSize={12}
-                          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                          tickFormatter={(value) => `د.إ${(value / 1000).toFixed(0)}k`}
                         />
                         <ChartTooltip
                           content={<ChartTooltipContent />}
-                          formatter={(value) => [`$${(value as number).toLocaleString()}`, 'Revenue']}
+                          formatter={(value) => [`د.إ${(value as number).toLocaleString()}`, 'Revenue']}
                         />
                         <Area
                           type="monotone"

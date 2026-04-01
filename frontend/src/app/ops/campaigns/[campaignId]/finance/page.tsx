@@ -43,7 +43,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import {
-  DollarSign,
+  Coins,
   CreditCard,
   TrendingUp,
   TrendingDown,
@@ -353,7 +353,7 @@ export default function FinancePage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StandardMetricCard icon={DollarSign} label="Total Creator Payouts" value={`${totalPayouts.toLocaleString()} AED`} subtitle={`${paidPayouts.toLocaleString()} paid · ${pendingPayouts.toLocaleString()} pending`} />
+        <StandardMetricCard icon={Coins} label="Total Creator Payouts" value={`${totalPayouts.toLocaleString()} AED`} subtitle={`${paidPayouts.toLocaleString()} paid · ${pendingPayouts.toLocaleString()} pending`} />
         <StandardMetricCard icon={Receipt} label="Client Payments" value={`${totalMilestones.toLocaleString()} AED`} subtitle={`${paidMilestones.toLocaleString()} received`} />
         <StandardMetricCard icon={Calculator} label="Campaign Margin" value={`${((totalMilestones - totalPayouts) / totalMilestones * 100).toFixed(1)}%`} subtitle={`${(totalMilestones - totalPayouts).toLocaleString()} AED profit`} />
       </div>

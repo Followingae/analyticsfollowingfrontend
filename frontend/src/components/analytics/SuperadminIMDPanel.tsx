@@ -13,7 +13,7 @@ import {
 import {
   ChevronDown,
   ChevronUp,
-  DollarSign,
+  Coins,
   Edit,
   Shield,
   Tag,
@@ -119,7 +119,7 @@ export function SuperadminIMDPanel({ influencer, onUpdated }: SuperadminIMDPanel
               {hasPricing ? (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Coins className="h-3.5 w-3.5 text-muted-foreground" />
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       Pricing per Deliverable
                     </h4>
@@ -164,7 +164,7 @@ export function SuperadminIMDPanel({ influencer, onUpdated }: SuperadminIMDPanel
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                  <DollarSign className="h-3.5 w-3.5" />
+                  <Coins className="h-3.5 w-3.5" />
                   No pricing set.
                   <Button
                     variant="link"

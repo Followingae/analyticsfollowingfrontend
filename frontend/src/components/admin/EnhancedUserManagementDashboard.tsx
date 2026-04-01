@@ -621,8 +621,8 @@ const EnhancedUserManagementDashboard: React.FC<EnhancedUserManagementDashboardP
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="free">Free Tier (5 profiles/month)</SelectItem>
-                        <SelectItem value="standard">Standard ($199/month - 500 profiles)</SelectItem>
-                        <SelectItem value="premium">Premium ($499/month - 2000 profiles)</SelectItem>
+                        <SelectItem value="standard">Standard (د.إ199/month - 500 profiles)</SelectItem>
+                        <SelectItem value="premium">Premium (د.إ499/month - 2000 profiles)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

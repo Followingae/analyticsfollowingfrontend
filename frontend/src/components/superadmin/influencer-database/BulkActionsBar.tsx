@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Download, Tag, DollarSign } from "lucide-react"
+import { Download, Tag, Coins } from "lucide-react"
 
 interface BulkActionsBarProps {
   selectedCount: number
@@ -31,7 +31,7 @@ export function BulkActionsBar({
         Tag
       </Button>
       <Button variant="ghost" size="sm" onClick={onPricing}>
-        <DollarSign className="size-4" />
+        <Coins className="size-4" />
         Update Pricing
       </Button>
     </div>

@@ -9,7 +9,7 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  DollarSign,
+  Coins,
   Target,
   Activity,
   Award,
@@ -103,7 +103,7 @@ export function CampaignAnalyticsView({ campaign, stage }: CampaignAnalyticsView
   const formatCurrency = (num: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "AED",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(num);
@@ -172,7 +172,7 @@ export function CampaignAnalyticsView({ campaign, stage }: CampaignAnalyticsView
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-2 bg-purple-100 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-purple-600" />
+                  <Coins className="h-5 w-5 text-purple-600" />
                 </div>
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                   <ArrowUp className="mr-1 h-3 w-3" />
@@ -467,7 +467,7 @@ export function CampaignAnalyticsView({ campaign, stage }: CampaignAnalyticsView
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold">$70</div>
+                  <div className="text-2xl font-bold">د.إ70</div>
                   <div className="text-xs text-muted-foreground">Avg. Order Value</div>
                 </CardContent>
               </Card>

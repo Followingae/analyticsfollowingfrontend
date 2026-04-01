@@ -34,8 +34,8 @@ export interface DashboardOverview {
     new_registrations_this_week: number
   }
   revenue_analytics: {
-    total_revenue_usd_cents: number
-    monthly_revenue_usd_cents: number
+    total_revenue_aed_cents: number
+    monthly_revenue_aed_cents: number
     monthly_growth_percent: number
     active_wallets: number
   }
@@ -1208,9 +1208,9 @@ export class SuperadminApiService {
       engagement_rate?: number
       has_database_pricing: boolean
       pricing?: {
-        story_price_usd_cents?: number
-        post_price_usd_cents?: number
-        reel_price_usd_cents?: number
+        story_price_aed_cents?: number
+        post_price_aed_cents?: number
+        reel_price_aed_cents?: number
       }
     }>
     total_count: number

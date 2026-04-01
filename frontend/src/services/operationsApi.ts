@@ -34,7 +34,7 @@ import {
 } from '@/utils/operationsAccess';
 
 // Mock data flag for development
-const USE_MOCK_DATA = true; // Set to false when backend is ready
+const USE_MOCK_DATA = false; // Backend ops routes now live
 
 class OperationsApiService {
   private baseUrl = '/api/v1/operations';

@@ -67,7 +67,7 @@ const PLANS: PlanDetails[] = [
   {
     id: 'free',
     name: 'Starter',
-    price: '$0',
+    price: 'د.إ0',
     priceMonthly: 0,
     description: 'For individuals getting started',
     credits: '5 profiles',
@@ -82,7 +82,7 @@ const PLANS: PlanDetails[] = [
   {
     id: 'standard',
     name: 'Professional',
-    price: '$199',
+    price: 'د.إ199',
     priceMonthly: 199,
     description: 'For growing businesses',
     credits: '500 profiles',
@@ -101,7 +101,7 @@ const PLANS: PlanDetails[] = [
   {
     id: 'premium',
     name: 'Business',
-    price: '$499',
+    price: 'د.إ499',
     priceMonthly: 499,
     description: 'For teams and agencies',
     credits: '2,000 profiles',

@@ -36,7 +36,7 @@ import {
   MessageCircle,
   Play,
   BarChart3,
-  DollarSign,
+  Coins,
 } from "lucide-react"
 import { getTierConfig, formatCount, formatCurrency, proposalMotion } from "./proposal-utils"
 import { motion, AnimatePresence } from "motion/react"
@@ -187,7 +187,7 @@ export function InfluencerDetailSheet({
                   Analytics
                 </TabsTrigger>
                 <TabsTrigger value="pricing" className="flex-1">
-                  <DollarSign className="h-3.5 w-3.5 mr-1.5" />
+                  <Coins className="h-3.5 w-3.5 mr-1.5" />
                   Pricing
                 </TabsTrigger>
               </TabsList>
@@ -361,7 +361,7 @@ export function InfluencerDetailSheet({
                     <EmptyState
                       title="No pricing available"
                       description={showPricing ? "No pricing information available for this influencer" : "Pricing is hidden for this proposal"}
-                      icons={[DollarSign]}
+                      icons={[Coins]}
                     />
                   )}
                 </TabsContent>

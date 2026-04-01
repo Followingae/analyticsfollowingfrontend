@@ -20,7 +20,7 @@ import {
   Shield,
   BarChart3,
   Users,
-  DollarSign,
+  Coins,
   Database,
   Briefcase,
   FileText,
@@ -29,6 +29,7 @@ import {
   Megaphone,
   ClipboardCheck,
   Banknote,
+  Building2,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -70,6 +71,11 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
 
   const managementItems = [
     {
+      title: "Clients",
+      url: "/superadmin/clients",
+      icon: Building2,
+    },
+    {
       title: "Users",
       url: "/admin/users",
       icon: Users,
@@ -77,7 +83,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     {
       title: "Billing",
       url: "/admin/billing",
-      icon: DollarSign,
+      icon: Coins,
     },
     {
       title: "HRM",

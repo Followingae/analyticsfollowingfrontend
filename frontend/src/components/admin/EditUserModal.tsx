@@ -30,7 +30,7 @@ import {
   RefreshCw,
   User,
   Shield,
-  DollarSign,
+  Coins,
   Database,
   Plus,
   Minus
@@ -351,7 +351,7 @@ export default function EditUserModal({ userId, user: initialUser, onClose, onSu
                   Permissions
                 </TabsTrigger>
                 <TabsTrigger value="subscription">
-                  <DollarSign className="h-4 w-4 mr-2" />
+                  <Coins className="h-4 w-4 mr-2" />
                   Subscription
                 </TabsTrigger>
                 <TabsTrigger value="metadata">
@@ -542,8 +542,8 @@ export default function EditUserModal({ userId, user: initialUser, onClose, onSu
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="free">Free Plan</SelectItem>
-                          <SelectItem value="standard">Standard ($199/mo)</SelectItem>
-                          <SelectItem value="premium">Premium ($499/mo)</SelectItem>
+                          <SelectItem value="standard">Standard (د.إ199/mo)</SelectItem>
+                          <SelectItem value="premium">Premium (د.إ499/mo)</SelectItem>
                           <SelectItem value="enterprise">Enterprise (Custom)</SelectItem>
                         </SelectContent>
                       </Select>

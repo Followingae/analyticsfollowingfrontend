@@ -36,25 +36,25 @@ export type ExportFormat = 'csv' | 'json'
 // ─── Cost Pricing (what we pay the influencer — INTERNAL) ──────────────
 
 export interface CostPricing {
-  cost_post_usd_cents: number | null
-  cost_story_usd_cents: number | null
-  cost_reel_usd_cents: number | null
-  cost_carousel_usd_cents: number | null
-  cost_video_usd_cents: number | null
-  cost_bundle_usd_cents: number | null
-  cost_monthly_usd_cents: number | null
+  cost_post_aed_cents: number | null
+  cost_story_aed_cents: number | null
+  cost_reel_aed_cents: number | null
+  cost_carousel_aed_cents: number | null
+  cost_video_aed_cents: number | null
+  cost_bundle_aed_cents: number | null
+  cost_monthly_aed_cents: number | null
 }
 
 // ─── Sell Pricing (what we charge brands — shown to clients) ───────────
 
 export interface SellPricing {
-  sell_post_usd_cents: number | null
-  sell_story_usd_cents: number | null
-  sell_reel_usd_cents: number | null
-  sell_carousel_usd_cents: number | null
-  sell_video_usd_cents: number | null
-  sell_bundle_usd_cents: number | null
-  sell_monthly_usd_cents: number | null
+  sell_post_aed_cents: number | null
+  sell_story_aed_cents: number | null
+  sell_reel_aed_cents: number | null
+  sell_carousel_aed_cents: number | null
+  sell_video_aed_cents: number | null
+  sell_bundle_aed_cents: number | null
+  sell_monthly_aed_cents: number | null
 }
 
 // ─── Master Influencer (unified type) ─────────────────────────────────
@@ -81,21 +81,21 @@ export interface MasterInfluencer {
   avg_views: number
 
   // Pricing (flat fields from backend)
-  cost_post_usd_cents: number | null
-  cost_story_usd_cents: number | null
-  cost_reel_usd_cents: number | null
-  cost_carousel_usd_cents: number | null
-  cost_video_usd_cents: number | null
-  cost_bundle_usd_cents: number | null
-  cost_monthly_usd_cents: number | null
+  cost_post_aed_cents: number | null
+  cost_story_aed_cents: number | null
+  cost_reel_aed_cents: number | null
+  cost_carousel_aed_cents: number | null
+  cost_video_aed_cents: number | null
+  cost_bundle_aed_cents: number | null
+  cost_monthly_aed_cents: number | null
 
-  sell_post_usd_cents: number | null
-  sell_story_usd_cents: number | null
-  sell_reel_usd_cents: number | null
-  sell_carousel_usd_cents: number | null
-  sell_video_usd_cents: number | null
-  sell_bundle_usd_cents: number | null
-  sell_monthly_usd_cents: number | null
+  sell_post_aed_cents: number | null
+  sell_story_aed_cents: number | null
+  sell_reel_aed_cents: number | null
+  sell_carousel_aed_cents: number | null
+  sell_video_aed_cents: number | null
+  sell_bundle_aed_cents: number | null
+  sell_monthly_aed_cents: number | null
 
   // Auto pricing settings
   auto_calculate_sell: boolean
@@ -134,13 +134,13 @@ export interface DeliverableField {
 }
 
 export const DELIVERABLES: DeliverableField[] = [
-  { label: 'IG Post', costKey: 'cost_post_usd_cents', sellKey: 'sell_post_usd_cents' },
-  { label: 'IG Story', costKey: 'cost_story_usd_cents', sellKey: 'sell_story_usd_cents' },
-  { label: 'IG Reel', costKey: 'cost_reel_usd_cents', sellKey: 'sell_reel_usd_cents' },
-  { label: 'IG Carousel', costKey: 'cost_carousel_usd_cents', sellKey: 'sell_carousel_usd_cents' },
-  { label: 'Video', costKey: 'cost_video_usd_cents', sellKey: 'sell_video_usd_cents' },
-  { label: 'Bundle', costKey: 'cost_bundle_usd_cents', sellKey: 'sell_bundle_usd_cents' },
-  { label: 'Monthly', costKey: 'cost_monthly_usd_cents', sellKey: 'sell_monthly_usd_cents' },
+  { label: 'IG Post', costKey: 'cost_post_aed_cents', sellKey: 'sell_post_aed_cents' },
+  { label: 'IG Story', costKey: 'cost_story_aed_cents', sellKey: 'sell_story_aed_cents' },
+  { label: 'IG Reel', costKey: 'cost_reel_aed_cents', sellKey: 'sell_reel_aed_cents' },
+  { label: 'IG Carousel', costKey: 'cost_carousel_aed_cents', sellKey: 'sell_carousel_aed_cents' },
+  { label: 'Video', costKey: 'cost_video_aed_cents', sellKey: 'sell_video_aed_cents' },
+  { label: 'Bundle', costKey: 'cost_bundle_aed_cents', sellKey: 'sell_bundle_aed_cents' },
+  { label: 'Monthly', costKey: 'cost_monthly_aed_cents', sellKey: 'sell_monthly_aed_cents' },
 ]
 
 // ─── Table Column Definitions ─────────────────────────────────────────
@@ -382,13 +382,13 @@ export const DURATION_OPTIONS: { label: string; value: ShareDuration }[] = [
 
 // ─── Utility Functions ────────────────────────────────────────────────
 
-/** Format USD cents to dollar string */
+/** Format AED cents (fils) to dirham string */
 export function formatCents(cents: number | null): string {
   if (cents === null || cents === undefined) return '—'
-  return `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  return `د.إ${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
-/** Parse dollar string to cents */
+/** Parse currency string to cents (fils) */
 export function parseToCents(dollarString: string): number | null {
   const num = parseFloat(dollarString.replace(/[^0-9.]/g, ''))
   if (isNaN(num)) return null
@@ -419,51 +419,51 @@ export function getEngagementColor(rate: number): string {
 /** Get default empty cost pricing */
 export function getEmptyCostPricing(): CostPricing {
   return {
-    cost_post_usd_cents: null,
-    cost_story_usd_cents: null,
-    cost_reel_usd_cents: null,
-    cost_carousel_usd_cents: null,
-    cost_video_usd_cents: null,
-    cost_bundle_usd_cents: null,
-    cost_monthly_usd_cents: null,
+    cost_post_aed_cents: null,
+    cost_story_aed_cents: null,
+    cost_reel_aed_cents: null,
+    cost_carousel_aed_cents: null,
+    cost_video_aed_cents: null,
+    cost_bundle_aed_cents: null,
+    cost_monthly_aed_cents: null,
   }
 }
 
 /** Get default empty sell pricing */
 export function getEmptySellPricing(): SellPricing {
   return {
-    sell_post_usd_cents: null,
-    sell_story_usd_cents: null,
-    sell_reel_usd_cents: null,
-    sell_carousel_usd_cents: null,
-    sell_video_usd_cents: null,
-    sell_bundle_usd_cents: null,
-    sell_monthly_usd_cents: null,
+    sell_post_aed_cents: null,
+    sell_story_aed_cents: null,
+    sell_reel_aed_cents: null,
+    sell_carousel_aed_cents: null,
+    sell_video_aed_cents: null,
+    sell_bundle_aed_cents: null,
+    sell_monthly_aed_cents: null,
   }
 }
 
 /** Extract cost pricing fields from a flat influencer record */
 export function extractCostPricing(inf: MasterInfluencer): CostPricing {
   return {
-    cost_post_usd_cents: inf.cost_post_usd_cents,
-    cost_story_usd_cents: inf.cost_story_usd_cents,
-    cost_reel_usd_cents: inf.cost_reel_usd_cents,
-    cost_carousel_usd_cents: inf.cost_carousel_usd_cents,
-    cost_video_usd_cents: inf.cost_video_usd_cents,
-    cost_bundle_usd_cents: inf.cost_bundle_usd_cents,
-    cost_monthly_usd_cents: inf.cost_monthly_usd_cents,
+    cost_post_aed_cents: inf.cost_post_aed_cents,
+    cost_story_aed_cents: inf.cost_story_aed_cents,
+    cost_reel_aed_cents: inf.cost_reel_aed_cents,
+    cost_carousel_aed_cents: inf.cost_carousel_aed_cents,
+    cost_video_aed_cents: inf.cost_video_aed_cents,
+    cost_bundle_aed_cents: inf.cost_bundle_aed_cents,
+    cost_monthly_aed_cents: inf.cost_monthly_aed_cents,
   }
 }
 
 /** Extract sell pricing fields from a flat influencer record */
 export function extractSellPricing(inf: MasterInfluencer): SellPricing {
   return {
-    sell_post_usd_cents: inf.sell_post_usd_cents,
-    sell_story_usd_cents: inf.sell_story_usd_cents,
-    sell_reel_usd_cents: inf.sell_reel_usd_cents,
-    sell_carousel_usd_cents: inf.sell_carousel_usd_cents,
-    sell_video_usd_cents: inf.sell_video_usd_cents,
-    sell_bundle_usd_cents: inf.sell_bundle_usd_cents,
-    sell_monthly_usd_cents: inf.sell_monthly_usd_cents,
+    sell_post_aed_cents: inf.sell_post_aed_cents,
+    sell_story_aed_cents: inf.sell_story_aed_cents,
+    sell_reel_aed_cents: inf.sell_reel_aed_cents,
+    sell_carousel_aed_cents: inf.sell_carousel_aed_cents,
+    sell_video_aed_cents: inf.sell_video_aed_cents,
+    sell_bundle_aed_cents: inf.sell_bundle_aed_cents,
+    sell_monthly_aed_cents: inf.sell_monthly_aed_cents,
   }
 }

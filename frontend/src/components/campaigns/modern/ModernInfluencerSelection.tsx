@@ -9,7 +9,7 @@ import {
   Eye,
   Star,
   MapPin,
-  DollarSign,
+  Coins,
   Check,
   X,
   ChevronRight,
@@ -55,7 +55,7 @@ export function ModernInfluencerSelection({ campaign, stage }: ModernInfluencerS
       category: "Lifestyle",
       location: "Los Angeles, CA",
       verified: true,
-      rate: "$800-1200",
+      rate: "د.إ800-1200",
       avgLikes: 5200,
       avgComments: 180,
       audienceMatch: 92,
@@ -73,7 +73,7 @@ export function ModernInfluencerSelection({ campaign, stage }: ModernInfluencerS
       category: "Technology",
       location: "San Francisco, CA",
       verified: false,
-      rate: "$600-900",
+      rate: "د.إ600-900",
       avgLikes: 4100,
       avgComments: 320,
       audienceMatch: 85,
@@ -91,7 +91,7 @@ export function ModernInfluencerSelection({ campaign, stage }: ModernInfluencerS
       category: "Fashion",
       location: "New York, NY",
       verified: true,
-      rate: "$1200-1800",
+      rate: "د.إ1200-1800",
       avgLikes: 8400,
       avgComments: 280,
       audienceMatch: 88,
@@ -109,7 +109,7 @@ export function ModernInfluencerSelection({ campaign, stage }: ModernInfluencerS
       category: "Fitness",
       location: "Miami, FL",
       verified: true,
-      rate: "$900-1400",
+      rate: "د.إ900-1400",
       avgLikes: 6200,
       avgComments: 410,
       audienceMatch: 78,
@@ -161,7 +161,7 @@ export function ModernInfluencerSelection({ campaign, stage }: ModernInfluencerS
               <div className="text-sm text-muted-foreground">Avg. Engagement</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold">$8.5K</div>
+              <div className="text-3xl font-bold">د.إ8.5K</div>
               <div className="text-sm text-muted-foreground">Est. Budget</div>
             </div>
           </div>
@@ -302,7 +302,7 @@ export function ModernInfluencerSelection({ campaign, stage }: ModernInfluencerS
                             {formatNumber(influencer.avgComments)} avg. comments
                           </span>
                           <span className="flex items-center gap-1">
-                            <DollarSign className="h-3 w-3 text-green-600" />
+                            <Coins className="h-3 w-3 text-green-600" />
                             {influencer.rate}
                           </span>
                         </div>

@@ -92,7 +92,7 @@ export function formatCount(n?: number): string {
 
 export function formatCurrency(amount?: number | null): string {
   if (!amount) return "-"
-  return "$" + amount.toLocaleString("en-US", { minimumFractionDigits: 0 })
+  return "د.إ" + amount.toLocaleString("en-US", { minimumFractionDigits: 0 })
 }
 
 // ---------------------------------------------------------------------------

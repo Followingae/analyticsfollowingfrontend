@@ -148,16 +148,16 @@ export default function PricingPage() {
     if (!t) return '--'
 
     if (annual && t.pricing.annual) {
-      return `$${t.pricing.annual.monthly_equivalent}`
+      return `د.إ${t.pricing.annual.monthly_equivalent}`
     }
-    return `$${t.pricing.monthly?.amount ?? 0}`
+    return `د.إ${t.pricing.monthly?.amount ?? 0}`
   }
 
   const annualTotal = (tier: string): string | null => {
     if (!annual || !pricing) return null
     const t = pricing.pricing[tier]
     if (!t?.pricing.annual) return null
-    return `$${t.pricing.annual.amount.toLocaleString()} billed annually`
+    return `د.إ${t.pricing.annual.amount.toLocaleString()} billed annually`
   }
 
   const savings = (tier: string): number | null => {

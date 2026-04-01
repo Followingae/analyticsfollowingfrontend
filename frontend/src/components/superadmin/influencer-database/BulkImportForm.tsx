@@ -19,7 +19,7 @@ import {
   AlertCircle,
   Info,
   Users,
-  DollarSign,
+  Coins,
 } from "lucide-react"
 import { PostImportPricingStep } from "./PostImportPricingStep"
 
@@ -312,7 +312,7 @@ export function BulkImportForm() {
               className="flex-1 gap-2"
               onClick={() => setShowPricingStep(true)}
             >
-              <DollarSign className="h-4 w-4" />
+              <Coins className="h-4 w-4" />
               Set Pricing for {result.added.length} Imported Creator{result.added.length !== 1 ? "s" : ""}
             </Button>
           )}

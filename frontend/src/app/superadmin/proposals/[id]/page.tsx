@@ -48,7 +48,7 @@ import {
   MoreHorizontal,
   Trash2,
   Clock,
-  DollarSign,
+  Coins,
   Users,
   TrendingUp,
   Loader2,
@@ -314,10 +314,10 @@ export default function ProposalDetailPage() {
               className="grid grid-cols-2 md:grid-cols-4 gap-4"
             >
               <motion.div variants={proposalMotion.staggerItem}>
-                <StandardMetricCard icon={DollarSign} label="Total Sell" value={formatCurrency(financials.total_sell)} />
+                <StandardMetricCard icon={Coins} label="Total Sell" value={formatCurrency(financials.total_sell)} />
               </motion.div>
               <motion.div variants={proposalMotion.staggerItem}>
-                <StandardMetricCard icon={DollarSign} label="Total Cost" value={formatCurrency(financials.total_cost)} />
+                <StandardMetricCard icon={Coins} label="Total Cost" value={formatCurrency(financials.total_cost)} />
               </motion.div>
               <motion.div variants={proposalMotion.staggerItem}>
                 <StandardMetricCard icon={TrendingUp} label="Margin %" value={`${financials.margin_percentage?.toFixed(1) ?? "0.0"}%`} />

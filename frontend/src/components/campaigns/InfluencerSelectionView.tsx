@@ -341,7 +341,7 @@ export function InfluencerSelectionView({
                   className="h-1.5"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Budget: $25K ({((campaignImpact.totalCost / 25000) * 100).toFixed(0)}%)
+                  Budget: د.إ25K ({((campaignImpact.totalCost / 25000) * 100).toFixed(0)}%)
                 </p>
               </div>
 
@@ -349,12 +349,12 @@ export function InfluencerSelectionView({
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-medium">Cost per 1K Reach</p>
                   <p className="text-sm font-semibold">
-                    ${campaignImpact.totalReach > 0
+                    د.إ{campaignImpact.totalReach > 0
                       ? ((campaignImpact.totalCost / campaignImpact.totalReach) * 1000).toFixed(2)
                       : "0.00"}
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground">Industry avg: $7.50</p>
+                <p className="text-xs text-muted-foreground">Industry avg: د.إ7.50</p>
               </div>
             </div>
 

@@ -8,7 +8,7 @@ import { MetricCard } from "@/components/analytics-cards";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import {
   Users,
-  DollarSign,
+  Coins,
   Briefcase,
   BarChart3,
   TrendingUp,
@@ -99,8 +99,8 @@ export default function SuperadminDashboard() {
     {
       label: 'Billing & Revenue',
       path: '/superadmin/billing',
-      icon: DollarSign,
-      metric: `$${((stats?.revenue?.total_mrr || 0) / 1000).toFixed(1)}k`,
+      icon: Coins,
+      metric: `د.إ${((stats?.revenue?.total_mrr || 0) / 1000).toFixed(1)}k`,
       subMetric: `Monthly recurring revenue`,
       description: 'Track payments and subscriptions'
     },
@@ -205,7 +205,7 @@ export default function SuperadminDashboard() {
 
             <MetricCard
               title="Monthly Revenue"
-              value={`$${(stats.revenue?.total_mrr || 0).toLocaleString()}`}
+              value={`د.إ${(stats.revenue?.total_mrr || 0).toLocaleString()}`}
               icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
             />
 
