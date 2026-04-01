@@ -119,6 +119,8 @@ export const brandPoolApi = {
   topupPackages: () => get('/api/v1/pool/topup/packages'),
   createTopupSession: (data: { package_id: string; success_url?: string; cancel_url?: string }) =>
     post('/api/v1/pool/topup/create-session', data),
+  createCustomTopupSession: (data: { amount_aed: number; success_url?: string; cancel_url?: string }) =>
+    post('/api/v1/pool/topup/custom-session', data),
   campaigns: () => get('/api/v1/pool/campaigns'),
 }
 

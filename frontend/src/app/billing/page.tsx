@@ -977,7 +977,7 @@ function CashbackPoolTab() {
       {/* Top Up Button */}
       <div className="flex justify-end">
         <Button
-          onClick={() => toast.info('Top-up functionality coming soon')}
+          onClick={() => window.location.href = '/cashback-pool/topup'}
           className="flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
