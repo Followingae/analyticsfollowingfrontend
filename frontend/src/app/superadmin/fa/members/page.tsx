@@ -38,6 +38,7 @@ import {
   BarChart3,
   CalendarDays,
   ExternalLink,
+  Trash2,
 } from "lucide-react"
 import { faMemberApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
@@ -154,6 +155,7 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
   const [analyzing, setAnalyzing] = useState(false)
   const [rejectMode, setRejectMode] = useState(false)
   const [rejectReason, setRejectReason] = useState("")
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
 
   const analytics = member.analytics
   const approvalStatus = member.is_approved === 1 ? "approved" : member.is_approved === 2 ? "rejected" : "pending"
@@ -194,6 +196,20 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
       toast.error("Failed to reject")
     } finally {
       setActing(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setActing(true)
+    try {
+      await faMemberApi.deletePermanently(member.id)
+      toast.success(`${member.full_name} permanently deleted`)
+      onAction()
+    } catch {
+      toast.error("Failed to delete member")
+    } finally {
+      setActing(false)
+      setDeleteConfirm(false)
     }
   }
 
@@ -284,10 +300,42 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
                   </Button>
                 </>
               )}
-              {approvalStatus === "approved" && (
-                <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-300">
-                  <ShieldCheck className="h-3 w-3 mr-1" />Approved
-                </Badge>
+              {approvalStatus === "approved" && !deleteConfirm && (
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-300">
+                    <ShieldCheck className="h-3 w-3 mr-1" />Approved
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setDeleteConfirm(true)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 px-2"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+              {approvalStatus === "approved" && deleteConfirm && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-600 font-medium">Permanently delete?</span>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={acting}
+                    className="h-7 px-2 text-xs"
+                  >
+                    {acting ? "Deleting..." : "Yes, Delete"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setDeleteConfirm(false)}
+                    className="h-7 px-2 text-xs"
+                  >
+                    Cancel
+                  </Button>
+                </div>
               )}
               {approvalStatus === "rejected" && (
                 <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-red-300">
