@@ -76,6 +76,8 @@ interface FAMember {
   followers_range: string
   engagement_rate: number
   engagement_range: string
+  posts_count: number
+  following_count: number
   content_niche: string[]
   tier: string
   verified: boolean
@@ -389,11 +391,11 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
             </div>
             <div className="bg-muted/50 rounded-lg px-3 py-2.5">
               <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Posts</p>
-              <p className="text-lg font-bold mt-0.5">{formatNumber(analytics?.posts_count)}</p>
+              <p className="text-lg font-bold mt-0.5">{formatNumber(member.posts_count || analytics?.posts_count)}</p>
             </div>
             <div className="bg-muted/50 rounded-lg px-3 py-2.5">
               <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Following</p>
-              <p className="text-lg font-bold mt-0.5">{formatNumber(analytics?.following_count)}</p>
+              <p className="text-lg font-bold mt-0.5">{formatNumber(member.following_count || analytics?.following_count)}</p>
             </div>
           </div>
 
@@ -464,30 +466,9 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-dashed border-muted-foreground/20">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Brain className="h-4 w-4" />
-                <span>Analytics pending — no AI analysis data available yet</span>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleRunAnalytics}
-                disabled={analyzing}
-                className="shrink-0"
-              >
-                {analyzing ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                    Running...
-                  </>
-                ) : (
-                  <>
-                    <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-                    Run Analytics
-                  </>
-                )}
-              </Button>
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-dashed border-muted-foreground/20">
+              <Loader2 className="h-4 w-4 text-muted-foreground animate-spin shrink-0" />
+              <span className="text-sm text-muted-foreground">Creator analytics processing — data will appear automatically once complete</span>
             </div>
           )}
 
