@@ -27,6 +27,11 @@ import {
   FileUp,
   Copy,
   Loader2,
+  Calendar,
+  Clock,
+  Hash,
+  AlertCircle,
+  Save,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -40,6 +45,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -201,6 +212,35 @@ interface CampaignStats {
   collaborationPosts?: number; // Number of collaboration posts
 }
 
+interface CampaignCreatorDetail {
+  campaign_creator_id: string;
+  profile_id: string;
+  username: string;
+  full_name: string;
+  profile_pic_url: string | null;
+  added_at: string;
+  followers_count: number;
+  following_count?: number;
+  posts_count: number;
+  is_verified?: boolean;
+  posts_in_campaign: number;
+  total_likes: number;
+  total_comments: number;
+  avg_engagement_rate: number;
+  ai_primary_content_type?: string;
+  ai_top_3_categories?: string[];
+  ai_content_quality_score?: number;
+  // Paid campaign fields
+  ethnicity?: string | null;
+  visit_date?: string | null;
+  visit_time?: string | null;
+  ticket_serial?: string | null;
+  influencer_status?: string;
+  cancellation_reason?: string | null;
+  foc_products?: any[] | null;
+  audience_demographics?: any;
+}
+
 interface AIInsights {
   total_posts: number;
   ai_analyzed_posts: number;
@@ -320,6 +360,27 @@ export default function CampaignDetailsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+
+  // Campaign creators state
+  const [campaignCreators, setCampaignCreators] = useState<CampaignCreatorDetail[]>([]);
+  const [isLoadingCreators, setIsLoadingCreators] = useState(false);
+  const [editingCreatorId, setEditingCreatorId] = useState<string | null>(null);
+  const [creatorEditForm, setCreatorEditForm] = useState<{
+    ethnicity: string;
+    visit_date: string;
+    visit_time: string;
+    ticket_serial: string;
+    influencer_status: string;
+    cancellation_reason: string;
+  }>({
+    ethnicity: "",
+    visit_date: "",
+    visit_time: "",
+    ticket_serial: "",
+    influencer_status: "active",
+    cancellation_reason: "",
+  });
+  const [isSavingCreator, setIsSavingCreator] = useState(false);
 
   // Add post state (enhanced for batch upload)
   const [isAddPostDialogOpen, setIsAddPostDialogOpen] = useState(false);
@@ -852,6 +913,104 @@ export default function CampaignDetailsPage() {
   const getTopCountry = () => {
     if (!audience?.topCountry) return { name: "N/A", isLoading: !audience };
     return { name: audience.topCountry.name, isLoading: false };
+  };
+
+  const fetchCampaignCreators = async () => {
+    setIsLoadingCreators(true);
+    try {
+      const { API_CONFIG } = await import("@/config/api");
+      const { tokenManager } = await import("@/utils/tokenManager");
+      const tokenResult = await tokenManager.getValidTokenWithRefresh();
+      if (!tokenResult.isValid || !tokenResult.token) return;
+
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/creators`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenResult.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const creatorsList = data.data?.creators || [];
+        setCampaignCreators(creatorsList);
+      }
+    } catch (error) {
+      // Silent fail
+    } finally {
+      setIsLoadingCreators(false);
+    }
+  };
+
+  const openCreatorEditDialog = (creator: CampaignCreatorDetail) => {
+    setEditingCreatorId(creator.campaign_creator_id);
+    setCreatorEditForm({
+      ethnicity: creator.ethnicity || "",
+      visit_date: creator.visit_date || "",
+      visit_time: creator.visit_time || "",
+      ticket_serial: creator.ticket_serial || "",
+      influencer_status: creator.influencer_status || "active",
+      cancellation_reason: creator.cancellation_reason || "",
+    });
+  };
+
+  const saveCreatorDetails = async () => {
+    if (!editingCreatorId) return;
+    setIsSavingCreator(true);
+    try {
+      const { API_CONFIG } = await import("@/config/api");
+      const { tokenManager } = await import("@/utils/tokenManager");
+      const tokenResult = await tokenManager.getValidTokenWithRefresh();
+      if (!tokenResult.isValid || !tokenResult.token) return;
+
+      const payload: Record<string, any> = {};
+      if (creatorEditForm.ethnicity) payload.ethnicity = creatorEditForm.ethnicity;
+      if (creatorEditForm.visit_date) payload.visit_date = creatorEditForm.visit_date;
+      if (creatorEditForm.visit_time) payload.visit_time = creatorEditForm.visit_time;
+      if (creatorEditForm.ticket_serial) payload.ticket_serial = creatorEditForm.ticket_serial;
+      payload.influencer_status = creatorEditForm.influencer_status;
+      if (creatorEditForm.cancellation_reason) payload.cancellation_reason = creatorEditForm.cancellation_reason;
+
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/creators/${editingCreatorId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${tokenResult.token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (response.ok) {
+        toast.success("Creator details updated");
+        setEditingCreatorId(null);
+        fetchCampaignCreators();
+      } else {
+        const err = await response.json().catch(() => ({}));
+        toast.error(err.detail || "Failed to update creator");
+      }
+    } catch (error) {
+      toast.error("Failed to update creator details");
+    } finally {
+      setIsSavingCreator(false);
+    }
+  };
+
+  const getInfluencerStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { className: string; label: string }> = {
+      active: { className: "bg-green-900/50 text-green-300 border-green-700/50", label: "Active" },
+      cancelled: { className: "bg-red-900/50 text-red-300 border-red-700/50", label: "Cancelled" },
+      unresponsive: { className: "bg-yellow-900/50 text-yellow-300 border-yellow-700/50", label: "Unresponsive" },
+      no_show: { className: "bg-orange-900/50 text-orange-300 border-orange-700/50", label: "No Show" },
+      carried_forward: { className: "bg-blue-900/50 text-blue-300 border-blue-700/50", label: "Carried Forward" },
+    };
+    const config = statusConfig[status] || statusConfig.active;
+    return config;
   };
 
   const handleOpenEditDialog = () => {
@@ -1518,10 +1677,11 @@ export default function CampaignDetailsPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="stats" className="space-y-6">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+        <TabsList className="grid w-full max-w-3xl grid-cols-5">
           <TabsTrigger value="workflow">Workflow</TabsTrigger>
           <TabsTrigger value="stats">Analytics</TabsTrigger>
           <TabsTrigger value="audience">Audience</TabsTrigger>
+          <TabsTrigger value="creators" onClick={() => { if (campaignCreators.length === 0) fetchCampaignCreators(); }}>Creators</TabsTrigger>
           <TabsTrigger value="posts">Posts</TabsTrigger>
         </TabsList>
 
@@ -2105,6 +2265,251 @@ export default function CampaignDetailsPage() {
             </>
           )}
         </TabsContent>
+
+        {/* Creators Tab */}
+        <TabsContent value="creators" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Campaign Creators</h2>
+              <p className="text-muted-foreground">
+                {campaignCreators.length} creator{campaignCreators.length !== 1 ? "s" : ""} in this campaign
+              </p>
+            </div>
+          </div>
+
+          {isLoadingCreators ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
+                <p className="text-muted-foreground">Loading creators...</p>
+              </CardContent>
+            </Card>
+          ) : campaignCreators.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No creators yet</h3>
+                <p className="text-muted-foreground">
+                  Creators are automatically added when posts are tracked
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              <TooltipProvider>
+              {campaignCreators.map((creator) => {
+                const statusConfig = getInfluencerStatusBadge(creator.influencer_status || "active");
+                return (
+                  <Card key={creator.campaign_creator_id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        {/* Profile pic */}
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={creator.profile_pic_url || ""} />
+                          <AvatarFallback>
+                            {creator.username?.substring(0, 2).toUpperCase() || "CR"}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-semibold truncate">{creator.full_name || creator.username}</h4>
+                            <span className="text-sm text-muted-foreground">@{creator.username}</span>
+                          </div>
+
+                          {/* Metrics row */}
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mb-2">
+                            <span>{formatNumber(creator.followers_count)} followers</span>
+                            <span>{creator.posts_in_campaign} post{creator.posts_in_campaign !== 1 ? "s" : ""}</span>
+                            <span>{creator.avg_engagement_rate.toFixed(2)}% engagement</span>
+                          </div>
+
+                          {/* Enhanced fields row */}
+                          <div className="flex flex-wrap gap-2 items-center">
+                            {/* Status badge */}
+                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium border ${statusConfig.className}`}>
+                              {statusConfig.label}
+                            </span>
+
+                            {/* Ethnicity */}
+                            {creator.ethnicity && (
+                              <Badge variant="outline" className="text-xs">
+                                {creator.ethnicity}
+                              </Badge>
+                            )}
+
+                            {/* Visit date/time */}
+                            {creator.visit_date && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(creator.visit_date + "T00:00:00").toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            )}
+                            {creator.visit_time && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {creator.visit_time}
+                              </span>
+                            )}
+
+                            {/* Ticket serial */}
+                            {creator.ticket_serial && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                <Hash className="w-3 h-3" />
+                                {creator.ticket_serial}
+                              </span>
+                            )}
+
+                            {/* Cancellation reason tooltip */}
+                            {creator.influencer_status === "cancelled" && creator.cancellation_reason && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-xs text-red-400 flex items-center gap-1 cursor-help">
+                                    <AlertCircle className="w-3 h-3" />
+                                    Reason
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                  <p className="text-sm">{creator.cancellation_reason}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Edit button (superadmin only) */}
+                        {isSuperadmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openCreatorEditDialog(creator)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+              </TooltipProvider>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Creator Edit Dialog */}
+        <Dialog open={editingCreatorId !== null} onOpenChange={(open: boolean) => { if (!open) setEditingCreatorId(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Creator Details</DialogTitle>
+              <DialogDescription>
+                Update campaign-specific information for this creator
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="creator-ethnicity">Ethnicity</Label>
+                <Input
+                  id="creator-ethnicity"
+                  value={creatorEditForm.ethnicity}
+                  onChange={(e) => setCreatorEditForm((f) => ({ ...f, ethnicity: e.target.value }))}
+                  placeholder="e.g., Arab, South Asian, European"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="creator-visit-date">Visit Date</Label>
+                  <Input
+                    id="creator-visit-date"
+                    type="date"
+                    value={creatorEditForm.visit_date}
+                    onChange={(e) => setCreatorEditForm((f) => ({ ...f, visit_date: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="creator-visit-time">Visit Time</Label>
+                  <Input
+                    id="creator-visit-time"
+                    type="time"
+                    value={creatorEditForm.visit_time}
+                    onChange={(e) => setCreatorEditForm((f) => ({ ...f, visit_time: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="creator-ticket-serial">Ticket Serial</Label>
+                <Input
+                  id="creator-ticket-serial"
+                  value={creatorEditForm.ticket_serial}
+                  onChange={(e) => setCreatorEditForm((f) => ({ ...f, ticket_serial: e.target.value }))}
+                  placeholder="e.g., TKT-2026-001"
+                  className="font-mono"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="creator-status">Status</Label>
+                <Select
+                  value={creatorEditForm.influencer_status}
+                  onValueChange={(value: string) => setCreatorEditForm((f) => ({ ...f, influencer_status: value }))}
+                >
+                  <SelectTrigger id="creator-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="unresponsive">Unresponsive</SelectItem>
+                    <SelectItem value="no_show">No Show</SelectItem>
+                    <SelectItem value="carried_forward">Carried Forward</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {creatorEditForm.influencer_status === "cancelled" && (
+                <div className="space-y-2">
+                  <Label htmlFor="creator-cancel-reason">Cancellation Reason</Label>
+                  <Textarea
+                    id="creator-cancel-reason"
+                    value={creatorEditForm.cancellation_reason}
+                    onChange={(e) => setCreatorEditForm((f) => ({ ...f, cancellation_reason: e.target.value }))}
+                    placeholder="Reason for cancellation..."
+                    rows={3}
+                  />
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setEditingCreatorId(null)}
+                disabled={isSavingCreator}
+              >
+                Cancel
+              </Button>
+              <Button onClick={saveCreatorDetails} disabled={isSavingCreator}>
+                {isSavingCreator ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Posts Tab */}
         <TabsContent value="posts" className="space-y-4">

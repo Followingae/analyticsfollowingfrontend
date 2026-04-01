@@ -91,6 +91,7 @@ export default function ClientDetailPage() {
   const [scopeSummary, setScopeSummary] = useState<any>({});
   const [finance, setFinance] = useState<FinanceSummary | null>(null);
   const [ugcData, setUgcData] = useState<any>(null);
+  const [events, setEvents] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('scope');
@@ -125,6 +126,12 @@ export default function ClientDetailPage() {
       try {
         const res = await clientApi.getUgc(teamId);
         setUgcData(res.data);
+      } catch (err) { console.error(err); }
+    }
+    if (tab === 'barter' && events.length === 0) {
+      try {
+        const res = await clientApi.getEvents(teamId);
+        setEvents(res.data || []);
       } catch (err) { console.error(err); }
     }
     if (tab === 'activity' && activity.length === 0) {
@@ -232,16 +239,33 @@ export default function ClientDetailPage() {
               <h2 className="text-lg font-semibold">Project Scope</h2>
               <Badge variant="outline">{scope.length} projects</Badge>
             </div>
-            <Select value={scopeYear} onValueChange={setScopeYear}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="All Years" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Years</SelectItem>
-                <SelectItem value="2026">2026</SelectItem>
-                <SelectItem value="2025">2025</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={scopeYear} onValueChange={setScopeYear}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="All Years" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Years</SelectItem>
+                  <SelectItem value="2026">2026</SelectItem>
+                  <SelectItem value="2025">2025</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const token = localStorage.getItem('access_token');
+                  const yearParam = scopeYear ? `?year=${scopeYear}` : '';
+                  window.open(
+                    `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/admin/clients/${teamId}/export${yearParam}`,
+                    '_blank'
+                  );
+                }}
+              >
+                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                Export Excel
+              </Button>
+            </div>
           </div>
 
           {/* Summary Row */}
@@ -341,16 +365,77 @@ export default function ClientDetailPage() {
           </div>
         </TabsContent>
 
-        {/* PROPOSALS TAB — placeholder */}
+        {/* PROPOSALS TAB */}
         <TabsContent value="proposals" className="space-y-4">
-          <h2 className="text-lg font-semibold">Proposals</h2>
-          <p className="text-muted-foreground">Proposals sent to this client will appear here.</p>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Proposals</h2>
+            <Button variant="outline" size="sm" onClick={() => router.push('/superadmin/proposals/create')}>
+              Create Proposal
+            </Button>
+          </div>
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Users className="mx-auto h-10 w-10 text-muted-foreground/50" />
+              <p className="mt-3 text-muted-foreground">
+                View all proposals for this client at{' '}
+                <span
+                  className="text-primary cursor-pointer hover:underline"
+                  onClick={() => router.push('/superadmin/proposals')}
+                >
+                  Proposals Management
+                </span>
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        {/* BARTER & EVENTS TAB — placeholder */}
+        {/* BARTER & EVENTS TAB */}
         <TabsContent value="barter" className="space-y-4">
-          <h2 className="text-lg font-semibold">Barter & Events</h2>
-          <p className="text-muted-foreground">Event enrollments, barter tracking, and attendance will appear here once operations campaigns are linked.</p>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Barter & Events</h2>
+            <Badge variant="outline">{events.length} events</Badge>
+          </div>
+          {events.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Calendar className="mx-auto h-10 w-10 text-muted-foreground/50" />
+                <p className="mt-3 text-muted-foreground">No events yet. Create events from the Operations module.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <ScrollArea className="w-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Event</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Barter</TableHead>
+                      <TableHead className="text-right">Inventory</TableHead>
+                      <TableHead className="text-right">Allocated</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {events.map((e: any) => (
+                      <TableRow key={e.id}>
+                        <TableCell className="whitespace-nowrap">{e.date ? new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) : '-'}</TableCell>
+                        <TableCell className="font-medium">{e.name}</TableCell>
+                        <TableCell><Badge variant="secondary">{e.event_category || e.type || '-'}</Badge></TableCell>
+                        <TableCell>{e.event_genre || '-'}</TableCell>
+                        <TableCell>{statusBadge(e.status)}</TableCell>
+                        <TableCell><Badge variant="outline">{e.barter_type || '-'}</Badge></TableCell>
+                        <TableCell className="text-right">{e.barter_inventory || 0}</TableCell>
+                        <TableCell className="text-right">{e.barter_allocated || 0}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </Card>
+          )}
         </TabsContent>
 
         {/* UGC TAB */}

@@ -81,6 +81,12 @@ interface UGCModel {
   assigned_at?: string;
 }
 
+interface FOCProductRow {
+  product_name: string;
+  quantity: number;
+  link: string;
+}
+
 interface UGCConcept {
   id: string;
   campaign_id: string;
@@ -104,9 +110,11 @@ interface UGCConcept {
   model_photo?: string;
   model_instagram?: string;
   shoot_date?: string;
-  foc_products?: string[];
+  foc_products?: FOCProductRow[];
   month?: string;
   brand_feedback?: string;
+  props_required?: string;
+  shoot_type?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -129,8 +137,18 @@ interface UGCVideo {
   learnings?: string;
   concept_name?: string;
   concept_number?: number;
+  budget_consumed?: number;
+  requested_dimensions?: string[];
   created_at?: string;
   updated_at?: string;
+}
+
+interface BudgetSummary {
+  total_budget: number;
+  total_consumed: number;
+  video_count: number;
+  avg_per_video: number;
+  remaining: number;
 }
 
 interface UGCStats {
@@ -261,7 +279,14 @@ export default function UGCCampaignPage() {
     shoot_date: "",
     month: "",
     status: "draft",
+    props_required: "",
+    shoot_type: "",
   });
+
+  // FOC Products rows state
+  const [focProductRows, setFocProductRows] = useState<FOCProductRow[]>([
+    { product_name: "", quantity: 1, link: "" },
+  ]);
 
   // Video form state
   const [videoForm, setVideoForm] = useState({
@@ -270,7 +295,12 @@ export default function UGCCampaignPage() {
     concept_id: "",
     dimension: "",
     duration_seconds: "",
+    budget_consumed: "",
+    requested_dimensions: [] as string[],
   });
+
+  // Budget summary state
+  const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
 
   // Feedback state
   const [feedbackText, setFeedbackText] = useState("");
@@ -391,6 +421,20 @@ export default function UGCCampaignPage() {
     [campaignId]
   );
 
+  const fetchBudgetSummary = useCallback(async () => {
+    try {
+      const response = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/ugc/budget-summary`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setBudgetSummary(data.data || null);
+      }
+    } catch (error) {
+      // Silent fail — budget summary is optional
+    }
+  }, [campaignId]);
+
   // =========================================================================
   // EFFECTS
   // =========================================================================
@@ -412,7 +456,8 @@ export default function UGCCampaignPage() {
     fetchModels();
     fetchConcepts();
     fetchVideos();
-  }, [campaign, fetchStats, fetchModels, fetchConcepts, fetchVideos]);
+    fetchBudgetSummary();
+  }, [campaign, fetchStats, fetchModels, fetchConcepts, fetchVideos, fetchBudgetSummary]);
 
   useEffect(() => {
     if (campaign) {
@@ -547,6 +592,13 @@ export default function UGCCampaignPage() {
           payload[key] = val;
         }
       });
+      // Add FOC products as structured data
+      const validFocProducts = focProductRows.filter(
+        (row) => row.product_name.trim() !== ""
+      );
+      if (validFocProducts.length > 0) {
+        payload.foc_products = validFocProducts;
+      }
       const response = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/ugc/concepts`,
         {
@@ -575,7 +627,10 @@ export default function UGCCampaignPage() {
           shoot_date: "",
           month: "",
           status: "draft",
+          props_required: "",
+          shoot_type: "",
         });
+        setFocProductRows([{ product_name: "", quantity: 1, link: "" }]);
         fetchConcepts(conceptStatusFilter);
         fetchStats();
       } else {
@@ -664,6 +719,10 @@ export default function UGCCampaignPage() {
       if (videoForm.dimension) payload.dimension = videoForm.dimension;
       if (videoForm.duration_seconds)
         payload.duration_seconds = parseInt(videoForm.duration_seconds);
+      if (videoForm.budget_consumed)
+        payload.budget_consumed = parseFloat(videoForm.budget_consumed);
+      if (videoForm.requested_dimensions.length > 0)
+        payload.requested_dimensions = videoForm.requested_dimensions;
 
       const response = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/ugc/videos`,
@@ -682,9 +741,12 @@ export default function UGCCampaignPage() {
           concept_id: "",
           dimension: "",
           duration_seconds: "",
+          budget_consumed: "",
+          requested_dimensions: [],
         });
         fetchVideos(videoStatusFilter);
         fetchStats();
+        fetchBudgetSummary();
       } else {
         const err = await response.json().catch(() => ({}));
         toast.error(err.detail || "Failed to add video");
@@ -767,6 +829,7 @@ export default function UGCCampaignPage() {
     fetchModels();
     fetchConcepts(conceptStatusFilter);
     fetchVideos(videoStatusFilter);
+    fetchBudgetSummary();
     toast.success("Data refreshed");
   };
 
@@ -1298,6 +1361,14 @@ export default function UGCCampaignPage() {
                   </p>
                 )}
 
+                {/* Shoot type */}
+                {concept.shoot_type && (
+                  <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />{" "}
+                    {concept.shoot_type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                  </p>
+                )}
+
                 {/* Brand Feedback */}
                 {concept.brand_feedback && (
                   <div className="mt-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
@@ -1446,6 +1517,55 @@ export default function UGCCampaignPage() {
 
     return (
       <div className="space-y-4">
+        {/* Budget Summary Card */}
+        {budgetSummary && (budgetSummary.total_budget > 0 || budgetSummary.total_consumed > 0) && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="text-sm font-semibold text-white uppercase tracking-wider">
+                  Budget Summary
+                </h4>
+                <p className="text-sm text-zinc-400 mt-1">
+                  AED {budgetSummary.total_consumed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} consumed across {budgetSummary.video_count} video{budgetSummary.video_count !== 1 ? "s" : ""}
+                </p>
+              </div>
+              {budgetSummary.total_budget > 0 && (
+                <div className="text-right">
+                  <p className="text-xs text-zinc-500">Remaining</p>
+                  <p className={`text-lg font-bold ${budgetSummary.remaining >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    AED {budgetSummary.remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+              )}
+            </div>
+            {budgetSummary.total_budget > 0 && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs text-zinc-500">
+                  <span>AED {budgetSummary.total_consumed.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  <span>AED {budgetSummary.total_budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                </div>
+                <div className="relative h-2.5 rounded-full overflow-hidden bg-zinc-800">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      (budgetSummary.total_consumed / budgetSummary.total_budget) > 0.9
+                        ? "bg-red-500"
+                        : (budgetSummary.total_consumed / budgetSummary.total_budget) > 0.7
+                        ? "bg-yellow-500"
+                        : "bg-emerald-500"
+                    }`}
+                    style={{
+                      width: `${Math.min((budgetSummary.total_consumed / budgetSummary.total_budget) * 100, 100)}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-zinc-500 text-right">
+                  {((budgetSummary.total_consumed / budgetSummary.total_budget) * 100).toFixed(1)}% used
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-white">
@@ -1539,7 +1659,25 @@ export default function UGCCampaignPage() {
                       revision{(video.revision_count ?? 0) > 1 ? "s" : ""}
                     </span>
                   )}
+                  {video.budget_consumed != null && video.budget_consumed > 0 && (
+                    <span className="flex items-center gap-1 text-emerald-400">
+                      AED {Number(video.budget_consumed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  )}
                 </div>
+                {/* Requested dimensions */}
+                {video.requested_dimensions && video.requested_dimensions.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {video.requested_dimensions.map((dim, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-full text-zinc-300"
+                      >
+                        {dim === "9:16" ? "9:16 Vertical" : dim === "16:9" ? "16:9 Horizontal" : dim === "1:1" ? "1:1 Square" : dim}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {/* Video URL */}
                 {video.video_url && (
@@ -2188,6 +2326,156 @@ export default function UGCCampaignPage() {
                 </div>
               </div>
 
+              {/* Shoot Type */}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  Shoot Type
+                </label>
+                <div className="flex flex-wrap gap-3 mt-1">
+                  {[
+                    { value: "on_site", label: "On-Site" },
+                    { value: "off_site", label: "Off-Site" },
+                    { value: "studio", label: "Studio" },
+                    { value: "outdoor", label: "Outdoor" },
+                  ].map((option) => (
+                    <label
+                      key={option.value}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors text-sm ${
+                        conceptForm.shoot_type === option.value
+                          ? "border-white bg-zinc-800 text-white"
+                          : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="shoot_type"
+                        value={option.value}
+                        checked={conceptForm.shoot_type === option.value}
+                        onChange={(e) =>
+                          setConceptForm((f) => ({
+                            ...f,
+                            shoot_type: e.target.value,
+                          }))
+                        }
+                        className="sr-only"
+                      />
+                      <div
+                        className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${
+                          conceptForm.shoot_type === option.value
+                            ? "border-white"
+                            : "border-zinc-600"
+                        }`}
+                      >
+                        {conceptForm.shoot_type === option.value && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                        )}
+                      </div>
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Props Required */}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  Props Needed for Shoot
+                </label>
+                <textarea
+                  value={conceptForm.props_required}
+                  onChange={(e) =>
+                    setConceptForm((f) => ({
+                      ...f,
+                      props_required: e.target.value,
+                    }))
+                  }
+                  placeholder="List all props needed (e.g., product samples, signage, packaging...)"
+                  rows={2}
+                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                />
+              </div>
+
+              {/* FOC Products - Repeatable Rows */}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  FOC Products
+                </label>
+                <div className="space-y-2">
+                  {focProductRows.map((row, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={row.product_name}
+                        onChange={(e) => {
+                          const updated = [...focProductRows];
+                          updated[index] = {
+                            ...updated[index],
+                            product_name: e.target.value,
+                          };
+                          setFocProductRows(updated);
+                        }}
+                        placeholder="Product name"
+                        className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                      />
+                      <input
+                        type="number"
+                        value={row.quantity}
+                        onChange={(e) => {
+                          const updated = [...focProductRows];
+                          updated[index] = {
+                            ...updated[index],
+                            quantity: parseInt(e.target.value) || 1,
+                          };
+                          setFocProductRows(updated);
+                        }}
+                        min={1}
+                        placeholder="Qty"
+                        className="w-20 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                      />
+                      <input
+                        type="text"
+                        value={row.link}
+                        onChange={(e) => {
+                          const updated = [...focProductRows];
+                          updated[index] = {
+                            ...updated[index],
+                            link: e.target.value,
+                          };
+                          setFocProductRows(updated);
+                        }}
+                        placeholder="Product link (optional)"
+                        className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                      />
+                      {focProductRows.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFocProductRows(
+                              focProductRows.filter((_, i) => i !== index)
+                            );
+                          }}
+                          className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFocProductRows([
+                        ...focProductRows,
+                        { product_name: "", quantity: 1, link: "" },
+                      ])
+                    }
+                    className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors mt-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Product Row
+                  </button>
+                </div>
+              </div>
+
               {/* Creative Direction */}
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
@@ -2429,11 +2717,11 @@ export default function UGCCampaignPage() {
                 </select>
               </div>
 
-              {/* Dimensions and Duration */}
+              {/* Dimension and Duration */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
-                    Dimensions
+                    Output Dimension
                   </label>
                   <input
                     type="text"
@@ -2464,6 +2752,88 @@ export default function UGCCampaignPage() {
                     placeholder="e.g., 30"
                     className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
                   />
+                </div>
+              </div>
+
+              {/* Budget Consumed */}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  Budget Consumed
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500 font-medium">
+                    AED
+                  </span>
+                  <input
+                    type="number"
+                    value={videoForm.budget_consumed}
+                    onChange={(e) =>
+                      setVideoForm((f) => ({
+                        ...f,
+                        budget_consumed: e.target.value,
+                      }))
+                    }
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="w-full pl-12 pr-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                  />
+                </div>
+              </div>
+
+              {/* Requested Dimensions */}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  Requested Dimensions
+                </label>
+                <div className="flex flex-wrap gap-3 mt-1">
+                  {[
+                    { value: "9:16", label: "9:16 Vertical" },
+                    { value: "16:9", label: "16:9 Horizontal" },
+                    { value: "1:1", label: "1:1 Square" },
+                  ].map((option) => {
+                    const isChecked = videoForm.requested_dimensions.includes(
+                      option.value
+                    );
+                    return (
+                      <label
+                        key={option.value}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors text-sm ${
+                          isChecked
+                            ? "border-white bg-zinc-800 text-white"
+                            : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setVideoForm((f) => ({
+                              ...f,
+                              requested_dimensions: isChecked
+                                ? f.requested_dimensions.filter(
+                                    (d) => d !== option.value
+                                  )
+                                : [...f.requested_dimensions, option.value],
+                            }));
+                          }}
+                          className="sr-only"
+                        />
+                        <div
+                          className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                            isChecked
+                              ? "border-white bg-white"
+                              : "border-zinc-600"
+                          }`}
+                        >
+                          {isChecked && (
+                            <Check className="w-3 h-3 text-black" />
+                          )}
+                        </div>
+                        {option.label}
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -2669,19 +3039,56 @@ export default function UGCCampaignPage() {
                 </div>
               )}
 
+              {/* Shoot Type */}
+              {selectedConcept.shoot_type && (
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1">Shoot Type</p>
+                  <span className="text-xs px-2.5 py-1 bg-zinc-800 rounded-full text-zinc-200 font-medium">
+                    {selectedConcept.shoot_type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                  </span>
+                </div>
+              )}
+
+              {/* Props Required */}
+              {selectedConcept.props_required && (
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1">Props Required</p>
+                  <p className="text-sm text-zinc-300 bg-zinc-800/50 rounded-lg p-3 border border-zinc-800 whitespace-pre-wrap">
+                    {selectedConcept.props_required}
+                  </p>
+                </div>
+              )}
+
               {/* FOC Products */}
               {selectedConcept.foc_products &&
                 selectedConcept.foc_products.length > 0 && (
                   <div>
                     <p className="text-xs text-zinc-500 mb-1">FOC Products</p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-1.5">
                       {selectedConcept.foc_products.map((p, i) => (
-                        <span
+                        <div
                           key={i}
-                          className="text-xs px-2 py-1 bg-zinc-800 rounded-full text-zinc-300"
+                          className="flex items-center gap-3 text-sm text-zinc-300 bg-zinc-800/50 rounded-lg px-3 py-2 border border-zinc-800"
                         >
-                          {p}
-                        </span>
+                          {typeof p === "string" ? (
+                            <span>{p}</span>
+                          ) : (
+                            <>
+                              <span className="flex-1 truncate">{(p as FOCProductRow).product_name}</span>
+                              <span className="text-xs text-zinc-500">x{(p as FOCProductRow).quantity}</span>
+                              {(p as FOCProductRow).link && (
+                                <a
+                                  href={(p as FOCProductRow).link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 hover:underline text-xs flex items-center gap-1"
+                                >
+                                  Link <ExternalLink className="w-3 h-3" />
+                                </a>
+                              )}
+                            </>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>

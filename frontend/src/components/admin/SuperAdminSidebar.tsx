@@ -30,6 +30,7 @@ import {
   ClipboardCheck,
   Banknote,
   Building2,
+  Wrench,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -122,6 +123,10 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     { title: "Withdrawals", url: "/superadmin/fa/withdrawals", icon: Banknote },
   ]
 
+  const systemItems = [
+    { title: "System", url: "/superadmin/system", icon: Wrench },
+  ]
+
   // Content pages not yet built — removing dead links
   // Backend endpoints exist at /admin/content/profiles and /admin/content/unlocks
   // but frontend pages haven't been created yet
@@ -176,6 +181,13 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           <SidebarGroupLabel>Following App</SidebarGroupLabel>
           <SidebarGroupContent>
             <NavMain items={followingAppItems} />
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* System Section */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <NavMain items={systemItems} />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

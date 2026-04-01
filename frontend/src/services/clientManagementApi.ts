@@ -120,6 +120,23 @@ export const clientApi = {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
+
+  updateScope: (teamId: string, campaignId: string, data: {
+    payment_status?: string;
+    closure_date?: string;
+    client_feedback?: string;
+    boosting_rights_notes?: string;
+    report_status?: string;
+    status?: string;
+  }) => authFetch(`${BASE}/${teamId}/scope/${campaignId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
+
+  getExportUrl: (teamId: string, year?: number) => {
+    const base = `${BASE}/${teamId}/export`;
+    return year ? `${base}?year=${year}` : base;
+  },
 };
 
 // Unified campaigns API for brand users
