@@ -31,6 +31,7 @@ import {
   Banknote,
   Building2,
   Wrench,
+  Receipt,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -121,6 +122,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     { title: "Campaigns", url: "/superadmin/fa/campaigns", icon: Megaphone },
     { title: "Deliverables", url: "/superadmin/fa/deliverables", icon: ClipboardCheck },
     { title: "Withdrawals", url: "/superadmin/fa/withdrawals", icon: Banknote },
+    { title: "Receipt Claims", url: "/superadmin/fa/receipt-claims", icon: Receipt },
   ]
 
   const systemItems = [

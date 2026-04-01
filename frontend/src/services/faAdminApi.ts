@@ -92,6 +92,13 @@ export const faWithdrawalApi = {
   reject: (id: string, reason?: string) => post(`/api/v1/admin/fa/withdrawals/${id}/reject`, { reason }),
 }
 
+// ─── SUPERADMIN: FA Receipt Claims ──────────────────────────────────
+export const faReceiptClaimApi = {
+  list: (status = 'pending_review') => get(`/api/v1/admin/fa/receipt-claims?status=${status}`),
+  approve: (id: string) => post(`/api/v1/admin/fa/receipt-claims/${id}/approve`),
+  reject: (id: string, reason?: string) => post(`/api/v1/admin/fa/receipt-claims/${id}/reject?reason=${encodeURIComponent(reason || '')}`),
+}
+
 // ─── SUPERADMIN: FA Pools ────────────────────────────────────────────
 export const faPoolApi = {
   listAll: () => get('/api/v1/admin/fa/pools'),
