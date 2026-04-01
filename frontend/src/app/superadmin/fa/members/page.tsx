@@ -238,7 +238,7 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
             <div className="flex items-start gap-4">
               {/* Large Avatar */}
               <Avatar className="h-16 w-16 shrink-0 border-2 border-muted">
-                <AvatarImage src={member.instagram_profile_pic || undefined} alt={member.full_name} />
+                <AvatarImage src={member.instagram_profile_pic || undefined} alt={member.full_name} referrerPolicy="no-referrer" />
                 <AvatarFallback className="text-lg font-semibold bg-primary/5">
                   {member.full_name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                 </AvatarFallback>
