@@ -31,7 +31,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Building2,
-  Store,
   Wallet,
   Users,
   Calendar,
@@ -59,12 +58,11 @@ import {
   Clock,
 } from "lucide-react"
 import Link from "next/link"
-import { faCampaignApi, faMerchantApi, faPoolApi, faClientApi } from "@/services/faAdminApi"
+import { faCampaignApi, faPoolApi, faClientApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
 // ─── Types ──────────────────────────────────────────────────────────
 interface ClientOption { id: string; name: string; company_name: string; subscription_tier: string; brand_user_id?: string }
-interface MerchantOption { id: string; name: string; category: string }
 interface PoolOption { id: string; pool_name: string; brand_user_id: string; available_cents: number; currency: string }
 
 const TIERS = ["BRONZE", "SILVER", "GOLD", "PLATINUM"] as const
@@ -89,13 +87,11 @@ export default function CreateCashbackCampaignPage() {
 
   // ─── Data sources ───────────────────────────────────────────────
   const [clients, setClients] = useState<ClientOption[]>([])
-  const [merchants, setMerchants] = useState<MerchantOption[]>([])
   const [allPools, setAllPools] = useState<PoolOption[]>([])
   const [loadingData, setLoadingData] = useState(true)
 
   // ─── Form state ─────────────────────────────────────────────────
   const [selectedClientId, setSelectedClientId] = useState("")
-  const [selectedMerchantId, setSelectedMerchantId] = useState("")
   const [selectedPoolId, setSelectedPoolId] = useState("")
 
   const [name, setName] = useState("")
@@ -130,15 +126,12 @@ export default function CreateCashbackCampaignPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [clientRes, merchantRes, poolRes] = await Promise.all([
+        const [clientRes, poolRes] = await Promise.all([
           faClientApi.list({ limit: 200 }),
-          faMerchantApi.list(),
           faPoolApi.listAll(),
         ])
         const clientList = clientRes?.clients || clientRes?.data?.clients || clientRes?.data || []
         setClients(Array.isArray(clientList) ? clientList : [])
-        const merchantList = merchantRes?.data?.merchants || merchantRes?.data || []
-        setMerchants(Array.isArray(merchantList) ? merchantList : [])
         const poolList = poolRes?.data?.pools || poolRes?.data || []
         setAllPools(Array.isArray(poolList) ? poolList : [])
       } catch {
@@ -162,13 +155,12 @@ export default function CreateCashbackCampaignPage() {
   // Progress calculation
   const completedSteps = [
     !!selectedClientId,
-    !!selectedMerchantId,
     !!selectedPoolId,
     !!name.trim(),
     cashbackPercentage > 0,
     deliverables.some((d) => d.type.trim()),
   ].filter(Boolean).length
-  const totalSteps = 6
+  const totalSteps = 5
   const progressPct = Math.round((completedSteps / totalSteps) * 100)
 
   // ─── Deliverable helpers ────────────────────────────────────────
@@ -184,7 +176,6 @@ export default function CreateCashbackCampaignPage() {
   const handleSubmit = async () => {
     if (!name.trim()) return toast.error("Campaign name is required")
     if (!selectedClientId) return toast.error("Select a client")
-    if (!selectedMerchantId) return toast.error("Select a merchant")
     if (!selectedPoolId) return toast.error("Select a pool")
     if (cashbackPercentage <= 0 || cashbackPercentage > 100) return toast.error("Cashback % must be between 1 and 100")
 
@@ -205,7 +196,7 @@ export default function CreateCashbackCampaignPage() {
       const payload: Record<string, any> = {
         name: name.trim(),
         brand_user_id: selectedClient?.brand_user_id || selectedClient?.id,
-        merchant_id: selectedMerchantId,
+        brand_name: selectedClient?.company_name || selectedClient?.name,
         pool_id: selectedPoolId,
         cashback_percentage: cashbackPercentage,
         deliverable_requirements: validDeliverables.map((d) => ({ type: d.type, quantity: d.quantity, deadline_days: 7 })),
@@ -301,53 +292,10 @@ export default function CreateCashbackCampaignPage() {
               </div>
             </div>
 
-            {/* ─── Step 2: Merchant Selection ───────────────────── */}
+            {/* ─── Step 2: Pool Selection ───────────────────────── */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">2</div>
-                <h2 className="text-lg font-semibold">Select Merchant</h2>
-                {selectedMerchantId && <Check className="h-5 w-5 text-green-500" />}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {loadingData ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <Card key={i} className="animate-pulse"><CardContent className="p-5"><div className="h-4 bg-muted rounded w-3/4 mb-2" /><div className="h-3 bg-muted rounded w-1/2" /></CardContent></Card>
-                  ))
-                ) : (
-                  merchants.map((m) => (
-                    <Card
-                      key={m.id}
-                      className={`cursor-pointer transition-all hover:shadow-md ${
-                        selectedMerchantId === m.id
-                          ? "ring-2 ring-primary shadow-md border-primary/50"
-                          : "hover:border-primary/30"
-                      }`}
-                      onClick={() => setSelectedMerchantId(m.id)}
-                    >
-                      <CardContent className="p-4 flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
-                          selectedMerchantId === m.id ? "bg-primary text-primary-foreground" : "bg-muted"
-                        }`}>
-                          <Store className="h-5 w-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{m.name}</p>
-                          <p className="text-xs text-muted-foreground">{m.category}</p>
-                        </div>
-                        {selectedMerchantId === m.id && (
-                          <Check className="h-5 w-5 text-primary ml-auto shrink-0" />
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* ─── Step 3: Pool Selection ───────────────────────── */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">3</div>
                 <h2 className="text-lg font-semibold">Funding Pool</h2>
                 {selectedPoolId && <Check className="h-5 w-5 text-green-500" />}
               </div>
@@ -402,7 +350,7 @@ export default function CreateCashbackCampaignPage() {
             {/* ─── Campaign Details ──────────────────────────────── */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">4</div>
+                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">3</div>
                 <h2 className="text-lg font-semibold">Campaign Details</h2>
               </div>
               <Card>
@@ -452,7 +400,7 @@ export default function CreateCashbackCampaignPage() {
             {/* ─── Cashback Rates ────────────────────────────────── */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">5</div>
+                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">4</div>
                 <h2 className="text-lg font-semibold">Cashback Rates</h2>
               </div>
 
@@ -542,7 +490,7 @@ export default function CreateCashbackCampaignPage() {
             {/* ─── Deliverables ──────────────────────────────────── */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">6</div>
+                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">5</div>
                 <h2 className="text-lg font-semibold">Deliverable Requirements</h2>
               </div>
 
