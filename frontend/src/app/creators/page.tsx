@@ -204,7 +204,7 @@ export default function CreatorsPage() {
     try {
       const result = await creatorSearchMutation.mutateAsync(cleanUsername)
 
-      // Auto-unlock if profile requires it
+      // Auto-unlock if profile requires it (existing profile, not yet unlocked)
       if (result.preview_mode || result.unlock_required) {
         if (!result.profile?.id) {
           throw new Error('Profile not found')
@@ -219,10 +219,10 @@ export default function CreatorsPage() {
         if (!unlockResult.success) {
           throw new Error(unlockResult.error || 'Unlock failed')
         }
-
-        // Dispatch credit balance update
-        window.dispatchEvent(new CustomEvent('credit-balance-changed'))
       }
+
+      // Always dispatch credit balance update (worker auto-unlock also spends credits)
+      window.dispatchEvent(new CustomEvent('credit-balance-changed'))
 
       // Remove from analyzing set
       setAnalyzingCreators(prev => {
@@ -232,8 +232,9 @@ export default function CreatorsPage() {
       })
       removeProcessingToast(cleanUsername)
 
-      // Refetch unlocked creators — the new creator will now appear
-      unlockedCreatorsQuery.refetch()
+      // Brief delay to allow DB commit propagation, then refetch unlocked creators
+      await new Promise(resolve => setTimeout(resolve, 500))
+      await unlockedCreatorsQuery.refetch()
       toast.success(`@${cleanUsername} unlocked and added to your portfolio!`)
     } catch (error: any) {
       setAnalyzingCreators(prev => {

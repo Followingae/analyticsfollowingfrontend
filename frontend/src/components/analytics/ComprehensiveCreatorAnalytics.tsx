@@ -216,7 +216,7 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-8">
               <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-primary/30 shadow-xl ring-4 ring-primary/10 shrink-0">
                 <AvatarImage
-                  src={previewProfile.cdn_avatar_url || previewProfile.profile_pic_url_hd || previewProfile.profile_pic_url}
+                  src={previewProfile.cdn_avatar_url || `https://cdn.following.ae/profiles/ig/${previewProfile.username}/profile_picture.webp` || previewProfile.profile_pic_url_hd || previewProfile.profile_pic_url}
                   className="object-cover"
                 />
                 <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
