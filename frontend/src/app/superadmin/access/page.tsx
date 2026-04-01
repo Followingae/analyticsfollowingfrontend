@@ -91,7 +91,7 @@ export default function SuperadminAccessPage() {
       ])
 
       if (rolesResult.success && rolesResult.data) {
-        setRoles(rolesResult.data)
+        setRoles(Array.isArray(rolesResult.data) ? rolesResult.data : [])
       } else {
 
       }

@@ -266,7 +266,7 @@ export default function ListDetailPage() {
           page: 1,
           limit: 50
         })
-        if (response.success && response.data) {
+        if (response.success && response.data && Array.isArray(response.data.items)) {
           const profiles = response.data.items.map(profile => ({
             username: profile.username,
             full_name: profile.full_name,

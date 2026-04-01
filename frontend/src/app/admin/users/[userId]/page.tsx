@@ -386,7 +386,8 @@ export default function UserEditPage() {
       if (response.ok) {
         const data = await response.json();
         // Transform the backend data to match our interface
-        const transactions = (data.transactions || data.items || data || []).map((tx: any) => ({
+        const rawTransactions = data.transactions || data.items || data;
+        const transactions = (Array.isArray(rawTransactions) ? rawTransactions : []).map((tx: any) => ({
           id: tx.id || tx.transaction_id,
           amount: tx.amount || tx.credits || tx.credit_amount,
           type: tx.action_type === 'credit_add' ? 'add' :

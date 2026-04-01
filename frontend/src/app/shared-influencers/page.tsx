@@ -86,7 +86,8 @@ function SharedInfluencersContent() {
       const result = await superadminApiService.getSharedInfluencersForUser()
       if (result.success && result.data) {
         const data = result.data as any
-        setInfluencers(data.influencers || data || [])
+        const list = data.influencers || data
+        setInfluencers(Array.isArray(list) ? list : [])
       }
     } catch {
       toast.error("Failed to load shared influencers")
