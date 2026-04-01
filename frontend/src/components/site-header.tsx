@@ -10,7 +10,7 @@ import { Balloons } from "@/components/ui/balloons"
 import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { useMemo, useState, useEffect, useRef } from "react"
-import { Crown, Coins, PartyPopper, LogOut } from "lucide-react"
+import { Crown, Coins, PartyPopper, LogOut, BookOpen } from "lucide-react"
 import { creditsApiService } from "@/services/creditsApi"
 import { teamApiService, TeamContext } from "@/services/teamApi"
 import { useRouter } from 'next/navigation'
@@ -254,6 +254,26 @@ export function SiteHeader() {
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
                   <p>Launch balloons</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      const isSuperadmin = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'super_admin';
+                      router.push(isSuperadmin ? '/superadmin/guide' : '/guide');
+                    }}
+                    className="transition-colors duration-150"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    <span className="sr-only">User Guide</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>User Guide</p>
                 </TooltipContent>
               </Tooltip>
 
