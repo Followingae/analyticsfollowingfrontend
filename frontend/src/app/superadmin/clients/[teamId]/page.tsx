@@ -313,7 +313,26 @@ export default function ClientDetailPage() {
                         <TableCell>{typeBadge(c.campaign_type)}</TableCell>
                         <TableCell>{statusBadge(c.status)}</TableCell>
                         <TableCell className="text-right font-mono">{formatAED(c.budget)}</TableCell>
-                        <TableCell>{paymentBadge(c.payment_status)}</TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Select
+                            value={c.payment_status}
+                            onValueChange={async (val) => {
+                              try {
+                                await clientApi.updateScope(teamId, c.id, { payment_status: val });
+                                setScope(prev => prev.map(s => s.id === c.id ? { ...s, payment_status: val } : s));
+                              } catch (err) { console.error(err); }
+                            }}
+                          >
+                            <SelectTrigger className="h-7 w-[100px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="not_paid">Unpaid</SelectItem>
+                              <SelectItem value="partial">Partial</SelectItem>
+                              <SelectItem value="complete">Paid</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                         <TableCell className="text-right">{c.total_creators}</TableCell>
                         <TableCell className="text-right">{c.total_posts}</TableCell>
                         <TableCell>
@@ -323,7 +342,26 @@ export default function ClientDetailPage() {
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell>{reportBadge(c.report_status)}</TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Select
+                            value={c.report_status}
+                            onValueChange={async (val) => {
+                              try {
+                                await clientApi.updateScope(teamId, c.id, { report_status: val });
+                                setScope(prev => prev.map(s => s.id === c.id ? { ...s, report_status: val } : s));
+                              } catch (err) { console.error(err); }
+                            }}
+                          >
+                            <SelectTrigger className="h-7 w-[100px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="not_sent">Not Sent</SelectItem>
+                              <SelectItem value="sent">Sent</SelectItem>
+                              <SelectItem value="received">Received</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                         <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
                           {c.client_feedback || '-'}
                         </TableCell>
