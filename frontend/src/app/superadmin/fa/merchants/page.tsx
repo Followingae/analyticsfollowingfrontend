@@ -68,7 +68,8 @@ export default function FAMerchantsPage() {
     setLoading(true)
     try {
       const res = await faMerchantApi.list()
-      if (res.success) setMerchants(res.data || [])
+      const list = res?.data?.merchants || res?.data || []
+      setMerchants(Array.isArray(list) ? list : [])
     } catch { toast.error("Failed to load merchants") }
     finally { setLoading(false) }
   }, [])

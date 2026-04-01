@@ -36,7 +36,8 @@ export default function FAReceiptClaimsPage() {
     setLoading(true)
     try {
       const res = await faReceiptClaimApi.list(activeTab)
-      if (res.success) setClaims(res.data || [])
+      const list = res?.data?.claims || res?.data || []
+      setClaims(Array.isArray(list) ? list : [])
     } catch {
       toast.error("Failed to load receipt claims")
     } finally {

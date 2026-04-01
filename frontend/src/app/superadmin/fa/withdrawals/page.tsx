@@ -22,7 +22,8 @@ export default function FAWithdrawalsPage() {
     setLoading(true)
     try {
       const res = await faWithdrawalApi.listPending()
-      if (res.success) setWithdrawals(res.data || [])
+      const list = res?.data?.withdrawals || res?.data || []
+      setWithdrawals(Array.isArray(list) ? list : [])
     } catch { toast.error("Failed to load withdrawals") }
     finally { setLoading(false) }
   }, [])

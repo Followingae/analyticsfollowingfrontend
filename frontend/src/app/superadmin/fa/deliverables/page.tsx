@@ -18,7 +18,8 @@ export default function FADeliverablesPage() {
     setLoading(true)
     try {
       const res = await faDeliverableApi.listPending()
-      if (res.success) setDeliverables(res.data || [])
+      const list = res?.data?.deliverables || res?.data || []
+      setDeliverables(Array.isArray(list) ? list : [])
     } catch { toast.error("Failed to load deliverables") }
     finally { setLoading(false) }
   }, [])
