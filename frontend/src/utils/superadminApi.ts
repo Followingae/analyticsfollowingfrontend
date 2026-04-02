@@ -243,7 +243,7 @@ export const superadminService = {
       formData.append('file', file);
 
       // Use fetch instead of axios for file uploads to avoid Content-Type issues
-      const token = localStorage.getItem('accessToken');
+      const token = tokenManager.getTokenSync();
       const response = await fetch(
         `${API_CONFIG.BASE_URL}/api/v1/hrm/employees/${employeeId}/upload-profile-picture`,
         {

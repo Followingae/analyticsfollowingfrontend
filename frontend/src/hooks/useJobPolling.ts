@@ -276,9 +276,11 @@ export function useJobPolling(options: UseJobPollingOptions = {}) {
           }
 
           // Still processing - schedule next poll
+          if (pollingRef.current) clearTimeout(pollingRef.current)
           pollingRef.current = setTimeout(poll, pollInterval)
         } catch (fetchErr) {
           // Network error during poll - retry unless too many failures
+          if (pollingRef.current) clearTimeout(pollingRef.current)
           if (attemptRef.current > 3) {
             // After 3 consecutive network errors, keep trying but with backoff
             pollingRef.current = setTimeout(poll, pollInterval * 2)

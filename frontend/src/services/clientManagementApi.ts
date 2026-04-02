@@ -3,16 +3,15 @@
  * Team = Client: each team with brand users is a client entity.
  */
 import { API_CONFIG } from '@/config/api';
+import { fetchWithAuth } from '@/utils/apiInterceptor';
 
 const BASE = `${API_CONFIG.BASE_URL}/api/v1/admin/clients`;
 
 async function authFetch(url: string, options: RequestInit = {}) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-  const res = await fetch(url, {
+  const res = await fetchWithAuth(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });

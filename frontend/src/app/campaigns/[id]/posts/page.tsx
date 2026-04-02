@@ -514,7 +514,7 @@ export default function CampaignDetailsPage() {
         brand_name: processedCampaignData.brand_name,
         brand_logo_url: processedCampaignData.brand_logo_url,
         status: processedCampaignData.status,
-        created_by: processedCampaignData.created_by,
+        created_by: processedCampaignData.created_by || 'user',
         campaign_type: processedCampaignData.campaign_type,
         created_at: processedCampaignData.created_at,
         updated_at: processedCampaignData.updated_at,
@@ -1677,8 +1677,8 @@ export default function CampaignDetailsPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="stats" className="space-y-6">
-        <TabsList className={`grid w-full max-w-3xl ${campaign?.created_by === 'user' ? 'grid-cols-4' : 'grid-cols-5'}`}>
-          {campaign?.created_by !== 'user' && (
+        <TabsList className={`grid w-full max-w-3xl ${campaign?.created_by === 'superadmin' ? 'grid-cols-5' : 'grid-cols-4'}`}>
+          {campaign?.created_by === 'superadmin' && (
             <TabsTrigger value="workflow">Workflow</TabsTrigger>
           )}
           <TabsTrigger value="stats">Analytics</TabsTrigger>
@@ -1708,7 +1708,7 @@ export default function CampaignDetailsPage() {
         )}
 
         {/* Campaign Workflow Tab — only for superadmin-created campaigns */}
-        {campaign?.created_by !== 'user' && (
+        {campaign?.created_by === 'superadmin' && (
           <TabsContent value="workflow" className="space-y-6">
             <CampaignWorkflow
               campaignId={campaignId}
