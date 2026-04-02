@@ -94,7 +94,9 @@ export function NotificationBell({
 }: NotificationBellProps) {
   const router = useRouter()
 
-  const displayItems = notifications.slice(0, 8)
+  // Bell dropdown shows unread only
+  const unreadItems = notifications.filter(n => !n.is_read)
+  const displayItems = unreadItems.slice(0, 8)
   const total = unreadCounts.total_unread
 
   return (
@@ -168,7 +170,7 @@ export function NotificationBell({
         ) : (
           <div className="px-3 py-8 text-center text-muted-foreground">
             <Bell className="h-6 w-6 mx-auto mb-2 opacity-40" />
-            <p className="text-xs">No notifications</p>
+            <p className="text-xs">No unread notifications</p>
           </div>
         )}
 

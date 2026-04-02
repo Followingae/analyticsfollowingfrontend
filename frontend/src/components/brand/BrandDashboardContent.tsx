@@ -320,8 +320,7 @@ export function BrandDashboardContent() {
         </div>
 
         {/* Row 3: Recent Notifications */}
-        {notifications.length > 0 && (
-          <div className={`transition-all duration-500 ease-out ${
+        <div className={`transition-all duration-500 ease-out ${
             showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
           }`} style={{ transitionDelay: '240ms' }}>
             <Card>
@@ -339,49 +338,58 @@ export function BrandDashboardContent() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-1">
-                  {notifications.slice(0, 5).map((n) => {
-                    const iconMap: Record<string, { icon: typeof Bell; color: string }> = {
-                      credit_purchase: { icon: CreditCard, color: "text-green-500 bg-green-50 dark:bg-green-950" },
-                      low_balance: { icon: AlertTriangle, color: "text-amber-500 bg-amber-50 dark:bg-amber-950" },
-                      analytics_completed: { icon: BarChart3, color: "text-purple-500 bg-purple-50 dark:bg-purple-950" },
-                      proposal_received: { icon: FileText, color: "text-blue-500 bg-blue-50 dark:bg-blue-950" },
-                      proposal_updated: { icon: FileText, color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950" },
-                      share_received: { icon: Link2, color: "text-green-500 bg-green-50 dark:bg-green-950" },
-                      team_invite: { icon: UserPlus, color: "text-blue-500 bg-blue-50 dark:bg-blue-950" },
-                    }
-                    const cfg = iconMap[n.notification_type] || { icon: Bell, color: "text-muted-foreground bg-muted" }
-                    const Icon = cfg.icon
-                    const timeAgo = getTimeAgo(n.created_at)
+                {notifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-3">
+                      <Bell className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">No notifications yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">You&apos;ll see activity updates here</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {notifications.slice(0, 5).map((n) => {
+                      const iconMap: Record<string, { icon: typeof Bell; color: string }> = {
+                        credit_purchase: { icon: CreditCard, color: "text-green-500 bg-green-50 dark:bg-green-950" },
+                        low_balance: { icon: AlertTriangle, color: "text-amber-500 bg-amber-50 dark:bg-amber-950" },
+                        analytics_completed: { icon: BarChart3, color: "text-purple-500 bg-purple-50 dark:bg-purple-950" },
+                        proposal_received: { icon: FileText, color: "text-blue-500 bg-blue-50 dark:bg-blue-950" },
+                        proposal_updated: { icon: FileText, color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950" },
+                        share_received: { icon: Link2, color: "text-green-500 bg-green-50 dark:bg-green-950" },
+                        team_invite: { icon: UserPlus, color: "text-blue-500 bg-blue-50 dark:bg-blue-950" },
+                      }
+                      const cfg = iconMap[n.notification_type] || { icon: Bell, color: "text-muted-foreground bg-muted" }
+                      const Icon = cfg.icon
+                      const timeAgo = getTimeAgo(n.created_at)
 
-                    return (
-                      <div
-                        key={n.id}
-                        className={`flex items-start gap-3 p-3 rounded-lg transition-colors cursor-pointer hover:bg-muted/50 ${!n.is_read ? "bg-primary/[0.03]" : ""}`}
-                        onClick={() => {
-                          if (!n.is_read) markAsRead(n.id)
-                          if (n.action_url) router.push(n.action_url)
-                        }}
-                      >
-                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${cfg.color}`}>
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className={`text-sm truncate ${!n.is_read ? "font-medium" : ""}`}>{n.title}</p>
-                            {!n.is_read && <div className="h-2 w-2 rounded-full bg-primary shrink-0" />}
+                      return (
+                        <div
+                          key={n.id}
+                          className={`flex items-start gap-3 p-3 rounded-lg transition-colors cursor-pointer hover:bg-muted/50 ${!n.is_read ? "bg-primary/[0.03]" : ""}`}
+                          onClick={() => {
+                            if (!n.is_read) markAsRead(n.id)
+                            if (n.action_url) router.push(n.action_url)
+                          }}
+                        >
+                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${cfg.color}`}>
+                            <Icon className="h-4 w-4" />
                           </div>
-                          <p className="text-xs text-muted-foreground truncate">{n.message}</p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className={`text-sm truncate ${!n.is_read ? "font-medium" : ""}`}>{n.title}</p>
+                              {!n.is_read && <div className="h-2 w-2 rounded-full bg-primary shrink-0" />}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">{n.message}</p>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 pt-0.5">{timeAgo}</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 pt-0.5">{timeAgo}</span>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
-        )}
 
       </div>
 
