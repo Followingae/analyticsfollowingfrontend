@@ -306,90 +306,69 @@ export function BrandDashboardContent() {
             </div>
           </div>
 
-          {/* Remaining Credits Chart */}
+          {/* Remaining Credits + Notification Preview stacked */}
           <div
             className={`md:col-span-3 transition-all duration-500 ease-out ${
               showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
             }`}
             style={{ transitionDelay: '160ms' }}
           >
-            <div className="h-[320px]">
-              <ChartRemainingCreditsV2 />
-            </div>
-          </div>
-        </div>
+            <div className="grid grid-rows-[auto_1fr] gap-4 h-full">
+              <div className="h-[320px]">
+                <ChartRemainingCreditsV2 />
+              </div>
 
-        {/* Row 3: Recent Notifications */}
-        <div className={`transition-all duration-500 ease-out ${
-            showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-          }`} style={{ transitionDelay: '240ms' }}>
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-muted-foreground" />
-                    Recent Activity
-                  </CardTitle>
-                  <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground">
-                    <Link href="/notifications" className="flex items-center gap-1">
-                      View All <ChevronRight className="h-3 w-3" />
-                    </Link>
-                  </Button>
+              {/* Compact Notification Preview */}
+              <Card className="overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b">
+                  <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                    <Bell className="h-3 w-3" />Activity
+                  </span>
+                  <Link href="/notifications" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                    View all <ChevronRight className="h-2.5 w-2.5" />
+                  </Link>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {notifications.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-3">
-                      <Bell className="h-5 w-5 text-muted-foreground" />
+                <div className="divide-y">
+                  {notifications.length === 0 ? (
+                    <div className="flex items-center gap-2.5 px-4 py-4 text-center justify-center">
+                      <Bell className="h-3.5 w-3.5 text-muted-foreground/50" />
+                      <span className="text-xs text-muted-foreground">No activity yet</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">No notifications yet</p>
-                    <p className="text-xs text-muted-foreground mt-1">You&apos;ll see activity updates here</p>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {notifications.slice(0, 5).map((n) => {
+                  ) : (
+                    notifications.slice(0, 4).map((n) => {
                       const iconMap: Record<string, { icon: typeof Bell; color: string }> = {
-                        credit_purchase: { icon: CreditCard, color: "text-green-500 bg-green-50 dark:bg-green-950" },
-                        low_balance: { icon: AlertTriangle, color: "text-amber-500 bg-amber-50 dark:bg-amber-950" },
-                        analytics_completed: { icon: BarChart3, color: "text-purple-500 bg-purple-50 dark:bg-purple-950" },
-                        proposal_received: { icon: FileText, color: "text-blue-500 bg-blue-50 dark:bg-blue-950" },
-                        proposal_updated: { icon: FileText, color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950" },
-                        share_received: { icon: Link2, color: "text-green-500 bg-green-50 dark:bg-green-950" },
-                        team_invite: { icon: UserPlus, color: "text-blue-500 bg-blue-50 dark:bg-blue-950" },
+                        credit_purchase: { icon: CreditCard, color: "text-green-500" },
+                        low_balance: { icon: AlertTriangle, color: "text-amber-500" },
+                        analytics_completed: { icon: BarChart3, color: "text-purple-500" },
+                        proposal_received: { icon: FileText, color: "text-blue-500" },
+                        proposal_updated: { icon: FileText, color: "text-indigo-500" },
+                        share_received: { icon: Link2, color: "text-green-500" },
+                        team_invite: { icon: UserPlus, color: "text-blue-500" },
                       }
-                      const cfg = iconMap[n.notification_type] || { icon: Bell, color: "text-muted-foreground bg-muted" }
+                      const cfg = iconMap[n.notification_type] || { icon: Bell, color: "text-muted-foreground" }
                       const Icon = cfg.icon
-                      const timeAgo = getTimeAgo(n.created_at)
-
                       return (
                         <div
                           key={n.id}
-                          className={`flex items-start gap-3 p-3 rounded-lg transition-colors cursor-pointer hover:bg-muted/50 ${!n.is_read ? "bg-primary/[0.03]" : ""}`}
+                          className="flex items-center gap-2.5 px-4 py-2 cursor-pointer hover:bg-muted/40 transition-colors"
                           onClick={() => {
                             if (!n.is_read) markAsRead(n.id)
                             if (n.action_url) router.push(n.action_url)
                           }}
                         >
-                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${cfg.color}`}>
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className={`text-sm truncate ${!n.is_read ? "font-medium" : ""}`}>{n.title}</p>
-                              {!n.is_read && <div className="h-2 w-2 rounded-full bg-primary shrink-0" />}
-                            </div>
-                            <p className="text-xs text-muted-foreground truncate">{n.message}</p>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 pt-0.5">{timeAgo}</span>
+                          <Icon className={`h-3.5 w-3.5 shrink-0 ${cfg.color}`} />
+                          <span className={`text-xs truncate flex-1 ${!n.is_read ? "font-medium" : "text-muted-foreground"}`}>{n.title}</span>
+                          {!n.is_read && <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+                          <span className="text-[10px] text-muted-foreground shrink-0">{getTimeAgo(n.created_at)}</span>
                         </div>
                       )
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    })
+                  )}
+                </div>
+              </Card>
+            </div>
           </div>
+        </div>
 
       </div>
 

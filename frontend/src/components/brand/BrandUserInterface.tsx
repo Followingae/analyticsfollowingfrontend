@@ -4,7 +4,6 @@ import { ReactNode } from 'react'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { EnhancedAppSidebar } from '@/components/brand/EnhancedAppSidebar'
 import { SiteHeader } from '@/components/site-header'
-import { FloatingSetupChecklist } from '@/components/setup/FloatingSetupChecklist'
 
 interface BrandUserInterfaceProps {
   children?: ReactNode
@@ -26,7 +25,6 @@ export function BrandUserInterface({ children }: BrandUserInterfaceProps) {
         <main className="flex-1 min-h-0 bg-background">
           {children}
         </main>
-        <FloatingSetupChecklist />
       </SidebarInset>
     </SidebarProvider>
   )
