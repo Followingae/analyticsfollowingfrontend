@@ -244,8 +244,8 @@ function AllCampaignsTab({
 
       const data = await unifiedCampaignApi.list(params as any);
 
-      // The unified endpoint returns { campaigns: [...], total_count, ... }
-      const raw = data?.campaigns || data?.data?.campaigns || [];
+      // The unified endpoint returns { success, data: [...], total, ... }
+      const raw = data?.campaigns || data?.data?.campaigns || data?.data || [];
       const processed = (Array.isArray(raw) ? raw : []).map((c: any) => ({
         ...c,
         engagement_rate: c.engagement_rate || 0,
