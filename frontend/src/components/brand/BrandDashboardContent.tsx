@@ -1,15 +1,19 @@
 'use client'
 
-import { useMemo, useEffect, useState } from "react"
+import { useMemo, useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useDashboardData } from "@/hooks/useDashboardData"
 import { useUserStore, useSubscriptionData, useTeamData } from "@/stores/userStore"
+import { useNotifications } from "@/contexts/NotificationContext"
 import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
 import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
 import { MetricCard } from "@/components/analytics-cards"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
-import { Card, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Balloons } from "@/components/ui/balloons"
 import { UserAvatar } from "@/components/UserAvatar"
 import { SmartDiscovery } from "@/components/smart-discovery"
 import { brandPoolApi } from "@/services/faAdminApi"
@@ -20,6 +24,13 @@ import {
   AlertTriangle,
   Wallet,
   ArrowRight,
+  Bell,
+  CreditCard,
+  BarChart3,
+  FileText,
+  Link2,
+  UserPlus,
+  ChevronRight,
 } from "lucide-react"
 
 export function BrandDashboardContent() {
@@ -38,6 +49,26 @@ export function BrandDashboardContent() {
   const subscription = useSubscriptionData()
   const team = useTeamData()
   const { isLoading: userStoreLoading, user } = useUserStore()
+  const { notifications, markAsRead } = useNotifications()
+
+  // Balloons celebration for credit events
+  const balloonsRef = useRef<{ launchAnimation: () => void }>(null)
+  const [celebrationDone, setCelebrationDone] = useState(false)
+
+  useEffect(() => {
+    if (celebrationDone || !notifications.length) return
+    const creditNotifs = notifications.filter(
+      (n) => !n.is_read && (n.notification_type === 'credit_purchase')
+    )
+    if (creditNotifs.length > 0) {
+      // Delay slightly so the page has rendered
+      const timer = setTimeout(() => {
+        balloonsRef.current?.launchAnimation()
+        setCelebrationDone(true)
+      }, 800)
+      return () => clearTimeout(timer)
+    }
+  }, [notifications, celebrationDone])
 
   // Pool balance for low-balance warning — refresh on visibility
   const [poolBalance, setPoolBalance] = useState<{ available_aed: number; total_funded_aed: number } | null>(null)
@@ -288,7 +319,88 @@ export function BrandDashboardContent() {
           </div>
         </div>
 
+        {/* Row 3: Recent Notifications */}
+        {notifications.length > 0 && (
+          <div className={`transition-all duration-500 ease-out ${
+            showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+          }`} style={{ transitionDelay: '240ms' }}>
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Bell className="h-4 w-4 text-muted-foreground" />
+                    Recent Activity
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground">
+                    <Link href="/notifications" className="flex items-center gap-1">
+                      View All <ChevronRight className="h-3 w-3" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-1">
+                  {notifications.slice(0, 5).map((n) => {
+                    const iconMap: Record<string, { icon: typeof Bell; color: string }> = {
+                      credit_purchase: { icon: CreditCard, color: "text-green-500 bg-green-50 dark:bg-green-950" },
+                      low_balance: { icon: AlertTriangle, color: "text-amber-500 bg-amber-50 dark:bg-amber-950" },
+                      analytics_completed: { icon: BarChart3, color: "text-purple-500 bg-purple-50 dark:bg-purple-950" },
+                      proposal_received: { icon: FileText, color: "text-blue-500 bg-blue-50 dark:bg-blue-950" },
+                      proposal_updated: { icon: FileText, color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950" },
+                      share_received: { icon: Link2, color: "text-green-500 bg-green-50 dark:bg-green-950" },
+                      team_invite: { icon: UserPlus, color: "text-blue-500 bg-blue-50 dark:bg-blue-950" },
+                    }
+                    const cfg = iconMap[n.notification_type] || { icon: Bell, color: "text-muted-foreground bg-muted" }
+                    const Icon = cfg.icon
+                    const timeAgo = getTimeAgo(n.created_at)
+
+                    return (
+                      <div
+                        key={n.id}
+                        className={`flex items-start gap-3 p-3 rounded-lg transition-colors cursor-pointer hover:bg-muted/50 ${!n.is_read ? "bg-primary/[0.03]" : ""}`}
+                        onClick={() => {
+                          if (!n.is_read) markAsRead(n.id)
+                          if (n.action_url) router.push(n.action_url)
+                        }}
+                      >
+                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${cfg.color}`}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className={`text-sm truncate ${!n.is_read ? "font-medium" : ""}`}>{n.title}</p>
+                            {!n.is_read && <div className="h-2 w-2 rounded-full bg-primary shrink-0" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{n.message}</p>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 pt-0.5">{timeAgo}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
       </div>
+
+      {/* Celebration balloons */}
+      <Balloons ref={balloonsRef} />
     </div>
   )
+}
+
+function getTimeAgo(dateStr: string): string {
+  const now = new Date()
+  const date = new Date(dateStr)
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return "now"
+  if (diffMins < 60) return `${diffMins}m ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
