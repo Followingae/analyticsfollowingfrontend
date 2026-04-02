@@ -155,12 +155,11 @@ export default function CreateCashbackCampaignPage() {
   // Progress calculation
   const completedSteps = [
     !!selectedClientId,
-    !!selectedPoolId,
     !!name.trim(),
     cashbackPercentage > 0,
     deliverables.some((d) => d.type.trim()),
   ].filter(Boolean).length
-  const totalSteps = 5
+  const totalSteps = 4
   const progressPct = Math.round((completedSteps / totalSteps) * 100)
 
   // ─── Deliverable helpers ────────────────────────────────────────
@@ -176,7 +175,7 @@ export default function CreateCashbackCampaignPage() {
   const handleSubmit = async () => {
     if (!name.trim()) return toast.error("Campaign name is required")
     if (!selectedClientId) return toast.error("Select a client")
-    if (!selectedPoolId) return toast.error("Select a pool")
+    // Pool is optional for testing
     if (cashbackPercentage <= 0 || cashbackPercentage > 100) return toast.error("Cashback % must be between 1 and 100")
 
     let tiersPayload: Record<string, number> | undefined
