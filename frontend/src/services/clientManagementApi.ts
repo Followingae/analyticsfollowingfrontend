@@ -8,10 +8,14 @@ import { fetchWithAuth } from '@/utils/apiInterceptor';
 const BASE = `${API_CONFIG.BASE_URL}/api/v1/admin/clients`;
 
 async function authFetch(url: string, options: RequestInit = {}) {
+  // Only add Content-Type for requests with a body (POST/PUT/PATCH)
+  const method = (options.method || 'GET').toUpperCase();
+  const needsContentType = ['POST', 'PUT', 'PATCH'].includes(method);
+
   const res = await fetchWithAuth(url, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(needsContentType ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
   });

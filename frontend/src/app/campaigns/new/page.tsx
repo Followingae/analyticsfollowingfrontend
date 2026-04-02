@@ -25,9 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { SiteHeader } from "@/components/site-header";
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { AuthGuard } from "@/components/AuthGuard";
 import { API_CONFIG } from "@/config/api";
 import { tokenManager } from "@/utils/tokenManager";
@@ -247,34 +245,37 @@ export default function NewCampaignPage() {
         }
       }
 
-      // STEP 3: Add posts to campaign if any (optional)
+      // STEP 3: Add posts to campaign if any (optional) — one at a time
       if (posts.length > 0) {
-
         const tokenResult = await tokenManager.getValidTokenWithRefresh();
         if (!tokenResult.isValid || !tokenResult.token) {
           throw new Error('Authentication required for adding posts');
         }
-        const postsPayload = {
-          posts: posts.map((post) => ({ url: post.url })),
-        };
 
-        const postsResponse = await fetch(
-          `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${tokenResult.token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(postsPayload),
+        let postsAdded = 0;
+        for (const post of posts) {
+          try {
+            const postsResponse = await fetch(
+              `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/posts/async`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${tokenResult.token}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ instagram_post_url: post.url }),
+              }
+            );
+            if (postsResponse.ok) postsAdded++;
+          } catch {
+            // Continue with remaining posts
           }
-        );
+        }
 
-        if (!postsResponse.ok) {
-
+        if (postsAdded === 0 && posts.length > 0) {
           toast.warning("Campaign created but posts could not be added");
-        } else {
-
+        } else if (postsAdded < posts.length) {
+          toast.warning(`Campaign created. ${postsAdded}/${posts.length} posts queued for analysis.`);
         }
       }
 
@@ -307,17 +308,7 @@ export default function NewCampaignPage() {
 
   return (
     <AuthGuard>
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="container mx-auto py-8 px-4 max-w-4xl">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Header */}
@@ -679,8 +670,7 @@ export default function NewCampaignPage() {
         )}
               </form>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
 
       {/* Image Cropper Dialog */}
       <ImageCropper
