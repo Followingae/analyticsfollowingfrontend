@@ -414,11 +414,11 @@ function CreateUserContent() {
                     <SelectValue placeholder="Select budget range" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="$0-$1000">د.إ0-1,000</SelectItem>
-                    <SelectItem value="$1000-$5000">د.إ1,000-5,000</SelectItem>
-                    <SelectItem value="$5000-$10000">د.إ5,000-10,000</SelectItem>
-                    <SelectItem value="$10000-$50000">د.إ10,000-50,000</SelectItem>
-                    <SelectItem value="$50000+">د.إ50,000+</SelectItem>
+                    <SelectItem value="AED 0-1,000">د.إ 0 - 1,000</SelectItem>
+                    <SelectItem value="AED 1,000-5,000">د.إ 1,000 - 5,000</SelectItem>
+                    <SelectItem value="AED 5,000-10,000">د.إ 5,000 - 10,000</SelectItem>
+                    <SelectItem value="AED 10,000-50,000">د.إ 10,000 - 50,000</SelectItem>
+                    <SelectItem value="AED 50,000+">د.إ 50,000+</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -47,6 +47,7 @@ import {
   Building,
   Globe,
   Key,
+  KeyRound,
   Activity,
   TrendingUp,
   TrendingDown,
@@ -206,18 +207,11 @@ export default function UserEditPage() {
 
   // Dialog states
   const [showDocumentUploadDialog, setShowDocumentUploadDialog] = useState(false);
-  const [showCreditDialog, setShowCreditDialog] = useState(false);
-  const [creditDialogMode, setCreditDialogMode] = useState<'add' | 'remove'>('add');
   const [documentUploadForm, setDocumentUploadForm] = useState({
     file: null as File | null,
     documentType: 'other',
     description: ''
   });
-  const [creditForm, setCreditForm] = useState({
-    amount: '',
-    reason: ''
-  });
-
   // State for credits from working endpoint
   const [userCreditsData, setUserCreditsData] = useState<{
     current_balance: number;
@@ -407,7 +401,8 @@ export default function UserEditPage() {
         setCreditHistory([]);
       }
     } catch (err) {
-
+      console.error('Failed to fetch credit history:', err);
+      toast.error('Failed to load credit history');
       setCreditHistory([]);
     } finally {
       setLoadingCredits(false);
@@ -438,18 +433,21 @@ export default function UserEditPage() {
   const fetchActivityLog = async () => {
     setLoadingActivities(true);
     try {
-      // Mock data for now - implement actual endpoint
-      setActivities([
-        {
-          id: '1',
-          action: 'Login',
-          timestamp: new Date().toISOString(),
-          ip_address: '192.168.1.1',
-          user_agent: 'Chrome/120.0'
-        }
-      ]);
+      const token = await getAuthToken();
+      if (!token) return;
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE}/api/v1/admin/users/${userId}/activities?limit=50`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setActivities(data.data || []);
+      } else {
+        setActivities([]);
+      }
     } catch (err) {
-
+      console.error('Failed to fetch activity log:', err);
+      setActivities([]);
     } finally {
       setLoadingActivities(false);
     }
@@ -696,10 +694,12 @@ export default function UserEditPage() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/api/v1/admin/users/${userId}/restore`, {
+      const token = await getAuthToken();
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE}/api/v1/admin/users/${userId}/restore`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -864,9 +864,16 @@ export default function UserEditPage() {
                       onClick={() => {
                         setFormData({
                           full_name: originalUser?.full_name || '',
-                          role: originalUser?.role || 'user',
-                          status: originalUser?.status || 'active',
-                          subscription_tier: originalUser?.subscription_tier || originalUser?.subscription_plan || 'free'
+                          role: originalUser?.role || '',
+                          status: originalUser?.status || '',
+                          subscription_tier: originalUser?.subscription_tier || '',
+                          company: originalUser?.company || '',
+                          job_title: originalUser?.job_title || '',
+                          phone_number: originalUser?.phone_number || '',
+                          industry: originalUser?.industry || '',
+                          company_size: originalUser?.company_size || '',
+                          use_case: originalUser?.use_case || '',
+                          marketing_budget: originalUser?.marketing_budget || '',
                         });
                         setHasChanges(false);
                         setIsEditMode(false);
@@ -1053,24 +1060,28 @@ export default function UserEditPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
+                  <CardTitle className="text-base">Quick Actions</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Button variant="outline" className="justify-start">
-                    <Mail className="h-4 w-4 mr-2" />
-                    Send Email
-                  </Button>
-                  <Button variant="outline" className="justify-start">
-                    <Key className="h-4 w-4 mr-2" />
-                    Reset Password
-                  </Button>
-                  <Button variant="outline" className="justify-start">
-                    <Activity className="h-4 w-4 mr-2" />
-                    View Sessions
-                  </Button>
-                  <Button variant="outline" className="justify-start">
-                    <Shield className="h-4 w-4 mr-2" />
-                    Impersonate
+                <CardContent className="space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={async () => {
+                      try {
+                        const token = await getAuthToken();
+                        const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+                        const res = await fetch(`${API_BASE}/api/v1/admin/users/${userId}/send-password-reset`, {
+                          method: 'POST',
+                          headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) toast.success('Password reset email sent');
+                        else toast.error('Failed to send reset email');
+                      } catch { toast.error('Failed to send reset email'); }
+                    }}
+                  >
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Send Password Reset
                   </Button>
                 </CardContent>
               </Card>
@@ -1202,11 +1213,11 @@ export default function UserEditPage() {
                           <SelectValue placeholder="Select budget range" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="$0-$1000">د.إ0-1,000</SelectItem>
-                          <SelectItem value="$1000-$5000">د.إ1,000-5,000</SelectItem>
-                          <SelectItem value="$5000-$10000">د.إ5,000-10,000</SelectItem>
-                          <SelectItem value="$10000-$50000">د.إ10,000-50,000</SelectItem>
-                          <SelectItem value="$50000+">د.إ50,000+</SelectItem>
+                          <SelectItem value="AED 0-1,000">AED 0-1,000</SelectItem>
+                          <SelectItem value="AED 1,000-5,000">AED 1,000-5,000</SelectItem>
+                          <SelectItem value="AED 5,000-10,000">AED 5,000-10,000</SelectItem>
+                          <SelectItem value="AED 10,000-50,000">AED 10,000-50,000</SelectItem>
+                          <SelectItem value="AED 50,000+">AED 50,000+</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1926,104 +1937,6 @@ export default function UserEditPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Credit Management Dialog */}
-      <Dialog open={showCreditDialog} onOpenChange={setShowCreditDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {creditDialogMode === 'add' ? 'Add Credits' : 'Remove Credits'}
-            </DialogTitle>
-            <DialogDescription>
-              {creditDialogMode === 'add'
-                ? `Add credits to ${user?.email}'s account.`
-                : `Remove credits from ${user?.email}'s account. Current balance: ${getUserCredits().toLocaleString()}`}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="credit-amount">Amount</Label>
-              <Input
-                id="credit-amount"
-                type="number"
-                min="1"
-                max={creditDialogMode === 'remove' ? getUserCredits() : 100000}
-                placeholder="Enter amount..."
-                value={creditForm.amount}
-                onChange={(e) => setCreditForm(prev => ({ ...prev, amount: e.target.value }))}
-              />
-              {creditDialogMode === 'remove' && (
-                <p className="text-xs text-muted-foreground">
-                  Maximum: {getUserCredits().toLocaleString()} credits
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="credit-reason">Reason</Label>
-              <Textarea
-                id="credit-reason"
-                placeholder="Enter reason for this adjustment..."
-                value={creditForm.reason}
-                onChange={(e) => setCreditForm(prev => ({ ...prev, reason: e.target.value }))}
-                rows={3}
-                required
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowCreditDialog(false);
-                setCreditForm({ amount: '', reason: '' });
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={creditDialogMode === 'remove' ? 'destructive' : 'default'}
-              onClick={async () => {
-                const amount = parseInt(creditForm.amount);
-                if (!amount || amount <= 0) {
-                  toast.error('Please enter a valid amount');
-                  return;
-                }
-                if (!creditForm.reason.trim()) {
-                  toast.error('Please enter a reason');
-                  return;
-                }
-
-                try {
-                  if (creditDialogMode === 'add') {
-                    await handleAddCredits(amount, creditForm.reason);
-                  } else {
-                    await handleRemoveCredits(amount, creditForm.reason);
-                  }
-                  setShowCreditDialog(false);
-                  setCreditForm({ amount: '', reason: '' });
-                  // Refresh user data
-                  fetchUserData();
-                  fetchCreditHistory();
-                } catch (error) {
-
-                }
-              }}
-              disabled={!creditForm.amount || !creditForm.reason}
-            >
-              {creditDialogMode === 'add' ? (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Credits
-                </>
-              ) : (
-                <>
-                  <Minus className="h-4 w-4 mr-2" />
-                  Remove Credits
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
