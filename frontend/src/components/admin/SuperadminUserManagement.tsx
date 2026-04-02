@@ -137,10 +137,10 @@ export default function SuperadminUserManagement() {
   const handleAction = async (action: string, user: User) => {
     switch (action) {
       case 'view':
-        router.push(`/admin/users/${user.id}`);
+        router.push(`/superadmin/users/${user.id}`);
         break;
       case 'edit':
-        router.push(`/admin/users/${user.id}?edit=true`);
+        router.push(`/superadmin/users/${user.id}`);
         break;
       case 'delete':
         const confirmed = await confirm({
@@ -321,7 +321,6 @@ export default function SuperadminUserManagement() {
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="deleted">Deleted</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -387,7 +386,6 @@ export default function SuperadminUserManagement() {
                       <TableCell>
                         <span className={`text-sm ${
                           user.status === 'active' ? 'text-green-600' :
-                          user.status === 'deleted' ? 'text-red-600' :
                           'text-muted-foreground'
                         }`}>
                           {user.status}

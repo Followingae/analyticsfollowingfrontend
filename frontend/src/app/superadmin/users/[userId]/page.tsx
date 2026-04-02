@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { superadminApiService } from "@/services/superadminApi"
-// Currency service removed - functionality to be reimplemented when needed
 import { toast } from "sonner"
+import { format } from "date-fns"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -34,7 +34,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import {
   Breadcrumb,
@@ -51,18 +50,17 @@ import {
   User,
   CreditCard,
   Shield,
-  Settings,
   Coins,
   Users,
   Mail,
   Trash2,
   AlertTriangle,
   RefreshCw,
-  Crown,
-  Calendar
+  TrendingUp,
+  TrendingDown,
+  History,
 } from "lucide-react"
 
-// Interfaces based on your backend specification
 interface UserDetails {
   id: string
   email: string
@@ -78,14 +76,11 @@ interface UserDetails {
   credits_used_this_month: number
   current_balance: number
   package_id?: string
-  team_id?: string  // Added missing team_id field
+  team_id?: string
   team_name?: string
   team_role?: string
   monthly_profile_limit: number
   monthly_email_limit: number
-  currency_code: string
-  currency_symbol: string
-  decimal_places: number
   email_verified: boolean
   two_factor_enabled: boolean
   last_sign_in_at: string
@@ -93,12 +88,16 @@ interface UserDetails {
   created_at: string
 }
 
-interface SupportedCurrency {
-  code: string
-  name: string
-  symbol: string
-  decimal_places: number
+interface CreditTxn {
+  id: string
+  transaction_type: string
+  amount: number
+  balance_after: number
+  description?: string
+  created_at: string
 }
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.following.ae'
 
 export default function UserEditPage() {
   const router = useRouter()
@@ -106,9 +105,9 @@ export default function UserEditPage() {
   const userId = params.userId as string
 
   const [user, setUser] = useState<UserDetails | null>(null)
-  const [supportedCurrencies, setSupportedCurrencies] = useState<SupportedCurrency[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [transactions, setTransactions] = useState<CreditTxn[]>([])
 
   // Form states
   const [basicInfo, setBasicInfo] = useState({
@@ -132,12 +131,6 @@ export default function UserEditPage() {
     action: 'add' as 'add' | 'remove'
   })
 
-  const [currencySettings, setCurrencySettings] = useState({
-    currency_code: '',
-    currency_symbol: '',
-    decimal_places: 2
-  })
-
   const [teamSettings, setTeamSettings] = useState({
     team_name: '',
     team_role: '',
@@ -155,13 +148,11 @@ export default function UserEditPage() {
     try {
       setLoading(true)
 
-      // Load user details
       const userResult = await superadminApiService.getUserDetails(userId)
       if (userResult.success && userResult.data) {
         const userData = userResult.data
         setUser(userData)
 
-        // Populate form states
         setBasicInfo({
           email: userData.email || '',
           full_name: userData.full_name || '',
@@ -177,12 +168,6 @@ export default function UserEditPage() {
           subscription_expires_at: userData.subscription_expires_at || ''
         })
 
-        setCurrencySettings({
-          currency_code: userData.currency_code || 'AED',
-          currency_symbol: userData.currency_symbol || 'د.إ',
-          decimal_places: userData.decimal_places || 2
-        })
-
         setTeamSettings({
           team_name: userData.team_name || '',
           team_role: userData.team_role || '',
@@ -196,21 +181,35 @@ export default function UserEditPage() {
         })
       }
 
-      // Load supported currencies
-      const currenciesResult = await currencyService.getSupportedCurrencies()
-      setSupportedCurrencies(currenciesResult || [])
-
     } catch (error) {
-
       toast.error('Failed to load user data')
     } finally {
       setLoading(false)
     }
   }
 
+  // Load transaction history
+  const loadTransactions = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/admin/billing/transactions?user_id=${userId}&page_size=10`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
+          'Content-Type': 'application/json',
+        }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setTransactions(data.transactions || [])
+      }
+    } catch {
+      // Non-critical — silently fail
+    }
+  }
+
   useEffect(() => {
     if (userId) {
       loadUserData()
+      loadTransactions()
     }
   }, [userId])
 
@@ -250,44 +249,45 @@ export default function UserEditPage() {
     }
   }
 
-  // Adjust credits
+  // Adjust credits — uses separate add/remove endpoints
   const adjustCredits = async () => {
     try {
       setSaving(true)
-      const result = await superadminApiService.adjustUserCredits(userId, {
-        amount: creditsAdjustment.action === 'add' ? creditsAdjustment.amount : -creditsAdjustment.amount,
-        reason: creditsAdjustment.reason
-      })
+
+      let result
+      if (creditsAdjustment.action === 'add') {
+        result = await superadminApiService.adjustUserCredits(userId, {
+          amount: creditsAdjustment.amount,
+          reason: creditsAdjustment.reason
+        })
+      } else {
+        // Call the dedicated remove endpoint with positive amount
+        const res = await fetch(`${API_BASE}/api/v1/admin/credits/remove`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            credits: creditsAdjustment.amount,
+            reason: creditsAdjustment.reason
+          })
+        })
+        const data = await res.json()
+        result = { success: res.ok, data, error: data?.detail }
+      }
+
       if (result.success) {
         toast.success(`Credits ${creditsAdjustment.action === 'add' ? 'added' : 'removed'} successfully`)
         setCreditsAdjustment({ amount: 0, reason: '', action: 'add' })
         loadUserData()
+        loadTransactions()
       } else {
         toast.error(result.error || 'Failed to adjust credits')
       }
     } catch (error) {
       toast.error('Failed to adjust credits')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // Update currency settings
-  const updateCurrencySettings = async () => {
-    try {
-      setSaving(true)
-      if (user?.team_id) {
-        const result = await currencyService.updateTeamCurrency(
-          user.team_id,
-          currencySettings.currency_code,
-          currencySettings.currency_symbol,
-          currencySettings.decimal_places
-        )
-        toast.success('Currency settings updated successfully')
-        loadUserData()
-      }
-    } catch (error) {
-      toast.error('Failed to update currency settings')
     } finally {
       setSaving(false)
     }
@@ -323,20 +323,13 @@ export default function UserEditPage() {
     }
   }
 
-  // Format date
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return `${user?.currency_symbol || 'د.إ'}${(amount / 100).toFixed(user?.decimal_places || 2)}`
+    if (!dateString) return '—'
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy h:mm a')
+    } catch {
+      return '—'
+    }
   }
 
   if (loading) {
@@ -567,22 +560,18 @@ export default function UserEditPage() {
                 Credits Management
               </CardTitle>
               <CardDescription>
-                Current balance: {formatCurrency(user.current_balance)}
+                Current balance: {(user.current_balance || 0).toLocaleString()} credits
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Credits:</span>
-                  <span className="font-medium">{user.credits}</span>
+                  <span className="text-muted-foreground">Current Balance:</span>
+                  <span className="font-semibold text-base">{(user.current_balance || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Used This Month:</span>
-                  <span className="font-medium">{user.credits_used_this_month}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Current Balance:</span>
-                  <span className="font-medium">{formatCurrency(user.current_balance)}</span>
+                  <span className="font-medium">{(user.credits_used_this_month || 0).toLocaleString()}</span>
                 </div>
               </div>
 
@@ -607,8 +596,8 @@ export default function UserEditPage() {
                     <Label>Amount</Label>
                     <Input
                       type="number"
-                      min="0"
-                      value={creditsAdjustment.amount}
+                      min="1"
+                      value={creditsAdjustment.amount || ''}
                       onChange={(e) => setCreditsAdjustment(prev => ({ ...prev, amount: parseInt(e.target.value) || 0 }))}
                     />
                   </div>
@@ -630,62 +619,44 @@ export default function UserEditPage() {
                   {creditsAdjustment.action === 'add' ? 'Add' : 'Remove'} Credits
                 </Button>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Currency Control */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Coins className="h-5 w-5" />
-                Currency Settings
-              </CardTitle>
-              <CardDescription>
-                Team currency configuration
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Currency</Label>
-                  <Select value={currencySettings.currency_code} onValueChange={(value) => {
-                    const currency = supportedCurrencies.find(c => c.code === value)
-                    if (currency) {
-                      setCurrencySettings({
-                        currency_code: currency.code,
-                        currency_symbol: currency.symbol,
-                        decimal_places: currency.decimal_places
-                      })
-                    }
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {supportedCurrencies.map(currency => (
-                        <SelectItem key={currency.code} value={currency.code}>
-                          {currency.symbol} {currency.code} - {currency.name}
-                        </SelectItem>
+              {/* Transaction History */}
+              {transactions.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-3">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <History className="h-4 w-4" />
+                      Recent Transactions
+                    </h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {transactions.map((txn) => (
+                        <div key={txn.id} className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/50 text-sm">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {txn.amount > 0 ? (
+                              <TrendingUp className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                            ) : (
+                              <TrendingDown className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <span className="truncate block">{txn.description || txn.transaction_type}</span>
+                              <span className="text-xs text-muted-foreground">{formatDate(txn.created_at)}</span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0 ml-4">
+                            <span className={`font-medium ${txn.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {txn.amount > 0 ? '+' : ''}{txn.amount.toLocaleString()}
+                            </span>
+                            <div className="text-xs text-muted-foreground">
+                              bal: {(txn.balance_after || 0).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Decimal Places</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="4"
-                    value={currencySettings.decimal_places}
-                    onChange={(e) => setCurrencySettings(prev => ({ ...prev, decimal_places: parseInt(e.target.value) || 2 }))}
-                  />
-                </div>
-              </div>
-
-              <Button onClick={updateCurrencySettings} disabled={saving}>
-                <Save className="h-4 w-4 mr-2" />
-                Update Currency
-              </Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
