@@ -1267,7 +1267,7 @@ export default function CampaignDetailsPage() {
         // Update toast with progress
         currentToastId = updateProgressToast(currentToastId, progressPercent, currentStage, postShortcode);
 
-        if (statusData.job_status === 'completed') {
+        if (statusData.status === 'completed' || statusData.job_status === 'completed') {
           // Get final results
           const resultResponse = await fetch(
             `${(await import("@/config/api")).API_CONFIG.BASE_URL}/api/v1/campaigns/jobs/${jobId}/result`,
@@ -1288,7 +1288,7 @@ export default function CampaignDetailsPage() {
           return await resultResponse.json();
         }
 
-        if (statusData.job_status === 'failed') {
+        if (statusData.status === 'failed' || statusData.job_status === 'failed') {
           toast.dismiss(currentToastId);
           throw new Error(statusData.error || 'Job failed');
         }
