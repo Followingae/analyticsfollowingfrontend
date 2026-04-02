@@ -34,6 +34,13 @@ export default function FACampaignsPage() {
 
   useEffect(() => { load() }, [load])
 
+  // Re-fetch when page becomes visible (after navigating back from create)
+  useEffect(() => {
+    const handleFocus = () => { load() }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [load])
+
   return (
     <AuthGuard requiredRole="admin">
       <SuperAdminInterface>

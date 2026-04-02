@@ -101,6 +101,13 @@ export default function SuperadminUsersPage() {
     loadUsers()
   }, [searchQuery, statusFilter, typeFilter, planFilter])
 
+  // Re-fetch when user navigates back to this page
+  useEffect(() => {
+    const handleFocus = () => { loadUsers() }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [searchQuery, statusFilter, typeFilter, planFilter])
+
   const handleUpdateUserStatus = async (userId: string, status: 'active' | 'suspended' | 'deactivated', reason?: string) => {
     try {
       const result = await superadminApiService.editUser(userId, { status })

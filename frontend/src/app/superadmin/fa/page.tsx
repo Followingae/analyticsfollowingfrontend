@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,11 +11,26 @@ import { faStatsApi } from "@/services/faAdminApi"
 export default function FADashboardPage() {
   const [stats, setStats] = useState<any>(null)
 
-  useEffect(() => {
+  const loadStats = useCallback(() => {
     faStatsApi.dashboard().then((res) => {
       if (res.success) setStats(res.data)
     }).catch(() => {})
   }, [])
+
+  // Load on mount
+  useEffect(() => { loadStats() }, [loadStats])
+
+  // Re-fetch when tab/page becomes visible again (user navigated back)
+  useEffect(() => {
+    const handleVisibility = () => { if (document.visibilityState === 'visible') loadStats() }
+    const handleFocus = () => { loadStats() }
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('focus', handleFocus)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [loadStats])
 
   const cards = [
     { label: "Total Members", value: stats?.total_members ?? 0, icon: Users, href: "/superadmin/fa/members", color: "text-blue-500" },

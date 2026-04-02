@@ -39,17 +39,23 @@ export function BrandDashboardContent() {
   const team = useTeamData()
   const { isLoading: userStoreLoading, user } = useUserStore()
 
-  // Pool balance for low-balance warning
+  // Pool balance for low-balance warning — refresh on visibility
   const [poolBalance, setPoolBalance] = useState<{ available_aed: number; total_funded_aed: number } | null>(null)
   useEffect(() => {
-    brandPoolApi.balance().then((res: any) => {
-      if (res?.success && res.data) {
-        setPoolBalance({
-          available_aed: res.data.available_aed ?? (res.data.available_cents ? res.data.available_cents / 100 : 0),
-          total_funded_aed: res.data.total_funded_aed ?? (res.data.total_funded_cents ? res.data.total_funded_cents / 100 : 0),
-        })
-      }
-    }).catch(() => {})
+    const loadPool = () => {
+      brandPoolApi.balance().then((res: any) => {
+        if (res?.success && res.data) {
+          setPoolBalance({
+            available_aed: res.data.available_aed ?? (res.data.available_cents ? res.data.available_cents / 100 : 0),
+            total_funded_aed: res.data.total_funded_aed ?? (res.data.total_funded_cents ? res.data.total_funded_cents / 100 : 0),
+          })
+        }
+      }).catch(() => {})
+    }
+    loadPool()
+    const handleFocus = () => { loadPool() }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
   }, [])
 
   const userDisplayData = useMemo(() => {
