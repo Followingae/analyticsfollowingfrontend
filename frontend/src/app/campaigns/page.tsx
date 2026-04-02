@@ -577,7 +577,7 @@ function ScopeTabContent() {
       const year = parseInt(yearFilter);
       const data = await unifiedCampaignApi.getScope(year);
       // The endpoint may return { campaigns: [...] } or { data: { campaigns: [...] } }
-      const campaigns = data?.campaigns || data?.data?.campaigns || [];
+      const campaigns = data?.campaigns || data?.data?.campaigns || data?.data || [];
       setScopeData(campaigns);
     } catch {
       setScopeData([]);
@@ -763,7 +763,7 @@ function ArchiveTabContent({ searchQuery }: { searchQuery: string }) {
           status: "completed",
           limit: 100,
         });
-        const raw = data?.campaigns || data?.data?.campaigns || [];
+        const raw = data?.campaigns || data?.data?.campaigns || data?.data || [];
         setCampaigns(
           (Array.isArray(raw) ? raw : []).map((c: any) => ({
             ...c,
