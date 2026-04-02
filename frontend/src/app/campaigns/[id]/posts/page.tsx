@@ -1707,14 +1707,16 @@ export default function CampaignDetailsPage() {
           </Card>
         )}
 
-        {/* Campaign Workflow Tab */}
-        <TabsContent value="workflow" className="space-y-6">
-          <CampaignWorkflow
-            campaignId={campaignId}
-            currentStage={campaign?.status === "active" ? "influencer_selection" : "proposal"}
-            isAgencyClient={user?.role === 'premium' || user?.role === 'enterprise'}
-          />
-        </TabsContent>
+        {/* Campaign Workflow Tab — only for superadmin-created campaigns */}
+        {campaign?.created_by !== 'user' && (
+          <TabsContent value="workflow" className="space-y-6">
+            <CampaignWorkflow
+              campaignId={campaignId}
+              currentStage={campaign?.status === "active" ? "influencer_selection" : "proposal"}
+              isAgencyClient={user?.role === 'premium' || user?.role === 'enterprise'}
+            />
+          </TabsContent>
+        )}
 
         {/* Campaign Stats Tab */}
         <TabsContent value="stats" className="space-y-6">
