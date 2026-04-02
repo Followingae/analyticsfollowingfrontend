@@ -1,4 +1,5 @@
 import { API_CONFIG, ENDPOINTS, getAuthHeaders } from '@/config/api'
+import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { loadStripe } from '@stripe/stripe-js'
 
 // Types
@@ -151,7 +152,7 @@ class BillingManager {
   // Get available products (fetches pricing from backend)
   async getProducts(): Promise<Product[]> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.checkout.pricing}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.checkout.pricing}`, {
         headers: getAuthHeaders()
       })
       if (!response.ok) {
@@ -278,7 +279,7 @@ class BillingManager {
 
   // Upgrade existing user's subscription
   async upgradeSubscription(tier: string): Promise<any> {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.upgradeSubscription}`, {
+    const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.upgradeSubscription}`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -312,7 +313,7 @@ class BillingManager {
   // Create checkout session (for existing users who want to upgrade)
   async createCheckoutSession(tier: string): Promise<CheckoutSession> {
     // DO NOT use hardcoded price IDs - let backend handle it
-    const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.upgradeSubscription}`, {
+    const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.upgradeSubscription}`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -372,7 +373,7 @@ class BillingManager {
         return { trial_active: false, message: 'Not authenticated' }
       }
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.trialDailyUsage}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.trialDailyUsage}`, {
         headers,
       })
 
@@ -404,7 +405,7 @@ class BillingManager {
         return null
       }
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.subscriptionStatus}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.subscriptionStatus}`, {
         headers
       })
 
@@ -516,7 +517,7 @@ class BillingManager {
       }
 
       // Otherwise, create a fresh portal session via the new POST endpoint
-      const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.portalSession}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.portalSession}`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ return_url: window.location.href })
@@ -544,7 +545,7 @@ class BillingManager {
 
   // Admin: Get pending users
   async getPendingUsers() {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.adminBilling.pendingUsers}`, {
+    const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.adminBilling.pendingUsers}`, {
       headers: getAuthHeaders()
     })
 
@@ -563,7 +564,7 @@ class BillingManager {
     expiresAt: string,
     sendWelcomeEmail: boolean = true
   ) {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.adminBilling.approveUser}`, {
+    const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.adminBilling.approveUser}`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({

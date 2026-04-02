@@ -1,4 +1,5 @@
 import { API_CONFIG } from '@/config/api';
+import { fetchWithAuth } from '@/utils/apiInterceptor';
 
 export interface CDNAvatar {
   256: string;
@@ -125,11 +126,10 @@ class CDNMediaService {
   /**
    * Refresh profile data (which includes media) using force_refresh
    */
-  async refreshProfileData(username: string, token: string): Promise<{ success: boolean; message: string }> {
-    const response = await fetch(`${this.baseUrl}/creator/search/${username}`, {
+  async refreshProfileData(username: string, _token?: string): Promise<{ success: boolean; message: string }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/creator/search/${username}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
@@ -148,13 +148,12 @@ class CDNMediaService {
   /**
    * Complete migration function - combines profile search with CDN media
    */
-  async getProfileWithCDN(username: string, token: string): Promise<CreatorProfileWithCDN> {
+  async getProfileWithCDN(username: string, _token?: string): Promise<CreatorProfileWithCDN> {
     try {
       // Step 1: Get profile data (existing endpoint)
-      const profileResponse = await fetch(`${this.baseUrl}/api/v1/creator/search/${username}`, {
+      const profileResponse = await fetchWithAuth(`${this.baseUrl}/api/v1/creator/search/${username}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ include_posts: true }),

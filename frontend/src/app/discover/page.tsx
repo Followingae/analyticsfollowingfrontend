@@ -1,5 +1,6 @@
 "use client"
 
+import { AuthGuard } from "@/components/AuthGuard"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import {
@@ -11,6 +12,7 @@ import DiscoveryTab from "@/components/tabs/DiscoveryTab"
 export default function DiscoverPage() {
 
   return (
+    <AuthGuard requireAuth={true}>
     <SidebarProvider
       style={
         {
@@ -41,5 +43,6 @@ export default function DiscoverPage() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+    </AuthGuard>
   )
 }

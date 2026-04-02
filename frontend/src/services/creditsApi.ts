@@ -223,7 +223,8 @@ class CreditsApiService {
         }
       }
 
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const { fetchWithAuth } = await import('@/utils/apiInterceptor')
+      const response = await fetchWithAuth(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
