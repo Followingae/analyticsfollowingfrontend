@@ -1388,7 +1388,16 @@ export default function CampaignDetailsPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to start post processing");
+        if (response.status === 402) {
+          toast.dismiss(processingToastId);
+          const msg = typeof errorData.detail === 'object'
+            ? errorData.detail.message || "Job quota exceeded. Please wait for current jobs to finish or upgrade your plan."
+            : errorData.detail || "Quota exceeded";
+          toast.error(msg);
+          return;
+        }
+        const detail = typeof errorData.detail === 'object' ? errorData.detail.message : errorData.detail;
+        throw new Error(detail || "Failed to start post processing");
       }
 
       // Get job data from immediate response (async endpoint format)
