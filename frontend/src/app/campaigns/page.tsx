@@ -187,6 +187,13 @@ function getStatusBadge(status: string) {
         className:
           "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400",
       };
+    case "deleted":
+    case "archived":
+      return {
+        label: "Archived",
+        className:
+          "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-900/30 dark:text-zinc-400",
+      };
     default:
       return {
         label: status || "N/A",

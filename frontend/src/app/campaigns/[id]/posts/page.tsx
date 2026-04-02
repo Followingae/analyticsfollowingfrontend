@@ -1677,8 +1677,10 @@ export default function CampaignDetailsPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="stats" className="space-y-6">
-        <TabsList className="grid w-full max-w-3xl grid-cols-5">
-          <TabsTrigger value="workflow">Workflow</TabsTrigger>
+        <TabsList className={`grid w-full max-w-3xl ${campaign?.created_by === 'user' ? 'grid-cols-4' : 'grid-cols-5'}`}>
+          {campaign?.created_by !== 'user' && (
+            <TabsTrigger value="workflow">Workflow</TabsTrigger>
+          )}
           <TabsTrigger value="stats">Analytics</TabsTrigger>
           <TabsTrigger value="audience">Audience</TabsTrigger>
           <TabsTrigger value="creators" onClick={() => { if (campaignCreators.length === 0) fetchCampaignCreators(); }}>Creators</TabsTrigger>
