@@ -43,12 +43,7 @@ import {
   LayoutGrid,
   Archive,
 } from 'lucide-react'
-import { AppSidebar } from '@/components/app-sidebar'
-import { SiteHeader } from '@/components/site-header'
-import {
-  SidebarInset,
-  SidebarProvider,
-} from '@/components/ui/sidebar'
+import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -774,17 +769,7 @@ export default function GuidePage() {
   }
 
   return (
-    <SidebarProvider
-      style={
-        {
-          '--sidebar-width': 'calc(var(--spacing) * 66)',
-          '--header-height': 'calc(var(--spacing) * 12)',
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
+    <BrandUserInterface>
         <div className="flex-1 p-4 md:p-8 lg:p-10">
           <div className="mx-auto max-w-4xl space-y-8">
 
@@ -889,7 +874,6 @@ export default function GuidePage() {
             </div>
           </div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+    </BrandUserInterface>
   )
 }

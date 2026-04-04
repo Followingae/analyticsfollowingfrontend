@@ -51,12 +51,20 @@ interface PostCardProps {
     ai_sentiment: "positive" | "neutral" | "negative" | null
     ai_language_code: string | null
 
+    // Post metadata
+    hashtags?: string[]
+    mentions?: string[]
+    posted_at?: string | null
+    added_at?: string | null
+
     // Main Creator Info
     creator_username: string
     creator_full_name: string
     creator_followers_count: number
     creator_profile_pic_url?: string | null
     creator_profile_pic_url_hd?: string | null
+    creator_is_verified?: boolean
+    creator_detected_country?: string | null
   }
   onRemove?: (postId: string) => void
 }
@@ -196,14 +204,31 @@ export function PostCard({ post, onRemove }: PostCardProps) {
           )}
         </div>
 
-        {/* AI Insights - Cleaner, bottom overlay */}
-        {post.ai_content_category && (
+        {/* AI Insights + Metadata - bottom overlay */}
+        {(post.ai_content_category || post.ai_sentiment || post.ai_language_code) && (
           <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-black/40">
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5">
-                <Sparkles className="h-3 w-3 text-yellow-300" />
-                <span className="text-[10px] font-medium text-white">{post.ai_content_category}</span>
-              </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {post.ai_content_category && (
+                <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5">
+                  <Sparkles className="h-3 w-3 text-yellow-300" />
+                  <span className="text-[10px] font-medium text-white">{post.ai_content_category}</span>
+                </div>
+              )}
+              {post.ai_sentiment && (
+                <div className={`flex items-center gap-1 backdrop-blur-sm rounded-full px-2 py-0.5 ${
+                  post.ai_sentiment === 'positive' ? 'bg-green-500/30' :
+                  post.ai_sentiment === 'negative' ? 'bg-red-500/30' : 'bg-white/20'
+                }`}>
+                  <span className="text-[10px]">{post.ai_sentiment === 'positive' ? '😊' : post.ai_sentiment === 'negative' ? '😟' : '😐'}</span>
+                  <span className="text-[10px] font-medium text-white capitalize">{post.ai_sentiment}</span>
+                </div>
+              )}
+              {post.ai_language_code && (
+                <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5">
+                  <Globe className="h-2.5 w-2.5 text-white" />
+                  <span className="text-[10px] font-medium text-white uppercase">{post.ai_language_code}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -223,11 +248,33 @@ export function PostCard({ post, onRemove }: PostCardProps) {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate">{post.creator_full_name}</p>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <p className="text-sm font-semibold truncate">{post.creator_full_name}</p>
+              {post.creator_is_verified && (
+                <BadgeCheck className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+              )}
+              {post.creator_detected_country && (
+                <span className="text-xs shrink-0" title={post.creator_detected_country}>
+                  {post.creator_detected_country === 'AE' ? '🇦🇪' : post.creator_detected_country === 'SA' ? '🇸🇦' : post.creator_detected_country === 'US' ? '🇺🇸' : post.creator_detected_country === 'GB' ? '🇬🇧' : post.creator_detected_country === 'IN' ? '🇮🇳' : post.creator_detected_country === 'EG' ? '🇪🇬' : post.creator_detected_country === 'KW' ? '🇰🇼' : post.creator_detected_country === 'QA' ? '🇶🇦' : post.creator_detected_country === 'BH' ? '🇧🇭' : post.creator_detected_country === 'OM' ? '🇴🇲' : '🌍'}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
               <span>@{post.creator_username}</span>
               <span>•</span>
               <span>{formatNumber(post.creator_followers_count)} followers</span>
+              {post.posted_at && (
+                <>
+                  <span>•</span>
+                  <span>{new Date(post.posted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </>
+              )}
+              {!post.posted_at && post.added_at && (
+                <>
+                  <span>•</span>
+                  <span>Added {new Date(post.added_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </>
+              )}
             </div>
 
             {/* Enhanced Collaboration Badge with Tooltip */}
@@ -293,10 +340,39 @@ export function PostCard({ post, onRemove }: PostCardProps) {
 
         {/* Caption Preview - Better typography */}
         {post.caption && (
-          <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-border/50">
+          <div className="mb-3 p-3 bg-muted/30 rounded-lg border border-border/50">
             <p className="text-xs leading-relaxed text-foreground/80 line-clamp-2">
               {post.caption}
             </p>
+          </div>
+        )}
+
+        {/* Hashtags */}
+        {post.hashtags && post.hashtags.length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap mb-3">
+            <Hash className="h-3 w-3 text-muted-foreground shrink-0" />
+            {post.hashtags.slice(0, 5).map((tag, i) => (
+              <span key={i} className="text-[10px] text-primary/70 bg-primary/5 rounded px-1.5 py-0.5">
+                {tag.replace('#', '')}
+              </span>
+            ))}
+            {post.hashtags.length > 5 && (
+              <span className="text-[10px] text-muted-foreground">+{post.hashtags.length - 5}</span>
+            )}
+          </div>
+        )}
+
+        {/* Mentions */}
+        {post.mentions && post.mentions.length > 0 && (
+          <div className="flex items-center gap-1 flex-wrap mb-3">
+            {post.mentions.slice(0, 3).map((mention, i) => (
+              <span key={i} className="text-[10px] text-blue-600/70 bg-blue-50 dark:bg-blue-950/20 rounded px-1.5 py-0.5">
+                @{mention.replace('@', '')}
+              </span>
+            ))}
+            {post.mentions.length > 3 && (
+              <span className="text-[10px] text-muted-foreground">+{post.mentions.length - 3}</span>
+            )}
           </div>
         )}
 

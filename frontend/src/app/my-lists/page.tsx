@@ -58,9 +58,8 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 
 import { superadminApiService } from "@/services/superadminApi"
-import { AppSidebar } from "@/components/app-sidebar"
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { toast } from "sonner"
-import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -81,10 +80,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { ProfileAvatar } from "@/components/ui/profile-avatar"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
 import {
   Dialog,
   DialogContent,
@@ -466,25 +461,14 @@ function MyListsContent() {
   if (loading && myLists.length === 0) {
     return (
       <AuthGuard requireAuth={true}>
-        <SidebarProvider
-          style={
-            {
-              "--sidebar-width": "calc(var(--spacing) * 66)",
-              "--header-height": "calc(var(--spacing) * 12)",
-            } as React.CSSProperties
-          }
-        >
-          <AppSidebar variant="inset" />
-          <SidebarInset>
-            <SiteHeader />
+        <BrandUserInterface>
             <div className="flex flex-1 flex-col items-center justify-center p-4">
               <div className="text-center space-y-4">
                 <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 <p className="text-muted-foreground">Loading your lists...</p>
               </div>
             </div>
-          </SidebarInset>
-        </SidebarProvider>
+        </BrandUserInterface>
       </AuthGuard>
     )
   }
@@ -492,17 +476,7 @@ function MyListsContent() {
   if (error) {
     return (
       <AuthGuard requireAuth={true}>
-        <SidebarProvider
-          style={
-            {
-              "--sidebar-width": "calc(var(--spacing) * 66)",
-              "--header-height": "calc(var(--spacing) * 12)",
-            } as React.CSSProperties
-          }
-        >
-          <AppSidebar variant="inset" />
-          <SidebarInset>
-            <SiteHeader />
+        <BrandUserInterface>
             <div className="flex flex-1 flex-col items-center justify-center p-4">
               <div className="text-center space-y-4">
                 <p className="text-red-600 dark:text-red-400">{error}</p>
@@ -511,25 +485,14 @@ function MyListsContent() {
                 </Button>
               </div>
             </div>
-          </SidebarInset>
-        </SidebarProvider>
+        </BrandUserInterface>
       </AuthGuard>
     )
   }
 
   return (
     <AuthGuard requireAuth={true}>
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="flex flex-1 flex-col">
             <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
 
@@ -992,8 +955,7 @@ function MyListsContent() {
               </AlertDialog>
             </div>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     </AuthGuard>
   )
 }

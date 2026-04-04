@@ -9,9 +9,7 @@ import { superadminApiService } from "@/services/superadminApi"
 import { toast } from "sonner"
 import { formatCount, formatCents, getEngagementColor } from "@/types/influencerDatabase"
 
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -119,12 +117,7 @@ function SharedInfluencersContent() {
 
   return (
     <AuthGuard requireAuth>
-      <SidebarProvider
-        style={{ "--sidebar-width": "calc(var(--spacing) * 72)", "--header-height": "calc(var(--spacing) * 12)" } as React.CSSProperties}
-      >
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="flex flex-1 flex-col">
             <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
               {/* Header */}
@@ -368,8 +361,7 @@ function SharedInfluencersContent() {
               )}
             </div>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     </AuthGuard>
   )
 }

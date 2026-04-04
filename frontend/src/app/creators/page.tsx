@@ -26,9 +26,8 @@ import {
   Loader2,
   Unlock,
 } from "lucide-react"
-import { AppSidebar } from "@/components/app-sidebar"
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { toast } from "sonner"
-import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,10 +46,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { ProfileImage } from "@/components/ProfileImage"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
 import {
   Dialog,
   DialogContent,
@@ -306,17 +301,7 @@ export default function CreatorsPage() {
 
   return (
     <AuthGuard requireAuth={true}>
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
+      <BrandUserInterface>
         {unlockedLoading ? (
           <CreatorsSkeleton />
         ) : (
@@ -550,8 +535,7 @@ export default function CreatorsPage() {
             </div>
           </div>
         )}
-      </SidebarInset>
-    </SidebarProvider>
+      </BrandUserInterface>
     </AuthGuard>
   )
 }

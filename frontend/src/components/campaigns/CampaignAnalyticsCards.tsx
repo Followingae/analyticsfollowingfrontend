@@ -6,6 +6,9 @@ import {
   Users,
   Eye,
   Activity,
+  Coins,
+  CheckCircle2,
+  Calendar,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -82,8 +85,8 @@ export function CampaignAnalyticsCards({ className = "" }: CampaignAnalyticsCard
 
   if (isLoading) {
     return (
-      <div className={`grid gap-4 md:grid-cols-2 lg:grid-cols-4 ${className}`}>
-        {[1, 2, 3, 4].map((i) => (
+      <div className={`grid gap-4 md:grid-cols-3 lg:grid-cols-6 ${className}`}>
+        {[1, 2, 3, 4, 5, 6].map((i) => (
           <Card key={i} className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="h-32 bg-muted rounded animate-pulse" />
@@ -98,12 +101,20 @@ export function CampaignAnalyticsCards({ className = "" }: CampaignAnalyticsCard
     return null;
   }
 
+  const formatAED = (amount: number) => {
+    if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
+    if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`;
+    return amount.toLocaleString();
+  };
+
   return (
-    <div className={`grid gap-4 md:grid-cols-2 lg:grid-cols-4 ${className}`}>
+    <div className={`grid gap-4 md:grid-cols-3 lg:grid-cols-6 ${className}`}>
       <StandardMetricCard icon={Eye} label="Total Reach" value={formatNumber(summary.totalReach.current)} />
       <StandardMetricCard icon={TrendingUp} label="Avg. Engagement" value={`${summary.avgEngagementRate.current}%`} />
-      <StandardMetricCard icon={Activity} label="Total Campaigns" value={summary.totalCampaigns} />
-      <StandardMetricCard icon={Users} label="Total Creators" value={summary.totalCreators} />
+      <StandardMetricCard icon={Activity} label="Active" value={summary.activeCampaigns} />
+      <StandardMetricCard icon={CheckCircle2} label="Completed" value={summary.completedCampaigns} />
+      <StandardMetricCard icon={Users} label="Creators" value={summary.totalCreators} />
+      <StandardMetricCard icon={Calendar} label="This Month" value={summary.thisMonthCampaigns} />
     </div>
   );
 }

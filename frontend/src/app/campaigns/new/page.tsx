@@ -47,7 +47,6 @@ export default function NewCampaignPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [brandLogo, setBrandLogo] = useState<File | null>(null);
-  const [status, setStatus] = useState<"draft" | "active">("draft");
   const [posts, setPosts] = useState<CampaignPost[]>([]);
   const [isAddPostDialogOpen, setIsAddPostDialogOpen] = useState(false);
   const [newPostUrl, setNewPostUrl] = useState("");
@@ -522,24 +521,6 @@ export default function NewCampaignPage() {
               </div>
             </div>
 
-            {/* Status */}
-            <div className="space-y-2">
-              <Label htmlFor="status">
-                Status <span className="text-destructive">*</span>
-              </Label>
-              <Select value={status} onValueChange={(value: "draft" | "active") => setStatus(value)}>
-                <SelectTrigger id="status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Draft campaigns are not visible to creators
-              </p>
-            </div>
           </CardContent>
         </Card>
 

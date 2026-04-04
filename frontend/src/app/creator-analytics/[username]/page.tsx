@@ -3,9 +3,7 @@
 import React from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ComprehensiveCreatorAnalytics } from '@/components/analytics/ComprehensiveCreatorAnalytics'
-import { AppSidebar } from '@/components/app-sidebar'
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { SiteHeader } from '@/components/site-header'
+import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { AuthGuard } from '@/components/AuthGuard'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
@@ -19,17 +17,7 @@ export default function CreatorAnalyticsPage() {
 
   return (
     <AuthGuard requireAuth={true}>
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
             {/* Back Navigation */}
             <div className="flex items-center gap-4">
@@ -49,8 +37,7 @@ export default function CreatorAnalyticsPage() {
             </div>
             <ComprehensiveCreatorAnalytics username={username} />
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     </AuthGuard>
   )
 }

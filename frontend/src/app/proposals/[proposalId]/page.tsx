@@ -10,9 +10,7 @@ import {
 import { toast } from "sonner"
 import { useNotifications } from "@/contexts/NotificationContext"
 
-import { EnhancedAppSidebar } from "@/components/brand/EnhancedAppSidebar"
-import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -424,34 +422,22 @@ export default function BrandProposalViewPage() {
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
-  const sidebarStyle = {
-    "--sidebar-width": "calc(var(--spacing) * 66)",
-    "--header-height": "calc(var(--spacing) * 12)",
-  } as React.CSSProperties
-
   if (loading) {
     return (
-      <SidebarProvider style={sidebarStyle}>
-        <EnhancedAppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="flex flex-1 flex-col items-center justify-center">
             <div className="text-center space-y-4">
               <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
               <p className="text-muted-foreground">Loading proposal...</p>
             </div>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     )
   }
 
   if (error || !data) {
     return (
-      <SidebarProvider style={sidebarStyle}>
-        <EnhancedAppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="flex flex-1 flex-col items-center justify-center">
             <div className="text-center space-y-4">
               <p className="text-red-600 dark:text-red-400">
@@ -462,8 +448,7 @@ export default function BrandProposalViewPage() {
               </Button>
             </div>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     )
   }
 
@@ -471,10 +456,7 @@ export default function BrandProposalViewPage() {
   const { proposal, summary } = data
 
   return (
-    <SidebarProvider style={sidebarStyle}>
-      <EnhancedAppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
+    <BrandUserInterface>
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
@@ -924,7 +906,6 @@ export default function BrandProposalViewPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </SidebarInset>
-    </SidebarProvider>
+    </BrandUserInterface>
   )
 }

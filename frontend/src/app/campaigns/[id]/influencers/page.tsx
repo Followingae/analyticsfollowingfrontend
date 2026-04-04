@@ -7,9 +7,7 @@ import { ArrowLeft, Users, Sparkles, ChevronRight, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { SiteHeader } from "@/components/site-header";
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { InfluencerSelectionV3 } from "@/components/campaigns/unified/InfluencerSelectionV3";
@@ -89,10 +87,7 @@ export default function CampaignInfluencersPage() {
   if (!campaign) {
     return (
       <AuthGuard>
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <SiteHeader />
+        <BrandUserInterface>
             <div className="container mx-auto py-8 px-4">
               <div className="text-center py-12">
                 <p className="text-muted-foreground">Campaign not found</p>
@@ -101,18 +96,14 @@ export default function CampaignInfluencersPage() {
                 </Button>
               </div>
             </div>
-          </SidebarInset>
-        </SidebarProvider>
+        </BrandUserInterface>
       </AuthGuard>
     );
   }
 
   return (
     <AuthGuard>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
 
           {/* Main Content */}
           <div className="flex-1 space-y-8 p-8 lg:p-12">
@@ -220,8 +211,7 @@ export default function CampaignInfluencersPage() {
               onSelectionChange={handleSelectionChange}
             />
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     </AuthGuard>
   );
 }

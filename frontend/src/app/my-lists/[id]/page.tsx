@@ -26,9 +26,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { AuthGuard } from '@/components/AuthGuard'
-import { AppSidebar } from '@/components/app-sidebar'
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { SiteHeader } from '@/components/site-header'
+import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { listsApiService } from '@/services/listsApi'
 import { instagramApiService, UnlockedProfile } from '@/services/instagramApi'
 import { API_CONFIG, ENDPOINTS } from '@/config/api'
@@ -401,17 +399,7 @@ export default function ListDetailPage() {
 
   return (
     <AuthGuard requireAuth={true}>
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
             {loading ? (
               <div className="flex items-center justify-center h-64">
@@ -815,8 +803,7 @@ export default function ListDetailPage() {
               </div>
             )}
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     </AuthGuard>
   )
 }

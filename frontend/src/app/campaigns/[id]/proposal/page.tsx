@@ -9,9 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { EnhancedAppSidebar } from "@/components/brand/EnhancedAppSidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { SiteHeader } from "@/components/site-header";
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { toast } from "sonner";
@@ -173,10 +171,7 @@ export default function CampaignProposalPage() {
   if (!proposal) {
     return (
       <AuthGuard>
-        <SidebarProvider>
-          <EnhancedAppSidebar variant="inset" />
-          <SidebarInset>
-            <SiteHeader />
+        <BrandUserInterface>
             <div className="container mx-auto py-8 px-4">
               <div className="text-center py-12">
                 <p className="text-muted-foreground">Proposal not found</p>
@@ -185,25 +180,14 @@ export default function CampaignProposalPage() {
                 </Button>
               </div>
             </div>
-          </SidebarInset>
-        </SidebarProvider>
+        </BrandUserInterface>
       </AuthGuard>
     );
   }
 
   return (
     <AuthGuard>
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-        <EnhancedAppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="container mx-auto py-8 px-4 space-y-6">
             {/* Header */}
             <div className="flex items-center gap-4">
@@ -440,8 +424,7 @@ export default function CampaignProposalPage() {
               </div>
             </div>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     </AuthGuard>
   );
 }

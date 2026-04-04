@@ -32,6 +32,7 @@ import {
   Hash,
   AlertCircle,
   Save,
+  BadgeCheck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -58,9 +59,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { SiteHeader } from "@/components/site-header";
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { toast } from "sonner";
@@ -123,6 +122,8 @@ interface BackendCampaignDetails {
   brand_logo_url: string | null;
   status: "active" | "completed" | "draft";
   created_by?: "user" | "superadmin";
+  has_workflow?: boolean;
+  proposal_id?: string | null;
   campaign_type?: "influencer" | "ugc";
   created_at: string;
   updated_at: string;
@@ -349,6 +350,7 @@ export default function CampaignDetailsPage() {
   const [stats, setStats] = useState<CampaignStats | null>(null);
   const [aiInsights, setAiInsights] = useState<AIInsights | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
 
   // Edit campaign state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -390,9 +392,10 @@ export default function CampaignDetailsPage() {
   const [isProcessingBatch, setIsProcessingBatch] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
 
-  // View-only mode: superadmin-created campaigns are read-only for non-superadmin users
+  // View-only mode: only campaigns with active workflow (superadmin-direct) are read-only
+  // Proposal-approved campaigns have created_by='superadmin' but has_workflow=false — brand has full access
   const isSuperadmin = user?.role === 'superadmin' || user?.role === 'super_admin' || user?.role === 'admin';
-  const isViewOnly = campaign?.created_by === 'superadmin' && !isSuperadmin;
+  const isViewOnly = campaign?.has_workflow === true && !isSuperadmin;
 
   // Export handler
   const handleExport = async (format: 'csv' | 'json' = 'csv') => {
@@ -408,6 +411,10 @@ export default function CampaignDetailsPage() {
         `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/export?format=${format}`,
         { headers: { 'Authorization': `Bearer ${tokenResult.token}` } }
       );
+      if (response.status === 402) {
+        toast.error('Insufficient credits. Export requires 50 credits.');
+        return;
+      }
       if (!response.ok) throw new Error('Export failed');
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -439,7 +446,7 @@ export default function CampaignDetailsPage() {
       fetchCampaignData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading, campaignId, router]);
+  }, [user, authLoading, campaignId, router, analyticsPeriod]);
 
   // POLLING DISABLED - User can manually refresh if needed
   // useEffect(() => {
@@ -515,6 +522,8 @@ export default function CampaignDetailsPage() {
         brand_logo_url: processedCampaignData.brand_logo_url,
         status: processedCampaignData.status,
         created_by: processedCampaignData.created_by || 'user',
+        has_workflow: processedCampaignData.has_workflow ?? false,
+        proposal_id: processedCampaignData.proposal_id ?? null,
         campaign_type: processedCampaignData.campaign_type,
         created_at: processedCampaignData.created_at,
         updated_at: processedCampaignData.updated_at,
@@ -611,7 +620,7 @@ export default function CampaignDetailsPage() {
       // 3. Fetch campaign analytics (optional)
       try {
         const analyticsResponse = await fetch(
-          `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/analytics`,
+          `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/analytics?period=${analyticsPeriod}`,
           {
             method: "GET",
             headers: {
@@ -942,6 +951,34 @@ export default function CampaignDetailsPage() {
       // Silent fail
     } finally {
       setIsLoadingCreators(false);
+    }
+  };
+
+  // Fetch dedicated audience demographics (richer than analytics-embedded data)
+  const fetchAudienceData = async () => {
+    try {
+      const { API_CONFIG } = await import("@/config/api");
+      const { tokenManager } = await import("@/utils/tokenManager");
+      const tokenResult = await tokenManager.getValidTokenWithRefresh();
+      if (!tokenResult.isValid || !tokenResult.token) return;
+
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/audience`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenResult.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const audienceResult = data.data || data;
+        if (audienceResult) setAudience(audienceResult);
+      }
+    } catch {
+      // Keep existing audience data from analytics
     }
   };
 
@@ -1570,7 +1607,7 @@ export default function CampaignDetailsPage() {
         }
 
         // Refresh campaign data to show new posts
-        fetchCampaignData();
+        await fetchCampaignData();
       } else {
         throw new Error(result.message || "Batch processing failed");
       }
@@ -1605,10 +1642,7 @@ export default function CampaignDetailsPage() {
   if (!campaign) {
     return (
       <AuthGuard>
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <SiteHeader />
+        <BrandUserInterface>
             <div className="container mx-auto py-8 px-4">
               <div className="text-center py-12">
                 <p className="text-muted-foreground">Campaign not found</p>
@@ -1617,8 +1651,7 @@ export default function CampaignDetailsPage() {
                 </Button>
               </div>
             </div>
-          </SidebarInset>
-        </SidebarProvider>
+        </BrandUserInterface>
       </AuthGuard>
     );
   }
@@ -1629,17 +1662,7 @@ export default function CampaignDetailsPage() {
 
   return (
     <AuthGuard>
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="container mx-auto py-8 px-4 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -1677,21 +1700,29 @@ export default function CampaignDetailsPage() {
               Add Posts
             </Button>
           )}
-          <Button variant="outline" className="h-10" onClick={() => handleExport('csv')}>
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-10">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('csv')}>Export CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>Export JSON</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="stats" className="space-y-6">
-        <TabsList className={`grid w-full max-w-3xl ${campaign?.created_by === 'superadmin' ? 'grid-cols-5' : 'grid-cols-4'}`}>
-          {campaign?.created_by === 'superadmin' && (
+        <TabsList className={`grid w-full max-w-3xl ${campaign?.has_workflow ? 'grid-cols-5' : 'grid-cols-4'}`}>
+          {campaign?.has_workflow && (
             <TabsTrigger value="workflow">Workflow</TabsTrigger>
           )}
           <TabsTrigger value="stats">Analytics</TabsTrigger>
-          <TabsTrigger value="audience">Audience</TabsTrigger>
+          <TabsTrigger value="audience" onClick={() => fetchAudienceData()}>Audience</TabsTrigger>
           <TabsTrigger value="creators" onClick={() => { if (campaignCreators.length === 0) fetchCampaignCreators(); }}>Creators</TabsTrigger>
           <TabsTrigger value="posts">Posts</TabsTrigger>
         </TabsList>
@@ -1716,8 +1747,8 @@ export default function CampaignDetailsPage() {
           </Card>
         )}
 
-        {/* Campaign Workflow Tab — only for superadmin-created campaigns */}
-        {campaign?.created_by === 'superadmin' && (
+        {/* Campaign Workflow Tab — only for campaigns with active workflow state */}
+        {campaign?.has_workflow && (
           <TabsContent value="workflow" className="space-y-6">
             <CampaignWorkflow
               campaignId={campaignId}
@@ -1729,6 +1760,26 @@ export default function CampaignDetailsPage() {
 
         {/* Campaign Stats Tab */}
         <TabsContent value="stats" className="space-y-6">
+          {/* Period Selector */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Campaign Analytics</h3>
+            <div className="flex items-center gap-1 rounded-lg border p-1">
+              {(['7d', '30d', '90d', 'all'] as const).map((period) => (
+                <button
+                  key={period}
+                  onClick={() => { setAnalyticsPeriod(period); }}
+                  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                    analyticsPeriod === period
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {period === '7d' ? '7 Days' : period === '30d' ? '30 Days' : period === '90d' ? '90 Days' : 'All Time'}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Primary Metrics - Enhanced with Collaboration Support */}
           <div className="grid gap-4 md:grid-cols-5">
             <Card>
@@ -1925,6 +1976,11 @@ export default function CampaignDetailsPage() {
                           }>
                             {aiInsights.audience_quality.quality_rating?.toUpperCase()}
                           </Badge>
+                          {aiInsights.audience_quality.average_bot_score != null && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Bot score: {aiInsights.audience_quality.average_bot_score.toFixed(1)}% · Real audience: {(100 - aiInsights.audience_quality.average_bot_score).toFixed(0)}%
+                            </div>
+                          )}
                         </div>
                       )}
                       {aiInsights.visual_content?.available && (
@@ -1950,6 +2006,13 @@ export default function CampaignDetailsPage() {
                           }>
                             {aiInsights.fraud_detection.overall_trust_level?.toUpperCase()}
                           </Badge>
+                          {aiInsights.fraud_detection.risk_distribution && (
+                            <div className="flex gap-2 mt-2 text-[10px]">
+                              <span className="text-green-600">{aiInsights.fraud_detection.risk_distribution.low} low</span>
+                              <span className="text-amber-600">{aiInsights.fraud_detection.risk_distribution.medium} med</span>
+                              <span className="text-red-600">{aiInsights.fraud_detection.risk_distribution.high} high</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -2040,6 +2103,34 @@ export default function CampaignDetailsPage() {
                     </CardContent>
                   </Card>
                 )}
+                {/* Language Distribution */}
+                {aiInsights.language_detection?.available && aiInsights.language_detection?.top_languages && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Languages Used</CardTitle>
+                      <p className="text-xs text-muted-foreground">
+                        {aiInsights.language_detection.total_languages || 0} languages detected
+                        {aiInsights.language_detection.primary_language && ` · Primary: ${aiInsights.language_detection.primary_language.toUpperCase()}`}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {aiInsights.language_detection.top_languages.slice(0, 6).map((lang) => (
+                        <div key={lang.language} className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium uppercase">{lang.language}</span>
+                            <span className="text-sm font-bold">{lang.percentage.toFixed(1)}%</span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className="bg-blue-500 h-2 rounded-full"
+                              style={{ width: `${lang.percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               {/* Viral Potential & Content Depth */}
@@ -2059,6 +2150,11 @@ export default function CampaignDetailsPage() {
                       }>
                         {aiInsights.trend_detection.viral_rating?.toUpperCase()}
                       </Badge>
+                      {aiInsights.trend_detection.trending_posts != null && aiInsights.trend_detection.trending_posts > 0 && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {aiInsights.trend_detection.trending_posts} trending post{aiInsights.trend_detection.trending_posts !== 1 ? 's' : ''}
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -2092,9 +2188,58 @@ export default function CampaignDetailsPage() {
                         </p>
                       </CardContent>
                     </Card>
+
+                    {aiInsights.advanced_nlp.average_readability != null && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-medium">Readability</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">
+                            {aiInsights.advanced_nlp.average_readability.toFixed(0)}/100
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {aiInsights.advanced_nlp.average_readability > 70 ? 'Easy to read' : aiInsights.advanced_nlp.average_readability > 40 ? 'Moderate complexity' : 'Complex language'}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
                   </>
                 )}
               </div>
+
+              {/* Behavioral Patterns */}
+              {aiInsights.behavioral_patterns?.available && (
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Posting Frequency</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">
+                        {aiInsights.behavioral_patterns.average_posting_frequency?.toFixed(1) || '—'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">posts/week average</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Engagement Consistency</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">
+                        {aiInsights.behavioral_patterns.average_engagement_consistency?.toFixed(0) || '—'}%
+                      </p>
+                      <Badge variant={
+                        aiInsights.behavioral_patterns.consistency_rating === "high" ? "default" :
+                        aiInsights.behavioral_patterns.consistency_rating === "medium" ? "secondary" : "outline"
+                      }>
+                        {aiInsights.behavioral_patterns.consistency_rating?.toUpperCase() || 'N/A'}
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </>
           )}
         </TabsContent>
@@ -2177,6 +2322,80 @@ export default function CampaignDetailsPage() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Top Cities + Geographic Metrics */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Top Cities */}
+                {aiInsights.audience_insights.geographic_analysis?.top_cities &&
+                 typeof aiInsights.audience_insights.geographic_analysis.top_cities === 'object' &&
+                 Object.keys(aiInsights.audience_insights.geographic_analysis.top_cities).length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Top Cities</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {Object.entries(aiInsights.audience_insights.geographic_analysis.top_cities)
+                          .sort(([, a], [, b]) => (b as number) - (a as number))
+                          .slice(0, 5)
+                          .map(([city, percentage]) => (
+                            <div key={city} className="flex items-center justify-between text-sm">
+                              <span>{city}</span>
+                              <span className="font-medium">{(percentage as number).toFixed(1)}%</span>
+                            </div>
+                          ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Geographic Diversity Score */}
+                {aiInsights.audience_insights.geographic_analysis?.geographic_diversity_score != null && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Geographic Diversity</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-3xl font-bold">
+                        {(aiInsights.audience_insights.geographic_analysis.geographic_diversity_score * 100).toFixed(0)}%
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {aiInsights.audience_insights.geographic_analysis.geographic_diversity_score > 0.7
+                          ? 'Highly diverse audience across many regions'
+                          : aiInsights.audience_insights.geographic_analysis.geographic_diversity_score > 0.4
+                          ? 'Moderately diverse geographic reach'
+                          : 'Concentrated in a few regions'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* International Reach */}
+                {aiInsights.audience_insights.geographic_analysis?.international_reach != null && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">International Reach</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={aiInsights.audience_insights.geographic_analysis.international_reach ? "default" : "secondary"}>
+                          {aiInsights.audience_insights.geographic_analysis.international_reach ? 'Global' : 'Local'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {aiInsights.audience_insights.geographic_analysis.international_reach
+                          ? 'Audience spans multiple countries'
+                          : 'Audience concentrated in one country'}
+                      </p>
+                      {aiInsights.audience_insights.geographic_analysis.geographic_reach && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {aiInsights.audience_insights.geographic_analysis.geographic_reach}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
 
               {/* Demographic Insights - Age Distribution */}
               {aiInsights.audience_insights.demographic_insights &&
@@ -2328,7 +2547,13 @@ export default function CampaignDetailsPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-semibold truncate">{creator.full_name || creator.username}</h4>
+                            {(creator as any).is_verified && (
+                              <BadgeCheck className="h-4 w-4 text-blue-500 shrink-0" />
+                            )}
                             <span className="text-sm text-muted-foreground">@{creator.username}</span>
+                            {(creator as any).detected_country && (
+                              <span className="text-xs">{(creator as any).detected_country === 'AE' ? '🇦🇪' : (creator as any).detected_country === 'SA' ? '🇸🇦' : '🌍'}</span>
+                            )}
                           </div>
 
                           {/* Metrics row */}
@@ -2336,7 +2561,49 @@ export default function CampaignDetailsPage() {
                             <span>{formatNumber(creator.followers_count)} followers</span>
                             <span>{creator.posts_in_campaign} post{creator.posts_in_campaign !== 1 ? "s" : ""}</span>
                             <span>{creator.avg_engagement_rate.toFixed(2)}% engagement</span>
+                            {(creator as any).total_likes > 0 && (
+                              <span>{formatNumber((creator as any).total_likes)} likes</span>
+                            )}
+                            {(creator as any).total_comments > 0 && (
+                              <span>{formatNumber((creator as any).total_comments)} comments</span>
+                            )}
                           </div>
+
+                          {/* Content categories */}
+                          {(creator as any).ai_top_3_categories && (creator as any).ai_top_3_categories.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {(creator as any).ai_top_3_categories.slice(0, 3).map((cat: any) => (
+                                <Badge key={cat.category} variant="secondary" className="text-[10px]">
+                                  {cat.category} {cat.percentage ? `${cat.percentage.toFixed(0)}%` : ''}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Additional metrics row */}
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-2">
+                            {(creator as any).following_count > 0 && (
+                              <span>{formatNumber((creator as any).following_count)} following (ratio: {((creator.followers_count / ((creator as any).following_count || 1))).toFixed(1)})</span>
+                            )}
+                            {(creator as any).ai_content_quality_score > 0 && (
+                              <span>Quality: {((creator as any).ai_content_quality_score * 100).toFixed(0)}%</span>
+                            )}
+                            {(creator as any).added_at && (
+                              <span>Added {new Date((creator as any).added_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            )}
+                          </div>
+
+                          {/* FOC Products */}
+                          {(creator as any).foc_products && (creator as any).foc_products.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {(creator as any).foc_products.map((product: any, i: number) => (
+                                <Badge key={i} variant="outline" className="text-[10px]">
+                                  {typeof product === 'string' ? product : product.name || product.product_name || 'FOC'}
+                                  {product.quantity ? ` x${product.quantity}` : ''}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
 
                           {/* Enhanced fields row */}
                           <div className="flex flex-wrap gap-2 items-center">
@@ -2885,8 +3152,7 @@ https://instagram.com/reel/DEF456/
         </DialogContent>
       </Dialog>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
 
       {/* Image Cropper Dialog */}
       <ImageCropper

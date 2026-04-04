@@ -33,9 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { SiteHeader } from "@/components/site-header";
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { cn } from "@/lib/utils";
@@ -260,10 +258,7 @@ export default function CampaignContentPage() {
   if (!campaign) {
     return (
       <AuthGuard>
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <SiteHeader />
+        <BrandUserInterface>
             <div className="container mx-auto py-8 px-4">
               <div className="text-center py-12">
                 <p className="text-muted-foreground">Campaign not found</p>
@@ -272,8 +267,7 @@ export default function CampaignContentPage() {
                 </Button>
               </div>
             </div>
-          </SidebarInset>
-        </SidebarProvider>
+        </BrandUserInterface>
       </AuthGuard>
     );
   }
@@ -282,10 +276,7 @@ export default function CampaignContentPage() {
 
   return (
     <AuthGuard>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
 
           {/* Main Content */}
           <div className="flex-1 space-y-8 p-8 lg:p-12">
@@ -588,8 +579,7 @@ export default function CampaignContentPage() {
               </TabsContent>
             </Tabs>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     </AuthGuard>
   );
 }

@@ -401,46 +401,52 @@ export function CampaignCard({
             </div>
 
             {/* Metrics Grid - Show meaningful data for campaigns */}
-            <div className="grid grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-5 gap-3 mb-4">
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Total Reach</p>
-                <div className="flex items-center gap-1.5">
-                  <Eye className="h-4 w-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground mb-1">Reach</p>
+                <div className="flex items-center gap-1">
+                  <Eye className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-sm font-medium">
                     {campaign.total_reach ? formatNumber(campaign.total_reach) : '—'}
                   </span>
                 </div>
               </div>
               <div>
+                <p className="text-xs text-muted-foreground mb-1">Engagement</p>
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {campaign.engagement_rate ? `${campaign.engagement_rate.toFixed(1)}%` : '—'}
+                  </span>
+                </div>
+              </div>
+              <div>
                 <p className="text-xs text-muted-foreground mb-1">Creators</p>
-                <div className="flex items-center gap-1.5">
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-sm font-medium">
-                    {campaign.creators_count > 0 ? campaign.creators_count : 'None'}
+                    {campaign.creators_count > 0 ? campaign.creators_count : '—'}
                   </span>
                 </div>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Content</p>
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground mb-1">Posts</p>
+                <div className="flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-sm font-medium">
-                    {campaign.posts_count > 0
-                      ? `${campaign.posts_count} posts`
-                      : campaign.has_posts ? 'Added' : 'Pending'
+                    {campaign.posts_count > 0 ? campaign.posts_count : '—'}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Date</p>
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium">
+                    {campaign.start_date
+                      ? `${new Date(campaign.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${campaign.end_date ? ` – ${new Date(campaign.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}`
+                      : new Date(campaign.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                     }
-                  </span>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Created</p>
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {new Date(campaign.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric'
-                    })}
                   </span>
                 </div>
               </div>

@@ -1,32 +1,17 @@
 "use client"
 
 import { AuthGuard } from "@/components/AuthGuard"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import DiscoveryTab from "@/components/tabs/DiscoveryTab"
 
 export default function DiscoverPage() {
 
   return (
     <AuthGuard requireAuth={true}>
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 66)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
+    <BrandUserInterface>
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-            
+
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
@@ -41,8 +26,7 @@ export default function DiscoverPage() {
             <DiscoveryTab />
           </div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+    </BrandUserInterface>
     </AuthGuard>
   )
 }

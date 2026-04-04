@@ -19,8 +19,7 @@ import {
   Bell,
 } from "lucide-react"
 
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import {
   userSettingsService,
@@ -57,10 +56,6 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
 import {
   Dialog,
   DialogContent,
@@ -397,41 +392,20 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="flex flex-1 flex-col items-center justify-center p-4 md:p-6">
             <div className="text-center space-y-4">
               <Loader2 className="h-8 w-8 mx-auto animate-spin" />
               <p className="text-muted-foreground">Loading settings...</p>
             </div>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     )
   }
 
   if (loadError && !profile) {
     return (
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 66)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-      >
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="flex flex-1 flex-col items-center justify-center p-4 md:p-6">
             <div className="text-center space-y-4">
               <SettingsIcon className="h-8 w-8 mx-auto text-muted-foreground" />
@@ -442,23 +416,12 @@ export default function SettingsPage() {
               </Button>
             </div>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     )
   }
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 66)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
+    <BrandUserInterface>
         <div className="flex-1 space-y-4 p-4 md:p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-6">
@@ -1163,7 +1126,6 @@ export default function SettingsPage() {
             </TabsContent>
           </Tabs>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+    </BrandUserInterface>
   )
 }

@@ -7,9 +7,7 @@ import { useNotifications } from "@/contexts/NotificationContext"
 import { brandProposalViewApi } from "@/services/adminProposalMasterApi"
 import { toast } from "sonner"
 
-import { EnhancedAppSidebar } from "@/components/brand/EnhancedAppSidebar"
-import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { Badge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -124,28 +122,16 @@ export default function ProposalsPage() {
 
   if (authLoading) {
     return (
-      <SidebarProvider style={{ "--sidebar-width": "calc(var(--spacing) * 66)", "--header-height": "calc(var(--spacing) * 12)" } as React.CSSProperties}>
-        <EnhancedAppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
+      <BrandUserInterface>
           <div className="flex flex-1 items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+      </BrandUserInterface>
     )
   }
 
-  const sidebarStyle = {
-    "--sidebar-width": "calc(var(--spacing) * 66)",
-    "--header-height": "calc(var(--spacing) * 12)",
-  } as React.CSSProperties
-
   return (
-    <SidebarProvider style={sidebarStyle}>
-      <EnhancedAppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
+    <BrandUserInterface>
         <div className="flex flex-1 flex-col">
           <motion.div
             variants={proposalMotion.staggerContainer}
@@ -330,7 +316,6 @@ export default function ProposalsPage() {
             )}
           </motion.div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+    </BrandUserInterface>
   )
 }
