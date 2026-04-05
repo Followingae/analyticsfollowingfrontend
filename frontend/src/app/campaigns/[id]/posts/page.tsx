@@ -416,7 +416,7 @@ export default function CampaignDetailsPage() {
   const isViewOnly = campaign?.has_workflow === true && !isSuperadmin;
 
   // Export handler
-  const handleExport = async (format: 'csv' | 'json' = 'csv') => {
+  const handleExport = async (format: 'csv' | 'json' | 'pdf' = 'csv') => {
     try {
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
@@ -1736,6 +1736,7 @@ export default function CampaignDetailsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>Export PDF Report</DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExport('csv')}>Export CSV</DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExport('json')}>Export JSON</DropdownMenuItem>
             </DropdownMenuContent>
