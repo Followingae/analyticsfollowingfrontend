@@ -97,22 +97,40 @@ interface BackendCampaignPost {
   is_collaboration: boolean;
   total_creators: number; // 1 for solo posts, 2+ for collaborations
 
-  // AI Analysis (nullable for old posts)
+  // AI Analysis (nullable for old posts or pending analysis)
   ai_content_category: string | null;
   ai_sentiment: "positive" | "neutral" | "negative" | null;
   ai_language_code: string | null;
+  ai_category_confidence?: number;
+  ai_sentiment_score?: number;
+  ai_language_confidence?: number;
+
+  // Post metadata
+  hashtags?: string[];
+  mentions?: string[];
+  posted_at?: string | null;
 
   // Creator Info (Main Creator)
   creator_username: string;
   creator_full_name: string;
   creator_followers_count: number;
+  creator_following_count?: number;
   creator_profile_pic_url?: string | null;
   creator_profile_pic_url_hd?: string | null;
+  creator_is_verified?: boolean;
+  creator_detected_country?: string | null;
+  creator_biography?: string;
+  creator_ai_primary_content_type?: string | null;
+  creator_ai_content_distribution?: Record<string, number>;
+  creator_engagement_rate?: number;
+  creator_influence_score?: number;
+  creator_audience_demographics?: Record<string, any>;
 
   // Additional Metadata
   shortcode: string;
   added_at: string;
-  display_url?: string; // Fallback for thumbnail
+  display_url?: string;
+  instagram_post_url?: string;
 }
 
 interface BackendCampaignDetails {
@@ -1684,7 +1702,17 @@ export default function CampaignDetailsPage() {
                   </Button>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">{campaign.brand_name}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-sm text-muted-foreground">{campaign.brand_name}</span>
+                {campaign.campaign_type && (
+                  <Badge variant="outline" className="text-[10px] capitalize">{campaign.campaign_type}</Badge>
+                )}
+                {campaign.created_at && (
+                  <span className="text-xs text-muted-foreground">
+                    Created {new Date(campaign.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -2256,7 +2284,7 @@ export default function CampaignDetailsPage() {
           ) : (
             <>
           {/* Top Demographics */}
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-4">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium">Top Gender</CardTitle>
@@ -2290,6 +2318,32 @@ export default function CampaignDetailsPage() {
                     </p>
                   </>
                 )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Top Country</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{topCountry.name || 'N/A'}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Primary audience location
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Total Reach</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {audience?.total_reach ? (audience.total_reach >= 1000000 ? `${(audience.total_reach/1000000).toFixed(1)}M` : audience.total_reach >= 1000 ? `${(audience.total_reach/1000).toFixed(0)}K` : audience.total_reach) : 'N/A'}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Combined audience size
+                </p>
               </CardContent>
             </Card>
           </div>
