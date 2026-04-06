@@ -69,6 +69,7 @@ export default function CreatePaidDealPage() {
   const handleSubmit = async () => {
     if (!name.trim()) return toast.error("Campaign name is required")
     if (!selectedClientId) return toast.error("Select a client")
+    if (startDate && endDate && new Date(endDate) <= new Date(startDate)) return toast.error("End date must be after start date")
     if (payoutAed <= 0) return toast.error("Payout amount must be greater than 0")
 
     setSubmitting(true)

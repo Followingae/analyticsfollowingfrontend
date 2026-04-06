@@ -67,6 +67,7 @@ export default function CreateBarterPage() {
   const handleSubmit = async () => {
     if (!name.trim()) return toast.error("Campaign name is required")
     if (!selectedClientId) return toast.error("Select a client")
+    if (startDate && endDate && new Date(endDate) <= new Date(startDate)) return toast.error("End date must be after start date")
     const validItems = barterItems.filter((item) => item.name.trim())
     if (validItems.length === 0) return toast.error("Add at least one barter item")
 

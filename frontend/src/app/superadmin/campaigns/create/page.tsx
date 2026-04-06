@@ -142,6 +142,7 @@ export default function SuperadminCreateCampaignPage() {
     if (!campaignName.trim()) return toast.error("Campaign name is required")
     if (!selectedClientId) return toast.error("Select a client")
     if (!brandName.trim()) return toast.error("Brand name is required")
+    if (startDate && endDate && new Date(endDate) <= new Date(startDate)) return toast.error("End date must be after start date")
 
     // We need the user's ID (users.id) for the superadmin/create endpoint
     const userId = selectedClient?.brand_user_id || selectedClient?.id
