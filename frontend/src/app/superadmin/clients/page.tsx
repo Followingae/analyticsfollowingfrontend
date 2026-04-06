@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { SuperadminLayout } from '@/components/layouts/SuperadminLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -66,7 +67,8 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className="flex-1 space-y-6 p-6">
+    <SuperadminLayout>
+    <div className="flex-1 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -224,5 +226,6 @@ export default function ClientsPage() {
         </div>
       )}
     </div>
+    </SuperadminLayout>
   );
 }

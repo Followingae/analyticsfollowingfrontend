@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { SuperadminLayout } from '@/components/layouts/SuperadminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -144,7 +145,7 @@ export default function ClientDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 space-y-6 p-6">
+      <SuperadminLayout><div className="flex-1 space-y-6">
         <Skeleton className="h-8 w-48" />
         <div className="grid grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
@@ -163,7 +164,7 @@ export default function ClientDetailPage() {
   }
 
   return (
-    <div className="flex-1 space-y-6 p-6">
+    <SuperadminLayout><div className="flex-1 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.push('/superadmin/clients')}>
@@ -590,6 +591,6 @@ export default function ClientDetailPage() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </div></SuperadminLayout>
   );
 }
