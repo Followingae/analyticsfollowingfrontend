@@ -62,39 +62,35 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     }
   }, [user])
 
-  // ONLY items we have endpoints for
   const overviewItems = [
-    {
-      title: "Dashboard",
-      url: "/superadmin",
-      icon: BarChart3,
-    },
+    { title: "Dashboard", url: "/superadmin", icon: BarChart3 },
   ]
 
   const managementItems = [
-    {
-      title: "Clients",
-      url: "/superadmin/clients",
-      icon: Building2,
-    },
-    {
-      title: "Users",
-      url: "/admin/users",
-      icon: Users,
-    },
-    {
-      title: "Billing",
-      url: "/admin/billing",
-      icon: Coins,
-    },
-    {
-      title: "HRM",
-      url: "/admin/hrm",
-      icon: Briefcase,
-    },
+    { title: "Clients", url: "/superadmin/clients", icon: Building2 },
+    { title: "Users", url: "/superadmin/users", icon: Users },
+    { title: "Credits", url: "/superadmin/credits", icon: Coins },
   ]
 
-  const platformItems = [
+  const campaignItems = [
+    {
+      title: "Campaigns",
+      url: "/superadmin/campaigns",
+      icon: Megaphone,
+      items: [
+        { title: "All Campaigns", url: "/superadmin/campaigns" },
+        { title: "Create Campaign", url: "/superadmin/campaigns/create" },
+      ],
+    },
+    {
+      title: "Proposals",
+      url: "/superadmin/proposals",
+      icon: FileText,
+      items: [
+        { title: "All Proposals", url: "/superadmin/proposals" },
+        { title: "Create Proposal", url: "/superadmin/proposals/create" },
+      ],
+    },
     {
       title: "Influencer Database",
       url: "/superadmin/influencers",
@@ -104,22 +100,13 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         { title: "Add / Import", url: "/superadmin/influencers/add" },
       ],
     },
-    {
-      title: "Proposals",
-      url: "/superadmin/proposals",
-      icon: FileText,
-      items: [
-        { title: "Overview", url: "/superadmin/proposals" },
-        { title: "Create", url: "/superadmin/proposals/create" },
-      ],
-    },
   ]
 
   const followingAppItems = [
     { title: "Overview", url: "/superadmin/fa", icon: LayoutDashboard },
     { title: "Members", url: "/superadmin/fa/members", icon: Users },
     { title: "Merchants", url: "/superadmin/fa/merchants", icon: Store },
-    { title: "Campaigns", url: "/superadmin/fa/campaigns", icon: Megaphone },
+    { title: "FA Campaigns", url: "/superadmin/fa/campaigns", icon: Megaphone },
     { title: "Deliverables", url: "/superadmin/fa/deliverables", icon: ClipboardCheck },
     { title: "Withdrawals", url: "/superadmin/fa/withdrawals", icon: Banknote },
     { title: "Receipt Claims", url: "/superadmin/fa/receipt-claims", icon: Receipt },
@@ -170,11 +157,11 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Platform Section */}
+        {/* Campaigns & Proposals */}
         <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroupLabel>Campaigns</SidebarGroupLabel>
           <SidebarGroupContent>
-            <NavMain items={platformItems} />
+            <NavMain items={campaignItems} />
           </SidebarGroupContent>
         </SidebarGroup>
 
