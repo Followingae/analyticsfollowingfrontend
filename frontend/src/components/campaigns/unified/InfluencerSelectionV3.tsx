@@ -96,8 +96,11 @@ export function InfluencerSelectionV3({
     try {
       setIsLoading(true);
 
+      // Influencer selection happens via proposals — this component needs API integration
       const mockInfluencers: Influencer[] = [
-        {
+      ];
+      /* MOCK DATA REMOVED — was showing fake influencers in production
+      {
           id: "1",
           username: "sarah.creates",
           full_name: "Sarah Johnson",
@@ -181,9 +184,8 @@ export function InfluencerSelectionV3({
           verified: true,
           estimated_rate: { min: 1100, max: 1600 }
         }
-      ];
+      END MOCK DATA */
 
-      await new Promise(resolve => setTimeout(resolve, 600));
       setInfluencers(mockInfluencers);
     } catch (error) {
 

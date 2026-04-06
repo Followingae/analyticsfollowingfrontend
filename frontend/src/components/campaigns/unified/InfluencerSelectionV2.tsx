@@ -107,8 +107,9 @@ export function InfluencerSelectionV2({
   const fetchInfluencers = async () => {
     try {
       setIsLoading(true);
-      // Mock data for now
-      const mockInfluencers: Influencer[] = [
+      // MOCK DATA REMOVED — influencer selection happens via proposals
+      const mockInfluencers: Influencer[] = [];
+      /* REMOVED MOCK DATA
         {
           id: "1",
           username: "foodie_sarah",
@@ -234,7 +235,7 @@ export function InfluencerSelectionV2({
             best_performing_type: "Stories"
           }
         }
-      ];
+      END MOCK DATA */
 
       setInfluencers(mockInfluencers);
     } catch (error) {
