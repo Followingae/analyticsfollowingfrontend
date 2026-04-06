@@ -109,87 +109,8 @@ export function InfluencerSelection({
   const fetchInfluencers = async () => {
     try {
       setIsLoading(true);
-      // MOCK DATA REMOVED — influencer selection happens via proposals
-      const mockInfluencers: Influencer[] = [];
-      /* REMOVED MOCK DATA
-        {
-          id: "1",
-          username: "foodie_sarah",
-          full_name: "Sarah Johnson",
-          profile_picture_url: "https://picsum.photos/200/200?random=1",
-          follower_count: 125000,
-          following_count: 2800,
-          engagement_rate: 4.2,
-          avg_likes: 5200,
-          avg_comments: 180,
-          location: "Los Angeles, CA",
-          category: "Food & Lifestyle",
-          verified: true,
-          recent_posts: 24,
-          estimated_rate: { min: 800, max: 1200 },
-          audience_demographics: {
-            age_groups: { "18-24": 30, "25-34": 45, "35-44": 20, "45+": 5 },
-            gender: { "Female": 68, "Male": 32 },
-            top_countries: { "US": 72, "Canada": 15, "UK": 8, "Australia": 5 }
-          },
-          content_performance: {
-            avg_reach: 98000,
-            best_performing_type: "Reels"
-          }
-        },
-        {
-          id: "2",
-          username: "tech_mike",
-          full_name: "Mike Chen",
-          profile_picture_url: "https://picsum.photos/200/200?random=2",
-          follower_count: 89000,
-          following_count: 1200,
-          engagement_rate: 5.8,
-          avg_likes: 4100,
-          avg_comments: 320,
-          location: "San Francisco, CA",
-          category: "Technology",
-          verified: false,
-          recent_posts: 18,
-          estimated_rate: { min: 600, max: 900 },
-          audience_demographics: {
-            age_groups: { "18-24": 25, "25-34": 50, "35-44": 20, "45+": 5 },
-            gender: { "Male": 75, "Female": 25 },
-            top_countries: { "US": 65, "India": 12, "UK": 10, "Canada": 8, "Germany": 5 }
-          },
-          content_performance: {
-            avg_reach: 75000,
-            best_performing_type: "Posts"
-          }
-        },
-        {
-          id: "3",
-          username: "fashion_emma",
-          full_name: "Emma Rodriguez",
-          profile_picture_url: "https://picsum.photos/200/200?random=3",
-          follower_count: 234000,
-          following_count: 3400,
-          engagement_rate: 3.6,
-          avg_likes: 8400,
-          avg_comments: 280,
-          location: "New York, NY",
-          category: "Fashion & Beauty",
-          verified: true,
-          recent_posts: 32,
-          estimated_rate: { min: 1200, max: 1800 },
-          audience_demographics: {
-            age_groups: { "18-24": 40, "25-34": 35, "35-44": 20, "45+": 5 },
-            gender: { "Female": 82, "Male": 18 },
-            top_countries: { "US": 55, "Brazil": 12, "Mexico": 10, "UK": 8, "France": 7, "Spain": 8 }
-          },
-          content_performance: {
-            avg_reach: 187000,
-            best_performing_type: "Stories"
-          }
-        },
-      END MOCK DATA */
-
-      setInfluencers(mockInfluencers);
+      // Influencer selection happens via proposals — no direct search in this component
+      setInfluencers([]);
     } catch (error) {
 
     } finally {
