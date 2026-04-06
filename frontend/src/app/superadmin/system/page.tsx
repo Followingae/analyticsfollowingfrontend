@@ -12,6 +12,7 @@ import {
   ScrollText,
   Bell,
   Settings,
+  Workflow,
 } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
@@ -72,6 +73,14 @@ const systemSections = [
     icon: Bell,
     color: "text-orange-600 dark:text-orange-400",
     bg: "bg-orange-100 dark:bg-orange-900/40",
+  },
+  {
+    title: "Job Queue",
+    description: "View stuck post analytics jobs, clean up failed jobs, and monitor worker health",
+    href: "/superadmin/system/jobs",
+    icon: Workflow,
+    color: "text-cyan-600 dark:text-cyan-400",
+    bg: "bg-cyan-100 dark:bg-cyan-900/40",
   },
   {
     title: "Settings",

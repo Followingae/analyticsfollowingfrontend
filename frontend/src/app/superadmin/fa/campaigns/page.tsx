@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Card, CardContent } from "@/components/ui/card"
@@ -19,6 +20,7 @@ const TYPE_CONFIG: Record<string, { icon: any; label: string; color: string }> =
 }
 
 export default function FACampaignsPage() {
+  const router = useRouter()
   const [tab, setTab] = useState("all")
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -50,9 +52,17 @@ export default function FACampaignsPage() {
               <h1 className="text-2xl font-bold">FA Campaigns</h1>
               <p className="text-muted-foreground text-sm">Create and manage cashback, paid deal, and barter campaigns</p>
             </div>
-            <Link href="/superadmin/fa/campaigns/create">
-              <Button size="sm"><QrCode className="h-4 w-4 mr-1" />Create Cashback Campaign</Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/superadmin/fa/campaigns/create">
+                <Button size="sm" variant="default"><QrCode className="h-4 w-4 mr-1" />Cashback</Button>
+              </Link>
+              <Link href="/superadmin/fa/campaigns/create-paid-deal">
+                <Button size="sm" variant="outline">Paid Deal</Button>
+              </Link>
+              <Link href="/superadmin/fa/campaigns/create-barter">
+                <Button size="sm" variant="outline">Barter</Button>
+              </Link>
+            </div>
           </div>
 
           <Tabs value={tab} onValueChange={setTab}>
@@ -69,7 +79,7 @@ export default function FACampaignsPage() {
               const cfg = TYPE_CONFIG[c.campaign_type] || TYPE_CONFIG.cashback
               const Icon = cfg.icon
               return (
-                <Card key={c.id}>
+                <Card key={c.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push(`/campaigns/${c.id}/posts`)}>
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
