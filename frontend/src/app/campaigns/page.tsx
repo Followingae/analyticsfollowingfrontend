@@ -41,7 +41,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { CampaignCard, type CampaignCardData } from "@/components/campaigns/CampaignCard";
-import { CampaignAnalyticsCards } from "@/components/campaigns/CampaignAnalyticsCards";
+// CampaignAnalyticsCards removed — aggregating KPIs across campaigns is not industry practice
 import { ProposalOverviewCard } from "@/components/proposals/ProposalOverviewCard";
 import { brandProposalViewApi } from "@/services/adminProposalMasterApi";
 import { unifiedCampaignApi, type ScopeCampaign } from "@/services/clientManagementApi";
@@ -880,6 +880,21 @@ export default function UnifiedCampaignsDashboard() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [pendingProposalCount, setPendingProposalCount] = useState(0);
+
+  // Fetch pending proposal count for the banner
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const { brandProposalViewApi } = await import("@/services/adminProposalMasterApi");
+        const result = await brandProposalViewApi.listProposals() as any;
+        const proposals = result.proposals || [];
+        const pending = proposals.filter((p: any) => !["approved", "rejected"].includes(p.status));
+        setPendingProposalCount(pending.length);
+      } catch {}
+    };
+    fetchPendingCount();
+  }, []);
 
   const TYPE_FILTER_OPTIONS = [
     { value: "all", label: "All Types" },
@@ -894,10 +909,29 @@ export default function UnifiedCampaignsDashboard() {
     <AuthGuard>
       <BrandUserInterface>
         <div className="flex flex-col min-h-screen bg-background">
-          {/* Header with analytics */}
+          {/* Clean header */}
           <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-              <CampaignAnalyticsCards className="mt-6" />
+            <div className="flex flex-col gap-3 p-4 md:p-6">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Campaigns</h1>
+                <p className="text-sm text-muted-foreground">Track performance across all your influencer campaigns</p>
+              </div>
+              {pendingProposalCount > 0 && (
+                <div
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
+                  onClick={() => setActiveTab("proposals")}
+                >
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <FileText className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">
+                      {pendingProposalCount} proposal{pendingProposalCount !== 1 ? 's' : ''} waiting for your review
+                    </p>
+                    <p className="text-xs text-muted-foreground">Click to view and respond to proposals from your account manager</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
