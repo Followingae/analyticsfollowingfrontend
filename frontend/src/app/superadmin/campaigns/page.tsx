@@ -79,7 +79,7 @@ export default function SuperadminCampaignsPage() {
             <h1 className="text-2xl font-bold">All Campaigns</h1>
             <p className="text-muted-foreground text-sm">View and manage campaigns across all brands</p>
           </div>
-          <Button onClick={() => router.push("/campaigns/new")} size="sm">
+          <Button onClick={() => router.push("/superadmin/campaigns/create")} size="sm">
             <Plus className="h-4 w-4 mr-1" /> New Campaign
           </Button>
         </div>
