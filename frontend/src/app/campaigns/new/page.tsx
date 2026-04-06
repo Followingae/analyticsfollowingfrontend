@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Upload, X, Link as LinkIcon, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -40,6 +40,15 @@ interface CampaignPost {
 export default function NewCampaignPage() {
   const router = useRouter();
   const { user } = useEnhancedAuth();
+
+  // Only superadmins can create campaigns — brand users are managed via proposals
+  useEffect(() => {
+    if (user && user.role !== 'superadmin' && user.role !== 'super_admin' && user.role !== 'admin') {
+      toast.error("Campaign creation is managed by your account manager via proposals.");
+      router.replace('/campaigns');
+    }
+  }, [user, router]);
+
   const [campaignName, setCampaignName] = useState("");
   const [brandName, setBrandName] = useState("");
   const [description, setDescription] = useState("");

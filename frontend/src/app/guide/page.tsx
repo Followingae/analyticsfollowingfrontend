@@ -201,7 +201,7 @@ function useSections(): GuideSection[] {
                 { icon: <Filter className="h-4 w-4" />, text: 'Filter by campaign type and status to find exactly what you need.' },
                 { icon: <Search className="h-4 w-4" />, text: 'Search campaigns by name for quick access.' },
                 { icon: <ChevronRight className="h-4 w-4" />, text: 'Click any campaign to view its details, posts, creators, and analytics.' },
-                { icon: <Plus className="h-4 w-4" />, text: 'Create a new campaign with the "New Campaign" button.' },
+                { icon: <Plus className="h-4 w-4" />, text: 'Your account manager creates campaigns for you via proposals.' },
               ]}
             />
           </div>
@@ -686,8 +686,8 @@ function GettingStartedCards() {
     {
       icon: <Megaphone className="h-6 w-6" />,
       iconBg: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400',
-      title: 'Create Your First Campaign',
-      description: 'Head to the Campaigns page and click "New Campaign" to launch an influencer, UGC, or cashback campaign.',
+      title: 'Your Campaigns',
+      description: 'Visit the Campaigns page to view active campaigns and track performance. Your account manager will set up campaigns for you via proposals.',
       path: '/campaigns',
     },
     {

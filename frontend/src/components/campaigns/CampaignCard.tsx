@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { cn } from "@/lib/utils";
 import {
   TrendingUp,
@@ -54,6 +55,8 @@ export function CampaignCard({
   onAction
 }: CampaignCardProps) {
   const router = useRouter();
+  const { user: currentUser } = useEnhancedAuth();
+  const isSuperadminUser = currentUser?.role === 'superadmin' || currentUser?.role === 'super_admin' || currentUser?.role === 'admin';
   const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
 
   // Helper functions (extracted from ActiveCampaignsV2)
@@ -333,16 +336,18 @@ export function CampaignCard({
                         <Edit className="mr-2 h-4 w-4" />
                         Edit Campaign
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          duplicateCampaign(campaign);
-                        }}
-                        disabled={actionLoading[campaign.id] === 'duplicate'}
-                      >
-                        <Copy className="mr-2 h-4 w-4" />
-                        {actionLoading[campaign.id] === 'duplicate' ? 'Duplicating...' : 'Duplicate'}
-                      </DropdownMenuItem>
+                      {isSuperadminUser && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            duplicateCampaign(campaign);
+                          }}
+                          disabled={actionLoading[campaign.id] === 'duplicate'}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          {actionLoading[campaign.id] === 'duplicate' ? 'Duplicating...' : 'Duplicate'}
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator />
                       {campaign.status === "active" && (
                         <DropdownMenuItem

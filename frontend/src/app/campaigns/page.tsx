@@ -389,17 +389,9 @@ function AllCampaignsTab({
         description={
           searchQuery || typeFilter !== "all"
             ? "No campaigns match your filters. Try adjusting your search or type filter."
-            : "You don't have any campaigns yet. Create your first campaign to get started."
+            : "No campaigns yet \u2014 your campaigns will appear here when your account manager sends you a proposal."
         }
         icons={[Target, Users, FileText]}
-        action={
-          !searchQuery
-            ? {
-                label: "Create Campaign",
-                onClick: () => router.push("/campaigns/new"),
-              }
-            : undefined
-        }
       />
     );
   }
@@ -960,13 +952,7 @@ export default function UnifiedCampaignsDashboard() {
                       className="pl-10 h-10 w-full sm:w-64"
                     />
                   </div>
-                  <Button
-                    onClick={() => router.push("/campaigns/new")}
-                    className="gap-2 h-10"
-                  >
-                    <Plus className="h-4 w-4" />
-                    New Campaign
-                  </Button>
+                  {/* Campaign creation is managed by superadmin via proposals */}
                 </div>
               </div>
 
