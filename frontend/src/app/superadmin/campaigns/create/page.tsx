@@ -196,7 +196,9 @@ export default function SuperadminCreateCampaignPage() {
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify({ instagram_post_url: post.url }),
           })
-        } catch {}
+        } catch (postErr) {
+          toast.warning(`Failed to queue post: ${post.url.slice(0, 40)}...`)
+        }
       }
 
       toast.success("Campaign created successfully!")
@@ -418,9 +420,10 @@ export default function SuperadminCreateCampaignPage() {
                         <Plus className="h-4 w-4 mr-1" /> Add Post
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent aria-describedby="add-post-description">
                       <DialogHeader>
                         <DialogTitle>Add Instagram Post</DialogTitle>
+                        <p id="add-post-description" className="text-sm text-muted-foreground">Enter an Instagram post URL to track in this campaign</p>
                       </DialogHeader>
                       <div className="space-y-4 pt-4">
                         <div className="space-y-2">

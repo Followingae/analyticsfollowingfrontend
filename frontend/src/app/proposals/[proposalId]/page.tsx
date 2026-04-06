@@ -373,6 +373,10 @@ export default function BrandProposalViewPage() {
   }
 
   const handleApprove = async () => {
+    if (selectedIds.size === 0) {
+      toast.error("Please select at least one influencer before approving")
+      return
+    }
     setApproving(true)
     try {
       const result = await brandProposalViewApi.approveProposal(proposalId, {

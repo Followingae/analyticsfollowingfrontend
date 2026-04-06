@@ -48,7 +48,9 @@ export default function CreatePaidDealPage() {
         ])
         if (clientsRes.ok) { const d = await clientsRes.json(); setClients(d.data?.clients || d.clients || []) }
         if (poolsRes.ok) { const d = await poolsRes.json(); setAllPools(d.data?.pools || d.pools || []) }
-      } catch {}
+      } catch (err) {
+        toast.error("Failed to load clients or pools")
+      }
     }
     fetchData()
   }, [])
