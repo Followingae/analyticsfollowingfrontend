@@ -145,21 +145,25 @@ export default function ClientDetailPage() {
 
   if (loading) {
     return (
-      <SuperadminLayout><div className="flex-1 space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
+      <SuperadminLayout>
+        <div className="flex-1 space-y-6">
+          <Skeleton className="h-8 w-48" />
+          <div className="grid grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
+          </div>
+          <Skeleton className="h-[400px]" />
         </div>
-        <Skeleton className="h-[400px]" />
-      </div>
+      </SuperadminLayout>
     );
   }
 
   if (!client) {
     return (
-      <div className="flex-1 flex items-center justify-center p-6">
-        <p className="text-muted-foreground">Client not found</p>
-      </div>
+      <SuperadminLayout>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <p className="text-muted-foreground">Client not found</p>
+        </div>
+      </SuperadminLayout>
     );
   }
 
@@ -591,6 +595,7 @@ export default function ClientDetailPage() {
           )}
         </TabsContent>
       </Tabs>
-    </div></SuperadminLayout>
+    </div>
+    </SuperadminLayout>
   );
 }
