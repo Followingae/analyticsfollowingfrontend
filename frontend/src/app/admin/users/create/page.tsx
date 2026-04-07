@@ -91,7 +91,7 @@ function CreateUserContent() {
         console.error('Failed to parse auth tokens:', e)
       }
     }
-    const directToken = (tokenManager.getValidToken() || localStorage.getItem('access_token'));
+    const directToken = (tokenManager.getTokenSync() || localStorage.getItem('access_token'));
     if (!directToken || directToken === 'null' || directToken === 'undefined') {
       throw new Error('No valid authentication token found');
     }

@@ -38,7 +38,7 @@ export default function SuperadminCampaignsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
 
-  const getToken = () => tokenManager.getValidToken() || localStorage.getItem("access_token") || ""
+  const getToken = () => tokenManager.getTokenSync() || localStorage.getItem("access_token") || ""
 
   const fetchCampaigns = async () => {
     setLoading(true)

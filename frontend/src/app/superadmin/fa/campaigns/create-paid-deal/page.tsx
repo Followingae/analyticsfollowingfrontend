@@ -42,7 +42,7 @@ export default function CreatePaidDealPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = (tokenManager.getValidToken() || localStorage.getItem("access_token")) || ""
+        const token = (tokenManager.getTokenSync() || localStorage.getItem("access_token")) || ""
         const [clientsRes, poolsRes] = await Promise.all([
           fetch(`${API_BASE}/api/v1/admin/clients`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${API_BASE}/api/v1/admin/fa/pools`, { headers: { Authorization: `Bearer ${token}` } }),

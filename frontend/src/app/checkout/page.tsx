@@ -32,7 +32,7 @@ function CheckoutContent() {
       setError(null)
 
       // Check if user is authenticated
-      const token = (tokenManager.getValidToken() || localStorage.getItem('access_token'))
+      const token = (tokenManager.getTokenSync() || localStorage.getItem('access_token'))
       const authTokens = localStorage.getItem('auth_tokens')
 
       if (!token && !authTokens) {

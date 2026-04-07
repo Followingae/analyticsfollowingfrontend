@@ -30,7 +30,7 @@ class AdminAPIClient {
     }
 
     // Fallback to direct localStorage access
-    const token = (tokenManager.getValidToken() || localStorage.getItem('access_token'));
+    const token = (tokenManager.getTokenSync() || localStorage.getItem('access_token'));
 
     // CRITICAL: Never use empty string as fallback
     if (!token || token === 'null' || token === 'undefined' || token === '') {

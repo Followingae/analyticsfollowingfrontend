@@ -28,7 +28,7 @@ export default function JobQueuePage() {
   const [loading, setLoading] = useState(true)
   const [cleaning, setCleaning] = useState(false)
 
-  const getToken = () => (tokenManager.getValidToken() || localStorage.getItem("access_token")) || ""
+  const getToken = () => (tokenManager.getTokenSync() || localStorage.getItem("access_token")) || ""
 
   const fetchStuckJobs = async () => {
     setLoading(true)

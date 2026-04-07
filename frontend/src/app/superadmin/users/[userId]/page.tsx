@@ -194,7 +194,7 @@ export default function UserEditPage() {
     try {
       const res = await fetch(`${API_BASE}/api/v1/admin/billing/transactions?user_id=${userId}&page_size=10`, {
         headers: {
-          'Authorization': `Bearer ${(tokenManager.getValidToken() || localStorage.getItem('access_token')) || ''}`,
+          'Authorization': `Bearer ${(tokenManager.getTokenSync() || localStorage.getItem('access_token')) || ''}`,
           'Content-Type': 'application/json',
         }
       })
@@ -266,7 +266,7 @@ export default function UserEditPage() {
         const res = await fetch(`${API_BASE}/api/v1/admin/credits/remove`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${(tokenManager.getValidToken() || localStorage.getItem('access_token')) || ''}`,
+            'Authorization': `Bearer ${(tokenManager.getTokenSync() || localStorage.getItem('access_token')) || ''}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({

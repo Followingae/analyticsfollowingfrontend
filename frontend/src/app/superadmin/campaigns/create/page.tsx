@@ -154,7 +154,7 @@ export default function SuperadminCreateCampaignPage() {
     try {
       const { campaignApi } = await import("@/services/campaignApiComplete")
       const { tokenManager } = await import("@/utils/tokenManager")
-      const token = tokenManager.getValidToken() || localStorage.getItem("access_token") || ""
+      const token = tokenManager.getTokenSync() || localStorage.getItem("access_token") || ""
 
       // Create campaign
       const response = await campaignApi.createSuperadminCampaign({
