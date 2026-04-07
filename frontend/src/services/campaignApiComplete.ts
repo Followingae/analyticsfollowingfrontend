@@ -26,7 +26,9 @@ async function safeRequest<T>(fn: () => Promise<Response>): Promise<{ success: b
       const errorData = await response.json().catch(() => ({}));
       return { success: false, error: (errorData as any).detail || `Request failed with status ${response.status}` };
     }
-    const data = await response.json();
+    const json = await response.json();
+    // Backend wraps responses in { success, data } envelope — unwrap if present
+    const data = json?.data !== undefined ? json.data : json;
     return { success: true, data };
   } catch (error: any) {
     return { success: false, error: error?.message || 'Network error' };

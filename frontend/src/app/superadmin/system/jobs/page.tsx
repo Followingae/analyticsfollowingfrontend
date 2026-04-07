@@ -1,4 +1,5 @@
 "use client"
+import { tokenManager } from '@/utils/tokenManager'
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -27,7 +28,7 @@ export default function JobQueuePage() {
   const [loading, setLoading] = useState(true)
   const [cleaning, setCleaning] = useState(false)
 
-  const getToken = () => localStorage.getItem("access_token") || ""
+  const getToken = () => (tokenManager.getValidToken() || localStorage.getItem("access_token")) || ""
 
   const fetchStuckJobs = async () => {
     setLoading(true)

@@ -1,4 +1,5 @@
 "use client"
+import { tokenManager } from '@/utils/tokenManager'
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -38,7 +39,7 @@ export default function CreateBarterPage() {
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const token = localStorage.getItem("access_token") || ""
+        const token = (tokenManager.getValidToken() || localStorage.getItem("access_token")) || ""
         const res = await fetch(`${API_BASE}/api/v1/admin/clients`, { headers: { Authorization: `Bearer ${token}` } })
         if (res.ok) { const d = await res.json(); setClients(d.data?.clients || d.clients || []) }
       } catch (error) {

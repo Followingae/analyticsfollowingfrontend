@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Plus, Eye, Activity, CheckCircle2, Loader2, Megaphone } from "lucide-react"
 import { toast } from "sonner"
+import { tokenManager } from "@/utils/tokenManager"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.following.ae"
 
@@ -37,7 +38,7 @@ export default function SuperadminCampaignsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
 
-  const getToken = () => localStorage.getItem("access_token") || ""
+  const getToken = () => tokenManager.getValidToken() || localStorage.getItem("access_token") || ""
 
   const fetchCampaigns = async () => {
     setLoading(true)

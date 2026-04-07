@@ -1,4 +1,5 @@
 'use client'
+import { tokenManager } from '@/utils/tokenManager'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -31,7 +32,7 @@ function CheckoutContent() {
       setError(null)
 
       // Check if user is authenticated
-      const token = localStorage.getItem('access_token')
+      const token = (tokenManager.getValidToken() || localStorage.getItem('access_token'))
       const authTokens = localStorage.getItem('auth_tokens')
 
       if (!token && !authTokens) {

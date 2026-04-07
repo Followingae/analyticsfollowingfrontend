@@ -1,4 +1,5 @@
-'use client';
+'use client'
+import { tokenManager } from '@/utils/tokenManager';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -90,7 +91,7 @@ function CreateUserContent() {
         console.error('Failed to parse auth tokens:', e)
       }
     }
-    const directToken = localStorage.getItem('access_token');
+    const directToken = (tokenManager.getValidToken() || localStorage.getItem('access_token'));
     if (!directToken || directToken === 'null' || directToken === 'undefined') {
       throw new Error('No valid authentication token found');
     }

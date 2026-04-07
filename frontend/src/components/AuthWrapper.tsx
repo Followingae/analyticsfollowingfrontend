@@ -1,4 +1,5 @@
 "use client"
+import { tokenManager } from '@/utils/tokenManager'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -20,7 +21,7 @@ export function AuthWrapper({ children, fallback }: AuthWrapperProps) {
   useEffect(() => {
     // Check if we have a token in localStorage (check both new and legacy keys)
     const authTokens = localStorage.getItem('auth_tokens')
-    const legacyToken = localStorage.getItem('access_token')
+    const legacyToken = (tokenManager.getValidToken() || localStorage.getItem('access_token'))
     const hasToken = !!(authTokens && authTokens !== 'null') || !!(legacyToken && legacyToken !== 'null')
 
     if (!isLoading && !user && !hasToken) {
@@ -43,7 +44,7 @@ export function AuthWrapper({ children, fallback }: AuthWrapperProps) {
   }
 
   // Show authentication error with clear logout option
-  if (authError || (!user && !localStorage.getItem('auth_tokens') && !localStorage.getItem('access_token'))) {
+  if (authError || (!user && !localStorage.getItem('auth_tokens') && !(tokenManager.getValidToken() || localStorage.getItem('access_token')))) {
     return (
       <div className="flex h-screen items-center justify-center p-4">
         <div className="max-w-md w-full space-y-4">

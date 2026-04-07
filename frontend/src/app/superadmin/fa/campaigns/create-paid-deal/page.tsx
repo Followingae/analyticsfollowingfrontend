@@ -1,4 +1,5 @@
 "use client"
+import { tokenManager } from '@/utils/tokenManager'
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -41,7 +42,7 @@ export default function CreatePaidDealPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("access_token") || ""
+        const token = (tokenManager.getValidToken() || localStorage.getItem("access_token")) || ""
         const [clientsRes, poolsRes] = await Promise.all([
           fetch(`${API_BASE}/api/v1/admin/clients`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${API_BASE}/api/v1/admin/fa/pools`, { headers: { Authorization: `Bearer ${token}` } }),

@@ -1,4 +1,5 @@
-'use client';
+'use client'
+import { tokenManager } from '@/utils/tokenManager';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -259,7 +260,7 @@ export default function ClientDetailPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const token = localStorage.getItem('access_token');
+                  const token = (tokenManager.getValidToken() || localStorage.getItem('access_token'));
                   const yearParam = scopeYear && scopeYear !== 'all' ? `?year=${scopeYear}` : '';
                   window.open(
                     `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/admin/clients/${teamId}/export${yearParam}`,
