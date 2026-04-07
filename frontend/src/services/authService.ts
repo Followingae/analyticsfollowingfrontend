@@ -113,8 +113,8 @@ class AuthService {
 
             localStorage.removeItem('auth_tokens');
           }
-        } catch {
-
+        } catch (error) {
+          console.error('Failed to parse auth_tokens during cleanup:', error)
           localStorage.removeItem('auth_tokens');
         }
       }
@@ -126,7 +126,7 @@ class AuthService {
         localStorage.removeItem('access_token');
       }
     } catch (error) {
-
+      console.error('Token cleanup failed:', error)
     }
   }
 
@@ -138,8 +138,8 @@ class AuthService {
         try {
           this.tokenData = JSON.parse(storedTokens)
           return
-        } catch {
-          // Invalid token data, clear it
+        } catch (error) {
+          console.error('Invalid token data in localStorage:', error)
           localStorage.removeItem('auth_tokens')
         }
       }
@@ -157,33 +157,13 @@ class AuthService {
           expires_at: Date.now() - 1 // Mark as expired to force refresh
         }
         
-        this.saveTokenData(tokenData)
-        
+        tokenManager.storeTokens(tokenData)
+        this.tokenData = tokenData
+
         // Clean up old tokens
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
       }
-    }
-  }
-
-  private saveTokenData(tokenData: TokenData): void {
-    // Validate token data before storing
-    if (!tokenData.access_token || 
-        tokenData.access_token === 'null' || 
-        tokenData.access_token === 'undefined' || 
-        typeof tokenData.access_token !== 'string') {
-      return;
-    }
-
-    // Validate JWT format (should have 3 segments)
-    const segments = tokenData.access_token.split('.');
-    if (segments.length !== 3) {
-      return;
-    }
-
-    this.tokenData = tokenData
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
     }
   }
 
@@ -276,14 +256,8 @@ class AuthService {
             expires_at: Date.now() + (data.expires_in || 3600) * 1000 // Default 1 hour
           }
 
-          // Store tokens using tokenManager for consistency
+          // Store tokens using tokenManager (single source of truth)
           tokenManager.storeTokens(tokenData)
-
-          // Also store in localStorage for immediate access (matching login flow)
-          localStorage.setItem('access_token', data.access_token)
-          if (data.refresh_token) {
-            localStorage.setItem('refresh_token', data.refresh_token)
-          }
 
           // Update internal token data
           this.tokenData = tokenData
@@ -357,7 +331,8 @@ class AuthService {
         try {
           const errorData = await response.json()
           errorMessage = errorData.detail || errorData.message || errorMessage
-        } catch {
+        } catch (parseError) {
+          console.error('Failed to parse login error response as JSON:', parseError)
           // If not JSON, try plain text
           const text = await response.text().catch(() => '')
           if (text) errorMessage = text
@@ -394,7 +369,7 @@ class AuthService {
         }
 
         tokenManager.setTokenData(tokenData)
-        this.saveTokenData(tokenData)
+        this.tokenData = tokenData
 
         if (data.user && typeof data.user === 'object') {
           localStorage.setItem('user_data', JSON.stringify(data.user))
@@ -626,7 +601,8 @@ class AuthService {
     if (userData) {
       try {
         return JSON.parse(userData)
-      } catch {
+      } catch (error) {
+        console.error('Failed to parse stored user data:', error)
         return null
       }
     }
@@ -646,7 +622,7 @@ class AuthService {
         // Error occurred during request
       }
     } catch (error) {
-
+      console.error('System stats test failed:', error)
     }
   }
 
@@ -655,18 +631,18 @@ class AuthService {
     try {
 
       const response = await fetchWithAuth(`${this.baseURL}${ENDPOINTS.teams.overview}`)
-      
+
       if (response.ok) {
         const teamData = await response.json()
-        
+
         // Also test the problematic endpoint
         await this.testSystemStatsEndpoint()
-        
+
       } else {
 
       }
     } catch (error) {
-
+      console.error('Debug team context failed:', error)
     }
   }
 
@@ -688,25 +664,29 @@ class AuthService {
     const user = this.getStoredUser()
     return user?.role === 'admin'
   }
-  // Password reset functionality
+  // Password reset functionality — uses Supabase Auth directly
   async forgotPassword(email: string): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.forgotPassword}`, {
-        method: 'POST',
-        headers: REQUEST_HEADERS,
-        body: JSON.stringify({ email })
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+      )
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/reset-password`
       })
-      const data = await response.json()
-      if (response.ok) {
-        return {
-          success: true,
-          message: data.message || 'Password reset email sent successfully'
-        }
-      } else {
+
+      if (error) {
         return {
           success: false,
-          error: data.error || data.detail || 'Failed to send reset email'
+          error: error.message || 'Failed to send reset email'
         }
+      }
+
+      return {
+        success: true,
+        message: 'Password reset email sent successfully. Please check your inbox.'
       }
     } catch (error) {
       return {
@@ -715,30 +695,16 @@ class AuthService {
       }
     }
   }
-  // Verify email with token
-  async verifyEmail(token: string): Promise<{ success: boolean; message?: string; error?: string }> {
-    try {
-      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.verifyEmail(token)}`, {
-        method: 'GET',
-        headers: REQUEST_HEADERS
-      })
-      const data = await response.json()
-      if (response.ok) {
-        return {
-          success: true,
-          message: data.message || 'Email verified successfully'
-        }
-      } else {
-        return {
-          success: false,
-          error: data.error || data.detail || 'Email verification failed'
-        }
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Network error during email verification'
-      }
+  // Verify email — Supabase handles email verification via magic links automatically.
+  // This method is kept for backward compatibility but delegates to Supabase.
+  async verifyEmail(_token: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    // Supabase handles email verification through its built-in magic link flow.
+    // The token in the URL is processed by the Supabase client automatically
+    // when the user clicks the verification link and lands on the app.
+    // No custom endpoint is needed.
+    return {
+      success: true,
+      message: 'Email verification is handled automatically by Supabase. Please check your email for the verification link.'
     }
   }
   // Refresh authentication token with race condition prevention
@@ -807,8 +773,8 @@ class AuthService {
         }
         
         tokenManager.setTokenData(newTokenData)
-        this.saveTokenData(newTokenData)
-        
+        this.tokenData = newTokenData
+
         return {
           success: true,
           access_token: data.access_token

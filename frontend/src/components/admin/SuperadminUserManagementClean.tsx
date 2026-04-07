@@ -1,3 +1,5 @@
+// DEPRECATED: Use SuperadminUserManagement (src/components/admin/SuperadminUserManagement.tsx) instead.
+// This file is scheduled for deletion. It is not imported by any page or component.
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -95,7 +97,7 @@ export default function SuperadminUserManagementClean() {
       const stats = await superadminService.getDashboardStats();
       setDashboardStats(stats);
     } catch (error) {
-
+      console.error('Failed to load dashboard stats:', error)
     }
   };
 
@@ -103,8 +105,13 @@ export default function SuperadminUserManagementClean() {
     setLoading(true);
     try {
       const response = await superadminService.getUsers(page, pageSize, search || undefined);
-      setUsers(response.users || []);
-      setTotalPages(Math.ceil((response.total || 0) / pageSize));
+
+      // Handle both response shapes: { users, total } or { data: { users, total_count } }
+      const usersList = response?.data?.users || response?.users || [];
+      const totalCount = response?.data?.total_count || response?.data?.total || response?.total || 0;
+
+      setUsers(usersList);
+      setTotalPages(Math.ceil(totalCount / pageSize));
     } catch (error) {
 
       toast.error('Failed to load users');
@@ -145,8 +152,19 @@ export default function SuperadminUserManagementClean() {
         break;
       case 'send-password-reset':
         try {
-          // Implement password reset
-          toast.success('Password reset email sent');
+          const { createClient } = await import('@supabase/supabase-js');
+          const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+          );
+          const { error: resetError } = await supabase.auth.resetPasswordForEmail(user.email, {
+            redirectTo: `${window.location.origin}/auth/reset-password`
+          });
+          if (resetError) {
+            toast.error(`Failed to send password reset: ${resetError.message}`);
+          } else {
+            toast.success(`Password reset email sent to ${user.email}`);
+          }
         } catch (error) {
           toast.error('Failed to send password reset');
         }
@@ -162,9 +180,8 @@ export default function SuperadminUserManagementClean() {
   const getTierLimit = (tier?: string) => {
     const limits: Record<string, number> = {
       free: 125,
-      standard: 12500,
-      premium: 50000,
-      enterprise: 50000,
+      standard: 8750,
+      premium: 25000,
     };
     return limits[tier || 'free'] || 125;
   };
@@ -223,7 +240,7 @@ export default function SuperadminUserManagementClean() {
                 <div>
                   <p className="text-sm text-muted-foreground">Monthly Revenue</p>
                   <p className="text-2xl font-semibold mt-1">
-                    ${(dashboardStats.total_revenue_this_month / 100).toLocaleString()}
+                    د.إ{(dashboardStats.total_revenue_this_month / 100).toLocaleString()}
                   </p>
                 </div>
                 <Users className="h-8 w-8 text-muted-foreground" />

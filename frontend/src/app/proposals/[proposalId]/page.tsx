@@ -9,6 +9,7 @@ import {
 } from "@/services/adminProposalMasterApi"
 import { toast } from "sonner"
 import { useNotifications } from "@/contexts/NotificationContext"
+import { AuthGuard } from "@/components/AuthGuard"
 
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { Badge } from "@/components/ui/badge"
@@ -133,7 +134,7 @@ function DraggableGridCard({
 // ---------------------------------------------------------------------------
 // Page component
 // ---------------------------------------------------------------------------
-export default function BrandProposalViewPage() {
+function BrandProposalViewPageContent() {
   const params = useParams<{ proposalId: string }>()
   const proposalId = params.proposalId
   const router = useRouter()
@@ -911,5 +912,13 @@ export default function BrandProposalViewPage() {
           </AlertDialogContent>
         </AlertDialog>
     </BrandUserInterface>
+  )
+}
+
+export default function BrandProposalViewPage() {
+  return (
+    <AuthGuard requireAuth={true}>
+      <BrandProposalViewPageContent />
+    </AuthGuard>
   )
 }

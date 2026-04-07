@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { EnhancedUser, UserRole, PermissionType, FeatureAccess, SessionContext } from '@/types/auth'
 import { API_CONFIG } from '@/config/api'
 import { toast } from 'sonner'
+import { tokenManager } from '@/utils/tokenManager'
+import { creditsApiService } from '@/services/creditsApi'
 
 interface EnhancedAuthContextType extends SessionContext {
   user: EnhancedUser | null
@@ -120,7 +122,7 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
   const [lastActivity, setLastActivity] = useState<Date>(new Date())
   const [sessionTimeout] = useState<number>(30 * 60 * 1000) // 30 minutes
-  const [sessionTimeoutEnabled, setSessionTimeoutEnabled] = useState(false) // Disable initially
+  const [sessionTimeoutEnabled, setSessionTimeoutEnabled] = useState(false) // Enable after auth sync
 
   // Move timeout to useEffect to avoid React warnings
 
@@ -134,29 +136,35 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
         const enhancedUser = enhanceUserData(basicUser)
         setUser(enhancedUser)
         setDashboardStats(basicDashboardStats)
+        setSessionTimeoutEnabled(true) // Enable timeout once authenticated
       } else {
         setUser(null)
         setDashboardStats(null)
+        setSessionTimeoutEnabled(false)
       }
     }
   }, [basicUser, basicIsAuthenticated, basicIsLoading, basicDashboardStats])
 
-  // Disable session timeout temporarily to fix login redirect loop
-  // useEffect(() => {
-  //   if (!sessionTimeoutEnabled) return
-  //   const interval = setInterval(() => {
-  //     const now = new Date()
-  //     if (user && now.getTime() - lastActivity.getTime() > sessionTimeout) {
-  //       handleSessionTimeout()
-  //     }
-  //   }, 60000)
-  //   return () => clearInterval(interval)
-  // }, [user, lastActivity, sessionTimeout, sessionTimeoutEnabled])
+  // Session timeout — 30 minutes of inactivity logs the user out
+  useEffect(() => {
+    if (!sessionTimeoutEnabled) return
+    const interval = setInterval(() => {
+      // Only apply session timeout if user is on authenticated pages (not login/register)
+      if (window.location.pathname.startsWith('/auth/') || window.location.pathname === '/login') {
+        return; // Don't timeout on auth pages
+      }
+      const now = new Date()
+      if (user && now.getTime() - lastActivity.getTime() > sessionTimeout) {
+        handleSessionTimeout()
+      }
+    }, 60000)
+    return () => clearInterval(interval)
+  }, [user, lastActivity, sessionTimeout, sessionTimeoutEnabled])
 
-  // const handleSessionTimeout = () => {
-  //   toast.warning('Session expired. Please log in again.')
-  //   logout()
-  // }
+  const handleSessionTimeout = () => {
+    toast.warning('Session expired. Please log in again.')
+    logout()
+  }
 
   const updateActivity = () => {
     setLastActivity(new Date())
@@ -297,15 +305,15 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
         // Handle new enhanced response format
         if (data.access_token || data.user) {
-          // Store tokens in the format TokenManager expects
+          // Store tokens via tokenManager (single source of truth)
           if (data.access_token) {
             const tokenData = {
               access_token: data.access_token,
-              refresh_token: data.refresh_token || undefined,
+              refresh_token: data.refresh_token || '',
               token_type: 'bearer',
               expires_at: Date.now() + (24 * 60 * 60 * 1000)
             }
-            localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
+            tokenManager.storeTokens(tokenData)
           }
 
           // Update auth state with enhanced user and persist
@@ -323,7 +331,9 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
         // Fall back to basic registration
         return await basicRegister(email, password, fullName);
       }
-    } catch {
+    } catch (error: any) {
+      console.error('Registration failed:', error);
+      toast.error(error?.message || 'Registration failed. Please try again.');
       return false;
     }
   }
@@ -351,15 +361,15 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
 
       const data = await response.json();
 
-      // Store tokens in the format TokenManager expects
+      // Store tokens via tokenManager (single source of truth)
       if (data.access_token) {
         const tokenData = {
           access_token: data.access_token,
-          refresh_token: data.refresh_token || undefined,
+          refresh_token: data.refresh_token || '',
           token_type: 'bearer',
           expires_at: Date.now() + (24 * 60 * 60 * 1000)
         }
-        localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
+        tokenManager.storeTokens(tokenData)
       }
 
       // Update auth state with new user and persist
@@ -370,7 +380,9 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
       }
 
       return true;
-    } catch {
+    } catch (error: any) {
+      console.error('Registration with payment failed:', error);
+      toast.error(error?.message || 'Payment verification failed. Please try again.');
       return false;
     }
   }
@@ -514,13 +526,33 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
       return { allowed: false, reason: 'Not authenticated' }
     }
 
-    // TODO: Implement actual credit checking logic
-    // For now, allow all actions for admins
+    // Admins bypass credit checks
     if (user.role === 'super_admin' || user.role === 'admin') {
       return { allowed: true, credit_cost: 0 }
     }
 
-    return { allowed: true, credit_cost: cost }
+    // Fetch actual credit balance and check against cost
+    try {
+      const balanceResult = await creditsApiService.getBalance()
+      if (balanceResult.success && balanceResult.data) {
+        const balance = balanceResult.data.current_balance
+        if (balance >= cost) {
+          return { allowed: true, credit_cost: cost }
+        } else {
+          return {
+            allowed: false,
+            reason: `Insufficient credits. You have ${balance} credits but this action requires ${cost}.`,
+            credit_cost: cost
+          }
+        }
+      }
+      // If balance fetch fails, fail-open (backend enforces)
+      return { allowed: true, credit_cost: cost }
+    } catch (error) {
+      console.error('Credit gate check failed:', error)
+      // Network error — fail-open since backend enforces credit checks
+      return { allowed: true, credit_cost: cost }
+    }
   }
 
   const checkSubscriptionGate = (requiredTier: string): boolean => {

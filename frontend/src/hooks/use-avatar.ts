@@ -45,14 +45,16 @@ export function useAvatarUpload() {
     mutationFn: async (file: File): Promise<UploadAvatarResponse> => {
       const { tokenManager } = await import('@/utils/tokenManager');
       const tokenResult = await tokenManager.getValidToken();
+      const token = tokenResult.isValid ? tokenResult.token : null;
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/v1/user/avatar/upload', {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.followinganalytics.com';
+      const response = await fetch(`${apiBase}/api/v1/settings/upload-logo`, {
         method: 'POST',
         body: formData,
         headers: {
-          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           'Accept': 'application/json',
         },
       });

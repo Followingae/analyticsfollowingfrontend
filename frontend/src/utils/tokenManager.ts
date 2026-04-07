@@ -71,7 +71,7 @@ class TokenManager {
 
           }
         } catch (error) {
-
+          console.error('Failed to parse auth_tokens from localStorage:', error)
           localStorage.removeItem('auth_tokens')
         }
       }
@@ -90,7 +90,7 @@ class TokenManager {
         localStorage.removeItem('access_token')
       }
     } catch (error) {
-
+      console.error('Token initialization from storage failed:', error)
       this.clearAllTokens()
     }
   }
@@ -134,7 +134,7 @@ class TokenManager {
           localStorage.removeItem('auth_tokens')
         }
       } catch (e) {
-
+        console.error('Failed to validate auth_tokens JSON:', e)
         localStorage.removeItem('auth_tokens')
       }
     }
@@ -258,7 +258,7 @@ class TokenManager {
       }
 
     } catch (error) {
-
+      console.error('Token refresh failed:', error)
       this.clearAllTokens()
       this.notifySubscribers(null)
       
@@ -303,7 +303,7 @@ class TokenManager {
       localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
       localStorage.setItem('user_last_updated', Date.now().toString())
     } catch (error) {
-
+      console.error('Failed to save token data to localStorage:', error)
     }
   }
 
@@ -349,7 +349,7 @@ class TokenManager {
       try {
         callback(token)
       } catch (error) {
-
+        console.error('Token subscriber notification failed:', error)
       }
     })
   }

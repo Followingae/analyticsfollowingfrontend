@@ -6,6 +6,7 @@ import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { useNotifications } from "@/contexts/NotificationContext"
 import { brandProposalViewApi } from "@/services/adminProposalMasterApi"
 import { toast } from "sonner"
+import { AuthGuard } from "@/components/AuthGuard"
 
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { Badge } from "@/components/ui/badge"
@@ -53,7 +54,7 @@ interface ProposalListItem {
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
-export default function ProposalsPage() {
+function ProposalsPageContent() {
   const { user, loading: authLoading, hasRole } = useEnhancedAuth()
   const router = useRouter()
   const { markReadByReference } = useNotifications()
@@ -317,5 +318,13 @@ export default function ProposalsPage() {
           </motion.div>
         </div>
     </BrandUserInterface>
+  )
+}
+
+export default function ProposalsPage() {
+  return (
+    <AuthGuard requireAuth={true}>
+      <ProposalsPageContent />
+    </AuthGuard>
   )
 }

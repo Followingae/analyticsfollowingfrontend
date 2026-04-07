@@ -131,13 +131,8 @@ export default function EditUserModal({ userId, user: initialUser, onClose, onSu
   const fetchUserDetails = async () => {
     setLoading(true);
     try {
-      // Try to fetch individual user details
-      // If endpoint doesn't exist, use the passed data
-      const response = await fetch(`/api/v1/admin/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${getAuthToken()}`
-        }
-      });
+      const { fetchWithAuth } = await import('@/utils/apiInterceptor');
+      const response = await fetchWithAuth(`/api/v1/admin/users/${userId}`);
 
       if (!response.ok) {
         // If GET endpoint doesn't exist, we need the user data from parent
@@ -278,14 +273,6 @@ export default function EditUserModal({ userId, user: initialUser, onClose, onSu
     }
 
     return errors;
-  };
-
-  const getAuthToken = () => {
-    const token = localStorage.getItem('access_token');
-    if (!token || token === 'null' || token === 'undefined') {
-      throw new Error('No valid authentication token found');
-    }
-    return token;
   };
 
   const formatDateTime = (dateString?: string | null) => {

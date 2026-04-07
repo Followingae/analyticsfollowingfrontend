@@ -201,8 +201,8 @@ export default function UserEditPage() {
         const data = await res.json()
         setTransactions(data.transactions || [])
       }
-    } catch {
-      // Non-critical — silently fail
+    } catch (error) {
+      console.error('Failed to load user transactions:', error)
     }
   }
 
@@ -327,7 +327,8 @@ export default function UserEditPage() {
     if (!dateString) return '—'
     try {
       return format(new Date(dateString), 'MMM d, yyyy h:mm a')
-    } catch {
+    } catch (error) {
+      console.error('Date format error:', error)
       return '—'
     }
   }

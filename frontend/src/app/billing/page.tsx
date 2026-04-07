@@ -689,7 +689,8 @@ function InvoicesTab() {
       if (!response.ok) throw new Error('Failed to fetch invoices')
       const data = await response.json()
       setInvoices(data.invoices || [])
-    } catch {
+    } catch (error) {
+      console.error('Failed to load invoices:', error)
       toast.error('Failed to load invoice history')
       setInvoices([])
     } finally {
@@ -866,8 +867,8 @@ function CashbackPoolTab() {
             distributed: data.distributed ?? 0,
           })
         }
-      } catch {
-        // API not available yet — use defaults
+      } catch (error) {
+        console.error('Billing API not available:', error)
       }
 
       try {
@@ -879,8 +880,8 @@ function CashbackPoolTab() {
           const txData = await txResponse.json()
           setTransactions(txData.transactions || [])
         }
-      } catch {
-        // API not available yet — use defaults
+      } catch (error) {
+        console.error('Billing API not available:', error)
       }
     } finally {
       setLoading(false)

@@ -25,8 +25,8 @@ class AdminAPIClient {
       if (tokenResult.isValid && tokenResult.token) {
         return tokenResult.token;
       }
-    } catch {
-      // TokenManager failed, falling back to localStorage
+    } catch (error) {
+      console.error('TokenManager token retrieval failed, falling back to localStorage:', error)
     }
 
     // Fallback to direct localStorage access
@@ -87,8 +87,8 @@ class AdminAPIClient {
               return await retryResponse.json();
             }
           }
-        } catch {
-          // Token refresh failed
+        } catch (refreshError) {
+          console.error('Admin API token refresh failed:', refreshError)
         }
 
         // Auth failed, redirect to login
@@ -152,8 +152,8 @@ class AdminAPIClient {
   // Credit operations
   async adjustCredits(userId: string, amount: number, operation: 'add' | 'remove', reason: string) {
     const endpoint = operation === 'add'
-      ? '/api/v1/admin/superadmin/credits/add'
-      : '/api/v1/admin/superadmin/credits/remove';
+      ? '/api/v1/admin/credits/add'
+      : '/api/v1/admin/credits/remove';
 
     return this.request(endpoint, {
       method: 'POST',
@@ -197,10 +197,9 @@ class AdminAPIClient {
   // Activity log
   async getUserActivity(userId: string, page = 1, pageSize = 50) {
     const params = new URLSearchParams();
-    params.append('page', page.toString());
-    params.append('page_size', pageSize.toString());
+    params.append('limit', pageSize.toString());
 
-    return this.request(`/api/v1/admin/users/${userId}/activity?${params.toString()}`);
+    return this.request(`/api/v1/admin/users/${userId}/activities?${params.toString()}`);
   }
 }
 

@@ -77,7 +77,8 @@ function ResetPasswordContent() {
       toast.success('Password updated successfully')
 
       setTimeout(() => router.push('/auth/login'), 2000)
-    } catch {
+    } catch (error) {
+      console.error('Password reset failed:', error)
       setError('Something went wrong. Please request a new reset link.')
     } finally {
       setIsLoading(false)

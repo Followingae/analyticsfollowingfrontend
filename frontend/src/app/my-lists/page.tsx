@@ -220,7 +220,7 @@ function MyListsContent() {
       const templatesResponse = await listsApiService.getListTemplates()
       setTemplates(templatesResponse)
     } catch (err) {
-
+      console.error('Failed to load list templates:', err)
     }
   }
 
@@ -416,7 +416,7 @@ function MyListsContent() {
       setListPerformance(performance)
       setActivityLog(activity)
     } catch (err) {
-
+      console.error('Failed to load list analytics:', err)
     }
   }
 

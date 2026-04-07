@@ -46,8 +46,8 @@ export default function RegisterForm() {
       if (success) {
         router.push('/dashboard')
       }
-    } catch (error) {
-
+    } catch (error: any) {
+      toast.error(error?.message || 'Registration failed. Please try again.')
     } finally {
       setIsLoading(false)
     }

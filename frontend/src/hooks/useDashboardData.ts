@@ -58,7 +58,7 @@ export const useDashboardData = () => {
               }
             }
           } catch (ctxError) {
-
+            console.error('Dashboard context fallback failed:', ctxError)
           }
 
           // Both endpoints failed — use hardcoded Free tier as last resort

@@ -137,6 +137,7 @@ export default function PricingPage() {
         setPricing(data)
       }
     } catch (err) {
+      console.error('Failed to fetch pricing data:', err)
     } finally {
       setLoading(false)
     }

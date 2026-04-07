@@ -62,6 +62,7 @@ export default function NewCampaignPage() {
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ROLE-BASED FLOW DETECTION (NO MORE USER CHOICE)
   const isSuperadmin = user?.role === 'superadmin';
@@ -163,6 +164,9 @@ export default function NewCampaignPage() {
       toast.error("Please enter the user ID for whom you're creating this campaign");
       return;
     }
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     // Show loading toast
     const loadingToast = toast.loading("Creating campaign...");
@@ -307,6 +311,8 @@ export default function NewCampaignPage() {
       toast.dismiss(loadingToast);
       const errorMessage = error instanceof Error ? error.message : "Failed to create campaign";
       toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -651,9 +657,9 @@ export default function NewCampaignPage() {
           </Button>
           <Button
             type="submit"
-            disabled={!campaignName || !brandName || (isSuperadmin && !targetUserId)}
+            disabled={isSubmitting || !campaignName || !brandName || (isSuperadmin && !targetUserId)}
           >
-            {isSuperadmin ? 'Create Managed Campaign' : 'Create My Campaign'}
+            {isSubmitting ? 'Creating...' : isSuperadmin ? 'Create Managed Campaign' : 'Create My Campaign'}
           </Button>
         </div>
         </>

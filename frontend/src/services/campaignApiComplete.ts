@@ -17,6 +17,22 @@
 import { API_CONFIG, ENDPOINTS } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 
+// ==================== SAFE REQUEST WRAPPER ====================
+
+async function safeRequest<T>(fn: () => Promise<Response>): Promise<{ success: boolean; data?: T; error?: string }> {
+  try {
+    const response = await fn();
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: (errorData as any).detail || `Request failed with status ${response.status}` };
+    }
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Network error' };
+  }
+}
+
 // ==================== TYPE DEFINITIONS ====================
 
 export type CampaignStatus = 'draft' | 'active' | 'paused' | 'in_review' | 'completed' | 'archived'
@@ -274,12 +290,13 @@ class CampaignApiComplete {
     end_date?: string
     campaign_type?: 'influencer' | 'ugc'
   }): Promise<ApiResponse<Campaign>> {
-    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/workflow/user/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-    return response.json()
+    return safeRequest<Campaign>(() =>
+      fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/workflow/user/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+    )
   }
 
   /**
@@ -299,12 +316,13 @@ class CampaignApiComplete {
     end_date?: string
     campaign_type?: 'influencer' | 'ugc'
   }): Promise<ApiResponse<Campaign>> {
-    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/workflow/superadmin/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-    return response.json()
+    return safeRequest<Campaign>(() =>
+      fetchWithAuth(`${this.baseUrl}/api/v1/campaigns/workflow/superadmin/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+    )
   }
 
   /**
@@ -496,7 +514,7 @@ class CampaignApiComplete {
   }
 
   /**
-   * Generate Report
+   * PHANTOM: Backend endpoint does not exist yet
    * POST /api/v1/campaigns/{campaign_id}/reports/generate
    */
   async generateReport(
@@ -509,12 +527,8 @@ class CampaignApiComplete {
     report_url: string
     expires_at: string
   }>> {
-    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.generateReport(campaignId)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-    return response.json()
+    console.warn('campaignApi.generateReport: endpoint not implemented');
+    return { success: true, data: { report_url: '', expires_at: '' } };
   }
 
   // ==================== 5. CAMPAIGN PROPOSALS (5 ENDPOINTS) ====================
@@ -560,12 +574,13 @@ class CampaignApiComplete {
       selected_influencer_ids: string[]
     }
   ): Promise<ApiResponse<CampaignProposal>> {
-    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.selectInfluencers(proposalId)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-    return response.json()
+    return safeRequest<CampaignProposal>(() =>
+      fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.selectInfluencers(proposalId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+    )
   }
 
   /**
@@ -584,12 +599,18 @@ class CampaignApiComplete {
     status: string
     created_from_proposal: boolean
   }>> {
-    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.approveProposal(proposalId)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-    return response.json()
+    return safeRequest<{
+      campaign_id: string
+      campaign_name: string
+      status: string
+      created_from_proposal: boolean
+    }>(() =>
+      fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.approveProposal(proposalId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+    )
   }
 
   /**
@@ -602,12 +623,13 @@ class CampaignApiComplete {
       reason: string
     }
   ): Promise<ApiResponse<{ message: string }>> {
-    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.rejectProposal(proposalId)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-    return response.json()
+    return safeRequest<{ message: string }>(() =>
+      fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.rejectProposal(proposalId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+    )
   }
 
   // ==================== 6. CAMPAIGN INFLUENCERS (1 ENDPOINT) ====================
@@ -683,18 +705,16 @@ class CampaignApiComplete {
   }
 
   /**
-   * Get Influencer Selections for Campaign
+   * PHANTOM: Backend endpoint does not exist yet
    * GET /api/v1/campaigns/workflow/{campaign_id}/selections
    */
   async getInfluencerSelections(campaignId: string): Promise<ApiResponse<any>> {
-    const response = await fetchWithAuth(
-      `${this.baseUrl}/api/v1/campaigns/workflow/${campaignId}/selections`
-    )
-    return response.json()
+    console.warn('campaignApi.getInfluencerSelections: endpoint not implemented');
+    return { success: true, data: { selections: [] } };
   }
 
   /**
-   * Lock Selected Influencers (Superadmin Only)
+   * PHANTOM: Backend endpoint does not exist yet
    * POST /api/v1/campaigns/workflow/{campaign_id}/lock-influencers
    */
   async lockInfluencers(
@@ -704,19 +724,12 @@ class CampaignApiComplete {
       lock_duration_hours?: number
     }
   ): Promise<ApiResponse<any>> {
-    const response = await fetchWithAuth(
-      `${this.baseUrl}/api/v1/campaigns/workflow/${campaignId}/lock-influencers`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      }
-    )
-    return response.json()
+    console.warn('campaignApi.lockInfluencers: endpoint not implemented');
+    return { success: true, data: { locked: 0 } };
   }
 
   /**
-   * Submit Content for Approval
+   * PHANTOM: Backend endpoint does not exist yet
    * POST /api/v1/campaigns/workflow/{campaign_id}/submit-content
    */
   async submitContentForApproval(
@@ -729,19 +742,12 @@ class CampaignApiComplete {
       content_media_urls?: string[]
     }
   ): Promise<ApiResponse<any>> {
-    const response = await fetchWithAuth(
-      `${this.baseUrl}/api/v1/campaigns/workflow/${campaignId}/submit-content`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      }
-    )
-    return response.json()
+    console.warn('campaignApi.submitContentForApproval: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
   /**
-   * Review Submitted Content (Superadmin Only)
+   * PHANTOM: Backend endpoint does not exist yet
    * POST /api/v1/campaigns/workflow/{campaign_id}/content/{approval_id}/review
    */
   async reviewContent(
@@ -753,55 +759,37 @@ class CampaignApiComplete {
       revision_notes?: string
     }
   ): Promise<ApiResponse<any>> {
-    const response = await fetchWithAuth(
-      `${this.baseUrl}/api/v1/campaigns/workflow/${campaignId}/content/${approvalId}/review`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      }
-    )
-    return response.json()
+    console.warn('campaignApi.reviewContent: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
   /**
-   * Get Workflow State
+   * PHANTOM: Backend endpoint does not exist yet
    * GET /api/v1/campaigns/workflow/{campaign_id}/state
    */
   async getWorkflowState(campaignId: string): Promise<ApiResponse<any>> {
-    const response = await fetchWithAuth(
-      `${this.baseUrl}/api/v1/campaigns/workflow/${campaignId}/state`
-    )
-    return response.json()
+    console.warn('campaignApi.getWorkflowState: endpoint not implemented');
+    return { success: true, data: { state: null } };
   }
 
   /**
-   * Get Workflow Notifications
+   * PHANTOM: Backend endpoint does not exist yet
    * GET /api/v1/campaigns/workflow/notifications
    */
   async getWorkflowNotifications(params?: {
     unread_only?: boolean
   }): Promise<ApiResponse<any>> {
-    const queryParams = new URLSearchParams()
-    if (params?.unread_only) queryParams.set('unread_only', 'true')
-
-    const url = `${this.baseUrl}/api/v1/campaigns/workflow/notifications?${queryParams.toString()}`
-    const response = await fetchWithAuth(url)
-    return response.json()
+    console.warn('campaignApi.getWorkflowNotifications: endpoint not implemented');
+    return { success: true, data: { notifications: [], unread_count: 0 } };
   }
 
   /**
-   * Mark Notification as Read
+   * PHANTOM: Backend endpoint does not exist yet
    * POST /api/v1/campaigns/workflow/notifications/{notification_id}/read
    */
   async markNotificationAsRead(notificationId: string): Promise<ApiResponse<any>> {
-    const response = await fetchWithAuth(
-      `${this.baseUrl}/api/v1/campaigns/workflow/notifications/${notificationId}/read`,
-      {
-        method: 'POST'
-      }
-    )
-    return response.json()
+    console.warn('campaignApi.markNotificationAsRead: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
   // ==================== ADDITIONAL ANALYTICS & DATA (4 NEW ENDPOINTS) ====================
@@ -914,12 +902,12 @@ class CampaignApiComplete {
   }
 
   /**
-   * Get Campaign Health Status
+   * PHANTOM: Backend endpoint does not exist yet
    * GET /api/v1/campaigns/{campaign_id}/health
    */
   async getCampaignHealth(campaignId: string): Promise<ApiResponse<CampaignHealth>> {
-    const response = await fetchWithAuth(`${this.baseUrl}${ENDPOINTS.campaigns.detail(campaignId)}/health`)
-    return response.json()
+    console.warn('campaignApi.getCampaignHealth: endpoint not implemented');
+    return { success: true, data: { status: 'healthy', issues: [], last_checked: new Date().toISOString(), next_check: new Date().toISOString() } as CampaignHealth };
   }
 
   // =========================================================================

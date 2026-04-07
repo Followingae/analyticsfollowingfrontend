@@ -25,7 +25,7 @@ export function SimpleFlowExample() {
       }
 
     } catch (error) {
-
+      console.error('SimpleFlow error:', error)
     } finally {
       setLoading(false);
     }

@@ -70,8 +70,8 @@ export function SuperadminIMDPanel({ influencer, onUpdated }: SuperadminIMDPanel
     try {
       toast.info('Refreshing analytics...')
       onUpdated()
-    } catch {
-      // handled upstream
+    } catch (error) {
+      console.error('Failed to refresh analytics:', error)
     }
   }
 

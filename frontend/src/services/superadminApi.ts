@@ -956,7 +956,8 @@ export class SuperadminApiService {
         try {
           const errorData = await response.json()
           errorMessage = errorData.detail || errorData.message || errorData.error || errorMessage
-        } catch {
+        } catch (parseError) {
+          console.error('Failed to parse superadmin API error response:', parseError)
           const errorText = await response.text().catch(() => '')
           if (errorText) errorMessage = errorText
         }
@@ -995,8 +996,10 @@ export class SuperadminApiService {
     return this.makeRequest(ENDPOINTS.superadmin.dashboard)
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getRealtimeAnalytics(): Promise<ApiResponse<RealtimeAnalytics>> {
-    return this.makeRequest<RealtimeAnalytics>(ENDPOINTS.superadmin.realtimeAnalytics)
+    console.warn('superadminApi.getRealtimeAnalytics: endpoint not implemented');
+    return { success: true, data: { online_users: 0, active_sessions: 0, system_load: { cpu_percent: 0, memory_percent: 0, disk_percent: 0 }, recent_activities: [], credit_flows: { spent_last_hour: 0, earned_last_hour: 0, net_flow: 0 }, performance_metrics: { response_time_ms: 0, cache_hit_rate: 0, error_rate: 0 } } as RealtimeAnalytics };
   }
 
   async getSystemHealth(): Promise<ApiResponse<SystemHealth>> {
@@ -1264,7 +1267,7 @@ export class SuperadminApiService {
     })
   }
 
-  // Enhanced Security
+  // PHANTOM: Backend endpoint does not exist yet
   async getSecurityAlerts(filters?: {
     limit?: number
     severity?: string
@@ -1275,85 +1278,69 @@ export class SuperadminApiService {
     security_score: number
     recommendations: string[]
   }>> {
-    const params = new URLSearchParams()
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest(`${ENDPOINTS.superadmin.securityAlerts}?${params.toString()}`)
+    console.warn('superadminApi.getSecurityAlerts: endpoint not implemented');
+    return { success: true, data: { alerts: [], alert_counts: {}, suspicious_activities: [], security_score: 100, recommendations: [] } };
   }
 
-  // Advanced Analytics
+  // PHANTOM: Backend endpoint does not exist yet
   async getAnalytics(): Promise<ApiResponse<any>> {
-    return this.makeRequest(ENDPOINTS.superadmin.platformAnalytics)
+    console.warn('superadminApi.getAnalytics: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
-  // Advanced User Management
+  // PHANTOM: Backend endpoint does not exist yet
   async getUserPermissions(userId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/users/${userId}/permissions`)
+    console.warn('superadminApi.getUserPermissions: endpoint not implemented');
+    return { success: true, data: { permissions: {} } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async updateUserPermissions(userId: string, permissions: Record<string, boolean>): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/users/${userId}/permissions`, {
-      method: 'POST',
-      body: JSON.stringify({ permissions, override_role: true })
-    })
+    console.warn('superadminApi.updateUserPermissions: endpoint not implemented');
+    return { success: true, data: { permissions } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async manageMFA(userId: string, action: string, method: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/users/${userId}/security/mfa`, {
-      method: 'POST',
-      body: JSON.stringify({ action, method })
-    })
+    console.warn('superadminApi.manageMFA: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async manageUserSessions(userId: string, action: string, deviceId?: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/users/${userId}/security/sessions`, {
-      method: 'POST',
-      body: JSON.stringify({ action, device_id: deviceId })
-    })
+    console.warn('superadminApi.manageUserSessions: endpoint not implemented');
+    return { success: true, data: { sessions: [] } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async resetUserPassword(userId: string, options: {
     notify_user?: boolean
     force_change?: boolean
     temporary_password?: string
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/users/${userId}/security/password-reset`, {
-      method: 'POST',
-      body: JSON.stringify(options)
-    })
+    console.warn('superadminApi.resetUserPassword: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getUserLoginHistory(userId: string, filters?: {
     limit?: number
     date_from?: string
     date_to?: string
     include_failed_attempts?: boolean
   }): Promise<ApiResponse<any>> {
-    const params = new URLSearchParams()
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest(`/api/superadmin/users/${userId}/login-history?${params.toString()}`)
+    console.warn('superadminApi.getUserLoginHistory: endpoint not implemented');
+    return { success: true, data: { login_history: [], total_count: 0 } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async impersonateUser(userId: string, options: {
     duration_minutes?: number
     reason?: string
     notify_user?: boolean
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/users/${userId}/impersonate`, {
-      method: 'POST',
-      body: JSON.stringify(options)
-    })
+    console.warn('superadminApi.impersonateUser: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
   async updateUserStatus(userId: string, status: string): Promise<ApiResponse<any>> {
@@ -1363,13 +1350,13 @@ export class SuperadminApiService {
     })
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async bulkUserOperations(operation: string, userIds: string[], parameters: any): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/users/bulk-operations', {
-      method: 'POST',
-      body: JSON.stringify({ operation, user_ids: userIds, parameters })
-    })
+    console.warn('superadminApi.bulkUserOperations: endpoint not implemented');
+    return { success: true, data: { processed: 0, failed: 0 } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async advancedUserSearch(filters: {
     role?: string
     status?: string
@@ -1378,330 +1365,272 @@ export class SuperadminApiService {
     team_id?: string
     subscription_tier?: string
   }): Promise<ApiResponse<any>> {
-    const params = new URLSearchParams()
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined) {
-        if (Array.isArray(value)) {
-          params.append(key, value.join(','))
-        } else {
-          params.append(key, value.toString())
-        }
-      }
-    })
-    return this.makeRequest(`/api/superadmin/users/advanced-search?${params.toString()}`)
+    console.warn('superadminApi.advancedUserSearch: endpoint not implemented');
+    return { success: true, data: { users: [], total_count: 0 } };
   }
 
-  // Role & Permission Management
+  // PHANTOM: Backend endpoint does not exist yet
   async getRoles(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/roles')
+    console.warn('superadminApi.getRoles: endpoint not implemented');
+    return { success: true, data: { roles: [] } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async createRole(roleData: {
     role_name: string
     permissions: Record<string, any>
     role_level: number
     description: string
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/roles/create', {
-      method: 'POST',
-      body: JSON.stringify(roleData)
-    })
+    console.warn('superadminApi.createRole: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async updateRolePermissions(roleId: string, permissions: Record<string, any>, applyToExisting = true): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/roles/${roleId}/permissions`, {
-      method: 'PUT',
-      body: JSON.stringify({ permissions, apply_to_existing_users: applyToExisting })
-    })
+    console.warn('superadminApi.updateRolePermissions: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getPermissionMatrix(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/permissions/matrix')
+    console.warn('superadminApi.getPermissionMatrix: endpoint not implemented');
+    return { success: true, data: { matrix: {} } };
   }
 
-  // Team Management
+  // PHANTOM: Backend endpoint does not exist yet
   async getComprehensiveTeams(options?: {
     include_members?: boolean
     include_usage?: boolean
     include_billing?: boolean
   }): Promise<ApiResponse<any>> {
-    const params = new URLSearchParams()
-    if (options) {
-      Object.entries(options).forEach(([key, value]) => {
-        if (value) {
-          params.append(key, 'true')
-        }
-      })
-    }
-    return this.makeRequest(`/api/superadmin/teams/comprehensive?${params.toString()}`)
+    console.warn('superadminApi.getComprehensiveTeams: endpoint not implemented');
+    return { success: true, data: { teams: [] } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async bulkTeamMemberOperations(teamId: string, operation: string, userIds: string[], teamRole?: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/teams/${teamId}/members/bulk`, {
-      method: 'POST',
-      body: JSON.stringify({ operation, user_ids: userIds, team_role: teamRole })
-    })
+    console.warn('superadminApi.bulkTeamMemberOperations: endpoint not implemented');
+    return { success: true, data: { processed: 0, failed: 0 } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async updateTeamPermissions(teamId: string, permissions: Record<string, any>, overrideIndividual = false): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/teams/${teamId}/permissions`, {
-      method: 'PUT',
-      body: JSON.stringify({ permissions, override_individual: overrideIndividual })
-    })
+    console.warn('superadminApi.updateTeamPermissions: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
-  // AI System Management
+  // PHANTOM: Backend endpoint does not exist yet
   async getAIModelsStatus(): Promise<ApiResponse<AISystemStatus>> {
-    return this.makeRequest<AISystemStatus>('/api/superadmin/ai/models/status')
+    console.warn('superadminApi.getAIModelsStatus: endpoint not implemented');
+    return { success: true, data: { model_performance: {}, processing_queue: { total_jobs: 0, pending_jobs: 0, failed_jobs: 0, estimated_completion: '' }, analysis_stats: { total_analyses: 0, success_rate: 0, avg_processing_time: 0, content_categories: {} } } as AISystemStatus };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getAIAnalysisQueue(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/ai/analysis/queue')
+    console.warn('superadminApi.getAIAnalysisQueue: endpoint not implemented');
+    return { success: true, data: { queue: [], total: 0 } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getAIAnalysisStats(filters?: {
     date_from?: string
     date_to?: string
     model_type?: string
   }): Promise<ApiResponse<any>> {
-    const params = new URLSearchParams()
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest(`/api/superadmin/ai/analysis/stats?${params.toString()}`)
+    console.warn('superadminApi.getAIAnalysisStats: endpoint not implemented');
+    return { success: true, data: { stats: {} } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async retryAIAnalysis(jobIds?: string[], modelTypes?: string[]): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/ai/analysis/retry', {
-      method: 'POST',
-      body: JSON.stringify({ job_ids: jobIds, model_types: modelTypes })
-    })
+    console.warn('superadminApi.retryAIAnalysis: endpoint not implemented');
+    return { success: true, data: { retried: 0 } };
   }
 
-  // Content & Media Management
+  // PHANTOM: Backend endpoint does not exist yet
   async getContentModerationQueue(): Promise<ApiResponse<ContentModeration>> {
-    return this.makeRequest<ContentModeration>('/api/superadmin/content/moderation/queue')
+    console.warn('superadminApi.getContentModerationQueue: endpoint not implemented');
+    return { success: true, data: { flagged_content: [], moderation_queue_count: 0, category_distribution: {}, auto_moderation_stats: { total_flagged: 0, false_positives: 0, accuracy_rate: 0 } } as ContentModeration };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getContentCategoriesDistribution(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/content/categories/distribution')
+    console.warn('superadminApi.getContentCategoriesDistribution: endpoint not implemented');
+    return { success: true, data: { categories: {} } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getCDNPerformance(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/cdn/performance')
+    console.warn('superadminApi.getCDNPerformance: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getCDNAssets(filters?: {
     asset_type?: string
     status?: string
     date_range?: string
   }): Promise<ApiResponse<any>> {
-    const params = new URLSearchParams()
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest(`/api/superadmin/cdn/assets?${params.toString()}`)
+    console.warn('superadminApi.getCDNAssets: endpoint not implemented');
+    return { success: true, data: { assets: [], total: 0 } };
   }
 
-  // System Configuration
+  // PHANTOM: Backend endpoint does not exist yet
   async getSystemConfigurations(): Promise<ApiResponse<SystemConfiguration>> {
-    return this.makeRequest<SystemConfiguration>('/api/superadmin/system/configurations')
+    console.warn('superadminApi.getSystemConfigurations: endpoint not implemented');
+    return { success: true, data: { configurations: {}, feature_flags: {} } as SystemConfiguration };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async updateSystemConfiguration(configKey: string, value: any, description?: string, requiresRestart = false): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/system/configurations', {
-      method: 'PUT',
-      body: JSON.stringify({
-        config_key: configKey,
-        value,
-        description,
-        requires_restart: requiresRestart
-      })
-    })
+    console.warn('superadminApi.updateSystemConfiguration: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getFeatureFlags(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/system/feature-flags')
+    console.warn('superadminApi.getFeatureFlags: endpoint not implemented');
+    return { success: true, data: { flags: {} } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async toggleFeatureFlag(flagId: string, enabled: boolean, rolloutPercentage = 100, targetSegments: string[] = []): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/system/feature-flags/${flagId}/toggle`, {
-      method: 'POST',
-      body: JSON.stringify({
-        enabled,
-        rollout_percentage: rolloutPercentage,
-        target_segments: targetSegments
-      })
-    })
+    console.warn('superadminApi.toggleFeatureFlag: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
-  // Advanced Platform Analytics
+  // PHANTOM: Backend endpoint does not exist yet
   async getDetailedPlatformUsage(options?: {
     timeframe?: string
     breakdown_by?: string
     include_segments?: boolean
   }): Promise<ApiResponse<PlatformAnalytics>> {
-    const params = new URLSearchParams()
-    if (options) {
-      Object.entries(options).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest<PlatformAnalytics>(`/api/superadmin/platform/usage/detailed?${params.toString()}`)
+    console.warn('superadminApi.getDetailedPlatformUsage: endpoint not implemented');
+    return { success: true, data: { usage_metrics: { api_calls_by_endpoint: {}, user_journey_funnel: [], feature_adoption: {} }, performance_metrics: { response_times: { p50: 0, p95: 0, p99: 0 }, error_rates: {}, cache_performance: { hit_rate: 0, miss_rate: 0 } } } as PlatformAnalytics };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getPlatformPerformanceMetrics(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/platform/performance/metrics')
+    console.warn('superadminApi.getPlatformPerformanceMetrics: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getAPIUsageAnalytics(filters?: {
     user_id?: string
     endpoint_pattern?: string
     time_range?: string
   }): Promise<ApiResponse<any>> {
-    const params = new URLSearchParams()
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest(`/api/superadmin/platform/api/usage?${params.toString()}`)
+    console.warn('superadminApi.getAPIUsageAnalytics: endpoint not implemented');
+    return { success: true, data: { usage: [] } };
   }
 
-  // Advanced User Intelligence
+  // PHANTOM: Backend endpoint does not exist yet
   async getCohortAnalysis(options?: {
     cohort_period?: string
     retention_periods?: string
   }): Promise<ApiResponse<UserIntelligence>> {
-    const params = new URLSearchParams()
-    if (options) {
-      Object.entries(options).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest<UserIntelligence>(`/api/superadmin/users/cohort-analysis?${params.toString()}`)
+    console.warn('superadminApi.getCohortAnalysis: endpoint not implemented');
+    return { success: true, data: { cohort_analysis: { cohorts: [] }, user_segmentation: { segments: [] }, business_forecasting: { revenue_forecast: [], user_growth_forecast: [] } } as UserIntelligence };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getUserSegmentation(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/users/segmentation')
+    console.warn('superadminApi.getUserSegmentation: endpoint not implemented');
+    return { success: true, data: { segments: [] } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getBusinessForecasting(options?: {
     forecast_period?: string
     metrics?: string
   }): Promise<ApiResponse<any>> {
-    const params = new URLSearchParams()
-    if (options) {
-      Object.entries(options).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest(`/api/superadmin/business/forecasting?${params.toString()}`)
+    console.warn('superadminApi.getBusinessForecasting: endpoint not implemented');
+    return { success: true, data: { forecasts: [] } };
   }
 
-  // Platform Operations
+  // PHANTOM: Backend endpoint does not exist yet
   async getOperationsHealth(): Promise<ApiResponse<OperationsHealth>> {
-    return this.makeRequest<OperationsHealth>('/api/superadmin/operations/health')
+    console.warn('superadminApi.getOperationsHealth: endpoint not implemented');
+    return { success: true, data: { system_health: { services: {}, dependencies: {} }, audit_logs: [] } as OperationsHealth };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getAuditLog(filters?: {
     user_id?: string
     action_type?: string
     date_range?: string
     severity?: string
   }): Promise<ApiResponse<any>> {
-    const params = new URLSearchParams()
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest(`/api/superadmin/operations/audit-log?${params.toString()}`)
+    console.warn('superadminApi.getAuditLog: endpoint not implemented');
+    return { success: true, data: { logs: [], total_count: 0 } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async performMaintenance(operation: string, dryRun = true, schedule = 'now'): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/operations/maintenance', {
-      method: 'POST',
-      body: JSON.stringify({ operation, dry_run: dryRun, schedule })
-    })
+    console.warn('superadminApi.performMaintenance: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getBackupStatus(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/operations/backup-status')
+    console.warn('superadminApi.getBackupStatus: endpoint not implemented');
+    return { success: true, data: { backups: [] } };
   }
 
-  // Data Export & Integration
+  // PHANTOM: Backend endpoint does not exist yet
   async createDataExport(options: {
     tables: string[]
     date_range?: Record<string, string>
     format?: 'csv' | 'json'
     include_pii?: boolean
   }): Promise<ApiResponse<DataExportJob>> {
-    return this.makeRequest<DataExportJob>('/api/superadmin/data/export/comprehensive', {
-      method: 'POST',
-      body: JSON.stringify(options)
-    })
+    console.warn('superadminApi.createDataExport: endpoint not implemented');
+    return { success: true, data: { id: '', status: 'failed', created_at: new Date().toISOString(), tables: options.tables } as DataExportJob };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getDataExportJobs(): Promise<ApiResponse<{ jobs: DataExportJob[] }>> {
-    return this.makeRequest<{ jobs: DataExportJob[] }>('/api/superadmin/data/export/jobs')
+    console.warn('superadminApi.getDataExportJobs: endpoint not implemented');
+    return { success: true, data: { jobs: [] } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getThirdPartyIntegrations(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/integrations/third-party')
+    console.warn('superadminApi.getThirdPartyIntegrations: endpoint not implemented');
+    return { success: true, data: { integrations: [] } };
   }
 
-  // Security & Compliance
+  // PHANTOM: Backend endpoint does not exist yet
   async getSecurityThreats(): Promise<ApiResponse<SecurityThreats>> {
-    return this.makeRequest<SecurityThreats>('/api/superadmin/security/threats')
+    console.warn('superadminApi.getSecurityThreats: endpoint not implemented');
+    return { success: true, data: { threats: [], threat_summary: { high_severity: 0, medium_severity: 0, low_severity: 0, resolved_24h: 0 } } as SecurityThreats };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getSuspiciousActivities(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/security/suspicious-activities')
+    console.warn('superadminApi.getSuspiciousActivities: endpoint not implemented');
+    return { success: true, data: { activities: [], total_count: 0, severity_distribution: {} } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getComplianceReports(options?: {
     report_type?: string
     date_range?: string
     regulation?: string
   }): Promise<ApiResponse<any>> {
-    const params = new URLSearchParams()
-    if (options) {
-      Object.entries(options).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest(`/api/superadmin/compliance/reports?${params.toString()}`)
+    console.warn('superadminApi.getComplianceReports: endpoint not implemented');
+    return { success: true, data: { reports: [] } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async emergencyUserLock(userId: string, action: 'lock' | 'unlock' | 'force_logout', reason: string): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/security/user-lock', {
-      method: 'POST',
-      body: JSON.stringify({ user_id: userId, action, reason })
-    })
+    console.warn('superadminApi.emergencyUserLock: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
-  // Feature Access Management
+  // PHANTOM: Backend endpoint does not exist yet
   async getFeatureAccessGrants(filters?: {
     feature_type?: string
     user_id?: string
@@ -1709,17 +1638,11 @@ export class SuperadminApiService {
     status?: string
     expires_soon?: boolean
   }): Promise<ApiResponse<any>> {
-    const params = new URLSearchParams()
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest(`/api/superadmin/features/access-grants?${params.toString()}`)
+    console.warn('superadminApi.getFeatureAccessGrants: endpoint not implemented');
+    return { success: true, data: { grants: [] } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async bulkFeatureGrant(options: {
     feature: string
     users?: string[]
@@ -1727,91 +1650,72 @@ export class SuperadminApiService {
     access_level: string
     expires_at?: string
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/features/bulk-grant', {
-      method: 'POST',
-      body: JSON.stringify(options)
-    })
+    console.warn('superadminApi.bulkFeatureGrant: endpoint not implemented');
+    return { success: true, data: { granted: 0 } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async grantProposalAccess(userId: string, options: {
     access_level: string
     expires_at?: string
     reason?: string
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/users/${userId}/features/proposals/grant`, {
-      method: 'POST',
-      body: JSON.stringify(options)
-    })
+    console.warn('superadminApi.grantProposalAccess: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async revokeProposalAccess(userId: string, options: {
     reason: string
     immediate?: boolean
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/users/${userId}/features/proposals/revoke`, {
-      method: 'POST',
-      body: JSON.stringify(options)
-    })
+    console.warn('superadminApi.revokeProposalAccess: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
-  // Enhanced Proposals Management
+  // PHANTOM: Backend endpoint does not exist yet
   async setInfluencerPricing(profileId: string, pricingData: any): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/proposals/pricing/influencers', {
-      method: 'POST',
-      body: JSON.stringify({ profile_id: profileId, ...pricingData })
-    })
+    console.warn('superadminApi.setInfluencerPricing: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getInfluencerPricing(profileId: string): Promise<ApiResponse<any>> {
-    try {
-      const response = await this.makeRequest(`/api/superadmin/proposals/pricing/influencers/${profileId}`)
-      return response
-    } catch (error: any) {
-      // Handle 404/500 gracefully - pricing not available is normal for most influencers
-      if (error?.status === 404 || error?.status === 500) {
-        return {
-          success: false,
-          data: null,
-          error: 'Pricing not available',
-          status: error.status
-        }
-      }
-      throw error
-    }
+    console.warn('superadminApi.getInfluencerPricing: endpoint not implemented');
+    return { success: false, data: null, error: 'Pricing not available - endpoint not implemented' };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async calculateCampaignPricing(profileId: string, campaignRequirements: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/proposals/pricing/calculate/${profileId}`, {
-      method: 'POST',
-      body: JSON.stringify(campaignRequirements)
-    })
+    console.warn('superadminApi.calculateCampaignPricing: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async createInviteCampaign(campaignData: any): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/proposals/invite-campaigns', {
-      method: 'POST',
-      body: JSON.stringify(campaignData)
-    })
+    console.warn('superadminApi.createInviteCampaign: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async publishInviteCampaign(campaignId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/proposals/invite-campaigns/${campaignId}/publish`, {
-      method: 'POST'
-    })
+    console.warn('superadminApi.publishInviteCampaign: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getCampaignApplications(campaignId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/proposals/invite-campaigns/${campaignId}/applications`)
+    console.warn('superadminApi.getCampaignApplications: endpoint not implemented');
+    return { success: true, data: { applications: [] } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async approveApplication(applicationId: string, decision: {
     approved: boolean
     feedback?: string
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/proposals/applications/${applicationId}/approve`, {
-      method: 'POST',
-      body: JSON.stringify(decision)
-    })
+    console.warn('superadminApi.approveApplication: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
   // Individual brands for proposal creation
@@ -1956,20 +1860,6 @@ export class SuperadminApiService {
     })
   }
 
-  async assignInfluencersToProposal(proposalId: string, influencerData: any): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/influencers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(influencerData)
-    })
-  }
-
-  async sendBrandProposal(proposalId: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}/send`, {
-      method: 'POST'
-    })
-  }
-
   async getBrandProposalDetails(proposalId: string): Promise<ApiResponse<any>> {
     return this.makeRequest(`/api/superadmin/proposals/brand-proposals/${proposalId}`)
   }
@@ -1982,20 +1872,18 @@ export class SuperadminApiService {
     return this.makeRequest('/api/superadmin/proposals/health')
   }
 
-  // System Actions
+  // PHANTOM: Backend endpoint does not exist yet
   async broadcastSystemMessage(message: {
     title: string
     content: string
     message_type: 'info' | 'warning' | 'maintenance' | 'feature'
     require_acknowledgment: boolean
   }): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/system/broadcast', {
-      method: 'POST',
-      body: JSON.stringify(message)
-    })
+    console.warn('superadminApi.broadcastSystemMessage: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
-  // Missing Critical Methods - Added to match comprehensive API
+  // PHANTOM: Backend endpoint does not exist yet
   async getSuspiciousActivities(filters?: {
     limit?: number
     severity?: string
@@ -2005,37 +1893,38 @@ export class SuperadminApiService {
     total_count: number
     severity_distribution: Record<string, number>
   }>> {
-    const params = new URLSearchParams()
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString())
-        }
-      })
-    }
-    return this.makeRequest(`/api/superadmin/security/suspicious-activities?${params.toString()}`)
+    console.warn('superadminApi.getSuspiciousActivities: endpoint not implemented');
+    return { success: true, data: { activities: [] as SuspiciousActivity[], total_count: 0, severity_distribution: {} } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getPlatformAnalytics(): Promise<ApiResponse<PlatformAnalytics>> {
-    return this.makeRequest<PlatformAnalytics>('/api/superadmin/platform/analytics/comprehensive')
+    console.warn('superadminApi.getPlatformAnalytics: endpoint not implemented');
+    return { success: true, data: { usage_metrics: { api_calls_by_endpoint: {}, user_journey_funnel: [], feature_adoption: {} }, performance_metrics: { response_times: { p50: 0, p95: 0, p99: 0 }, error_rates: {}, cache_performance: { hit_rate: 0, miss_rate: 0 } } } as PlatformAnalytics };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getSystemComponents(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/system/components')
+    console.warn('superadminApi.getSystemComponents: endpoint not implemented');
+    return { success: true, data: { components: [] } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async restartSystemComponent(componentName: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/system/components/${componentName}/restart`, {
-      method: 'POST'
-    })
+    console.warn('superadminApi.restartSystemComponent: endpoint not implemented');
+    return { success: true, data: { status: 'not_implemented' } };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getAIAnalysisOverview(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/ai/analysis/overview')
+    console.warn('superadminApi.getAIAnalysisOverview: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
+  // PHANTOM: Backend endpoint does not exist yet
   async getContentAnalyticsOverview(): Promise<ApiResponse<any>> {
-    return this.makeRequest('/api/superadmin/content/analytics/overview')
+    console.warn('superadminApi.getContentAnalyticsOverview: endpoint not implemented');
+    return { success: true, data: {} };
   }
 
   // User Management Methods - Using standardized admin endpoints

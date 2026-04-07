@@ -103,7 +103,7 @@ export default function SuperadminAccessPage() {
       }
 
     } catch (error) {
-
+      console.error('Failed to load access control data:', error)
       toast.error('Failed to load access control data')
     } finally {
       setLoading(false)

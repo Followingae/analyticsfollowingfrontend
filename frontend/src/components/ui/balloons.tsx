@@ -80,7 +80,7 @@ const Balloons = React.forwardRef<HTMLDivElement, BalloonsProps>(
           onLaunch()
         }
       } catch (error) {
-
+        console.error('Balloon animation failed:', error)
       }
     }, [type, text, fontSize, color, onLaunch, balloonsModule])
 

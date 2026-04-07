@@ -130,6 +130,52 @@ export function ProposalDashboard() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 bg-muted rounded w-64 animate-pulse" />
+            <div className="h-4 bg-muted rounded w-96 mt-2 animate-pulse" />
+          </div>
+          <div className="flex space-x-2">
+            <div className="h-10 bg-muted rounded w-32 animate-pulse" />
+            <div className="h-10 bg-muted rounded w-36 animate-pulse" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-32 bg-muted rounded-xl animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-96 bg-muted rounded-xl animate-pulse" />
+          <div className="h-96 bg-muted rounded-xl animate-pulse" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Card className="max-w-md mx-auto">
+          <CardHeader className="text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-2" />
+            <CardTitle>Failed to Load Proposals</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={loadProposalData} className="w-full" variant="outline">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -314,11 +360,12 @@ export function ProposalDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="under_review">Under Review</SelectItem>
-                    <SelectItem value="negotiating">Negotiating</SelectItem>
-                    <SelectItem value="accepted">Accepted</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="in_review">In Review</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="rejected">Rejected</SelectItem>
+                    <SelectItem value="more_requested">More Requested</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -429,13 +476,14 @@ export function ProposalDashboard() {
               <CardDescription>Track proposals through each stage of the workflow</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {[
-                  { status: 'pending', title: 'Pending Review', count: 23, color: 'bg-amber-100 border-amber-200' },
-                  { status: 'under_review', title: 'Under Review', count: 15, color: 'bg-blue-100 border-blue-200' },
-                  { status: 'negotiating', title: 'Negotiating', count: 8, color: 'bg-purple-100 border-purple-200' },
-                  { status: 'accepted', title: 'Accepted', count: 89, color: 'bg-emerald-100 border-emerald-200' },
-                  { status: 'rejected', title: 'Rejected', count: 21, color: 'bg-red-100 border-red-200' }
+                  { status: 'draft', title: 'Draft', count: filteredProposals.filter(p => p.status === 'draft').length, color: 'bg-slate-100 border-slate-200' },
+                  { status: 'sent', title: 'Sent', count: filteredProposals.filter(p => p.status === 'sent').length, color: 'bg-blue-100 border-blue-200' },
+                  { status: 'in_review', title: 'In Review', count: filteredProposals.filter(p => p.status === 'in_review').length, color: 'bg-amber-100 border-amber-200' },
+                  { status: 'approved', title: 'Approved', count: filteredProposals.filter(p => p.status === 'approved').length, color: 'bg-emerald-100 border-emerald-200' },
+                  { status: 'rejected', title: 'Rejected', count: filteredProposals.filter(p => p.status === 'rejected').length, color: 'bg-red-100 border-red-200' },
+                  { status: 'more_requested', title: 'More Requested', count: filteredProposals.filter(p => p.status === 'more_requested').length, color: 'bg-purple-100 border-purple-200' }
                 ].map((stage) => (
                   <Card key={stage.status} className={`${stage.color}`}>
                     <CardHeader className="pb-2">

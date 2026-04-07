@@ -131,7 +131,7 @@ function CreditConsumptionWrapper({
       setShowConfirm(false)
       onSuccess?.()
     } catch (error) {
-
+      console.error('Credit gate action failed:', error)
     }
   }
 

@@ -33,7 +33,7 @@ export default function HashtagsTab() {
 
       setHashtagData(null) // Show empty state
     } catch (err) {
-
+      console.error('Failed to load hashtag data:', err)
     } finally {
       setLoading(false)
     }

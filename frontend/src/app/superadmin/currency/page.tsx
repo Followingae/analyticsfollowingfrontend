@@ -49,7 +49,7 @@ const TeamCurrencyRow: React.FC<TeamCurrencyRowProps> = ({ team }) => {
         decimal_places: teamCurrency.decimal_places
       });
     } catch (error) {
-
+      console.error('Currency operation failed:', error)
     }
   };
 
@@ -58,7 +58,7 @@ const TeamCurrencyRow: React.FC<TeamCurrencyRowProps> = ({ team }) => {
       const currencies = await currencyService.getSupportedCurrencies();
       setSupportedCurrencies(currencies);
     } catch (error) {
-
+      console.error('Currency operation failed:', error)
     }
   };
 

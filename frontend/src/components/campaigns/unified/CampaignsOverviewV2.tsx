@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Target, Plus, ChevronRight } from "lucide-react";
+import { Target, Plus, ChevronRight, AlertCircle, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ export function CampaignsOverviewV2({ searchQuery, typeFilter = 'all' }: Campaig
   const [summary, setSummary] = useState<CampaignSummary | null>(null);
   const [recentCampaigns, setRecentCampaigns] = useState<RecentCampaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOverviewData();
@@ -50,6 +52,7 @@ export function CampaignsOverviewV2({ searchQuery, typeFilter = 'all' }: Campaig
   const fetchOverviewData = async () => {
     try {
       setIsLoading(true);
+      setFetchError(null);
 
       // Use the SAME API call as Active tab to ensure identical data
       const { dedicatedApiCall } = await import('@/utils/apiDeduplication');
@@ -93,7 +96,9 @@ export function CampaignsOverviewV2({ searchQuery, typeFilter = 'all' }: Campaig
         throw new Error(responseData.error || 'Failed to fetch campaigns');
       }
     } catch (error) {
-
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load campaigns';
+      setFetchError(errorMessage);
+      toast.error('Failed to load campaigns');
       setSummary(null);
       setRecentCampaigns([]);
     } finally {
@@ -133,6 +138,22 @@ export function CampaignsOverviewV2({ searchQuery, typeFilter = 'all' }: Campaig
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <AlertCircle className="h-12 w-12 text-destructive mb-3" />
+          <p className="text-sm font-medium text-destructive mb-1">Failed to load campaigns</p>
+          <p className="text-xs text-muted-foreground mb-4">{fetchError}</p>
+          <Button variant="outline" size="sm" onClick={fetchOverviewData}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 

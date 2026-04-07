@@ -130,7 +130,8 @@ class BillingManager {
       }
       const data = await response.json()
       return data.billing_types || []
-    } catch {
+    } catch (error) {
+      console.error('Failed to fetch billing types:', error)
       // Return default billing types as fallback
       return [
         {
@@ -168,7 +169,8 @@ class BillingManager {
       } else {
         return []
       }
-    } catch {
+    } catch (error) {
+      console.error('Failed to fetch products:', error)
       return []
     }
   }
@@ -204,8 +206,8 @@ class BillingManager {
       try {
         const errorData = await response.json()
         errorMsg = errorData.detail || errorData.message || errorMsg
-      } catch {
-        // Ignore JSON parse errors
+      } catch (parseError) {
+        console.error('Failed to parse error response JSON:', parseError)
       }
       throw new Error(errorMsg)
     }
@@ -250,8 +252,8 @@ class BillingManager {
       try {
         const errorData = await response.json()
         errorMsg = errorData.detail || errorData.message || errorMsg
-      } catch {
-        // Ignore JSON parse errors
+      } catch (parseError) {
+        console.error('Failed to parse error response JSON:', parseError)
       }
       throw new Error(errorMsg)
     }
@@ -268,8 +270,8 @@ class BillingManager {
       try {
         const errorData = await response.json()
         errorMsg = errorData.detail || errorData.message || errorMsg
-      } catch {
-        // Ignore JSON parse errors
+      } catch (parseError) {
+        console.error('Failed to parse error response JSON:', parseError)
       }
       throw new Error(errorMsg)
     }
@@ -294,8 +296,8 @@ class BillingManager {
       try {
         const errorData = await response.json()
         errorMsg = errorData.detail || errorData.message || errorMsg
-      } catch {
-        // Ignore JSON parse errors
+      } catch (parseError) {
+        console.error('Failed to parse error response JSON:', parseError)
       }
       throw new Error(errorMsg)
     }
@@ -382,7 +384,8 @@ class BillingManager {
       }
 
       return await response.json()
-    } catch {
+    } catch (error) {
+      console.error('Failed to fetch trial daily usage:', error)
       return { trial_active: false, message: 'Network error' }
     }
   }
@@ -419,7 +422,8 @@ class BillingManager {
       }
 
       return null
-    } catch {
+    } catch (error) {
+      console.error('Failed to get billing status:', error)
       return null
     }
   }
@@ -452,7 +456,8 @@ class BillingManager {
       }
 
       return subscription
-    } catch {
+    } catch (error) {
+      console.error('Failed to get subscription:', error)
       return { status: 'none', tier: 'free' }
     }
   }
@@ -517,7 +522,7 @@ class BillingManager {
       }
 
       // Otherwise, create a fresh portal session via the new POST endpoint
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.portalSession}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.createPortalSession}`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ return_url: window.location.href })

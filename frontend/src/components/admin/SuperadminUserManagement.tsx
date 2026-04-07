@@ -104,7 +104,7 @@ export default function SuperadminUserManagement() {
       const stats = await superadminService.getDashboardStats();
       setDashboardStats(stats);
     } catch (error) {
-
+      console.error('Failed to load dashboard stats:', error)
     }
   };
 
@@ -113,19 +113,23 @@ export default function SuperadminUserManagement() {
     try {
       const response = await superadminService.getUsers(page, pageSize, search || undefined);
 
+      // Handle both response shapes: { users, total } or { data: { users, total_count } }
+      const usersList = response?.data?.users || response?.users || [];
+      const totalCount = response?.data?.total_count || response?.data?.total || response?.total || 0;
+
       // Filter users based on role and status filters
-      let filteredUsers = response.users || [];
+      let filteredUsers = usersList;
 
       if (roleFilter !== 'all') {
-        filteredUsers = filteredUsers.filter(u => u.role === roleFilter);
+        filteredUsers = filteredUsers.filter((u: User) => u.role === roleFilter);
       }
 
       if (statusFilter !== 'all') {
-        filteredUsers = filteredUsers.filter(u => u.status === statusFilter);
+        filteredUsers = filteredUsers.filter((u: User) => u.status === statusFilter);
       }
 
       setUsers(filteredUsers);
-      setTotalPages(Math.ceil((response.total || 0) / pageSize));
+      setTotalPages(Math.ceil(totalCount / pageSize));
     } catch (error) {
 
       toast.error('Failed to load users');
@@ -205,9 +209,8 @@ export default function SuperadminUserManagement() {
   const getTierLimit = (tier?: string) => {
     const limits: Record<string, number> = {
       free: 125,
-      standard: 12500,
-      premium: 50000,
-      enterprise: 50000,
+      standard: 8750,
+      premium: 25000,
     };
     return limits[tier || 'free'] || 125;
   };
@@ -266,7 +269,7 @@ export default function SuperadminUserManagement() {
                 <div>
                   <p className="text-sm text-muted-foreground">Monthly Revenue</p>
                   <p className="text-2xl font-semibold mt-1">
-                    ${(dashboardStats.total_revenue_this_month / 100).toLocaleString()}
+                    د.إ{(dashboardStats.total_revenue_this_month / 100).toLocaleString()}
                   </p>
                 </div>
                 <Users className="h-8 w-8 text-muted-foreground" />

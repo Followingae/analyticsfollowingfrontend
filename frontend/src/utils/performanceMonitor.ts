@@ -190,7 +190,8 @@ class PerformanceMonitor {
     try {
       const { pollingManager } = require('./pollingManager')
       return pollingManager.getStatus()
-    } catch {
+    } catch (error) {
+      console.error('Failed to get polling stats:', error)
       return { error: 'Polling manager not available' }
     }
   }
@@ -202,7 +203,8 @@ class PerformanceMonitor {
     try {
       const { batchManager } = require('./batchManager')
       return batchManager.getOverallStats()
-    } catch {
+    } catch (error) {
+      console.error('Failed to get batch stats:', error)
       return { error: 'Batch manager not available' }
     }
   }
@@ -312,7 +314,8 @@ class PerformanceMonitor {
     try {
       const urlObj = new URL(url)
       return urlObj.pathname
-    } catch {
+    } catch (error) {
+      console.error('URL normalization failed:', error)
       return url
     }
   }

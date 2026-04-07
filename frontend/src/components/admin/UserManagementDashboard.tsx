@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { superadminApiService, UserManagement } from '@/services/superadminApi'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -60,6 +61,7 @@ import {
 } from 'lucide-react'
 
 export function UserManagementDashboard() {
+  const router = useRouter()
   const { hasPermission } = useEnhancedAuth()
   const [users, setUsers] = useState<UserManagement[]>([])
   const [totalCount, setTotalCount] = useState(0)
@@ -312,16 +314,16 @@ export function UserManagementDashboard() {
                 Copy email
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem disabled title="Coming soon">
                 <Edit className="mr-2 h-4 w-4" />
                 Edit user
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem disabled title="Coming soon">
                 <CreditCard className="mr-2 h-4 w-4" />
                 Manage credits
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem disabled className="text-destructive" title="Coming soon">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Suspend user
               </DropdownMenuItem>
@@ -413,7 +415,7 @@ export function UserManagementDashboard() {
             <Filter className="h-4 w-4 mr-2" />
             Export Users
           </Button>
-          <Button onClick={() => setShowCreateUser(true)} size="sm">
+          <Button onClick={() => router.push('/superadmin/users/create')} size="sm">
             <UserPlus className="h-4 w-4 mr-2" />
             Add User
           </Button>

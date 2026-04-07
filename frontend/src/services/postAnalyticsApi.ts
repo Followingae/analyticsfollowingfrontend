@@ -196,7 +196,8 @@ class PostAnalyticsApiService {
         try {
           const errorJson = JSON.parse(errorText)
           errorMessage = errorJson.message || errorJson.error || errorMessage
-        } catch {
+        } catch (parseError) {
+          console.error('Failed to parse post analytics error response:', parseError)
           if (errorText) errorMessage = errorText
         }
 

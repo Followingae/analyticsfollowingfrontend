@@ -32,7 +32,7 @@ class APIClient {
           }
         }
       } catch (error) {
-
+        console.error('Failed to get auth token from localStorage:', error)
       }
     } else if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`

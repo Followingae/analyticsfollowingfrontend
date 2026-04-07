@@ -34,7 +34,8 @@ export default function TopupPage() {
         const pkgs = res?.data?.packages || res?.data || []
         if (Array.isArray(pkgs) && pkgs.length > 0) setPackages(pkgs)
         else throw new Error("empty")
-      } catch {
+      } catch (error) {
+        console.error('Failed to fetch topup packages:', error)
         setPackages([
           { id: "starter", name: "Starter", amount_aed: 5000, stripe_price_id: "" },
           { id: "growth", name: "Growth", amount_aed: 10000, stripe_price_id: "" },
@@ -78,7 +79,8 @@ export default function TopupPage() {
       } else {
         toast.error("Failed to create checkout session")
       }
-    } catch {
+    } catch (error) {
+      console.error('Topup payment initiation failed:', error)
       toast.error("Payment initiation failed. Please try again.")
     } finally {
       setLoading(false)

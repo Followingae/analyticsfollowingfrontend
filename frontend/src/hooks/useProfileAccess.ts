@@ -90,8 +90,7 @@ export function useProfileAccess(): UseProfileAccessResult {
         return null
       }
     } catch (error) {
-
-      
+      console.error('Profile unlock failed:', error)
       toast.error('Network error', {
         description: 'Unable to connect to the server. Please check your connection.',
         duration: 4000

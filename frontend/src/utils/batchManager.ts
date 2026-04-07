@@ -195,8 +195,8 @@ export class BatchManager {
               stats.successfulRequests++
               stats.failedRequests--
             }
-          } catch {
-            // Retry failed
+          } catch (retryError) {
+            console.error('Batch request retry failed:', retryError)
           }
         }
       }

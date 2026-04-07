@@ -1,3 +1,6 @@
+// DEPRECATED: Use UserManagementDashboard (src/components/admin/UserManagementDashboard.tsx) or
+// SuperadminUserManagement (src/components/admin/SuperadminUserManagement.tsx) instead.
+// This file is scheduled for deletion. It is not imported by any page or component.
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';

@@ -586,7 +586,8 @@ export class InstagramApiService {
         
         try {
           errorData = JSON.parse(errorText)
-        } catch {
+        } catch (parseError) {
+          console.error('Failed to parse Instagram API error response:', parseError)
           errorData = { detail: errorText }
         }
 
@@ -1406,7 +1407,7 @@ export class InstagramApiService {
   async getProfileSimple(username: string): Promise<ApiResponse<SimpleFlowResponse>> {
     try {
       const response = await this.makeRequest<SimpleFlowResponse>(
-        `/search/creator/${username}`,
+        `/api/v1/search/creator/${username}`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }

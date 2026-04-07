@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
+import { AuthGuard } from "@/components/AuthGuard"
 import {
   User,
   Shield,
@@ -65,7 +66,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -151,8 +152,8 @@ export default function SettingsPage() {
 
           overviewLoaded = true
         }
-      } catch {
-
+      } catch (error) {
+        console.error('Settings overview fetch failed:', error)
       }
 
       // Fallback: load individual endpoints if overview failed
@@ -165,7 +166,8 @@ export default function SettingsPage() {
           const prefsData = await userSettingsService.getPreferences()
           setPreferences(prefsData)
           setPreferencesForm(prefsData)
-        } catch {
+        } catch (error) {
+          console.error('Failed to load preferences:', error)
           setPreferences({ timezone: 'UTC', language: 'en' })
           setPreferencesForm({ timezone: 'UTC', language: 'en' })
         }
@@ -174,7 +176,8 @@ export default function SettingsPage() {
           const notifData = await userSettingsService.getNotifications()
           setNotifications(notifData)
           setNotificationsForm(notifData)
-        } catch {
+        } catch (error) {
+          console.error('Failed to load notification preferences:', error)
           const defaults: NotificationPreferences = {
             email_notifications: true,
             push_notifications: true,
@@ -221,12 +224,12 @@ export default function SettingsPage() {
         ])
         setMyTeam(teamData)
         setMyTeamUsage(teamUsageData)
-      } catch {
-
+      } catch (error) {
+        console.error('Failed to load team data:', error)
       }
 
     } catch (error) {
-
+      console.error('Failed to load settings:', error)
       setLoadError('Failed to load settings data. Please try again.')
       toast.error('Failed to load settings data')
     } finally {
@@ -261,7 +264,7 @@ export default function SettingsPage() {
       toast.success('Profile updated successfully')
       await refreshUser()
     } catch (error) {
-
+      console.error('Failed to save profile:', error)
       toast.error('Failed to save profile')
     } finally {
       setSaving(false)
@@ -276,7 +279,7 @@ export default function SettingsPage() {
       setPreferences({ ...preferences!, ...preferencesForm })
       toast.success('Preferences updated successfully')
     } catch (error) {
-
+      console.error('Failed to save preferences:', error)
       toast.error('Failed to save preferences')
     } finally {
       setSaving(false)
@@ -292,7 +295,7 @@ export default function SettingsPage() {
       setNotificationsForm(result)
       toast.success('Notification preferences updated')
     } catch (error) {
-
+      console.error('Failed to save notification preferences:', error)
       toast.error('Failed to save notification preferences')
     } finally {
       setSaving(false)
@@ -308,7 +311,7 @@ export default function SettingsPage() {
       setPrivacyForm(result)
       toast.success('Privacy settings updated')
     } catch (error) {
-
+      console.error('Failed to save privacy settings:', error)
       toast.error('Failed to save privacy settings')
     } finally {
       setSaving(false)
@@ -350,7 +353,7 @@ export default function SettingsPage() {
       await refreshUser()
       toast.success('Avatar updated successfully!')
     } catch (error) {
-
+      console.error('Failed to update avatar:', error)
       toast.error('Failed to update avatar')
       setAvatarConfig(user?.avatar_config || null)
     } finally {
@@ -1127,5 +1130,13 @@ export default function SettingsPage() {
           </Tabs>
         </div>
     </BrandUserInterface>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <AuthGuard requireAuth={true}>
+      <SettingsPageContent />
+    </AuthGuard>
   )
 }

@@ -86,7 +86,7 @@ export const useServiceWorker = (): ServiceWorkerStatus => {
       }, 60000) // Check every minute
 
     } catch (error) {
-
+      console.error('Service worker registration failed:', error)
       setIsRegistered(false)
     }
   }

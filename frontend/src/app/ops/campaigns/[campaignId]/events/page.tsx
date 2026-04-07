@@ -162,7 +162,7 @@ const ShortlistTab = ({ event, isInternal, onUpdate }: any) => {
               }
             });
           } catch (error) {
-
+            console.error('Failed to add creator to event:', error)
           }
         }
       }

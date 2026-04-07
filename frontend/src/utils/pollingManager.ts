@@ -186,8 +186,8 @@ class PollingManager {
           instance.config.maxInterval
         )
       }
-    } catch {
-      
+    } catch (error) {
+      console.error('Polling request failed:', error)
       // Increase retry count and backoff interval
       instance.retryCount++
       instance.currentInterval = Math.min(

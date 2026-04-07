@@ -71,7 +71,7 @@ export function CampaignsOverview({ searchQuery }: CampaignsOverviewProps) {
       setSummary(null);
       setRecentCampaigns([]);
     } catch (error) {
-
+      console.error('Failed to load campaigns overview:', error)
     } finally {
       setIsLoading(false);
     }

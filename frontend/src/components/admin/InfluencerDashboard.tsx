@@ -131,11 +131,11 @@ export function InfluencerDashboard() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
+          <Button variant="outline" disabled title="Coming soon">
             <Upload className="mr-2 h-4 w-4" />
             Import
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" disabled title="Coming soon">
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>

@@ -109,7 +109,8 @@ class NotificationApiService {
       if (!res.ok) return { success: false, data: empty }
       const json = await res.json()
       return { success: true, data: json?.data ?? json ?? empty }
-    } catch {
+    } catch (error) {
+      console.error('Failed to fetch unread notification count:', error)
       return { success: false, data: empty }
     }
   }
@@ -121,7 +122,10 @@ class NotificationApiService {
         { method: 'POST', headers }
       )
       return res.ok
-    } catch { return false }
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error)
+      return false
+    }
   }
 
   async markAllAsRead(notificationType?: string): Promise<boolean> {
@@ -132,7 +136,10 @@ class NotificationApiService {
         { method: 'POST', headers }
       )
       return res.ok
-    } catch { return false }
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error)
+      return false
+    }
   }
 
   async markReadByReference(referenceType: string, referenceId?: string): Promise<boolean> {
@@ -144,7 +151,10 @@ class NotificationApiService {
         { method: 'POST', headers }
       )
       return res.ok
-    } catch { return false }
+    } catch (error) {
+      console.error('Failed to mark notifications read by reference:', error)
+      return false
+    }
   }
 }
 

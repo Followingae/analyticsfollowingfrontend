@@ -227,7 +227,7 @@ export function FinancialDashboard() {
                     <Button variant="outline" className="flex-1" onClick={() => setShowBulkCredits(false)}>
                       Cancel
                     </Button>
-                    <Button className="flex-1">Execute Operation</Button>
+                    <Button className="flex-1" disabled title="Coming soon">Execute Operation</Button>
                   </div>
                 </div>
               </DialogContent>
@@ -483,9 +483,9 @@ export function FinancialDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-amber-600">
-                  {creditOverview?.overview ? Math.round((creditOverview.overview.total_spent_all_time / creditOverview.overview.total_credits_in_system) * 100) : 0}%
+                  {creditOverview?.overview && creditOverview.overview.total_credits_in_system > 0 ? Math.round((creditOverview.overview.total_spent_all_time / creditOverview.overview.total_credits_in_system) * 100) : 0}%
                 </div>
-                <Progress value={creditOverview?.overview ? Math.round((creditOverview.overview.total_spent_all_time / creditOverview.overview.total_credits_in_system) * 100) : 0} className="mt-2" />
+                <Progress value={creditOverview?.overview && creditOverview.overview.total_credits_in_system > 0 ? Math.round((creditOverview.overview.total_spent_all_time / creditOverview.overview.total_credits_in_system) * 100) : 0} className="mt-2" />
                 <p className="text-xs text-muted-foreground mt-1">
                   Credits actively used
                 </p>
@@ -554,7 +554,7 @@ export function FinancialDashboard() {
                         <Button variant="outline" className="flex-1" onClick={() => setShowCreditAdjustment(false)}>
                           Cancel
                         </Button>
-                        <Button className="flex-1">Apply Adjustment</Button>
+                        <Button className="flex-1" disabled title="Coming soon">Apply Adjustment</Button>
                       </div>
                     </div>
                   </DialogContent>

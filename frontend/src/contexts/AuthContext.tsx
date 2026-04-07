@@ -21,7 +21,7 @@ try {
   
 
 } catch (error) {
-
+  console.error('Failed to import auth modules:', error)
 }
 
 interface AuthContextType {
@@ -100,13 +100,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Invalid data, skip hydration
           }
         } catch (parseError) {
-          // Parse error occurred
+          console.error('Failed to parse stored auth data:', parseError)
         }
       } else {
         // No stored data found
       }
     } catch (error) {
-
+      console.error('Auth hydration failed:', error)
     } finally {
       // Always complete hydration and stop loading
       setIsHydrated(true)
@@ -183,7 +183,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         clearTimeout(timeoutId) // Cancel timeout if initializeAuth completes
       })
     } catch (error) {
-
+      console.error('Auth initialization error:', error)
       setIsLoading(false) // Ensure loading is set to false even if there's an error
     }
   }, [isHydrated])
@@ -200,14 +200,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         storedUser = authService.getStoredUser()
 
       } catch (error) {
-
+        console.error('Failed to get stored user:', error)
       }
-      
+
       try {
         isAuthenticated = authService.isAuthenticated()
 
       } catch (error) {
-        // Error checking authentication
+        console.error('Error checking authentication:', error)
       }
       
       if (storedUser && isAuthenticated) {
@@ -243,7 +243,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
               const tokenData = JSON.parse(tokens)
               return !!(tokenData?.access_token && tokenData.access_token !== 'null')
             }
-          } catch (e) {}
+          } catch (e) {
+            console.error('Failed to parse auth tokens:', e)
+          }
           return false
         })()
         
@@ -257,7 +259,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       }
     } catch (error) {
-
+      console.error('initializeAuth failed:', error)
       // Don't clear user state on errors - could be network issues
     } finally {
 
@@ -283,7 +285,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
     } catch (error) {
-
+      console.error('Failed to load dashboard stats:', error)
       // Don't logout on network errors
     }
   }
@@ -419,12 +421,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           try {
             localStorage.removeItem(item)
           } catch (e) {
-
+            console.error('Failed to remove localStorage item:', e)
           }
         })
       }
     } catch (error) {
-
+      console.error('Logout cleanup error:', error)
     }
     
     // Only show success message if we're not redirecting
@@ -502,8 +504,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(result.data)
           localStorage.setItem('user_data', JSON.stringify(result.data))
         }
-      } catch {
-        // Fallback also failed
+      } catch (fallbackError) {
+        console.error('Fallback user refresh also failed:', fallbackError)
       }
     }
   }
@@ -575,7 +577,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           tokenManagerAuth = tokenManager.isAuthenticated()
 
         } catch (error) {
-
+          console.error('TokenManager auth check failed:', error)
           tokenManagerAuth = true // Default to true on error
         }
       } else {
@@ -589,7 +591,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           serviceAuth = authService.isAuthenticated()
 
         } catch (error) {
-
+          console.error('AuthService auth check failed:', error)
           serviceAuth = true // Default to true on error
         }
       } else {
@@ -618,7 +620,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       return result
     } catch (error) {
-
+      console.error('Auth validation error:', error)
       return !!user // Fall back to user state if validation fails
     }
   }, [user, isHydrated])

@@ -87,7 +87,7 @@ function CreateUserContent() {
         const token = parsed.access_token || parsed.access;
         if (token) return token;
       } catch (e) {
-
+        console.error('Failed to parse auth tokens:', e)
       }
     }
     const directToken = localStorage.getItem('access_token');
@@ -165,7 +165,8 @@ function CreateUserContent() {
           } else if (errorData.message) {
             errorMessage = errorData.message;
           }
-        } catch {
+        } catch (parseError) {
+          console.error('Failed to parse user creation error response:', parseError)
           // If JSON parsing fails, try text
           const text = await userResponse.text().catch(() => '');
           if (text) errorMessage = text;

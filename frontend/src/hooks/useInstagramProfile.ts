@@ -50,7 +50,7 @@ export function useInstagramProfile(): [UseInstagramProfileState, UseInstagramPr
         })
       }
     } catch (error) {
-
+      console.error('Instagram profile fetch failed:', error)
       updateState({ 
         profile: null, 
         isLoading: false,

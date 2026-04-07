@@ -173,7 +173,7 @@ const RolePermissionDashboard: React.FC<RolePermissionDashboardProps> = () => {
       });
       loadRoleManagementData();
     } catch (err) {
-
+      console.error('Role permission operation failed:', err)
     }
   };
 
@@ -182,7 +182,7 @@ const RolePermissionDashboard: React.FC<RolePermissionDashboardProps> = () => {
       await superadminApi.updateRolePermissions(roleId, permissions, true);
       loadRoleManagementData();
     } catch (err) {
-
+      console.error('Role permission operation failed:', err)
     }
   };
 
@@ -199,7 +199,7 @@ const RolePermissionDashboard: React.FC<RolePermissionDashboardProps> = () => {
       });
       loadRoleManagementData();
     } catch (err) {
-
+      console.error('Role permission operation failed:', err)
     }
   };
 

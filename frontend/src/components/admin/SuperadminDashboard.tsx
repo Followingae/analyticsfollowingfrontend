@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { superadminService } from '@/utils/superadminApi';
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/analytics-cards";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import {
@@ -14,7 +15,9 @@ import {
   TrendingUp,
   UserPlus,
   Activity,
-  Target
+  Target,
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 import { cn } from '@/lib/utils';
 
@@ -38,6 +41,7 @@ interface DashboardStats {
 export default function SuperadminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   // PERF FIX: No artificial delays - show content immediately when data is ready
@@ -50,38 +54,39 @@ export default function SuperadminDashboard() {
   }, []);
 
   const loadDashboardData = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const statsData = await superadminService.getDashboardStats();
 
-      // Transform flat backend response to nested structure expected by component
-      // Backend returns: { total_users, active_users, total_profiles, total_revenue_this_month, etc. }
-      // Component expects: { users: { total, active }, revenue: { total_mrr }, etc. }
+      // Handle both response shapes:
+      // Flat: { total_users, active_users, total_profiles, total_revenue_this_month, ... }
+      // Nested: { data: { system_health, user_metrics, revenue, ... } }
+      const flat = statsData?.data || statsData;
+      const userMetrics = flat?.user_metrics || flat?.user_statistics || {};
+      const revenueData = flat?.revenue || flat?.revenue_analytics || {};
 
       const transformedStats: DashboardStats = {
         users: {
-          total: statsData.total_users || 0,
-          active: statsData.active_users || 0,
-          premium: statsData.premium_users || 0, // This might not exist in backend
-          new_this_month: statsData.new_users_this_month || 0
+          total: userMetrics?.total_users || flat?.total_users || 0,
+          active: userMetrics?.active_users || flat?.active_users || 0,
+          premium: userMetrics?.premium_users || flat?.premium_users || 0,
+          new_this_month: userMetrics?.new_users_this_month || flat?.new_users_this_month || 0
         },
         revenue: {
-          total_mrr: statsData.total_revenue_this_month || 0,
-          new_mrr_this_month: statsData.total_revenue_this_month || 0
+          total_mrr: revenueData?.total_mrr || flat?.total_revenue_this_month || 0,
+          new_mrr_this_month: revenueData?.new_mrr_this_month || flat?.total_revenue_this_month || 0
         },
         content: {
-          total_profiles: statsData.total_profiles || 0,
-          profiles_analyzed_today: statsData.profiles_analyzed_today || 0
+          total_profiles: flat?.total_profiles || 0,
+          profiles_analyzed_today: flat?.profiles_analyzed_today || 0
         }
       };
 
       setStats(transformedStats);
     } catch (err: any) {
-      // Set default values on error
-      setStats({
-        users: { total: 0, active: 0, premium: 0, new_this_month: 0 },
-        revenue: { total_mrr: 0, new_mrr_this_month: 0 },
-        content: { total_profiles: 0, profiles_analyzed_today: 0 }
-      });
+      setError(err?.message || 'Failed to load dashboard data');
+      setStats(null);
     } finally {
       setLoading(false);
     }
@@ -124,6 +129,32 @@ export default function SuperadminDashboard() {
 
   if (loading) {
     return <DashboardSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-background p-6">
+        <div className="max-w-[1600px] mx-auto">
+          <Card className="border-destructive/50">
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="h-14 w-14 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                <AlertCircle className="h-7 w-7 text-destructive" />
+              </div>
+              <h2 className="text-xl font-semibold tracking-tight mb-2">
+                Failed to load dashboard
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-md mb-6">
+                {error}
+              </p>
+              <Button variant="outline" onClick={loadDashboardData}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (

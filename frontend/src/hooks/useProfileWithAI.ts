@@ -1,4 +1,5 @@
 // hooks/useProfileWithAI.ts - Combined hook for two-step profile loading
+import { useEffect } from 'react'
 import { useCreatorSearch } from './useCreatorSearch'
 import { useProfileAIAnalysis } from './useProfileAIAnalysis'
 import { useQuery } from '@tanstack/react-query'
@@ -43,9 +44,11 @@ export const useProfileWithAI = (
   })
 
   // Auto-search if requested and no existing data
-  if (autoSearch && username && !existingProfile.data && !profileSearch.isPending) {
-    profileSearch.mutate(username)
-  }
+  useEffect(() => {
+    if (autoSearch && username && !existingProfile.data && !profileSearch.isPending && !profileSearch.data) {
+      profileSearch.mutate(username)
+    }
+  }, [autoSearch, username, existingProfile.data, profileSearch.isPending, profileSearch.data])
 
   // Determine current profile data source
   const profileData = profileSearch.data?.profile || existingProfile.data?.profile

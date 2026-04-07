@@ -1,3 +1,11 @@
+// DEPRECATED: Prefer @/services/superadminApi (SuperadminApiService) for new code.
+// This file is the legacy axios-based API layer. Consumers still using it:
+//   - SuperadminDashboard.tsx, EditUserModal.tsx, SuperadminBilling.tsx,
+//     SuperadminUserManagement.tsx, SuperadminUserManagementClean.tsx,
+//     HRMSystem.tsx, HRMSystemEnhanced.tsx, admin/users/create/page.tsx
+// The HRM methods here have no equivalent in @/services/superadminApi yet.
+// Migration plan: move unique methods to @/services/superadminApi, then
+// update all consumers and delete this file.
 import axios from 'axios';
 import { API_CONFIG } from '@/config/api';
 import { tokenManager } from '@/utils/tokenManager';
@@ -21,8 +29,8 @@ SuperadminAPI.interceptors.request.use(
       if (tokenResult.isValid && tokenResult.token) {
         config.headers.Authorization = `Bearer ${tokenResult.token}`;
       }
-    } catch {
-      // Continue without token - let server handle auth
+    } catch (error) {
+      console.error('Failed to get auth token for superadmin request:', error)
     }
 
     return config;
@@ -52,8 +60,8 @@ SuperadminAPI.interceptors.response.use(
           // Retry the original request
           return SuperadminAPI(originalRequest);
         }
-      } catch {
-        // Token refresh failed
+      } catch (refreshError) {
+        console.error('Superadmin API token refresh failed (403):', refreshError)
       }
     }
 
@@ -142,7 +150,7 @@ export const superadminService = {
   },
 
   getCreditBalance: async (userId: string) => {
-    const response = await SuperadminAPI.get(`/api/v1/credits/balance?user_id=${userId}`);
+    const response = await SuperadminAPI.get(`/api/v1/credits/admin/user/${userId}/balance`);
     return response.data;
   },
 
@@ -152,12 +160,12 @@ export const superadminService = {
   },
 
   getWalletSummary: async (userId: string) => {
-    const response = await SuperadminAPI.get(`/api/v1/credits/wallet/summary?user_id=${userId}`);
+    const response = await SuperadminAPI.get(`/api/v1/credits/admin/user/${userId}/wallet-summary`);
     return response.data;
   },
 
   getMonthlyUsage: async (userId: string) => {
-    const response = await SuperadminAPI.get(`/api/v1/credits/usage/monthly?user_id=${userId}`);
+    const response = await SuperadminAPI.get(`/api/v1/credits/admin/user/${userId}/usage`);
     return response.data;
   },
 

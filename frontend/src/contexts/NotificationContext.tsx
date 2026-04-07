@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
+import { toast } from 'sonner'
 import {
   notificationApiService,
   ServerNotification,
@@ -18,6 +19,8 @@ interface NotificationContextType {
   markReadByReference: (referenceType: string, referenceId?: string) => void
   /** Re-fetch both list + counts from server */
   refresh: () => void
+  /** Show a toast only if the same message wasn't shown in the last 10 seconds */
+  deduplicatedToast: (message: string, type?: 'error' | 'success' | 'info') => void
 }
 
 const defaultCounts: UnreadCounts = {
@@ -39,6 +42,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true)
   const [apiAvailable, setApiAvailable] = useState(true)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // ── Toast deduplication (Issue 60) ──────────────────────────────────
+  const lastToastRef = useRef<{ message: string; time: number }>({ message: '', time: 0 })
+  const deduplicatedToast = useCallback((message: string, type: 'error' | 'success' | 'info' = 'error') => {
+    const now = Date.now()
+    if (lastToastRef.current.message === message && now - lastToastRef.current.time < 10_000) return
+    lastToastRef.current = { message, time: now }
+    toast[type](message)
+  }, [])
 
   // ── Fetchers ────────────────────────────────────────────────────────
 
@@ -78,8 +90,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (!apiAvailable) return
-    pollRef.current = setInterval(refresh, 30_000)
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+    pollRef.current = setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      refresh()
+    }, 30_000)
+
+    // Resume polling immediately when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refresh()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [apiAvailable, refresh])
 
   // ── Refresh on job completion (from useJobPolling window event) ─
@@ -139,6 +166,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       markAllAsRead,
       markReadByReference,
       refresh,
+      deduplicatedToast,
     }}>
       {children}
     </NotificationContext.Provider>

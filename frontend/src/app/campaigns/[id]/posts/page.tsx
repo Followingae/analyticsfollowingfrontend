@@ -695,7 +695,7 @@ export default function CampaignDetailsPage() {
 
         }
       } catch (analyticsError) {
-
+        console.error('Failed to load post analytics:', analyticsError)
       }
 
       // Calculate stats from real data

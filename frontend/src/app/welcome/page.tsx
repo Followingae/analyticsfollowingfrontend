@@ -74,7 +74,8 @@ function WelcomeContent() {
       let data;
       try {
         data = await response.json()
-      } catch {
+      } catch (error) {
+        console.error('Failed to parse welcome page response:', error)
         data = {}
       }
 

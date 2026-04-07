@@ -228,7 +228,6 @@ class CreditsApiService {
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokenResult.token}`,
           ...options.headers,
         },
       })
@@ -341,7 +340,7 @@ class CreditsApiService {
     const params = new URLSearchParams()
     if (limit) params.append('limit', limit.toString())
     if (offset) params.append('offset', offset.toString())
-    if (action_type) params.append('action_type', action_type)
+    if (action_type) params.append('transaction_types', action_type)
     if (start_date) params.append('start_date', start_date)
     if (end_date) params.append('end_date', end_date)
 
@@ -359,7 +358,7 @@ class CreditsApiService {
     transactions: CreditTransaction[]
     total: number
   }>> {
-    const params = new URLSearchParams({ query })
+    const params = new URLSearchParams({ search: query })
     if (limit) params.append('limit', limit.toString())
     if (offset) params.append('offset', offset.toString())
 
@@ -388,7 +387,7 @@ class CreditsApiService {
     period?: 'week' | 'month' | 'quarter' | 'year'
   ): Promise<ApiResponse<SpendingAnalytics>> {
     const params = new URLSearchParams()
-    if (period) params.append('period', period)
+    if (period) params.append('months', period)
 
     const queryString = params.toString()
     const endpoint = `/api/v1/credits/analytics/spending${queryString ? `?${queryString}` : ''}`

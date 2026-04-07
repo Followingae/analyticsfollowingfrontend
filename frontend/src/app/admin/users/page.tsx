@@ -1,7 +1,12 @@
 "use client"
 
 import SuperadminUserManagement from "@/components/admin/SuperadminUserManagement"
+import { AuthGuard } from "@/components/AuthGuard"
 
 export default function AdminUsersPage() {
-  return <SuperadminUserManagement />
+  return (
+    <AuthGuard requiredRole="admin">
+      <SuperadminUserManagement />
+    </AuthGuard>
+  )
 }

@@ -51,7 +51,7 @@ export default function LoginPage() {
         setErrorMessage('Login failed. Please check your credentials and try again.')
       }
     } catch (error) {
-
+      console.error('Login failed:', error)
       setErrorMessage('An unexpected error occurred. Please try again.')
     } finally {
       setIsLoading(false)

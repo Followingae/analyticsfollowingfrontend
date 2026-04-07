@@ -64,7 +64,7 @@ export default function SuperadminCreditsPage() {
 
         }
       } catch (error) {
-
+        console.error('Credits data fetch failed:', error)
       }
 
       // Load transactions with error handling
@@ -76,7 +76,7 @@ export default function SuperadminCreditsPage() {
 
         }
       } catch (error) {
-
+        console.error('Credits data fetch failed:', error)
       }
 
       // Load revenue analytics with error handling
@@ -88,7 +88,7 @@ export default function SuperadminCreditsPage() {
 
         }
       } catch (error) {
-
+        console.error('Credits data fetch failed:', error)
       }
     } catch (error) {
       toast.error('Failed to load credits data')

@@ -14,22 +14,23 @@ const createIDBPersister = () => {
       getItem: async (key: string) => {
         try {
           return await get(key)
-        } catch {
+        } catch (error) {
+          console.error('IDB cache read failed:', error)
           return null
         }
       },
       setItem: async (key: string, value: any) => {
         try {
           await set(key, value)
-        } catch {
-          // Silently fail to prevent blocking
+        } catch (error) {
+          console.error('IDB cache write failed:', error)
         }
       },
       removeItem: async (key: string) => {
         try {
           await del(key)
-        } catch {
-          // Silently fail
+        } catch (error) {
+          console.error('IDB cache delete failed:', error)
         }
       },
     },

@@ -103,7 +103,7 @@ export default function CampaignOperationsHome() {
       const data = await operationsApi.getCampaignOverview(campaignId);
       setOverview(data);
     } catch (error) {
-
+      console.error('Failed to load campaign overview:', error)
     } finally {
       setLoadingOverview(false);
     }

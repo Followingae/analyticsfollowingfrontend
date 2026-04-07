@@ -262,7 +262,7 @@ export default function HRMSystemEnhanced() {
       const overview = await superadminService.hrm.getHRMOverview();
       setStats(overview);
     } catch (err) {
-
+      console.error('Failed to load HRM overview:', err)
     }
   };
 

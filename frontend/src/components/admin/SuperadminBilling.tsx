@@ -133,9 +133,9 @@ Revenue Report - ${format(new Date(), 'MMMM yyyy')}
 =====================================
 
 Key Metrics:
-- Total Revenue: $${revenueStats?.total_revenue?.toLocaleString() || 0}
-- MRR: $${revenueStats?.mrr?.toLocaleString() || 0}
-- ARR: $${revenueStats?.arr?.toLocaleString() || 0}
+- Total Revenue: د.إ${revenueStats?.total_revenue?.toLocaleString() || 0}
+- MRR: د.إ${revenueStats?.mrr?.toLocaleString() || 0}
+- ARR: د.إ${revenueStats?.arr?.toLocaleString() || 0}
 - Growth Rate: ${revenueStats?.growth_rate?.toFixed(2) || 0}%
 
 Subscriptions:
@@ -144,8 +144,8 @@ Subscriptions:
 - Trial Users: ${revenueStats?.trial_users || 0}
 
 MRR Movement:
-- New MRR: $${revenueStats?.new_mrr?.toLocaleString() || 0}
-- Churn MRR: $${revenueStats?.churn_mrr?.toLocaleString() || 0}
+- New MRR: د.إ${revenueStats?.new_mrr?.toLocaleString() || 0}
+- Churn MRR: د.إ${revenueStats?.churn_mrr?.toLocaleString() || 0}
 `;
 
     const blob = new Blob([report], { type: 'text/plain' });
@@ -226,7 +226,7 @@ MRR Movement:
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${revenueStats?.total_revenue?.toLocaleString() || 0}
+              د.إ{revenueStats?.total_revenue?.toLocaleString() || 0}
             </div>
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
               {revenueStats?.growth_rate && revenueStats.growth_rate > 0 ? (
@@ -252,10 +252,10 @@ MRR Movement:
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${revenueStats?.mrr?.toLocaleString() || 0}
+              د.إ{revenueStats?.mrr?.toLocaleString() || 0}
             </div>
             <div className="text-xs text-muted-foreground">
-              ARR: ${revenueStats?.arr?.toLocaleString() || 0}
+              ARR: د.إ{revenueStats?.arr?.toLocaleString() || 0}
             </div>
           </CardContent>
         </Card>
@@ -285,13 +285,13 @@ MRR Movement:
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">New:</span>
                 <span className="text-green-600 font-medium">
-                  +${revenueStats?.new_mrr?.toLocaleString() || 0}
+                  +د.إ{revenueStats?.new_mrr?.toLocaleString() || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Churn:</span>
                 <span className="text-red-600 font-medium">
-                  -${revenueStats?.churn_mrr?.toLocaleString() || 0}
+                  -د.إ{revenueStats?.churn_mrr?.toLocaleString() || 0}
                 </span>
               </div>
             </div>
@@ -362,13 +362,13 @@ MRR Movement:
                 <div>
                   <p className="text-sm text-muted-foreground">Revenue</p>
                   <p className="text-lg font-bold text-green-600">
-                    ${summaryStats.revenue.toLocaleString()}
+                    د.إ{summaryStats.revenue.toLocaleString()}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Refunds</p>
                   <p className="text-lg font-bold text-red-600">
-                    ${summaryStats.refunds.toLocaleString()}
+                    د.إ{summaryStats.refunds.toLocaleString()}
                   </p>
                 </div>
                 <div>
@@ -500,7 +500,7 @@ MRR Movement:
                     {chartData.map((data) => (
                       <TableRow key={data.date}>
                         <TableCell className="font-medium">{data.date}</TableCell>
-                        <TableCell>${data.revenue.toLocaleString()}</TableCell>
+                        <TableCell>د.إ{data.revenue.toLocaleString()}</TableCell>
                         <TableCell>{data.subscriptions}</TableCell>
                         <TableCell className="text-red-600">-{data.churn}</TableCell>
                         <TableCell>
@@ -544,10 +544,6 @@ MRR Movement:
                       <span>Premium:</span>
                       <span className="font-medium">0</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Enterprise:</span>
-                      <span className="font-medium">0</span>
-                    </div>
                   </div>
                 </div>
 
@@ -575,7 +571,7 @@ MRR Movement:
                     <div className="flex justify-between">
                       <span>Avg. Revenue/User:</span>
                       <span className="font-medium">
-                        ${revenueStats?.paying_users ?
+                        د.إ{revenueStats?.paying_users ?
                           (revenueStats.mrr / revenueStats.paying_users).toFixed(2) : 0}
                       </span>
                     </div>

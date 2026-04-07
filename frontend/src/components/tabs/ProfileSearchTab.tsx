@@ -55,7 +55,7 @@ export default function ProfileSearchTab() {
       // await batchApiService.batchAnalysis(usernames)
 
     } catch (err) {
-
+      console.error('Batch profile analysis failed:', err)
     } finally {
       setBatchLoading(false)
     }

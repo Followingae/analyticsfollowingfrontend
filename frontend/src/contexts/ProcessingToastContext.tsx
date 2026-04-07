@@ -88,7 +88,7 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
               }
             }
           } catch (error) {
-
+            console.error('Failed to verify processing toast completion:', error)
           }
 
           // Fallback: load toasts but filter out stale ones (>10 min old)
@@ -99,7 +99,7 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
           }
           setProcessingToasts(fresh)
         } catch (error) {
-
+          console.error('Failed to parse stored processing toasts:', error)
         }
       }
     }
@@ -274,16 +274,31 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
 
         }
       } catch (error) {
-
+        console.error('Processing toast completion check failed:', error)
       }
   }, [removeProcessingToast])
 
-  // Polling logic to check for completion
+  // Polling logic to check for completion (skip when tab is hidden)
   useEffect(() => {
     if (processingToasts.length === 0) return
 
-    const interval = setInterval(checkCompletionNow, POLL_INTERVAL)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      checkCompletionNow()
+    }, POLL_INTERVAL)
+
+    // Resume polling immediately when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && processingToastsRef.current.length > 0) {
+        checkCompletionNow()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [processingToasts.length, checkCompletionNow])
 
   // Listen for job-failed events from useJobPolling and remove matching toasts
@@ -337,6 +352,7 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
     if (processingToasts.length === 0) return
 
     const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return
       const now = Date.now()
       processingToasts.forEach(t => {
         if (now - t.startedAt > STALE_TIMEOUT_MS) {

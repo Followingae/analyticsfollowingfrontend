@@ -67,7 +67,7 @@ export function AIStatusIndicator({
           setPricing(result.data)
         }
       } catch (error) {
-
+        console.error('Failed to load AI pricing data:', error)
       } finally {
         setPricingLoading(false)
       }

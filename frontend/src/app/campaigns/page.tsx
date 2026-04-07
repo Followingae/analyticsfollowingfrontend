@@ -267,7 +267,8 @@ function AllCampaignsTab({
         campaign_type: c.campaign_type || "influencer",
       }));
       setCampaigns(processed);
-    } catch {
+    } catch (error) {
+      console.error('Failed to fetch campaigns, trying fallback:', error)
       // Fallback: try the old campaigns list API
       try {
         const { dedicatedApiCall } = await import("@/utils/apiDeduplication");
@@ -294,7 +295,8 @@ function AllCampaignsTab({
         } else {
           setCampaigns([]);
         }
-      } catch {
+      } catch (fallbackError) {
+        console.error('Campaign fallback API also failed:', fallbackError)
         setCampaigns([]);
       }
     } finally {
@@ -342,7 +344,8 @@ function AllCampaignsTab({
       } else {
         throw new Error(response?.error || `Failed to ${action} campaign`);
       }
-    } catch {
+    } catch (error) {
+      console.error(`Campaign action '${action}' failed:`, error)
       toast.error(`Failed to ${action} campaign. Please try again.`);
     }
   };
@@ -432,7 +435,8 @@ function ProposalsTabContent({ searchQuery }: { searchQuery: string }) {
       const result = await brandProposalViewApi.listProposals();
       const data = result as any;
       setProposals(data.proposals || []);
-    } catch {
+    } catch (error) {
+      console.error('Failed to load proposals:', error)
       setProposals([]);
     } finally {
       setLoading(false);
@@ -578,7 +582,8 @@ function ScopeTabContent() {
       // The endpoint may return { campaigns: [...] } or { data: { campaigns: [...] } }
       const campaigns = data?.campaigns || data?.data?.campaigns || data?.data || [];
       setScopeData(campaigns);
-    } catch {
+    } catch (error) {
+      console.error('Failed to load scope data:', error)
       setScopeData([]);
     } finally {
       setLoading(false);
@@ -778,7 +783,8 @@ function ArchiveTabContent({ searchQuery }: { searchQuery: string }) {
             campaign_type: c.campaign_type || "influencer",
           }))
         );
-      } catch {
+      } catch (error) {
+        console.error('Failed to fetch completed campaigns, trying fallback:', error)
         // Fallback to old API
         const { dedicatedApiCall } = await import("@/utils/apiDeduplication");
         const responseData = await dedicatedApiCall.campaignsList({
@@ -891,7 +897,9 @@ export default function UnifiedCampaignsDashboard() {
         const proposals = result.proposals || [];
         const pending = proposals.filter((p: any) => !["approved", "rejected"].includes(p.status));
         setPendingProposalCount(pending.length);
-      } catch {}
+      } catch (error) {
+        console.error('Failed to fetch pending proposal count:', error)
+      }
     };
     fetchPendingCount();
   }, []);

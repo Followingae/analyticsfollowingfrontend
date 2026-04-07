@@ -110,7 +110,7 @@ export function InfluencerSelectionV2({
       // Influencer selection happens via proposals — no direct search in this component
       setInfluencers([]);
     } catch (error) {
-
+      console.error('Influencer selection search failed:', error)
     } finally {
       setIsLoading(false);
     }

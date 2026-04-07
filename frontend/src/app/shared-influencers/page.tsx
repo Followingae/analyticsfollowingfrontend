@@ -87,7 +87,8 @@ function SharedInfluencersContent() {
         const list = data.influencers || data
         setInfluencers(Array.isArray(list) ? list : [])
       }
-    } catch {
+    } catch (error) {
+      console.error('Failed to load shared influencers:', error)
       toast.error("Failed to load shared influencers")
     } finally {
       setLoading(false)

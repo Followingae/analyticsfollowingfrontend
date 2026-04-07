@@ -73,6 +73,7 @@ export const ENDPOINTS = {
     invitations: '/api/v1/teams/invitations', // GET - Team invitations
     acceptInvitation: (token: string) => `/api/v1/teams/invitations/${token}/accept`, // PUT - Accept invitation
     removeMember: (userId: string) => `/api/v1/teams/members/${userId}`, // DELETE - Remove member
+    cancelInvitation: (id: string) => `/api/v1/teams/invitations/${id}`, // DELETE - Cancel invitation
     overview: '/api/v1/teams/overview', // GET - Team overview
   },
 
@@ -289,7 +290,7 @@ export const ENDPOINTS = {
     updateUser: (userId: string) => `/api/v1/admin/users/${userId}`, // PUT - Update user
     deleteUser: (userId: string) => `/api/v1/admin/users/${userId}`, // DELETE - Delete user
     bulkUpdateUsers: '/api/v1/admin/users/bulk-update', // POST - Bulk operations
-    getUserActivity: (userId: string) => `/api/v1/admin/users/${userId}/activity`, // GET - User activity
+    getUserActivity: (userId: string) => `/api/v1/admin/users/${userId}/activities`, // GET - User activities
 
     // Credits Management
     adjustCredits: '/api/v1/admin/credits/adjust', // POST - Adjust user credits

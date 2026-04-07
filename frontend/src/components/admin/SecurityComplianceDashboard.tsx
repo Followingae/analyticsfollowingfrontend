@@ -188,7 +188,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       });
       setThreats(threatsData);
     } catch (err) {
-
+      console.error('Security dashboard operation failed:', err)
     }
   };
 
@@ -206,7 +206,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       });
       loadDashboardData();
     } catch (err) {
-
+      console.error('Security dashboard operation failed:', err)
     }
   };
 
@@ -215,7 +215,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       await superadminApi.activateEmergencyControl(controlId);
       loadDashboardData();
     } catch (err) {
-
+      console.error('Security dashboard operation failed:', err)
     }
   };
 
@@ -224,7 +224,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       await superadminApi.deactivateEmergencyControl(controlId);
       loadDashboardData();
     } catch (err) {
-
+      console.error('Security dashboard operation failed:', err)
     }
   };
 
@@ -239,7 +239,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       }
       loadSecurityData();
     } catch (err) {
-
+      console.error('Security dashboard operation failed:', err)
     }
   };
 
@@ -248,7 +248,7 @@ const SecurityComplianceDashboard: React.FC<SecurityComplianceDashboardProps> = 
       await superadminApi.toggleSecurityRule(ruleId);
       loadDashboardData();
     } catch (err) {
-
+      console.error('Security dashboard operation failed:', err)
     }
   };
 

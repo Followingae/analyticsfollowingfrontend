@@ -18,6 +18,38 @@ import { API_CONFIG } from '@/config/api'
 import { requestCache } from '@/utils/requestCache'
 import { pollJobToCompletion } from '@/hooks/useJobPolling'
 
+// ==================== IN-MEMORY RESPONSE CACHE ====================
+// Prevents 6+ duplicate requests to the same creator endpoint per page load
+
+const responseCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getCachedCreatorData(username: string): Promise<BackendProfileData> {
+  const cacheKey = username.toLowerCase();
+  const cached = responseCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${username}`);
+  if (!response.ok && response.status !== 202) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  let data: BackendProfileData;
+  if (response.status === 202) {
+    const jobData = await response.json();
+    data = await pollJobToCompletion(jobData.job_id, {
+      pollInterval: 4000,
+      maxAttempts: 45,
+    });
+  } else {
+    data = await response.json();
+  }
+
+  responseCache.set(cacheKey, { data, timestamp: Date.now() });
+  return data;
+}
+
 // Real profile data structure from backend (comprehensive spec)
 // Based on verification: GET /api/v1/search/creator/{username}
 interface BackendProfileData {
@@ -177,24 +209,8 @@ export class ComprehensiveAnalyticsApiService {
       // Clean the username - remove @ symbol and trim whitespace
       const cleanUsername = username.replace('@', '').trim()
 
-      // Fresh API: Use the verified backend endpoint (base URL already includes /api/v1)
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${cleanUsername}`)
-
-      if (!response.ok && response.status !== 202) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      let data: BackendProfileData;
-
-      if (response.status === 202) {
-        const jobData = await response.json()
-        data = await pollJobToCompletion(jobData.job_id, {
-          pollInterval: 4000,
-          maxAttempts: 45,
-        })
-      } else {
-        data = await response.json()
-      }
+      // Use cached creator data to avoid duplicate requests
+      const data = await getCachedCreatorData(cleanUsername)
 
       if (!data.success || !data.profile) {
         throw new Error('Invalid response structure from backend')
@@ -296,14 +312,8 @@ export class ComprehensiveAnalyticsApiService {
     }
   ): Promise<PostAnalyticsResponse> {
     try {
-      // First get profile data which may include posts
-      const profileResponse = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${username}`)
-
-      if (!profileResponse.ok) {
-        throw new Error(`HTTP error! status: ${profileResponse.status}`)
-      }
-
-      const profileData: BackendProfileData = await profileResponse.json()
+      // Use cached creator data to avoid duplicate requests
+      const profileData = await getCachedCreatorData(username)
 
       // If profile response includes posts, use them (posts are nested in profile)
       const profilePosts = Array.isArray(profileData.profile?.posts) ? profileData.profile.posts : []
@@ -376,15 +386,9 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getComprehensiveAnalysis(username: string): Promise<ComprehensiveAnalysisResponse> {
     try {
-      // Fresh API: Use real API endpoint
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${username}`)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const data: BackendProfileData = await response.json()
-      
+      // Use cached creator data to avoid duplicate requests
+      const data = await getCachedCreatorData(username)
+
       if (!data.success || !data.profile) {
         throw new Error('Invalid response structure from backend')
       }
@@ -479,16 +483,12 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getContentPerformance(username: string): Promise<ContentPerformanceResponse> {
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${username}`)
+      // Use cached creator data to avoid duplicate requests
+      const data = await getCachedCreatorData(username)
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      
+      const aiAnalysis = data.profile?.ai_analysis
       const performance = {
-        top_categories: (Array.isArray(data.ai_analysis?.top_3_categories) ? data.ai_analysis.top_3_categories : []).map((cat, index) => ({
+        top_categories: (Array.isArray((aiAnalysis as any)?.top_3_categories) ? (aiAnalysis as any).top_3_categories : []).map((cat: string, index: number) => ({
           category: cat,
           avg_engagement: 0.05 - (index * 0.005),
           post_count: 10 - (index * 2),
@@ -499,15 +499,15 @@ export class ComprehensiveAnalyticsApiService {
 
         recommendations: [], // No mock recommendations - require real API data
 
-        engagement_prediction: (Array.isArray(data.ai_analysis?.top_3_categories) ? data.ai_analysis.top_3_categories : []).map(cat => ({
+        engagement_prediction: (Array.isArray((aiAnalysis as any)?.top_3_categories) ? (aiAnalysis as any).top_3_categories : []).map((cat: string) => ({
           content_type: cat,
-          predicted_engagement_rate: data.engagement_rate || 0,
+          predicted_engagement_rate: data.profile?.engagement_rate || 0,
           confidence_interval: [0.03, 0.07] as [number, number]
         })) || [],
-        
+
         optimal_posting: {
           best_times: [], // No mock data - require real API data
-          content_mix_recommendation: data.ai_analysis?.content_distribution || {}
+          content_mix_recommendation: aiAnalysis?.content_distribution || {}
         }
       }
 
@@ -526,17 +526,12 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getSafetyAnalysis(username: string): Promise<SafetyAnalysisResponse> {
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${username}`)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const data = await response.json()
+      // Use cached creator data to avoid duplicate requests
+      const data = await getCachedCreatorData(username)
       
       // Calculate brand safety score based on AI analysis
-      const baseSafetyScore = data.ai_analysis?.content_quality_score || 0.7
-      const sentimentBonus = (data.ai_analysis?.avg_sentiment_score || 0) > 0 ? 0.1 : 0
+      const baseSafetyScore = data.profile?.ai_analysis?.content_quality_score || 0.7
+      const sentimentBonus = (data.profile?.ai_analysis?.avg_sentiment_score || 0) > 0 ? 0.1 : 0
       const brandSafetyScore = Math.min(baseSafetyScore + sentimentBonus, 1.0)
 
       const safety = {
@@ -590,31 +585,27 @@ export class ComprehensiveAnalyticsApiService {
    */
   async getAnalysisStatus(username: string): Promise<AnalysisStatusResponse> {
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/search/creator/${username}`)
+      // Use cached creator data to avoid duplicate requests
+      const data = await getCachedCreatorData(username)
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      
+      const aiAnalysis = data.profile?.ai_analysis
       const status = {
-        processing_status: data.ai_analysis?.available ? 'complete' as const : 'analyzing' as const,
-        progress_percentage: data.ai_analysis?.available ? 100 : 75,
+        processing_status: (aiAnalysis as any)?.available ? 'complete' as const : 'analyzing' as const,
+        progress_percentage: (aiAnalysis as any)?.available ? 100 : 75,
         data_freshness: {
           profile_data: new Date().toISOString(),
-          posts_analysis: data.ai_analysis?.profile_analyzed_at || new Date().toISOString(),
-          ai_insights: data.ai_analysis?.profile_analyzed_at || new Date().toISOString(),
+          posts_analysis: (aiAnalysis as any)?.profile_analyzed_at || new Date().toISOString(),
+          ai_insights: (aiAnalysis as any)?.profile_analyzed_at || new Date().toISOString(),
           competitive_data: new Date().toISOString()
         },
         model_confidence: {
-          content_analysis: data.ai_analysis?.content_quality_score || 0.8,
+          content_analysis: aiAnalysis?.content_quality_score || 0.8,
           sentiment_analysis: 0.85,
           audience_analysis: 0.78
         },
         analysis_coverage: {
           posts_analyzed: 50,
-          total_posts: data.posts_count || 100,
+          total_posts: data.profile?.posts_count || 100,
           coverage_percentage: 50
         }
       }

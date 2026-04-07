@@ -79,8 +79,8 @@ export function useAnalyticsStatusPoller(
           setCompletedSinceMount((prev) => [...prev, ...newCompleted])
         }
       }
-    } catch {
-      // Network error — continue polling, next poll will succeed
+    } catch (error) {
+      console.error('Analytics status poll failed (will retry):', error)
     }
   }, [])
 

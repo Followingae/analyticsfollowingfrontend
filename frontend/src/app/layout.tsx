@@ -46,9 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
-      </head>
+      <head />
       <body className={`${inter.variable} ${aedFont.variable} font-sans antialiased`}>
         <QueryProvider>
           <ThemeProvider

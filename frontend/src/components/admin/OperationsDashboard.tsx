@@ -202,7 +202,7 @@ const OperationsDashboard: React.FC<OperationsDashboardProps> = () => {
       });
       loadDashboardData();
     } catch (err) {
-
+      console.error('Operations dashboard action failed:', err)
     }
   };
 
@@ -211,7 +211,7 @@ const OperationsDashboard: React.FC<OperationsDashboardProps> = () => {
       await superadminApi.initiateBackup({ backup_type: type });
       loadDashboardData();
     } catch (err) {
-
+      console.error('Operations dashboard action failed:', err)
     }
   };
 

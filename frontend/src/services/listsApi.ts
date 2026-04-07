@@ -674,7 +674,7 @@ export class ListsApiService {
     is_public: boolean
   }): Promise<ApiResponse<ListTemplate>> {
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/create-template`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/lists/${listId}/create-template`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -700,7 +700,7 @@ export class ListsApiService {
     customizations?: Record<string, any>
   }): Promise<ApiResponse<List>> {
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/from-template/${templateId}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/lists/from-template/${templateId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -727,7 +727,7 @@ export class ListsApiService {
     permission_level: 'view' | 'comment' | 'edit' | 'admin'
   }>, message?: string): Promise<ApiResponse<void>> {
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/share`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/lists/${listId}/share`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -752,7 +752,7 @@ export class ListsApiService {
     message?: string
   }): Promise<ApiResponse<void>> {
     try {
-      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/collaborations/${collaborationId}/respond`, {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/lists/collaborations/${collaborationId}/respond`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -774,7 +774,7 @@ export class ListsApiService {
 
   async updateCollaborationPermissions(collaborationId: string, permission_level: string): Promise<ApiResponse<void>> {
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/collaborations/${collaborationId}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/lists/collaborations/${collaborationId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -799,7 +799,7 @@ export class ListsApiService {
     pending_invites: Collaborator[]
   }>> {
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/collaborators`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/lists/${listId}/collaborators`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -829,7 +829,7 @@ export class ListsApiService {
     estimated_completion: string
   }>> {
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/${listId}/export`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/lists/${listId}/export`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -857,7 +857,7 @@ export class ListsApiService {
     progress_percentage: number
   }>> {
     try {
-      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/lists/export-jobs/${jobId}`, {
+      const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/lists/export-jobs/${jobId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

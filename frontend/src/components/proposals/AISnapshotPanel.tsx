@@ -54,8 +54,8 @@ export function AISnapshotPanel({
     try {
       const data = await onFetchSnapshot(Array.from(selectedIds))
       setSnapshot(data)
-    } catch {
-      // Silently fail — AI snapshot is non-critical
+    } catch (error) {
+      console.error('AI snapshot fetch failed:', error)
     } finally {
       setLoading(false)
     }

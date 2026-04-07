@@ -59,7 +59,8 @@ export default function LoginPage() {
       } else {
         toast.error(result.error || 'Failed to send reset email')
       }
-    } catch {
+    } catch (error) {
+      console.error('Forgot password request failed:', error)
       toast.error('Something went wrong. Please try again.')
     }
   }

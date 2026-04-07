@@ -351,7 +351,8 @@ export const extractDomain = (url: string): string => {
   try {
     const domain = new URL(formatUrl(url)).hostname
     return domain.startsWith('www.') ? domain.slice(4) : domain
-  } catch {
+  } catch (error) {
+    console.error('Domain extraction failed for URL:', url, error)
     return url
   }
 }

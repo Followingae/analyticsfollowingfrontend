@@ -41,7 +41,9 @@ export default function CreateBarterPage() {
         const token = localStorage.getItem("access_token") || ""
         const res = await fetch(`${API_BASE}/api/v1/admin/clients`, { headers: { Authorization: `Bearer ${token}` } })
         if (res.ok) { const d = await res.json(); setClients(d.data?.clients || d.clients || []) }
-      } catch {}
+      } catch (error) {
+        console.error('Failed to fetch clients for barter campaign:', error)
+      }
     }
     fetchClients()
   }, [])

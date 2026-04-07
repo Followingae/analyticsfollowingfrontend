@@ -72,18 +72,6 @@ export function CleanPostAnalytics({ post, index }: CleanPostAnalyticsProps) {
 
   return (
     <div className="space-y-6">
-      {/* DEBUG: Show all available data */}
-      <Card className="bg-yellow-50 border-yellow-200">
-        <CardHeader>
-          <CardTitle className="text-yellow-800">🐛 DEBUG: Available Data</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <pre className="text-xs bg-yellow-100 p-4 rounded-lg overflow-auto max-h-96 whitespace-pre-wrap">
-            {JSON.stringify(analytics, null, 2)}
-          </pre>
-        </CardContent>
-      </Card>
-
       {/* Main Post Card */}
       <Card>
         <CardHeader>

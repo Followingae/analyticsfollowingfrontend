@@ -196,7 +196,8 @@ class TeamApiService {
         
         try {
           errorData = JSON.parse(errorText)
-        } catch {
+        } catch (parseError) {
+          console.error('Failed to parse team API error response:', parseError)
           errorData = { detail: errorText }
         }
 
@@ -471,7 +472,8 @@ class TeamApiService {
     try {
       const stored = localStorage.getItem('teamContext')
       return stored ? JSON.parse(stored) : null
-    } catch {
+    } catch (error) {
+      console.error('Failed to parse stored team context:', error)
       return null
     }
   }

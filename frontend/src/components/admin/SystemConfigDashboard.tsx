@@ -97,7 +97,7 @@ export function SystemConfigDashboard() {
 
       }
     } catch (error) {
-
+      console.error('System config operation failed:', error)
     } finally {
       setSaving(null)
     }
@@ -113,7 +113,7 @@ export function SystemConfigDashboard() {
 
       }
     } catch (error) {
-
+      console.error('System config operation failed:', error)
     } finally {
       setSaving(null)
     }

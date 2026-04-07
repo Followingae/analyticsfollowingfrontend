@@ -71,7 +71,7 @@ export function ChartPostAnalytics() {
 
         }
       } catch (error) {
-
+        console.error('Failed to load post analytics:', error)
       } finally {
         setLoading(false)
       }

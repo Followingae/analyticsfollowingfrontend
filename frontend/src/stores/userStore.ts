@@ -182,8 +182,8 @@ export const useUserStore = create<UserStore>()(
           if (data.user && typeof window !== 'undefined') {
             try {
               localStorage.setItem('user_data', JSON.stringify(data.user))
-            } catch {
-              // Failed to update localStorage
+            } catch (error) {
+              console.error('Failed to sync user data to localStorage:', error)
             }
           }
 

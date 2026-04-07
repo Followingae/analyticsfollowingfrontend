@@ -176,7 +176,7 @@ const DataExportDashboard: React.FC<DataExportDashboardProps> = () => {
       const jobsData = await superadminApi.getExportJobs({ time_range: selectedTimeRange });
       setExportJobs(jobsData);
     } catch (err) {
-
+      console.error('Data export operation failed:', err)
     }
   };
 
@@ -194,7 +194,7 @@ const DataExportDashboard: React.FC<DataExportDashboardProps> = () => {
       });
       loadDashboardData();
     } catch (err) {
-
+      console.error('Data export operation failed:', err)
     }
   };
 
@@ -212,7 +212,7 @@ const DataExportDashboard: React.FC<DataExportDashboardProps> = () => {
       });
       loadDashboardData();
     } catch (err) {
-
+      console.error('Data export operation failed:', err)
     }
   };
 
@@ -227,7 +227,7 @@ const DataExportDashboard: React.FC<DataExportDashboardProps> = () => {
       }
       loadExportJobsData();
     } catch (err) {
-
+      console.error('Data export operation failed:', err)
     }
   };
 
@@ -240,7 +240,7 @@ const DataExportDashboard: React.FC<DataExportDashboardProps> = () => {
       }
       loadDashboardData();
     } catch (err) {
-
+      console.error('Data export operation failed:', err)
     }
   };
 

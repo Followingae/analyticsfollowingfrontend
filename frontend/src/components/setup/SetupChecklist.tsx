@@ -74,7 +74,7 @@ export function SetupChecklist() {
 
           }
         } catch (error) {
-
+          console.error('Setup checklist status check failed:', error)
         }
 
         // 3. Check first list creation
@@ -85,7 +85,7 @@ export function SetupChecklist() {
             firstListCreated = listsResult.data.length > 0;
           }
         } catch (error) {
-
+          console.error('Setup checklist status check failed:', error)
         }
 
         setStatus({
@@ -137,7 +137,7 @@ export function SetupChecklist() {
             firstProfileAnalyzed = profileCount > 0;
           }
         } catch (error) {
-
+          console.error('Setup checklist status check failed:', error)
         }
 
         let firstListCreated = false;
@@ -147,7 +147,7 @@ export function SetupChecklist() {
             firstListCreated = listsResult.data.length > 0;
           }
         } catch (error) {
-
+          console.error('Setup checklist status check failed:', error)
         }
 
         setStatus({

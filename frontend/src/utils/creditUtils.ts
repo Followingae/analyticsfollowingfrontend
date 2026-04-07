@@ -164,7 +164,8 @@ export function parseCreditError(error: any): CreditError | null {
       }
     }
     return null
-  } catch {
+  } catch (error) {
+    console.error('Credit error parsing failed:', error)
     return null
   }
 }
@@ -234,7 +235,8 @@ export function formatCreditDate(dateString: string | null | undefined): string 
       hour: '2-digit',
       minute: '2-digit'
     })
-  } catch {
+  } catch (error) {
+    console.error('Credit date formatting failed:', error)
     return 'Invalid date'
   }
 }
