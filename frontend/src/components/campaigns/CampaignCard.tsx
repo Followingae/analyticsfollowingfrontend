@@ -191,6 +191,7 @@ export function CampaignCard({
         budget: campaign.budget,
         start_date: campaign.start_date,
         end_date: campaign.end_date,
+        user_id: (campaign as any).user_id || (campaign as any).brand_user_id,
       };
 
       const response = isUserCampaign(campaign)
