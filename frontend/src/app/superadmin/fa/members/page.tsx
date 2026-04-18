@@ -96,10 +96,10 @@ type SortOption = "followers" | "engagement" | "newest" | "fraud"
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const TIER_STYLES: Record<string, string> = {
-  PLATINUM: "bg-violet-500/10 text-violet-600 border-violet-300",
-  GOLD: "bg-amber-500/10 text-amber-600 border-amber-300",
-  SILVER: "bg-slate-400/10 text-slate-500 border-slate-300",
-  BRONZE: "bg-orange-500/10 text-orange-600 border-orange-300",
+  MEGA:  "bg-violet-500/10 text-violet-600 border-violet-300",
+  MACRO: "bg-amber-500/10 text-amber-600 border-amber-300",
+  MICRO: "bg-blue-500/10 text-blue-600 border-blue-300",
+  NANO:  "bg-emerald-500/10 text-emerald-600 border-emerald-300",
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

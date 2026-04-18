@@ -8,6 +8,7 @@ import { useUserStore, useSubscriptionData, useTeamData } from "@/stores/userSto
 import { useNotifications } from "@/contexts/NotificationContext"
 import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
 import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
+import { BrandQuotaWidget } from "@/components/brand/BrandQuotaWidget"
 import { MetricCard } from "@/components/analytics-cards"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -300,6 +301,10 @@ export function BrandDashboardContent() {
           >
             <div className="h-[320px]">
               <ChartProfileAnalysisV2 />
+            </div>
+            {/* Contract delivery quota — only renders when a quota is set */}
+            <div className="mt-4">
+              <BrandQuotaWidget />
             </div>
           </div>
 

@@ -70,6 +70,11 @@ export const faCampaignApi = {
   createBarter: (data: any) => post('/api/v1/admin/fa/campaigns/barter', data),
   update: (id: string, data: any) => put(`/api/v1/admin/fa/campaigns/${id}`, data),
   updateStatus: (id: string, status: string) => put(`/api/v1/admin/fa/campaigns/${id}/status`, { status }),
+  /** Close a live FA campaign (transitions status → completed). */
+  close: (id: string) => put(`/api/v1/admin/fa/campaigns/${id}/status`, { status: 'completed' }),
+  /** Add "Following Team Suggested" creators to an open FA campaign. */
+  addCurated: (id: string, creators: Array<{ fa_member_id?: string; instagram_username?: string }>) =>
+    post(`/api/v1/admin/fa/campaigns/${id}/add-curated-creators`, { creators }),
 }
 
 // ─── SUPERADMIN: FA Members ──────────────────────────────────────────

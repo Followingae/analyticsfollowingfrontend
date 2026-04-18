@@ -65,12 +65,12 @@ import { toast } from "sonner"
 interface ClientOption { id: string; name: string; company_name: string; subscription_tier: string; brand_user_id?: string }
 interface PoolOption { id: string; pool_name: string; brand_user_id: string; available_cents: number; currency: string }
 
-const TIERS = ["BRONZE", "SILVER", "GOLD", "PLATINUM"] as const
-const TIER_CONFIG: Record<string, { icon: typeof Medal; color: string; bg: string; border: string; ring: string; gradient: string }> = {
-  BRONZE: { icon: Medal, color: "text-amber-700 dark:text-amber-500", bg: "bg-amber-50 dark:bg-amber-950/50", border: "border-amber-200 dark:border-amber-800", ring: "ring-amber-400", gradient: "from-amber-500/10 to-amber-600/5" },
-  SILVER: { icon: Award, color: "text-slate-500 dark:text-slate-400", bg: "bg-slate-50 dark:bg-slate-900/50", border: "border-slate-200 dark:border-slate-700", ring: "ring-slate-400", gradient: "from-slate-500/10 to-slate-600/5" },
-  GOLD: { icon: Star, color: "text-yellow-600 dark:text-yellow-400", bg: "bg-yellow-50 dark:bg-yellow-950/50", border: "border-yellow-200 dark:border-yellow-800", ring: "ring-yellow-400", gradient: "from-yellow-500/10 to-yellow-600/5" },
-  PLATINUM: { icon: Crown, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-950/50", border: "border-purple-200 dark:border-purple-800", ring: "ring-purple-400", gradient: "from-purple-500/10 to-purple-600/5" },
+const TIERS = ["NANO", "MICRO", "MACRO", "MEGA"] as const
+const TIER_CONFIG: Record<string, { icon: typeof Medal; color: string; bg: string; border: string; ring: string; gradient: string; label: string; range: string; description: string }> = {
+  NANO:  { icon: Medal, color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/50", border: "border-emerald-200 dark:border-emerald-800", ring: "ring-emerald-400", gradient: "from-emerald-500/10 to-emerald-600/5", label: "Nano",  range: "1K – 10K followers",   description: "Niche creators with highly authentic, close-knit audiences." },
+  MICRO: { icon: Award, color: "text-blue-600 dark:text-blue-400",       bg: "bg-blue-50 dark:bg-blue-950/50",       border: "border-blue-200 dark:border-blue-800",       ring: "ring-blue-400",    gradient: "from-blue-500/10 to-blue-600/5",       label: "Micro", range: "10K – 100K followers", description: "Trusted voices with strong engagement and loyal communities." },
+  MACRO: { icon: Star,  color: "text-amber-600 dark:text-amber-400",     bg: "bg-amber-50 dark:bg-amber-950/50",     border: "border-amber-200 dark:border-amber-800",     ring: "ring-amber-400",   gradient: "from-amber-500/10 to-amber-600/5",     label: "Macro", range: "100K – 1M followers",  description: "Professional creators offering broad reach across segments." },
+  MEGA:  { icon: Crown, color: "text-purple-600 dark:text-purple-400",   bg: "bg-purple-50 dark:bg-purple-950/50",   border: "border-purple-200 dark:border-purple-800",   ring: "ring-purple-400",  gradient: "from-purple-500/10 to-purple-600/5",   label: "Mega",  range: "1M+ followers",        description: "Celebrity-level influencers with mass-market reach." },
 }
 const FOLLOWER_RANGES = ["1K-10K", "10K-50K", "50K-100K", "100K+"] as const
 const ENGAGEMENT_RANGES = ["1-2%", "2-4%", "4-6%", "6%+"] as const
@@ -97,11 +97,12 @@ export default function CreateCashbackCampaignPage() {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [cashbackPercentage, setCashbackPercentage] = useState(10)
+  const [intentOnly, setIntentOnly] = useState(false)
   const [cashbackTiers, setCashbackTiers] = useState<Record<string, number>>({
-    BRONZE: 5,
-    SILVER: 10,
-    GOLD: 15,
-    PLATINUM: 20,
+    NANO: 5,
+    MICRO: 10,
+    MACRO: 15,
+    MEGA: 20,
   })
   const [useTieredRates, setUseTieredRates] = useState(false)
 
@@ -198,6 +199,7 @@ export default function CreateCashbackCampaignPage() {
         brand_name: selectedClient?.company_name || selectedClient?.name,
         pool_id: selectedPoolId,
         cashback_percentage: cashbackPercentage,
+        intent_only: intentOnly,
         deliverable_requirements: validDeliverables.map((d) => ({ type: d.type, quantity: d.quantity, deadline_days: 7 })),
       }
       if (tiersPayload) payload.cashback_tiers = tiersPayload
@@ -431,6 +433,28 @@ export default function CreateCashbackCampaignPage() {
                 </CardContent>
               </Card>
 
+              {/* Pre-approval required toggle (intent_only) */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-sky-500/20 to-indigo-500/20 flex items-center justify-center">
+                        <Shield className="h-4.5 w-4.5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Require pre-approval before visit</p>
+                        <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+                          Creators must apply and get brand approval before their visit is eligible
+                          for cashback. Recommended for hotels, restaurants, or campaigns where
+                          content must be captured during the visit.
+                        </p>
+                      </div>
+                    </div>
+                    <Switch checked={intentOnly} onCheckedChange={setIntentOnly} />
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Tiered rates */}
               <Card>
                 <CardContent className="p-6">
@@ -457,11 +481,18 @@ export default function CreateCashbackCampaignPage() {
                             key={tier}
                             className={`relative rounded-xl border p-4 ${cfg.border} ${cfg.bg} bg-gradient-to-br ${cfg.gradient}`}
                           >
-                            <div className="flex items-center gap-2.5 mb-3">
-                              <div className={`h-8 w-8 rounded-lg flex items-center justify-center bg-white dark:bg-black/20 shadow-sm`}>
+                            <div className="flex items-start gap-2.5 mb-3">
+                              <div className={`h-9 w-9 rounded-lg flex items-center justify-center bg-white dark:bg-black/20 shadow-sm shrink-0`}>
                                 <TierIcon className={`h-4 w-4 ${cfg.color}`} />
                               </div>
-                              <span className={`font-semibold text-sm ${cfg.color}`}>{tier}</span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className={`font-semibold text-sm ${cfg.color}`}>{cfg.label}</span>
+                                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{tier}</span>
+                                </div>
+                                <p className="text-[11px] font-medium text-foreground/80 mt-0.5">{cfg.range}</p>
+                                <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">{cfg.description}</p>
+                              </div>
                             </div>
                             <div className="flex items-end gap-2">
                               <Slider
@@ -606,7 +637,9 @@ export default function CreateCashbackCampaignPage() {
                               return (
                                 <SelectItem key={t} value={t}>
                                   <span className="flex items-center gap-2">
-                                    <TierIcon className={`h-3.5 w-3.5 ${cfg.color}`} />{t}
+                                    <TierIcon className={`h-3.5 w-3.5 ${cfg.color}`} />
+                                    <span className="font-medium">{cfg.label}</span>
+                                    <span className="text-xs text-muted-foreground">({cfg.range})</span>
                                   </span>
                                 </SelectItem>
                               )

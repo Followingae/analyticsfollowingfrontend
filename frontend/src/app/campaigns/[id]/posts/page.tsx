@@ -68,6 +68,7 @@ import { ImageCropper } from "@/components/ui/image-cropper";
 import { CampaignWorkflow } from "@/components/campaigns/unified/CampaignWorkflow";
 import { InfluencerSelection } from "@/components/campaigns/unified/InfluencerSelection";
 import { PostCard } from "@/components/campaigns/PostCard";
+import { FaCampaignProgressPanel } from "@/components/campaigns/fa/FaCampaignProgressPanel";
 
 // Backend response interfaces (UPDATED with collaboration support)
 interface BackendCampaignPost {
@@ -142,7 +143,7 @@ interface BackendCampaignDetails {
   created_by?: "user" | "superadmin";
   has_workflow?: boolean;
   proposal_id?: string | null;
-  campaign_type?: "influencer" | "ugc";
+  campaign_type?: "influencer" | "ugc" | "cashback" | "paid_deal" | "barter";
   created_at: string;
   updated_at: string;
   posts_count?: number;
@@ -1677,6 +1678,47 @@ export default function CampaignDetailsPage() {
   const topAgeGroup = getTopAgeGroup();
   const topGender = getTopGender();
   const topCountry = getTopCountry();
+
+  // FA campaign types (cashback / paid_deal / barter) render the dedicated progress panel
+  // instead of the influencer-post analytics view.
+  const faType = campaign.campaign_type as string | undefined;
+  if (faType === "cashback" || faType === "paid_deal" || faType === "barter") {
+    return (
+      <AuthGuard>
+        <BrandUserInterface>
+          <div className="container mx-auto py-8 px-4 space-y-6">
+            {/* Header reuses existing pattern for visual consistency */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => router.push("/campaigns")}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={campaign.brand_logo_url || undefined} />
+                  <AvatarFallback>{campaign.brand_name?.[0]?.toUpperCase() ?? "?"}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-sm text-muted-foreground">{campaign.brand_name}</span>
+                    <Badge variant="outline" className="text-[10px] capitalize">
+                      {faType.replace("_", " ")}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <Badge>{campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : "Draft"}</Badge>
+            </div>
+
+            <FaCampaignProgressPanel
+              campaignId={String(campaign.id)}
+              campaignType={faType as "cashback" | "paid_deal" | "barter"}
+            />
+          </div>
+        </BrandUserInterface>
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard>

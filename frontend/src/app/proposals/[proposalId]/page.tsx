@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/popover"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader, SheetDescription } from "@/components/ui/sheet"
 import {
   Table,
   TableBody,
@@ -156,6 +156,7 @@ function BrandProposalViewPageContent() {
 
   // Flip state — only one card flipped at a time
   const [flippedId, setFlippedId] = useState<string | null>(null)
+  const [analyticsUsername, setAnalyticsUsername] = useState<string | null>(null)
 
   // DND
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
@@ -181,6 +182,10 @@ function BrandProposalViewPageContent() {
       const result = await brandProposalViewApi.getDetail(proposalId)
       setData(result)
       markReadByReference("proposal", proposalId)
+      // Track that brand has viewed the current state — list page uses this to dim "new batch" badges.
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(`proposal_last_viewed:${proposalId}`, new Date().toISOString())
+      }
       const preSelected = new Set<string>()
       const preDeliverables: Record<string, string[]> = {}
       result.influencers.forEach((inf) => {
@@ -235,6 +240,20 @@ function BrandProposalViewPageContent() {
 
   const showPricing =
     data?.proposal.visible_fields?.show_sell_pricing !== false
+
+  // Group by batch_number — only show headers when there are ≥2 batches so batch 1 stays clean.
+  const batches = useMemo(() => {
+    const groups = new Map<number, { batch: number; addedAt?: string; items: BrandInfluencer[] }>()
+    for (const inf of sortedInfluencers) {
+      const b = inf.batch_number ?? 1
+      if (!groups.has(b)) groups.set(b, { batch: b, addedAt: inf.added_at, items: [] })
+      const group = groups.get(b)!
+      group.items.push(inf)
+      if (inf.added_at && (!group.addedAt || inf.added_at < group.addedAt)) group.addedAt = inf.added_at
+    }
+    return Array.from(groups.values()).sort((a, b) => a.batch - b.batch)
+  }, [sortedInfluencers])
+  const showBatchHeaders = batches.length > 1
 
   // Selected-only metrics
   const selectedReach = useMemo(() => {
@@ -646,36 +665,66 @@ function BrandProposalViewPageContent() {
               {/* Influencer Grid / List */}
               <div>
                 {viewMode === "grid" ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {sortedInfluencers.map((inf, i) => (
-                      <motion.div
-                        key={inf.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                          duration: 0.4,
-                          delay: Math.min(i * 0.05, 0.3),
-                          ease: [0.16, 1, 0.3, 1],
-                        }}
-                      >
-                        <DraggableGridCard id={inf.id} disabled={isTerminal}>
-                          <FlippableInfluencerCard
-                            influencer={inf}
-                            isSelected={selectedIds.has(inf.id)}
-                            onToggle={toggleInfluencer}
-                            isFlipped={flippedId === inf.id}
-                            onFlip={(id) => setFlippedId(id)}
-                            onUnflip={() => setFlippedId(null)}
-                            showPricing={showPricing}
-                            selectedDeliverables={deliverableSelections[inf.id] || []}
-                            onToggleDeliverable={toggleDeliverable}
-                          />
-                        </DraggableGridCard>
-                      </motion.div>
+                  <div className="space-y-8">
+                    {batches.map((group) => (
+                      <div key={group.batch} className="space-y-3">
+                        {showBatchHeaders && (
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold">
+                                Batch {group.batch}
+                              </span>
+                              {group.batch > 1 && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium uppercase tracking-wide">
+                                  New
+                                </span>
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {group.items.length} creator{group.items.length === 1 ? "" : "s"}
+                              </span>
+                              {group.addedAt && (
+                                <span className="text-xs text-muted-foreground">
+                                  · added {new Date(group.addedAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 h-px bg-border/60" />
+                          </div>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {group.items.map((inf, i) => (
+                            <motion.div
+                              key={inf.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                duration: 0.4,
+                                delay: Math.min(i * 0.05, 0.3),
+                                ease: [0.16, 1, 0.3, 1],
+                              }}
+                            >
+                              <DraggableGridCard id={inf.id} disabled={isTerminal}>
+                                <FlippableInfluencerCard
+                                  influencer={inf}
+                                  isSelected={selectedIds.has(inf.id)}
+                                  onToggle={toggleInfluencer}
+                                  isFlipped={flippedId === inf.id}
+                                  onFlip={(id) => setFlippedId(id)}
+                                  onUnflip={() => setFlippedId(null)}
+                                  showPricing={showPricing}
+                                  selectedDeliverables={deliverableSelections[inf.id] || []}
+                                  onToggleDeliverable={toggleDeliverable}
+                                  onViewAnalytics={setAnalyticsUsername}
+                                />
+                              </DraggableGridCard>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
                     ))}
 
                     {sortedInfluencers.length === 0 && (
-                      <div className="col-span-full text-center py-16">
+                      <div className="text-center py-16">
                         <Users className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                         <p className="text-sm text-muted-foreground">
                           No influencers in this proposal.
@@ -911,6 +960,26 @@ function BrandProposalViewPageContent() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Inline creator analytics drawer — same analytics the brand would see on the profile page */}
+        <Sheet
+          open={!!analyticsUsername}
+          onOpenChange={(open: boolean) => { if (!open) setAnalyticsUsername(null) }}
+        >
+          <SheetContent side="right" className="w-full sm:max-w-3xl p-0 overflow-hidden">
+            <SheetHeader className="px-6 pt-5 pb-3 border-b">
+              <SheetTitle>@{analyticsUsername}</SheetTitle>
+              <SheetDescription>Full creator analytics</SheetDescription>
+            </SheetHeader>
+            {analyticsUsername && (
+              <iframe
+                src={`/creator-analytics/${analyticsUsername}?embed=1`}
+                className="w-full h-[calc(100vh-5rem)] border-0"
+                title={`Analytics for @${analyticsUsername}`}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
     </BrandUserInterface>
   )
 }

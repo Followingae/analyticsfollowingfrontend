@@ -122,6 +122,8 @@ export interface BrandInfluencer {
   id: string
   influencer_db_id?: string
   priority_order: number
+  batch_number?: number
+  added_at?: string
   selected_by_user: boolean
   selected_at?: string
   username?: string

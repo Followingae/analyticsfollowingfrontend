@@ -34,6 +34,7 @@ import {
   Clock, XCircle, ChevronRight
 } from 'lucide-react';
 import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/clientManagementApi';
+import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
 
 const formatAED = (amount: number | null) => {
   if (!amount) return 'AED 0';
@@ -240,6 +241,8 @@ export default function ClientDetailPage() {
 
         {/* SCOPE TAB — The "All Scope" spreadsheet replacement */}
         <TabsContent value="scope" className="space-y-4">
+          <QuotaProgressCard teamId={teamId} editable />
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold">Project Scope</h2>

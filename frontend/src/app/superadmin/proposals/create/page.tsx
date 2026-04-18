@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { ImageCropper } from "@/components/ui/image-cropper"
 import { DatePicker } from "@/components/ui/date-picker"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { formatCount, proposalMotion, STOCK_IMAGES } from "@/components/proposals/proposal-utils"
 import { motion, AnimatePresence } from "motion/react"
 
@@ -115,6 +116,23 @@ function CreateProposalContent() {
     show_audience: true,
     show_content_analysis: true,
   })
+
+  // Target campaign type once the proposal is approved by the brand.
+  const [campaignTypeTarget, setCampaignTypeTarget] = useState<
+    "influencer" | "cashback" | "paid_deal" | "barter"
+  >("influencer")
+
+  // Unified picker tab: master DB | FA members | add by Instagram handle
+  const [pickerTab, setPickerTab] = useState<"master" | "fa" | "handle">("master")
+  // FA members results
+  const [faSearch, setFaSearch] = useState("")
+  const [faResults, setFaResults] = useState<any[]>([])
+  const [faSearching, setFaSearching] = useState(false)
+  // Add-by-handle state
+  const [newHandle, setNewHandle] = useState("")
+  const [addingHandle, setAddingHandle] = useState(false)
+  // Analytics drawer (inline creator preview)
+  const [analyticsUsername, setAnalyticsUsername] = useState<string | null>(null)
 
   // -- Master DB search -----------------------------------------------------
   const [search, setSearch] = useState("")
@@ -266,6 +284,110 @@ function CreateProposalContent() {
     })
   }
 
+  // ---- FA members search -------------------------------------------------
+  const searchFaMembers = useCallback(async () => {
+    setFaSearching(true)
+    try {
+      const params = new URLSearchParams()
+      if (faSearch.trim()) params.set("q", faSearch.trim())
+      params.set("limit", "30")
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/admin/proposals/fa-members/search?${params.toString()}`,
+        { headers: getAuthHeaders() }
+      )
+      if (res.ok) {
+        const body = await res.json()
+        setFaResults(body?.data?.members ?? [])
+      }
+    } catch {
+      toast.error("FA member search failed")
+    } finally {
+      setFaSearching(false)
+    }
+  }, [faSearch])
+
+  // Look up an Instagram handle in master DB; create the DB row if missing.
+  async function resolveHandleToMaster(username: string): Promise<MasterInfluencer | null> {
+    const clean = username.trim().replace(/^@/, "")
+    if (!clean) return null
+
+    // 1. Check if already in master DB
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/admin/influencers/database?search=${encodeURIComponent(clean)}&page_size=5`,
+        { headers: getAuthHeaders() }
+      )
+      if (res.ok) {
+        const body = await res.json()
+        const rows: any[] = body?.data?.influencers ?? body?.data?.items ?? body?.data ?? []
+        const hit = rows.find((r: any) => (r.username || "").toLowerCase() === clean.toLowerCase())
+        if (hit) return hit as MasterInfluencer
+      }
+    } catch { /* fall through to create */ }
+
+    // 2. Otherwise create it
+    const createRes = await fetchWithAuth(
+      `${API_CONFIG.BASE_URL}/api/v1/admin/influencers/add`,
+      {
+        method: "POST",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ username: clean, status: "active" }),
+      }
+    )
+    if (!createRes.ok) {
+      const err = await createRes.text()
+      throw new Error(err || `Failed to add @${clean}`)
+    }
+    const body = await createRes.json()
+    return (body?.data?.influencer ?? null) as MasterInfluencer | null
+  }
+
+  async function addFaMemberSelection(members: any[]) {
+    if (!members.length) return
+    const alreadyUsernames = new Set(addedInfluencers.map((i) => i.username?.toLowerCase()))
+    const toResolve = members.filter(
+      (m) => m.instagram_username && !alreadyUsernames.has(m.instagram_username.toLowerCase())
+    )
+    if (!toResolve.length) { toast.info("Already added"); return }
+
+    const resolved: MasterInfluencer[] = []
+    for (const m of toResolve) {
+      try {
+        const master = await resolveHandleToMaster(m.instagram_username)
+        if (master) resolved.push(master)
+      } catch (e: any) {
+        toast.error(e.message || `Failed to add @${m.instagram_username}`)
+      }
+    }
+    if (resolved.length) {
+      setAddedInfluencers((prev) => [...prev, ...resolved])
+      toast.success(`Added ${resolved.length} FA member(s)`)
+    }
+  }
+
+  async function addHandle() {
+    if (!newHandle.trim()) return
+    setAddingHandle(true)
+    try {
+      const master = await resolveHandleToMaster(newHandle)
+      if (!master) {
+        toast.error("Could not resolve handle")
+        return
+      }
+      if (addedInfluencers.some((i) => i.id === master.id)) {
+        toast.info("Already added")
+        return
+      }
+      setAddedInfluencers((prev) => [...prev, master])
+      setNewHandle("")
+      toast.success(`Added @${master.username}`)
+    } catch (e: any) {
+      toast.error(e.message || "Failed to add handle")
+    } finally {
+      setAddingHandle(false)
+    }
+  }
+
   function toggleDeliverable(influencerId: string, type: string) {
     setDeliverableAssignments((prev) => {
       const current = prev[influencerId] || []
@@ -386,7 +508,8 @@ function CreateProposalContent() {
         visible_fields: visibility,
         deadline_at: deadline?.toISOString() || undefined,
         cover_image_url: coverImageUrl.trim() || undefined,
-      })
+        campaign_type_target: campaignTypeTarget,
+      } as any)
 
       const delAssignments = Object.entries(deliverableAssignments)
         .filter(([id, dels]) => dels.length > 0)
@@ -491,6 +614,47 @@ function CreateProposalContent() {
               <CardDescription>Core information about the proposal</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Campaign type target */}
+              <div>
+                <Label>Campaign Type *</Label>
+                <p className="text-xs text-muted-foreground mt-1 mb-2">
+                  The type of campaign this proposal becomes when the brand approves it.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {([
+                    { key: "influencer", label: "Influencer", hint: "Paid posts via brand portal" },
+                    { key: "cashback",   label: "Cashback",   hint: "QR scan earnings at merchant" },
+                    { key: "paid_deal",  label: "Paid Deal",  hint: "Flat payout per creator" },
+                    { key: "barter",     label: "Barter",     hint: "Product-for-content" },
+                  ] as const).map((opt) => {
+                    const active = campaignTypeTarget === opt.key
+                    return (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        disabled={isEditMode}
+                        onClick={() => setCampaignTypeTarget(opt.key)}
+                        className={`text-left rounded-lg border px-3 py-2 transition-colors ${
+                          active
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "border-border hover:border-primary/40 hover:bg-muted/40"
+                        } ${isEditMode ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        <div className="text-sm font-medium">{opt.label}</div>
+                        <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                          {opt.hint}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                {campaignTypeTarget !== "influencer" && (
+                  <p className="text-[11px] text-muted-foreground mt-2 leading-snug">
+                    Note: for {campaignTypeTarget.replace("_", " ")} campaigns, creators must already be FA-app members. Use the <span className="font-medium">FA Members</span> tab in the picker below.
+                  </p>
+                )}
+              </div>
+
               {/* Brand user */}
               <div>
                 <Label>Brand User *</Label>
@@ -734,16 +898,140 @@ function CreateProposalContent() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              {isAddMoreMode
-                ? "Select Additional Influencers"
-                : "Add Influencers from Master DB"}
+              {isAddMoreMode ? "Select Additional Influencers" : "Add Influencers"}
             </CardTitle>
             <CardDescription>
-              Search and select influencers to include in this proposal
+              Search master DB, pick FA members, or add by Instagram handle
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Filters */}
+            {/* Source tabs */}
+            <div className="flex gap-1 rounded-lg bg-muted/40 p-1 w-fit">
+              {([
+                { key: "master", label: "Master DB" },
+                { key: "fa",     label: "FA Members" },
+                { key: "handle", label: "Add by Handle" },
+              ] as const).map((t) => {
+                const active = pickerTab === t.key
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setPickerTab(t.key)}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                      active
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* FA Members panel */}
+            {pickerTab === "fa" && (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="pl-9"
+                      placeholder="Search FA members by name or @username..."
+                      value={faSearch}
+                      onChange={(e) => setFaSearch(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") searchFaMembers() }}
+                    />
+                  </div>
+                  <Button onClick={searchFaMembers} disabled={faSearching} variant="secondary">
+                    {faSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+                  </Button>
+                </div>
+                <div className="border rounded-lg max-h-[380px] overflow-auto">
+                  {faResults.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Users className="h-6 w-6 mx-auto text-muted-foreground/60 mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {faSearching ? "Searching…" : "No FA members yet. Try a search."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {faResults.map((m) => {
+                        const already = addedInfluencers.some(
+                          (a) => a.username?.toLowerCase() === m.instagram_username?.toLowerCase()
+                        )
+                        return (
+                          <div key={m.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-muted/40">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={m.avatar_url} />
+                                <AvatarFallback className="text-xs">
+                                  {(m.instagram_username?.[0] ?? m.full_name?.[0] ?? "?").toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="leading-tight min-w-0">
+                                <p className="font-medium text-sm truncate">
+                                  @{m.instagram_username ?? "—"}
+                                </p>
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  {m.full_name && <span className="truncate">{m.full_name}</span>}
+                                  {m.tier && <Badge variant="outline" className="text-[10px] uppercase">{m.tier}</Badge>}
+                                  {m.followers_count != null && <span className="tabular-nums">{formatCount(m.followers_count)} followers</span>}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {m.instagram_username && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setAnalyticsUsername(m.instagram_username)}
+                                >
+                                  View analytics
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                disabled={already}
+                                onClick={() => addFaMemberSelection([m])}
+                              >
+                                {already ? "Added" : "Add"}
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Add-by-handle panel */}
+            {pickerTab === "handle" && (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter Instagram handle (e.g. @huda)"
+                    value={newHandle}
+                    onChange={(e) => setNewHandle(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") addHandle() }}
+                  />
+                  <Button onClick={addHandle} disabled={addingHandle || !newHandle.trim()}>
+                    {addingHandle ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-2" />Add</>}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  If this handle isn&apos;t in the master database yet, it will be created automatically.
+                </p>
+              </div>
+            )}
+
+            {/* Master DB filters — only when master tab is active */}
+            {pickerTab === "master" && (
+            <>
             <div className="flex flex-wrap gap-3">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -901,6 +1189,8 @@ function CreateProposalContent() {
                 <span className="ml-1 tabular-nums">({selectedIds.size})</span>
               )}
             </Button>
+            </>
+            )}
 
             {/* Already-added list */}
             {addedInfluencers.length > 0 && (
@@ -940,14 +1230,24 @@ function CreateProposalContent() {
                               </Badge>
                             ))}
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors duration-150"
-                            onClick={() => removeAdded(inf.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs"
+                              onClick={() => setAnalyticsUsername(inf.username)}
+                            >
+                              Analytics
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors duration-150"
+                              onClick={() => removeAdded(inf.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                         {/* Deliverable Assignments */}
                         <div className="mx-3 mb-3 p-3 rounded-lg bg-muted/30 border-t">
@@ -1093,6 +1393,26 @@ function CreateProposalContent() {
           )}
         </div>
       </motion.div>
+
+      {/* Inline creator analytics drawer — opens /creator-analytics/[username] in a side sheet */}
+      <Sheet
+        open={!!analyticsUsername}
+        onOpenChange={(open: boolean) => { if (!open) setAnalyticsUsername(null) }}
+      >
+        <SheetContent side="right" className="w-full sm:max-w-3xl p-0 overflow-hidden">
+          <SheetHeader className="px-6 pt-5 pb-3 border-b">
+            <SheetTitle>@{analyticsUsername}</SheetTitle>
+            <SheetDescription>Full creator analytics — same data the brand will see.</SheetDescription>
+          </SheetHeader>
+          {analyticsUsername && (
+            <iframe
+              src={`/creator-analytics/${analyticsUsername}?embed=1`}
+              className="w-full h-[calc(100vh-5rem)] border-0"
+              title={`Analytics for @${analyticsUsername}`}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </SuperadminLayout>
   )
 }

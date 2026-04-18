@@ -20,6 +20,7 @@ interface FlippableInfluencerCardProps {
   showPricing?: boolean
   selectedDeliverables?: string[]
   onToggleDeliverable?: (influencerId: string, deliverable: string) => void
+  onViewAnalytics?: (username: string) => void
 }
 
 function seedColor(seed: string): string {
@@ -63,6 +64,7 @@ export function FlippableInfluencerCard({
   showPricing = true,
   selectedDeliverables = [],
   onToggleDeliverable,
+  onViewAnalytics,
 }: FlippableInfluencerCardProps) {
   const inf = influencer
   const pricing = inf.sell_pricing ?? {}
@@ -242,6 +244,19 @@ export function FlippableInfluencerCard({
           >
             <X className="h-4 w-4" />
           </Button>
+
+          {/* Drill-down to full creator analytics */}
+          {onViewAnalytics && inf.username && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="absolute top-4 left-4 h-7 text-[11px] z-10"
+              onClick={() => onViewAnalytics(inf.username!)}
+            >
+              <BarChart3 className="h-3 w-3 mr-1" />
+              Full analytics
+            </Button>
+          )}
 
           {/* Deliverables + Pricing + Select */}
           <div className="p-4 pt-3 border-t border-border/40 bg-card space-y-3">

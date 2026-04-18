@@ -231,10 +231,10 @@ export default function CreatePaidDealPage() {
                         <SelectTrigger><SelectValue placeholder="Any tier" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="any_tier">Any tier</SelectItem>
-                          <SelectItem value="BRONZE">Bronze</SelectItem>
-                          <SelectItem value="SILVER">Silver</SelectItem>
-                          <SelectItem value="GOLD">Gold</SelectItem>
-                          <SelectItem value="PLATINUM">Platinum</SelectItem>
+                          <SelectItem value="NANO">Nano (1K – 10K)</SelectItem>
+                          <SelectItem value="MICRO">Micro (10K – 100K)</SelectItem>
+                          <SelectItem value="MACRO">Macro (100K – 1M)</SelectItem>
+                          <SelectItem value="MEGA">Mega (1M+)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
