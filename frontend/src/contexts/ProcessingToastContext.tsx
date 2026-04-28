@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { ToastLoader } from '@/components/ui/toast-loader'
 import { useNotifications } from '@/contexts/NotificationContext'
 
@@ -30,6 +31,7 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
   const [consolidatedToastId, setConsolidatedToastId] = useState<string | number | null>(null)
   const [completedToasts, setCompletedToasts] = useState<string[]>([])
   const { refresh: refreshNotifications } = useNotifications()
+  const queryClient = useQueryClient()
   const prevToastCountRef = useRef(0)
   const processingToastsRef = useRef<ProcessingToast[]>(processingToasts)
 
@@ -257,19 +259,34 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
 
 
           // Remove toasts for completed processing (case-insensitive comparison)
+          let anyCompleted = false
           processingToastsRef.current.forEach(toastItem => {
             const normalizedUsername = toastItem.username.toLowerCase()
             if (unlockedUsernames.includes(normalizedUsername)) {
-
+              anyCompleted = true
               removeProcessingToast(toastItem.username)
 
-              // Show success toast
+              // Show success toast that navigates to the creator on click
               toast.success(`Analytics ready for ${toastItem.username}`, {
                 position: 'bottom-center',
-                duration: 3000,
+                duration: 5000,
+                action: {
+                  label: 'Open',
+                  onClick: () => {
+                    window.location.href = `/creator-analytics/${toastItem.username}`
+                  },
+                },
               })
             }
           })
+
+          // Refresh any list that depends on unlocked profiles so newly-ready
+          // creators appear immediately instead of waiting on staleTime.
+          if (anyCompleted) {
+            queryClient.invalidateQueries({ queryKey: ['unlocked-creators-page'] })
+            queryClient.invalidateQueries({ queryKey: ['unlocked-profiles'] })
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+          }
         } else {
 
         }
