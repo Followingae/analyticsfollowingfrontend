@@ -33,6 +33,9 @@ export default function FAReceiptClaimsPage() {
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState("")
   const [zoomedImage, setZoomedImage] = useState<{ url: string; alt: string } | null>(null)
+  // Tracks the in-flight claim id so we can disable both approve + reject for it.
+  // Without this, an admin double-click hits /approve twice and credits cashback twice.
+  const [actingId, setActingId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -40,8 +43,8 @@ export default function FAReceiptClaimsPage() {
       const res = await faReceiptClaimApi.list(activeTab)
       const list = res?.data?.claims || res?.data || []
       setClaims(Array.isArray(list) ? list : [])
-    } catch {
-      toast.error("Failed to load receipt claims")
+    } catch (e: any) {
+      toast.error(e?.message || e?.detail || "Failed to load receipt claims")
     } finally {
       setLoading(false)
     }
@@ -50,26 +53,34 @@ export default function FAReceiptClaimsPage() {
   useEffect(() => { load() }, [load])
 
   const handleApprove = async (id: string) => {
+    if (actingId) return
+    setActingId(id)
     try {
       const res = await faReceiptClaimApi.approve(id)
       if (res.success) {
         toast.success(`Approved — ${res.data?.deliverables_created || 0} deliverables created, AED ${res.data?.cashback_amount || 0} cashback pending`)
         load()
       }
-    } catch {
-      toast.error("Failed to approve claim")
+    } catch (e: any) {
+      toast.error(e?.message || e?.detail || "Failed to approve claim")
+    } finally {
+      setActingId(null)
     }
   }
 
   const handleReject = async (id: string) => {
+    if (actingId) return
+    setActingId(id)
     try {
       await faReceiptClaimApi.reject(id, rejectReason)
       toast.success("Receipt claim rejected")
       setRejectingId(null)
       setRejectReason("")
       load()
-    } catch {
-      toast.error("Failed to reject claim")
+    } catch (e: any) {
+      toast.error(e?.message || e?.detail || "Failed to reject claim")
+    } finally {
+      setActingId(null)
     }
   }
 
@@ -249,13 +260,15 @@ export default function FAReceiptClaimsPage() {
                                 <Button
                                   size="sm"
                                   variant="destructive"
+                                  disabled={actingId === claim.id}
                                   onClick={() => handleReject(claim.id)}
                                 >
-                                  Confirm
+                                  {actingId === claim.id ? "..." : "Confirm"}
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
+                                  disabled={actingId === claim.id}
                                   onClick={() => { setRejectingId(null); setRejectReason("") }}
                                 >
                                   Cancel
@@ -267,14 +280,17 @@ export default function FAReceiptClaimsPage() {
                                   size="sm"
                                   variant="outline"
                                   className="text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10"
+                                  disabled={actingId === claim.id}
                                   onClick={() => handleApprove(claim.id)}
                                 >
-                                  <Check className="h-4 w-4 mr-1" /> Approve
+                                  <Check className="h-4 w-4 mr-1" />
+                                  {actingId === claim.id ? "Approving..." : "Approve"}
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="text-red-500 border-red-500/30 hover:bg-red-500/10"
+                                  disabled={actingId === claim.id}
                                   onClick={() => setRejectingId(claim.id)}
                                 >
                                   <X className="h-4 w-4 mr-1" /> Reject

@@ -37,11 +37,15 @@ function CashbackPoolContent() {
           brandPoolApi.transactions(10, 0),
           brandPoolApi.campaigns(),
         ])
-        if (b.success) setBalance(b.data)
-        if (t.success) setTransactions(t.data || [])
-        if (c.success) setCampaigns(c.data || [])
-      } catch (e) {
-        toast.error("Failed to load pool data")
+        // Tolerate either { success, data } or a raw payload.
+        const balancePayload = b?.data ?? b
+        const txPayload = t?.data ?? t
+        const campaignsPayload = c?.data ?? c
+        if (balancePayload && typeof balancePayload === "object") setBalance(balancePayload)
+        setTransactions(Array.isArray(txPayload) ? txPayload : (txPayload?.transactions ?? []))
+        setCampaigns(Array.isArray(campaignsPayload) ? campaignsPayload : (campaignsPayload?.campaigns ?? []))
+      } catch (e: any) {
+        toast.error(e?.message || e?.detail || "Failed to load pool data")
       } finally {
         setLoading(false)
       }

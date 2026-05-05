@@ -12,9 +12,18 @@ export default function FADashboardPage() {
   const [stats, setStats] = useState<any>(null)
 
   const loadStats = useCallback(() => {
-    faStatsApi.dashboard().then((res) => {
-      if (res.success) setStats(res.data)
-    }).catch(() => {})
+    // Tolerate either { success, data } or a raw stats payload — different backend
+    // routes return different shapes, and silently showing zeros forever was masking
+    // real failures.
+    faStatsApi.dashboard()
+      .then((res) => {
+        const payload = res?.data ?? res
+        if (payload && typeof payload === "object") setStats(payload)
+      })
+      .catch((e) => {
+        // eslint-disable-next-line no-console
+        console.error("FA dashboard stats fetch failed:", e)
+      })
   }, [])
 
   // Load on mount
