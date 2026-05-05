@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Receipt, Check, X, Store, User, Clock, AlertCircle } from "lucide-react"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Receipt, Check, X, Store, Clock, AlertCircle, ImageOff, ZoomIn } from "lucide-react"
 import { faReceiptClaimApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
@@ -31,6 +32,7 @@ export default function FAReceiptClaimsPage() {
   const [activeTab, setActiveTab] = useState("pending_review")
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState("")
+  const [zoomedImage, setZoomedImage] = useState<{ url: string; alt: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -116,7 +118,43 @@ export default function FAReceiptClaimsPage() {
               {claims.map((claim: any) => (
                 <Card key={claim.id}>
                   <CardContent className="p-4">
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
+                      {/* Receipt image — clickable thumbnail */}
+                      <div className="flex-shrink-0">
+                        {claim.receipt_image_url ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setZoomedImage({
+                                url: claim.receipt_image_url,
+                                alt: `Receipt from ${claim.ai_extracted_merchant || "unknown merchant"} submitted by @${claim.member?.instagram_username || "unknown"}`,
+                              })
+                            }
+                            className="group relative block h-36 w-28 overflow-hidden rounded-md border bg-muted/40 sm:h-40 sm:w-32"
+                            aria-label="Open receipt image at full size"
+                          >
+                            <img
+                              src={claim.receipt_image_url}
+                              alt=""
+                              className="h-full w-full object-cover transition-opacity group-hover:opacity-80"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
+                              <ZoomIn className="h-5 w-5 text-white" />
+                            </div>
+                          </button>
+                        ) : (
+                          <div
+                            className="flex h-36 w-28 items-center justify-center rounded-md border border-dashed bg-muted/20 sm:h-40 sm:w-32"
+                            aria-label="No receipt image available"
+                          >
+                            <ImageOff className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right column: data + actions */}
+                      <div className="flex flex-1 flex-col gap-4">
                       {/* Top row: influencer + merchant */}
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
@@ -253,12 +291,27 @@ export default function FAReceiptClaimsPage() {
                           </div>
                         )}
                       </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           )}
+
+          {/* Receipt image zoom dialog */}
+          <Dialog open={!!zoomedImage} onOpenChange={(open) => !open && setZoomedImage(null)}>
+            <DialogContent className="max-w-4xl p-2">
+              <DialogTitle className="sr-only">Receipt image</DialogTitle>
+              {zoomedImage && (
+                <img
+                  src={zoomedImage.url}
+                  alt={zoomedImage.alt}
+                  className="max-h-[85vh] w-full rounded object-contain"
+                />
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </SuperAdminInterface>
     </AuthGuard>
