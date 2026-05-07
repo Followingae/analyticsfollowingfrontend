@@ -124,18 +124,16 @@ class CDNMediaService {
   }
 
   /**
-   * Refresh profile data (which includes media) using force_refresh
+   * Refresh profile data (which includes media).
+   * Backend's POST /api/v1/creator/search/{username} stub was removed; the
+   * canonical creator search is GET /api/v1/search/creator/{username}.
    */
   async refreshProfileData(username: string, _token?: string): Promise<{ success: boolean; message: string }> {
-    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/creator/search/${username}`, {
-      method: 'POST',
+    const response = await fetchWithAuth(`${this.baseUrl}/api/v1/search/creator/${username}`, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        force_refresh: true,
-        include_posts: true 
-      }),
     });
 
     if (!response.ok) {
@@ -150,13 +148,12 @@ class CDNMediaService {
    */
   async getProfileWithCDN(username: string, _token?: string): Promise<CreatorProfileWithCDN> {
     try {
-      // Step 1: Get profile data (existing endpoint)
-      const profileResponse = await fetchWithAuth(`${this.baseUrl}/api/v1/creator/search/${username}`, {
-        method: 'POST',
+      // Canonical creator search: GET /api/v1/search/creator/{username}
+      const profileResponse = await fetchWithAuth(`${this.baseUrl}/api/v1/search/creator/${username}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ include_posts: true }),
       });
 
       if (!profileResponse.ok) {
