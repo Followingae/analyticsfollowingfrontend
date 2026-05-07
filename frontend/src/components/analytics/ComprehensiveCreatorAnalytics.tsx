@@ -70,8 +70,27 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [unlocking, setUnlocking] = useState(false)
+  const [retryingAI, setRetryingAI] = useState(false)
   const [imdInfluencer, setImdInfluencer] = useState<MasterInfluencer | null>(null)
   const imdFetchedRef = useRef<string | null>(null)
+
+  // F11: retry AI analysis on a profile that completed Apify+CDN but missed
+  // AI. Backend endpoint at /api/v1/profiles/{username}/retry-ai (B11). Free
+  // since the user already paid via the unlock.
+  const handleRetryAI = async () => {
+    try {
+      setRetryingAI(true)
+      const result = await comprehensiveAnalyticsApi.retryAIAnalysis(username)
+      if (result?.success === false) {
+        throw new Error(result?.message || 'Retry failed')
+      }
+      toast.success('AI analysis retry queued — refresh in a minute.')
+    } catch (err: any) {
+      toast.error(err?.message || 'Could not queue AI retry')
+    } finally {
+      setRetryingAI(false)
+    }
+  }
 
   const { isSuperAdmin } = useEnhancedAuth()
 
@@ -311,8 +330,41 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
   const engagement = profile.engagement || {}
   const security = profile.security || {}
 
+  // F5: AI analysis completion check. If the profile is unlocked but AI fields
+  // are null (the rim.official__ failure mode), surface a clear banner with a
+  // retry button instead of rendering blank charts that look broken.
+  const aiAnalyzedAt = aiAnalysis.profile_analyzed_at || profile.ai_profile_analyzed_at
+  const aiComplete = !!aiAnalyzedAt
+
   return (
     <div className="space-y-6">
+      {/* F5: AI incomplete banner — only shown when profile is unlocked but
+          AI hasn't finished. Otherwise charts and AI tabs look mysteriously
+          empty and users have no path to recovery. */}
+      {!aiComplete && (
+        <Card className="border-amber-500/40 bg-amber-500/5">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+            <div className="flex-1 space-y-1">
+              <h3 className="font-semibold text-sm">AI analysis still processing</h3>
+              <p className="text-xs text-muted-foreground">
+                Profile and posts are loaded, but AI insights (sentiment, content categories,
+                audience demographics) haven't completed yet. This is rare and usually resolves
+                in under a minute. You won't be charged again to retry.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRetryAI}
+              disabled={retryingAI}
+            >
+              {retryingAI ? 'Retrying…' : 'Retry AI'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ── Profile Header ─────────────────────────────────────────────── */}
       <Card className="border-0 overflow-hidden">
         {/* Gradient accent bar */}
@@ -323,8 +375,9 @@ function ComprehensiveCreatorAnalyticsComponent({ username }: ComprehensiveCreat
           <div className="flex flex-col md:flex-row gap-6">
             {/* Avatar */}
             <Avatar className="h-24 w-24 md:h-28 md:w-28 border-2 border-border shadow-lg shrink-0">
+              {/* F4: only CDN URLs — Instagram CDN URLs 403 from the browser */}
               <AvatarImage
-                src={profile.cdn_avatar_url || profile.profile_pic_url_hd || profile.profile_pic_url}
+                src={profile.cdn_avatar_url || `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp`}
                 className="object-cover"
               />
               <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">

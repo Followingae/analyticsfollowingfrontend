@@ -179,8 +179,11 @@ export function CreatorGridCard({
           <div className="relative mx-auto w-fit">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-lg scale-110 opacity-20 group-hover:opacity-40 transition-opacity duration-300" />
             <Avatar className="relative h-16 w-16 border-3 border-background shadow-md">
+              {/* F4: only use R2 CDN URLs. Raw Instagram CDN URLs (scontent-*.cdninstagram.com)
+                  return 403 from the browser due to IG hotlink protection. The avatar
+                  fallback below shows the user initials when no CDN avatar exists yet. */}
               <AvatarImage
-                src={creator.cdn_avatar_url || creator.profile_pic_url_hd || creator.profile_pic_url || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
+                src={creator.cdn_avatar_url || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
                 alt={creator.username}
               />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-sm font-semibold text-primary">

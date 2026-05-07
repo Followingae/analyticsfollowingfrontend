@@ -787,6 +787,31 @@ export class ComprehensiveAnalyticsApiService {
   }
 
   /**
+   * F11 + B11: Re-run ONLY AI analysis on a profile that's already in the DB
+   * but missing AI fields. Free for the user since they already paid via the
+   * unlock — backend should not charge again.
+   *
+   * Used by ComprehensiveCreatorAnalytics' "Retry AI" banner button when
+   * `ai_profile_analyzed_at` is null after a search completed.
+   */
+  async retryAIAnalysis(username: string): Promise<{ success: boolean; message?: string; job_id?: string }> {
+    try {
+      const cleanUsername = username.replace('@', '').trim()
+      const response = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/profiles/${cleanUsername}/retry-ai`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' } },
+      )
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ detail: 'Retry AI failed' }))
+        throw new Error(err.detail || err.message || `HTTP ${response.status}`)
+      }
+      return await response.json()
+    } catch (error: any) {
+      return { success: false, message: error?.message || 'Retry AI failed' }
+    }
+  }
+
+  /**
    * Trigger AI analysis refresh
    */
   async refreshAnalysis(username: string): Promise<{ success: boolean; message: string }> {

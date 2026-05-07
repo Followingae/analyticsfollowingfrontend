@@ -126,6 +126,24 @@ function emitJobFailed(jobType: string | undefined, error: string, details?: any
 }
 
 /**
+ * F6: When polling exceeds maxAttempts but the job hasn't actually failed
+ * (last status was 'processing'), emit a softer signal so the UI keeps the
+ * "still processing in background" state instead of showing an error toast.
+ *
+ * The 20s unlocked-profiles safety poll in ProcessingToastContext will
+ * eventually catch the actual completion if the job does finish.
+ */
+function emitJobPollingTimeout(jobType: string | undefined, username: string | undefined): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('job-polling-timeout', {
+        detail: { jobType, username },
+      })
+    )
+  }
+}
+
+/**
  * React hook for polling job status
  */
 export function useJobPolling(options: UseJobPollingOptions = {}) {
@@ -319,6 +337,8 @@ export async function pollJobToCompletion(
   const { pollInterval = 3000, maxAttempts = 120, onProgress, silent = false } = options
   let attempts = 0
   let lastJobType: string | undefined
+  let lastUsername: string | undefined
+  let lastTerminalStatus: JobStatus['status'] | 'unknown' = 'unknown'
 
   while (attempts < maxAttempts) {
     attempts++
@@ -329,6 +349,14 @@ export async function pollJobToCompletion(
       const statusData: JobStatus = await response.json()
 
       if (statusData.job_type) lastJobType = statusData.job_type
+      // Track username from status for timeout signaling
+      const usernameFromStatus =
+        (statusData as any).params?.username ||
+        (statusData as any).username ||
+        statusData.error_details?.username
+      if (usernameFromStatus) lastUsername = usernameFromStatus
+      lastTerminalStatus = statusData.status as any
+
       onProgress?.(statusData)
 
       if (statusData.status === 'completed') {
@@ -360,6 +388,16 @@ export async function pollJobToCompletion(
     }
 
     await new Promise(resolve => setTimeout(resolve, pollInterval))
+  }
+
+  // F6: maxAttempts reached. If the last status was still "processing" (the
+  // common case — backend's just slow/queued), emit a soft timeout signal
+  // so the UI keeps the "still processing in background" state. The 20s
+  // unlocked-profiles safety poll will pick up completion when it lands.
+  // Only emit a hard failure if the job already terminated.
+  if (lastTerminalStatus === 'processing' || lastTerminalStatus === 'queued' || lastTerminalStatus === 'unknown') {
+    emitJobPollingTimeout(lastJobType, lastUsername)
+    throw new Error('Job polling timed out (still processing in background)')
   }
 
   emitJobFailed(lastJobType, 'Job polling timed out')

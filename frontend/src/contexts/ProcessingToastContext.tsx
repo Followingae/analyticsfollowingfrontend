@@ -12,6 +12,15 @@ interface ProcessingToast {
   id: string
 }
 
+// Latest backend status for a given username's in-flight job. Set by
+// the `creator-search-progress` window event (emitted by useCreatorSearch).
+interface ToastProgress {
+  progress_percent?: number
+  progress_message?: string | null
+  current_stage?: string
+  status?: string
+}
+
 interface ProcessingToastContextType {
   addProcessingToast: (username: string) => void
   removeProcessingToast: (username: string) => void
@@ -30,6 +39,8 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
   const [toastIds, setToastIds] = useState<Map<string, string | number>>(new Map())
   const [consolidatedToastId, setConsolidatedToastId] = useState<string | number | null>(null)
   const [completedToasts, setCompletedToasts] = useState<string[]>([])
+  // F3: keep latest backend status per username so toast can render real progress
+  const [progressByUsername, setProgressByUsername] = useState<Record<string, ToastProgress>>({})
   const { refresh: refreshNotifications } = useNotifications()
   const queryClient = useQueryClient()
   const prevToastCountRef = useRef(0)
@@ -186,21 +197,38 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
       return
     }
 
-    // Show consolidated toast with your beautiful ToastLoader animation
+    // F3: render real backend progress when single creator processing.
+    // Pull latest progress for the username; if missing (first ~4s before
+    // first poll lands), fall through to the spinner-only state.
+    const single = processingToasts.length === 1 ? processingToasts[0] : null
+    const singleProgress = single ? progressByUsername[single.username] : undefined
+    const pct =
+      typeof singleProgress?.progress_percent === 'number'
+        ? Math.max(0, Math.min(100, singleProgress.progress_percent))
+        : undefined
+    const subtitle = single
+      ? singleProgress?.progress_message ||
+        (typeof pct === 'number' ? `${Math.round(pct)}% complete` : 'Starting analysis…')
+      : `${processingToasts.slice(0, 2).map(t => t.username).join(', ')}${processingToasts.length > 2 ? ` +${processingToasts.length - 2} more` : ''}`
+
     const toastId = toast(
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-[260px]">
         <ToastLoader size={40} text="AI" />
-        <div>
+        <div className="flex-1">
           <div className="font-medium">
-            {processingToasts.length === 1
-              ? `AI Analytics Processing for ${processingToasts[0].username}`
-              : `Processing ${processingToasts.length} creators with AI`
-            }
+            {single
+              ? `Analyzing @${single.username}`
+              : `Processing ${processingToasts.length} creators`}
           </div>
-          <div className="text-xs text-gray-400">
-            {processingToasts.slice(0, 2).map(t => t.username).join(', ')}
-            {processingToasts.length > 2 && ` +${processingToasts.length - 2} more`}
-          </div>
+          <div className="text-xs text-gray-400">{subtitle}</div>
+          {single && typeof pct === 'number' && (
+            <div className="mt-1.5 h-1 w-full bg-gray-700/60 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          )}
         </div>
       </div>,
       {
@@ -211,7 +239,7 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
     )
 
     setConsolidatedToastId(toastId)
-  }, [processingToasts]) // Simplified dependencies to prevent infinite loops
+  }, [processingToasts, progressByUsername])
 
   // Extract polling logic into reusable function
   const checkCompletionNow = useCallback(async () => {
@@ -318,7 +346,9 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
     }
   }, [processingToasts.length, checkCompletionNow])
 
-  // Listen for job-failed events from useJobPolling and remove matching toasts
+  // Listen for job-failed events from useJobPolling and remove matching toasts.
+  // F7: terminal job state (completed/failed) is what dismisses the toast — no
+  // longer dependent on the lazy 20s unlocked-profiles poll.
   useEffect(() => {
     const handleJobFailed = (event: Event) => {
       const detail = (event as CustomEvent).detail
@@ -329,8 +359,12 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
           t => t.username.toLowerCase() === normalized
         )
         if (match) {
-
           removeProcessingToast(match.username)
+          // Clear stored progress for this username
+          setProgressByUsername(prev => {
+            const { [match.username]: _, ...rest } = prev
+            return rest
+          })
           toast.error(`Processing failed for @${match.username}`, {
             position: 'bottom-center',
             duration: 5000,
@@ -339,7 +373,6 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
       }
     }
 
-    // Also listen for job-completed to clear any lingering toasts
     const handleJobCompleted = (event: Event) => {
       const detail = (event as CustomEvent).detail
       const result = detail?.result
@@ -352,17 +385,65 @@ export function ProcessingToastProvider({ children }: { children: React.ReactNod
         )
         if (match) {
           removeProcessingToast(match.username)
+          setProgressByUsername(prev => {
+            const { [match.username]: _, ...rest } = prev
+            return rest
+          })
+          // Invalidate dependent queries immediately on completion event
+          queryClient.invalidateQueries({ queryKey: ['unlocked-creators-page'] })
+          queryClient.invalidateQueries({ queryKey: ['unlocked-profiles'] })
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] })
         }
+      }
+    }
+
+    // F1+F3: real backend progress events drive the toast UI
+    const handleProgress = (event: Event) => {
+      const detail = (event as CustomEvent).detail
+      const username = detail?.username
+      const status = detail?.status
+      if (username && status) {
+        setProgressByUsername(prev => ({
+          ...prev,
+          [username]: {
+            progress_percent: status.progress_percent,
+            progress_message: status.progress_message,
+            current_stage: status.current_stage,
+            status: status.status,
+          },
+        }))
+      }
+    }
+
+    // F6: soft timeout — don't dismiss the toast or show an error. Just mark
+    // the progress data so the UI shows "still processing in background".
+    // The 20s unlocked-profiles poll will catch completion when it lands.
+    const handlePollingTimeout = (event: Event) => {
+      const detail = (event as CustomEvent).detail
+      const username = detail?.username
+      if (username && processingToasts.some(t => t.username.toLowerCase() === username.toLowerCase())) {
+        setProgressByUsername(prev => ({
+          ...prev,
+          [username]: {
+            ...(prev[username] || {}),
+            progress_message: 'Still working in background — check notifications',
+            status: 'processing',
+          },
+        }))
       }
     }
 
     window.addEventListener('job-failed', handleJobFailed)
     window.addEventListener('job-completed', handleJobCompleted)
+    window.addEventListener('creator-search-progress', handleProgress)
+    window.addEventListener('job-polling-timeout', handlePollingTimeout)
     return () => {
       window.removeEventListener('job-failed', handleJobFailed)
       window.removeEventListener('job-completed', handleJobCompleted)
+      window.removeEventListener('creator-search-progress', handleProgress)
+      window.removeEventListener('job-polling-timeout', handlePollingTimeout)
     }
-  }, [processingToasts, removeProcessingToast])
+  }, [processingToasts, removeProcessingToast, queryClient])
 
   // Staleness safety net: auto-remove toasts older than 10 minutes
   useEffect(() => {

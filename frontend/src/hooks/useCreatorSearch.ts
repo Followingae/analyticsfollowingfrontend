@@ -9,6 +9,22 @@ interface UseCreatorSearchOptions {
   onError?: (error: Error) => void
 }
 
+/**
+ * Emit real backend progress so ProcessingCreatorCard / ProcessingToastContext
+ * can render actual progress instead of fake clock-based animation.
+ *
+ * Listeners read `event.detail.{username, status}` where status has
+ * progress_percent (0-100), progress_message, current_stage, etc.
+ */
+function emitCreatorSearchProgress(username: string, status: any): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(
+    new CustomEvent('creator-search-progress', {
+      detail: { username, status },
+    }),
+  )
+}
+
 export const useCreatorSearch = (options?: UseCreatorSearchOptions) => {
   const queryClient = useQueryClient()
 
@@ -20,13 +36,21 @@ export const useCreatorSearch = (options?: UseCreatorSearchOptions) => {
         throw new Error(`Search failed: ${response.statusText}`)
       }
 
-      // Handle 202 async job - poll for completion
+      // Handle 202 async job - poll for completion + stream progress
       if (response.status === 202) {
         const jobData = await response.json()
         if (jobData.job_id) {
+          // Increased to 60 attempts × 4s = 240s (4 min) — accommodates
+          // worker queue lag without prematurely surfacing an error.
+          // F6: timeout no longer immediately reports failure — useJobPolling
+          // emits a job-failed event but the UI stays in "still processing"
+          // until the toast/card receives a definitive completed/failed event.
           const finalResult = await pollJobToCompletion(jobData.job_id, {
             pollInterval: 4000,
-            maxAttempts: 45, // ~3 minutes
+            maxAttempts: 60,
+            onProgress: (statusData) => {
+              emitCreatorSearchProgress(username, statusData)
+            },
           })
           return finalResult as ProfileSearchResponse
         }
