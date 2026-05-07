@@ -42,8 +42,6 @@ import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { CampaignCard, type CampaignCardData } from "@/components/campaigns/CampaignCard";
 // CampaignAnalyticsCards removed — aggregating KPIs across campaigns is not industry practice
-import { ProposalOverviewCard } from "@/components/proposals/ProposalOverviewCard";
-import { brandProposalViewApi } from "@/services/adminProposalMasterApi";
 import { unifiedCampaignApi, type ScopeCampaign } from "@/services/clientManagementApi";
 import { toast } from "sonner";
 
@@ -206,26 +204,6 @@ function getStatusBadge(status: string) {
 function formatAED(amount: number | null | undefined): string {
   if (amount == null) return "-";
   return `AED ${Number(amount).toLocaleString()}`;
-}
-
-// ---------------------------------------------------------------------------
-// Proposal types
-// ---------------------------------------------------------------------------
-interface ProposalListItem {
-  id: string;
-  title: string;
-  campaign_name: string;
-  description?: string;
-  status: string;
-  total_influencers: number;
-  selected_count: number;
-  total_sell_amount?: number;
-  deadline_at?: string;
-  cover_image_url?: string;
-  created_at: string;
-  sent_at?: string;
-  responded_at?: string;
-  more_added_at?: string;
 }
 
 // ============================================================================
@@ -412,159 +390,6 @@ function AllCampaignsTab({
     </div>
   );
 }
-
-// ============================================================================
-// PROPOSALS TAB
-// ============================================================================
-function ProposalsTabContent({ searchQuery }: { searchQuery: string }) {
-  const router = useRouter();
-  const { user, loading: authLoading } = useEnhancedAuth();
-
-  const [proposals, setProposals] = useState<ProposalListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!authLoading && user) {
-      loadProposals();
-    }
-  }, [user, authLoading]);
-
-  const loadProposals = async () => {
-    setLoading(true);
-    try {
-      const result = await brandProposalViewApi.listProposals();
-      const data = result as any;
-      setProposals(data.proposals || []);
-    } catch (error) {
-      console.error('Failed to load proposals:', error)
-      setProposals([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const activeProposals = useMemo(
-    () =>
-      proposals.filter(
-        (p) => !["approved", "rejected"].includes(p.status)
-      ),
-    [proposals]
-  );
-
-  const archivedProposals = useMemo(
-    () =>
-      proposals.filter((p) =>
-        ["approved", "rejected"].includes(p.status)
-      ),
-    [proposals]
-  );
-
-  const filteredActive = useMemo(() => {
-    if (!searchQuery) return activeProposals;
-    const q = searchQuery.toLowerCase();
-    return activeProposals.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.campaign_name.toLowerCase().includes(q)
-    );
-  }, [activeProposals, searchQuery]);
-
-  const filteredArchived = useMemo(() => {
-    if (!searchQuery) return archivedProposals;
-    const q = searchQuery.toLowerCase();
-    return archivedProposals.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.campaign_name.toLowerCase().includes(q)
-    );
-  }, [archivedProposals, searchQuery]);
-
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {[1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardContent className="p-6 space-y-3">
-              <Skeleton className="h-40 w-full rounded-lg" />
-              <Skeleton className="h-5 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (proposals.length === 0) {
-    return (
-      <EmptyState
-        title="No proposals yet"
-        description={
-          "Your agency team hasn't sent any proposals yet.\nYou'll see them here once they curate influencer lists for your campaigns."
-        }
-        icons={[FileText, Users, Clock]}
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-8">
-      {/* Active proposals */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-lg font-semibold">Active Proposals</h3>
-          {filteredActive.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {filteredActive.length}
-            </Badge>
-          )}
-        </div>
-        {filteredActive.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">
-            No active proposals
-            {searchQuery ? " matching your search" : ""}
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-            {filteredActive.map((proposal) => (
-              <ProposalOverviewCard
-                key={proposal.id}
-                proposal={proposal}
-                onClick={() => router.push(`/proposals/${proposal.id}`)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Archived proposals */}
-      {filteredArchived.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-lg font-semibold text-muted-foreground">
-              Archived Proposals
-            </h3>
-            <Badge variant="outline" className="text-xs">
-              {filteredArchived.length}
-            </Badge>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-            {filteredArchived.map((proposal) => (
-              <ProposalOverviewCard
-                key={proposal.id}
-                proposal={proposal}
-                archived
-                onClick={() => router.push(`/proposals/${proposal.id}`)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ============================================================================
 // SCOPE TAB
 // ============================================================================
 function ScopeTabContent() {
@@ -927,7 +752,7 @@ export default function UnifiedCampaignsDashboard() {
               {pendingProposalCount > 0 && (
                 <div
                   className="flex items-center gap-3 px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
-                  onClick={() => setActiveTab("proposals")}
+                  onClick={() => router.push("/proposals")}
                 >
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                     <FileText className="h-4 w-4 text-primary" />
@@ -959,13 +784,6 @@ export default function UnifiedCampaignsDashboard() {
                   >
                     <LayoutList className="h-4 w-4" />
                     All Campaigns
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="proposals"
-                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2 gap-1.5"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Proposals
                   </TabsTrigger>
                   <TabsTrigger
                     value="scope"
@@ -1026,10 +844,6 @@ export default function UnifiedCampaignsDashboard() {
                     searchQuery={searchQuery}
                     typeFilter={typeFilter}
                   />
-                </TabsContent>
-
-                <TabsContent value="proposals" className="mt-0">
-                  <ProposalsTabContent searchQuery={searchQuery} />
                 </TabsContent>
 
                 <TabsContent value="scope" className="mt-0">
