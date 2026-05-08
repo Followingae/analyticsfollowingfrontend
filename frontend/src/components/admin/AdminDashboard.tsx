@@ -75,22 +75,12 @@ export function AdminDashboard() {
     setLoading(true)
     setError(null)
     try {
-      const [dashboardResult, realtimeResult] = await Promise.all([
-        superadminApiService.getDashboard(),
-        superadminApiService.getRealtimeAnalytics()
-      ])
+      const dashboardResult = await superadminApiService.getDashboard()
 
       if (dashboardResult.success && dashboardResult.data) {
         setDashboardData(dashboardResult.data)
-      } else {
-
       }
-
-      if (realtimeResult.success && realtimeResult.data) {
-        setRealtimeData(realtimeResult.data)
-      } else {
-
-      }
+      // realtime analytics endpoint removed — left as null
 
     } catch (error) {
       setError('Failed to load dashboard data')

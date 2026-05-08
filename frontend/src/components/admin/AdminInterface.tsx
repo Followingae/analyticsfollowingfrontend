@@ -5,7 +5,6 @@ import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { AdminLayout } from '@/components/admin/AdminLayout'
 import { AdminDashboard } from '@/components/admin/AdminDashboard'
 import { UserManagementDashboard } from '@/components/admin/UserManagementDashboard'
-import { ProposalDashboard } from '@/components/admin/ProposalDashboard'
 import { AdminView } from './SuperAdminInterface'
 
 export function AdminInterface() {
@@ -24,11 +23,8 @@ export function AdminInterface() {
         return <div className="p-6">Access denied to user management</div>
       
       case 'proposals':
-        if (hasPermission('can_view_all_proposals')) {
-          return <ProposalDashboard />
-        }
-        return <div className="p-6">Access denied to proposal management</div>
-      
+        return <div className="p-6">Proposal management is now in the Campaigns section</div>
+
       case 'finance':
       case 'system':
       case 'influencers':

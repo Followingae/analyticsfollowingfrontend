@@ -110,7 +110,7 @@ export default function SuperadminUsersPage() {
 
   const handleUpdateUserStatus = async (userId: string, status: 'active' | 'suspended' | 'deactivated', reason?: string) => {
     try {
-      const result = await superadminApiService.editUser(userId, { status })
+      const result = await superadminApiService.updateUserStatus(userId, status)
       if (result.success) {
         await loadUsers()
         toast.success(`User status updated to ${status}`)
@@ -125,7 +125,7 @@ export default function SuperadminUsersPage() {
 
   const handleUpdateUserPlan = async (userId: string, plan: string) => {
     try {
-      const result = await superadminApiService.editUser(userId, { subscription_tier: plan })
+      const result = await superadminApiService.updateUser(userId, { subscription_tier: plan })
       if (result.success) {
         await loadUsers()
         toast.success(`User plan updated to ${plan}`)

@@ -20,7 +20,8 @@ function CheckoutContent() {
   const [error, setError] = useState<string | null>(null)
 
   const tier = searchParams.get('tier') || 'free'
-  const mode = searchParams.get('mode') || 'embedded' // 'embedded' or 'redirect'
+  // Backend hosted checkout only — embedded mode (client_secret) is not supported.
+  const mode = searchParams.get('mode') || 'redirect'
 
   useEffect(() => {
     initializeCheckout()
@@ -45,7 +46,13 @@ function CheckoutContent() {
       const sessionData = await billingManager.createCheckoutSession(tier)
 
       if (mode === 'redirect') {
-        // Option A: Redirect to Stripe Checkout (simpler)
+        // Hosted-checkout: prefer the checkout_url returned by the backend (no Stripe.js round-trip needed).
+        if (sessionData.checkout_url) {
+          window.location.href = sessionData.checkout_url
+          return
+        }
+
+        // Fallback: use Stripe.js redirectToCheckout with session_id.
         const stripe = await stripePromise
         if (!stripe) {
           throw new Error('Failed to load Stripe')

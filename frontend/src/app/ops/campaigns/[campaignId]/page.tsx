@@ -511,49 +511,15 @@ export default function CampaignOperationsHome() {
           <FileVideo className="h-6 w-6" />
           <span>Deliverables</span>
         </Button>
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col items-center justify-center gap-2"
-          onClick={() => navigateToSection('production')}
-        >
-          <Film className="h-6 w-6" />
-          <span>Production</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col items-center justify-center gap-2"
-          onClick={() => navigateToSection('events')}
-        >
-          <Calendar className="h-6 w-6" />
-          <span>Events</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col items-center justify-center gap-2"
-          onClick={() => navigateToSection('assets')}
-        >
-          <Link2 className="h-6 w-6" />
-          <span>Assets</span>
-        </Button>
         {!isClientView && isInternal && (
-          <>
-            <Button
-              variant="outline"
-              className="h-24 flex flex-col items-center justify-center gap-2"
-              onClick={() => navigateToSection('finance')}
-            >
-              <Coins className="h-6 w-6" />
-              <span>Finance</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-24 flex flex-col items-center justify-center gap-2"
-              onClick={() => navigateToSection('settings')}
-            >
-              <Target className="h-6 w-6" />
-              <span>Settings</span>
-            </Button>
-          </>
+          <Button
+            variant="outline"
+            className="h-24 flex flex-col items-center justify-center gap-2"
+            onClick={() => navigateToSection('settings')}
+          >
+            <Target className="h-6 w-6" />
+            <span>Settings</span>
+          </Button>
         )}
       </div>
     </div>

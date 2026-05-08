@@ -294,35 +294,7 @@ export default function UserEditPage() {
     }
   }
 
-  // Verify email
-  const verifyEmail = async () => {
-    try {
-      const result = await superadminApiService.verifyUserEmail(userId)
-      if (result.success) {
-        toast.success('Email verified successfully')
-        loadUserData()
-      } else {
-        toast.error(result.error || 'Failed to verify email')
-      }
-    } catch (error) {
-      toast.error('Failed to verify email')
-    }
-  }
-
-  // Reset 2FA
-  const reset2FA = async () => {
-    try {
-      const result = await superadminApiService.resetUser2FA(userId)
-      if (result.success) {
-        toast.success('2FA reset successfully')
-        loadUserData()
-      } else {
-        toast.error(result.error || 'Failed to reset 2FA')
-      }
-    } catch (error) {
-      toast.error('Failed to reset 2FA')
-    }
-  }
+  // verifyEmail / reset2FA removed — backend endpoints not implemented
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '—'
@@ -717,12 +689,6 @@ export default function UserEditPage() {
                     <Badge variant={user.email_verified ? 'default' : 'destructive'}>
                       {user.email_verified ? 'Verified' : 'Unverified'}
                     </Badge>
-                    {!user.email_verified && (
-                      <Button variant="outline" size="sm" onClick={verifyEmail}>
-                        <Mail className="h-4 w-4 mr-2" />
-                        Verify
-                      </Button>
-                    )}
                   </div>
                 </div>
 
@@ -735,12 +701,6 @@ export default function UserEditPage() {
                     <Badge variant={user.two_factor_enabled ? 'default' : 'secondary'}>
                       {user.two_factor_enabled ? 'Enabled' : 'Disabled'}
                     </Badge>
-                    {user.two_factor_enabled && (
-                      <Button variant="outline" size="sm" onClick={reset2FA}>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Reset
-                      </Button>
-                    )}
                   </div>
                 </div>
 

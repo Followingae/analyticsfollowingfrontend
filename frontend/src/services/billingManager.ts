@@ -285,7 +285,8 @@ class BillingManager {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
-        subscription_tier: tier,
+        tier,
+        billing_interval: 'monthly',
         success_url: `${window.location.origin}/settings/billing?upgraded=true`,
         cancel_url: `${window.location.origin}/settings/billing`
       })
@@ -313,13 +314,16 @@ class BillingManager {
   }
 
   // Create checkout session (for existing users who want to upgrade)
-  async createCheckoutSession(tier: string): Promise<CheckoutSession> {
-    // DO NOT use hardcoded price IDs - let backend handle it
-    const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.upgradeSubscription}`, {
+  // Backend (/api/v1/checkout/create-session) returns hosted-checkout: { checkout_url, session_id }.
+  // Embedded checkout (client_secret) is NOT supported by the backend — callers should use the
+  // checkout_url for full-page redirect, or sessionId with stripe.redirectToCheckout().
+  async createCheckoutSession(tier: string): Promise<CheckoutSession & { checkout_url?: string }> {
+    const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.createCheckoutSession}`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
-        subscription_tier: tier, // Just send the tier, backend maps to price
+        tier,
+        billing_interval: 'monthly',
         success_url: `${window.location.origin}/dashboard?subscription=success`,
         cancel_url: `${window.location.origin}/pricing?subscription=cancelled`
       })
@@ -327,7 +331,6 @@ class BillingManager {
 
     if (!response.ok) {
       if (response.status === 403) {
-        // Try to get error details
         let errorMsg = 'Not authorized to create checkout session'
         try {
           const errorData = await response.json()
@@ -341,10 +344,11 @@ class BillingManager {
     }
 
     const data = await response.json()
-    // Handle both sessionId and session_id formats
     return {
+      // Backend hosted checkout doesn't issue a client_secret; left undefined.
       client_secret: data.client_secret || data.clientSecret,
-      session_id: data.sessionId || data.session_id
+      session_id: data.session_id || data.sessionId,
+      checkout_url: data.checkout_url
     }
   }
 

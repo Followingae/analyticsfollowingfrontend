@@ -53,7 +53,6 @@ interface OperationsContextType {
   // Operations
   createWorkstream: (data: Partial<Workstream>) => Promise<void>;
   createDeliverable: (data: Partial<Deliverable>) => Promise<void>;
-  updateDeliverableStatus: (deliverableId: string, status: DeliverableStatus) => Promise<void>;
   bulkUpdateDeliverables: (action: string, params: any) => Promise<void>;
 }
 
@@ -293,22 +292,6 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [currentWorkstream, userAccess]);
 
-  const updateDeliverableStatus = useCallback(async (
-    deliverableId: string,
-    status: DeliverableStatus
-  ) => {
-    try {
-      await operationsApi.updateDeliverableStatus(deliverableId, status);
-      setDeliverables(prev => prev.map(d =>
-        d.id === deliverableId ? { ...d, status } : d
-      ));
-      toast.success('Status updated successfully');
-    } catch (error: any) {
-
-      toast.error(error.message || 'Failed to update status');
-    }
-  }, []);
-
   const bulkUpdateDeliverables = useCallback(async (action: string, params: any) => {
     if (!userAccess.permissions.bulk_operations) {
       toast.error('You do not have permission to perform bulk operations');
@@ -372,7 +355,6 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // Operations
     createWorkstream,
     createDeliverable,
-    updateDeliverableStatus,
     bulkUpdateDeliverables
   };
 

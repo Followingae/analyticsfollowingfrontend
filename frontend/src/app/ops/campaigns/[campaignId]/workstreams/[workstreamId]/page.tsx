@@ -161,18 +161,6 @@ const DeliverablesTab = ({
     }
   };
 
-  const handleStatusChange = async (deliverableId: string, newStatus: DeliverableStatus) => {
-    try {
-      await operationsApi.updateDeliverableStatus(deliverableId, newStatus);
-      setDeliverables(prev => prev.map(d =>
-        d.id === deliverableId ? { ...d, status: newStatus } : d
-      ));
-      toast.success('Status updated');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update status');
-    }
-  };
-
   const handleBulkAction = async () => {
     if (!bulkAction || selectedDeliverables.length === 0) {
       toast.error('Select deliverables and an action');
@@ -397,34 +385,9 @@ const DeliverablesTab = ({
                     <Badge variant="outline">{deliverable.type}</Badge>
                   </TableCell>
                   <TableCell>
-                    {isInternal ? (
-                      <Select
-                        value={deliverable.status}
-                        onValueChange={(v: DeliverableStatus) => handleStatusChange(deliverable.id, v)}
-                      >
-                        <SelectTrigger className="w-40">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="IDEA">Idea</SelectItem>
-                          <SelectItem value="DRAFTING">Drafting</SelectItem>
-                          <SelectItem value="AWAITING_APPROVAL">Awaiting Approval</SelectItem>
-                          <SelectItem value="APPROVED">Approved</SelectItem>
-                          <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                          <SelectItem value="IN_PRODUCTION">In Production</SelectItem>
-                          <SelectItem value="EDITING">Editing</SelectItem>
-                          <SelectItem value="IN_REVIEW">In Review</SelectItem>
-                          <SelectItem value="REVISION_REQUIRED">Revision Required</SelectItem>
-                          <SelectItem value="READY_TO_POST">Ready to Post</SelectItem>
-                          <SelectItem value="POSTED">Posted</SelectItem>
-                          <SelectItem value="ARCHIVED">Archived</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Badge className={getStatusColor(deliverable.status)}>
-                        {deliverable.status.replace('_', ' ')}
-                      </Badge>
-                    )}
+                    <Badge className={getStatusColor(deliverable.status)}>
+                      {deliverable.status.replace('_', ' ')}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {deliverable.due_date ? (
@@ -515,16 +478,6 @@ const ConceptsTab = ({ workstreamId, isInternal, isClient }: any) => {
       toast.success(decision === 'approve' ? 'Concept approved' : 'Changes requested');
     } catch (error) {
       toast.error('Failed to update approval');
-    }
-  };
-
-  const handleSendForApproval = async (conceptId: string) => {
-    try {
-      await operationsApi.submitConceptForApproval(conceptId);
-      loadConcepts();
-      toast.success('Sent for approval');
-    } catch (error) {
-      toast.error('Failed to send for approval');
     }
   };
 
@@ -622,15 +575,6 @@ const ConceptsTab = ({ workstreamId, isInternal, isClient }: any) => {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-4 border-t">
-                  {isInternal && concept.approval_status === 'NOT_SENT' && (
-                    <Button
-                      onClick={() => handleSendForApproval(concept.id)}
-                      size="sm"
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      Send for Approval
-                    </Button>
-                  )}
                   {(isClient || isInternal) && concept.approval_status === 'SENT_TO_CLIENT' && (
                     <>
                       <Button
@@ -680,142 +624,6 @@ const ConceptsTab = ({ workstreamId, isInternal, isClient }: any) => {
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Component for Production Tab
-const ProductionTab = ({ workstreamId, isInternal }: any) => {
-  const [batches, setBatches] = useState<ProductionBatch[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [selectedBatch, setSelectedBatch] = useState<ProductionBatch | null>(null);
-  const [todayMode, setTodayMode] = useState(false);
-
-  useEffect(() => {
-    loadBatches();
-  }, [workstreamId]);
-
-  const loadBatches = async () => {
-    setLoading(true);
-    try {
-      const data = await operationsApi.getProductionBatches(workstreamId);
-      setBatches(data.batches || []);
-    } catch (error) {
-      toast.error('Failed to load production batches');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChecklistUpdate = async (
-    batchId: string,
-    deliverableId: string,
-    status: ProductionChecklistStatus
-  ) => {
-    try {
-      await operationsApi.updateProductionChecklist(batchId, deliverableId, { status });
-      toast.success('Checklist updated');
-    } catch (error) {
-      toast.error('Failed to update checklist');
-    }
-  };
-
-  if (loading) {
-    return <Skeleton className="h-96" />;
-  }
-
-  const todayBatches = todayMode
-    ? batches.filter(b => format(new Date(b.date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd'))
-    : batches;
-
-  return (
-    <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            variant={todayMode ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTodayMode(!todayMode)}
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Today Mode
-          </Button>
-        </div>
-
-        {isInternal && (
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Batch
-          </Button>
-        )}
-      </div>
-
-      {/* Production Batches */}
-      {todayBatches.length === 0 ? (
-        <Alert>
-          <Film className="h-4 w-4" />
-          <AlertDescription>
-            {todayMode ? 'No shoots scheduled for today' : 'No production batches scheduled'}
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <div className="space-y-4">
-          {todayBatches.map((batch) => (
-            <Card key={batch.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle>{batch.name}</CardTitle>
-                    <CardDescription>
-                      {format(new Date(batch.date), 'EEEE, MMM d, yyyy')}
-                      {batch.location && ` • ${batch.location}`}
-                    </CardDescription>
-                  </div>
-                  <Badge>
-                    {batch.deliverable_ids.length} deliverables
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {/* Call Sheet */}
-                {batch.call_time && (
-                  <div className="mb-4 p-3 bg-muted rounded-lg">
-                    <p className="text-sm">
-                      <span className="font-medium">Call Time:</span> {batch.call_time}
-                      {batch.wrap_time && ` • Wrap: ${batch.wrap_time}`}
-                    </p>
-                  </div>
-                )}
-
-                {/* Checklist Board */}
-                <div className="space-y-2">
-                  <p className="font-medium text-sm">Production Checklist</p>
-                  <div className="grid grid-cols-5 gap-2">
-                    {['QUEUED', 'FILMING', 'DONE', 'MISSING', 'RESHOOT'].map(status => (
-                      <div key={status} className="text-center">
-                        <Badge variant="outline" className="mb-2">
-                          {status}
-                        </Badge>
-                        <div className="space-y-1">
-                          {batch.checklist_items
-                            ?.filter(item => item.status === status)
-                            .map(item => (
-                              <Card key={item.deliverable_id} className="p-2">
-                                <p className="text-xs">D-{item.deliverable_id.slice(-4)}</p>
-                              </Card>
-                            ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </CardContent>
             </Card>
           ))}
@@ -924,18 +732,9 @@ export default function WorkstreamDetailPage() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="grid grid-cols-2 w-full">
           <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
           <TabsTrigger value="concepts">Concepts</TabsTrigger>
-          <TabsTrigger value="production">Production</TabsTrigger>
-          <TabsTrigger value="talent">Talent</TabsTrigger>
-          <TabsTrigger value="assets">Assets</TabsTrigger>
-          {isInternal && (
-            <>
-              <TabsTrigger value="finance">Finance</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
-            </>
-          )}
         </TabsList>
 
         <TabsContent value="deliverables" className="mt-6">
@@ -957,84 +756,8 @@ export default function WorkstreamDetailPage() {
           />
         </TabsContent>
 
-        <TabsContent value="production" className="mt-6">
-          <ProductionTab
-            workstreamId={workstreamId}
-            isInternal={isInternal}
-          />
-        </TabsContent>
-
-        <TabsContent value="talent" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Talent Management</CardTitle>
-              <CardDescription>Manage creator assignments and tracking</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Alert>
-                <Users className="h-4 w-4" />
-                <AlertDescription>
-                  Creator shortlisting and assignment management
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="assets" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Assets & Frame.io</CardTitle>
-              <CardDescription>Manage deliverable assets and links</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Alert>
-                <Link2 className="h-4 w-4" />
-                <AlertDescription>
-                  Frame.io integration and asset management
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {isInternal && (
-          <>
-            <TabsContent value="finance" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Finance</CardTitle>
-                  <CardDescription>Creator payouts and payment tracking</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Alert>
-                    <Coins className="h-4 w-4" />
-                    <AlertDescription>
-                      Internal-only financial tracking
-                    </AlertDescription>
-                  </Alert>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="activity" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Activity Timeline</CardTitle>
-                  <CardDescription>Track all changes and updates</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Alert>
-                    <Activity className="h-4 w-4" />
-                    <AlertDescription>
-                      Complete audit trail of workstream activity
-                    </AlertDescription>
-                  </Alert>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </>
-        )}
+        {/* Production / Talent / Assets / Finance / Activity tabs removed in May 2026 audit —
+            no backend implementation. */}
       </Tabs>
     </div>
   );

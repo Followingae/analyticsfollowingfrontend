@@ -193,15 +193,15 @@ export const ENDPOINTS = {
     freeTierRegistration: '/api/v1/billing/free-tier-registration', // POST - Direct free tier signup
     verifySession: (sessionId: string) => `/api/v1/billing/verify-session/${sessionId}`, // GET - Check account creation status
 
-    // Existing user endpoints
-    createCheckoutSession: '/api/v1/billing/create-checkout-session', // POST - Create checkout session
-    upgradeSubscription: '/api/v1/billing/upgrade-subscription', // POST - Upgrade existing subscription
+    // Existing user endpoints — all subscription mgmt now goes through /api/v1/checkout/* and /api/v1/credits/subscription/*
+    createCheckoutSession: '/api/v1/checkout/create-session', // POST - Create Stripe checkout session
+    upgradeSubscription: '/api/v1/checkout/create-session', // POST - Same endpoint; tier is in body
     subscription: '/api/v1/billing/subscription-status', // GET - Get subscription status (legacy alias)
     subscriptionStatus: '/api/v1/billing/subscription-status', // GET - Comprehensive billing status (new)
-    createPortalSession: '/api/v1/billing/create-portal-session', // POST - Create customer portal session
-    portalSession: '/api/v1/billing/portal-session', // POST - Create fresh Stripe portal URL (new)
-    portalUrl: '/api/v1/billing/subscription/portal-url', // GET - Get Stripe portal URL (legacy)
-    cancelSubscription: '/api/v1/billing/cancel-subscription', // POST - Cancel subscription
+    createPortalSession: '/api/v1/billing/portal-session', // POST - Create customer portal session
+    portalSession: '/api/v1/billing/portal-session', // POST - Create fresh Stripe portal URL
+    portalUrl: '/api/v1/subscription/portal-url', // GET - Get Stripe portal URL
+    cancelSubscription: '/api/v1/credits/subscription/cancel', // POST - Cancel subscription
 
     // Trial
     trialDailyUsage: '/api/v1/billing/trial/daily-usage', // GET - Trial daily usage summary
@@ -304,131 +304,22 @@ export const ENDPOINTS = {
     dashboard: '/api/superadmin/dashboard', // GET - Superadmin dashboard
   },
 
-  // 🚀 COMPLETE SUPERADMIN ENDPOINTS - Full 46+ Endpoint Guide Implementation
+  // Superadmin endpoints — only paths with verified backend routes are kept here.
+  // Phantom paths have been removed; the backend serves these specific endpoints.
   superadmin: {
-    // === CORE DASHBOARD & ANALYTICS ===
-    dashboard: '/api/superadmin/dashboard', // GET - Main superadmin dashboard
-    realtimeAnalytics: '/api/superadmin/analytics/realtime', // GET - Live analytics
-    systemHealth: '/api/superadmin/system/health', // GET - System health check
-    systemStats: '/api/superadmin/system/stats', // GET - System statistics
-    platformAnalytics: '/api/superadmin/platform/analytics/comprehensive', // GET - Platform analytics
+    // Core dashboard / system (backend: /api/superadmin/...)
+    dashboard: '/api/superadmin/dashboard',
+    systemHealth: '/api/superadmin/system/health',
+    systemStats: '/api/superadmin/system/stats',
 
-    // === USER MANAGEMENT ===
-    users: '/api/superadmin/users', // GET/POST - User list and creation
-    createUser: '/api/superadmin/users/create', // POST - Create new user
-    editUser: (userId: string) => `/api/superadmin/users/${userId}/edit`, // PUT - Edit user
-    deleteUser: (userId: string) => `/api/superadmin/users/${userId}`, // DELETE - Delete user
-    userActivities: (userId: string) => `/api/superadmin/users/${userId}/activities`, // GET - User activities
-    userPermissions: (userId: string) => `/api/superadmin/users/${userId}/permissions`, // GET/POST - User permissions
-    userSessions: (userId: string) => `/api/superadmin/users/${userId}/security/sessions`, // POST - Manage user sessions
-    userMFA: (userId: string) => `/api/superadmin/users/${userId}/security/mfa`, // POST - Manage MFA
-    passwordReset: (userId: string) => `/api/superadmin/users/${userId}/security/password-reset`, // POST - Reset password
-    loginHistory: (userId: string) => `/api/superadmin/users/${userId}/login-history`, // GET - Login history
-    impersonateUser: (userId: string) => `/api/superadmin/users/${userId}/impersonate`, // POST - Impersonate user
-    updateUserStatus: (userId: string) => `/api/superadmin/users/${userId}/status`, // POST - Update user status
-    bulkUserOperations: '/api/superadmin/users/bulk-operations', // POST - Bulk user operations
-    advancedUserSearch: '/api/superadmin/users/advanced-search', // GET - Advanced user search
-    cohortAnalysis: '/api/superadmin/users/cohort-analysis', // GET - User cohort analysis
-    userSegmentation: '/api/superadmin/users/segmentation', // GET - User segmentation
+    // User management
+    users: '/api/superadmin/users',
+    createUser: '/api/superadmin/users/create',
+    updateUserStatus: (userId: string) => `/api/superadmin/users/${userId}/status`,
 
-    // === CREDITS & BILLING MANAGEMENT ===
-    creditOverview: '/api/superadmin/credits/overview', // GET - Credits overview
-    adjustUserCredits: (userId: string) => `/api/superadmin/credits/users/${userId}/adjust`, // POST - Adjust credits
-    transactions: '/api/superadmin/billing/transactions', // GET - Transaction history
-    revenueAnalytics: '/api/superadmin/billing/revenue-analytics', // GET - Revenue analytics
-
-    // === INFLUENCER DATABASE ===
-    influencers: '/api/v1/admin/influencers/database', // GET - Influencer database
-    influencerDetails: (influencerId: string) => `/api/v1/admin/influencers/${influencerId}/detailed`, // GET - Influencer details
-
-    // === PROPOSALS MANAGEMENT ===
-    proposalsOverview: '/api/superadmin/proposals/overview', // GET - Proposals overview
-    proposalsManage: '/api/superadmin/proposals/manage', // GET - Manage proposals
-    proposalStatus: (proposalId: string) => `/api/superadmin/proposals/${proposalId}/status`, // PUT - Update proposal status
-    proposalsDashboard: '/api/superadmin/proposals/dashboard', // GET - Proposals dashboard
-    proposalsHealth: '/api/superadmin/proposals/health', // GET - Proposals health
-    availableInfluencers: '/api/superadmin/proposals/influencers/available', // GET - Available influencers
-    availableBrands: '/api/superadmin/proposals/brands/available', // GET - Available brands
-    brandTeams: '/api/superadmin/proposals/brands/teams', // GET - Brand teams
-    teamMembers: (teamId: string) => `/api/superadmin/proposals/brands/teams/${teamId}/members`, // GET - Team members
-    influencerPricing: '/api/superadmin/proposals/pricing/influencers', // POST - Set influencer pricing
-    getInfluencerPricing: (profileId: string) => `/api/superadmin/proposals/pricing/influencers/${profileId}`, // GET - Get influencer pricing
-    calculateCampaignPricing: (profileId: string) => `/api/superadmin/proposals/pricing/calculate/${profileId}`, // POST - Calculate pricing
-    createInviteCampaign: '/api/superadmin/proposals/invite-campaigns', // POST - Create invite campaign
-    publishInviteCampaign: (campaignId: string) => `/api/superadmin/proposals/invite-campaigns/${campaignId}/publish`, // POST - Publish campaign
-    campaignApplications: (campaignId: string) => `/api/superadmin/proposals/invite-campaigns/${campaignId}/applications`, // GET - Campaign applications
-    approveApplication: (applicationId: string) => `/api/superadmin/proposals/applications/${applicationId}/approve`, // POST - Approve application
-    brandProposalDrafts: '/api/superadmin/proposals/brand-proposals/drafts', // GET/POST - Draft management
-    latestDraft: '/api/superadmin/proposals/brand-proposals/drafts/latest', // GET - Latest draft
-    brandProposals: '/api/superadmin/proposals/brand-proposals', // GET/POST - Brand proposals
-    brandProposalDetails: (proposalId: string) => `/api/superadmin/proposals/brand-proposals/${proposalId}`, // GET - Proposal details
-    assignInfluencers: (proposalId: string) => `/api/superadmin/proposals/brand-proposals/${proposalId}/influencers`, // POST - Assign influencers
-    sendBrandProposal: (proposalId: string) => `/api/superadmin/proposals/brand-proposals/${proposalId}/send`, // POST - Send proposal
-
-    // === SECURITY & PERMISSIONS ===
-    securityAlerts: '/api/superadmin/security/alerts', // GET - Security alerts
-    securityThreats: '/api/superadmin/security/threats', // GET - Security threats
-    suspiciousActivities: '/api/superadmin/security/suspicious-activities', // GET - Suspicious activities
-    emergencyUserLock: '/api/superadmin/security/user-lock', // POST - Emergency user lock
-    complianceReports: '/api/superadmin/compliance/reports', // GET - Compliance reports
-
-    // === ROLE & PERMISSION MANAGEMENT ===
-    roles: '/api/superadmin/roles', // GET - Get roles
-    createRole: '/api/superadmin/roles/create', // POST - Create role
-    updateRolePermissions: (roleId: string) => `/api/superadmin/roles/${roleId}/permissions`, // PUT - Update role permissions
-    permissionMatrix: '/api/superadmin/permissions/matrix', // GET - Permission matrix
-
-    // === TEAM MANAGEMENT ===
-    comprehensiveTeams: '/api/superadmin/teams/comprehensive', // GET - Comprehensive teams
-    bulkTeamMemberOperations: (teamId: string) => `/api/superadmin/teams/${teamId}/members/bulk`, // POST - Bulk team operations
-    updateTeamPermissions: (teamId: string) => `/api/superadmin/teams/${teamId}/permissions`, // PUT - Update team permissions
-
-    // === AI SYSTEM MANAGEMENT ===
-    aiModelsStatus: '/api/superadmin/ai/models/status', // GET - AI models status
-    aiAnalysisQueue: '/api/superadmin/ai/analysis/queue', // GET - AI analysis queue
-    aiAnalysisStats: '/api/superadmin/ai/analysis/stats', // GET - AI analysis stats
-    aiAnalysisOverview: '/api/superadmin/ai/analysis/overview', // GET - AI analysis overview
-    retryAIAnalysis: '/api/superadmin/ai/analysis/retry', // POST - Retry AI analysis
-
-    // === CONTENT & MEDIA MANAGEMENT ===
-    contentModerationQueue: '/api/superadmin/content/moderation/queue', // GET - Content moderation queue
-    contentCategoriesDistribution: '/api/superadmin/content/categories/distribution', // GET - Content categories
-    contentAnalyticsOverview: '/api/superadmin/content/analytics/overview', // GET - Content analytics
-    cdnPerformance: '/api/superadmin/cdn/performance', // GET - CDN performance
-    cdnAssets: '/api/superadmin/cdn/assets', // GET - CDN assets
-
-    // === SYSTEM CONFIGURATION ===
-    systemConfigurations: '/api/superadmin/system/configurations', // GET/PUT - System configurations
-    featureFlags: '/api/superadmin/system/feature-flags', // GET - Feature flags
-    toggleFeatureFlag: (flagId: string) => `/api/superadmin/system/feature-flags/${flagId}/toggle`, // POST - Toggle feature flag
-    systemComponents: '/api/superadmin/system/components', // GET - System components
-    restartComponent: (componentName: string) => `/api/superadmin/system/components/${componentName}/restart`, // POST - Restart component
-    systemBroadcast: '/api/superadmin/system/broadcast', // POST - System broadcast
-
-    // === PLATFORM ANALYTICS ===
-    detailedPlatformUsage: '/api/superadmin/platform/usage/detailed', // GET - Detailed platform usage
-    platformPerformanceMetrics: '/api/superadmin/platform/performance/metrics', // GET - Performance metrics
-    apiUsageAnalytics: '/api/superadmin/platform/api/usage', // GET - API usage analytics
-
-    // === BUSINESS INTELLIGENCE ===
-    businessForecasting: '/api/superadmin/business/forecasting', // GET - Business forecasting
-
-    // === OPERATIONS & MAINTENANCE ===
-    operationsHealth: '/api/superadmin/operations/health', // GET - Operations health
-    auditLog: '/api/superadmin/operations/audit-log', // GET - Audit log
-    performMaintenance: '/api/superadmin/operations/maintenance', // POST - Perform maintenance
-    backupStatus: '/api/superadmin/operations/backup-status', // GET - Backup status
-
-    // === DATA EXPORT & INTEGRATION ===
-    createDataExport: '/api/superadmin/data/export/comprehensive', // POST - Create data export
-    dataExportJobs: '/api/superadmin/data/export/jobs', // GET - Data export jobs
-    thirdPartyIntegrations: '/api/superadmin/integrations/third-party', // GET - Third party integrations
-
-    // === FEATURE ACCESS MANAGEMENT ===
-    featureAccessGrants: '/api/superadmin/features/access-grants', // GET - Feature access grants
-    bulkFeatureGrant: '/api/superadmin/features/bulk-grant', // POST - Bulk feature grant
-    grantProposalAccess: (userId: string) => `/api/superadmin/users/${userId}/features/proposals/grant`, // POST - Grant proposal access
-    revokeProposalAccess: (userId: string) => `/api/superadmin/users/${userId}/features/proposals/revoke`, // POST - Revoke proposal access
+    // Influencer database (backend: /api/v1/admin/influencers/...)
+    influencers: '/api/v1/admin/influencers/database',
+    influencerDetails: (influencerId: string) => `/api/v1/admin/influencers/${influencerId}/detailed`,
   },
 
   // Admin Proposals Management (/api/v1/admin/proposals/...)

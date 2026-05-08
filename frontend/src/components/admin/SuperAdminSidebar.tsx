@@ -69,7 +69,6 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   const managementItems = [
     { title: "Clients", url: "/superadmin/clients", icon: Building2 },
     { title: "Users", url: "/superadmin/users", icon: Users },
-    { title: "Credits", url: "/superadmin/credits", icon: Coins },
   ]
 
   const campaignItems = [

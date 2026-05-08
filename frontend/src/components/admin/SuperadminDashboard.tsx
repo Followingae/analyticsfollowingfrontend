@@ -117,14 +117,6 @@ export default function SuperadminDashboard() {
       subMetric: 'Campaign proposals',
       description: 'Create and manage proposals'
     },
-    {
-      label: 'Content Profiles',
-      path: '/superadmin/analytics',
-      icon: Target,
-      metric: (stats?.content?.total_profiles || 0).toLocaleString(),
-      subMetric: 'Instagram profiles analyzed',
-      description: 'Content and analytics data'
-    },
   ];
 
   if (loading) {
