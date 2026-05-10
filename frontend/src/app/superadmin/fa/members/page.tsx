@@ -667,7 +667,7 @@ export default function FAMembersPage() {
               className="gap-1.5"
             >
               <Clock className="h-3.5 w-3.5" />
-              Pending Review
+              Edge-Case Review
               {counts.pending > 0 && (
                 <Badge
                   variant={tab === "pending" ? "secondary" : "destructive"}
