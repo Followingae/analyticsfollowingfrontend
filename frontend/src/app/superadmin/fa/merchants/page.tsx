@@ -8,14 +8,18 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Store, Pencil, Trash2 } from "lucide-react"
-import { faMerchantApi } from "@/services/faAdminApi"
+import { faMerchantApi, faClientApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
-function MerchantForm({ merchant, onSave, onCancel }: { merchant?: any; onSave: (data: any) => void; onCancel: () => void }) {
+interface BrandOption { id: string; brand_user_id?: string; company_name?: string; name?: string }
+
+function MerchantForm({ merchant, brands, onSave, onCancel }: { merchant?: any; brands: BrandOption[]; onSave: (data: any) => void; onCancel: () => void }) {
   const [form, setForm] = useState({
     name: merchant?.name || "",
     category: merchant?.category || "",
+    brand_user_id: merchant?.brand_user_id || "",
     logo_url: merchant?.logo_url || "",
     location_address: merchant?.location_address || "",
     gradient_start: merchant?.gradient_start || "#cafe48",
@@ -25,8 +29,35 @@ function MerchantForm({ merchant, onSave, onCancel }: { merchant?: any; onSave: 
   return (
     <div className="space-y-4">
       <div>
+        <label className="text-sm font-medium">Brand *</label>
+        <Select
+          value={form.brand_user_id || undefined}
+          onValueChange={(v) => setForm({ ...form, brand_user_id: v })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select the brand this merchant belongs to" />
+          </SelectTrigger>
+          <SelectContent>
+            {brands.length === 0 ? (
+              <div className="px-2 py-3 text-sm text-muted-foreground">
+                No brands found. Create a brand user first in /superadmin.
+              </div>
+            ) : (
+              brands.map((b) => (
+                <SelectItem key={b.id} value={b.brand_user_id || b.id}>
+                  {b.company_name || b.name || "Unnamed brand"}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+        <p className="text-[11px] text-muted-foreground mt-1">
+          Cashback campaigns and pools belong to the brand; the merchant is the redemption location.
+        </p>
+      </div>
+      <div>
         <label className="text-sm font-medium">Name *</label>
-        <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Swiss Butter" />
+        <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Swiss Butter — Dubai Mall" />
       </div>
       <div>
         <label className="text-sm font-medium">Category *</label>
@@ -52,7 +83,7 @@ function MerchantForm({ merchant, onSave, onCancel }: { merchant?: any; onSave: 
       </div>
       <div className="flex gap-2 justify-end">
         <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={() => onSave(form)} disabled={!form.name || !form.category}>Save</Button>
+        <Button onClick={() => onSave(form)} disabled={!form.name || !form.category || !form.brand_user_id}>Save</Button>
       </div>
     </div>
   )
@@ -60,6 +91,7 @@ function MerchantForm({ merchant, onSave, onCancel }: { merchant?: any; onSave: 
 
 export default function FAMerchantsPage() {
   const [merchants, setMerchants] = useState<any[]>([])
+  const [brands, setBrands] = useState<BrandOption[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<any>(null)
@@ -67,9 +99,14 @@ export default function FAMerchantsPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await faMerchantApi.list()
-      const list = res?.data?.merchants || res?.data || []
-      setMerchants(Array.isArray(list) ? list : [])
+      const [merchRes, brandRes] = await Promise.all([
+        faMerchantApi.list(),
+        faClientApi.list({ limit: 200 }),
+      ])
+      const mlist = merchRes?.data?.merchants || merchRes?.data || []
+      setMerchants(Array.isArray(mlist) ? mlist : [])
+      const blist = brandRes?.clients || brandRes?.data?.clients || brandRes?.data || []
+      setBrands(Array.isArray(blist) ? blist : [])
     } catch { toast.error("Failed to load merchants") }
     finally { setLoading(false) }
   }, [])
@@ -117,7 +154,7 @@ export default function FAMerchantsPage() {
                 <DialogHeader>
                   <DialogTitle>{editing ? "Edit Merchant" : "Add Merchant"}</DialogTitle>
                 </DialogHeader>
-                <MerchantForm merchant={editing} onSave={handleSave} onCancel={() => { setDialogOpen(false); setEditing(null) }} />
+                <MerchantForm merchant={editing} brands={brands} onSave={handleSave} onCancel={() => { setDialogOpen(false); setEditing(null) }} />
               </DialogContent>
             </Dialog>
           </div>
@@ -131,7 +168,13 @@ export default function FAMerchantsPage() {
                     <h3 className="font-semibold">{m.name}</h3>
                     <Badge variant="secondary">{m.category}</Badge>
                   </div>
+                  {m.brand_name && (
+                    <p className="text-xs font-medium mb-1">{m.brand_name}</p>
+                  )}
                   {m.location_address && <p className="text-xs text-muted-foreground mb-3">{m.location_address}</p>}
+                  {!m.brand_user_id && (
+                    <Badge variant="destructive" className="text-[10px] mb-2">No brand linked</Badge>
+                  )}
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => { setEditing(m); setDialogOpen(true) }}>
                       <Pencil className="h-3 w-3 mr-1" />Edit
