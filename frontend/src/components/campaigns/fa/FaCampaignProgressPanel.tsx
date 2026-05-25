@@ -24,10 +24,11 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Check, X, Users, QrCode, Coins, Gift, Loader2, Sparkles, ChevronDown, Wand2 } from "lucide-react"
+import { Check, X, Users, QrCode, Coins, Gift, Loader2, Sparkles, ChevronDown, ChevronRight, Wand2 } from "lucide-react"
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { toast } from "sonner"
+import { ParticipantDetailSheet } from "./ParticipantDetailSheet"
 
 type CampaignType = "cashback" | "paid_deal" | "barter"
 type ParticipantStatus =
@@ -140,6 +141,9 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
   const [snapshot, setSnapshot] = useState<AiSnapshot | null>(null)
   const [snapshotLoading, setSnapshotLoading] = useState(false)
   const [snapshotOpen, setSnapshotOpen] = useState(false)
+  const [selected, setSelected] = useState<Participant | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const openParticipant = (p: Participant) => { setSelected(p); setSheetOpen(true) }
 
   const load = async () => {
     setLoading(true)
@@ -389,6 +393,7 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
               <ParticipantTable
                 rows={grouped.pending}
                 campaignType={campaignType}
+                onRowClick={openParticipant}
                 renderActions={(p) => (
                   <div className="flex items-center gap-1.5">
                     <Button
@@ -454,7 +459,7 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
                 No active participants yet.
               </div>
             ) : (
-              <ParticipantTable rows={grouped.active} campaignType={campaignType} />
+              <ParticipantTable rows={grouped.active} campaignType={campaignType} onRowClick={openParticipant} />
             )}
           </CardContent>
         </Card>
@@ -468,10 +473,19 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <ParticipantTable rows={grouped.other} campaignType={campaignType} />
+              <ParticipantTable rows={grouped.other} campaignType={campaignType} onRowClick={openParticipant} />
             </CardContent>
           </Card>
         )}
+
+        <ParticipantDetailSheet
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          campaignId={campaignId}
+          campaignType={campaignType}
+          participant={selected}
+          onChanged={load}
+        />
       </div>
     </TooltipProvider>
   )
@@ -493,10 +507,12 @@ function ParticipantTable({
   rows,
   campaignType,
   renderActions,
+  onRowClick,
 }: {
   rows: Participant[]
   campaignType: CampaignType
   renderActions?: (p: Participant) => React.ReactNode
+  onRowClick?: (p: Participant) => void
 }) {
   return (
     <Table>
@@ -520,13 +536,18 @@ function ParticipantTable({
           )}
           <TableHead>Deliverables</TableHead>
           {renderActions && <TableHead className="text-right">Actions</TableHead>}
+          {onRowClick && <TableHead className="w-8" />}
         </TableRow>
       </TableHeader>
       <TableBody>
         {rows.map((p) => {
           const statusMeta = STATUS_META[p.status]
           return (
-            <TableRow key={p.participant_id}>
+            <TableRow
+              key={p.participant_id}
+              onClick={onRowClick ? () => onRowClick(p) : undefined}
+              className={onRowClick ? "cursor-pointer hover:bg-muted/40 transition-colors" : undefined}
+            >
               <TableCell>
                 <div className="flex items-center gap-2.5">
                   <Avatar className="h-8 w-8">
@@ -607,7 +628,7 @@ function ParticipantTable({
                     <div className="flex flex-wrap gap-1">
                       {p.barter.items.slice(0, 2).map((it: any, i: number) => (
                         <Badge key={i} variant="secondary" className="text-xs">
-                          {typeof it === "string" ? it : (it.name ?? it.type ?? "item")}
+                          {typeof it === "string" ? it : (it.item ?? it.name ?? it.type ?? "Item")}
                         </Badge>
                       ))}
                       {p.barter.items.length > 2 && (
@@ -647,7 +668,10 @@ function ParticipantTable({
                 </div>
               </TableCell>
               {renderActions && (
-                <TableCell className="text-right">{renderActions(p)}</TableCell>
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>{renderActions(p)}</TableCell>
+              )}
+              {onRowClick && (
+                <TableCell className="w-8 text-muted-foreground/60"><ChevronRight className="h-4 w-4" /></TableCell>
               )}
             </TableRow>
           )
