@@ -13,6 +13,12 @@ import {
   ClipboardList,
   LayoutList,
   Filter,
+  ChevronRight,
+  Gift,
+  Banknote,
+  BadgePercent,
+  Video,
+  type LucideIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -85,6 +91,30 @@ function getCampaignTypeBadge(type: string) {
     color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
   };
   return config;
+}
+
+// ---------------------------------------------------------------------------
+// Campaign type visual — big icon + label tile (leads each All Campaigns row)
+// ---------------------------------------------------------------------------
+const CAMPAIGN_TYPE_VISUAL: Record<
+  string,
+  { label: string; Icon: LucideIcon; tile: string; text: string }
+> = {
+  barter:     { label: "Barter",     Icon: Gift,         tile: "bg-pink-100 dark:bg-pink-900/30",     text: "text-pink-600 dark:text-pink-400" },
+  paid_deal:  { label: "Paid",       Icon: Banknote,     tile: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-600 dark:text-orange-400" },
+  cashback:   { label: "Cashback",   Icon: BadgePercent, tile: "bg-green-100 dark:bg-green-900/30",    text: "text-green-600 dark:text-green-400" },
+  influencer: { label: "Influencer", Icon: Users,        tile: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-600 dark:text-purple-400" },
+  ugc:        { label: "UGC",        Icon: Video,        tile: "bg-blue-100 dark:bg-blue-900/30",      text: "text-blue-600 dark:text-blue-400" },
+};
+function getTypeVisual(type: string) {
+  return (
+    CAMPAIGN_TYPE_VISUAL[type] || {
+      label: (type || "campaign").replace(/_/g, " "),
+      Icon: Target,
+      tile: "bg-muted",
+      text: "text-muted-foreground",
+    }
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -342,24 +372,29 @@ function AllCampaignsTab({
     );
   });
 
+  const fmtCompact = (n: number) =>
+    n >= 1_000_000
+      ? `${(n / 1_000_000).toFixed(1)}M`
+      : n >= 1_000
+      ? `${(n / 1_000).toFixed(1)}K`
+      : String(n || 0);
+
   if (loading) {
     return (
-      <div className="space-y-3">
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <Skeleton className="h-24 w-24 rounded-xl" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-5 w-48" />
-                  <Skeleton className="h-4 w-64" />
-                  <Skeleton className="h-3 w-32" />
-                </div>
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-4 space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="h-12 w-12 rounded-xl" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-28" />
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     );
   }
 
@@ -378,16 +413,70 @@ function AllCampaignsTab({
   }
 
   return (
-    <div className="space-y-2">
-      {filteredCampaigns.map((campaign) => (
-        <CampaignCard
-          key={campaign.id}
-          campaign={campaign}
-          showActions={true}
-          onAction={handleCampaignAction}
-        />
-      ))}
-    </div>
+    <Card className="border-0 shadow-sm">
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[280px]">Campaign</TableHead>
+                <TableHead className="min-w-[100px]">Status</TableHead>
+                <TableHead className="text-center min-w-[90px]">Creators</TableHead>
+                <TableHead className="text-center min-w-[80px]">Posts</TableHead>
+                <TableHead className="text-right min-w-[100px]">Reach</TableHead>
+                <TableHead className="text-right min-w-[110px]">Engagement</TableHead>
+                <TableHead className="w-8" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCampaigns.map((campaign) => {
+                const c = campaign as any;
+                const v = getTypeVisual(c.campaign_type || "influencer");
+                const statusBadge = getStatusBadge(campaign.status);
+                return (
+                  <TableRow
+                    key={campaign.id}
+                    className="cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => router.push(`/campaigns/${campaign.id}/posts`)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${v.tile}`}>
+                          <v.Icon className={`h-5 w-5 ${v.text}`} />
+                        </div>
+                        <div className="min-w-0">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${v.text}`}>
+                            {v.label}
+                          </span>
+                          <div className="font-medium leading-tight truncate">{campaign.name}</div>
+                          {campaign.brand_name && (
+                            <div className="text-xs text-muted-foreground truncate">{campaign.brand_name}</div>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-xs ${statusBadge.className}`}>
+                        {statusBadge.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center tabular-nums">{c.creators_count || 0}</TableCell>
+                    <TableCell className="text-center tabular-nums">{c.posts_count || 0}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtCompact(c.total_reach || 0)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {c.engagement_rate ? `${Number(c.engagement_rate).toFixed(1)}%` : "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground/50">
+                      <ChevronRight className="h-4 w-4" />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 // SCOPE TAB
