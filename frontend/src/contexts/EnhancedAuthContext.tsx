@@ -192,7 +192,9 @@ export function EnhancedAuthProvider({ children }: EnhancedAuthProviderProps) {
     if (!basicUser.role && user && user.role !== 'brand_free') {
       role = user.role
     } else {
-      switch (basicUser.role?.toLowerCase()) {
+      // Backend sends either bare tiers ('premium') or brand_-prefixed ('brand_premium').
+      // Normalize the prefix so prefixed roles map correctly (was defaulting to brand_free).
+      switch (basicUser.role?.toLowerCase().replace(/^brand_/, '')) {
       case 'super_admin':
       case 'admin':
       case 'superadmin':

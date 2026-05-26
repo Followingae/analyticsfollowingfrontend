@@ -8,6 +8,8 @@ import {
   UnreadCounts,
   NotificationCategory,
 } from '@/services/notificationApi'
+import { useAuth } from '@/contexts/AuthContext'
+import { tokenManager } from '@/utils/tokenManager'
 
 interface NotificationContextType {
   notifications: ServerNotification[]
@@ -42,6 +44,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true)
   const [apiAvailable, setApiAvailable] = useState(true)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const { user } = useAuth()
 
   // ── Toast deduplication (Issue 60) ──────────────────────────────────
   const lastToastRef = useRef<{ message: string; time: number }>({ message: '', time: 0 })
@@ -55,6 +58,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // ── Fetchers ────────────────────────────────────────────────────────
 
   const fetchNotifications = useCallback(async () => {
+    if (!tokenManager.isAuthenticated()) return  // skip until logged in (avoids no-token errors)
     const result = await notificationApiService.getNotifications({ page: 1, page_size: 20 })
     if (result.success) {
       setNotifications(result.data)
@@ -65,6 +69,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [])
 
   const fetchUnreadCounts = useCallback(async () => {
+    if (!tokenManager.isAuthenticated()) return  // skip until logged in (avoids no-token errors)
     const result = await notificationApiService.getUnreadCount()
     if (result.success) {
       setUnreadCounts(result.data)
@@ -84,7 +89,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       if (mounted) setLoading(false)
     })()
     return () => { mounted = false }
-  }, [refresh])
+  }, [refresh, user])
 
   // ── Poll every 30 seconds (both list + counts) ─────────────────────
 
