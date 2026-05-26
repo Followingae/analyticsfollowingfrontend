@@ -216,7 +216,7 @@ export function BrandDashboardContent() {
             <Card className="@container/card h-full welcome-card">
               <CardHeader className="flex items-start justify-center h-full">
                 {userDisplayData ? (
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 min-w-0 w-full">
                     <UserAvatar
                       key={`dashboard-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
                       user={user || undefined}
