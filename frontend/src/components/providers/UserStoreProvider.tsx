@@ -10,7 +10,7 @@ import { useUserStore } from '@/stores/userStore'
  */
 export function UserStoreProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading, refreshUser } = useEnhancedAuth()
-  const { loadUser, clearUser, isLoading: storeLoading, user: storeUser } = useUserStore()
+  const { loadUser, clearUser, isLoading: storeLoading } = useUserStore()
   const hasLoadedRef = useRef(false)
   const lastStoreUserRef = useRef(null)
 
@@ -18,10 +18,13 @@ export function UserStoreProvider({ children }: { children: React.ReactNode }) {
     // Wait for auth context to finish loading
     if (authLoading) return
 
-    // Only load if authenticated and not already loaded/loading
-    if (isAuthenticated && !storeLoading && !hasLoadedRef.current && !storeUser) {
+    // Refresh from the API once per authenticated session. We must NOT skip when a
+    // store user already exists: the store persists to localStorage, so it hydrates the
+    // PREVIOUS session's user (e.g. a different account) — which was being shown on the
+    // dashboard while the header showed the correct account. Bust the cache to overwrite it.
+    if (isAuthenticated && !storeLoading && !hasLoadedRef.current) {
       hasLoadedRef.current = true
-      loadUser() // Single API call to /api/v1/auth/dashboard
+      loadUser(true) // GET /api/v1/auth/dashboard with cache-bust
     } else if (!isAuthenticated && hasLoadedRef.current) {
       hasLoadedRef.current = false
       clearUser()
