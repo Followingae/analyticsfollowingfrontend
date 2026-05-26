@@ -257,10 +257,11 @@ function AllCampaignsTab({
       if (typeFilter !== "all") params.campaign_type = typeFilter;
       if (searchQuery) params.search = searchQuery;
 
-      const data = await unifiedCampaignApi.list(params as any);
-
-      // The unified endpoint returns { success, data: [...], total, ... }
-      const raw = data?.campaigns || data?.data?.campaigns || data?.data || [];
+      // Use /api/v1/campaigns/ — it returns FA-aware per-campaign creators/posts/reach
+      // counts. The /unified endpoint omits those, which made every row show 0.
+      const { dedicatedApiCall } = await import("@/utils/apiDeduplication");
+      const data: any = await dedicatedApiCall.campaignsList({ limit: 100 });
+      const raw = data?.data?.campaigns || data?.campaigns || data?.data || [];
       const processed = (Array.isArray(raw) ? raw : []).map((c: any) => ({
         ...c,
         engagement_rate: c.engagement_rate || 0,
