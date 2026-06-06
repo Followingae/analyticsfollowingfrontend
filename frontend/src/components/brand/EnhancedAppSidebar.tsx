@@ -151,13 +151,14 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
       },
       {
         title: "Help & Support",
-        url: "#",
+        url: "/guide",
         icon: IconHelp,
       },
-      // Include upgrade for free users only
+      // Include upgrade for free users only — point at the plan comparison, not
+      // /billing (which is already the "Billing" item above).
       ...(hasRole('brand_free') ? [{
         title: "Upgrade Plan",
-        url: "/billing",
+        url: "/pricing",
         icon: Crown,
       }] : [])
     ]

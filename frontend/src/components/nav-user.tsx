@@ -115,7 +115,7 @@ export function NavUser({
                 </a>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a href="/settings" className="cursor-pointer">
+                <a href="/notifications" className="cursor-pointer">
                   <Bell className="size-4" />
                   Notifications
                 </a>
