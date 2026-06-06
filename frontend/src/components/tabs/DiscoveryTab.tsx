@@ -349,7 +349,7 @@ export default function DiscoveryTab() {
                   <div className="flex justify-center relative">
                     <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-primary/10 to-primary/20">
                       <img
-                        src={profile.profile_pic_url}
+                        src={profile.cdn_urls?.avatar?.[0] || `https://cdn.following.ae/profiles/ig/${profile.username}/profile_picture.webp`}
                         alt={profile.full_name || profile.username}
                         className="w-full h-full object-cover"
                         onError={(e) => {
