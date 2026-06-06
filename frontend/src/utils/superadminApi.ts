@@ -129,6 +129,13 @@ export const superadminService = {
     return response.data;
   },
 
+  // Send a password-reset email (backend endpoint already exists; the FE method
+  // was missing, so the SuperadminUserManagement action threw a TypeError).
+  sendPasswordReset: async (userId: string) => {
+    const response = await SuperadminAPI.post(`/api/v1/admin/users/${userId}/send-password-reset`);
+    return response.data;
+  },
+
   // Credit Management - Using CORRECT endpoints
   addCredits: async (userId: string, amount: number, reason: string) => {
     const response = await SuperadminAPI.post('/api/v1/admin/credits/add', {

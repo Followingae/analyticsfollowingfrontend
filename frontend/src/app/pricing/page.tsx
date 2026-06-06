@@ -78,7 +78,7 @@ const PLAN_META: Record<string, {
       'Bulk exports',
     ],
     cta: 'Start Free Trial',
-    href: (interval) => `/checkout?plan=standard&interval=${interval}`,
+    href: (interval) => `/checkout?tier=standard&interval=${interval}`,
     trialBadge: true,
     trialText: 'Start with 7 days free. No charge until trial ends.',
   },
@@ -95,7 +95,7 @@ const PLAN_META: Record<string, {
       'API access',
     ],
     cta: 'Start premium',
-    href: (interval) => `/checkout?plan=premium&interval=${interval}`,
+    href: (interval) => `/checkout?tier=premium&interval=${interval}`,
   },
 }
 

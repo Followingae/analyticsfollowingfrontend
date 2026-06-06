@@ -31,7 +31,11 @@ export default function PoolTransactionsPage() {
       setLoading(true)
       try {
         const res = await brandPoolApi.transactions(limit, offset)
-        if (res.success) setTransactions(res.data || [])
+        // BE returns data:{transactions:[...], total, ...}; mirror the summary page.
+        if (res.success) {
+          const payload: any = res.data ?? res
+          setTransactions(Array.isArray(payload) ? payload : (payload?.transactions ?? []))
+        }
       } catch (error) {
         console.error('Failed to load cashback transactions:', error)
         toast.error("Failed to load transactions")

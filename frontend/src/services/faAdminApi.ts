@@ -145,7 +145,9 @@ export const brandPoolApi = {
 // ─── BRAND: Campaign Extensions ──────────────────────────────────────
 export const brandCampaignApi = {
   listByType: (type: 'cashback' | 'paid_deal' | 'barter') =>
-    get(`/api/v1/campaigns?type=${type}`),
+    // /unified accepts campaign_type, enforces brand ownership, returns data:[...].
+    // (Plain /api/v1/campaigns ignores ?type and returns {data:{campaigns}}.)
+    get(`/api/v1/campaigns/unified?campaign_type=${type}`),
   getParticipants: (id: string) =>
     get(`/api/v1/campaigns/${id}/participants`),
   getApplications: (id: string) =>

@@ -29,7 +29,8 @@ function CampaignList({ type }: { type: "cashback" | "paid_deal" | "barter" }) {
     async function load() {
       try {
         const res = await brandCampaignApi.listByType(type)
-        if (res.success) setCampaigns(res.data || [])
+        // /unified returns data:[...] (array)
+        if (res.success) setCampaigns(Array.isArray(res.data) ? res.data : [])
       } catch {
         toast.error("Failed to load campaigns")
       } finally {

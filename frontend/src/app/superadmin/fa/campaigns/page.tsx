@@ -52,7 +52,11 @@ export default function FACampaignsPage() {
     try {
       const type = tab === "all" ? undefined : tab
       const res = await faCampaignApi.list(type)
-      if (res.success) setCampaigns(Array.isArray(res.data) ? res.data : [])
+      // BE returns data:{campaigns:[...], total, ...}; tolerate a bare array too.
+      if (res.success) {
+        const payload: any = res.data
+        setCampaigns(Array.isArray(payload?.campaigns) ? payload.campaigns : (Array.isArray(payload) ? payload : []))
+      }
     } catch { toast.error("Failed to load campaigns") }
     finally { setLoading(false) }
   }, [tab])
