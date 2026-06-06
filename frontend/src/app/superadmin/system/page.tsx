@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   BarChart3,
   Coins,
-  Globe,
   Shield,
   KeyRound,
   ScrollText,
@@ -18,14 +17,8 @@ import {
 export const dynamic = 'force-dynamic'
 
 const systemSections = [
-  {
-    title: "Currency",
-    description: "Team currency settings and multi-currency configuration management",
-    href: "/superadmin/currency",
-    icon: Globe,
-    color: "text-emerald-600 dark:text-emerald-400",
-    bg: "bg-emerald-100 dark:bg-emerald-900/40",
-  },
+  // Currency card removed: the page called a removed currencyService (crashed on
+  // mount) and per-team currency is obsolete under the AED-everywhere model.
   {
     title: "Job Queue",
     description: "View stuck post analytics jobs, clean up failed jobs, and monitor worker health",
