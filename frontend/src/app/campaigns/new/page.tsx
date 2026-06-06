@@ -484,14 +484,14 @@ export default function NewCampaignPage() {
                 Campaign Budget
               </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">AED</span>
                 <Input
                   id="budget"
                   type="number"
                   placeholder="0"
                   value={budget?.toString() || ""}
                   onChange={(e) => setBudget(e.target.value ? parseInt(e.target.value) : null)}
-                  className="pl-8"
+                  className="pl-14"
                   min="0"
                   step="1"
                 />

@@ -332,7 +332,8 @@ export function CampaignCard({
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => {
                         e.stopPropagation();
-                        router.push(`/campaigns/${campaign.id}/edit`);
+                        // No /edit route exists (404); edit lives on the detail workspace.
+                        router.push(`/campaigns/${campaign.id}/posts`);
                       }}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit Campaign
