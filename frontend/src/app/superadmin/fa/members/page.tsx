@@ -39,7 +39,18 @@ import {
   CalendarDays,
   ExternalLink,
   Trash2,
+  Globe2,
+  Wallet,
+  RefreshCcw,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { faMemberApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
@@ -89,6 +100,34 @@ interface FAMember {
   status: string
   created_at: string
   analytics?: FAMemberAnalytics | null
+  // Instagram OAuth health (critical for an OAuth-only product)
+  instagram_oauth_verified?: boolean
+  instagram_account_type?: string | null
+  instagram_oauth_connected_at?: string | null
+  instagram_token_expires_at?: string | null
+  instagram_last_refresh_at?: string | null
+  instagram_refresh_failures?: number
+  needs_reconnect?: boolean
+  analytics_status?: "pending" | "processing" | "complete" | "failed" | null
+  instagram_audience_demographics?: InstagramAudienceDemographics | null
+}
+
+interface InstagramAudienceDemographics {
+  gender_distribution?: Record<string, number>
+  age_distribution?: Record<string, number>
+  location_distribution?: Record<string, number>
+  sample_size?: number | null
+  confidence_score?: number | null
+  analysis_method?: string | null
+}
+
+interface InstagramInsights {
+  reach?: number | null
+  impressions?: number | null
+  profile_views?: number | null
+  accounts_engaged?: number | null
+  total_interactions?: number | null
+  period?: string | null
 }
 
 type SortOption = "followers" | "engagement" | "newest" | "fraud"
@@ -151,6 +190,214 @@ function getAudienceQualityLabel(analytics: FAMemberAnalytics | null | undefined
 }
 
 // ─── Member Card ────────────────────────────────────────────────────────────
+
+function tokenDaysLeft(iso?: string | null): number | null {
+  if (!iso) return null
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000)
+}
+
+const ANALYTICS_STATUS_STYLES: Record<string, string> = {
+  complete:   "bg-emerald-500/10 text-emerald-600 border-emerald-300",
+  processing: "bg-blue-500/10 text-blue-600 border-blue-300",
+  pending:    "bg-amber-500/10 text-amber-600 border-amber-300",
+  failed:     "bg-red-500/10 text-red-600 border-red-300",
+}
+
+/** Instagram OAuth health badges. An admin must see token validity before approving. */
+function OAuthHealthBadges({ m }: { m: Partial<FAMember> }) {
+  const days = tokenDaysLeft(m.instagram_token_expires_at)
+  const tokenWarn = days != null && days < 7
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {m.instagram_oauth_verified && !m.needs_reconnect ? (
+        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-300 text-[10px] px-1.5">
+          <ShieldCheck className="h-3 w-3 mr-1" />IG verified
+        </Badge>
+      ) : (
+        <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-red-300 text-[10px] px-1.5">
+          <ShieldX className="h-3 w-3 mr-1" />{m.needs_reconnect ? "Reconnect needed" : "Not verified"}
+        </Badge>
+      )}
+      {m.instagram_account_type && (
+        <Badge variant="outline" className="text-[10px] px-1.5 capitalize">
+          {m.instagram_account_type.toLowerCase()}
+        </Badge>
+      )}
+      {days != null && (
+        <Badge
+          variant="outline"
+          className={`text-[10px] px-1.5 ${tokenWarn ? "bg-amber-500/10 text-amber-600 border-amber-300" : "text-muted-foreground"}`}
+        >
+          <Clock className="h-3 w-3 mr-1" />
+          {days < 0 ? `Token expired ${Math.abs(days)}d ago` : `Token expires in ${days}d`}
+        </Badge>
+      )}
+      {(m.instagram_refresh_failures ?? 0) > 0 && (
+        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-300 text-[10px] px-1.5">
+          <RefreshCcw className="h-3 w-3 mr-1" />{m.instagram_refresh_failures} refresh fails
+        </Badge>
+      )}
+      {m.analytics_status && (
+        <Badge variant="outline" className={`text-[10px] px-1.5 capitalize ${ANALYTICS_STATUS_STYLES[m.analytics_status] || ""}`}>
+          <Sparkles className="h-3 w-3 mr-1" />Analytics {m.analytics_status}
+        </Badge>
+      )}
+    </div>
+  )
+}
+
+function pct(v: number) {
+  return `${Math.round((v || 0) * 100)}%`
+}
+
+/** Horizontal distribution bars for first-party demographics (values are 0-1). */
+function DistroBars({
+  data,
+  max = 5,
+  labelMap,
+}: {
+  data?: Record<string, number> | null
+  max?: number
+  labelMap?: (k: string) => string
+}) {
+  const entries = Object.entries(data || {})
+    .filter(([, v]) => typeof v === "number" && v > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, max)
+  if (!entries.length) return <p className="text-xs text-muted-foreground">Not available yet</p>
+  const top = entries[0][1] || 1
+  return (
+    <div className="space-y-1.5">
+      {entries.map(([k, v]) => (
+        <div key={k} className="flex items-center gap-2">
+          <span className="w-24 shrink-0 truncate text-xs text-muted-foreground">{labelMap ? labelMap(k) : k}</span>
+          <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted">
+            <div className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: `${Math.max(4, (v / top) * 100)}%` }} />
+          </div>
+          <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums">{pct(v)}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Full member detail (OAuth health, wallet, first-party demographics, insights)
+ *  via the previously-unused faMemberApi.get(id). */
+function MemberDetailDialog({ memberId, name }: { memberId: string; name: string }) {
+  const [open, setOpen] = useState(false)
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!open || data) return
+    setLoading(true)
+    faMemberApi
+      .get(memberId)
+      .then((res) => setData(res?.data ?? res))
+      .catch(() => toast.error("Failed to load member detail"))
+      .finally(() => setLoading(false))
+  }, [open, data, memberId])
+
+  const demo: InstagramAudienceDemographics | null = data?.instagram_audience_demographics
+  const insights: InstagramInsights | null = data?.instagram_insights
+  const wallet = data?.wallet
+  const insightStats = [
+    { label: "Reach", value: insights?.reach, Icon: Users },
+    { label: "Profile views", value: insights?.profile_views, Icon: Eye },
+    { label: "Interactions", value: insights?.total_interactions ?? insights?.impressions, Icon: BarChart3 },
+  ].filter((s) => typeof s.value === "number" && (s.value as number) > 0)
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground">
+          <Eye className="h-3.5 w-3.5 mr-1" />Details
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Member detail</DialogTitle>
+          <DialogDescription>{name}</DialogDescription>
+        </DialogHeader>
+        {loading || !data ? (
+          <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <section>
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Instagram connection</h4>
+              <OAuthHealthBadges m={data} />
+            </section>
+
+            {wallet && (
+              <section>
+                <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  <Wallet className="h-3.5 w-3.5" />Wallet ({wallet.currency || "AED"})
+                </h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-lg bg-muted/50 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Available</p>
+                    <p className="text-sm font-bold">{formatNumber(wallet.balance_available)}</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Earned</p>
+                    <p className="text-sm font-bold">{formatNumber(wallet.total_earned)}</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Withdrawn</p>
+                    <p className="text-sm font-bold">{formatNumber(wallet.total_withdrawn)}</p>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            <section>
+              <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                <Globe2 className="h-3.5 w-3.5" />Audience demographics
+              </h4>
+              {data.instagram_audience_demographics ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">Gender</p>
+                    <DistroBars data={demo?.gender_distribution} labelMap={(k) => k.charAt(0).toUpperCase() + k.slice(1)} />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">Age</p>
+                    <DistroBars data={demo?.age_distribution} />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">Top locations</p>
+                    <DistroBars data={demo?.location_distribution} labelMap={(k) => k.toUpperCase()} />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  No first-party audience data yet. Instagram shares this once the creator has enough audience size.
+                </p>
+              )}
+            </section>
+
+            {insightStats.length > 0 && (
+              <section>
+                <h4 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Account insights</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  {insightStats.map(({ label, value, Icon }) => (
+                    <div key={label} className="rounded-lg bg-muted/50 px-3 py-2">
+                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                      <p className="mt-1 text-sm font-bold">{formatNumber(value as number)}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 function MemberCard({ member, onAction }: { member: FAMember; onAction: () => void }) {
   const [acting, setActing] = useState(false)
@@ -377,6 +624,12 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
                 </div>
               )}
             </div>
+          </div>
+
+          {/* ─── Row 1.5: Instagram connection health ─── */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <OAuthHealthBadges m={member} />
+            <MemberDetailDialog memberId={member.id} name={member.full_name} />
           </div>
 
           {/* ─── Rejection reason input (inline) ─── */}
