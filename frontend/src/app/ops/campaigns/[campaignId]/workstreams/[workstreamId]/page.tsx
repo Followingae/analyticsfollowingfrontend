@@ -100,6 +100,7 @@ import {
 } from '@/types/operations';
 import { operationsApi } from '@/services/operationsApi';
 import { useOperations } from '@/contexts/OperationsContext';
+import { ProductionTab } from '@/components/operations/ProductionTab';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -826,6 +827,15 @@ export default function WorkstreamDetailPage() {
   const isInternal = userAccess.permissions.view_internal_notes;
   const isClient = userAccess.role === 'client' || userAccess.role === 'brand';
 
+  // Per-type production tab: shoots (video/photo), events (activation), payouts (paid).
+  const wsType = currentWorkstream?.type;
+  const prodMode: 'shoots' | 'events' | 'payouts' | null =
+    wsType === 'video_shoot' || wsType === 'photo_shoot' ? 'shoots'
+    : wsType === 'event_activation' ? 'events'
+    : wsType === 'influencer_paid' ? 'payouts'
+    : null;
+  const prodLabel = prodMode === 'shoots' ? 'Shoots' : prodMode === 'events' ? 'Events' : prodMode === 'payouts' ? 'Payouts' : '';
+
   if (uiState.isLoading || !currentWorkstream) {
     return (
       <div className="container mx-auto p-6 space-y-6">
@@ -891,9 +901,10 @@ export default function WorkstreamDetailPage() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 w-full">
+        <TabsList className={`grid w-full ${prodMode ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
           <TabsTrigger value="concepts">Concepts</TabsTrigger>
+          {prodMode && <TabsTrigger value="production">{prodLabel}</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="deliverables" className="mt-6">
@@ -915,8 +926,16 @@ export default function WorkstreamDetailPage() {
           />
         </TabsContent>
 
-        {/* Production / Talent / Assets / Finance / Activity tabs removed in May 2026 audit —
-            no backend implementation. */}
+        {prodMode && (
+          <TabsContent value="production" className="mt-6">
+            <ProductionTab
+              mode={prodMode}
+              workstreamId={workstreamId}
+              campaignId={campaignId}
+              isInternal={isInternal}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

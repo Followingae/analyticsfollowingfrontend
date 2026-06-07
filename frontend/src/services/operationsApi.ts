@@ -105,6 +105,33 @@ class OperationsApiService {
     });
   }
 
+  // ============= Production (per workstream type) =============
+  private post(url: string, data: any) {
+    return this.getJson(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    });
+  }
+  private del(url: string) { return this.getJson(url, { method: 'DELETE' }); }
+
+  // Shoots (video_shoot / photo_shoot)
+  getProductionBatches(campaignId: string) { return this.getJson(`${this.baseUrl}/campaigns/${campaignId}/production-batches`); }
+  createProductionBatch(workstreamId: string, data: any) { return this.post(`${this.baseUrl}/workstreams/${workstreamId}/production-batches`, data); }
+  deleteProductionBatch(batchId: string) { return this.del(`${this.baseUrl}/production-batches/${batchId}`); }
+
+  // Events (event_activation)
+  getEvents(campaignId: string) { return this.getJson(`${this.baseUrl}/campaigns/${campaignId}/events`); }
+  createEvent(campaignId: string, data: any) { return this.post(`${this.baseUrl}/campaigns/${campaignId}/events`, data); }
+  deleteEvent(eventId: string) { return this.del(`${this.baseUrl}/events/${eventId}`); }
+
+  // Payouts (influencer_paid)
+  getPayouts(campaignId: string) { return this.getJson(`${this.baseUrl}/campaigns/${campaignId}/payouts`); }
+  createPayout(campaignId: string, data: any) { return this.post(`${this.baseUrl}/campaigns/${campaignId}/payouts`, data); }
+  updatePayout(payoutId: string, data: any) { return this.getJson(`${this.baseUrl}/payouts/${payoutId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); }
+
+  // Assignments (any type)
+  getAssignments(workstreamId: string) { return this.getJson(`${this.baseUrl}/workstreams/${workstreamId}/assignments`); }
+  createAssignment(workstreamId: string, data: any) { return this.post(`${this.baseUrl}/workstreams/${workstreamId}/assignments`, data); }
+
   // ============= Workstreams =============
 
   async getWorkstreams(campaignId: string) {
