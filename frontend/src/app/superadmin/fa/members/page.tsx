@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
+import { FirstPartyAudienceAnalytics } from "@/components/analytics/FirstPartyAudienceAnalytics"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -352,46 +353,11 @@ function MemberDetailDialog({ memberId, name }: { memberId: string; name: string
               </section>
             )}
 
-            <section>
-              <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                <Globe2 className="h-3.5 w-3.5" />Audience demographics
-              </h4>
-              {data.instagram_audience_demographics ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">Gender</p>
-                    <DistroBars data={demo?.gender_distribution} labelMap={(k) => k.charAt(0).toUpperCase() + k.slice(1)} />
-                  </div>
-                  <div>
-                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">Age</p>
-                    <DistroBars data={demo?.age_distribution} />
-                  </div>
-                  <div>
-                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">Top locations</p>
-                    <DistroBars data={demo?.location_distribution} labelMap={(k) => k.toUpperCase()} />
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  No first-party audience data yet. Instagram shares this once the creator has enough audience size.
-                </p>
-              )}
-            </section>
-
-            {insightStats.length > 0 && (
-              <section>
-                <h4 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Account insights</h4>
-                <div className="grid grid-cols-3 gap-3">
-                  {insightStats.map(({ label, value, Icon }) => (
-                    <div key={label} className="rounded-lg bg-muted/50 px-3 py-2">
-                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      <p className="mt-1 text-sm font-bold">{formatNumber(value as number)}</p>
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+            <FirstPartyAudienceAnalytics
+              demographics={demo}
+              insights={insights}
+              fetchedAt={(data as any)?.instagram_audience_fetched_at ?? null}
+            />
           </div>
         )}
       </DialogContent>
