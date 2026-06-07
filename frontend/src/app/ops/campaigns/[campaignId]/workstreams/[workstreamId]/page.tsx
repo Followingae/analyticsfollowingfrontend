@@ -103,6 +103,23 @@ import { useOperations } from '@/contexts/OperationsContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
+// Full deliverable lifecycle (matches DeliverableStatus). Used for inline +
+// bulk status changes, wired to the bulkUpdateDeliverables endpoint.
+const DELIVERABLE_STATUSES: { value: DeliverableStatus; label: string }[] = [
+  { value: 'IDEA', label: 'Idea' },
+  { value: 'DRAFTING', label: 'Drafting' },
+  { value: 'AWAITING_APPROVAL', label: 'Awaiting Approval' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'SCHEDULED', label: 'Scheduled' },
+  { value: 'IN_PRODUCTION', label: 'In Production' },
+  { value: 'EDITING', label: 'Editing' },
+  { value: 'IN_REVIEW', label: 'In Review' },
+  { value: 'REVISION_REQUIRED', label: 'Revision Required' },
+  { value: 'READY_TO_POST', label: 'Ready to Post' },
+  { value: 'POSTED', label: 'Posted' },
+  { value: 'ARCHIVED', label: 'Archived' },
+];
+
 // Component for Deliverables Tab
 const DeliverablesTab = ({
   workstreamId,
@@ -122,7 +139,9 @@ const DeliverablesTab = ({
     description: ''
   });
   const [bulkAction, setBulkAction] = useState('');
+  const [bulkStatus, setBulkStatus] = useState('');
   const [filterStatus, setFilterStatus] = useState<DeliverableStatus | 'all'>('all');
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     loadDeliverables();
@@ -166,20 +185,55 @@ const DeliverablesTab = ({
       toast.error('Select deliverables and an action');
       return;
     }
+    if (bulkAction === 'status_change' && !bulkStatus) {
+      toast.error('Pick a status to change to');
+      return;
+    }
 
     try {
       const results = await operationsApi.bulkUpdateDeliverables({
         type: bulkAction as any,
         target_ids: selectedDeliverables,
-        params: {}
+        params: bulkAction === 'status_change' ? { status: bulkStatus } : {},
       });
 
-      const successCount = results.filter(r => r.success).length;
-      toast.success(`${successCount} deliverables updated`);
+      const successCount = (results || []).filter((r: any) => r.success).length;
+      toast.success(`${successCount} deliverable(s) updated`);
+      setBulkStatus('');
+      setBulkAction('');
       loadDeliverables();
       onClearSelection();
     } catch (error) {
       toast.error('Bulk operation failed');
+    }
+  };
+
+  // Single-row status change + delete, wired to the same bulk endpoint.
+  const handleRowStatus = async (id: string, status: string) => {
+    setBusyId(id);
+    try {
+      await operationsApi.bulkUpdateDeliverables({
+        type: 'status_change' as any, target_ids: [id], params: { status },
+      });
+      setDeliverables(prev => prev.map(d => (d.id === id ? { ...d, status: status as DeliverableStatus } : d)));
+      toast.success('Status updated');
+    } catch {
+      toast.error('Failed to update status');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleRowDelete = async (id: string) => {
+    setBusyId(id);
+    try {
+      await operationsApi.bulkUpdateDeliverables({ type: 'delete' as any, target_ids: [id], params: {} });
+      setDeliverables(prev => prev.filter(d => d.id !== id));
+      toast.success('Deliverable deleted');
+    } catch {
+      toast.error('Failed to delete');
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -233,16 +287,26 @@ const DeliverablesTab = ({
           {selectedDeliverables.length > 0 && isInternal && (
             <>
               <Select value={bulkAction} onValueChange={setBulkAction}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-44">
                   <SelectValue placeholder="Bulk actions" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="status_change">Change Status</SelectItem>
-                  <SelectItem value="assign_creator">Assign Creator</SelectItem>
-                  <SelectItem value="schedule_batch">Schedule to Batch</SelectItem>
                   <SelectItem value="delete">Delete</SelectItem>
                 </SelectContent>
               </Select>
+              {bulkAction === 'status_change' && (
+                <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="New status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DELIVERABLE_STATUSES.map(s => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Button onClick={handleBulkAction} size="sm">
                 Apply to {selectedDeliverables.length}
               </Button>
@@ -385,9 +449,25 @@ const DeliverablesTab = ({
                     <Badge variant="outline">{deliverable.type}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(deliverable.status)}>
-                      {deliverable.status.replace('_', ' ')}
-                    </Badge>
+                    {isInternal ? (
+                      <Select
+                        value={deliverable.status}
+                        onValueChange={(v: string) => handleRowStatus(deliverable.id, v)}
+                      >
+                        <SelectTrigger className="h-7 w-40 text-xs" disabled={busyId === deliverable.id}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DELIVERABLE_STATUSES.map(s => (
+                            <SelectItem key={s.value} value={s.value} className="text-xs">{s.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge className={getStatusColor(deliverable.status)}>
+                        {deliverable.status.replace('_', ' ')}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     {deliverable.due_date ? (
@@ -428,12 +508,18 @@ const DeliverablesTab = ({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit Concept</DropdownMenuItem>
-                        <DropdownMenuItem>Assign Creator</DropdownMenuItem>
-                        <DropdownMenuItem>Add Assets</DropdownMenuItem>
+                        <DropdownMenuItem disabled title="Creator assignment — backend pending">
+                          Assign creator (soon)
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          disabled={busyId === deliverable.id}
+                          onClick={() => handleRowDelete(deliverable.id)}
+                        >
+                          <Trash className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -454,6 +540,31 @@ const ConceptsTab = ({ workstreamId, isInternal, isClient }: any) => {
   const [selectedConcept, setSelectedConcept] = useState<Concept | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<ConceptApprovalStatus | 'all'>('all');
+  const [newConcept, setNewConcept] = useState({ title: '', hook: '', script: '' });
+  const [creatingConcept, setCreatingConcept] = useState(false);
+
+  const handleCreateConcept = async () => {
+    if (!newConcept.title.trim()) {
+      toast.error('Please enter a concept title');
+      return;
+    }
+    setCreatingConcept(true);
+    try {
+      await operationsApi.createConcept(workstreamId, {
+        title: newConcept.title,
+        hook: newConcept.hook || undefined,
+        script: newConcept.script || undefined,
+      } as any);
+      setEditDialogOpen(false);
+      setNewConcept({ title: '', hook: '', script: '' });
+      loadConcepts();
+      toast.success('Concept created');
+    } catch {
+      toast.error('Failed to create concept');
+    } finally {
+      setCreatingConcept(false);
+    }
+  };
 
   useEffect(() => {
     loadConcepts();
@@ -508,7 +619,7 @@ const ConceptsTab = ({ workstreamId, isInternal, isClient }: any) => {
         </Select>
 
         {isInternal && (
-          <Button onClick={() => setEditDialogOpen(true)}>
+          <Button onClick={() => { setSelectedConcept(null); setEditDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />
             Create Concept
           </Button>
@@ -605,7 +716,7 @@ const ConceptsTab = ({ workstreamId, isInternal, isClient }: any) => {
                       variant="outline"
                     >
                       <Edit className="h-4 w-4 mr-2" />
-                      Edit
+                      View
                     </Button>
                   )}
                 </div>
@@ -629,6 +740,54 @@ const ConceptsTab = ({ workstreamId, isInternal, isClient }: any) => {
           ))}
         </div>
       )}
+      {/* Create / view concept dialog (no update endpoint yet → existing concepts are read-only) */}
+      <Dialog open={editDialogOpen} onOpenChange={(o: boolean) => { setEditDialogOpen(o); if (!o) setSelectedConcept(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedConcept ? 'Concept' : 'Create Concept'}</DialogTitle>
+            <DialogDescription>
+              {selectedConcept ? 'Read-only view (editing coming soon).' : 'Add a creative concept for client approval.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Title</Label>
+              <Input
+                value={selectedConcept ? selectedConcept.title : newConcept.title}
+                disabled={!!selectedConcept}
+                onChange={(e) => setNewConcept(p => ({ ...p, title: e.target.value }))}
+                placeholder="e.g., Unboxing hook + product demo"
+              />
+            </div>
+            <div>
+              <Label>Hook</Label>
+              <Textarea
+                value={selectedConcept ? (selectedConcept.hook || '') : newConcept.hook}
+                disabled={!!selectedConcept}
+                onChange={(e) => setNewConcept(p => ({ ...p, hook: e.target.value }))}
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label>Script</Label>
+              <Textarea
+                value={selectedConcept ? (selectedConcept.script || '') : newConcept.script}
+                disabled={!!selectedConcept}
+                onChange={(e) => setNewConcept(p => ({ ...p, script: e.target.value }))}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditDialogOpen(false); setSelectedConcept(null); }}>Close</Button>
+            {!selectedConcept && (
+              <Button onClick={handleCreateConcept} disabled={creatingConcept}>
+                {creatingConcept ? 'Creating…' : 'Create Concept'}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

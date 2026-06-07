@@ -63,6 +63,14 @@ class OperationsApiService {
 
   // ============= Campaign Operations =============
 
+  // All methods return PARSED JSON. (They previously returned the raw fetch
+  // Response, so callers' `data.deliverables` etc. were always undefined — a
+  // second reason the ops surface never worked.)
+  private async getJson(url: string, init?: RequestInit): Promise<any> {
+    const res = await fetchWithAuth(url, init);
+    return res.json();
+  }
+
   async getCampaigns(filters?: {
     brand?: string;
     status?: string;
@@ -74,27 +82,27 @@ class OperationsApiService {
     if (filters?.status) params.append('status', filters.status);
     if (filters?.search) params.append('search', filters.search);
 
-    return fetchWithAuth(`${this.baseUrl}/campaigns?${params}`);
+    return this.getJson(`${this.baseUrl}/campaigns?${params}`);
   }
 
   async getCampaignDetails(campaignId: string) {
-    return fetchWithAuth(`${this.baseUrl}/campaigns/${campaignId}`);
+    return this.getJson(`${this.baseUrl}/campaigns/${campaignId}`);
   }
 
   async getCampaignOverview(campaignId: string) {
-    return fetchWithAuth(`${this.baseUrl}/campaigns/${campaignId}/overview`);
+    return this.getJson(`${this.baseUrl}/campaigns/${campaignId}/overview`);
   }
 
   // ============= Workstreams =============
 
   async getWorkstreams(campaignId: string) {
-    return fetchWithAuth(`${this.baseUrl}/campaigns/${campaignId}/workstreams`);
+    return this.getJson(`${this.baseUrl}/campaigns/${campaignId}/workstreams`);
   }
 
   async createWorkstream(campaignId: string, data: Partial<Workstream>) {
     if (!this.hasPermission('create_workstream')) throw new Error('Insufficient permissions');
 
-    return fetchWithAuth(`${this.baseUrl}/campaigns/${campaignId}/workstreams`, {
+    return this.getJson(`${this.baseUrl}/campaigns/${campaignId}/workstreams`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -113,13 +121,13 @@ class OperationsApiService {
     if (filters?.creator) params.append('creator', filters.creator);
     if (filters?.due_date) params.append('due_date', filters.due_date);
 
-    return fetchWithAuth(`${this.baseUrl}/workstreams/${workstreamId}/deliverables?${params}`);
+    return this.getJson(`${this.baseUrl}/workstreams/${workstreamId}/deliverables?${params}`);
   }
 
   async createDeliverable(workstreamId: string, data: Partial<Deliverable>) {
     if (!this.isInternalUser()) throw new Error('Insufficient permissions');
 
-    return fetchWithAuth(`${this.baseUrl}/workstreams/${workstreamId}/deliverables`, {
+    return this.getJson(`${this.baseUrl}/workstreams/${workstreamId}/deliverables`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -129,11 +137,13 @@ class OperationsApiService {
   async bulkUpdateDeliverables(operation: BulkOperation): Promise<BulkOperationResult[]> {
     if (!this.isInternalUser()) throw new Error('Insufficient permissions');
 
-    return fetchWithAuth(`${this.baseUrl}/deliverables/bulk`, {
+    const json = await this.getJson(`${this.baseUrl}/deliverables/bulk`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(operation)
     });
+    // Backend returns { results: [...] }
+    return (json?.results ?? json ?? []) as BulkOperationResult[];
   }
 
   // ============= Concepts =============
@@ -146,13 +156,13 @@ class OperationsApiService {
       params.append('approval_status', filters.approval_status.join(','));
     }
 
-    return fetchWithAuth(`${this.baseUrl}/workstreams/${workstreamId}/concepts?${params}`);
+    return this.getJson(`${this.baseUrl}/workstreams/${workstreamId}/concepts?${params}`);
   }
 
   async createConcept(workstreamId: string, data: Partial<Concept>) {
     if (!this.isInternalUser()) throw new Error('Insufficient permissions');
 
-    return fetchWithAuth(`${this.baseUrl}/workstreams/${workstreamId}/concepts`, {
+    return this.getJson(`${this.baseUrl}/workstreams/${workstreamId}/concepts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -164,7 +174,7 @@ class OperationsApiService {
     decision: 'approve' | 'request_changes',
     comment?: string
   ) {
-    return fetchWithAuth(`${this.baseUrl}/concepts/${conceptId}/decision`, {
+    return this.getJson(`${this.baseUrl}/concepts/${conceptId}/decision`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ decision, comment })
