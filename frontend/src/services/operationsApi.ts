@@ -93,6 +93,18 @@ class OperationsApiService {
     return this.getJson(`${this.baseUrl}/campaigns/${campaignId}/overview`);
   }
 
+  async getCampaignSettings(campaignId: string) {
+    return this.getJson(`${this.baseUrl}/campaigns/${campaignId}/settings`);
+  }
+
+  async updateCampaignSettings(campaignId: string, settings: any) {
+    return this.getJson(`${this.baseUrl}/campaigns/${campaignId}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    });
+  }
+
   // ============= Workstreams =============
 
   async getWorkstreams(campaignId: string) {

@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ProtectedOperationsRoute from '@/components/operations/ProtectedOperationsRoute';
+import { operationsApi } from '@/services/operationsApi';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -128,15 +129,7 @@ export default function SettingsPage() {
       notify_on_overdue: true,
       daily_summary: false
     },
-    client_users: [
-      {
-        id: '1',
-        email: 'client@brand.com',
-        name: 'Brand Manager',
-        can_approve: true,
-        can_comment: true
-      }
-    ]
+    client_users: []
   });
 
   const [loading, setLoading] = useState(true);
@@ -160,11 +153,23 @@ export default function SettingsPage() {
   const loadSettings = async () => {
     setLoading(true);
     try {
-      // Load settings from API
-      // For now, using defaults
-      setLoading(false);
+      const res = await operationsApi.getCampaignSettings(campaignId);
+      const saved = res?.data ?? res;
+      // Merge persisted settings over defaults so new keys keep sane defaults.
+      if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
+        setSettings(prev => ({
+          ...prev,
+          ...saved,
+          visibility: { ...prev.visibility, ...(saved.visibility || {}) },
+          approvals: { ...prev.approvals, ...(saved.approvals || {}) },
+          templates: { ...prev.templates, ...(saved.templates || {}) },
+          notifications: { ...prev.notifications, ...(saved.notifications || {}) },
+          client_users: Array.isArray(saved.client_users) ? saved.client_users : prev.client_users,
+        }));
+      }
     } catch (error) {
       toast.error('Failed to load settings');
+    } finally {
       setLoading(false);
     }
   };
@@ -172,9 +177,8 @@ export default function SettingsPage() {
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      // Save settings via API
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
-      toast.success('Settings saved successfully');
+      await operationsApi.updateCampaignSettings(campaignId, settings);
+      toast.success('Settings saved');
     } catch (error) {
       toast.error('Failed to save settings');
     } finally {

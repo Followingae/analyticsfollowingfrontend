@@ -201,6 +201,11 @@ export default function WorkstreamsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* UGC is one of the workstream types but keeps its dedicated rich studio. */}
+          <Button variant="outline" onClick={() => router.push(`/campaigns/${campaignId}/ugc`)}>
+            <Video className="h-4 w-4 mr-2" />
+            UGC Studio
+          </Button>
           {canCreate && (
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>

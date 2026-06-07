@@ -49,6 +49,11 @@ import { useOperations } from '@/contexts/OperationsContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
+const DELIVERABLE_STATUSES: DeliverableStatus[] = [
+  'IDEA', 'DRAFTING', 'AWAITING_APPROVAL', 'APPROVED', 'SCHEDULED', 'IN_PRODUCTION',
+  'EDITING', 'IN_REVIEW', 'REVISION_REQUIRED', 'READY_TO_POST', 'POSTED', 'ARCHIVED',
+];
+
 export default function GlobalDeliverablesPage() {
   const params = useParams();
   const router = useRouter();
@@ -68,13 +73,18 @@ export default function GlobalDeliverablesPage() {
   const [filterWorkstream, setFilterWorkstream] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDeliverables, setSelectedDeliverables] = useState<string[]>([]);
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const isInternal = userAccess.permissions.view_internal_notes;
 
   useEffect(() => {
     if (campaignId && !currentCampaign) {
       selectCampaign(campaignId);
     }
     loadAllDeliverables();
-  }, [campaignId]);
+    // Reload once workstreams populate (deliverables are fetched per-workstream).
+  }, [campaignId, workstreams.length]);
 
   const loadAllDeliverables = async () => {
     setLoading(true);
@@ -105,6 +115,47 @@ export default function GlobalDeliverablesPage() {
     acc[d.status] = (acc[d.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  const allFilteredIds = filteredDeliverables.map(d => d.id);
+  const allSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedDeliverables.includes(id));
+
+  const handleExport = () => {
+    const header = ['Title', 'Workstream', 'Status', 'Due Date', 'Type', 'Assigned'];
+    const rows = filteredDeliverables.map(d => {
+      const ws = workstreams.find(w => w.id === d.workstream_id);
+      return [d.title, ws?.name || '', d.status, d.due_date || '', d.type, d.assignment_id ? 'Yes' : 'No'];
+    });
+    const csv = [header, ...rows]
+      .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `deliverables-${campaignId}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleBulk = async (action: 'status_change' | 'delete') => {
+    if (selectedDeliverables.length === 0) return;
+    if (action === 'status_change' && !bulkStatus) { toast.error('Pick a status'); return; }
+    setBusy(true);
+    try {
+      await operationsApi.bulkUpdateDeliverables({
+        type: action as any,
+        target_ids: selectedDeliverables,
+        params: action === 'status_change' ? { status: bulkStatus } : {},
+      });
+      toast.success(`${selectedDeliverables.length} deliverable(s) updated`);
+      setSelectedDeliverables([]);
+      setBulkStatus('');
+      loadAllDeliverables();
+    } catch {
+      toast.error('Bulk action failed');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const getStatusColor = (status: DeliverableStatus) => {
     const colors: Record<string, string> = {
@@ -147,11 +198,31 @@ export default function GlobalDeliverablesPage() {
             Manage deliverables across all workstreams
           </p>
         </div>
-        <Button variant="outline">
+        <Button variant="outline" onClick={handleExport} disabled={filteredDeliverables.length === 0}>
           <Download className="h-4 w-4 mr-2" />
           Export
         </Button>
       </div>
+
+      {/* Bulk action bar */}
+      {isInternal && selectedDeliverables.length > 0 && (
+        <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-4 py-2">
+          <span className="text-sm font-medium">{selectedDeliverables.length} selected</span>
+          <div className="ml-auto flex items-center gap-2">
+            <Select value={bulkStatus} onValueChange={setBulkStatus}>
+              <SelectTrigger className="h-8 w-44"><SelectValue placeholder="Set status…" /></SelectTrigger>
+              <SelectContent>
+                {DELIVERABLE_STATUSES.map(s => (
+                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" disabled={busy || !bulkStatus} onClick={() => handleBulk('status_change')}>Apply</Button>
+            <Button size="sm" variant="ghost" className="text-destructive" disabled={busy} onClick={() => handleBulk('delete')}>Delete</Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedDeliverables([])}>Clear</Button>
+          </div>
+        </div>
+      )}
 
       {/* Status Summary */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
@@ -231,7 +302,12 @@ export default function GlobalDeliverablesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
-                      <Checkbox />
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={(checked: boolean) =>
+                          setSelectedDeliverables(checked ? allFilteredIds : [])
+                        }
+                      />
                     </TableHead>
                     <TableHead>Title</TableHead>
                     <TableHead>Workstream</TableHead>
