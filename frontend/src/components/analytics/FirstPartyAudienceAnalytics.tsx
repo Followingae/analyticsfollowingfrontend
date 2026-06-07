@@ -77,6 +77,8 @@ interface Props {
   insights?: Insights | null
   fetchedAt?: string | null
   className?: string
+  /** "preview" renders a compact summary (for list cards); default is the full view. */
+  variant?: 'full' | 'preview'
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -189,6 +191,31 @@ function InsightStat({
   )
 }
 
+// ── Compact preview stat (list cards) ──────────────────────────────────────
+
+function PreviewStat({
+  label,
+  value,
+  sub,
+  flag,
+}: {
+  label: string
+  value: string
+  sub?: string
+  flag?: string | null
+}) {
+  return (
+    <div className="rounded-md bg-muted/40 px-2.5 py-1.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-0.5 flex items-center gap-1 text-sm font-bold">
+        {flag && <ReactCountryFlag countryCode={flag} svg style={{ width: '14px', height: '10px' }} />}
+        <span className="truncate">{value}</span>
+        {sub && <span className="text-xs font-medium text-muted-foreground">{sub}</span>}
+      </p>
+    </div>
+  )
+}
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 export function FirstPartyAudienceAnalytics({
@@ -196,6 +223,7 @@ export function FirstPartyAudienceAnalytics({
   insights,
   fetchedAt,
   className,
+  variant = 'full',
 }: Props) {
   const hasGender = nonEmptyDist(demographics?.gender_distribution)
   const hasAge = nonEmptyDist(demographics?.age_distribution)
@@ -258,6 +286,77 @@ export function FirstPartyAudienceAnalytics({
   const countryChartConfig: ChartConfig = { value: { label: 'Percentage', color: 'var(--chart-1)' } }
 
   const hasAnything = hasGender || hasAge || hasCountry || hasInsights
+  const sample = demographics?.sample_size
+
+  // Compact preview for list cards (superadmin FA member card, etc.).
+  if (variant === 'preview') {
+    const topAge = ageChartData[0]
+    const topCountry = countryChartData[0]
+    const genderTotal = genderChartData.reduce((s, e) => s + e.value, 0) || 1
+    return (
+      <div className={`rounded-lg border bg-card/40 p-3.5 ${className ?? ''}`}>
+        <div className="mb-2.5 flex items-center justify-between gap-2">
+          <Badge
+            variant="outline"
+            className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          >
+            <BadgeCheck className="mr-1 h-3 w-3" />
+            Instagram audience
+          </Badge>
+          {typeof sample === 'number' && sample > 0 && (
+            <span className="text-xs text-muted-foreground">{fmtCount(sample)} followers</span>
+          )}
+        </div>
+        {!hasAnything ? (
+          <p className="text-sm text-muted-foreground">
+            Audience insights will appear once Instagram finishes syncing.
+          </p>
+        ) : (
+          <div className="space-y-2.5">
+            {genderChartData.length > 0 && (
+              <div>
+                <div className="flex h-2 overflow-hidden rounded-full bg-muted">
+                  {genderChartData.map((e) => (
+                    <div
+                      key={e.key}
+                      className="h-full"
+                      style={{ width: `${(e.value / genderTotal) * 100}%`, backgroundColor: e.fill }}
+                    />
+                  ))}
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                  {genderChartData.map((e) => (
+                    <span key={e.key} className="inline-flex items-center gap-1 text-xs">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: e.fill }} />
+                      <span className="font-medium">{e.gender}</span>
+                      <span className="text-muted-foreground">{fmtPercent(e.value, 0)}%</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {topAge && <PreviewStat label="Top age" value={topAge.range} sub={`${fmtPercent(topAge.value, 0)}%`} />}
+              {topCountry && (
+                <PreviewStat
+                  label="Top country"
+                  value={topCountry.country}
+                  sub={`${fmtPercent(topCountry.value, 0)}%`}
+                  flag={topCountry.code}
+                />
+              )}
+              {insights?.reach != null && Number.isFinite(Number(insights.reach)) && (
+                <PreviewStat label="Reach" value={fmtCount(insights.reach)} />
+              )}
+              {insights?.profile_views != null && Number.isFinite(Number(insights.profile_views)) && (
+                <PreviewStat label="Profile views" value={fmtCount(insights.profile_views)} />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   if (!hasAnything) {
     return (
@@ -274,7 +373,6 @@ export function FirstPartyAudienceAnalytics({
     )
   }
 
-  const sample = demographics?.sample_size
   const syncedDate = fetchedAt
     ? new Date(fetchedAt)
     : null
