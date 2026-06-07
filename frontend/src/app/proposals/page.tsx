@@ -22,7 +22,7 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react"
-import { proposalMotion } from "@/components/proposals/proposal-utils"
+import { proposalMotion, formatCurrency } from "@/components/proposals/proposal-utils"
 import { ProposalOverviewCard } from "@/components/proposals/ProposalOverviewCard"
 import { motion } from "motion/react"
 import NumberFlow from "@number-flow/react"
@@ -203,7 +203,7 @@ function ProposalsPageContent() {
                     </div>
                     {(kpi as any).isCurrency ? (
                       <p className="text-2xl font-bold tabular-nums">
-                        ${kpi.value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        {formatCurrency(kpi.value)}
                       </p>
                     ) : (
                       <NumberFlow
