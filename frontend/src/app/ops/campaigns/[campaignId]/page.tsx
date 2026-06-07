@@ -451,9 +451,8 @@ export default function CampaignOperationsHome() {
               </CardTitle>
               <CardDescription>Latest updates and changes</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigateToSection('activity')}>
-              View All
-            </Button>
+            {/* "View All" removed — the activity route was retired (May 2026)
+                and the inline feed below already shows recent activity. */}
           </div>
         </CardHeader>
         <CardContent>

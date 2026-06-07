@@ -715,7 +715,7 @@ export default function SettingsPage() {
                   Reset all settings to default values
                 </p>
               </div>
-              <Button variant="destructive" size="sm">
+              <Button variant="destructive" size="sm" disabled title="Coming soon">
                 Reset Settings
               </Button>
             </div>
@@ -726,7 +726,7 @@ export default function SettingsPage() {
                   Archive this campaign and all its data
                 </p>
               </div>
-              <Button variant="destructive" size="sm">
+              <Button variant="destructive" size="sm" disabled title="Coming soon">
                 Archive Campaign
               </Button>
             </div>
