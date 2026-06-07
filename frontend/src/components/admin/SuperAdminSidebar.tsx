@@ -32,6 +32,7 @@ import {
   Building2,
   Wrench,
   Receipt,
+  ListChecks,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -64,6 +65,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
 
   const overviewItems = [
     { title: "Dashboard", url: "/superadmin", icon: BarChart3 },
+    { title: "Operations", url: "/superadmin/operations", icon: ListChecks },
   ]
 
   const managementItems = [
