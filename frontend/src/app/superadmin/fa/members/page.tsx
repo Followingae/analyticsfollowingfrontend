@@ -111,6 +111,9 @@ interface FAMember {
   needs_reconnect?: boolean
   analytics_status?: "pending" | "processing" | "complete" | "failed" | null
   instagram_audience_demographics?: InstagramAudienceDemographics | null
+  instagram_insights?: InstagramInsights | null
+  instagram_audience_fetched_at?: string | null
+  analytics_source?: string | null
 }
 
 interface InstagramAudienceDemographics {
@@ -669,59 +672,13 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
             </div>
           )}
 
-          {/* ─── Row 4: Analytics Indicators ─── */}
-          {analytics ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {/* Content Quality */}
-              <div className={`rounded-lg px-3 py-2.5 border ${scoreBg(analytics.ai_content_quality_score)}`}>
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
-                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Content Quality</p>
-                </div>
-                <p className={`text-lg font-bold mt-0.5 ${scoreColor(analytics.ai_content_quality_score)}`}>
-                  {Math.round(analytics.ai_content_quality_score * 100)}%
-                </p>
-              </div>
-
-              {/* Audience Quality */}
-              <div className={`rounded-lg px-3 py-2.5 border ${scoreBg(audienceQuality.score)}`}>
-                <div className="flex items-center gap-1.5">
-                  <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Audience Quality</p>
-                </div>
-                <p className={`text-lg font-bold mt-0.5 ${scoreColor(audienceQuality.score)}`}>
-                  {audienceQuality.label}
-                </p>
-              </div>
-
-              {/* Fraud Risk */}
-              <div className={`rounded-lg px-3 py-2.5 border ${fraudRisk.bgColor}`}>
-                <div className="flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" />
-                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Fraud Risk</p>
-                </div>
-                <p className={`text-lg font-bold mt-0.5 ${fraudRisk.color}`}>
-                  {fraudRisk.label}
-                </p>
-              </div>
-
-              {/* Sentiment */}
-              <div className={`rounded-lg px-3 py-2.5 border ${scoreBg(analytics.ai_avg_sentiment_score)}`}>
-                <div className="flex items-center gap-1.5">
-                  <Heart className="h-3.5 w-3.5 text-muted-foreground" />
-                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Sentiment</p>
-                </div>
-                <p className={`text-lg font-bold mt-0.5 ${scoreColor(analytics.ai_avg_sentiment_score)}`}>
-                  {Math.round(analytics.ai_avg_sentiment_score * 100)}%
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-dashed border-muted-foreground/20">
-              <Loader2 className="h-4 w-4 text-muted-foreground animate-spin shrink-0" />
-              <span className="text-sm text-muted-foreground">Creator analytics processing — data will appear automatically once complete</span>
-            </div>
-          )}
+          {/* ─── Row 4: First-party Instagram audience (FA members' analytics) ─── */}
+          <FirstPartyAudienceAnalytics
+            variant="preview"
+            demographics={member.instagram_audience_demographics}
+            insights={member.instagram_insights}
+            fetchedAt={member.instagram_audience_fetched_at}
+          />
 
           {/* ─── Row 5: Contact & Meta ─── */}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-muted-foreground pt-1 border-t">
