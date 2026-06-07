@@ -4,6 +4,7 @@ import * as React from "react"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import { useAdminAccess } from "@/hooks/useAdminAccess"
 import {
   Sidebar,
   SidebarContent,
@@ -37,6 +38,7 @@ import {
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, isLoading } = useEnhancedAuth()
+  const { can } = useAdminAccess()
 
   // Dynamic user data
   const dynamicUser = React.useMemo(() => {
@@ -63,18 +65,19 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     }
   }, [user])
 
+  // Each group is gated by an admin module; super_admin sees everything.
   const overviewItems = [
     { title: "Dashboard", url: "/superadmin", icon: BarChart3 },
-    { title: "Operations", url: "/superadmin/operations", icon: ListChecks },
+    ...(can("operations") ? [{ title: "Operations", url: "/superadmin/operations", icon: ListChecks }] : []),
   ]
 
   const managementItems = [
-    { title: "Clients", url: "/superadmin/clients", icon: Building2 },
-    { title: "Users", url: "/superadmin/users", icon: Users },
+    ...(can("clients") ? [{ title: "Clients", url: "/superadmin/clients", icon: Building2 }] : []),
+    ...(can("users") ? [{ title: "Users", url: "/superadmin/users", icon: Users }] : []),
   ]
 
   const campaignItems = [
-    {
+    ...(can("campaigns") ? [{
       title: "Campaigns",
       url: "/superadmin/campaigns",
       icon: Megaphone,
@@ -82,8 +85,8 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         { title: "All Campaigns", url: "/superadmin/campaigns" },
         { title: "Create Campaign", url: "/superadmin/campaigns/create" },
       ],
-    },
-    {
+    }] : []),
+    ...(can("proposals") ? [{
       title: "Proposals",
       url: "/superadmin/proposals",
       icon: FileText,
@@ -91,8 +94,8 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         { title: "All Proposals", url: "/superadmin/proposals" },
         { title: "Create Proposal", url: "/superadmin/proposals/create" },
       ],
-    },
-    {
+    }] : []),
+    ...(can("influencers") ? [{
       title: "Influencer Database",
       url: "/superadmin/influencers",
       icon: Database,
@@ -101,10 +104,10 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         { title: "Analyzed Creators", url: "/superadmin/influencers/analyzed" },
         { title: "Add / Import", url: "/superadmin/influencers/add" },
       ],
-    },
+    }] : []),
   ]
 
-  const followingAppItems = [
+  const followingAppItems = can("fa") ? [
     { title: "Overview", url: "/superadmin/fa", icon: LayoutDashboard },
     { title: "Members", url: "/superadmin/fa/members", icon: Users },
     { title: "Merchants", url: "/superadmin/fa/merchants", icon: Store },
@@ -112,11 +115,11 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     { title: "Deliverables", url: "/superadmin/fa/deliverables", icon: ClipboardCheck },
     { title: "Withdrawals", url: "/superadmin/fa/withdrawals", icon: Banknote },
     { title: "Receipt Claims", url: "/superadmin/fa/receipt-claims", icon: Receipt },
-  ]
+  ] : []
 
-  const systemItems = [
+  const systemItems = can("system") ? [
     { title: "System", url: "/superadmin/system", icon: Wrench },
-  ]
+  ] : []
 
   // Content pages not yet built — removing dead links
   // Backend endpoints exist at /admin/content/profiles and /admin/content/unlocks
@@ -144,43 +147,53 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
 
       <SidebarContent>
         {/* Overview Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Overview</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <NavMain items={overviewItems} />
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {overviewItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Overview</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <NavMain items={overviewItems} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Management Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Management</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <NavMain items={managementItems} />
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {managementItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Management</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <NavMain items={managementItems} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Campaigns & Proposals */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Campaigns</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <NavMain items={campaignItems} />
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {campaignItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Campaigns</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <NavMain items={campaignItems} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Following App Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Following App</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <NavMain items={followingAppItems} />
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {followingAppItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Following App</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <NavMain items={followingAppItems} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* System Section */}
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <NavMain items={systemItems} />
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {systemItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <NavMain items={systemItems} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>

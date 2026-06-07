@@ -7,6 +7,8 @@ import { superadminApiService } from "@/services/superadminApi"
 import { ArrowLeft, UserPlus, Check } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ADMIN_MODULES } from "@/hooks/useAdminAccess"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -42,6 +44,9 @@ export default function CreateBrandAccountPage() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
+  // Brand user vs module-scoped Admin
+  const [accountType, setAccountType] = useState<'brand' | 'admin'>('brand')
+  const [adminModules, setAdminModules] = useState<string[]>([])
 
   // Form state with comprehensive fields
   const [formData, setFormData] = useState({
@@ -124,6 +129,11 @@ export default function CreateBrandAccountPage() {
       }
     }
 
+    if (accountType === 'admin' && adminModules.length === 0) {
+      setFormError("Pick at least one module for this admin")
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -134,11 +144,24 @@ export default function CreateBrandAccountPage() {
         'premium': 'brand_premium'
       }
 
-      const payload = {
-        ...formData,
-        role: roleMap[formData.subscription_tier as keyof typeof roleMap] || 'free',
-        status: 'active'
-      }
+      const payload = accountType === 'admin'
+        ? {
+            email: formData.email,
+            password: formData.password,
+            full_name: formData.full_name,
+            company: formData.company,
+            phone_number: formData.phone_number,
+            role: 'admin',
+            status: 'active',
+            subscription_tier: 'free',
+            admin_modules: adminModules,
+            create_team: false,
+          }
+        : {
+            ...formData,
+            role: roleMap[formData.subscription_tier as keyof typeof roleMap] || 'free',
+            status: 'active'
+          }
 
       const result = await superadminApiService.createUser(payload)
 
@@ -283,8 +306,20 @@ export default function CreateBrandAccountPage() {
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold">Create Brand Account</h1>
-            <p className="text-sm text-muted-foreground mt-1">Set up a brand account with subscription, credits, and team</p>
+            <h1 className="text-2xl font-semibold">{accountType === 'admin' ? 'Create Admin' : 'Create Brand Account'}</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {accountType === 'admin'
+                ? 'Create a module-scoped admin — they can only access the areas you tick'
+                : 'Set up a brand account with subscription, credits, and team'}
+            </p>
+          </div>
+          <div className="ml-auto inline-flex rounded-lg border p-0.5">
+            <Button type="button" size="sm" variant={accountType === 'brand' ? 'default' : 'ghost'} onClick={() => setAccountType('brand')}>
+              Brand User
+            </Button>
+            <Button type="button" size="sm" variant={accountType === 'admin' ? 'default' : 'ghost'} onClick={() => setAccountType('admin')}>
+              Admin
+            </Button>
           </div>
         </div>
 
@@ -413,6 +448,31 @@ export default function CreateBrandAccountPage() {
 
         {/* Right Column */}
         <div className="space-y-6">
+        {accountType === 'admin' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Admin Modules</CardTitle>
+            <CardDescription>Tick the areas this admin can access. They won't see anything else.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-2">
+            {ADMIN_MODULES.map((m) => {
+              const checked = adminModules.includes(m.key)
+              return (
+                <label key={m.key} className="flex items-center gap-2 rounded-md border p-2.5 cursor-pointer hover:bg-accent/40">
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(c: boolean) =>
+                      setAdminModules(prev => c ? [...prev, m.key] : prev.filter(x => x !== m.key))
+                    }
+                  />
+                  <span className="text-sm">{m.label}</span>
+                </label>
+              )
+            })}
+          </CardContent>
+        </Card>
+        ) : (
+        <>
         {/* Subscription Tier */}
         <Card>
           <CardHeader>
@@ -518,6 +578,8 @@ export default function CreateBrandAccountPage() {
             </div>
           </CardContent>
         </Card>
+        </>
+        )}
         </div>
 
           {/* Submit Button - Full Width */}

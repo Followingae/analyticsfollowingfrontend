@@ -293,6 +293,7 @@ export class SuperadminApiService {
     monthly_profile_limit?: number
     monthly_email_limit?: number
     monthly_posts_limit?: number
+    admin_modules?: string[]
   }): Promise<ApiResponse<any>> {
     return this.makeRequest('/api/superadmin/users/create', {
       method: 'POST',
