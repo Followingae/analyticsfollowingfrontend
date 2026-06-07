@@ -34,8 +34,9 @@ import {
   Check, X, ArrowRight, Inbox, CheckCircle2,
 } from "lucide-react"
 import {
-  faDeliverableApi, faWithdrawalApi, faReceiptClaimApi, faMemberApi, faCampaignApi,
+  faDeliverableApi, faWithdrawalApi, faReceiptClaimApi, faMemberApi,
 } from "@/services/faAdminApi"
+import { operationsApi } from "@/services/operationsApi"
 
 // ── helpers ───────────────────────────────────────────────────────────
 const unwrap = (res: any, ...keys: string[]) => {
@@ -59,6 +60,7 @@ export default function AgencyOperationsPage() {
   const [withdrawals, setWithdrawals] = useState<any[]>([])
   const [members, setMembers] = useState<any[]>([])
   const [campaigns, setCampaigns] = useState<any[]>([])
+  const [queues, setQueues] = useState<any | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
   // reject dialog
@@ -67,18 +69,22 @@ export default function AgencyOperationsPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [d, r, w, m, c] = await Promise.allSettled([
+    const [d, r, w, m, dash] = await Promise.allSettled([
       faDeliverableApi.listPending(),
       faReceiptClaimApi.list("pending_review"),
       faWithdrawalApi.listPending(),
       faMemberApi.list({ is_approved: 0, limit: 50 }),
-      faCampaignApi.list(undefined, "active"),
+      operationsApi.getDashboard(),
     ])
     if (d.status === "fulfilled") setDeliverables(unwrap(d.value, "deliverables"))
     if (r.status === "fulfilled") setReceipts(unwrap(r.value, "claims"))
     if (w.status === "fulfilled") setWithdrawals(unwrap(w.value, "withdrawals"))
     if (m.status === "fulfilled") setMembers(unwrap(m.value, "members"))
-    if (c.status === "fulfilled") setCampaigns(unwrap(c.value, "campaigns"))
+    if (dash.status === "fulfilled") {
+      const dd = dash.value?.data ?? dash.value
+      setCampaigns(Array.isArray(dd?.campaigns) ? dd.campaigns : [])
+      setQueues(dd?.queues ?? null)
+    }
     setLoading(false)
   }, [])
 
@@ -89,7 +95,19 @@ export default function AgencyOperationsPage() {
     return () => window.removeEventListener("focus", onFocus)
   }, [load])
 
-  const totalPending = deliverables.length + receipts.length + withdrawals.length + members.length
+  // Authoritative counts from the backend dashboard (cross-campaign, includes
+  // participant brand-approvals); fall back to the loaded item-list lengths.
+  const cnt = {
+    deliverables: queues?.pending_deliverables ?? deliverables.length,
+    participants: queues?.pending_participant_approvals ?? 0,
+    withdrawals: queues?.pending_withdrawals ?? withdrawals.length,
+    members: queues?.pending_member_reviews ?? members.length,
+    receipts: receipts.length, // no backend receipt count yet — use the live list
+  }
+  // Items actionable in the queue tabs below (participant approvals are handled
+  // per-campaign, surfaced as a KPI here until the B3 per-campaign bridge lands).
+  const queueItemsTotal = deliverables.length + receipts.length + withdrawals.length + members.length
+  const totalPending = cnt.deliverables + cnt.participants + cnt.withdrawals + cnt.members + cnt.receipts
 
   // ── actions ─────────────────────────────────────────────────────────
   const removeFrom = (kind: QueueKind, id: string) => {
@@ -137,13 +155,13 @@ export default function AgencyOperationsPage() {
   }
 
   const kpis = useMemo(() => ([
+    { icon: Megaphone, label: "Campaigns in flight", value: campaigns.length, subtitle: "live across all types" },
     { icon: ListChecks, label: "Pending Approvals", value: totalPending, subtitle: "across all queues" },
-    { icon: ClipboardCheck, label: "Deliverables", value: deliverables.length, subtitle: "awaiting verification" },
-    { icon: Receipt, label: "Receipt Claims", value: receipts.length, subtitle: "awaiting review" },
-    { icon: Banknote, label: "Withdrawals", value: withdrawals.length, subtitle: "awaiting payout" },
-    { icon: UserCheck, label: "Member Reviews", value: members.length, subtitle: "edge-case approvals" },
-    { icon: Megaphone, label: "Active Campaigns", value: campaigns.length, subtitle: "in flight" },
-  ]), [totalPending, deliverables, receipts, withdrawals, members, campaigns])
+    { icon: ClipboardCheck, label: "Deliverables", value: cnt.deliverables, subtitle: "awaiting verification" },
+    { icon: UserCheck, label: "Participant Approvals", value: cnt.participants, subtitle: "brand sign-off" },
+    { icon: Receipt, label: "Receipt Claims", value: cnt.receipts, subtitle: "awaiting review" },
+    { icon: Banknote, label: "Withdrawals", value: cnt.withdrawals, subtitle: "awaiting payout" },
+  ]), [totalPending, cnt, campaigns])
 
   // ── row renderers ───────────────────────────────────────────────────
   const ActionRow = ({ kind, id, title, meta, right }: {
@@ -205,8 +223,8 @@ export default function AgencyOperationsPage() {
             <CardTitle className="flex items-center gap-2 text-base">
               <Inbox className="h-4 w-4 text-muted-foreground" />
               Action Queue
-              {totalPending > 0 && (
-                <Badge variant="secondary" className="tabular-nums">{totalPending}</Badge>
+              {queueItemsTotal > 0 && (
+                <Badge variant="secondary" className="tabular-nums">{queueItemsTotal}</Badge>
               )}
             </CardTitle>
           </CardHeader>

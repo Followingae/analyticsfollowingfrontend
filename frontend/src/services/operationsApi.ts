@@ -9,6 +9,7 @@
  */
 
 import { fetchWithAuth } from '@/utils/apiInterceptor';
+import { API_CONFIG } from '@/config/api';
 import {
   Workstream,
   Deliverable,
@@ -43,6 +44,18 @@ class OperationsApiService {
   private hasPermission(permission: any): boolean {
     const user = this.getCurrentUser();
     return hasPermission(user, permission);
+  }
+
+  // ============= Agency Dashboard (cross-campaign, real data) =============
+
+  /**
+   * Command-center aggregate: real campaigns in flight + live action-queue
+   * counts. Uses the absolute API base (the relative-path methods below only
+   * resolve when same-origin); this one is host-correct.
+   */
+  async getDashboard(): Promise<any> {
+    const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}${this.baseUrl}/dashboard`);
+    return res.json();
   }
 
   // ============= Campaign Operations =============
