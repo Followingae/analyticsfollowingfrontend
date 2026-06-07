@@ -373,24 +373,27 @@ export default function SuperadminUsersPage() {
                                   <Edit className="h-3.5 w-3.5 mr-2" />
                                   Edit User
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className={user.status === 'active' ? 'text-destructive focus:text-destructive' : ''}
-                                  onClick={() => handleUpdateUserStatus(user.id,
-                                    user.status === 'active' ? 'suspended' : 'active'
-                                  )}
-                                >
-                                  {user.status === 'active' ? (
-                                    <>
-                                      <Ban className="h-3.5 w-3.5 mr-2" />
-                                      Suspend User
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Unlock className="h-3.5 w-3.5 mr-2" />
-                                      Activate User
-                                    </>
-                                  )}
-                                </DropdownMenuItem>
+                                {/* Superadmins can't be suspended/deactivated. */}
+                                {user.role !== 'super_admin' && (
+                                  <DropdownMenuItem
+                                    className={user.status === 'active' ? 'text-destructive focus:text-destructive' : ''}
+                                    onClick={() => handleUpdateUserStatus(user.id,
+                                      user.status === 'active' ? 'suspended' : 'active'
+                                    )}
+                                  >
+                                    {user.status === 'active' ? (
+                                      <>
+                                        <Ban className="h-3.5 w-3.5 mr-2" />
+                                        Suspend User
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Unlock className="h-3.5 w-3.5 mr-2" />
+                                        Activate User
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

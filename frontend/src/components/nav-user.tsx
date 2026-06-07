@@ -42,7 +42,9 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { logout } = useEnhancedAuth()
+  const { logout, hasRole } = useEnhancedAuth()
+  // Billing/Notifications are brand-only; operators (admin/super_admin) shouldn't see them.
+  const isOperator = hasRole('admin') || hasRole('super_admin')
 
   return (
     <SidebarMenu>
@@ -108,18 +110,22 @@ export function NavUser({
                   Account
                 </a>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a href="/billing" className="cursor-pointer">
-                  <CreditCard className="size-4" />
-                  Billing
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a href="/notifications" className="cursor-pointer">
-                  <Bell className="size-4" />
-                  Notifications
-                </a>
-              </DropdownMenuItem>
+              {!isOperator && (
+                <DropdownMenuItem asChild>
+                  <a href="/billing" className="cursor-pointer">
+                    <CreditCard className="size-4" />
+                    Billing
+                  </a>
+                </DropdownMenuItem>
+              )}
+              {!isOperator && (
+                <DropdownMenuItem asChild>
+                  <a href="/notifications" className="cursor-pointer">
+                    <Bell className="size-4" />
+                    Notifications
+                  </a>
+                </DropdownMenuItem>
+              )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="cursor-pointer text-muted-foreground">
