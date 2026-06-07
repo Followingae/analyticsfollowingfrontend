@@ -7,10 +7,46 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { ArrowLeft, Check, X, User, Clock, FileCheck } from "lucide-react"
+import { ArrowLeft, Check, X, User, Clock, FileCheck, BarChart3 } from "lucide-react"
 import Link from "next/link"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { FirstPartyAudienceAnalytics } from "@/components/analytics/FirstPartyAudienceAnalytics"
 import { brandCampaignApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
+
+/** "View audience" trigger + dialog, shown only when the creator has real
+ *  first-party Instagram data (member.analytics.has_first_party). */
+function CreatorAudienceButton({ member }: { member: any }) {
+  const analytics = member?.analytics
+  if (!analytics?.has_first_party) {
+    return <span className="text-xs text-muted-foreground">Audience syncing</span>
+  }
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          <BarChart3 className="h-4 w-4 mr-1" />Audience
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{member?.full_name || "Creator"}</DialogTitle>
+        </DialogHeader>
+        <FirstPartyAudienceAnalytics
+          demographics={analytics.demographics}
+          insights={analytics.insights}
+          fetchedAt={analytics.fetched_at}
+        />
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export default function FACampaignDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -102,6 +138,7 @@ export default function FACampaignDetailPage({ params }: { params: Promise<{ id:
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          <CreatorAudienceButton member={app.member} />
                           {app.status === "pending" ? (
                             <>
                               <Button size="sm" variant="outline" onClick={() => handleReject(app.id)}>
@@ -150,7 +187,10 @@ export default function FACampaignDetailPage({ params }: { params: Promise<{ id:
                             </p>
                           </div>
                         </div>
-                        <Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge>
+                        <div className="flex items-center gap-2">
+                          <CreatorAudienceButton member={p.member} />
+                          <Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
