@@ -31,7 +31,7 @@ import {
 import { toast } from "sonner"
 import {
   ClipboardCheck, Receipt, Banknote, UserCheck, Megaphone, ListChecks,
-  Check, X, ArrowRight, Inbox, CheckCircle2,
+  Check, X, ArrowRight, Inbox, CheckCircle2, ChevronRight,
 } from "lucide-react"
 import {
   faDeliverableApi, faWithdrawalApi, faReceiptClaimApi, faMemberApi,
@@ -317,7 +317,11 @@ export default function AgencyOperationsPage() {
             ) : (
               <div className="space-y-2">
                 {campaigns.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between gap-4 rounded-lg border px-4 py-2.5">
+                  <Link
+                    key={c.id}
+                    href={`/ops/campaigns/${c.id}`}
+                    className="flex items-center justify-between gap-4 rounded-lg border px-4 py-2.5 transition-colors hover:bg-accent/40"
+                  >
                     <div className="min-w-0">
                       <p className="truncate font-medium text-sm">{c.name || c.campaign_name || "Campaign"}</p>
                       <p className="truncate text-xs text-muted-foreground">{c.brand_name || "—"}</p>
@@ -325,8 +329,9 @@ export default function AgencyOperationsPage() {
                     <div className="flex shrink-0 items-center gap-2">
                       {c.type && <Badge variant="outline" className="capitalize text-xs">{String(c.type).replace(/_/g, " ")}</Badge>}
                       <Badge variant="secondary" className="capitalize text-xs">{c.status || "active"}</Badge>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

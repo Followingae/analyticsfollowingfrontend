@@ -27,7 +27,10 @@ import {
 } from '@/utils/operationsAccess';
 
 class OperationsApiService {
-  private baseUrl = '/api/v1/operations';
+  // Absolute API base. Previously a bare '/api/v1/operations', which fetch()
+  // resolves against the FRONTEND origin (there is no /api proxy rewrite) — so
+  // every ops call silently hit the wrong host. The API lives on API_CONFIG.BASE_URL.
+  private baseUrl = `${API_CONFIG.BASE_URL}/api/v1/operations`;
 
   // Get current user from store
   private getCurrentUser() {
@@ -54,7 +57,7 @@ class OperationsApiService {
    * resolve when same-origin); this one is host-correct.
    */
   async getDashboard(): Promise<any> {
-    const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}${this.baseUrl}/dashboard`);
+    const res = await fetchWithAuth(`${this.baseUrl}/dashboard`);
     return res.json();
   }
 
