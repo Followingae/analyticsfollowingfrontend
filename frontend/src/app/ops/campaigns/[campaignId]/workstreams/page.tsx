@@ -73,6 +73,18 @@ const WORKSTREAM_LABELS: Record<WorkstreamType, string> = {
   hybrid: 'Hybrid Campaign'
 };
 
+// Per-type guidance shown in the create flow so operators know what each
+// workstream models (UGC is just one of several execution types).
+const WORKSTREAM_DESCRIPTIONS: Record<WorkstreamType, string> = {
+  ugc: 'Creator-produced content: concepts → scripts → videos → client review.',
+  influencer_paid: 'Paid influencer deliverables with fees, briefs and posting deadlines.',
+  influencer_barter: 'Gifted/barter collaborations exchanged for content deliverables.',
+  video_shoot: 'In-house or studio video production days, call sheets and edits.',
+  photo_shoot: 'Photography production days, shot lists and asset delivery.',
+  event_activation: 'On-ground activations/events: invites, attendance and coverage.',
+  hybrid: 'A mix of execution types managed under one workstream.'
+};
+
 export default function WorkstreamsPage() {
   const params = useParams();
   const router = useRouter();
@@ -225,6 +237,11 @@ export default function WorkstreamsPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {newWorkstream.type && (
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        {WORKSTREAM_DESCRIPTIONS[newWorkstream.type as WorkstreamType]}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="name">Name</Label>
@@ -269,6 +286,21 @@ export default function WorkstreamsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {isInternal && (
+                    <div>
+                      <Label htmlFor="internal_notes">Internal Notes (Optional)</Label>
+                      <Textarea
+                        id="internal_notes"
+                        value={newWorkstream.internal_notes || ''}
+                        onChange={(e) => setNewWorkstream(prev => ({
+                          ...prev,
+                          internal_notes: e.target.value
+                        }))}
+                        placeholder="Internal-only context (not shown to clients)…"
+                        rows={2}
+                      />
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
