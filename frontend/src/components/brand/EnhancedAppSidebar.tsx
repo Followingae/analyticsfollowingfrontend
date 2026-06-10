@@ -200,8 +200,9 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* More Section */}
-        <SidebarGroup className="mt-auto">
+        {/* More Section — pinned to the bottom only on desktop; on the mobile
+            sheet it follows Management directly (no dead void mid-menu). */}
+        <SidebarGroup className="md:mt-auto">
           <SidebarGroupLabel>More</SidebarGroupLabel>
           <SidebarGroupContent>
             <NavMain items={data.more} />

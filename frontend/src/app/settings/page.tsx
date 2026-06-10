@@ -449,9 +449,9 @@ function SettingsPageContent() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Avatar Section */}
-                  <div className="flex items-center gap-4">
-                    <div>
+                  {/* Avatar Section — stacks on phones, row from sm up */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="shrink-0">
                       <UserAvatar
                         user={{
                           full_name: profile?.full_name || '',
@@ -459,13 +459,13 @@ function SettingsPageContent() {
                           avatar_config: avatarConfig
                         }}
                         size={80}
-                        className="h-20 w-20"
+                        className="h-16 w-16 sm:h-20 sm:w-20"
                       />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium">{profile?.full_name}</h3>
-                      <p className="text-sm text-muted-foreground">{profile?.email}</p>
-                      <div className="flex items-center gap-2 mt-2">
+                    <div className="flex-1 min-w-0 w-full">
+                      <h3 className="font-medium truncate">{profile?.full_name}</h3>
+                      <p className="text-sm text-muted-foreground truncate">{profile?.email}</p>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
                         <AvatarSelectionDialog
                           currentAvatarConfig={avatarConfig}
                           userName={profile?.full_name || profile?.email || 'User'}

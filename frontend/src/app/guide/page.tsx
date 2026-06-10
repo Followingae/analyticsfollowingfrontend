@@ -793,7 +793,7 @@ export default function GuidePage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search the guide... (e.g. campaigns, credits, proposals)"
+                placeholder="Search the guide…"
                 className="pl-10 h-11"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -34,8 +34,18 @@ const aedFont = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Following - Instagram Analytics Platform", 
+  title: "Following - Instagram Analytics Platform",
   description: "Professional Instagram Analytics Platform with AI-powered insights, SmartProxy integration, and comprehensive social media analytics.",
+};
+
+// maximumScale: 1 stops iOS Safari's auto-zoom when an input is focused —
+// the single biggest "this is a website, not an app" tell on mobile.
+// (iOS still allows accessibility pinch-zoom regardless of this setting.)
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 
