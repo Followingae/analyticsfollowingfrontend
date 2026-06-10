@@ -898,72 +898,10 @@ function SettingsPageContent() {
             </TabsContent>
 
             {/* Preferences Tab */}
+            {/* Timezone + Language selectors removed (June 2026): they persisted
+                values nothing consumed — no i18n is wired and no formatter reads
+                the timezone. Re-add Language when Arabic localization ships. */}
             <TabsContent value="preferences" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Globe className="h-5 w-5" />
-                    Personal Preferences
-                  </CardTitle>
-                  <CardDescription>
-                    Customize your experience
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="timezone">Timezone</Label>
-                      <Select
-                        value={preferencesForm.timezone || 'UTC'}
-                        onValueChange={(value) => setPreferencesForm(prev => ({ ...prev, timezone: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select timezone" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="UTC">UTC</SelectItem>
-                          <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                          <SelectItem value="America/Chicago">Central Time</SelectItem>
-                          <SelectItem value="America/Denver">Mountain Time</SelectItem>
-                          <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
-                          <SelectItem value="Europe/London">London</SelectItem>
-                          <SelectItem value="Europe/Paris">Paris</SelectItem>
-                          <SelectItem value="Asia/Dubai">Dubai</SelectItem>
-                          <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="language">Language</Label>
-                      <Select
-                        value={preferencesForm.language || 'en'}
-                        onValueChange={(value) => setPreferencesForm(prev => ({ ...prev, language: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select language" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="en">English</SelectItem>
-                          <SelectItem value="es">Spanish</SelectItem>
-                          <SelectItem value="fr">French</SelectItem>
-                          <SelectItem value="de">German</SelectItem>
-                          <SelectItem value="it">Italian</SelectItem>
-                          <SelectItem value="pt">Portuguese</SelectItem>
-                          <SelectItem value="ar">Arabic</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <Button onClick={savePreferences} disabled={saving}>
-                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Preferences
-                  </Button>
-                </CardContent>
-              </Card>
-
               {/* Privacy Settings */}
               <Card>
                 <CardHeader>

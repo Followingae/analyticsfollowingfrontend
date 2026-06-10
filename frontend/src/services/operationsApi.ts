@@ -105,6 +105,15 @@ class OperationsApiService {
     });
   }
 
+  /** Lifecycle change — powers Danger Zone Archive (status: active|completed|archived). */
+  async updateCampaignStatus(campaignId: string, status: 'active' | 'completed' | 'archived') {
+    return this.getJson(`${this.baseUrl}/campaigns/${campaignId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+  }
+
   // ============= Production (per workstream type) =============
   private post(url: string, data: any) {
     return this.getJson(url, {

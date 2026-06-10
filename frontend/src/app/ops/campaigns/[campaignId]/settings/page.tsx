@@ -18,6 +18,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 import {
   Select,
@@ -223,6 +234,33 @@ export default function SettingsPage() {
         u.id === userId ? { ...u, [permission]: !u[permission] } : u
       )
     }));
+  };
+
+  const handleResetSettings = async () => {
+    setSaving(true);
+    try {
+      // Persist an empty object — loadSettings merges over defaults, so this
+      // is a true reset to defaults, not a delete.
+      await operationsApi.updateCampaignSettings(campaignId, {});
+      toast.success('Settings reset to defaults');
+      await loadSettings();
+    } catch {
+      toast.error('Failed to reset settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleArchiveCampaign = async () => {
+    setSaving(true);
+    try {
+      await operationsApi.updateCampaignStatus(campaignId, 'archived');
+      toast.success('Campaign archived');
+      router.push('/ops');
+    } catch {
+      toast.error('Failed to archive campaign');
+      setSaving(false);
+    }
   };
 
   if (!userAccess.permissions.view_internal_notes) {
@@ -715,9 +753,26 @@ export default function SettingsPage() {
                   Reset all settings to default values
                 </p>
               </div>
-              <Button variant="destructive" size="sm" disabled title="Coming soon">
-                Reset Settings
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={saving}>
+                    Reset Settings
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset all settings?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Visibility, approvals, templates, notifications and client users
+                      will return to their default values. This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetSettings}>Reset</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
             <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg">
               <div>
@@ -726,9 +781,26 @@ export default function SettingsPage() {
                   Archive this campaign and all its data
                 </p>
               </div>
-              <Button variant="destructive" size="sm" disabled title="Coming soon">
-                Archive Campaign
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={saving}>
+                    Archive Campaign
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Archive this campaign?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      The campaign moves to archived status and disappears from active
+                      dashboards. You can restore it later by changing its status.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleArchiveCampaign}>Archive</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </CardContent>

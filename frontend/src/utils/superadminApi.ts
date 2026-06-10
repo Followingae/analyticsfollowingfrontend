@@ -1,8 +1,7 @@
 // DEPRECATED: Prefer @/services/superadminApi (SuperadminApiService) for new code.
 // This file is the legacy axios-based API layer. Consumers still using it:
 //   - SuperadminDashboard.tsx, EditUserModal.tsx, SuperadminBilling.tsx,
-//     SuperadminUserManagement.tsx, SuperadminUserManagementClean.tsx,
-//     admin/users/create/page.tsx
+//     SuperadminUserManagement.tsx, admin/users/create/page.tsx
 // Migration plan: move unique methods to @/services/superadminApi, then
 // update all consumers and delete this file.
 import axios from 'axios';

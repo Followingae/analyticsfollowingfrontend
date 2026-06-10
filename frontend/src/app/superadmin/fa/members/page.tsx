@@ -525,6 +525,17 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
                   </Badge>
                   <Button
                     size="sm"
+                    variant="outline"
+                    onClick={handleRunAnalytics}
+                    disabled={analyzing || member.analytics_status === "processing"}
+                    className="h-7 px-2 text-xs"
+                    title="Run Creator Analytics on this member's Instagram"
+                  >
+                    <Sparkles className={`h-3.5 w-3.5 mr-1 ${analyzing ? "animate-pulse" : ""}`} />
+                    {analyzing || member.analytics_status === "processing" ? "Analyzing…" : "Run Analytics"}
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="ghost"
                     onClick={() => setDeleteConfirm(true)}
                     className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 px-2"

@@ -53,6 +53,7 @@ import {
 import {
   Plus,
   MoreVertical,
+  UserPlus,
   ChevronRight,
   FileVideo,
   Edit,
@@ -143,6 +144,11 @@ const DeliverablesTab = ({
   const [bulkStatus, setBulkStatus] = useState('');
   const [filterStatus, setFilterStatus] = useState<DeliverableStatus | 'all'>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Assign-creator dialog (creates an ops_assignments row linked to the deliverable)
+  const [assignTarget, setAssignTarget] = useState<Deliverable | null>(null);
+  const [assignUsername, setAssignUsername] = useState('');
+  const [assignName, setAssignName] = useState('');
+  const [assignBusy, setAssignBusy] = useState(false);
 
   useEffect(() => {
     loadDeliverables();
@@ -235,6 +241,30 @@ const DeliverablesTab = ({
       toast.error('Failed to delete');
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const handleAssignCreator = async () => {
+    if (!assignTarget || !assignUsername.trim()) {
+      toast.error('Enter the creator username');
+      return;
+    }
+    setAssignBusy(true);
+    try {
+      await operationsApi.createAssignment(workstreamId, {
+        creator_username: assignUsername.trim().replace(/^@/, ''),
+        creator_name: assignName.trim() || undefined,
+        deliverable_id: assignTarget.id,
+      });
+      toast.success(`Assigned @${assignUsername.trim().replace(/^@/, '')}`);
+      setAssignTarget(null);
+      setAssignUsername('');
+      setAssignName('');
+      loadDeliverables();
+    } catch {
+      toast.error('Failed to assign creator');
+    } finally {
+      setAssignBusy(false);
     }
   };
 
@@ -386,6 +416,46 @@ const DeliverablesTab = ({
         )}
       </div>
 
+      {/* Assign Creator Dialog */}
+      <Dialog open={!!assignTarget} onOpenChange={(open) => { if (!open) setAssignTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign creator</DialogTitle>
+            <DialogDescription>
+              {assignTarget ? `Link a creator to "${assignTarget.title}"` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="assign-username">Instagram username *</Label>
+              <Input
+                id="assign-username"
+                placeholder="@creator"
+                value={assignUsername}
+                onChange={(e) => setAssignUsername(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="assign-name">Display name</Label>
+              <Input
+                id="assign-name"
+                placeholder="Creator full name (optional)"
+                value={assignName}
+                onChange={(e) => setAssignName(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignTarget(null)} disabled={assignBusy}>Cancel</Button>
+            <Button onClick={handleAssignCreator} disabled={assignBusy || !assignUsername.trim()}>
+              {assignBusy ? 'Assigning…' : 'Assign'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Deliverables Table */}
       {filteredDeliverables.length === 0 ? (
         <Alert>
@@ -509,8 +579,9 @@ const DeliverablesTab = ({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem disabled title="Creator assignment — backend pending">
-                          Assign creator (soon)
+                        <DropdownMenuItem onClick={() => setAssignTarget(deliverable)}>
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Assign creator
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem

@@ -52,6 +52,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export const dynamic = 'force-dynamic'
 
@@ -67,7 +74,6 @@ export default function SuperadminUsersPage() {
   const [planFilter, setPlanFilter] = useState("all")
   
   // Dialogs
-  const [isEditUserOpen, setIsEditUserOpen] = useState(false)
   const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserManagement | null>(null)
 
@@ -107,6 +113,30 @@ export default function SuperadminUsersPage() {
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
   }, [searchQuery, statusFilter, typeFilter, planFilter])
+
+  const handleExport = () => {
+    if (users.length === 0) {
+      toast.info('Nothing to export')
+      return
+    }
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const rows = [
+      ['Name', 'Email', 'Role', 'Team', 'Status', 'Credits', 'Created', 'Updated'].join(','),
+      ...users.map(u => [
+        esc(u.full_name), esc(u.email), esc(u.role),
+        esc(u.teams?.[0]?.name || 'Individual'), esc(u.status),
+        esc(u.credits?.balance ?? 0), esc(u.created_at), esc(u.updated_at),
+      ].join(',')),
+    ]
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success(`Exported ${users.length} users`)
+  }
 
   const handleUpdateUserStatus = async (userId: string, status: 'active' | 'suspended' | 'deactivated', reason?: string) => {
     try {
@@ -288,7 +318,7 @@ export default function SuperadminUsersPage() {
                   </Select>
                 </div>
                 
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
                   <Download className="h-4 w-4" />
                   Export
                 </Button>
@@ -414,6 +444,64 @@ export default function SuperadminUsersPage() {
                   )}
                 </CardContent>
               </Card>
+
+      {/* View Details */}
+      <Dialog open={isUserDetailsOpen} onOpenChange={setIsUserDetailsOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedUser?.full_name || 'User details'}</DialogTitle>
+            <DialogDescription>{selectedUser?.email}</DialogDescription>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Role</p>
+                  <p className="font-medium capitalize mt-0.5">{selectedUser.role}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <Badge variant={getStatusVariant(selectedUser.status)} className="capitalize mt-0.5">
+                    {selectedUser.status}
+                  </Badge>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Credits balance</p>
+                  <p className="font-medium tabular-nums mt-0.5">{formatNumber(selectedUser.credits?.balance || 0)}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Credits spent</p>
+                  <p className="font-medium tabular-nums mt-0.5">{formatNumber(selectedUser.credits?.spent || 0)}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Created</p>
+                  <p className="font-medium mt-0.5">{selectedUser.created_at ? formatDate(selectedUser.created_at) : '--'}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Last updated</p>
+                  <p className="font-medium mt-0.5">{selectedUser.updated_at ? formatDate(selectedUser.updated_at) : '--'}</p>
+                </div>
+              </div>
+              {selectedUser.teams?.length > 0 && (
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground mb-2">Teams</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedUser.teams.map((t, i) => (
+                      <Badge key={i} variant="secondary">{t.name} · {t.role}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button size="sm" onClick={() => { setIsUserDetailsOpen(false); router.push(`/superadmin/users/${selectedUser.id}`) }}>
+                  <Edit className="h-3.5 w-3.5 mr-2" />
+                  Edit User
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       </div>
     </SuperadminLayout>
   )
