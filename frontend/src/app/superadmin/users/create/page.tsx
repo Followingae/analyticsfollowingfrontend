@@ -345,6 +345,7 @@ export default function CreateBrandAccountPage() {
                 <label className="text-sm font-medium">Email *</label>
                 <Input
                   type="email"
+                  autoComplete="email"
                   placeholder="brand@company.com"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
