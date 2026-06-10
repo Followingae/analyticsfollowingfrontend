@@ -1,12 +1,6 @@
-"use client"
+import { redirect } from "next/navigation"
 
-import SuperadminUserManagement from "@/components/admin/SuperadminUserManagement"
-import { AuthGuard } from "@/components/AuthGuard"
-
-export default function AdminUsersPage() {
-  return (
-    <AuthGuard requiredRole="admin">
-      <SuperadminUserManagement />
-    </AuthGuard>
-  )
+// User management has one canonical home: /superadmin/users.
+export default function LegacyAdminUsersRedirect() {
+  redirect("/superadmin/users")
 }

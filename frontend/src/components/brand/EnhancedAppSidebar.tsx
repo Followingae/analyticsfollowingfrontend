@@ -30,6 +30,7 @@ import {
   Compass as IconCompass,
   List as IconList,
   FileText as IconFileText,
+  Bell as IconBell,
 } from "lucide-react"
 
 function ThemeLogo() {
@@ -139,6 +140,11 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         title: "Billing",
         url: "/billing",
         icon: IconCreditCard,
+      },
+      {
+        title: "Notifications",
+        url: "/notifications",
+        icon: IconBell,
       },
       {
         title: "Settings",

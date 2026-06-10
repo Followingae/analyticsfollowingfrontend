@@ -1,12 +1,6 @@
-"use client"
+import { redirect } from "next/navigation"
 
-import SuperadminBilling from "@/components/admin/SuperadminBilling"
-import { AuthGuard } from "@/components/AuthGuard"
-
-export default function AdminBillingPage() {
-  return (
-    <AuthGuard requiredRole="admin">
-      <SuperadminBilling />
-    </AuthGuard>
-  )
+// Billing ops lives in the operator console now.
+export default function LegacyAdminBillingRedirect() {
+  redirect("/superadmin/billing")
 }

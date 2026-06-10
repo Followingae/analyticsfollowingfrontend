@@ -27,11 +27,13 @@ const ROUTE_MODULES: { prefix: string; module: AdminModule }[] = [
   { prefix: "/superadmin/influencers", module: "influencers" },
   { prefix: "/superadmin/fa", module: "fa" },
   { prefix: "/superadmin/system", module: "system" },
+  { prefix: "/superadmin/billing", module: "billing" },
 ]
 const MODULE_HOME: Record<string, string> = {
   operations: "/superadmin/operations", clients: "/superadmin/clients", users: "/superadmin/users",
   campaigns: "/superadmin/campaigns", proposals: "/superadmin/proposals",
   influencers: "/superadmin/influencers", fa: "/superadmin/fa", system: "/superadmin/system",
+  billing: "/superadmin/billing",
 }
 
 /** Redirects a module-scoped admin away from a page they can't access. */

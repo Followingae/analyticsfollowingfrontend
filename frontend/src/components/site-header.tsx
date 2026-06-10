@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Balloons } from "@/components/ui/balloons"
 import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
-import { useMemo, useState, useEffect, useRef } from "react"
+import React, { useMemo, useState, useEffect, useRef } from "react"
 import { Crown, Coins, PartyPopper, LogOut, BookOpen } from "lucide-react"
 import { creditsApiService } from "@/services/creditsApi"
 import { teamApiService, TeamContext } from "@/services/teamApi"
@@ -22,6 +22,16 @@ import {
 } from '@/components/ui/tooltip'
 import { NotificationBell } from '@/components/ui/notification'
 import { useNotifications } from '@/contexts/NotificationContext'
+import { getRouteTrail } from '@/lib/routeRegistry'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+import Link from 'next/link'
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -30,20 +40,8 @@ export function SiteHeader() {
   const { user, isLoading, isBrandUser, logout } = useEnhancedAuth()
   const { notifications, unreadCounts, markAsRead, markAllAsRead } = useNotifications()
 
-  const getPageTitle = () => {
-    if (pathname === '/campaigns') return 'Campaigns'
-    if (pathname === '/campaigns/new') return 'New Campaign'
-    if (pathname.startsWith('/campaigns/')) return 'Campaign Details'
-    if (pathname === '/creators') return 'Creators'
-    if (pathname === '/my-lists') return 'My Lists'
-    if (pathname.startsWith('/my-lists/')) return 'List Details'
-    if (pathname === '/settings') return 'Settings'
-    if (pathname === '/discover') return 'Discover'
-    if (pathname === '/billing') return 'Billing'
-    if (pathname === '/teams') return 'Teams'
-    if (pathname === '/proposals') return 'Proposals'
-    return null
-  }
+  // Registry-driven breadcrumb trail (covers brand + operator routes)
+  const trail = getRouteTrail(pathname || '/')
 
   const [teamContext, setTeamContext] = useState<TeamContext | null>(null)
   const [contextLoading, setContextLoading] = useState(true)
@@ -182,8 +180,25 @@ export function SiteHeader() {
             )}
           </div>
         )}
-        {!isDashboard && getPageTitle() && (
-          <h1 className="text-sm font-semibold text-foreground truncate">{getPageTitle()}</h1>
+        {!isDashboard && trail.length > 0 && (
+          <Breadcrumb className="min-w-0">
+            <BreadcrumbList className="flex-nowrap text-sm">
+              {trail.map((crumb) => (
+                <React.Fragment key={crumb.href}>
+                  <BreadcrumbItem className="truncate">
+                    {crumb.isLast ? (
+                      <BreadcrumbPage className="font-semibold truncate">{crumb.title}</BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink asChild className="hidden sm:inline-flex truncate">
+                        <Link href={crumb.href}>{crumb.title}</Link>
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                  {!crumb.isLast && <BreadcrumbSeparator className="hidden sm:block" />}
+                </React.Fragment>
+              ))}
+            </BreadcrumbList>
+          </Breadcrumb>
         )}
 
         {/* Right side: badges + actions */}

@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ChevronRight, type LucideIcon } from "lucide-react"
 import {
@@ -17,6 +18,17 @@ import {
 } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 
+/**
+ * Prefix-aware active state: detail pages highlight their parent nav item
+ * (e.g. /campaigns/123/posts keeps "Campaigns" active). Root ("/") only
+ * matches exactly so it doesn't light up for every route.
+ */
+function isPathActive(pathname: string, url: string): boolean {
+  if (!url || url === "#") return false
+  if (url === "/") return pathname === "/"
+  return pathname === url || pathname.startsWith(url + "/")
+}
+
 export function NavMain({
   items,
 }: {
@@ -30,16 +42,15 @@ export function NavMain({
     }[]
   }[]
 }) {
-  const pathname = usePathname()
+  const pathname = usePathname() || ""
 
   return (
     <SidebarMenu>
       {items.map((item) => {
-        const isActive = pathname === item.url
         const hasSubItems = item.items && item.items.length > 0
 
         if (hasSubItems) {
-          const isSubActive = item.items?.some(subItem => pathname === subItem.url)
+          const isSubActive = item.items?.some(subItem => isPathActive(pathname, subItem.url))
 
           return (
             <Collapsible
@@ -58,21 +69,29 @@ export function NavMain({
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    {item.items?.map((subItem) => {
-                      const isSubItemActive = pathname === subItem.url
+                    {(() => {
+                      // Longest matching prefix wins, so "All Campaigns" (/campaigns)
+                      // yields to "Create Campaign" (/campaigns/create) on that page
+                      // but stays active on /campaigns/123 detail pages.
+                      const best = item.items
+                        ?.filter(s => isPathActive(pathname, s.url))
+                        .sort((a, b) => b.url.length - a.url.length)[0]
+                      return item.items?.map((subItem) => {
+                      const isSubItemActive = best?.url === subItem.url
                       return (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton
                             asChild
                             isActive={isSubItemActive}
                           >
-                            <a href={subItem.url}>
+                            <Link href={subItem.url}>
                               <span>{subItem.title}</span>
-                            </a>
+                            </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       )
-                    })}
+                    })
+                    })()}
                   </SidebarMenuSub>
                 </CollapsibleContent>
               </SidebarMenuItem>
@@ -80,6 +99,7 @@ export function NavMain({
           )
         }
 
+        const isActive = isPathActive(pathname, item.url)
         return (
           <SidebarMenuItem key={item.title}>
             <SidebarMenuButton
@@ -90,10 +110,10 @@ export function NavMain({
                 isActive && "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
               )}
             >
-              <a href={item.url}>
+              <Link href={item.url}>
                 {item.icon && <item.icon className="size-4" />}
                 <span>{item.title}</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         )

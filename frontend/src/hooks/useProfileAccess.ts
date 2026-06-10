@@ -70,7 +70,7 @@ export function useProfileAccess(): UseProfileAccessResult {
               description: 'Please log in to unlock profiles.',
               action: {
                 label: 'Login',
-                onClick: () => window.location.href = '/login'
+                onClick: () => window.location.href = '/auth/login'
               }
             })
           } else if (errorMessage.includes('Rate limit')) {

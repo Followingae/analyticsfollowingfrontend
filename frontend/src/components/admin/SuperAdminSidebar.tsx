@@ -117,9 +117,10 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     { title: "Receipt Claims", url: "/superadmin/fa/receipt-claims", icon: Receipt },
   ] : []
 
-  const systemItems = can("system") ? [
-    { title: "System", url: "/superadmin/system", icon: Wrench },
-  ] : []
+  const systemItems = [
+    ...(can("billing") ? [{ title: "Billing", url: "/superadmin/billing", icon: Banknote }] : []),
+    ...(can("system") ? [{ title: "System", url: "/superadmin/system", icon: Wrench }] : []),
+  ]
 
   // Content pages not yet built — removing dead links
   // Backend endpoints exist at /admin/content/profiles and /admin/content/unlocks

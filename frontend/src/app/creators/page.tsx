@@ -53,6 +53,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { CreatorGridCard, ProcessingCreatorCard } from "@/components/creator-cards"
 import ReactCountryFlag from "react-country-flag"
 import { getCountryCode } from "@/lib/countryUtils"
@@ -63,6 +73,8 @@ export const dynamic = 'force-dynamic'
 export default function CreatorsPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchUsername, setSearchUsername] = useState("")
+  // Unlock requires explicit consent (25 credits) — same UX as Discovery.
+  const [pendingUnlock, setPendingUnlock] = useState<{ username: string; profileId: string } | null>(null)
   const [analyzingCreators, setAnalyzingCreators] = useState<Set<string>>(new Set())
   const [currentPage, setCurrentPage] = useState(1)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -199,21 +211,20 @@ export default function CreatorsPage() {
     try {
       const result = await creatorSearchMutation.mutateAsync(cleanUsername)
 
-      // Auto-unlock if profile requires it (existing profile, not yet unlocked)
+      // Existing profile not yet unlocked: this costs 25 credits, so ask first
+      // (was a silent auto-unlock — same consent dialog as Discovery now).
       if (result.preview_mode || result.unlock_required) {
         if (!result.profile?.id) {
           throw new Error('Profile not found')
         }
-
-        toast.loading(`Unlocking @${cleanUsername}...`, { id: `unlock-${cleanUsername}` })
-
-        const unlockResult = await discoveryService.unlockProfile(result.profile.id)
-
-        toast.dismiss(`unlock-${cleanUsername}`)
-
-        if (!unlockResult.success) {
-          throw new Error(unlockResult.error || 'Unlock failed')
-        }
+        setAnalyzingCreators(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(cleanUsername)
+          return newSet
+        })
+        removeProcessingToast(cleanUsername)
+        setPendingUnlock({ username: cleanUsername, profileId: result.profile.id })
+        return
       }
 
       // Always dispatch credit balance update (worker auto-unlock also spends credits)
@@ -247,6 +258,42 @@ export default function CreatorsPage() {
       } else {
         toast.error(error.message || "Search failed. Please try again.")
       }
+    }
+  }
+
+  const confirmPendingUnlock = async () => {
+    if (!pendingUnlock) return
+    const { username, profileId } = pendingUnlock
+    setPendingUnlock(null)
+    addProcessingToast(username)
+    setAnalyzingCreators(prev => new Set([...prev, username]))
+    try {
+      toast.loading(`Unlocking @${username}...`, { id: `unlock-${username}` })
+      const unlockResult = await discoveryService.unlockProfile(profileId)
+      toast.dismiss(`unlock-${username}`)
+      if (!unlockResult.success) {
+        throw new Error(unlockResult.error || 'Unlock failed')
+      }
+      window.dispatchEvent(new CustomEvent('credit-balance-changed'))
+      await new Promise(resolve => setTimeout(resolve, 500))
+      await unlockedCreatorsQuery.refetch()
+      toast.success(`@${username} unlocked and added to your portfolio!`)
+    } catch (error: any) {
+      toast.dismiss(`unlock-${username}`)
+      if (error.message?.includes('team_limit_exceeded')) {
+        toast.error('Monthly profile limit reached. Upgrade your plan for more unlocks.')
+      } else if (error.message?.includes('Insufficient credits') || error.message?.includes('402')) {
+        toast.error('Insufficient credits. Please top up to unlock this creator.')
+      } else {
+        toast.error(error.message || 'Unlock failed. Please try again.')
+      }
+    } finally {
+      setAnalyzingCreators(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(username)
+        return newSet
+      })
+      removeProcessingToast(username)
     }
   }
 
@@ -385,8 +432,29 @@ export default function CreatorsPage() {
                       </div>
                     </DialogContent>
                   </Dialog>
+
+                  {/* Unlock consent — 25 credits is never spent silently */}
+                  <AlertDialog open={!!pendingUnlock} onOpenChange={(open) => { if (!open) setPendingUnlock(null) }}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Unlock @{pendingUnlock?.username}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This creator is already in our database. Unlocking costs{" "}
+                          <span className="font-semibold text-foreground">25 credits</span> and gives your team
+                          full analytics access for 30 days.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmPendingUnlock}>
+                          <Unlock className="h-4 w-4 mr-2" />
+                          Unlock for 25 credits
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
-                
+
                 {/* Search and Filters in one row */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
                   <div className="relative">

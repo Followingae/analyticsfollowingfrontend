@@ -31,7 +31,19 @@ export default function LoginPage() {
       const success = await login(email, password)
 
       if (success) {
-        router.push('/dashboard')
+        // Centralized role-aware landing (operators -> /superadmin, brands -> /dashboard)
+        const { roleHome } = await import('@/lib/roleHome')
+        let role: string | null = null
+        let userEmail: string | null = email
+        try {
+          const stored = localStorage.getItem('user_data') || localStorage.getItem('user')
+          if (stored) {
+            const u = JSON.parse(stored)
+            role = u?.role ?? null
+            userEmail = u?.email ?? email
+          }
+        } catch { /* fall through to default */ }
+        router.push(roleHome(role, userEmail))
       }
       // Error toast is already shown by AuthContext.login()
     } catch (error: any) {
