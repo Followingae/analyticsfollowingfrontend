@@ -174,14 +174,15 @@ export default function NotificationsPage() {
                 </div>
               </div>
 
-              {/* Main layout: sidebar tabs + content */}
-              <div className="grid grid-cols-12 gap-6">
+              {/* Main layout: rail + content — stacks on mobile (tabs become a
+                  horizontal swipeable row; the 12-col grid only kicks in at lg) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
 
-                {/* Left sidebar - category tabs */}
-                <div className="col-span-3">
+                {/* Category tabs: horizontal scroll on mobile, vertical rail on lg+ */}
+                <div className="lg:col-span-3">
                   <Card>
                     <CardContent className="p-2">
-                      <nav className="space-y-0.5">
+                      <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-0 lg:space-y-0.5">
                         {CATEGORY_TABS.map(tab => {
                           const count = tab.countKey ? unreadCounts[tab.countKey] : unreadCounts.total_unread
                           const isActive = activeCategory === tab.key
@@ -190,7 +191,7 @@ export default function NotificationsPage() {
                               key={tab.key}
                               onClick={() => setActiveCategory(tab.key)}
                               className={cn(
-                                "w-full flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                                "shrink-0 lg:w-full flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
                                 isActive
                                   ? "bg-primary text-primary-foreground"
                                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -217,7 +218,7 @@ export default function NotificationsPage() {
                 </div>
 
                 {/* Main content */}
-                <div className="col-span-9">
+                <div className="lg:col-span-9">
                   <Card>
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">

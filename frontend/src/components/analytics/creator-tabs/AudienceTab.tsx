@@ -601,7 +601,7 @@ function AudienceTab({ audience, security }: AudienceTabProps) {
                 <CardContent>
                   <ChartContainer
                     config={genderChartConfig}
-                    className="mx-auto aspect-square max-h-[260px]"
+                    className="mx-auto h-[260px] w-full max-w-[260px]"
                   >
                     <PieChart>
                       <ChartTooltip

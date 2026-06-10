@@ -430,7 +430,7 @@ export function FirstPartyAudienceAnalytics({
                 <CardDescription>Audience breakdown by gender</CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={genderChartConfig} className="mx-auto aspect-square max-h-[260px]">
+                <ChartContainer config={genderChartConfig} className="mx-auto h-[260px] w-full max-w-[260px]">
                   <PieChart>
                     <ChartTooltip
                       cursor={false}

@@ -572,7 +572,7 @@ function OverviewTab({
                 <CardContent>
                   <ChartContainer
                     config={langDistData.config}
-                    className="mx-auto aspect-square max-h-[260px]"
+                    className="mx-auto h-[260px] w-full max-w-[260px]"
                   >
                     <PieChart>
                       <ChartTooltip

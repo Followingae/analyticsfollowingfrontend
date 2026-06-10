@@ -427,7 +427,7 @@ export function ComprehensiveAIInsights({
                     real: { label: 'Real Audience', color: 'var(--chart-2)' },
                     suspicious: { label: 'Suspicious', color: 'var(--chart-5)' }
                   }}
-                  className="mx-auto aspect-square max-h-[200px]"
+                  className="mx-auto h-[200px] w-full max-w-[200px]"
                 >
                   <PieChart>
                     <ChartTooltip

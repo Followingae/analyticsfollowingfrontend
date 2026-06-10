@@ -131,7 +131,7 @@ export function ChartRemainingCreditsV2() {
       <CardContent className="p-1">
         <ChartContainer
           config={chartConfig}
-          className="w-full aspect-square max-h-[180px]"
+          className="mx-auto h-[180px] w-[180px]"
         >
           <RadialBarChart
             data={chartData}
