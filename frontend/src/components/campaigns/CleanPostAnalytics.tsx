@@ -208,7 +208,7 @@ export function CleanPostAnalytics({ post, index }: CleanPostAnalyticsProps) {
                   <p className="text-sm mt-2 leading-relaxed">{analytics.profile.biography}</p>
                 )}
 
-                <div className="grid grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                   <div className="text-center">
                     <div className="font-bold">{formatNumber(analytics.profile?.followers_count || 0)}</div>
                     <div className="text-xs text-muted-foreground">Followers</div>

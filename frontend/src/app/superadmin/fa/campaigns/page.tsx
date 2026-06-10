@@ -117,7 +117,7 @@ export default function FACampaignsPage() {
     <AuthGuard requiredRole="admin">
       <SuperAdminInterface>
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold">FA Campaigns</h1>
               <p className="text-muted-foreground text-sm">Create and manage cashback, paid deal, and barter campaigns</p>
@@ -144,7 +144,7 @@ export default function FACampaignsPage() {
               const isActive = c.status === "active"
               return (
                 <Card key={c.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 flex items-center justify-between gap-3">
+                  <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
                     <button
                       type="button"
                       onClick={() => router.push(`/campaigns/${c.id}/posts`)}

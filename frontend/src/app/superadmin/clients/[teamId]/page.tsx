@@ -150,7 +150,7 @@ export default function ClientDetailPage() {
       <SuperadminLayout>
         <div className="flex-1 space-y-6">
           <Skeleton className="h-8 w-48" />
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
           </div>
           <Skeleton className="h-[400px]" />
@@ -229,7 +229,7 @@ export default function ClientDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={loadTabData}>
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-7">
           <TabsTrigger value="scope"><FileText className="mr-1.5 h-3.5 w-3.5" />Scope</TabsTrigger>
           <TabsTrigger value="campaigns"><Building2 className="mr-1.5 h-3.5 w-3.5" />Campaigns</TabsTrigger>
           <TabsTrigger value="proposals"><Users className="mr-1.5 h-3.5 w-3.5" />Proposals</TabsTrigger>
@@ -278,7 +278,7 @@ export default function ClientDetailPage() {
           </div>
 
           {/* Summary Row */}
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Total</p><p className="font-bold">{scopeSummary.total_campaigns || 0}</p></CardContent></Card>
             <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Active</p><p className="font-bold text-blue-600">{scopeSummary.active_count || 0}</p></CardContent></Card>
             <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Complete</p><p className="font-bold text-emerald-600">{scopeSummary.complete_count || 0}</p></CardContent></Card>

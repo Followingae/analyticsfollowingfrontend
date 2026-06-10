@@ -214,7 +214,7 @@ export function SafetyRiskAssessment({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="space-y-2">
                   <div className="h-20 w-20 bg-muted rounded-full animate-pulse mx-auto" />

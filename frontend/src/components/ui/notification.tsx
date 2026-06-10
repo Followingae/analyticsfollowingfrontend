@@ -115,7 +115,7 @@ export function NotificationBell({
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-[380px]" sideOffset={8}>
+      <DropdownMenuContent align="end" className="w-[min(380px,calc(100vw-1rem))]" sideOffset={8}>
         {/* Header */}
         <DropdownMenuLabel className="flex items-center justify-between py-2">
           <span className="text-sm font-semibold">Notifications</span>

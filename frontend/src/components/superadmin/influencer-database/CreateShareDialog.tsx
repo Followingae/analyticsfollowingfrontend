@@ -298,7 +298,7 @@ export function CreateShareDialog({ open, onOpenChange, onCreated }: CreateShare
             {/* Results grid */}
             <div className="min-h-[360px]">
               {pickerLoading ? (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Skeleton key={i} className="h-[140px] rounded-lg" />
                   ))}
@@ -310,7 +310,7 @@ export function CreateShareDialog({ open, onOpenChange, onCreated }: CreateShare
                   <p className="text-xs mt-1">Try a different search or add new influencers first.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {pickerResults.map((inf) => {
                     const selected = isSelected(inf.id)
                     return (

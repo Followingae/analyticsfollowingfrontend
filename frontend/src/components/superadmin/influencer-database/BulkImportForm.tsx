@@ -214,7 +214,7 @@ export function BulkImportForm() {
         <Card>
           <CardContent className="pt-5 space-y-4">
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="text-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
                 <CheckCircle className="h-4 w-4 mx-auto mb-1 text-green-600" />
                 <div className="text-xl font-bold text-green-600 tabular-nums">{result.added.length}</div>

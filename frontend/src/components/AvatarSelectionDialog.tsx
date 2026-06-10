@@ -92,7 +92,7 @@ export function AvatarSelectionDialog({
         
         <div className="space-y-6">
           {/* Avatar Selection Grid */}
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 sm:gap-6">
             {AVATAR_VARIANTS.map((variant) => (
               <div 
                 key={variant.value} 

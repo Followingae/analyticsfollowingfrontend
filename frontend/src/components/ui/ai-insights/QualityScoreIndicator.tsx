@@ -285,7 +285,7 @@ export function QualityScoreIndicator({
 
           {/* Quality tier indicators */}
           {size === 'lg' && showDetails && (
-            <div className="grid grid-cols-5 gap-2 pt-2 border-t text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-2 border-t text-center">
               {[
                 { label: 'Poor', active: analysis.tier === 'poor', color: 'text-red-500' },
                 { label: 'Fair', active: analysis.tier === 'average', color: 'text-amber-500' },

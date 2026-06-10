@@ -77,7 +77,7 @@ export default function JobQueuePage() {
           <Link href="/superadmin/system" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="h-4 w-4" /> Back to System
           </Link>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold">Job Queue Management</h1>
               <p className="text-muted-foreground text-sm">View and clean up stuck post analytics jobs</p>
@@ -94,7 +94,7 @@ export default function JobQueuePage() {
         </div>
 
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <AlertTriangle className="h-8 w-8 text-amber-500" />

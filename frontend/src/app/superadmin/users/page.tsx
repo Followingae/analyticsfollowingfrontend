@@ -159,7 +159,7 @@ export default function SuperadminUsersPage() {
       if (result.success) {
         await loadUsers()
         toast.success(`User plan updated to ${plan}`)
-        setIsEditUserOpen(false)
+        setIsUserDetailsOpen(false)
       } else {
         toast.error(result.error || 'Failed to update user plan')
       }
@@ -248,7 +248,7 @@ export default function SuperadminUsersPage() {
       <div className="space-y-6">
               
               {/* Header */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h1 className="text-2xl font-semibold">User Management</h1>
                   <p className="text-sm text-muted-foreground mt-1">Create, manage, and monitor platform users</p>
@@ -276,7 +276,7 @@ export default function SuperadminUsersPage() {
                       placeholder="Search users..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-[250px] pl-10"
+                      className="w-full sm:w-[250px] pl-10"
                     />
                   </div>
                   

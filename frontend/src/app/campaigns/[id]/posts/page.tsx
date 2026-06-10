@@ -1788,7 +1788,7 @@ export default function CampaignDetailsPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="stats" className="space-y-6">
-        <TabsList className={`grid w-full max-w-3xl ${campaign?.has_workflow ? 'grid-cols-5' : 'grid-cols-4'}`}>
+        <TabsList className={`flex w-full max-w-3xl overflow-x-auto md:grid ${campaign?.has_workflow ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
           {campaign?.has_workflow && (
             <TabsTrigger value="workflow">Workflow</TabsTrigger>
           )}

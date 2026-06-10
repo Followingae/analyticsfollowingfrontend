@@ -126,7 +126,7 @@ export function AIStatusIndicator({
             )}
             
             {/* Processing Breakdown */}
-            <div className="grid grid-cols-3 gap-4 w-full max-w-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-sm">
               <div className="text-center p-3 bg-green-100 dark:bg-green-900/50 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="text-xl font-bold text-green-700 dark:text-green-300">
                   ✅ {progress?.analyzed_posts || progress?.completed || '~'}

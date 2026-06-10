@@ -408,7 +408,7 @@ export function CampaignCard({
             </div>
 
             {/* Metrics Grid - Show meaningful data for campaigns */}
-            <div className="grid grid-cols-5 gap-3 mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Reach</p>
                 <div className="flex items-center gap-1">

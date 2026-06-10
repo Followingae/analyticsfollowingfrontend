@@ -328,7 +328,7 @@ export default function EditUserModal({ userId, user: initialUser, onClose, onSu
 
           <form onSubmit={handleSubmit}>
             <Tabs defaultValue="basic" className="mt-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-4">
                 <TabsTrigger value="basic">
                   <User className="h-4 w-4 mr-2" />
                   Basic Info

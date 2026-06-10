@@ -354,7 +354,7 @@ MRR Movement:
               </div>
 
               {/* Summary */}
-              <div className="grid grid-cols-4 gap-4 mb-4 p-4 bg-muted rounded-lg">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 p-4 bg-muted rounded-lg">
                 <div>
                   <p className="text-sm text-muted-foreground">Total</p>
                   <p className="text-lg font-bold">{summaryStats.total}</p>
@@ -528,7 +528,7 @@ MRR Movement:
               <CardTitle>Subscription Overview</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <h3 className="font-semibold text-lg">By Tier</h3>
                   <div className="space-y-1">

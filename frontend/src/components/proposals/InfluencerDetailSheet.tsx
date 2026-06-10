@@ -200,7 +200,7 @@ export function InfluencerDetailSheet({
                     variants={proposalMotion.staggerContainer}
                     initial="hidden"
                     animate="visible"
-                    className="grid grid-cols-3 gap-3"
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-3"
                   >
                     <StandardMetricCard icon={Users} label="Followers" value={formatCount(inf.followers_count)} className="p-0 [&_[class*=CardContent]]:p-3" />
                     <StandardMetricCard icon={Camera} label="Posts" value={formatCount(inf.posts_count)} className="p-0 [&_[class*=CardContent]]:p-3" />
@@ -255,7 +255,7 @@ export function InfluencerDetailSheet({
                     variants={proposalMotion.staggerContainer}
                     initial="hidden"
                     animate="visible"
-                    className="grid grid-cols-3 gap-3"
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-3"
                   >
                     <StandardMetricCard icon={Heart} label="Avg Likes" value={formatCount(inf.avg_likes)} className="p-0 [&_[class*=CardContent]]:p-3" />
                     <StandardMetricCard icon={MessageCircle} label="Avg Comments" value={formatCount(inf.avg_comments)} className="p-0 [&_[class*=CardContent]]:p-3" />

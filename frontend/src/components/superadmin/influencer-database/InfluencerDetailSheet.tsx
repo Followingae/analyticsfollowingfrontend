@@ -47,7 +47,7 @@ export function InfluencerDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[700px] sm:max-w-[700px] overflow-y-auto p-0">
+      <SheetContent className="w-full sm:w-[700px] sm:max-w-[700px] overflow-y-auto p-0">
         <SheetHeader className="p-6 pb-4 border-b">
           <div className="flex items-center gap-4">
             <Avatar className="h-14 w-14">
@@ -79,7 +79,7 @@ export function InfluencerDetailSheet({
         </SheetHeader>
 
         <Tabs defaultValue="overview" className="flex flex-col">
-          <TabsList className="mx-6 mt-4 grid w-auto grid-cols-5">
+          <TabsList className="mx-6 mt-4 grid w-auto grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="pricing">Pricing</TabsTrigger>

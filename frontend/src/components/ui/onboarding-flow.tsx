@@ -174,7 +174,7 @@ export default function OnboardingFlow() {
             <div className="space-y-6">
               <div>
                 <Label className="mb-4 block text-base">Specify Team Size</Label>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {["1-1", "2-10", "10-50", "50+"].map((size) => (
                     <button
                       key={size}

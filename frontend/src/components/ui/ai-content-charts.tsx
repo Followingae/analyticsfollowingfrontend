@@ -167,7 +167,7 @@ export function AIContentCharts({
   return (
     <div className="space-y-6">
       <Tabs defaultValue="content" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-3">
           <TabsTrigger value="content" className="flex items-center gap-2">
             <PieIcon className="h-4 w-4" />
             Content Mix

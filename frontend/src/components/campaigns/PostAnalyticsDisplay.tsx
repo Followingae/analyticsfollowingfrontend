@@ -118,7 +118,7 @@ export function PostAnalyticsDisplay({ post, index }: PostAnalyticsDisplayProps)
 
       <CardContent>
         <Tabs defaultValue="metrics" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-5">
             <TabsTrigger value="metrics">Metrics</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="creator">Creator</TabsTrigger>

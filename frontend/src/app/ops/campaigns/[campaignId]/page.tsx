@@ -231,7 +231,7 @@ export default function CampaignOperationsHome() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="shoots" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-3">
                 <TabsTrigger value="shoots">
                   Shoots ({overview?.this_week.shoots.length || 0})
                 </TabsTrigger>

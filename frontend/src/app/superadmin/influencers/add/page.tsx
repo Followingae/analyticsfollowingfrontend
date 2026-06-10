@@ -32,7 +32,7 @@ export default function AddInfluencerPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="single" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 h-11">
+          <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-3 h-11">
             <TabsTrigger value="single" className="gap-2 text-sm">
               <UserPlus className="h-3.5 w-3.5" />
               Single Add

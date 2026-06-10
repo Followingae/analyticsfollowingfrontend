@@ -259,7 +259,7 @@ export function StripeInspiredPostAnalytics({ post, index }: StripeInspiredPostA
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div className="text-center p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50">
                     <div className="text-2xl font-bold text-blue-900">{formatNumber(normalizedData.creator.followersCount)}</div>
                     <div className="text-sm text-blue-700 font-medium">Followers</div>

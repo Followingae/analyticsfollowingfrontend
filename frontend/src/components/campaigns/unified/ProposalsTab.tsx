@@ -175,7 +175,7 @@ export function ProposalsTab({ searchQuery }: ProposalsTabProps) {
 
         {/* Status Tabs */}
         <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-5">
             <TabsTrigger value="all">All ({proposals.length})</TabsTrigger>
             <TabsTrigger value="sent">
               Pending ({proposals.filter(p => p.status === 'sent').length})

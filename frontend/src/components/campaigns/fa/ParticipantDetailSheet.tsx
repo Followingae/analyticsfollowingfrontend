@@ -250,7 +250,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                 {/* Type-specific summary */}
                 {campaignType === "cashback" && (
                   <Section title="Cashback" icon={<QrCode className="h-4 w-4 text-emerald-600" />}>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <Stat label="Scans" value={participant.cashback.scan_count} />
                       <Stat label="Spend" value={fmtAED(participant.cashback.total_transaction_amount)} />
                       <Stat label="Cashback" value={fmtAED(participant.cashback.total_cashback_amount)} accent />

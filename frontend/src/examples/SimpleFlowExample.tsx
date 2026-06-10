@@ -62,7 +62,7 @@ export function SimpleFlowExample() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="text-center p-4 bg-gray-100 rounded">
           <span className="text-2xl font-bold">
             {profile.followers_count?.toLocaleString()}

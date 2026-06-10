@@ -201,7 +201,7 @@ export function InfluencerPricingTab({ influencer, onSave }: InfluencerPricingTa
       <Separator />
       <div className="space-y-3">
         <h3 className="font-medium text-sm">Margin Summary</h3>
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">

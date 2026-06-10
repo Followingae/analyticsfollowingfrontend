@@ -895,7 +895,7 @@ function StepProfile({
           <Label className="text-sm font-normal text-muted-foreground mb-3">
             Goals <span className="text-muted-foreground/50">(select all that apply)</span>
           </Label>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
             {USE_CASES.map(useCase => {
               const Icon = useCase.icon
               const isSelected = formData.useCases.includes(useCase.value)
@@ -1003,7 +1003,7 @@ function StepPlan({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {PLANS.map((plan) => {
           const isSelected = selectedPlan === plan.id
 

@@ -197,7 +197,7 @@ export function InfluencerSelectionV2({
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[320px] p-0">
+            <DropdownMenuContent align="end" className="w-[min(320px,calc(100vw-1rem))] p-0">
               <div className="p-6 space-y-4">
                 <div className="flex items-center justify-between pb-2">
                   <h3 className="font-semibold">Filter Influencers</h3>

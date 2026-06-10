@@ -207,7 +207,7 @@ export function InfluencerSelectionV3({
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[320px] p-6">
+              <DropdownMenuContent align="end" className="w-[min(320px,calc(100vw-1rem))] p-6">
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">Category</label>
@@ -359,7 +359,7 @@ export function InfluencerSelectionV3({
 
                     {/* Key Metrics - Bold and Prominent */}
                     <div className="px-6 pb-6">
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Followers</p>
                           <p className="text-xl font-bold">

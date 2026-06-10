@@ -825,7 +825,7 @@ function CreateProposalContent() {
                               <X className="h-3.5 w-3.5" />
                             </Button>
                           </div>
-                          <div className="grid grid-cols-5 gap-1.5">
+                          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
                             {STOCK_IMAGES.map((url, i) => (
                               <button
                                 key={i}

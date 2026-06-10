@@ -339,7 +339,7 @@ function MemberDetailDialog({ memberId, name }: { memberId: string; name: string
                 <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   <Wallet className="h-3.5 w-3.5" />Wallet ({wallet.currency || "AED"})
                 </h4>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="rounded-lg bg-muted/50 px-3 py-2">
                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Available</p>
                     <p className="text-sm font-bold">{formatNumber(wallet.balance_available)}</p>
