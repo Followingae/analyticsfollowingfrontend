@@ -51,8 +51,8 @@ export default function TopupPage() {
     setLoading(true)
     try {
       const urls = {
-        success_url: `${window.location.origin}/cashback-pool?topup=success`,
-        cancel_url: `${window.location.origin}/cashback-pool?topup=cancelled`,
+        success_url: `${window.location.origin}/billing?tab=cashback-pool&topup=success`,
+        cancel_url: `${window.location.origin}/billing?tab=cashback-pool&topup=cancelled`,
       }
 
       let res: any
@@ -98,8 +98,8 @@ export default function TopupPage() {
       <BrandUserInterface>
         <div className="max-w-3xl mx-auto space-y-6">
           <div>
-            <Link href="/cashback-pool" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
-              <ArrowLeft className="h-4 w-4" />Back to Pool
+            <Link href="/billing?tab=cashback-pool" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
+              <ArrowLeft className="h-4 w-4" />Back to Cashback Pool
             </Link>
             <h1 className="text-2xl font-bold">Top Up Cashback Pool</h1>
             <p className="text-muted-foreground text-sm">Select a package or enter a custom amount to fund your pool via Stripe (AED)</p>

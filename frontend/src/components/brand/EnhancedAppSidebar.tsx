@@ -30,7 +30,6 @@ import {
   Compass as IconCompass,
   List as IconList,
   FileText as IconFileText,
-  Wallet as IconWallet,
 } from "lucide-react"
 
 function ThemeLogo() {
@@ -134,11 +133,8 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
     ]
 
     const more = [
-      {
-        title: "Cashback Pool",
-        url: "/cashback-pool",
-        icon: IconWallet,
-      },
+      // Cashback Pool lives inside Billing now (/billing?tab=cashback-pool) —
+      // one commercial home, no duplicate destination.
       {
         title: "Billing",
         url: "/billing",

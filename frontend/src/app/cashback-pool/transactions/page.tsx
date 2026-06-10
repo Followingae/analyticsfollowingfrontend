@@ -53,8 +53,8 @@ export default function PoolTransactionsPage() {
       <BrandUserInterface>
         <div className="space-y-6">
           <div>
-            <Link href="/cashback-pool" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
-              <ArrowLeft className="h-4 w-4" />Back to Pool
+            <Link href="/billing?tab=cashback-pool" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
+              <ArrowLeft className="h-4 w-4" />Back to Cashback Pool
             </Link>
             <h1 className="text-2xl font-bold">Pool Transactions</h1>
             <p className="text-muted-foreground text-sm">Complete history of all pool movements</p>

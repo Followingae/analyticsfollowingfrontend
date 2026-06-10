@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -35,9 +36,11 @@ import {
   Download,
   FileText,
   PiggyBank,
-  ArrowUpCircle,
   Plus,
   History,
+  Lock,
+  ArrowUpRight,
+  ArrowDownRight,
 } from 'lucide-react'
 import { billingManager, type BillingStatus } from '@/services/billingManager'
 import { API_CONFIG, ENDPOINTS, getAuthHeaders } from '@/config/api'
@@ -46,12 +49,17 @@ import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { AuthGuard } from '@/components/AuthGuard'
 import { TrialBanner } from '@/components/billing/TrialBanner'
 import { TrialDailyLimitsCard } from '@/components/billing/TrialDailyLimitsCard'
+import { PremiumFeatureGate } from '@/components/ui/premium-feature-gate'
+import { brandPoolApi } from '@/services/faAdminApi'
 
 export default function BillingPage() {
   return (
     <AuthGuard requireAuth={true}>
       <BrandUserInterface>
-        <BillingContent />
+        {/* useSearchParams (tab deep-links) requires a Suspense boundary */}
+        <Suspense>
+          <BillingContent />
+        </Suspense>
       </BrandUserInterface>
     </AuthGuard>
   )
@@ -85,12 +93,27 @@ function UsageBar({ used, limit, label, icon: Icon }: { used: number; limit: num
   )
 }
 
+const BILLING_TABS = ['subscription', 'invoices', 'cashback-pool'] as const
+
 function BillingContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useEnhancedAuth()
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState<BillingStatus | null>(null)
   const [loadingPortal, setLoadingPortal] = useState(false)
+
+  // Deep-linkable tabs: /billing?tab=cashback-pool (the old standalone
+  // /cashback-pool page redirects here).
+  const tabParam = searchParams.get('tab') ?? 'subscription'
+  const activeTab = (BILLING_TABS as readonly string[]).includes(tabParam) ? tabParam : 'subscription'
+
+  // Stripe topup returns land on /billing?tab=cashback-pool&topup=success|cancelled
+  useEffect(() => {
+    const topup = searchParams.get('topup')
+    if (topup === 'success') toast.success('Pool topped up successfully!')
+    if (topup === 'cancelled') toast.info('Topup cancelled')
+  }, [searchParams])
 
   useEffect(() => {
     fetchBillingData()
@@ -267,7 +290,11 @@ function BillingContent() {
           <p className="text-muted-foreground mt-2">Manage your subscription, invoices, and cashback pool</p>
         </div>
 
-        <Tabs defaultValue="subscription" className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => router.replace(v === 'subscription' ? '/billing' : `/billing?tab=${v}`, { scroll: false })}
+          className="space-y-6"
+        >
           <TabsList>
             <TabsTrigger value="subscription">Subscription</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
@@ -825,94 +852,63 @@ function InvoicesTab() {
 
 // ─── Cashback Pool Tab ──────────────────────────────────────────────────────
 
-interface PoolTransaction {
-  id: string
-  type: 'topup' | 'distribution' | 'reservation' | 'release'
-  amount: number
-  description: string
-  created_at: string
-  status: 'completed' | 'pending' | 'failed'
-}
 
 function CashbackPoolTab() {
-  const [poolBalance, setPoolBalance] = useState({
-    available: 0,
-    reserved: 0,
-    distributed: 0,
-  })
-  const [transactions, setTransactions] = useState<PoolTransaction[]>([])
-  const [loading, setLoading] = useState(true)
+  const { hasRole } = useEnhancedAuth()
+  const isFreeTier = hasRole('brand_free')
+  const [balance, setBalance] = useState<any>(null)
+  const [poolTransactions, setPoolTransactions] = useState<any[]>([])
+  const [poolCampaigns, setPoolCampaigns] = useState<any[]>([])
+  const [poolLoading, setPoolLoading] = useState(true)
 
   useEffect(() => {
-    fetchPoolData()
-  }, [])
-
-  const fetchPoolData = async () => {
-    try {
-      setLoading(true)
-      const headers = getAuthHeaders()
-      if (!headers.Authorization) return
-
-      // Try to fetch cashback pool data from API
+    if (isFreeTier) { setPoolLoading(false); return }
+    async function load() {
       try {
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}/api/v1/cashback-pool/balance`,
-          { headers }
-        )
-        if (response.ok) {
-          const data = await response.json()
-          setPoolBalance({
-            available: data.available ?? 0,
-            reserved: data.reserved ?? 0,
-            distributed: data.distributed ?? 0,
-          })
-        }
-      } catch (error) {
-        console.error('Billing API not available:', error)
+        const [b, t, c] = await Promise.all([
+          brandPoolApi.balance(),
+          brandPoolApi.transactions(10, 0),
+          brandPoolApi.campaigns(),
+        ])
+        // Tolerate either { success, data } or a raw payload.
+        const balancePayload = b?.data ?? b
+        const txPayload = t?.data ?? t
+        const campaignsPayload = c?.data ?? c
+        if (balancePayload && typeof balancePayload === 'object') setBalance(balancePayload)
+        setPoolTransactions(Array.isArray(txPayload) ? txPayload : (txPayload?.transactions ?? []))
+        setPoolCampaigns(Array.isArray(campaignsPayload) ? campaignsPayload : (campaignsPayload?.campaigns ?? []))
+      } catch (e: any) {
+        toast.error(e?.message || e?.detail || 'Failed to load pool data')
+      } finally {
+        setPoolLoading(false)
       }
-
-      try {
-        const txResponse = await fetch(
-          `${API_CONFIG.BASE_URL}/api/v1/cashback-pool/transactions?limit=20`,
-          { headers }
-        )
-        if (txResponse.ok) {
-          const txData = await txResponse.json()
-          setTransactions(txData.transactions || [])
-        }
-      } catch (error) {
-        console.error('Billing API not available:', error)
-      }
-    } finally {
-      setLoading(false)
     }
+    load()
+  }, [isFreeTier])
+
+  const fmt = (cents: number) => `AED ${(cents / 100).toLocaleString('en-AE', { minimumFractionDigits: 2 })}`
+
+  if (isFreeTier) {
+    return (
+      <PremiumFeatureGate
+        featureName="Cashback Pool"
+        headline="Influencer Cashback Pool"
+        description="Fund a cashback pool to power influencer campaigns. Influencers earn commission on every purchase they drive through your brand."
+        requiredTier="Standard"
+        highlights={[
+          { icon: Wallet, title: "AED cashback wallet", description: "Top up your pool in AED and allocate funds across multiple influencer campaigns simultaneously." },
+          { icon: TrendingUp, title: "Real-time tracking", description: "Monitor available balance, reserved funds, and distributed payouts with live transaction history." },
+          { icon: PiggyBank, title: "Campaign funding", description: "Automatically reserve and distribute funds as influencers complete deliverables and drive conversions." },
+        ]}
+      />
+    )
   }
 
-  const formatAED = (amount: number) =>
-    new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED' }).format(amount)
-
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    })
-
-  const getTypeBadge = (type: PoolTransaction['type']) => {
-    const map: Record<string, { className: string; label: string }> = {
-      topup: { className: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-0', label: 'Top Up' },
-      distribution: { className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-0', label: 'Distribution' },
-      reservation: { className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-0', label: 'Reserved' },
-      release: { className: 'bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300 border-0', label: 'Released' },
-    }
-    const entry = map[type] || { className: '', label: type }
-    return <Badge className={entry.className}>{entry.label}</Badge>
-  }
-
-  if (loading) {
+  if (poolLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-[120px]" />)}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-[110px]" />)}
         </div>
         <Skeleton className="h-[300px]" />
       </div>
@@ -921,131 +917,122 @@ function CashbackPoolTab() {
 
   return (
     <div className="space-y-6">
-      {/* Pool Balance Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">Manage your AED cashback pool for influencer campaigns</p>
+        <div className="flex gap-2">
+          <Link href="/cashback-pool/transactions">
+            <Button variant="outline" size="sm"><History className="h-4 w-4 mr-2" />All Transactions</Button>
+          </Link>
+          <Link href="/cashback-pool/topup">
+            <Button size="sm"><Plus className="h-4 w-4 mr-2" />Top Up</Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Available Balance</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Available</CardTitle>
+            <Wallet className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/40">
-                <PiggyBank className="h-5 w-5 text-green-700 dark:text-green-300" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{formatAED(poolBalance.available)}</p>
-                <p className="text-xs text-muted-foreground">Ready to distribute</p>
-              </div>
-            </div>
+            <p className="text-2xl font-bold">{balance ? fmt(balance.available_cents ?? 0) : "—"}</p>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Reserved</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Reserved</CardTitle>
+            <Lock className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/40">
-                <Clock className="h-5 w-5 text-amber-700 dark:text-amber-300" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{formatAED(poolBalance.reserved)}</p>
-                <p className="text-xs text-muted-foreground">Pending campaigns</p>
-              </div>
-            </div>
+            <p className="text-2xl font-bold">{balance ? fmt(balance.reserved_cents ?? 0) : "—"}</p>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total Distributed</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Distributed</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/40">
-                <ArrowUpCircle className="h-5 w-5 text-blue-700 dark:text-blue-300" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{formatAED(poolBalance.distributed)}</p>
-                <p className="text-xs text-muted-foreground">All time</p>
-              </div>
-            </div>
+            <p className="text-2xl font-bold">{balance ? fmt(balance.distributed_cents ?? 0) : "—"}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Funded</CardTitle>
+            <PiggyBank className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{balance ? fmt(balance.total_funded_cents ?? 0) : "—"}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Top Up Button */}
-      <div className="flex justify-end">
-        <Button
-          onClick={() => window.location.href = '/cashback-pool/topup'}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Top Up Pool
-        </Button>
-      </div>
-
-      {/* Transaction History */}
+      {/* Recent Transactions */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            Transaction History
-          </CardTitle>
-          <CardDescription>Recent cashback pool transactions</CardDescription>
+          <CardTitle className="text-lg">Recent Transactions</CardTitle>
         </CardHeader>
         <CardContent>
-          {transactions.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                <PiggyBank className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-base font-medium">No transactions yet</h3>
-              <p className="mt-1.5 text-sm text-muted-foreground max-w-sm mx-auto">
-                Your cashback pool transaction history will appear here once you top up or distribute funds.
-              </p>
-            </div>
+          {poolTransactions.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No transactions yet. Top up your pool to get started.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((tx) => (
-                  <TableRow key={tx.id}>
-                    <TableCell className="whitespace-nowrap text-sm">
-                      {formatDate(tx.created_at)}
-                    </TableCell>
-                    <TableCell>{getTypeBadge(tx.type)}</TableCell>
-                    <TableCell className="text-sm max-w-[300px] truncate">
-                      {tx.description}
-                    </TableCell>
-                    <TableCell className={`text-right text-sm font-medium whitespace-nowrap ${
-                      tx.type === 'topup' || tx.type === 'release'
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-red-600 dark:text-red-400'
-                    }`}>
-                      {tx.type === 'topup' || tx.type === 'release' ? '+' : '-'}{formatAED(Math.abs(tx.amount))}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={tx.status === 'completed' ? 'default' : tx.status === 'pending' ? 'outline' : 'destructive'}>
-                        {tx.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="space-y-3">
+              {poolTransactions.map((t: any) => (
+                <div key={t.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <div className="flex items-center gap-3">
+                    {t.amount_cents > 0 ? (
+                      <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <ArrowUpRight className="h-4 w-4 text-green-500" />
+                      </div>
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-red-500/10 flex items-center justify-center">
+                        <ArrowDownRight className="h-4 w-4 text-red-500" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">{t.description || t.type}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(t.created_at).toLocaleDateString("en-AE", { month: "short", day: "numeric", year: "numeric" })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-semibold ${t.amount_cents > 0 ? "text-green-500" : "text-red-500"}`}>
+                      {t.amount_cents > 0 ? "+" : ""}{fmt(t.amount_cents)}
+                    </p>
+                    <Badge variant="outline" className="text-xs">{t.type}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Funded Campaigns */}
+      {poolCampaigns.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Funded Campaigns</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {poolCampaigns.map((c: any) => (
+                <div key={c.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <div>
+                    <p className="text-sm font-medium">{c.name}</p>
+                    <Badge variant="secondary" className="text-xs">{c.campaign_type}</Badge>
+                  </div>
+                  <Badge>{c.status}</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
