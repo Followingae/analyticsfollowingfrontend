@@ -103,16 +103,20 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         url: "/dashboard",
         icon: IconDashboard,
       },
-      {
-        title: "Discovery",
-        url: "/discover",
-        icon: IconCompass,
-      },
+      // One Creators hub: every creator surface lives under a single group
+      // (Discover | My Creators | Shared With Me | Lists) instead of being
+      // scattered across 4 top-level destinations.
       {
         title: "Creators",
         url: "/creators",
         icon: IconUsers,
-      }
+        items: [
+          { title: "Discover", url: "/discover" },
+          { title: "My Creators", url: "/creators" },
+          { title: "Shared With Me", url: "/shared-influencers" },
+          { title: "Lists", url: "/my-lists" },
+        ],
+      },
     ]
 
     const management = [
@@ -126,11 +130,6 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         url: "/proposals",
         icon: IconFileText,
       },
-      {
-        title: "Lists",
-        url: "/my-lists",
-        icon: IconList,
-      }
     ]
 
     const more = [

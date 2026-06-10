@@ -339,7 +339,7 @@ export default function SettingsPage() {
             <CardTitle>Client Visibility Rules</CardTitle>
           </div>
           <CardDescription>
-            Control what clients can see and do in the Operations OS
+            Control what clients can see and do in Operations
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

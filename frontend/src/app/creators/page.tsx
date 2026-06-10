@@ -75,6 +75,10 @@ export default function CreatorsPage() {
   const [searchUsername, setSearchUsername] = useState("")
   // Unlock requires explicit consent (25 credits) — same UX as Discovery.
   const [pendingUnlock, setPendingUnlock] = useState<{ username: string; profileId: string } | null>(null)
+  // Portfolio filters (client-side over the unlocked list)
+  const [filterText, setFilterText] = useState("")
+  const [filterCategory, setFilterCategory] = useState("all")
+  const [filterTier, setFilterTier] = useState("all")
   const [analyzingCreators, setAnalyzingCreators] = useState<Set<string>>(new Set())
   const [currentPage, setCurrentPage] = useState(1)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -108,6 +112,7 @@ export default function CreatorsPage() {
       // Unlock expiry data from backend
       access_granted_at: profile.access_granted_at,
       days_remaining: profile.days_remaining,
+      category: profile.category || profile.ai_primary_content_type || null,
       ai_insights: undefined // Not available in unlocked list
     })
 
@@ -139,6 +144,25 @@ export default function CreatorsPage() {
   const unlockedLoading = unlockedCreatorsQuery.isLoading
   const unlockedError = unlockedCreatorsQuery.error?.message || null
   const pagination = unlockedCreatorsQuery.data?.pagination || { current_page: 1, total_pages: 1, has_next: false }
+
+  // Client-side portfolio filters (name, category, follower tier)
+  const availableCategories = Array.from(
+    new Set(unlockedCreators.map(c => c.category).filter(Boolean))
+  ) as string[]
+  const visibleCreators = unlockedCreators.filter(c => {
+    if (filterText.trim()) {
+      const q = filterText.trim().toLowerCase()
+      if (!c.username?.toLowerCase().includes(q) && !c.full_name?.toLowerCase().includes(q)) return false
+    }
+    if (filterCategory !== 'all' && c.category !== filterCategory) return false
+    if (filterTier !== 'all') {
+      const f = c.followers_count || 0
+      const tier = f >= 1000000 ? 'mega' : f >= 100000 ? 'macro' : f >= 10000 ? 'micro' : 'nano'
+      if (tier !== filterTier) return false
+    }
+    return true
+  })
+  const hasActiveFilters = filterText.trim() !== '' || filterCategory !== 'all' || filterTier !== 'all'
 
   // Robust deduplication utility
   const deduplicateProfiles = (profiles: CreatorProfile[]): CreatorProfile[] => {
@@ -462,24 +486,24 @@ export default function CreatorsPage() {
                     <Input
                       placeholder="Search creators..."
                       className="pl-10 w-full sm:w-[200px]"
+                      value={filterText}
+                      onChange={(e) => setFilterText(e.target.value)}
                     />
                   </div>
-                  
-                  <Select>
-                    <SelectTrigger className="w-full sm:w-[140px]">
+
+                  <Select value={filterCategory} onValueChange={setFilterCategory}>
+                    <SelectTrigger className="w-full sm:w-[160px]">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="fashion">Fashion & Beauty</SelectItem>
-                      <SelectItem value="food">Food & Drink</SelectItem>
-                      <SelectItem value="travel">Travel & Tourism</SelectItem>
-                      <SelectItem value="fitness">Fitness & Health</SelectItem>
-                      <SelectItem value="technology">Technology</SelectItem>
+                      {availableCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
 
-                  <Select>
+                  <Select value={filterTier} onValueChange={setFilterTier}>
                     <SelectTrigger className="w-full sm:w-[120px]">
                       <SelectValue placeholder="Tier" />
                     </SelectTrigger>
@@ -491,10 +515,17 @@ export default function CreatorsPage() {
                       <SelectItem value="mega">Mega (1M+)</SelectItem>
                     </SelectContent>
                   </Select>
-                  
-                  <Button variant="outline" size="sm">
-                    Clear Filters
-                  </Button>
+
+                  {hasActiveFilters && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setFilterText(""); setFilterCategory("all"); setFilterTier("all") }}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" />
+                      Clear Filters
+                    </Button>
+                  )}
 
                   <Button variant="outline" size="sm" onClick={handleRefresh}>
                     <RefreshCw className="h-4 w-4 mr-1" />
@@ -557,8 +588,25 @@ export default function CreatorsPage() {
                     />
                   ))}
 
+                  {/* Filtered-empty hint (portfolio exists, filters match nothing) */}
+                  {!unlockedLoading && !unlockedError && unlockedCreators.length > 0 && visibleCreators.length === 0 && (
+                    <div className="col-span-full flex items-center justify-center py-12">
+                      <div className="text-center space-y-3">
+                        <Search className="h-10 w-10 mx-auto text-muted-foreground" />
+                        <p className="text-muted-foreground">No creators match your filters</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => { setFilterText(""); setFilterCategory("all"); setFilterTier("all") }}
+                        >
+                          Clear Filters
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Creator Cards */}
-                  {!unlockedLoading && unlockedCreators.map((creator, index) => (
+                  {!unlockedLoading && visibleCreators.map((creator, index) => (
                     <CreatorGridCard
                       key={creator.id || creator.pk || creator.username || `creator-${index}`}
                       creator={creator}

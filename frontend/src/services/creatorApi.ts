@@ -73,6 +73,14 @@ export interface CreatorProfile {
   created_at: string;
   updated_at: string;
   ai_insights?: AIInsights;
+  /** Content category (profiles.category, falling back to AI classification). */
+  category?: string | null;
+  // CDN + unlock metadata passed through by list endpoints
+  cdn_avatar_url?: string | null;
+  cdn_url_512?: string | null;
+  cdn_urls?: Record<string, string> | null;
+  access_granted_at?: string;
+  days_remaining?: number;
 }
 
 export interface CreatorPost {

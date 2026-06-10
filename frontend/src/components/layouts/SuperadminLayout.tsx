@@ -10,6 +10,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { useAdminAccess, type AdminModule, ADMIN_MODULES } from "@/hooks/useAdminAccess"
+import { GlobalCommandPalette } from "@/components/GlobalCommandPalette"
 
 interface SuperadminLayoutProps {
   children: React.ReactNode
@@ -28,6 +29,7 @@ const ROUTE_MODULES: { prefix: string; module: AdminModule }[] = [
   { prefix: "/superadmin/fa", module: "fa" },
   { prefix: "/superadmin/system", module: "system" },
   { prefix: "/superadmin/billing", module: "billing" },
+  { prefix: "/ops", module: "operations" },
 ]
 const MODULE_HOME: Record<string, string> = {
   operations: "/superadmin/operations", clients: "/superadmin/clients", users: "/superadmin/users",
@@ -80,6 +82,7 @@ export function SuperadminLayout({
         }
       >
         <SuperAdminSidebar variant="inset" />
+        <GlobalCommandPalette />
         <SidebarInset>
           <SiteHeader />
           <div className="flex flex-1 flex-col">
