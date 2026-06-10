@@ -356,6 +356,7 @@ export default function CreateBrandAccountPage() {
                 <label className="text-sm font-medium">Password * <span className="text-xs text-muted-foreground">(min 8 chars)</span></label>
                 <Input
                   type="password"
+                  autoComplete="new-password"
                   placeholder="SecurePass123!"
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
@@ -375,29 +376,34 @@ export default function CreateBrandAccountPage() {
                   required
                 />
               </div>
+              {accountType === 'brand' && (
+                <div>
+                  <label className="text-sm font-medium">Company</label>
+                  <Input
+                    placeholder="Marketing Agency LLC"
+                    value={formData.company}
+                    onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+              )}
+            </div>
+            {accountType === 'brand' && (
               <div>
-                <label className="text-sm font-medium">Company</label>
+                <label className="text-sm font-medium">Phone Number</label>
                 <Input
-                  placeholder="Marketing Agency LLC"
-                  value={formData.company}
-                  onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                  placeholder="+1-555-0123"
+                  value={formData.phone_number}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
                   className="mt-1"
                 />
               </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Phone Number</label>
-              <Input
-                placeholder="+1-555-0123"
-                value={formData.phone_number}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
-                className="mt-1"
-              />
-            </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Credits & Monthly Limits */}
+        {/* Credits & Monthly Limits (brand accounts only) */}
+        {accountType === 'brand' && (
         <Card>
           <CardHeader>
             <CardTitle>Credits & Monthly Limits</CardTitle>
@@ -444,6 +450,7 @@ export default function CreateBrandAccountPage() {
             </div>
           </CardContent>
         </Card>
+        )}
         </div>
 
         {/* Right Column */}
