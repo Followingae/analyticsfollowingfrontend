@@ -1,7 +1,7 @@
 'use client'
 import { tokenManager } from '@/utils/tokenManager';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,7 +31,7 @@ import {
 import {
   ArrowLeft, Building2, Coins, FileText, Users, Video,
   Calendar, Activity, TrendingUp, AlertCircle, CheckCircle2,
-  Clock, XCircle, ChevronRight
+  Clock, XCircle, ChevronRight, Upload, Loader2
 } from 'lucide-react';
 import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/clientManagementApi';
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
@@ -99,6 +99,25 @@ export default function ClientDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('scope');
   const [scopeYear, setScopeYear] = useState<string>('all');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  const handleLogoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const res = await clientApi.uploadLogo(teamId, file);
+      const url = res?.data?.logo_url;
+      if (url) setClient((prev: any) => (prev ? { ...prev, logo_url: url } : prev));
+    } catch (err) {
+      console.error('Logo upload failed:', err);
+      alert(err instanceof Error ? err.message : 'Logo upload failed');
+    } finally {
+      setUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     if (!teamId) return;
@@ -176,12 +195,30 @@ export default function ClientDetailPage() {
         <Button variant="ghost" size="icon" onClick={() => router.push('/superadmin/clients')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Avatar className="h-16 w-16 border-2 border-border">
-          <AvatarImage src={client.logo_url || undefined} />
-          <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
-            {(client.company_name || client.name || '?').slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        <div className="relative group">
+          <Avatar className="h-16 w-16 border-2 border-border">
+            <AvatarImage src={client.logo_url || undefined} />
+            <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+              {(client.company_name || client.name || '?').slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingLogo}
+            title="Upload / replace logo"
+            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-100"
+          >
+            {uploadingLogo ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={handleLogoSelected}
+          />
+        </div>
         <div>
           <h1 className="text-2xl font-bold">{client.company_name || client.name}</h1>
           <div className="flex items-center gap-2 mt-1">

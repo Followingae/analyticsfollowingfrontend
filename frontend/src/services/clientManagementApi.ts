@@ -126,6 +126,22 @@ export const clientApi = {
     body: JSON.stringify(data),
   }),
 
+  // Multipart logo upload — must NOT set a JSON Content-Type (browser sets the
+  // multipart boundary), so this bypasses the authFetch JSON wrapper.
+  uploadLogo: async (teamId: string, file: File) => {
+    const form = new FormData();
+    form.append('logo', file);
+    const res = await fetchWithAuth(`${BASE}/${teamId}/logo`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `API error: ${res.status}`);
+    }
+    return res.json();
+  },
+
   updateScope: (teamId: string, campaignId: string, data: {
     payment_status?: string;
     closure_date?: string;
