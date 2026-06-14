@@ -101,6 +101,22 @@ export default function ClientDetailPage() {
   const [scopeYear, setScopeYear] = useState<string>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [staff, setStaff] = useState<any[]>([]);
+
+  const handleAssignAM = async (value: string) => {
+    const amId = value === 'unassigned' ? null : value;
+    try {
+      await clientApi.update(teamId, { account_manager_id: amId });
+      setClient((prev: any) =>
+        prev
+          ? { ...prev, account_manager_id: amId, account_manager_name: staff.find((s) => s.id === amId)?.full_name || null }
+          : prev,
+      );
+    } catch (err) {
+      console.error('Failed to assign account manager:', err);
+      alert(err instanceof Error ? err.message : 'Failed to assign account manager');
+    }
+  };
 
   const handleLogoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -124,15 +140,17 @@ export default function ClientDetailPage() {
     const load = async () => {
       setLoading(true);
       try {
-        const [detailRes, scopeRes, financeRes] = await Promise.all([
+        const [detailRes, scopeRes, financeRes, staffRes] = await Promise.all([
           clientApi.getDetail(teamId),
           clientApi.getScope(teamId, scopeYear && scopeYear !== 'all' ? parseInt(scopeYear) : undefined),
           clientApi.getFinance(teamId),
+          clientApi.listStaff('account_manager').catch(() => ({ data: [] })),
         ]);
         setClient(detailRes.data);
         setScope(scopeRes.data || []);
         setScopeSummary(scopeRes.summary || {});
         setFinance(financeRes.data || null);
+        setStaff(staffRes.data || []);
       } catch (err) {
         console.error('Failed to load client:', err);
       } finally {
@@ -228,6 +246,20 @@ export default function ClientDetailPage() {
               {client.total_campaigns} campaigns
             </span>
           </div>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">Account Manager</span>
+          <Select value={client.account_manager_id || 'unassigned'} onValueChange={handleAssignAM}>
+            <SelectTrigger className="h-8 w-52 text-sm">
+              <SelectValue placeholder="Unassigned" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {staff.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.full_name || s.email}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

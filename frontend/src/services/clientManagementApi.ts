@@ -46,6 +46,15 @@ export interface Client {
   total_spent: number;
   unpaid_campaigns: number;
   pending_proposals: number;
+  account_manager_id: string | null;
+  account_manager_name: string | null;
+}
+
+export interface StaffUser {
+  id: string;
+  full_name: string | null;
+  email: string;
+  staff_role: string;
 }
 
 export interface ScopeCampaign {
@@ -121,10 +130,15 @@ export const clientApi = {
     primary_contact_name: string;
     primary_contact_email: string;
     notes: string;
+    account_manager_id: string | null;
   }>) => authFetch(`${BASE}/${teamId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
+
+  // Internal agency staff (users with a staff_role) for assignment dropdowns.
+  listStaff: (staffRole?: string) =>
+    authFetch(`${BASE}/staff${staffRole ? `?staff_role=${encodeURIComponent(staffRole)}` : ''}`),
 
   // Multipart logo upload — must NOT set a JSON Content-Type (browser sets the
   // multipart boundary), so this bypasses the authFetch JSON wrapper.
