@@ -17,7 +17,8 @@ import {
   Activity,
   Target,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Building2
 } from "lucide-react";
 import { cn } from '@/lib/utils';
 
@@ -116,6 +117,22 @@ export default function SuperadminDashboard() {
       metric: 'Manage',
       subMetric: 'Campaign proposals',
       description: 'Create and manage proposals'
+    },
+    {
+      label: 'Clients',
+      path: '/superadmin/clients',
+      icon: Building2,
+      metric: 'Manage',
+      subMetric: 'Client cockpits & scope',
+      description: 'Clients, campaigns, commercial & approvals'
+    },
+    {
+      label: 'Influencer Database',
+      path: '/superadmin/influencers',
+      icon: Target,
+      metric: 'Browse',
+      subMetric: 'Master CRM',
+      description: 'Roster, rates, tiers & analytics'
     },
   ];
 

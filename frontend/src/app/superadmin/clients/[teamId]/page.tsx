@@ -449,8 +449,22 @@ export default function ClientDetailPage() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
-                          {c.client_feedback || '-'}
+                        <TableCell className="text-sm text-muted-foreground">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="max-w-[160px] truncate">{c.client_feedback || '-'}</span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 shrink-0"
+                              title="Download report"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                clientApi.downloadCampaignReport(teamId, c.id, c.name).catch((err) => alert(err instanceof Error ? err.message : 'Download failed'));
+                              }}
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))

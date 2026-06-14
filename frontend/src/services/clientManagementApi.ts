@@ -117,6 +117,22 @@ export const clientApi = {
 
   getProposals: (teamId: string) => authFetch(`${BASE}/${teamId}/proposals`),
 
+  // Download a per-campaign report (.xlsx) — authed blob download.
+  downloadCampaignReport: async (teamId: string, campaignId: string, name?: string) => {
+    const res = await fetchWithAuth(`${BASE}/${teamId}/campaigns/${campaignId}/report`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || 'Report download failed');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(name || 'campaign').replace(/\s+/g, '_')}_report.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  },
+
   getUgc: (teamId: string) => authFetch(`${BASE}/${teamId}/ugc`),
 
   getFinance: (teamId: string) => authFetch(`${BASE}/${teamId}/finance`),
