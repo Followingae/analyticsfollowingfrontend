@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/clientManagementApi';
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
+import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab';
 
 const formatAED = (amount: number | null) => {
   if (!amount) return 'AED 0';
@@ -298,12 +299,13 @@ export default function ClientDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={loadTabData}>
-        <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-7">
+        <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-8">
           <TabsTrigger value="scope"><FileText className="mr-1.5 h-3.5 w-3.5" />Scope</TabsTrigger>
           <TabsTrigger value="campaigns"><Building2 className="mr-1.5 h-3.5 w-3.5" />Campaigns</TabsTrigger>
           <TabsTrigger value="proposals"><Users className="mr-1.5 h-3.5 w-3.5" />Proposals</TabsTrigger>
           <TabsTrigger value="barter"><Calendar className="mr-1.5 h-3.5 w-3.5" />Barter & Events</TabsTrigger>
           <TabsTrigger value="ugc"><Video className="mr-1.5 h-3.5 w-3.5" />UGC</TabsTrigger>
+          <TabsTrigger value="commercial"><Coins className="mr-1.5 h-3.5 w-3.5" />Commercial</TabsTrigger>
           <TabsTrigger value="finance"><TrendingUp className="mr-1.5 h-3.5 w-3.5" />Finance</TabsTrigger>
           <TabsTrigger value="activity"><Activity className="mr-1.5 h-3.5 w-3.5" />Activity</TabsTrigger>
         </TabsList>
@@ -606,6 +608,11 @@ export default function ClientDetailPage() {
               <Skeleton className="h-48 w-full" />
             </div>
           )}
+        </TabsContent>
+
+        {/* COMMERCIAL TAB */}
+        <TabsContent value="commercial" className="space-y-4">
+          <ClientCommercialTab teamId={teamId} />
         </TabsContent>
 
         {/* FINANCE TAB */}
