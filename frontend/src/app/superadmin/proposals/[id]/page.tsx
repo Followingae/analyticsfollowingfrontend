@@ -159,8 +159,12 @@ export default function ProposalDetailPage() {
 
   const { proposal, influencers, financials, timeline } = data
   const status = proposal.status as string
-  const canEdit = status === "draft" || status === "more_requested"
-  const canSend = status === "draft" && influencers.length > 0
+  const canEdit = status === "draft"
+  // A proposal may only be sent to the client once it has cleared internal approval
+  // (or the client asked for more). Direct draft→sent is gone — it must run the chain.
+  const canSend = status === "internally_approved" || status === "more_requested"
+  // Internal-pipeline states are managed in the approval workspace, not here.
+  const isInternalStage = ["building", "pending_internal_review", "internal_changes_requested", "internally_approved"].includes(status)
   const showBrandResponse = ["in_review", "more_requested", "approved", "rejected"].includes(status)
   const lastTimelineEvent = timeline.length > 0 ? timeline[timeline.length - 1].event : null
 
@@ -208,7 +212,6 @@ export default function ProposalDetailPage() {
               <div className="flex items-center gap-3 flex-shrink-0">
                 <ProposalStatusBadge status={status} />
                 <Button
-                  variant="outline"
                   size="sm"
                   onClick={() => router.push(`/superadmin/proposals/${id}/approval`)}
                 >
@@ -226,9 +229,9 @@ export default function ProposalDetailPage() {
                   </Button>
                 )}
                 {canSend && (
-                  <Button size="sm" disabled={sending} onClick={handleSend}>
+                  <Button variant="outline" size="sm" disabled={sending} onClick={handleSend}>
                     <Send className="mr-1 h-4 w-4" />
-                    {sending ? "Sending..." : "Send to Brand"}
+                    {sending ? "Sending..." : "Send to client"}
                   </Button>
                 )}
               </div>

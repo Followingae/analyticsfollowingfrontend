@@ -30,6 +30,7 @@ import {
   MoreHorizontal,
   Send,
   CheckCircle,
+  ArrowRight,
 } from "lucide-react"
 import Link from "next/link"
 import { adminProposalApi, AdminProposal, AdminProposalStats } from "@/services/adminProposalMasterApi"
@@ -143,6 +144,10 @@ export default function SuperadminProposalsPage() {
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="building">Building</SelectItem>
+                <SelectItem value="pending_internal_review">Internal Review</SelectItem>
+                <SelectItem value="internal_changes_requested">Changes Requested</SelectItem>
+                <SelectItem value="internally_approved">Internally Approved</SelectItem>
                 <SelectItem value="sent">Sent</SelectItem>
                 <SelectItem value="in_review">In Review</SelectItem>
                 <SelectItem value="more_requested">More Requested</SelectItem>
@@ -259,10 +264,16 @@ export default function SuperadminProposalsPage() {
                                   View Details
                                 </Link>
                               </DropdownMenuItem>
-                              {p.status === "draft" && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/superadmin/proposals/${p.id}/approval`}>
+                                  <ArrowRight className="mr-2 h-3.5 w-3.5" />
+                                  Approval workflow
+                                </Link>
+                              </DropdownMenuItem>
+                              {(p.status === "internally_approved" || p.status === "more_requested") && (
                                 <DropdownMenuItem onClick={() => handleSend(p.id)}>
                                   <Send className="mr-2 h-3.5 w-3.5" />
-                                  Send to Brand
+                                  Send to client
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>
