@@ -45,8 +45,9 @@ export default function CreateBrandAccountPage() {
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   // Brand user vs module-scoped Admin
-  const [accountType, setAccountType] = useState<'brand' | 'admin'>('brand')
+  const [accountType, setAccountType] = useState<'brand' | 'admin' | 'staff'>('brand')
   const [adminModules, setAdminModules] = useState<string[]>([])
+  const [staffRole, setStaffRole] = useState<'talent_manager' | 'account_manager' | 'cofounder' | 'ceo'>('talent_manager')
 
   // Form state with comprehensive fields
   const [formData, setFormData] = useState({
@@ -155,6 +156,19 @@ export default function CreateBrandAccountPage() {
             status: 'active',
             subscription_tier: 'free',
             admin_modules: adminModules,
+            create_team: false,
+          }
+        : accountType === 'staff'
+        ? {
+            email: formData.email,
+            password: formData.password,
+            full_name: formData.full_name,
+            company: formData.company,
+            phone_number: formData.phone_number,
+            role: 'user',
+            staff_role: staffRole,
+            status: 'active',
+            subscription_tier: 'free',
             create_team: false,
           }
         : {
@@ -306,16 +320,23 @@ export default function CreateBrandAccountPage() {
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold">{accountType === 'admin' ? 'Create Admin' : 'Create Brand Account'}</h1>
+            <h1 className="text-2xl font-semibold">
+              {accountType === 'admin' ? 'Create Admin' : accountType === 'staff' ? 'Create Staff Member' : 'Create Brand Account'}
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {accountType === 'admin'
                 ? 'Create a module-scoped admin — they can only access the areas you tick'
+                : accountType === 'staff'
+                ? 'Create an internal agency team member (talent manager, account manager, cofounder, CEO)'
                 : 'Set up a brand account with subscription, credits, and team'}
             </p>
           </div>
           <div className="ml-auto inline-flex rounded-lg border p-0.5">
             <Button type="button" size="sm" variant={accountType === 'brand' ? 'default' : 'ghost'} onClick={() => setAccountType('brand')}>
               Brand User
+            </Button>
+            <Button type="button" size="sm" variant={accountType === 'staff' ? 'default' : 'ghost'} onClick={() => setAccountType('staff')}>
+              Staff
             </Button>
             <Button type="button" size="sm" variant={accountType === 'admin' ? 'default' : 'ghost'} onClick={() => setAccountType('admin')}>
               Admin
@@ -479,6 +500,24 @@ export default function CreateBrandAccountPage() {
             })}
           </CardContent>
         </Card>
+        ) : accountType === 'staff' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Staff Role</CardTitle>
+            <CardDescription>The internal role for this team member — governs what they can access and approve.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={staffRole} onValueChange={(v) => setStaffRole(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="talent_manager">Talent Manager</SelectItem>
+                <SelectItem value="account_manager">Account Manager</SelectItem>
+                <SelectItem value="cofounder">Cofounder</SelectItem>
+                <SelectItem value="ceo">CEO</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
         ) : (
         <>
         {/* Subscription Tier */}
@@ -609,7 +648,7 @@ export default function CreateBrandAccountPage() {
               ) : (
                 <>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Create Brand Account
+                  {accountType === 'admin' ? 'Create Admin' : accountType === 'staff' ? 'Create Staff Member' : 'Create Brand Account'}
                 </>
               )}
             </Button>

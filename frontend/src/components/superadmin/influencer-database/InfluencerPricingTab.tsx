@@ -111,9 +111,9 @@ export function InfluencerPricingTab({ influencer, onSave }: InfluencerPricingTa
               <div key={d.costKey} className="flex items-center gap-2">
                 <Label className="text-xs w-24 flex-shrink-0">{d.label}</Label>
                 <div className="relative flex-1">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">AED</span>
                   <Input
-                    className="pl-6 h-8 text-sm"
+                    className="pl-11 h-8 text-sm"
                     placeholder="0"
                     value={centsToInputVal(costPricing[d.costKey])}
                     onChange={(e) => handleCostChange(d.costKey, e.target.value)}
@@ -182,9 +182,9 @@ export function InfluencerPricingTab({ influencer, onSave }: InfluencerPricingTa
               <div key={d.sellKey} className="flex items-center gap-2">
                 <Label className="text-xs w-24 flex-shrink-0">{d.label}</Label>
                 <div className="relative flex-1">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">AED</span>
                   <Input
-                    className="pl-6 h-8 text-sm"
+                    className="pl-11 h-8 text-sm"
                     placeholder="0"
                     disabled={autoCalc}
                     value={centsToInputVal(sellPricing[d.sellKey])}

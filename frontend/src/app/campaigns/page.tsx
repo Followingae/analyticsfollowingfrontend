@@ -438,7 +438,15 @@ function AllCampaignsTab({
                   <TableRow
                     key={campaign.id}
                     className="cursor-pointer hover:bg-muted/40 transition-colors"
-                    onClick={() => router.push(`/campaigns/${campaign.id}/posts`)}
+                    onClick={() => {
+                      const ct = c.campaign_type || "influencer";
+                      const href = ct === "ugc"
+                        ? `/campaigns/${campaign.id}/ugc`
+                        : ["cashback", "paid_deal", "barter"].includes(ct)
+                          ? `/campaigns/fa/${campaign.id}`
+                          : `/campaigns/${campaign.id}/posts`;
+                      router.push(href);
+                    }}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">

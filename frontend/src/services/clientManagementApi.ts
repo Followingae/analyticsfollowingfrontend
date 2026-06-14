@@ -46,6 +46,15 @@ export interface Client {
   total_spent: number;
   unpaid_campaigns: number;
   pending_proposals: number;
+  account_manager_id: string | null;
+  account_manager_name: string | null;
+}
+
+export interface StaffUser {
+  id: string;
+  full_name: string | null;
+  email: string;
+  staff_role: string;
 }
 
 export interface ScopeCampaign {
@@ -106,6 +115,24 @@ export const clientApi = {
 
   getEvents: (teamId: string) => authFetch(`${BASE}/${teamId}/events`),
 
+  getProposals: (teamId: string) => authFetch(`${BASE}/${teamId}/proposals`),
+
+  // Download a per-campaign report (.xlsx) — authed blob download.
+  downloadCampaignReport: async (teamId: string, campaignId: string, name?: string) => {
+    const res = await fetchWithAuth(`${BASE}/${teamId}/campaigns/${campaignId}/report`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || 'Report download failed');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(name || 'campaign').replace(/\s+/g, '_')}_report.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  },
+
   getUgc: (teamId: string) => authFetch(`${BASE}/${teamId}/ugc`),
 
   getFinance: (teamId: string) => authFetch(`${BASE}/${teamId}/finance`),
@@ -121,10 +148,31 @@ export const clientApi = {
     primary_contact_name: string;
     primary_contact_email: string;
     notes: string;
+    account_manager_id: string | null;
   }>) => authFetch(`${BASE}/${teamId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
+
+  // Internal agency staff (users with a staff_role) for assignment dropdowns.
+  listStaff: (staffRole?: string) =>
+    authFetch(`${BASE}/staff${staffRole ? `?staff_role=${encodeURIComponent(staffRole)}` : ''}`),
+
+  // Multipart logo upload — must NOT set a JSON Content-Type (browser sets the
+  // multipart boundary), so this bypasses the authFetch JSON wrapper.
+  uploadLogo: async (teamId: string, file: File) => {
+    const form = new FormData();
+    form.append('logo', file);
+    const res = await fetchWithAuth(`${BASE}/${teamId}/logo`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `API error: ${res.status}`);
+    }
+    return res.json();
+  },
 
   updateScope: (teamId: string, campaignId: string, data: {
     payment_status?: string;

@@ -207,6 +207,13 @@ export default function ProposalDetailPage() {
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <ProposalStatusBadge status={status} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/superadmin/proposals/${id}/approval`)}
+                >
+                  Approval workflow
+                </Button>
                 {canEdit && (
                   <Button
                     variant="outline"

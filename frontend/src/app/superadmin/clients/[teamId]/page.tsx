@@ -1,7 +1,7 @@
 'use client'
 import { tokenManager } from '@/utils/tokenManager';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,10 +31,11 @@ import {
 import {
   ArrowLeft, Building2, Coins, FileText, Users, Video,
   Calendar, Activity, TrendingUp, AlertCircle, CheckCircle2,
-  Clock, XCircle, ChevronRight
+  Clock, XCircle, ChevronRight, Upload, Loader2
 } from 'lucide-react';
 import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/clientManagementApi';
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
+import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab';
 
 const formatAED = (amount: number | null) => {
   if (!amount) return 'AED 0';
@@ -95,25 +96,63 @@ export default function ClientDetailPage() {
   const [finance, setFinance] = useState<FinanceSummary | null>(null);
   const [ugcData, setUgcData] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
+  const [proposals, setProposals] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('scope');
   const [scopeYear, setScopeYear] = useState<string>('all');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [staff, setStaff] = useState<any[]>([]);
+
+  const handleAssignAM = async (value: string) => {
+    const amId = value === 'unassigned' ? null : value;
+    try {
+      await clientApi.update(teamId, { account_manager_id: amId });
+      setClient((prev: any) =>
+        prev
+          ? { ...prev, account_manager_id: amId, account_manager_name: staff.find((s) => s.id === amId)?.full_name || null }
+          : prev,
+      );
+    } catch (err) {
+      console.error('Failed to assign account manager:', err);
+      alert(err instanceof Error ? err.message : 'Failed to assign account manager');
+    }
+  };
+
+  const handleLogoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const res = await clientApi.uploadLogo(teamId, file);
+      const url = res?.data?.logo_url;
+      if (url) setClient((prev: any) => (prev ? { ...prev, logo_url: url } : prev));
+    } catch (err) {
+      console.error('Logo upload failed:', err);
+      alert(err instanceof Error ? err.message : 'Logo upload failed');
+    } finally {
+      setUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     if (!teamId) return;
     const load = async () => {
       setLoading(true);
       try {
-        const [detailRes, scopeRes, financeRes] = await Promise.all([
+        const [detailRes, scopeRes, financeRes, staffRes] = await Promise.all([
           clientApi.getDetail(teamId),
           clientApi.getScope(teamId, scopeYear && scopeYear !== 'all' ? parseInt(scopeYear) : undefined),
           clientApi.getFinance(teamId),
+          clientApi.listStaff('account_manager').catch(() => ({ data: [] })),
         ]);
         setClient(detailRes.data);
         setScope(scopeRes.data || []);
         setScopeSummary(scopeRes.summary || {});
         setFinance(financeRes.data || null);
+        setStaff(staffRes.data || []);
       } catch (err) {
         console.error('Failed to load client:', err);
       } finally {
@@ -135,6 +174,12 @@ export default function ClientDetailPage() {
       try {
         const res = await clientApi.getEvents(teamId);
         setEvents(res.data || []);
+      } catch (err) { console.error(err); }
+    }
+    if (tab === 'proposals' && proposals.length === 0) {
+      try {
+        const res = await clientApi.getProposals(teamId);
+        setProposals(res.data || []);
       } catch (err) { console.error(err); }
     }
     if (tab === 'activity' && activity.length === 0) {
@@ -176,12 +221,30 @@ export default function ClientDetailPage() {
         <Button variant="ghost" size="icon" onClick={() => router.push('/superadmin/clients')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Avatar className="h-16 w-16 border-2 border-border">
-          <AvatarImage src={client.logo_url || undefined} />
-          <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
-            {(client.company_name || client.name || '?').slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        <div className="relative group">
+          <Avatar className="h-16 w-16 border-2 border-border">
+            <AvatarImage src={client.logo_url || undefined} />
+            <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+              {(client.company_name || client.name || '?').slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingLogo}
+            title="Upload / replace logo"
+            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-100"
+          >
+            {uploadingLogo ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={handleLogoSelected}
+          />
+        </div>
         <div>
           <h1 className="text-2xl font-bold">{client.company_name || client.name}</h1>
           <div className="flex items-center gap-2 mt-1">
@@ -191,6 +254,20 @@ export default function ClientDetailPage() {
               {client.total_campaigns} campaigns
             </span>
           </div>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">Account Manager</span>
+          <Select value={client.account_manager_id || 'unassigned'} onValueChange={handleAssignAM}>
+            <SelectTrigger className="h-8 w-52 text-sm">
+              <SelectValue placeholder="Unassigned" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {staff.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.full_name || s.email}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -229,12 +306,13 @@ export default function ClientDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={loadTabData}>
-        <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-7">
+        <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-8">
           <TabsTrigger value="scope"><FileText className="mr-1.5 h-3.5 w-3.5" />Scope</TabsTrigger>
           <TabsTrigger value="campaigns"><Building2 className="mr-1.5 h-3.5 w-3.5" />Campaigns</TabsTrigger>
           <TabsTrigger value="proposals"><Users className="mr-1.5 h-3.5 w-3.5" />Proposals</TabsTrigger>
           <TabsTrigger value="barter"><Calendar className="mr-1.5 h-3.5 w-3.5" />Barter & Events</TabsTrigger>
           <TabsTrigger value="ugc"><Video className="mr-1.5 h-3.5 w-3.5" />UGC</TabsTrigger>
+          <TabsTrigger value="commercial"><Coins className="mr-1.5 h-3.5 w-3.5" />Commercial</TabsTrigger>
           <TabsTrigger value="finance"><TrendingUp className="mr-1.5 h-3.5 w-3.5" />Finance</TabsTrigger>
           <TabsTrigger value="activity"><Activity className="mr-1.5 h-3.5 w-3.5" />Activity</TabsTrigger>
         </TabsList>
@@ -371,8 +449,22 @@ export default function ClientDetailPage() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
-                          {c.client_feedback || '-'}
+                        <TableCell className="text-sm text-muted-foreground">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="max-w-[160px] truncate">{c.client_feedback || '-'}</span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 shrink-0"
+                              title="Download report"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                clientApi.downloadCampaignReport(teamId, c.id, c.name).catch((err) => alert(err instanceof Error ? err.message : 'Download failed'));
+                              }}
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -420,20 +512,46 @@ export default function ClientDetailPage() {
               Create Proposal
             </Button>
           </div>
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Users className="mx-auto h-10 w-10 text-muted-foreground/50" />
-              <p className="mt-3 text-muted-foreground">
-                View all proposals for this client at{' '}
-                <span
-                  className="text-primary cursor-pointer hover:underline"
-                  onClick={() => router.push('/superadmin/proposals')}
-                >
-                  Proposals Management
-                </span>
-              </p>
-            </CardContent>
-          </Card>
+          {proposals.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Users className="mx-auto h-10 w-10 text-muted-foreground/50" />
+                <p className="mt-3 text-muted-foreground">No proposals for this client yet.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Campaign</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Influencers</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead className="text-right">Approval</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {proposals.map((p) => (
+                      <TableRow key={p.id} className="cursor-pointer hover:bg-muted/40"
+                        onClick={() => router.push(`/superadmin/proposals/${p.id}`)}>
+                        <TableCell className="font-medium">{p.campaign_name || p.title}</TableCell>
+                        <TableCell><Badge variant="outline">{String(p.status).replace(/_/g, ' ')}</Badge></TableCell>
+                        <TableCell>{p.influencer_count}</TableCell>
+                        <TableCell>{formatAED(p.total_sell_amount ?? p.total_budget)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); router.push(`/superadmin/proposals/${p.id}/approval`); }}>
+                            Workflow <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* BARTER & EVENTS TAB */}
@@ -537,6 +655,11 @@ export default function ClientDetailPage() {
               <Skeleton className="h-48 w-full" />
             </div>
           )}
+        </TabsContent>
+
+        {/* COMMERCIAL TAB */}
+        <TabsContent value="commercial" className="space-y-4">
+          <ClientCommercialTab teamId={teamId} />
         </TabsContent>
 
         {/* FINANCE TAB */}
