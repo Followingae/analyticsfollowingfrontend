@@ -55,6 +55,14 @@ export default function ProposalApprovalPage() {
   const [newRate, setNewRate] = useState('')
   const [approveNotes, setApproveNotes] = useState('')
   const [sendBackNotes, setSendBackNotes] = useState('')
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+
+  const genShare = () => run(async () => {
+    const res = await proposalApprovalApi.createShare(proposalId)
+    const url = `${window.location.origin}${res.data?.share_path || ''}`
+    setShareUrl(url)
+    try { await navigator.clipboard.writeText(url) } catch { /* ignore */ }
+  })
 
   const load = async () => {
     setLoading(true); setErr(null)
@@ -241,6 +249,25 @@ export default function ProposalApprovalPage() {
                       <Button disabled={busy || !assignTM} onClick={() => run(() => proposalApprovalApi.sendForAdding(proposalId, assignTM))}>Assign</Button>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Client share (once internally approved) */}
+            {status === 'internally_approved' && (
+              <Card className="border-emerald-500/30 bg-emerald-500/5">
+                <CardHeader>
+                  <CardTitle>Client share link</CardTitle>
+                  <CardDescription>Internally approved. Share with the client — they see samples + a sign/pay gate.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button disabled={busy} onClick={genShare}><Send className="mr-1 h-4 w-4" />Generate share link</Button>
+                  {shareUrl && (
+                    <div className="rounded-md border bg-background p-2 text-xs break-all">
+                      {shareUrl}
+                      <div className="text-muted-foreground mt-1">Copied to clipboard.</div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

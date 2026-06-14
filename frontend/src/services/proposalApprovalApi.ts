@@ -78,4 +78,7 @@ export const proposalApprovalApi = {
 
   // Budget-gated workspace read (TMs get per-influencer pricing, not campaign totals).
   getWorkspace: (proposalId: string) => jfetch(`${BASE}/${proposalId}/workspace`),
+
+  // Generate (or reuse) the public client share link.
+  createShare: (proposalId: string) => jfetch(`${BASE}/${proposalId}/share`, { method: 'POST', body: '{}' }),
 };
