@@ -96,6 +96,7 @@ export default function ClientDetailPage() {
   const [finance, setFinance] = useState<FinanceSummary | null>(null);
   const [ugcData, setUgcData] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
+  const [proposals, setProposals] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('scope');
@@ -173,6 +174,12 @@ export default function ClientDetailPage() {
       try {
         const res = await clientApi.getEvents(teamId);
         setEvents(res.data || []);
+      } catch (err) { console.error(err); }
+    }
+    if (tab === 'proposals' && proposals.length === 0) {
+      try {
+        const res = await clientApi.getProposals(teamId);
+        setProposals(res.data || []);
       } catch (err) { console.error(err); }
     }
     if (tab === 'activity' && activity.length === 0) {
@@ -491,20 +498,46 @@ export default function ClientDetailPage() {
               Create Proposal
             </Button>
           </div>
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Users className="mx-auto h-10 w-10 text-muted-foreground/50" />
-              <p className="mt-3 text-muted-foreground">
-                View all proposals for this client at{' '}
-                <span
-                  className="text-primary cursor-pointer hover:underline"
-                  onClick={() => router.push('/superadmin/proposals')}
-                >
-                  Proposals Management
-                </span>
-              </p>
-            </CardContent>
-          </Card>
+          {proposals.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Users className="mx-auto h-10 w-10 text-muted-foreground/50" />
+                <p className="mt-3 text-muted-foreground">No proposals for this client yet.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Campaign</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Influencers</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead className="text-right">Approval</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {proposals.map((p) => (
+                      <TableRow key={p.id} className="cursor-pointer hover:bg-muted/40"
+                        onClick={() => router.push(`/superadmin/proposals/${p.id}`)}>
+                        <TableCell className="font-medium">{p.campaign_name || p.title}</TableCell>
+                        <TableCell><Badge variant="outline">{String(p.status).replace(/_/g, ' ')}</Badge></TableCell>
+                        <TableCell>{p.influencer_count}</TableCell>
+                        <TableCell>{formatAED(p.total_sell_amount ?? p.total_budget)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); router.push(`/superadmin/proposals/${p.id}/approval`); }}>
+                            Workflow <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* BARTER & EVENTS TAB */}

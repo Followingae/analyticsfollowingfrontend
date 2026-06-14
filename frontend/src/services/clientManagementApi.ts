@@ -115,6 +115,8 @@ export const clientApi = {
 
   getEvents: (teamId: string) => authFetch(`${BASE}/${teamId}/events`),
 
+  getProposals: (teamId: string) => authFetch(`${BASE}/${teamId}/proposals`),
+
   getUgc: (teamId: string) => authFetch(`${BASE}/${teamId}/ugc`),
 
   getFinance: (teamId: string) => authFetch(`${BASE}/${teamId}/finance`),
