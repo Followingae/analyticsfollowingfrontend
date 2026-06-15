@@ -17,7 +17,7 @@ export interface AdminProposal {
   campaign_name: string
   description?: string
   proposal_notes?: string
-  status: 'draft' | 'sent' | 'in_review' | 'approved' | 'rejected' | 'more_requested'
+  status: 'draft' | 'building' | 'pending_internal_review' | 'internal_changes_requested' | 'internally_approved' | 'sent' | 'in_review' | 'approved' | 'rejected' | 'more_requested'
   user_id: string
   user_email?: string
   total_influencers: number

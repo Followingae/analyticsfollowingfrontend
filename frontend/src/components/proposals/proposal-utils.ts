@@ -16,6 +16,9 @@ import {
   XCircle,
   MessageSquare,
   AlertCircle,
+  Hammer,
+  ShieldCheck,
+  RotateCcw,
   type LucideIcon,
 } from "lucide-react"
 
@@ -101,6 +104,12 @@ export function formatCurrency(amount?: number | null): string {
 
 export type ProposalStatus =
   | "draft"
+  // internal pipeline (not client-visible)
+  | "building"
+  | "pending_internal_review"
+  | "internal_changes_requested"
+  | "internally_approved"
+  // client-facing
   | "sent"
   | "in_review"
   | "approved"
@@ -112,13 +121,18 @@ export function getProposalStatusVariant(
 ): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
     case "approved":
+    case "internally_approved":
       return "default"
     case "rejected":
       return "destructive"
     case "sent":
     case "in_review":
     case "more_requested":
+    case "building":
+    case "pending_internal_review":
       return "secondary"
+    case "internal_changes_requested":
+      return "outline"
     default:
       return "outline"
   }
@@ -127,6 +141,10 @@ export function getProposalStatusVariant(
 export function getProposalStatusLabel(status: string): string {
   const labels: Record<string, string> = {
     draft: "Draft",
+    building: "Building",
+    pending_internal_review: "Internal Review",
+    internal_changes_requested: "Changes Requested",
+    internally_approved: "Internally Approved",
     sent: "Sent",
     in_review: "In Review",
     approved: "Approved",
@@ -143,6 +161,7 @@ export function getProposalStatusIcon(status: string): LucideIcon {
     case "in_review":
       return Eye
     case "approved":
+    case "internally_approved":
       return CheckCircle
     case "rejected":
       return XCircle
@@ -150,6 +169,12 @@ export function getProposalStatusIcon(status: string): LucideIcon {
       return MessageSquare
     case "draft":
       return Clock
+    case "building":
+      return Hammer
+    case "pending_internal_review":
+      return ShieldCheck
+    case "internal_changes_requested":
+      return RotateCcw
     default:
       return AlertCircle
   }

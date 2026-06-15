@@ -101,6 +101,10 @@ export default function ProposalApprovalPage() {
   const status: string = ws.proposal?.status
   const sb = STATUS_LABEL[status] || { label: status, cls: 'bg-muted' }
   const budgetVisible: boolean = ws.budget_visible
+  // Role-based visibility — only show each actor the cards they can act on.
+  const viewer = ws.viewer || {}
+  const chainEditable = ['draft', 'building', 'internal_changes_requested'].includes(status)
+  const canEditChain = viewer.is_operator && chainEditable
 
   return (
     <SuperadminLayout>
@@ -193,7 +197,7 @@ export default function ProposalApprovalPage() {
             </Card>
 
             {/* Talent manager: add creator + submit (active while building) */}
-            {(status === 'building' || status === 'internal_changes_requested') && (
+            {viewer.is_assigned_tm && (status === 'building' || status === 'internal_changes_requested') && (
               <Card>
                 <CardHeader>
                   <CardTitle>Add creator (talent manager)</CardTitle>
@@ -232,8 +236,8 @@ export default function ProposalApprovalPage() {
 
           {/* RIGHT: chain, operator + approver actions, history */}
           <div className="space-y-6">
-            {/* Operator: assign TM + chain builder (before review starts) */}
-            {(status === 'draft' || status === 'building' || status === 'internal_changes_requested') && (
+            {/* Operator: assign TM (before review starts) */}
+            {viewer.is_operator && (status === 'draft' || status === 'building' || status === 'internal_changes_requested') && (
               <Card>
                 <CardHeader><CardTitle>Operator</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
@@ -254,7 +258,7 @@ export default function ProposalApprovalPage() {
             )}
 
             {/* Client share (once internally approved) */}
-            {status === 'internally_approved' && (
+            {viewer.is_operator && status === 'internally_approved' && (
               <Card className="border-emerald-500/30 bg-emerald-500/5">
                 <CardHeader>
                   <CardTitle>Client share link</CardTitle>
@@ -279,30 +283,49 @@ export default function ProposalApprovalPage() {
                 <CardDescription>Maker (talent manager) → these approvers → client send.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {steps.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 rounded-md border p-2">
-                    <span className="w-5 text-xs text-muted-foreground">{i + 1}</span>
-                    <Select value={s.approver_role || ''} onValueChange={(v) => setSteps((p) => p.map((x, j) => j === i ? { ...x, approver_role: v } : x))}>
-                      <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Role" /></SelectTrigger>
-                      <SelectContent>{APPROVER_ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <Button size="icon" variant="ghost" disabled={i === 0} onClick={() => setSteps((p) => { const a = [...p]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; return a })}><ArrowUp className="h-3.5 w-3.5" /></Button>
-                    <Button size="icon" variant="ghost" disabled={i === steps.length - 1} onClick={() => setSteps((p) => { const a = [...p]; [a[i + 1], a[i]] = [a[i], a[i + 1]]; return a })}><ArrowDown className="h-3.5 w-3.5" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => setSteps((p) => p.filter((_, j) => j !== i))}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                  </div>
-                ))}
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setSteps((p) => [...p, { approver_role: 'cofounder' }])}><Plus className="mr-1 h-3.5 w-3.5" />Step</Button>
-                  <Button size="sm" disabled={busy || steps.length === 0}
-                    onClick={() => run(() => proposalApprovalApi.setChain(proposalId, steps.map((s, i) => ({ step_order: i + 1, approver_role: s.approver_role, approver_user_id: s.approver_user_id, name: s.name }))))}>
-                    Save chain
-                  </Button>
-                </div>
+                {canEditChain ? (
+                  <>
+                    {steps.map((s, i) => (
+                      <div key={i} className="flex items-center gap-2 rounded-md border p-2">
+                        <span className="w-5 text-xs text-muted-foreground">{i + 1}</span>
+                        <Select value={s.approver_role || ''} onValueChange={(v) => setSteps((p) => p.map((x, j) => j === i ? { ...x, approver_role: v } : x))}>
+                          <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Role" /></SelectTrigger>
+                          <SelectContent>{APPROVER_ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                        <Button size="icon" variant="ghost" disabled={i === 0} onClick={() => setSteps((p) => { const a = [...p]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; return a })}><ArrowUp className="h-3.5 w-3.5" /></Button>
+                        <Button size="icon" variant="ghost" disabled={i === steps.length - 1} onClick={() => setSteps((p) => { const a = [...p]; [a[i + 1], a[i]] = [a[i], a[i + 1]]; return a })}><ArrowDown className="h-3.5 w-3.5" /></Button>
+                        <Button size="icon" variant="ghost" onClick={() => setSteps((p) => p.filter((_, j) => j !== i))}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      </div>
+                    ))}
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setSteps((p) => [...p, { approver_role: 'cofounder' }])}><Plus className="mr-1 h-3.5 w-3.5" />Step</Button>
+                      <Button size="sm" disabled={busy || steps.length === 0}
+                        onClick={() => run(() => proposalApprovalApi.setChain(proposalId, steps.map((s, i) => ({ step_order: i + 1, approver_role: s.approver_role, approver_user_id: s.approver_user_id, name: s.name }))))}>
+                        Save chain
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  // Read-only chain view (non-operators, or locked once review starts)
+                  <ol className="space-y-1.5">
+                    {(chain?.steps || steps).map((s: any, i: number) => {
+                      const isCurrent = chain?.current_approval_step === (s.step_order ?? i + 1)
+                      return (
+                        <li key={i} className={`flex items-center gap-2 rounded-md border p-2 text-sm ${isCurrent ? 'border-amber-500/40 bg-amber-500/5' : ''}`}>
+                          <span className="w-5 text-xs text-muted-foreground">{s.step_order ?? i + 1}</span>
+                          <span className="capitalize flex-1">{(s.approver_role || '').replace(/_/g, ' ') || 'Approver'}</span>
+                          {isCurrent && <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">current</Badge>}
+                        </li>
+                      )
+                    })}
+                    {(chain?.steps || steps).length === 0 && <li className="text-sm text-muted-foreground">No approval steps yet.</li>}
+                  </ol>
+                )}
               </CardContent>
             </Card>
 
             {/* Approver actions (during review) */}
-            {status === 'pending_internal_review' && (
+            {viewer.is_current_approver && status === 'pending_internal_review' && (
               <Card>
                 <CardHeader><CardTitle>Approver — step {chain?.current_approval_step}</CardTitle></CardHeader>
                 <CardContent className="space-y-3">

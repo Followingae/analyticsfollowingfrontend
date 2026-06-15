@@ -23,7 +23,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Label } from "@/components/ui/label"
 import {
-  ArrowLeft, Plus, Search, Trash2, Send, Save, Users, Calendar, Image, Loader2, Upload, X,
+  ArrowLeft, ArrowRight, Plus, Search, Trash2, Send, Save, Users, Calendar, Image, Loader2, Upload, X,
 } from "lucide-react"
 import { ImageCropper } from "@/components/ui/image-cropper"
 import { DatePicker } from "@/components/ui/date-picker"
@@ -102,6 +102,7 @@ function CreateProposalContent() {
   // -- Proposal form --------------------------------------------------------
   const [title, setTitle] = useState("")
   const [campaignName, setCampaignName] = useState("")
+  const [totalBudget, setTotalBudget] = useState("")
   const [description, setDescription] = useState("")
   const [proposalNotes, setProposalNotes] = useState("")
   const [deadline, setDeadline] = useState<Date | undefined>(undefined)
@@ -190,6 +191,7 @@ function CreateProposalContent() {
         const p = detail.proposal
         setTitle(p.title)
         setCampaignName(p.campaign_name)
+        setTotalBudget(p.total_budget != null ? String(p.total_budget) : "")
         setDescription(p.description || "")
         setProposalNotes(p.proposal_notes || "")
         setDeadline(p.deadline_at ? new Date(p.deadline_at) : undefined)
@@ -491,11 +493,13 @@ function CreateProposalContent() {
   }
 
   // -- Submit: Create new ---------------------------------------------------
-  async function handleCreate(sendAfter: boolean) {
+  // Create the proposal SHELL. Influencers are NOT required here — in the new flow
+  // they're added by talent managers in the approval workspace. `startApproval`
+  // routes straight into that workspace; otherwise we save a draft.
+  async function handleCreate(startApproval: boolean) {
     if (!selectedUserId) { toast.error("Select a brand user"); return }
     if (!title.trim()) { toast.error("Title is required"); return }
     if (!campaignName.trim()) { toast.error("Campaign name is required"); return }
-    if (!addedInfluencers.length) { toast.error("Add at least one influencer"); return }
 
     setSubmitting(true)
     try {
@@ -509,25 +513,27 @@ function CreateProposalContent() {
         deadline_at: deadline?.toISOString() || undefined,
         cover_image_url: coverImageUrl.trim() || undefined,
         campaign_type_target: campaignTypeTarget,
+        total_budget: totalBudget ? Number(totalBudget) : undefined,
       } as any)
 
-      const delAssignments = Object.entries(deliverableAssignments)
-        .filter(([id, dels]) => dels.length > 0)
-        .map(([influencer_db_id, deliverables]) => ({ influencer_db_id, deliverables }))
-
-      await adminProposalApi.addInfluencers(proposal.id, {
-        influencer_ids: addedInfluencers.map((i) => i.id),
-        deliverable_assignments: delAssignments.length > 0 ? delAssignments : undefined,
-      })
-
-      if (sendAfter) {
-        await adminProposalApi.sendToBrand(proposal.id)
-        toast.success("Proposal created and sent to brand!")
-      } else {
-        toast.success("Proposal saved as draft!")
+      // Optionally pre-attach influencers if the operator added any (not required).
+      if (addedInfluencers.length) {
+        const delAssignments = Object.entries(deliverableAssignments)
+          .filter(([id, dels]) => dels.length > 0)
+          .map(([influencer_db_id, deliverables]) => ({ influencer_db_id, deliverables }))
+        await adminProposalApi.addInfluencers(proposal.id, {
+          influencer_ids: addedInfluencers.map((i) => i.id),
+          deliverable_assignments: delAssignments.length > 0 ? delAssignments : undefined,
+        })
       }
 
-      router.push("/superadmin/proposals")
+      if (startApproval) {
+        toast.success("Proposal created — opening the approval workflow")
+        router.push(`/superadmin/proposals/${proposal.id}/approval`)
+      } else {
+        toast.success("Proposal saved as draft")
+        router.push("/superadmin/proposals")
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to create proposal")
     } finally {
@@ -700,6 +706,17 @@ function CreateProposalContent() {
                     value={campaignName}
                     onChange={(e) => setCampaignName(e.target.value)}
                   />
+                </div>
+                <div>
+                  <Label>Total Budget (AED)</Label>
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    placeholder="e.g. 50000"
+                    value={totalBudget}
+                    onChange={(e) => setTotalBudget(e.target.value)}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">Hidden from talent managers; visible to approvers + the client.</p>
                 </div>
               </div>
 
@@ -898,10 +915,12 @@ function CreateProposalContent() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              {isAddMoreMode ? "Select Additional Influencers" : "Add Influencers"}
+              {isAddMoreMode ? "Select Additional Influencers" : "Add Influencers (optional)"}
             </CardTitle>
             <CardDescription>
-              Search master DB, pick FA members, or add by Instagram handle
+              {isAddMoreMode
+                ? "Search master DB, pick FA members, or add by Instagram handle"
+                : "Optional — you can leave this empty and assign a talent manager to add creators in the approval workflow. Add here only if you want to pre-fill the list."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1385,9 +1404,9 @@ function CreateProposalContent() {
                 {submitting ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <Send className="h-4 w-4 mr-2" />
+                  <ArrowRight className="h-4 w-4 mr-2" />
                 )}
-                {submitting ? "Sending..." : "Send to Brand"}
+                {submitting ? "Creating..." : "Create & start approval"}
               </Button>
             </>
           )}
