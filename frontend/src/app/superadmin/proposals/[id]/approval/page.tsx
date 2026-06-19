@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { proposalApprovalApi, type ApprovalStep } from '@/services/proposalApprovalApi'
 import { clientApi } from '@/services/clientManagementApi'
+import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab'
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   draft: { label: 'Draft', cls: 'bg-muted text-foreground' },
@@ -357,6 +358,22 @@ export default function ProposalApprovalPage() {
             </Card>
           </div>
         </div>
+
+        {/* Client commercial gate — agreement + invoice, surfaced at the send-to-client stage */}
+        {viewer.is_operator && ws.team_id && (status === 'internally_approved' || status === 'sent') && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Client commercial — agreement & invoice</CardTitle>
+              <CardDescription>
+                Upload + send the agreement and create the advance invoice here. The client signs &amp; pays on the share link;
+                the full influencer list unlocks only once the agreement is <strong>signed</strong> and the advance invoice is <strong>paid</strong>.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ClientCommercialTab teamId={ws.team_id} />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </SuperadminLayout>
   )
