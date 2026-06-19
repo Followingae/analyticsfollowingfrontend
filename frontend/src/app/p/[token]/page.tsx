@@ -46,7 +46,8 @@ export default function PublicProposalPage() {
   if (err) return <div className="min-h-screen grid place-items-center text-destructive">{err}</div>
   if (!data) return null
 
-  const { proposal, gate, agreement, advance_invoice, influencers } = data
+  const { proposal, gate, agreement, advance_invoice, influencers, invoices } = data
+  const schedule = proposal?.payment_schedule || []
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -101,6 +102,40 @@ export default function PublicProposalPage() {
                   ) : <p className="text-xs text-muted-foreground">Invoice not yet available</p>}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {(schedule.length > 0 || (invoices && invoices.length > 0)) && (
+          <Card>
+            <CardContent className="p-6 space-y-3">
+              <div className="text-sm font-semibold">Payment plan</div>
+              {schedule.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {schedule.map((m: any, i: number) => (
+                    <Badge key={i} variant="outline">{m.label} — {m.pct}%</Badge>
+                  ))}
+                </div>
+              )}
+              {invoices && invoices.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  {invoices.map((inv: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between text-sm border-b pb-1.5 last:border-0">
+                      <span className="capitalize">{inv.milestone_label || inv.invoice_type}{inv.amount_aed != null ? ` · AED ${Number(inv.amount_aed).toLocaleString('en-AE')}` : ''}</span>
+                      <div className="flex items-center gap-2">
+                        {inv.status === 'paid'
+                          ? <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Paid</Badge>
+                          : inv.status === 'partial'
+                            ? <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Partial</Badge>
+                            : <Badge variant="outline">Unpaid</Badge>}
+                        {inv.status !== 'paid' && inv.payment_link_url && (
+                          <a href={inv.payment_link_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">Pay</a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
