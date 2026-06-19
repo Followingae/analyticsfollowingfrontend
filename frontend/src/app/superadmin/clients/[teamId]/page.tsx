@@ -33,6 +33,7 @@ import {
   Calendar, Activity, TrendingUp, AlertCircle, CheckCircle2,
   Clock, XCircle, ChevronRight, Upload, Loader2
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/clientManagementApi';
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab';
@@ -98,6 +99,7 @@ export default function ClientDetailPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [proposals, setProposals] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
+  const [commercialCampaign, setCommercialCampaign] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('scope');
   const [scopeYear, setScopeYear] = useState<string>('all');
@@ -480,15 +482,14 @@ export default function ClientDetailPage() {
           <h2 className="text-lg font-semibold">All Campaigns</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {scope.map((c) => (
-              <Card
-                key={c.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => router.push(`/campaigns/${c.id}`)}
-              >
+              <Card key={c.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-2 gap-1">
                     {typeBadge(c.campaign_type)}
-                    {statusBadge(c.status)}
+                    <div className="flex items-center gap-1.5">
+                      {paymentBadge(c.payment_status)}
+                      {statusBadge(c.status)}
+                    </div>
                   </div>
                   <h3 className="font-semibold truncate">{c.name}</h3>
                   <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
@@ -498,6 +499,12 @@ export default function ClientDetailPage() {
                   {c.budget && c.spent ? (
                     <Progress value={(Number(c.spent) / Number(c.budget)) * 100} className="mt-2 h-1.5" />
                   ) : null}
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/campaigns/${c.id}`)}>Open</Button>
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setCommercialCampaign({ id: c.id, name: c.name })}>
+                      <Coins className="mr-1 h-3.5 w-3.5" />Commercial
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -722,6 +729,18 @@ export default function ClientDetailPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Per-campaign commercial (agreement + invoices) */}
+      <Dialog open={!!commercialCampaign} onOpenChange={(o) => !o && setCommercialCampaign(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Commercial — {commercialCampaign?.name}</DialogTitle>
+          </DialogHeader>
+          {commercialCampaign && (
+            <ClientCommercialTab teamId={teamId} campaignId={commercialCampaign.id} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
     </SuperadminLayout>
   );

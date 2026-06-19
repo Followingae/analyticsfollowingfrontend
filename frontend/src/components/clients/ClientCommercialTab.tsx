@@ -28,7 +28,7 @@ const payBadge = (s: string) => {
 }
 const aed = (n: number | null) => (n == null ? '—' : `AED ${Number(n).toLocaleString('en-AE')}`)
 
-export function ClientCommercialTab({ teamId }: { teamId: string }) {
+export function ClientCommercialTab({ teamId, campaignId }: { teamId: string; campaignId?: string }) {
   const [docs, setDocs] = useState<ClientDocument[]>([])
   const [invoices, setInvoices] = useState<CampaignInvoice[]>([])
   const [busy, setBusy] = useState(false)
@@ -45,8 +45,8 @@ export function ClientCommercialTab({ teamId }: { teamId: string }) {
     setErr(null)
     try {
       const [d, i] = await Promise.all([
-        clientCommercialApi.listDocuments(teamId),
-        clientCommercialApi.listInvoices(teamId),
+        clientCommercialApi.listDocuments(teamId, campaignId ? { campaignId } : undefined),
+        clientCommercialApi.listInvoices(teamId, campaignId),
       ])
       setDocs(d.data || [])
       setInvoices(i.data || [])
@@ -78,7 +78,7 @@ export function ClientCommercialTab({ teamId }: { teamId: string }) {
             <Upload className="mr-1 h-4 w-4" />Upload agreement
           </Button>
           <input ref={agrInput} type="file" className="hidden" accept=".pdf,.doc,.docx"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) run(() => clientCommercialApi.uploadAgreement(teamId, f)); if (agrInput.current) agrInput.current.value = '' }} />
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) run(() => clientCommercialApi.uploadAgreement(teamId, f, undefined, campaignId)); if (agrInput.current) agrInput.current.value = '' }} />
           <input ref={signInput} type="file" className="hidden" accept=".pdf,.doc,.docx,image/*"
             onChange={(e) => { const f = e.target.files?.[0]; if (f && actingId) run(() => clientCommercialApi.signAgreement(teamId, actingId, f)); if (signInput.current) signInput.current.value = '' }} />
         </CardHeader>
@@ -138,6 +138,7 @@ export function ClientCommercialTab({ teamId }: { teamId: string }) {
                 advance_pct: newInv.advance_pct ? Number(newInv.advance_pct) : undefined,
                 payment_terms: newInv.payment_terms || undefined,
                 payment_link_url: newInv.payment_link_url || undefined,
+                ...(campaignId ? { campaign_id: campaignId } : {}),
               } as any)
               setNewInv({ invoice_type: 'advance', amount_aed: '', advance_pct: '', payment_terms: '', due_date: '', payment_link_url: '' })
             })}><Plus className="mr-1 h-4 w-4" />Create</Button>
