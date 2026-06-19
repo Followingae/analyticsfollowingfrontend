@@ -28,12 +28,12 @@ const payBadge = (s: string) => {
 }
 const aed = (n: number | null) => (n == null ? '—' : `AED ${Number(n).toLocaleString('en-AE')}`)
 
-export function ClientCommercialTab({ teamId, campaignId }: { teamId: string; campaignId?: string }) {
+export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId: string; campaignId?: string; proposalId?: string }) {
   const [docs, setDocs] = useState<ClientDocument[]>([])
   const [invoices, setInvoices] = useState<CampaignInvoice[]>([])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [newInv, setNewInv] = useState({ invoice_type: 'advance', amount_aed: '', advance_pct: '', payment_terms: '', due_date: '', payment_link_url: '' })
+  const [newInv, setNewInv] = useState({ invoice_type: 'advance', milestone_label: '', amount_aed: '', advance_pct: '', payment_terms: '', due_date: '', payment_link_url: '' })
 
   const agrInput = useRef<HTMLInputElement>(null)
   const signInput = useRef<HTMLInputElement>(null)
@@ -45,8 +45,8 @@ export function ClientCommercialTab({ teamId, campaignId }: { teamId: string; ca
     setErr(null)
     try {
       const [d, i] = await Promise.all([
-        clientCommercialApi.listDocuments(teamId, campaignId ? { campaignId } : undefined),
-        clientCommercialApi.listInvoices(teamId, campaignId),
+        clientCommercialApi.listDocuments(teamId, { campaignId, proposalId }),
+        clientCommercialApi.listInvoices(teamId, { campaignId, proposalId }),
       ])
       setDocs(d.data || [])
       setInvoices(i.data || [])
@@ -78,7 +78,7 @@ export function ClientCommercialTab({ teamId, campaignId }: { teamId: string; ca
             <Upload className="mr-1 h-4 w-4" />Upload agreement
           </Button>
           <input ref={agrInput} type="file" className="hidden" accept=".pdf,.doc,.docx"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) run(() => clientCommercialApi.uploadAgreement(teamId, f, undefined, campaignId)); if (agrInput.current) agrInput.current.value = '' }} />
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) run(() => clientCommercialApi.uploadAgreement(teamId, f, { campaignId, proposalId })); if (agrInput.current) agrInput.current.value = '' }} />
           <input ref={signInput} type="file" className="hidden" accept=".pdf,.doc,.docx,image/*"
             onChange={(e) => { const f = e.target.files?.[0]; if (f && actingId) run(() => clientCommercialApi.signAgreement(teamId, actingId, f)); if (signInput.current) signInput.current.value = '' }} />
         </CardHeader>
@@ -127,6 +127,7 @@ export function ClientCommercialTab({ teamId, campaignId }: { teamId: string; ca
                 <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="advance">Advance</SelectItem><SelectItem value="interim">Interim</SelectItem><SelectItem value="final">Final</SelectItem></SelectContent>
               </Select></div>
+            <div><Label className="text-xs">Milestone</Label><Input className="h-8 w-32" placeholder="e.g. Advance" value={newInv.milestone_label} onChange={(e) => setNewInv((p) => ({ ...p, milestone_label: e.target.value }))} /></div>
             <div><Label className="text-xs">Amount (AED)</Label><Input className="h-8 w-32" type="number" value={newInv.amount_aed} onChange={(e) => setNewInv((p) => ({ ...p, amount_aed: e.target.value }))} /></div>
             <div><Label className="text-xs">Advance %</Label><Input className="h-8 w-24" type="number" value={newInv.advance_pct} onChange={(e) => setNewInv((p) => ({ ...p, advance_pct: e.target.value }))} /></div>
             <div className="flex-1 min-w-[160px]"><Label className="text-xs">Payment link</Label><Input className="h-8" placeholder="https://…" value={newInv.payment_link_url} onChange={(e) => setNewInv((p) => ({ ...p, payment_link_url: e.target.value }))} /></div>
@@ -134,13 +135,15 @@ export function ClientCommercialTab({ teamId, campaignId }: { teamId: string; ca
             <Button size="sm" disabled={busy} onClick={() => run(async () => {
               await clientCommercialApi.createInvoice(teamId, {
                 invoice_type: newInv.invoice_type,
+                milestone_label: newInv.milestone_label || undefined,
                 amount_aed: newInv.amount_aed ? Number(newInv.amount_aed) : undefined,
                 advance_pct: newInv.advance_pct ? Number(newInv.advance_pct) : undefined,
                 payment_terms: newInv.payment_terms || undefined,
                 payment_link_url: newInv.payment_link_url || undefined,
                 ...(campaignId ? { campaign_id: campaignId } : {}),
+                ...(proposalId ? { proposal_id: proposalId } : {}),
               } as any)
-              setNewInv({ invoice_type: 'advance', amount_aed: '', advance_pct: '', payment_terms: '', due_date: '', payment_link_url: '' })
+              setNewInv({ invoice_type: 'advance', milestone_label: '', amount_aed: '', advance_pct: '', payment_terms: '', due_date: '', payment_link_url: '' })
             })}><Plus className="mr-1 h-4 w-4" />Create</Button>
           </div>
 
@@ -156,7 +159,7 @@ export function ClientCommercialTab({ teamId, campaignId }: { teamId: string; ca
             <TableBody>
               {invoices.map((inv) => (
                 <TableRow key={inv.id}>
-                  <TableCell className="capitalize">{inv.invoice_type}</TableCell>
+                  <TableCell className="capitalize">{inv.invoice_type}{(inv as any).milestone_label ? <span className="block text-xs text-muted-foreground normal-case">{(inv as any).milestone_label}</span> : null}</TableCell>
                   <TableCell>{aed(inv.amount_aed)}{inv.amount_paid ? <span className="text-xs text-muted-foreground"> ({aed(inv.amount_paid)} paid)</span> : null}</TableCell>
                   <TableCell>{payBadge(inv.status)}</TableCell>
                   <TableCell>{inv.receipt_count || 0}</TableCell>

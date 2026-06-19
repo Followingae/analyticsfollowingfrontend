@@ -103,6 +103,10 @@ function CreateProposalContent() {
   const [title, setTitle] = useState("")
   const [campaignName, setCampaignName] = useState("")
   const [totalBudget, setTotalBudget] = useState("")
+  const [paymentSchedule, setPaymentSchedule] = useState<{ label: string; pct: string }[]>([
+    { label: "Advance", pct: "50" },
+    { label: "On completion", pct: "50" },
+  ])
   const [description, setDescription] = useState("")
   const [proposalNotes, setProposalNotes] = useState("")
   const [deadline, setDeadline] = useState<Date | undefined>(undefined)
@@ -514,6 +518,7 @@ function CreateProposalContent() {
         cover_image_url: coverImageUrl.trim() || undefined,
         campaign_type_target: campaignTypeTarget,
         total_budget: totalBudget ? Number(totalBudget) : undefined,
+        payment_schedule: paymentSchedule.filter((m) => m.label.trim()).map((m) => ({ label: m.label.trim(), pct: Number(m.pct) || 0 })),
       } as any)
 
       // Optionally pre-attach influencers if the operator added any (not required).
@@ -717,6 +722,35 @@ function CreateProposalContent() {
                     onChange={(e) => setTotalBudget(e.target.value)}
                   />
                   <p className="mt-1 text-xs text-muted-foreground">Hidden from talent managers; visible to approvers + the client.</p>
+                </div>
+              </div>
+
+              <div>
+                <Label>Payment schedule</Label>
+                <p className="text-xs text-muted-foreground mb-2">Milestones the client pays against — the <strong>first</strong> is the advance that unlocks the influencer list. Should total 100%.</p>
+                <div className="space-y-2">
+                  {paymentSchedule.map((m, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Input className="flex-1" placeholder="Label (e.g. Advance)" value={m.label}
+                        onChange={(e) => setPaymentSchedule((p) => p.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
+                      <div className="relative w-24">
+                        <Input type="number" className="pr-7" placeholder="0" value={m.pct}
+                          onChange={(e) => setPaymentSchedule((p) => p.map((x, j) => (j === i ? { ...x, pct: e.target.value } : x)))} />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                      </div>
+                      <Button type="button" size="icon" variant="ghost" onClick={() => setPaymentSchedule((p) => p.filter((_, j) => j !== i))}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 flex items-center gap-3">
+                  <Button type="button" size="sm" variant="outline" onClick={() => setPaymentSchedule((p) => [...p, { label: "", pct: "" }])}>
+                    <Plus className="mr-1 h-3.5 w-3.5" />Milestone
+                  </Button>
+                  {(() => { const tot = paymentSchedule.reduce((s, m) => s + (Number(m.pct) || 0), 0); return (
+                    <span className={`text-xs ${tot === 100 ? "text-emerald-600" : "text-amber-600"}`}>Total: {tot}%{tot !== 100 ? " (should be 100%)" : ""}</span>
+                  ); })()}
                 </div>
               </div>
 

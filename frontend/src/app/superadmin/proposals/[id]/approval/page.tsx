@@ -370,7 +370,7 @@ export default function ProposalApprovalPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ClientCommercialTab teamId={ws.team_id} />
+              <ClientCommercialTab teamId={ws.team_id} proposalId={proposalId} />
             </CardContent>
           </Card>
         )}
