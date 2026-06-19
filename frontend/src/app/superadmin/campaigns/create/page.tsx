@@ -234,6 +234,12 @@ export default function SuperadminCreateCampaignPage() {
             <p className="text-muted-foreground mt-1">
               Create a managed campaign for a brand client
             </p>
+            <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">
+              Direct create is for campaigns that don't need the client to approve an influencer list.
+              Need internal approval (talent manager → cofounder → CEO) and a client sign‑off + agreement/invoice before it runs?{' '}
+              <Link href="/superadmin/proposals/create" className="font-medium text-primary hover:underline">Start from a Proposal</Link> instead.
+              Either way you can manage the agreement &amp; invoices per campaign from the client's cockpit.
+            </div>
           </div>
 
           {/* Client Selection */}

@@ -49,8 +49,13 @@ export interface CampaignInvoice {
 
 export const clientCommercialApi = {
   // Documents / agreements
-  listDocuments: (teamId: string, docType?: string) =>
-    jfetch(`${BASE}/${teamId}/documents${docType ? `?doc_type=${docType}` : ''}`),
+  listDocuments: (teamId: string, opts?: { docType?: string; campaignId?: string }) => {
+    const qs = new URLSearchParams();
+    if (opts?.docType) qs.set('doc_type', opts.docType);
+    if (opts?.campaignId) qs.set('campaign_id', opts.campaignId);
+    const q = qs.toString();
+    return jfetch(`${BASE}/${teamId}/documents${q ? `?${q}` : ''}`);
+  },
   uploadAgreement: (teamId: string, file: File, notes?: string, campaignId?: string) =>
     upload(`${BASE}/${teamId}/agreements`, file, { notes: notes || '', ...(campaignId ? { campaign_id: campaignId } : {}) }),
   sendAgreement: (teamId: string, docId: string) =>
@@ -64,7 +69,8 @@ export const clientCommercialApi = {
     jfetch(`${BASE}/${teamId}/agreements/${docId}/void`, { method: 'POST', body: '{}' }),
 
   // Invoices
-  listInvoices: (teamId: string) => jfetch(`${BASE}/${teamId}/invoices`),
+  listInvoices: (teamId: string, campaignId?: string) =>
+    jfetch(`${BASE}/${teamId}/invoices${campaignId ? `?campaign_id=${campaignId}` : ''}`),
   createInvoice: (teamId: string, payload: Partial<CampaignInvoice>) =>
     jfetch(`${BASE}/${teamId}/invoices`, { method: 'POST', body: JSON.stringify(payload) }),
   uploadInvoiceFile: (teamId: string, invoiceId: string, file: File) =>
