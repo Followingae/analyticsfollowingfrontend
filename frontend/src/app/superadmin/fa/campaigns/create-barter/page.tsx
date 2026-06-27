@@ -12,8 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ArrowLeft, Plus, Trash2, Gift, ChevronDown, Calendar, Users, Shield } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Gift, Calendar, Users } from "lucide-react"
 import { toast } from "sonner"
 import { faCampaignApi } from "@/services/faAdminApi"
 import {
@@ -37,10 +36,6 @@ export default function CreateBarterPage() {
   const [deliverables, setDeliverables] = useState<DeliverableSpec[]>([
     { ...DELIVERABLE_OPTIONS[0], quantity: 1 },
   ])
-  const [minTier, setMinTier] = useState("")
-  const [minFollowers, setMinFollowers] = useState("")
-  const [minEngagement, setMinEngagement] = useState("")
-  const [showEligibility, setShowEligibility] = useState(false)
   const [brief, setBrief] = useState<BriefState>(emptyBrief)
   const [submitting, setSubmitting] = useState(false)
 
@@ -100,9 +95,6 @@ export default function CreateBarterPage() {
       if (startDate) payload.start_date = startDate
       if (endDate) payload.end_date = endDate
       if (maxParticipants) payload.max_participants = parseInt(maxParticipants)
-      if (minTier && minTier !== "any_tier") payload.min_tier = minTier
-      if (minFollowers && minFollowers !== "any_followers") payload.min_followers_range = minFollowers
-      if (minEngagement && minEngagement !== "any_engagement") payload.min_engagement_range = minEngagement
 
       const res = await faCampaignApi.createBarter(payload)
       const newId = res?.data?.id
@@ -217,65 +209,6 @@ export default function CreateBarterPage() {
 
           {/* Creative brief, tags, audience, visit, coupon */}
           <CampaignBriefSection value={brief} onChange={setBrief} />
-
-          {/* Eligibility (real filters) */}
-          <Collapsible open={showEligibility} onOpenChange={setShowEligibility}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer">
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2"><Shield className="h-5 w-5" /> Eligibility Filters</span>
-                    <ChevronDown className={`h-5 w-5 transition-transform ${showEligibility ? "rotate-180" : ""}`} />
-                  </CardTitle>
-                  <CardDescription>Restrict who can apply (tier / followers / engagement).</CardDescription>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Min Tier</Label>
-                      <Select value={minTier} onValueChange={setMinTier}>
-                        <SelectTrigger><SelectValue placeholder="Any tier" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="any_tier">Any tier</SelectItem>
-                          <SelectItem value="NANO">Nano (1K – 10K)</SelectItem>
-                          <SelectItem value="MICRO">Micro (10K – 100K)</SelectItem>
-                          <SelectItem value="MACRO">Macro (100K – 1M)</SelectItem>
-                          <SelectItem value="MEGA">Mega (1M+)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Min Followers</Label>
-                      <Select value={minFollowers} onValueChange={setMinFollowers}>
-                        <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="any_followers">Any</SelectItem>
-                          <SelectItem value="1k-5k">1K-5K</SelectItem>
-                          <SelectItem value="5k-10k">5K-10K</SelectItem>
-                          <SelectItem value="10k-50k">10K-50K</SelectItem>
-                          <SelectItem value="50k+">50K+</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Min Engagement</Label>
-                      <Select value={minEngagement} onValueChange={setMinEngagement}>
-                        <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="any_engagement">Any</SelectItem>
-                          <SelectItem value="1-3%">1-3%</SelectItem>
-                          <SelectItem value="3-5%">3-5%</SelectItem>
-                          <SelectItem value="5%+">5%+</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
 
           {/* Submit */}
           <div className="flex justify-end gap-3">

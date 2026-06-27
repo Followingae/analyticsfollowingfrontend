@@ -23,18 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import {
   ArrowLeft,
   ArrowRight,
   Building2,
   Wallet,
   Users,
   Calendar,
-  ChevronDown,
   Plus,
   Trash2,
   QrCode,
@@ -48,9 +42,6 @@ import {
   Award,
   Medal,
   Star,
-  UserCheck,
-  Hash,
-  Heart,
   Clock,
 } from "lucide-react"
 import Link from "next/link"
@@ -73,8 +64,6 @@ const TIER_CONFIG: Record<string, { icon: typeof Medal; color: string; bg: strin
   MACRO: { icon: Star,  color: "text-amber-600 dark:text-amber-400",     bg: "bg-amber-50 dark:bg-amber-950/50",     border: "border-amber-200 dark:border-amber-800",     ring: "ring-amber-400",   gradient: "from-amber-500/10 to-amber-600/5",     label: "Macro", range: "100K – 1M followers",  description: "Professional creators offering broad reach across segments." },
   MEGA:  { icon: Crown, color: "text-purple-600 dark:text-purple-400",   bg: "bg-purple-50 dark:bg-purple-950/50",   border: "border-purple-200 dark:border-purple-800",   ring: "ring-purple-400",  gradient: "from-purple-500/10 to-purple-600/5",   label: "Mega",  range: "1M+ followers",        description: "Celebrity-level influencers with mass-market reach." },
 }
-const FOLLOWER_RANGES = ["1K-10K", "10K-50K", "50K-100K", "100K+"] as const
-const ENGAGEMENT_RANGES = ["1-2%", "2-4%", "4-6%", "6%+"] as const
 
 export default function CreateCashbackCampaignPage() {
   const router = useRouter()
@@ -103,12 +92,6 @@ export default function CreateCashbackCampaignPage() {
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [maxParticipants, setMaxParticipants] = useState("")
-
-  // Eligibility
-  const [showEligibility, setShowEligibility] = useState(false)
-  const [minTier, setMinTier] = useState("")
-  const [minFollowers, setMinFollowers] = useState("")
-  const [minEngagement, setMinEngagement] = useState("")
 
   // Deliverables (platform-specific)
   const [deliverables, setDeliverables] = useState<DeliverableSpec[]>([
@@ -202,9 +185,6 @@ export default function CreateCashbackCampaignPage() {
       if (startDate) payload.start_date = startDate
       if (endDate) payload.end_date = endDate
       if (maxParticipants) payload.max_participants = parseInt(maxParticipants)
-      if (minTier && minTier !== "any_tier") payload.min_tier = minTier
-      if (minFollowers && minFollowers !== "any_followers") payload.min_followers_range = minFollowers
-      if (minEngagement && minEngagement !== "any_engagement") payload.min_engagement_range = minEngagement
 
       const res = await faCampaignApi.createCashback(payload)
       const newId = res?.data?.id
@@ -576,85 +556,6 @@ export default function CreateCashbackCampaignPage() {
 
             {/* ─── Creative brief, tags, audience, visit, coupon ─── */}
             <CampaignBriefSection value={brief} onChange={setBrief} />
-
-            {/* ─── Eligibility (Collapsible) ─────────────────────── */}
-            <Collapsible open={showEligibility} onOpenChange={setShowEligibility}>
-              <Card>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors rounded-t-xl">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
-                          <Shield className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-base">Eligibility Criteria</CardTitle>
-                          <CardDescription className="text-xs">Filter which influencers can participate</CardDescription>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-[10px]">Optional</Badge>
-                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showEligibility ? "rotate-180" : ""}`} />
-                      </div>
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="pt-0 pb-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium flex items-center gap-1.5">
-                          <UserCheck className="h-3.5 w-3.5 text-muted-foreground" />Min Tier
-                        </Label>
-                        <Select value={minTier} onValueChange={setMinTier}>
-                          <SelectTrigger><SelectValue placeholder="Any tier" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="any_tier">Any tier</SelectItem>
-                            {TIERS.map((t) => {
-                              const cfg = TIER_CONFIG[t]
-                              const TierIcon = cfg.icon
-                              return (
-                                <SelectItem key={t} value={t}>
-                                  <span className="flex items-center gap-2">
-                                    <TierIcon className={`h-3.5 w-3.5 ${cfg.color}`} />
-                                    <span className="font-medium">{cfg.label}</span>
-                                    <span className="text-xs text-muted-foreground">({cfg.range})</span>
-                                  </span>
-                                </SelectItem>
-                              )
-                            })}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium flex items-center gap-1.5">
-                          <Hash className="h-3.5 w-3.5 text-muted-foreground" />Min Followers
-                        </Label>
-                        <Select value={minFollowers} onValueChange={setMinFollowers}>
-                          <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="any_followers">Any</SelectItem>
-                            {FOLLOWER_RANGES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium flex items-center gap-1.5">
-                          <Heart className="h-3.5 w-3.5 text-muted-foreground" />Min Engagement
-                        </Label>
-                        <Select value={minEngagement} onValueChange={setMinEngagement}>
-                          <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="any_engagement">Any</SelectItem>
-                            {ENGAGEMENT_RANGES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
 
             {/* ─── Submit Bar ────────────────────────────────────── */}
             <Card className="sticky bottom-4 shadow-lg border-primary/20">
