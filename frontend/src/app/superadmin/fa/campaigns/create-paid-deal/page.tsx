@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Coins, Calendar, Users } from "lucide-react"
 import { toast } from "sonner"
-import { faCampaignApi } from "@/services/faAdminApi"
+import { faCampaignApi, faMerchantApi } from "@/services/faAdminApi"
 import {
   CampaignBriefSection, DeliverablePicker, emptyBrief, buildBriefPayload, buildDeliverablePayload,
   type BriefState, type DeliverableSpec, DELIVERABLE_OPTIONS,
@@ -25,9 +25,9 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.following.
 
 export default function CreatePaidDealPage() {
   const router = useRouter()
-  const [clients, setClients] = useState<any[]>([])
+  const [merchants, setMerchants] = useState<any[]>([])
   const [allPools, setAllPools] = useState<any[]>([])
-  const [selectedClientId, setSelectedClientId] = useState("")
+  const [selectedMerchantId, setSelectedMerchantId] = useState("")
   const [selectedPoolId, setSelectedPoolId] = useState("")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -46,25 +46,25 @@ export default function CreatePaidDealPage() {
     const fetchData = async () => {
       try {
         const token = (tokenManager.getTokenSync() || localStorage.getItem("access_token")) || ""
-        const [clientsRes, poolsRes] = await Promise.all([
-          fetch(`${API_BASE}/api/v1/admin/clients`, { headers: { Authorization: `Bearer ${token}` } }),
+        const [merchantsRes, poolsRes] = await Promise.all([
+          faMerchantApi.list(),
           fetch(`${API_BASE}/api/v1/admin/fa/pools`, { headers: { Authorization: `Bearer ${token}` } }),
         ])
-        if (clientsRes.ok) { const d = await clientsRes.json(); setClients(d.data?.clients || d.data || d.clients || []) }
+        setMerchants(merchantsRes?.data?.merchants || merchantsRes?.merchants || [])
         if (poolsRes.ok) { const d = await poolsRes.json(); setAllPools(d.data?.pools || d.pools || []) }
       } catch (err) {
-        toast.error("Failed to load clients or pools")
+        toast.error("Failed to load merchants or pools")
       }
     }
     fetchData()
   }, [])
 
-  const selectedClient = clients.find((c) => c.id === selectedClientId)
-  const clientPools = allPools.filter((p) => selectedClient && (p.brand_user_id === selectedClient.brand_user_id || p.brand_user_id === selectedClient.id))
+  const selectedMerchant = merchants.find((m) => m.id === selectedMerchantId)
+  const merchantPools = allPools.filter((p) => selectedMerchant && p.brand_user_id === selectedMerchant.brand_user_id)
 
   const handleSubmit = async () => {
     if (!name.trim()) return toast.error("Campaign name is required")
-    if (!selectedClientId) return toast.error("Select a client")
+    if (!selectedMerchantId) return toast.error("Select a merchant")
     if (startDate && endDate && new Date(endDate) <= new Date(startDate)) return toast.error("End date must be after start date")
     if (payoutAed <= 0) return toast.error("Payout amount must be greater than 0")
     if (deliverables.length === 0) return toast.error("Pick at least one deliverable")
@@ -74,8 +74,8 @@ export default function CreatePaidDealPage() {
     try {
       const payload: Record<string, any> = {
         name: name.trim(),
-        brand_user_id: selectedClient?.brand_user_id || selectedClient?.id,
-        brand_name: selectedClient?.company_name || selectedClient?.name,
+        // Merchant-first: backend derives brand_user_id + brand_name from the merchant.
+        merchant_id: selectedMerchantId,
         pool_id: selectedPoolId || undefined,
         payout_aed: payoutAed,
         deliverable_requirements: buildDeliverablePayload(deliverables),
@@ -114,25 +114,25 @@ export default function CreatePaidDealPage() {
             <p className="text-muted-foreground mt-1">Set up a fixed-payout influencer campaign</p>
           </div>
 
-          {/* Client Selection */}
+          {/* Merchant Selection */}
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Select Client</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Select Merchant</CardTitle></CardHeader>
             <CardContent>
-              <Select value={selectedClientId} onValueChange={(v: string) => { setSelectedClientId(v); setSelectedPoolId("") }}>
-                <SelectTrigger><SelectValue placeholder="Choose a client..." /></SelectTrigger>
+              <Select value={selectedMerchantId} onValueChange={(v: string) => { setSelectedMerchantId(v); setSelectedPoolId("") }}>
+                <SelectTrigger><SelectValue placeholder="Choose a merchant..." /></SelectTrigger>
                 <SelectContent>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.company_name || c.name} ({c.owner_email || c.email})</SelectItem>
+                  {merchants.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}{m.category ? ` (${m.category})` : ""}{m.brand_name ? ` — ${m.brand_name}` : ""}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {selectedClientId && clientPools.length > 0 && (
+              {selectedMerchantId && merchantPools.length > 0 && (
                 <div className="mt-4">
                   <Label>Funding Pool (optional)</Label>
                   <Select value={selectedPoolId} onValueChange={setSelectedPoolId}>
                     <SelectTrigger><SelectValue placeholder="Select pool..." /></SelectTrigger>
                     <SelectContent>
-                      {clientPools.map((p) => (
+                      {merchantPools.map((p) => (
                         <SelectItem key={p.id} value={p.id}>{p.name || p.id} - AED {((p.available_cents || 0) / 100).toLocaleString()}</SelectItem>
                       ))}
                     </SelectContent>
@@ -197,7 +197,7 @@ export default function CreatePaidDealPage() {
           {/* Submit */}
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => router.push("/superadmin/fa/campaigns")}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={submitting || !name.trim() || !selectedClientId || payoutAed <= 0}>
+            <Button onClick={handleSubmit} disabled={submitting || !name.trim() || !selectedMerchantId || payoutAed <= 0}>
               {submitting ? "Creating..." : "Create Paid Deal Campaign"}
             </Button>
           </div>

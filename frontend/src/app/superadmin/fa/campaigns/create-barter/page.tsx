@@ -1,5 +1,4 @@
 "use client"
-import { tokenManager } from '@/utils/tokenManager'
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -14,19 +13,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Plus, Trash2, Gift, Calendar, Users } from "lucide-react"
 import { toast } from "sonner"
-import { faCampaignApi } from "@/services/faAdminApi"
+import { faCampaignApi, faMerchantApi } from "@/services/faAdminApi"
 import {
   CampaignBriefSection, DeliverablePicker, emptyBrief, buildBriefPayload, buildDeliverablePayload,
   type BriefState, type DeliverableSpec, DELIVERABLE_OPTIONS,
 } from "@/components/superadmin/fa/CampaignBriefFields"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.following.ae"
-
 export default function CreateBarterPage() {
   const router = useRouter()
-  const [clients, setClients] = useState<any[]>([])
-  const [selectedClientId, setSelectedClientId] = useState("")
+  const [merchants, setMerchants] = useState<any[]>([])
+  const [selectedMerchantId, setSelectedMerchantId] = useState("")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [barterItems, setBarterItems] = useState([{ name: "", value_aed: 0, description: "" }])
@@ -44,19 +41,18 @@ export default function CreateBarterPage() {
   const [couponOpen, setCouponOpen] = useState(false)
 
   useEffect(() => {
-    const fetchClients = async () => {
+    const fetchMerchants = async () => {
       try {
-        const token = (tokenManager.getTokenSync() || localStorage.getItem("access_token")) || ""
-        const res = await fetch(`${API_BASE}/api/v1/admin/clients`, { headers: { Authorization: `Bearer ${token}` } })
-        if (res.ok) { const d = await res.json(); setClients(d.data?.clients || d.data || d.clients || []) }
+        const res = await faMerchantApi.list()
+        setMerchants(res?.data?.merchants || res?.merchants || [])
       } catch (error) {
-        console.error('Failed to fetch clients for barter campaign:', error)
+        console.error('Failed to fetch merchants for barter campaign:', error)
       }
     }
-    fetchClients()
+    fetchMerchants()
   }, [])
 
-  const selectedClient = clients.find((c) => c.id === selectedClientId)
+  const selectedMerchant = merchants.find((m) => m.id === selectedMerchantId)
 
   const addBarterItem = () => setBarterItems([...barterItems, { name: "", value_aed: 0, description: "" }])
   const removeBarterItem = (i: number) => setBarterItems(barterItems.filter((_, idx) => idx !== i))
@@ -68,7 +64,7 @@ export default function CreateBarterPage() {
 
   const handleSubmit = async () => {
     if (!name.trim()) return toast.error("Campaign name is required")
-    if (!selectedClientId) return toast.error("Select a client")
+    if (!selectedMerchantId) return toast.error("Select a merchant")
     if (startDate && endDate && new Date(endDate) <= new Date(startDate)) return toast.error("End date must be after start date")
     const validItems = barterItems.filter((item) => item.name.trim())
     if (validItems.length === 0) return toast.error("Add at least one barter item")
@@ -79,8 +75,8 @@ export default function CreateBarterPage() {
     try {
       const payload: Record<string, any> = {
         name: name.trim(),
-        brand_user_id: selectedClient?.brand_user_id || selectedClient?.id,
-        brand_name: selectedClient?.company_name || selectedClient?.name,
+        // Merchant-first: backend derives brand_user_id + brand_name from the merchant.
+        merchant_id: selectedMerchantId,
         barter_items: validItems.map((item) => ({
           name: item.name.trim(),
           // Mobile reads `value_aed` - keep both keys so old + new readers agree.
@@ -127,15 +123,15 @@ export default function CreateBarterPage() {
             <p className="text-muted-foreground mt-1">Set up a campaign where influencers receive products/services (or a discount code) in exchange for content</p>
           </div>
 
-          {/* Client Selection */}
+          {/* Merchant Selection */}
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Select Client</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Select Merchant</CardTitle></CardHeader>
             <CardContent>
-              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                <SelectTrigger><SelectValue placeholder="Choose a client..." /></SelectTrigger>
+              <Select value={selectedMerchantId} onValueChange={setSelectedMerchantId}>
+                <SelectTrigger><SelectValue placeholder="Choose a merchant..." /></SelectTrigger>
                 <SelectContent>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.company_name || c.name} ({c.owner_email || c.email})</SelectItem>
+                  {merchants.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}{m.category ? ` (${m.category})` : ""}{m.brand_name ? ` — ${m.brand_name}` : ""}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -213,7 +209,7 @@ export default function CreateBarterPage() {
           {/* Submit */}
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => router.push("/superadmin/fa/campaigns")}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={submitting || !name.trim() || !selectedClientId || barterItems.every((i) => !i.name.trim())}>
+            <Button onClick={handleSubmit} disabled={submitting || !name.trim() || !selectedMerchantId || barterItems.every((i) => !i.name.trim())}>
               {submitting ? "Creating..." : "Create Barter Campaign"}
             </Button>
           </div>
