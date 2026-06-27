@@ -53,7 +53,7 @@ export default function CreateBarterPage() {
       try {
         const token = (tokenManager.getTokenSync() || localStorage.getItem("access_token")) || ""
         const res = await fetch(`${API_BASE}/api/v1/admin/clients`, { headers: { Authorization: `Bearer ${token}` } })
-        if (res.ok) { const d = await res.json(); setClients(d.data?.clients || d.clients || []) }
+        if (res.ok) { const d = await res.json(); setClients(d.data?.clients || d.data || d.clients || []) }
       } catch (error) {
         console.error('Failed to fetch clients for barter campaign:', error)
       }
@@ -143,7 +143,7 @@ export default function CreateBarterPage() {
                 <SelectTrigger><SelectValue placeholder="Choose a client..." /></SelectTrigger>
                 <SelectContent>
                   {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.company_name || c.name} ({c.email})</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>{c.company_name || c.name} ({c.owner_email || c.email})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

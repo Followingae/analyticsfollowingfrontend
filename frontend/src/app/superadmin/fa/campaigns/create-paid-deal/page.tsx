@@ -55,7 +55,7 @@ export default function CreatePaidDealPage() {
           fetch(`${API_BASE}/api/v1/admin/clients`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${API_BASE}/api/v1/admin/fa/pools`, { headers: { Authorization: `Bearer ${token}` } }),
         ])
-        if (clientsRes.ok) { const d = await clientsRes.json(); setClients(d.data?.clients || d.clients || []) }
+        if (clientsRes.ok) { const d = await clientsRes.json(); setClients(d.data?.clients || d.data || d.clients || []) }
         if (poolsRes.ok) { const d = await poolsRes.json(); setAllPools(d.data?.pools || d.pools || []) }
       } catch (err) {
         toast.error("Failed to load clients or pools")
@@ -130,7 +130,7 @@ export default function CreatePaidDealPage() {
                 <SelectTrigger><SelectValue placeholder="Choose a client..." /></SelectTrigger>
                 <SelectContent>
                   {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.company_name || c.name} ({c.email})</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>{c.company_name || c.name} ({c.owner_email || c.email})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
