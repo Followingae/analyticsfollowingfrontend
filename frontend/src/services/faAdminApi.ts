@@ -94,6 +94,13 @@ export const faCampaignApi = {
   /** Share asset: canonical creatorapp.following.ae link + QR PNG (base64). */
   share: (id: string): Promise<{ url: string; qr_png_base64: string | null }> =>
     get(`/api/v1/admin/fa/campaigns/${id}/share`),
+  /** Upload an image (cover/brand logo) → { data: { url } }. Reuses the FA image bucket. */
+  uploadImage: async (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetchWithAuth(`${BASE}/api/v1/admin/fa/merchants/logo`, { method: 'POST', body: form })
+    return res.json()
+  },
 }
 
 // ─── SUPERADMIN: FA Members ──────────────────────────────────────────

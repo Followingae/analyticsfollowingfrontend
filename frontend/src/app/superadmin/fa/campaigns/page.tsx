@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download } from "lucide-react"
+import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download, ImagePlus } from "lucide-react"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 import {
   AlertDialog,
@@ -56,11 +56,36 @@ export default function FACampaignsPage() {
   const [shareUrl, setShareUrl] = useState("")
   const [shareQr, setShareQr] = useState<string | null>(null)
   const [shareLoading, setShareLoading] = useState(false)
+  // Dynamic landing visuals — the cover + brand logo shown on creatorapp.following.ae/c/<id>
+  const [shareHero, setShareHero] = useState<string | null>(null)
+  const [shareLogo, setShareLogo] = useState<string | null>(null)
+  const [uploading, setUploading] = useState<null | "hero" | "logo">(null)
+
+  const uploadShareImage = async (kind: "hero" | "logo", file: File) => {
+    if (!shareTarget) return
+    setUploading(kind)
+    try {
+      const up = await faCampaignApi.uploadImage(file)
+      const url = up?.data?.url
+      if (!url) throw new Error("Upload failed")
+      const field = kind === "hero" ? "hero_image_url" : "brand_logo_url"
+      await faCampaignApi.update(shareTarget.id, { [field]: url })
+      if (kind === "hero") setShareHero(url); else setShareLogo(url)
+      setCampaigns((prev) => prev.map((c) => (c.id === shareTarget.id ? { ...c, [field]: url } : c)))
+      toast.success(kind === "hero" ? "Cover image updated" : "Brand logo updated")
+    } catch (e: any) {
+      toast.error(e?.message || "Upload failed")
+    } finally {
+      setUploading(null)
+    }
+  }
 
   const openShare = async (c: any) => {
     setShareTarget(c)
     setShareUrl(`https://creatorapp.following.ae/c/${c.id}`)
     setShareQr(null)
+    setShareHero(c.hero_image_url ?? null)
+    setShareLogo(c.brand_logo_url ?? null)
     setShareLoading(true)
     try {
       const res = await faCampaignApi.share(c.id)
@@ -306,6 +331,35 @@ export default function FACampaignsPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col items-center gap-4">
+                {/* Dynamic landing visuals — shown on the public /c/<id> page */}
+                <div className="grid w-full grid-cols-2 gap-3">
+                  <div>
+                    <p className="mb-1.5 text-xs font-medium text-muted-foreground">Cover image</p>
+                    <label className="relative flex aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-md border bg-muted/40 hover:bg-muted">
+                      {shareHero ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={shareHero} alt="Cover" className="h-full w-full object-cover" />
+                      ) : (
+                        <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                      )}
+                      {uploading === "hero" && <div className="absolute inset-0 grid place-items-center bg-background/60"><Loader2 className="h-4 w-4 animate-spin" /></div>}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadShareImage("hero", f); e.currentTarget.value = "" }} />
+                    </label>
+                  </div>
+                  <div>
+                    <p className="mb-1.5 text-xs font-medium text-muted-foreground">Brand logo</p>
+                    <label className="relative flex aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-md border bg-muted/40 hover:bg-muted">
+                      {shareLogo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={shareLogo} alt="Brand logo" className="h-full w-full object-contain p-2" />
+                      ) : (
+                        <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                      )}
+                      {uploading === "logo" && <div className="absolute inset-0 grid place-items-center bg-background/60"><Loader2 className="h-4 w-4 animate-spin" /></div>}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadShareImage("logo", f); e.currentTarget.value = "" }} />
+                    </label>
+                  </div>
+                </div>
                 <div className="flex h-[200px] w-[200px] items-center justify-center rounded-lg border bg-white">
                   {shareLoading ? (
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
