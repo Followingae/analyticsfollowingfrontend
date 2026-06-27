@@ -63,17 +63,12 @@ const DTYPE: Record<string, { icon: typeof Film; label: string }> = {
 }
 const dtypeMeta = (t: string) => DTYPE[t] ?? { icon: ImageIcon, label: t.charAt(0).toUpperCase() + t.slice(1) }
 
-// Demo captions — used as placeholder content for submitted posts.
-const CAPTIONS: Record<string, string> = {
-  reel: "Golden hour at Palazzo Versace 🌅 the most surreal staycation — full suite tour on my page ✨ #PalazzoVersace #DubaiLuxury #ad",
-  story: "Checked in 🤍 swipe up for the lagoon-suite reveal… you are not ready 😍",
-  post: "Living the Versace life ✨ every single detail here is wearable art. Dinner at Giardino was unreal. #PalazzoVersace #ad",
-  carousel: "A weekend in pictures 📸 Palazzo Versace did not miss. Suite, spa, sunset — swipe through 👉 #ad",
-  video: "Full Palazzo Versace experience 🎥 stay til the end for the spa 🧖‍♀️ #PalazzoVersace",
-}
-const captionFor = (t: string) => CAPTIONS[t] ?? "Sharing my Palazzo Versace experience ✨ #ad"
+// Real submitted-proof rendering: detect media kind from the URL so we can inline
+// the actual image/video the creator uploaded (R2/CDN), with a link fallback.
+const isImageProof = (u: string) => /\.(jpe?g|png|webp|gif|heic|heif|avif)(\?|#|$)/i.test(u)
+const isVideoProof = (u: string) => /\.(mp4|mov|webm|m4v)(\?|#|$)/i.test(u)
 
-// Deterministic gradient for the placeholder post imagery.
+// Deterministic gradient — only a loading backdrop behind the real proof image.
 function gradientFor(seed: string): string {
   let h = 0
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 360
@@ -408,9 +403,24 @@ function SubmissionCard({
       <div className="relative aspect-[4/5]" style={{ background: gradientFor(d.id) }}>
         {showContent ? (
           <>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Icon className="h-9 w-9 text-white/85" />
-            </div>
+            {d.proof_url ? (
+              <a href={d.proof_url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 block">
+                {isImageProof(d.proof_url) ? (
+                  <img src={d.proof_url} alt={`${meta.label} submission`} className="absolute inset-0 h-full w-full object-cover" />
+                ) : isVideoProof(d.proof_url) ? (
+                  <video src={d.proof_url} className="absolute inset-0 h-full w-full object-cover" muted playsInline />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-white/90">
+                    <Icon className="h-9 w-9" /><span className="text-[10px] underline">Open submission</span>
+                  </div>
+                )}
+                <span className="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white">View ↗</span>
+              </a>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-white/85">
+                <Icon className="h-9 w-9" /><span className="text-[10px]">Submitted — no media</span>
+              </div>
+            )}
             <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-black/35 backdrop-blur px-2 py-0.5">
               <Avatar className="h-4 w-4"><AvatarImage src={avatar} /><AvatarFallback className="text-[8px]">{(username?.[0] ?? "?").toUpperCase()}</AvatarFallback></Avatar>
               <span className="text-[10px] text-white font-medium truncate max-w-[80px]">@{username}</span>
@@ -418,7 +428,6 @@ function SubmissionCard({
             {isDone && (
               <div className="absolute top-2 right-2 rounded-full bg-emerald-500 p-1"><CheckCircle2 className="h-3 w-3 text-white" /></div>
             )}
-            <span className="absolute bottom-1.5 right-2 text-[9px] text-white/70">demo preview</span>
           </>
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-white/80">
@@ -431,7 +440,6 @@ function SubmissionCard({
           <span className="text-xs font-semibold">{meta.label}{d.quantity > 1 ? ` ×${d.quantity}` : ""}</span>
           <StatusPill status={d.status} />
         </div>
-        {showContent && <p className="text-[11px] text-muted-foreground leading-snug line-clamp-3">{captionFor(d.type)}</p>}
         <p className="text-[10px] text-muted-foreground/70 mt-auto">
           {isDone ? `Verified ${fmtDate(d.verified_at)}` : d.status === "submitted" ? `Submitted ${fmtDate(d.submitted_at)}` : `Due ${fmtDate(d.deadline)}`}
         </p>
