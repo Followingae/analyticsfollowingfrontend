@@ -16,6 +16,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ArrowLeft, Plus, Trash2, Gift, ChevronDown, Calendar, Users, Shield } from "lucide-react"
 import { toast } from "sonner"
 import { faCampaignApi } from "@/services/faAdminApi"
+import {
+  CampaignBriefSection, DeliverablePicker, emptyBrief, buildBriefPayload, buildDeliverablePayload,
+  type BriefState, type DeliverableSpec, DELIVERABLE_OPTIONS,
+} from "@/components/superadmin/fa/CampaignBriefFields"
+import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.following.ae"
 
@@ -29,12 +34,19 @@ export default function CreateBarterPage() {
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [maxParticipants, setMaxParticipants] = useState("")
-  const [deliverables, setDeliverables] = useState([{ type: "IG Story", quantity: 1 }])
+  const [deliverables, setDeliverables] = useState<DeliverableSpec[]>([
+    { ...DELIVERABLE_OPTIONS[0], quantity: 1 },
+  ])
   const [minTier, setMinTier] = useState("")
   const [minFollowers, setMinFollowers] = useState("")
   const [minEngagement, setMinEngagement] = useState("")
   const [showEligibility, setShowEligibility] = useState(false)
+  const [brief, setBrief] = useState<BriefState>(emptyBrief)
   const [submitting, setSubmitting] = useState(false)
+
+  // After a coupon-enabled campaign is created, prompt to upload the codes.
+  const [couponCampaignId, setCouponCampaignId] = useState<string | null>(null)
+  const [couponOpen, setCouponOpen] = useState(false)
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -59,20 +71,14 @@ export default function CreateBarterPage() {
     setBarterItems(updated)
   }
 
-  const addDeliverable = (type = "") => setDeliverables([...deliverables, { type, quantity: 1 }])
-  const removeDeliverable = (i: number) => setDeliverables(deliverables.filter((_, idx) => idx !== i))
-  const updateDeliverable = (i: number, field: "type" | "quantity", value: string | number) => {
-    const updated = [...deliverables]
-    updated[i] = { ...updated[i], [field]: value }
-    setDeliverables(updated)
-  }
-
   const handleSubmit = async () => {
     if (!name.trim()) return toast.error("Campaign name is required")
     if (!selectedClientId) return toast.error("Select a client")
     if (startDate && endDate && new Date(endDate) <= new Date(startDate)) return toast.error("End date must be after start date")
     const validItems = barterItems.filter((item) => item.name.trim())
     if (validItems.length === 0) return toast.error("Add at least one barter item")
+    if (deliverables.length === 0) return toast.error("Pick at least one deliverable")
+    if (brief.coupon_enabled && !brief.redemption_url.trim()) return toast.error("Add a redemption URL for the coupon, or turn coupons off")
 
     setSubmitting(true)
     try {
@@ -82,10 +88,13 @@ export default function CreateBarterPage() {
         brand_name: selectedClient?.company_name || selectedClient?.name,
         barter_items: validItems.map((item) => ({
           name: item.name.trim(),
+          // Mobile reads `value_aed` — keep both keys so old + new readers agree.
+          value_aed: item.value_aed || 0,
           estimated_value_aed: item.value_aed || 0,
           description: item.description.trim() || undefined,
         })),
-        deliverable_requirements: deliverables.filter((d) => d.type.trim()).map((d) => ({ type: d.type, quantity: d.quantity, deadline_days: 7 })),
+        deliverable_requirements: buildDeliverablePayload(deliverables),
+        ...buildBriefPayload(brief),
       }
       if (description.trim()) payload.description = description.trim()
       if (startDate) payload.start_date = startDate
@@ -95,9 +104,16 @@ export default function CreateBarterPage() {
       if (minFollowers && minFollowers !== "any_followers") payload.min_followers_range = minFollowers
       if (minEngagement && minEngagement !== "any_engagement") payload.min_engagement_range = minEngagement
 
-      await faCampaignApi.createBarter(payload)
+      const res = await faCampaignApi.createBarter(payload)
+      const newId = res?.data?.id
       toast.success("Barter campaign created!")
-      router.push("/superadmin/fa/campaigns")
+      // If coupons are enabled, stay and prompt to upload the code pool.
+      if (brief.coupon_enabled && newId) {
+        setCouponCampaignId(newId)
+        setCouponOpen(true)
+      } else {
+        router.push("/superadmin/fa/campaigns")
+      }
     } catch (e: any) {
       toast.error(e?.message || "Failed to create campaign")
     } finally {
@@ -116,7 +132,7 @@ export default function CreateBarterPage() {
               <ArrowLeft className="h-4 w-4" /> Back to Campaigns
             </Link>
             <h1 className="text-3xl font-bold">Create Barter Campaign</h1>
-            <p className="text-muted-foreground mt-1">Set up a campaign where influencers receive products/services in exchange for content</p>
+            <p className="text-muted-foreground mt-1">Set up a campaign where influencers receive products/services (or a discount code) in exchange for content</p>
           </div>
 
           {/* Client Selection */}
@@ -140,10 +156,10 @@ export default function CreateBarterPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Campaign Name *</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Summer Barter Collab 2026" />
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Thai Fire Edit" />
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
+                <Label>What are we promoting?</Label>
                 <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Campaign description..." />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -167,7 +183,7 @@ export default function CreateBarterPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5" /> Barter Items</CardTitle>
-              <CardDescription>Products or services offered in exchange for content. Total value: AED {totalBarterValue.toLocaleString()}</CardDescription>
+              <CardDescription>Products, services, or a discount value offered in exchange for content. Total value: AED {totalBarterValue.toLocaleString()}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {barterItems.map((item, i) => (
@@ -179,7 +195,7 @@ export default function CreateBarterPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-xs">Item Name *</Label>
-                      <Input value={item.name} onChange={(e) => updateBarterItem(i, "name", e.target.value)} placeholder="e.g., Gift basket, Hotel stay" />
+                      <Input value={item.name} onChange={(e) => updateBarterItem(i, "name", e.target.value)} placeholder="e.g., AED 200 coupon, Gift basket" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Estimated Value (AED)</Label>
@@ -196,38 +212,22 @@ export default function CreateBarterPage() {
             </CardContent>
           </Card>
 
-          {/* Deliverables */}
-          <Card>
-            <CardHeader><CardTitle>Deliverable Requirements</CardTitle><CardDescription>What participants must deliver in exchange</CardDescription></CardHeader>
-            <CardContent className="space-y-3">
-              {deliverables.map((d, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Select value={d.type} onValueChange={(v) => updateDeliverable(i, "type", v)}>
-                    <SelectTrigger className="flex-1"><SelectValue placeholder="Type..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="IG Story">IG Story</SelectItem>
-                      <SelectItem value="IG Reel">IG Reel</SelectItem>
-                      <SelectItem value="IG Post">IG Post</SelectItem>
-                      <SelectItem value="IG Carousel">IG Carousel</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input type="number" min={1} className="w-20" value={d.quantity} onChange={(e) => updateDeliverable(i, "quantity", parseInt(e.target.value) || 1)} />
-                  <Button variant="ghost" size="icon" onClick={() => removeDeliverable(i)} disabled={deliverables.length <= 1}><Trash2 className="h-4 w-4" /></Button>
-                </div>
-              ))}
-              <Button variant="outline" size="sm" onClick={() => addDeliverable()}><Plus className="h-4 w-4 mr-1" /> Add Deliverable</Button>
-            </CardContent>
-          </Card>
+          {/* Deliverables (platform-specific) */}
+          <DeliverablePicker value={deliverables} onChange={setDeliverables} />
 
-          {/* Eligibility */}
+          {/* Creative brief, tags, audience, visit, coupon */}
+          <CampaignBriefSection value={brief} onChange={setBrief} />
+
+          {/* Eligibility (real filters) */}
           <Collapsible open={showEligibility} onOpenChange={setShowEligibility}>
             <Card>
               <CollapsibleTrigger asChild>
                 <CardHeader className="cursor-pointer">
                   <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2"><Shield className="h-5 w-5" /> Eligibility Criteria</span>
+                    <span className="flex items-center gap-2"><Shield className="h-5 w-5" /> Eligibility Filters</span>
                     <ChevronDown className={`h-5 w-5 transition-transform ${showEligibility ? "rotate-180" : ""}`} />
                   </CardTitle>
+                  <CardDescription>Restrict who can apply (tier / followers / engagement).</CardDescription>
                 </CardHeader>
               </CollapsibleTrigger>
               <CollapsibleContent>
@@ -285,6 +285,17 @@ export default function CreateBarterPage() {
             </Button>
           </div>
         </div>
+
+        {/* Coupon upload prompt after a coupon-enabled campaign is created */}
+        <CouponManagerDialog
+          campaignId={couponCampaignId}
+          campaignName={name}
+          open={couponOpen}
+          onOpenChange={(o) => {
+            setCouponOpen(o)
+            if (!o) router.push("/superadmin/fa/campaigns")
+          }}
+        />
       </SuperAdminInterface>
     </AuthGuard>
   )

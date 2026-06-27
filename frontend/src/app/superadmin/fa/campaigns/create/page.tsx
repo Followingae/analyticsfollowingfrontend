@@ -41,10 +41,6 @@ import {
   Percent,
   TrendingUp,
   Shield,
-  Camera,
-  Video,
-  Image as ImageIcon,
-  Megaphone,
   Check,
   Sparkles,
   Info,
@@ -60,6 +56,11 @@ import {
 import Link from "next/link"
 import { faCampaignApi, faPoolApi, faMerchantApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
+import {
+  CampaignBriefSection, DeliverablePicker, emptyBrief, buildBriefPayload, buildDeliverablePayload,
+  type BriefState, type DeliverableSpec, DELIVERABLE_OPTIONS,
+} from "@/components/superadmin/fa/CampaignBriefFields"
+import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 
 // ─── Types ──────────────────────────────────────────────────────────
 interface PoolOption { id: string; pool_name: string; brand_user_id: string; available_cents: number; currency: string }
@@ -74,13 +75,6 @@ const TIER_CONFIG: Record<string, { icon: typeof Medal; color: string; bg: strin
 }
 const FOLLOWER_RANGES = ["1K-10K", "10K-50K", "50K-100K", "100K+"] as const
 const ENGAGEMENT_RANGES = ["1-2%", "2-4%", "4-6%", "6%+"] as const
-
-const DELIVERABLE_PRESETS = [
-  { type: "IG Story", icon: Camera, color: "text-pink-500" },
-  { type: "IG Reel", icon: Video, color: "text-purple-500" },
-  { type: "IG Post", icon: ImageIcon, color: "text-blue-500" },
-  { type: "IG Carousel", icon: ImageIcon, color: "text-teal-500" },
-]
 
 export default function CreateCashbackCampaignPage() {
   const router = useRouter()
@@ -116,10 +110,15 @@ export default function CreateCashbackCampaignPage() {
   const [minFollowers, setMinFollowers] = useState("")
   const [minEngagement, setMinEngagement] = useState("")
 
-  // Deliverables
-  const [deliverables, setDeliverables] = useState<{ type: string; quantity: number }[]>([
-    { type: "IG Story", quantity: 3 },
+  // Deliverables (platform-specific)
+  const [deliverables, setDeliverables] = useState<DeliverableSpec[]>([
+    { ...DELIVERABLE_OPTIONS[0], quantity: 3 },
   ])
+
+  // Creative brief + coupon
+  const [brief, setBrief] = useState<BriefState>(emptyBrief)
+  const [couponCampaignId, setCouponCampaignId] = useState<string | null>(null)
+  const [couponOpen, setCouponOpen] = useState(false)
 
   const [submitting, setSubmitting] = useState(false)
 
@@ -159,19 +158,10 @@ export default function CreateCashbackCampaignPage() {
     !!selectedMerchantId,
     !!name.trim(),
     cashbackPercentage > 0,
-    deliverables.some((d) => d.type.trim()),
+    deliverables.length > 0,
   ].filter(Boolean).length
   const totalSteps = 4
   const progressPct = Math.round((completedSteps / totalSteps) * 100)
-
-  // ─── Deliverable helpers ────────────────────────────────────────
-  const addDeliverable = (type = "") => setDeliverables([...deliverables, { type, quantity: 1 }])
-  const removeDeliverable = (i: number) => setDeliverables(deliverables.filter((_, idx) => idx !== i))
-  const updateDeliverable = (i: number, field: "type" | "quantity", value: string | number) => {
-    const updated = [...deliverables]
-    updated[i] = { ...updated[i], [field]: value }
-    setDeliverables(updated)
-  }
 
   // ─── Submit ─────────────────────────────────────────────────────
   const handleSubmit = async () => {
@@ -191,7 +181,8 @@ export default function CreateCashbackCampaignPage() {
       }
       if (Object.keys(tiersPayload).length === 0) tiersPayload = undefined
     }
-    const validDeliverables = deliverables.filter((d) => d.type.trim())
+    if (deliverables.length === 0) return toast.error("Pick at least one deliverable")
+    if (brief.coupon_enabled && !brief.redemption_url.trim()) return toast.error("Add a redemption URL for the coupon, or turn coupons off")
 
     setSubmitting(true)
     try {
@@ -203,7 +194,8 @@ export default function CreateCashbackCampaignPage() {
         pool_id: selectedPoolId,
         cashback_percentage: cashbackPercentage,
         intent_only: intentOnly,
-        deliverable_requirements: validDeliverables.map((d) => ({ type: d.type, quantity: d.quantity, deadline_days: 7 })),
+        deliverable_requirements: buildDeliverablePayload(deliverables),
+        ...buildBriefPayload(brief),
       }
       if (tiersPayload) payload.cashback_tiers = tiersPayload
       if (description.trim()) payload.description = description.trim()
@@ -214,9 +206,15 @@ export default function CreateCashbackCampaignPage() {
       if (minFollowers && minFollowers !== "any_followers") payload.min_followers_range = minFollowers
       if (minEngagement && minEngagement !== "any_engagement") payload.min_engagement_range = minEngagement
 
-      await faCampaignApi.createCashback(payload)
+      const res = await faCampaignApi.createCashback(payload)
+      const newId = res?.data?.id
       toast.success("Cashback campaign created!")
-      router.push("/superadmin/fa/campaigns")
+      if (brief.coupon_enabled && newId) {
+        setCouponCampaignId(newId)
+        setCouponOpen(true)
+      } else {
+        router.push("/superadmin/fa/campaigns")
+      }
     } catch (e: any) {
       toast.error(e?.message || "Failed to create campaign")
     } finally {
@@ -468,7 +466,7 @@ export default function CreateCashbackCampaignPage() {
                   <p className="text-xs text-muted-foreground mb-4">Applied to all tiers unless overridden below</p>
                   <Slider
                     value={[cashbackPercentage]}
-                    onValueChange={([v]) => setCashbackPercentage(v)}
+                    onValueChange={([v]: number[]) => setCashbackPercentage(v)}
                     min={1}
                     max={50}
                     step={0.5}
@@ -547,7 +545,7 @@ export default function CreateCashbackCampaignPage() {
                             <div className="flex items-end gap-2">
                               <Slider
                                 value={[cashbackTiers[tier]]}
-                                onValueChange={([v]) => setCashbackTiers({ ...cashbackTiers, [tier]: v })}
+                                onValueChange={([v]: number[]) => setCashbackTiers({ ...cashbackTiers, [tier]: v })}
                                 min={0}
                                 max={50}
                                 step={0.5}
@@ -567,86 +565,17 @@ export default function CreateCashbackCampaignPage() {
               </Card>
             </div>
 
-            {/* ─── Deliverables ──────────────────────────────────── */}
+            {/* ─── Deliverables (platform-specific) ──────────────── */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">5</div>
                 <h2 className="text-lg font-semibold">Deliverable Requirements</h2>
               </div>
-
-              {/* Quick-add preset buttons */}
-              <div className="flex flex-wrap gap-2">
-                {DELIVERABLE_PRESETS.map((preset) => {
-                  const Icon = preset.icon
-                  const exists = deliverables.some((d) => d.type === preset.type)
-                  return (
-                    <Button
-                      key={preset.type}
-                      variant={exists ? "secondary" : "outline"}
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => {
-                        if (!exists) addDeliverable(preset.type)
-                      }}
-                      disabled={exists}
-                    >
-                      <Icon className={`h-3.5 w-3.5 ${exists ? "text-muted-foreground" : preset.color}`} />
-                      {preset.type}
-                      {exists && <Check className="h-3 w-3 ml-0.5" />}
-                    </Button>
-                  )
-                })}
-              </div>
-
-              <Card>
-                <CardContent className="p-4 space-y-3">
-                  {deliverables.map((d, i) => {
-                    const presetMatch = DELIVERABLE_PRESETS.find((p) => p.type === d.type)
-                    const PresetIcon = presetMatch?.icon || Megaphone
-                    return (
-                      <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
-                        <div className={`h-9 w-9 rounded-lg flex items-center justify-center bg-background shrink-0`}>
-                          <PresetIcon className={`h-4 w-4 ${presetMatch?.color || "text-muted-foreground"}`} />
-                        </div>
-                        <Input
-                          placeholder="Deliverable type"
-                          value={d.type}
-                          onChange={(e) => updateDeliverable(i, "type", e.target.value)}
-                          className="flex-1 h-9"
-                        />
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateDeliverable(i, "quantity", Math.max(1, d.quantity - 1))}
-                          >
-                            -
-                          </Button>
-                          <span className="w-8 text-center font-semibold tabular-nums">{d.quantity}</span>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateDeliverable(i, "quantity", d.quantity + 1)}
-                          >
-                            +
-                          </Button>
-                        </div>
-                        {deliverables.length > 1 && (
-                          <Button variant="ghost" size="icon" onClick={() => removeDeliverable(i)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 shrink-0">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    )
-                  })}
-                  <Button variant="outline" size="sm" onClick={() => addDeliverable("")} className="w-full border-dashed">
-                    <Plus className="h-4 w-4 mr-1.5" />Add Custom Deliverable
-                  </Button>
-                </CardContent>
-              </Card>
+              <DeliverablePicker value={deliverables} onChange={setDeliverables} />
             </div>
+
+            {/* ─── Creative brief, tags, audience, visit, coupon ─── */}
+            <CampaignBriefSection value={brief} onChange={setBrief} />
 
             {/* ─── Eligibility (Collapsible) ─────────────────────── */}
             <Collapsible open={showEligibility} onOpenChange={setShowEligibility}>
@@ -761,6 +690,13 @@ export default function CreateCashbackCampaignPage() {
               </CardContent>
             </Card>
           </div>
+
+          <CouponManagerDialog
+            campaignId={couponCampaignId}
+            campaignName={name}
+            open={couponOpen}
+            onOpenChange={(o) => { setCouponOpen(o); if (!o) router.push("/superadmin/fa/campaigns") }}
+          />
         </TooltipProvider>
       </SuperAdminInterface>
     </AuthGuard>

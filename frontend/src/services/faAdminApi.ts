@@ -43,6 +43,13 @@ export const faMerchantApi = {
   create: (data: any) => post('/api/v1/admin/fa/merchants', data),
   update: (id: string, data: any) => put(`/api/v1/admin/fa/merchants/${id}`, data),
   delete: (id: string) => del(`/api/v1/admin/fa/merchants/${id}`),
+  /** Upload a logo image (multipart) → { data: { url } }. */
+  uploadLogo: async (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetchWithAuth(`${BASE}/api/v1/admin/fa/merchants/logo`, { method: 'POST', body: form })
+    return res.json()
+  },
 }
 
 // ─── SUPERADMIN: Clients (for campaign creation dropdowns) ──────────
@@ -75,6 +82,15 @@ export const faCampaignApi = {
   /** Add "Following Team Suggested" creators to an open FA campaign. */
   addCurated: (id: string, creators: Array<{ fa_member_id?: string; instagram_username?: string }>) =>
     post(`/api/v1/admin/fa/campaigns/${id}/add-curated-creators`, { creators }),
+  // ─── Coupon codes (brand-supplied, unique per creator) ───────────────
+  /** Bulk-upload coupon codes for a campaign (idempotent on re-upload). */
+  uploadCoupons: (id: string, codes: string[]) =>
+    post(`/api/v1/admin/fa/campaigns/${id}/coupons`, { codes }),
+  /** List a campaign's coupon codes + assignment stats. */
+  listCoupons: (id: string) => get(`/api/v1/admin/fa/campaigns/${id}/coupons`),
+  /** Remove an unassigned coupon code. */
+  deleteCoupon: (id: string, couponId: string) =>
+    del(`/api/v1/admin/fa/campaigns/${id}/coupons/${couponId}`),
 }
 
 // ─── SUPERADMIN: FA Members ──────────────────────────────────────────
@@ -127,6 +143,31 @@ export const faPoolApi = {
 // ─── SUPERADMIN: FA Stats ────────────────────────────────────────────
 export const faStatsApi = {
   dashboard: () => get('/api/v1/admin/fa/stats'),
+}
+
+// ─── SUPERADMIN: FA Notifications ────────────────────────────────────
+export const faNotificationApi = {
+  list: (params?: { type?: string; search?: string; limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams()
+    if (params?.type) qs.set('type', params.type)
+    if (params?.search) qs.set('search', params.search)
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.offset !== undefined) qs.set('offset', String(params.offset))
+    const q = qs.toString()
+    return get(`/api/v1/admin/fa/notifications${q ? `?${q}` : ''}`)
+  },
+  analytics: () => get('/api/v1/admin/fa/notifications/analytics'),
+  send: (body: {
+    audience: 'all' | 'tier' | 'status' | 'member'
+    tier?: string
+    status?: string
+    member_id?: string
+    type: string
+    title: string
+    message: string
+    actionable: boolean
+    action_url?: string
+  }) => post('/api/v1/admin/fa/notifications', body),
 }
 
 // ─── BRAND: Pool Management ──────────────────────────────────────────

@@ -8,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus } from "lucide-react"
+import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket } from "lucide-react"
+import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,9 @@ export default function FACampaignsPage() {
   const [addTarget, setAddTarget] = useState<any | null>(null)
   const [addHandles, setAddHandles] = useState("")
   const [adding, setAdding] = useState(false)
+
+  // Coupon manager dialog state
+  const [couponTarget, setCouponTarget] = useState<any | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -161,6 +165,14 @@ export default function FACampaignsPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant="outline" className={cfg.color}>{cfg.label}</Badge>
                       <Badge variant={isActive ? "default" : "secondary"}>{c.status}</Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => { e.stopPropagation(); setCouponTarget(c) }}
+                      >
+                        <Ticket className="h-3.5 w-3.5 mr-1.5" />
+                        Coupons
+                      </Button>
                       {isActive && (
                         <>
                           <Button
@@ -244,6 +256,14 @@ export default function FACampaignsPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Coupon manager */}
+          <CouponManagerDialog
+            campaignId={couponTarget?.id ?? null}
+            campaignName={couponTarget?.name}
+            open={!!couponTarget}
+            onOpenChange={(o) => { if (!o) setCouponTarget(null) }}
+          />
 
           {!loading && campaigns.length === 0 && (
             <Card><CardContent className="text-center py-12"><Megaphone className="h-10 w-10 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">No campaigns yet</p></CardContent></Card>

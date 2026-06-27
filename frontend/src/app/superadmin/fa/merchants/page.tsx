@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Store, Pencil, Trash2 } from "lucide-react"
+import { Plus, Store, Pencil, Trash2, Upload, Loader2, X } from "lucide-react"
 import { faMerchantApi, faClientApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
@@ -25,6 +25,23 @@ function MerchantForm({ merchant, brands, onSave, onCancel }: { merchant?: any; 
     gradient_start: merchant?.gradient_start || "#cafe48",
     gradient_end: merchant?.gradient_end || "#a288e3",
   })
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const handleLogoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { toast.error("Use JPEG, PNG, or WebP"); return }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Logo too large (max 5MB)"); return }
+    setUploading(true)
+    try {
+      const res = await faMerchantApi.uploadLogo(file)
+      const url = res?.data?.url
+      if (url) { setForm((f) => ({ ...f, logo_url: url })); toast.success("Logo uploaded") }
+      else toast.error("Upload failed")
+    } catch { toast.error("Upload failed") }
+    finally { setUploading(false); if (fileRef.current) fileRef.current.value = "" }
+  }
 
   return (
     <div className="space-y-4">
@@ -32,7 +49,7 @@ function MerchantForm({ merchant, brands, onSave, onCancel }: { merchant?: any; 
         <label className="text-sm font-medium">Brand *</label>
         <Select
           value={form.brand_user_id || undefined}
-          onValueChange={(v) => setForm({ ...form, brand_user_id: v })}
+          onValueChange={(v: string) => setForm({ ...form, brand_user_id: v })}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select the brand this merchant belongs to" />
@@ -64,8 +81,28 @@ function MerchantForm({ merchant, brands, onSave, onCancel }: { merchant?: any; 
         <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="F&B, Fitness, Beauty..." />
       </div>
       <div>
-        <label className="text-sm font-medium">Logo URL</label>
-        <Input value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} placeholder="https://..." />
+        <label className="text-sm font-medium">Logo</label>
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoFile} className="hidden" />
+        <div className="flex items-center gap-3 mt-1">
+          <div className="h-14 w-14 rounded-lg border bg-muted/40 flex items-center justify-center overflow-hidden shrink-0">
+            {form.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={form.logo_url} alt="Logo" className="h-full w-full object-cover" />
+            ) : (
+              <Store className="h-5 w-5 text-muted-foreground" />
+            )}
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+            {form.logo_url ? "Replace logo" : "Upload logo"}
+          </Button>
+          {form.logo_url && (
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setForm({ ...form, logo_url: "" })}>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-1">JPEG, PNG, or WebP · max 5MB</p>
       </div>
       <div>
         <label className="text-sm font-medium">Address</label>
@@ -146,7 +183,7 @@ export default function FAMerchantsPage() {
               <h1 className="text-2xl font-bold">FA Merchants</h1>
               <p className="text-muted-foreground text-sm">Manage participating merchants for cashback campaigns</p>
             </div>
-            <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null) }}>
+            <Dialog open={dialogOpen} onOpenChange={(o: boolean) => { setDialogOpen(o); if (!o) setEditing(null) }}>
               <DialogTrigger asChild>
                 <Button size="sm"><Plus className="h-4 w-4 mr-2" />Add Merchant</Button>
               </DialogTrigger>
