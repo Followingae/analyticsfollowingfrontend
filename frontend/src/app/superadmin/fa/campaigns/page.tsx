@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket } from "lucide-react"
+import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download } from "lucide-react"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 import {
   AlertDialog,
@@ -50,6 +50,37 @@ export default function FACampaignsPage() {
 
   // Coupon manager dialog state
   const [couponTarget, setCouponTarget] = useState<any | null>(null)
+
+  // Share dialog state — canonical creatorapp.following.ae link + QR
+  const [shareTarget, setShareTarget] = useState<any | null>(null)
+  const [shareUrl, setShareUrl] = useState("")
+  const [shareQr, setShareQr] = useState<string | null>(null)
+  const [shareLoading, setShareLoading] = useState(false)
+
+  const openShare = async (c: any) => {
+    setShareTarget(c)
+    setShareUrl(`https://creatorapp.following.ae/c/${c.id}`)
+    setShareQr(null)
+    setShareLoading(true)
+    try {
+      const res = await faCampaignApi.share(c.id)
+      if (res?.url) setShareUrl(res.url)
+      setShareQr(res?.qr_png_base64 ?? null)
+    } catch {
+      // URL is already set from the id; QR just won't render
+    } finally {
+      setShareLoading(false)
+    }
+  }
+
+  const copyShareUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      toast.success("Link copied")
+    } catch {
+      toast.error("Couldn't copy — select and copy manually")
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -168,6 +199,14 @@ export default function FACampaignsPage() {
                       <Button
                         size="sm"
                         variant="outline"
+                        onClick={(e) => { e.stopPropagation(); openShare(c) }}
+                      >
+                        <Share2 className="h-3.5 w-3.5 mr-1.5" />
+                        Share
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={(e) => { e.stopPropagation(); setCouponTarget(c) }}
                       >
                         <Ticket className="h-3.5 w-3.5 mr-1.5" />
@@ -253,6 +292,42 @@ export default function FACampaignsPage() {
                   {adding ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <UserPlus className="h-4 w-4 mr-1.5" />}
                   Submit for brand review
                 </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Share — dynamic link + cashback QR */}
+          <Dialog open={!!shareTarget} onOpenChange={(o: boolean) => { if (!o) setShareTarget(null) }}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Share &quot;{shareTarget?.name}&quot;</DialogTitle>
+                <DialogDescription>
+                  One link for everything — send it to creators or print the QR for cashback. It opens the app if installed, otherwise the store.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex h-[200px] w-[200px] items-center justify-center rounded-lg border bg-white">
+                  {shareLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  ) : shareQr ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={`data:image/png;base64,${shareQr}`} alt="Campaign QR" className="h-[184px] w-[184px]" />
+                  ) : (
+                    <QrCode className="h-10 w-10 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex w-full items-center gap-2">
+                  <Input readOnly value={shareUrl} onFocus={(e) => e.currentTarget.select()} className="font-mono text-xs" />
+                  <Button size="sm" variant="outline" onClick={copyShareUrl}><Copy className="h-3.5 w-3.5" /></Button>
+                </div>
+              </div>
+              <DialogFooter>
+                {shareQr && (
+                  <a href={`data:image/png;base64,${shareQr}`} download={`campaign-${shareTarget?.id}-qr.png`}>
+                    <Button variant="outline"><Download className="h-4 w-4 mr-1.5" />Download QR</Button>
+                  </a>
+                )}
+                <Button onClick={() => setShareTarget(null)}>Done</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

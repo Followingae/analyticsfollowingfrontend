@@ -91,6 +91,9 @@ export const faCampaignApi = {
   /** Remove an unassigned coupon code. */
   deleteCoupon: (id: string, couponId: string) =>
     del(`/api/v1/admin/fa/campaigns/${id}/coupons/${couponId}`),
+  /** Share asset: canonical creatorapp.following.ae link + QR PNG (base64). */
+  share: (id: string): Promise<{ url: string; qr_png_base64: string | null }> =>
+    get(`/api/v1/admin/fa/campaigns/${id}/share`),
 }
 
 // ─── SUPERADMIN: FA Members ──────────────────────────────────────────
