@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * FA campaign creation — step 1: pick the campaign type.
+ * FA campaign creation - step 1: pick the campaign type.
  * Consolidates the three separate create entry points (cashback / paid deal /
  * barter) into one wizard flow; each type proceeds to its dedicated form.
  */
@@ -39,7 +39,7 @@ const TYPES = [
     title: "Barter",
     badge: "Product exchange",
     description:
-      "Creators receive products or services in exchange for deliverables — no cash payout involved.",
+      "Creators receive products or services in exchange for deliverables - no cash payout involved.",
   },
 ]
 
@@ -58,7 +58,7 @@ export default function FaCampaignTypePickerPage() {
             </Link>
             <h1 className="text-2xl font-bold">Create FA Campaign</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Step 1 of 2 — choose the campaign type. You&apos;ll fill in the details next.
+              Step 1 of 2 - choose the campaign type. You&apos;ll fill in the details next.
             </p>
           </div>
 

@@ -80,7 +80,7 @@ export function AdminDashboard() {
       if (dashboardResult.success && dashboardResult.data) {
         setDashboardData(dashboardResult.data)
       }
-      // realtime analytics endpoint removed — left as null
+      // realtime analytics endpoint removed - left as null
 
     } catch (error) {
       setError('Failed to load dashboard data')

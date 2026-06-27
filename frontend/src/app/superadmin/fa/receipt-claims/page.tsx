@@ -58,7 +58,7 @@ export default function FAReceiptClaimsPage() {
     try {
       const res = await faReceiptClaimApi.approve(id)
       if (res.success) {
-        toast.success(`Approved — ${res.data?.deliverables_created || 0} deliverables created, AED ${res.data?.cashback_amount || 0} cashback pending`)
+        toast.success(`Approved - ${res.data?.deliverables_created || 0} deliverables created, AED ${res.data?.cashback_amount || 0} cashback pending`)
         load()
       }
     } catch (e: any) {
@@ -130,7 +130,7 @@ export default function FAReceiptClaimsPage() {
                 <Card key={claim.id}>
                   <CardContent className="p-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:gap-4">
-                      {/* Receipt image — clickable thumbnail */}
+                      {/* Receipt image - clickable thumbnail */}
                       <div className="flex-shrink-0">
                         {claim.receipt_image_url ? (
                           <button
@@ -191,7 +191,7 @@ export default function FAReceiptClaimsPage() {
 
                         <div className="text-right">
                           <p className="text-lg font-bold">
-                            AED {claim.ai_extracted_amount?.toFixed(2) || "—"}
+                            AED {claim.ai_extracted_amount?.toFixed(2) || "-"}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {claim.ai_extracted_date || "No date"}
@@ -243,7 +243,7 @@ export default function FAReceiptClaimsPage() {
                             ? new Date(claim.created_at).toLocaleString("en-AE", {
                                 month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
                               })
-                            : "—"}
+                            : "-"}
                         </div>
 
                         {/* Actions */}
@@ -316,7 +316,7 @@ export default function FAReceiptClaimsPage() {
           )}
 
           {/* Receipt image zoom dialog */}
-          <Dialog open={!!zoomedImage} onOpenChange={(open) => !open && setZoomedImage(null)}>
+          <Dialog open={!!zoomedImage} onOpenChange={(open: boolean) => !open && setZoomedImage(null)}>
             <DialogContent className="max-w-4xl p-2">
               <DialogTitle className="sr-only">Receipt image</DialogTitle>
               {zoomedImage && (

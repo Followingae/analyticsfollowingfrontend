@@ -148,7 +148,7 @@ const TIER_STYLES: Record<string, string> = {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function formatNumber(n: number | null | undefined): string {
-  if (n == null) return "—"
+  if (n == null) return "-"
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "K"
   return n.toLocaleString()
@@ -379,7 +379,7 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
   const approvalStatus = member.is_approved === 1 ? "approved" : member.is_approved === 2 ? "rejected" : "pending"
   const joinDate = member.created_at
     ? new Date(member.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
-    : "—"
+    : "-"
 
   const fraudRisk = getFraudRiskLevel(analytics, member.fraud_score)
   const audienceQuality = getAudienceQualityLabel(analytics, member.audience_quality_score)
@@ -830,7 +830,7 @@ export default function FAMembersPage() {
                   className="pl-9 w-64 h-9"
                 />
               </div>
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+              <Select value={sortBy} onValueChange={(v: string) => setSortBy(v as SortOption)}>
                 <SelectTrigger className="w-44 h-9">
                   <ArrowDownUp className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                   <SelectValue placeholder="Sort by..." />

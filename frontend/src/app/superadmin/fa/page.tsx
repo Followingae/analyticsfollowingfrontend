@@ -12,7 +12,7 @@ export default function FADashboardPage() {
   const [stats, setStats] = useState<any>(null)
 
   const loadStats = useCallback(() => {
-    // Tolerate either { success, data } or a raw stats payload — different backend
+    // Tolerate either { success, data } or a raw stats payload - different backend
     // routes return different shapes, and silently showing zeros forever was masking
     // real failures.
     faStatsApi.dashboard()

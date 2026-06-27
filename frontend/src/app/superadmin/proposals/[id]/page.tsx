@@ -161,7 +161,7 @@ export default function ProposalDetailPage() {
   const status = proposal.status as string
   const canEdit = status === "draft"
   // A proposal may only be sent to the client once it has cleared internal approval
-  // (or the client asked for more). Direct draft→sent is gone — it must run the chain.
+  // (or the client asked for more). Direct draft→sent is gone - it must run the chain.
   const canSend = status === "internally_approved" || status === "more_requested"
   // Internal-pipeline states are managed in the approval workspace, not here.
   const isInternalStage = ["building", "pending_internal_review", "internal_changes_requested", "internally_approved"].includes(status)

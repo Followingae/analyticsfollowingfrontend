@@ -102,7 +102,7 @@ export default function ProposalApprovalPage() {
   const status: string = ws.proposal?.status
   const sb = STATUS_LABEL[status] || { label: status, cls: 'bg-muted' }
   const budgetVisible: boolean = ws.budget_visible
-  // Role-based visibility — only show each actor the cards they can act on.
+  // Role-based visibility - only show each actor the cards they can act on.
   const viewer = ws.viewer || {}
   const chainEditable = ['draft', 'building', 'internal_changes_requested'].includes(status)
   const canEditChain = viewer.is_operator && chainEditable
@@ -160,12 +160,12 @@ export default function ProposalApprovalPage() {
                   </TableHeader>
                   <TableBody>
                     {(ws.influencers || []).map((inf: any) => {
-                      const rate = inf.sell_price_snapshot?.reel ?? inf.estimated_cost ?? '—'
+                      const rate = inf.sell_price_snapshot?.reel ?? inf.estimated_cost ?? '-'
                       return (
                         <TableRow key={inf.id}>
-                          <TableCell className="font-medium">@{inf.username || '—'}<div className="text-xs text-muted-foreground">{inf.full_name}</div></TableCell>
-                          <TableCell>{inf.followers_count ? Number(inf.followers_count).toLocaleString() : '—'}</TableCell>
-                          <TableCell>{rate === '—' ? '—' : `AED ${Number(rate).toLocaleString('en-AE')}`}</TableCell>
+                          <TableCell className="font-medium">@{inf.username || '-'}<div className="text-xs text-muted-foreground">{inf.full_name}</div></TableCell>
+                          <TableCell>{inf.followers_count ? Number(inf.followers_count).toLocaleString() : '-'}</TableCell>
+                          <TableCell>{rate === '-' ? '-' : `AED ${Number(rate).toLocaleString('en-AE')}`}</TableCell>
                           <TableCell>
                             {inf.internal_status === 'approved' && <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Approved</Badge>}
                             {inf.internal_status === 'flagged' && <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20" title={inf.internal_flag_note || ''}>Flagged</Badge>}
@@ -263,7 +263,7 @@ export default function ProposalApprovalPage() {
               <Card className="border-emerald-500/30 bg-emerald-500/5">
                 <CardHeader>
                   <CardTitle>Client share link</CardTitle>
-                  <CardDescription>Internally approved. Share with the client — they see samples + a sign/pay gate.</CardDescription>
+                  <CardDescription>Internally approved. Share with the client - they see samples + a sign/pay gate.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <Button disabled={busy} onClick={genShare}><Send className="mr-1 h-4 w-4" />Generate share link</Button>
@@ -328,7 +328,7 @@ export default function ProposalApprovalPage() {
             {/* Approver actions (during review) */}
             {viewer.is_current_approver && status === 'pending_internal_review' && (
               <Card>
-                <CardHeader><CardTitle>Approver — step {chain?.current_approval_step}</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Approver - step {chain?.current_approval_step}</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <Textarea placeholder="Approval note (optional)" value={approveNotes} onChange={(e) => setApproveNotes(e.target.value)} />
                   <Button className="w-full" disabled={busy} onClick={() => run(async () => { await proposalApprovalApi.approveStep(proposalId, approveNotes || undefined); setApproveNotes('') })}>
@@ -351,7 +351,7 @@ export default function ProposalApprovalPage() {
                 {(chain?.history || []).map((h: any, i: number) => (
                   <div key={i} className="flex items-start gap-2 text-sm border-l-2 pl-3 py-0.5">
                     <span className="font-medium capitalize">{String(h.action).replace('_', ' ')}</span>
-                    <span className="text-muted-foreground">{h.approver_name || ''}{h.step_order ? ` · step ${h.step_order}` : ''}{h.notes ? ` — ${h.notes}` : ''}</span>
+                    <span className="text-muted-foreground">{h.approver_name || ''}{h.step_order ? ` · step ${h.step_order}` : ''}{h.notes ? ` - ${h.notes}` : ''}</span>
                   </div>
                 ))}
               </CardContent>
@@ -359,11 +359,11 @@ export default function ProposalApprovalPage() {
           </div>
         </div>
 
-        {/* Client commercial gate — agreement + invoice, surfaced at the send-to-client stage */}
+        {/* Client commercial gate - agreement + invoice, surfaced at the send-to-client stage */}
         {viewer.is_operator && ws.team_id && (status === 'internally_approved' || status === 'sent') && (
           <Card>
             <CardHeader>
-              <CardTitle>Client commercial — agreement & invoice</CardTitle>
+              <CardTitle>Client commercial - agreement & invoice</CardTitle>
               <CardDescription>
                 Upload + send the agreement and create the advance invoice here. The client signs &amp; pays on the share link;
                 the full influencer list unlocks only once the agreement is <strong>signed</strong> and the advance invoice is <strong>paid</strong>.

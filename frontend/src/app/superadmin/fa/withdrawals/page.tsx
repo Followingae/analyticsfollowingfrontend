@@ -33,7 +33,7 @@ export default function FAWithdrawalsPage() {
   const handleApprove = async (id: string) => {
     try {
       await faWithdrawalApi.approve(id)
-      toast.success("Withdrawal approved — funds will be transferred")
+      toast.success("Withdrawal approved - funds will be transferred")
       load()
     } catch { toast.error("Failed to approve") }
   }
@@ -42,7 +42,7 @@ export default function FAWithdrawalsPage() {
     if (!rejectId) return
     try {
       await faWithdrawalApi.reject(rejectId, rejectReason)
-      toast.success("Withdrawal rejected — funds returned to wallet")
+      toast.success("Withdrawal rejected - funds returned to wallet")
       setRejectId(null)
       setRejectReason("")
       load()
@@ -102,7 +102,7 @@ export default function FAWithdrawalsPage() {
           )}
         </div>
 
-        <Dialog open={!!rejectId} onOpenChange={(o) => { if (!o) { setRejectId(null); setRejectReason("") } }}>
+        <Dialog open={!!rejectId} onOpenChange={(o: boolean) => { if (!o) { setRejectId(null); setRejectReason("") } }}>
           <DialogContent>
             <DialogHeader><DialogTitle>Reject Withdrawal</DialogTitle></DialogHeader>
             <div className="space-y-4">

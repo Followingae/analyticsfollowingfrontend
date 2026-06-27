@@ -29,7 +29,7 @@ export default function FADeliverablesPage() {
   const handleVerify = async (id: string) => {
     try {
       await faDeliverableApi.verify(id)
-      toast.success("Deliverable verified — cashback released to influencer")
+      toast.success("Deliverable verified - cashback released to influencer")
       load()
     } catch { toast.error("Failed to verify") }
   }

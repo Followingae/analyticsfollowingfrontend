@@ -228,7 +228,7 @@ export function InfluencerPricingTab({ influencer, onSave }: InfluencerPricingTa
                           {margin.toFixed(1)}%
                         </span>
                       ) : (
-                        "—"
+                        "-"
                       )}
                     </td>
                   </tr>

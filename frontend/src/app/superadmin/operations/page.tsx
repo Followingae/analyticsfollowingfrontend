@@ -1,12 +1,12 @@
 "use client"
 
 /**
- * Agency Operations — superadmin command center.
+ * Agency Operations - superadmin command center.
  *
  * One screen for "everything in flight and awaiting the agency's action":
  *  - KPIs across the live operational surfaces
  *  - a unified Action Queue (deliverables, receipt claims, withdrawals, member
- *    reviews) with inline approve/reject — the real pending items, wired to live
+ *    reviews) with inline approve/reject - the real pending items, wired to live
  *    FA admin endpoints
  *  - campaigns currently in flight
  *
@@ -47,7 +47,7 @@ const unwrap = (res: any, ...keys: string[]) => {
   return Array.isArray(d) ? d : []
 }
 const fmtDate = (v?: string) =>
-  v ? new Date(v).toLocaleDateString("en-AE", { month: "short", day: "numeric" }) : "—"
+  v ? new Date(v).toLocaleDateString("en-AE", { month: "short", day: "numeric" }) : "-"
 const fmtAED = (v: any) =>
   `AED ${parseFloat(v || 0).toLocaleString("en-AE", { minimumFractionDigits: 0 })}`
 
@@ -102,7 +102,7 @@ export default function AgencyOperationsPage() {
     participants: queues?.pending_participant_approvals ?? 0,
     withdrawals: queues?.pending_withdrawals ?? withdrawals.length,
     members: queues?.pending_member_reviews ?? members.length,
-    receipts: receipts.length, // no backend receipt count yet — use the live list
+    receipts: receipts.length, // no backend receipt count yet - use the live list
   }
   // Items actionable in the queue tabs below (participant approvals are handled
   // per-campaign, surfaced as a KPI here until the B3 per-campaign bridge lands).
@@ -204,7 +204,7 @@ export default function AgencyOperationsPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Operations</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Agency command center — everything in flight and awaiting your action.
+              Agency command center - everything in flight and awaiting your action.
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>Refresh</Button>
@@ -324,7 +324,7 @@ export default function AgencyOperationsPage() {
                   >
                     <div className="min-w-0">
                       <p className="truncate font-medium text-sm">{c.name || c.campaign_name || "Campaign"}</p>
-                      <p className="truncate text-xs text-muted-foreground">{c.brand_name || "—"}</p>
+                      <p className="truncate text-xs text-muted-foreground">{c.brand_name || "-"}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {c.type && <Badge variant="outline" className="capitalize text-xs">{String(c.type).replace(/_/g, " ")}</Badge>}
@@ -343,7 +343,7 @@ export default function AgencyOperationsPage() {
       <Dialog open={!!reject} onOpenChange={(o: boolean) => { if (!o) { setReject(null); setRejectReason("") } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject — {reject?.label}</DialogTitle>
+            <DialogTitle>Reject - {reject?.label}</DialogTitle>
             <DialogDescription>
               Add an optional reason. The member is notified where applicable.
             </DialogDescription>

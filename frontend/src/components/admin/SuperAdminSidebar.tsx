@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -34,11 +35,13 @@ import {
   Wrench,
   Receipt,
   ListChecks,
+  Bell,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, isLoading } = useEnhancedAuth()
   const { can } = useAdminAccess()
+  const pathname = usePathname() || ""
 
   // Dynamic user data
   const dynamicUser = React.useMemo(() => {
@@ -115,6 +118,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     { title: "Deliverables", url: "/superadmin/fa/deliverables", icon: ClipboardCheck },
     { title: "Withdrawals", url: "/superadmin/fa/withdrawals", icon: Banknote },
     { title: "Receipt Claims", url: "/superadmin/fa/receipt-claims", icon: Receipt },
+    { title: "Notifications", url: "/superadmin/fa/notifications", icon: Bell },
   ] : []
 
   const systemItems = [
@@ -122,9 +126,28 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     ...(can("system") ? [{ title: "System", url: "/superadmin/system", icon: Wrench }] : []),
   ]
 
-  // Content pages not yet built — removing dead links
+  // Content pages not yet built; dead links removed.
   // Backend endpoints exist at /admin/content/profiles and /admin/content/unlocks
-  // but frontend pages haven't been created yet
+  // but frontend pages haven't been created yet.
+
+  // Resolve the single active item as the LONGEST nav URL matching the current
+  // path (across every group + sub-item). Without this, section roots like
+  // /superadmin and /superadmin/fa prefix-match and light up on every nested page.
+  const activeUrl = React.useMemo(() => {
+    const urls = [
+      ...overviewItems,
+      ...managementItems,
+      ...campaignItems,
+      ...campaignItems.flatMap((i) => i.items ?? []),
+      ...followingAppItems,
+      ...systemItems,
+    ]
+      .map((i) => i.url)
+      .filter(Boolean) as string[]
+    return urls
+      .filter((url) => pathname === url || pathname.startsWith(url + "/"))
+      .sort((a, b) => b.length - a.length)[0]
+  }, [pathname, overviewItems, managementItems, campaignItems, followingAppItems, systemItems])
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -152,7 +175,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           <SidebarGroup>
             <SidebarGroupLabel>Overview</SidebarGroupLabel>
             <SidebarGroupContent>
-              <NavMain items={overviewItems} />
+              <NavMain items={overviewItems} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -162,7 +185,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           <SidebarGroup>
             <SidebarGroupLabel>Management</SidebarGroupLabel>
             <SidebarGroupContent>
-              <NavMain items={managementItems} />
+              <NavMain items={managementItems} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -172,7 +195,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           <SidebarGroup>
             <SidebarGroupLabel>Campaigns</SidebarGroupLabel>
             <SidebarGroupContent>
-              <NavMain items={campaignItems} />
+              <NavMain items={campaignItems} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -182,7 +205,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           <SidebarGroup>
             <SidebarGroupLabel>Following App</SidebarGroupLabel>
             <SidebarGroupContent>
-              <NavMain items={followingAppItems} />
+              <NavMain items={followingAppItems} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -191,7 +214,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         {systemItems.length > 0 && (
           <SidebarGroup>
             <SidebarGroupContent>
-              <NavMain items={systemItems} />
+              <NavMain items={systemItems} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}

@@ -324,7 +324,7 @@ export default function CreateCashbackCampaignPage() {
                             <p className="text-[11px] font-medium truncate">{(m as any).brand_name}</p>
                           )}
                           <p className="text-[11px] text-muted-foreground truncate">
-                            {m.category || "—"}
+                            {m.category || "-"}
                             {m.location_address ? ` • ${m.location_address}` : ""}
                           </p>
                           {!(m as any).brand_user_id && (
@@ -384,7 +384,7 @@ export default function CreateCashbackCampaignPage() {
                             {fmtAed(bal)}
                           </p>
                           {isEmpty && (
-                            <Badge variant="destructive" className="mt-2 text-[10px]">Empty — needs top-up</Badge>
+                            <Badge variant="destructive" className="mt-2 text-[10px]">Empty - needs top-up</Badge>
                           )}
                         </CardContent>
                       </Card>

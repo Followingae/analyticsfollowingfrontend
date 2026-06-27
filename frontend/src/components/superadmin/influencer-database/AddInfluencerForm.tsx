@@ -27,7 +27,7 @@ export function AddInfluencerForm() {
       })
 
       if (result.success) {
-        toast.success(`@${trimmed} added — analytics will process in the background`)
+        toast.success(`@${trimmed} added - analytics will process in the background`)
         router.push("/superadmin/influencers")
       } else {
         toast.error(result.error || "Failed to add influencer")

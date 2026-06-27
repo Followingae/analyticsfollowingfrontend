@@ -2,7 +2,7 @@
 
 /**
  * Upload + manage a campaign's unique coupon codes (brand-supplied). Codes are
- * released one-per-creator automatically on approval — this dialog only loads the
+ * released one-per-creator automatically on approval - this dialog only loads the
  * pool and shows assignment status. Reusable from create flow + campaigns list.
  */
 import { useState, useEffect, useCallback } from "react"
@@ -66,7 +66,7 @@ export function CouponManagerDialog({ campaignId, campaignName, open, onOpenChan
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Ticket className="h-5 w-5" />Coupon codes</DialogTitle>
           <DialogDescription>
-            {campaignName ? `${campaignName} — ` : ""}unique codes are released to creators automatically the moment they&apos;re approved.
+            {campaignName ? `${campaignName} - ` : ""}unique codes are released to creators automatically the moment they&apos;re approved.
           </DialogDescription>
         </DialogHeader>
 
@@ -80,7 +80,7 @@ export function CouponManagerDialog({ campaignId, campaignName, open, onOpenChan
           <Textarea
             value={paste}
             onChange={(e) => setPaste(e.target.value)}
-            placeholder={"Paste codes — one per line or comma-separated\nTHAIFIRE-A1B2\nTHAIFIRE-C3D4"}
+            placeholder={"Paste codes - one per line or comma-separated\nTHAIFIRE-A1B2\nTHAIFIRE-C3D4"}
             className="min-h-[110px] font-mono text-sm"
           />
           <Button onClick={upload} disabled={uploading} className="w-full">

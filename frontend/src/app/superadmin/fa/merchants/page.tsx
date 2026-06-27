@@ -74,7 +74,7 @@ function MerchantForm({ merchant, brands, onSave, onCancel }: { merchant?: any; 
       </div>
       <div>
         <label className="text-sm font-medium">Name *</label>
-        <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Swiss Butter — Dubai Mall" />
+        <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Swiss Butter - Dubai Mall" />
       </div>
       <div>
         <label className="text-sm font-medium">Category *</label>

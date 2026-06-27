@@ -31,6 +31,7 @@ function isPathActive(pathname: string, url: string): boolean {
 
 export function NavMain({
   items,
+  activeUrl,
 }: {
   items: {
     title: string
@@ -41,8 +42,17 @@ export function NavMain({
       url: string
     }[]
   }[]
+  /**
+   * The single nav URL that should render active, pre-resolved by the sidebar as
+   * the longest match across ALL groups. When provided, an item is active only
+   * when its url === activeUrl — so section roots (e.g. /superadmin, /superadmin/fa)
+   * no longer light up on every nested page. Falls back to per-item prefix matching
+   * when omitted (other sidebars that don't pass it).
+   */
+  activeUrl?: string
 }) {
   const pathname = usePathname() || ""
+  const activeOf = (url: string) => (activeUrl !== undefined ? url === activeUrl : isPathActive(pathname, url))
 
   return (
     <SidebarMenu>
@@ -50,7 +60,7 @@ export function NavMain({
         const hasSubItems = item.items && item.items.length > 0
 
         if (hasSubItems) {
-          const isSubActive = item.items?.some(subItem => isPathActive(pathname, subItem.url))
+          const isSubActive = item.items?.some(subItem => activeOf(subItem.url))
 
           return (
             <Collapsible
@@ -73,9 +83,11 @@ export function NavMain({
                       // Longest matching prefix wins, so "All Campaigns" (/campaigns)
                       // yields to "Create Campaign" (/campaigns/create) on that page
                       // but stays active on /campaigns/123 detail pages.
-                      const best = item.items
-                        ?.filter(s => isPathActive(pathname, s.url))
-                        .sort((a, b) => b.url.length - a.url.length)[0]
+                      const best = activeUrl !== undefined
+                        ? item.items?.find(s => s.url === activeUrl)
+                        : item.items
+                            ?.filter(s => isPathActive(pathname, s.url))
+                            .sort((a, b) => b.url.length - a.url.length)[0]
                       return item.items?.map((subItem) => {
                       const isSubItemActive = best?.url === subItem.url
                       return (
@@ -99,7 +111,7 @@ export function NavMain({
           )
         }
 
-        const isActive = isPathActive(pathname, item.url)
+        const isActive = activeOf(item.url)
         return (
           <SidebarMenuItem key={item.title}>
             <SidebarMenuButton

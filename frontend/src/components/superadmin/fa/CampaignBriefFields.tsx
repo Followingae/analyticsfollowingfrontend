@@ -268,8 +268,8 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
           <ChipInput label="Reference links (inspiration reels)" placeholder="Paste a reel/post URL and press Enter"
             items={value.reference_links.map((r) => r.url)}
             onChange={(urls) => set({ reference_links: urls.map((u) => value.reference_links.find((r) => r.url === u) || { url: u, note: "" }) })} />
-          <ChipInput label="Content requirements (do's / must-mention)" placeholder="e.g. Shoot in daylight — press Enter" items={value.content_requirements} onChange={(v) => set({ content_requirements: v })} />
-          <ChipInput label="Things to avoid (don'ts)" placeholder="e.g. No soiled packaging — press Enter" items={value.things_to_avoid} onChange={(v) => set({ things_to_avoid: v })} />
+          <ChipInput label="Content requirements (do's / must-mention)" placeholder="e.g. Shoot in daylight - press Enter" items={value.content_requirements} onChange={(v) => set({ content_requirements: v })} />
+          <ChipInput label="Things to avoid (don'ts)" placeholder="e.g. No soiled packaging - press Enter" items={value.things_to_avoid} onChange={(v) => set({ things_to_avoid: v })} />
         </CardContent>
       </Card>
 
@@ -277,14 +277,14 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Hash className="h-5 w-5" />Tags &amp; Hashtags</CardTitle><CardDescription>Creators can copy these directly in the app.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          <ChipInput label="Mandatory @tags" prefix="@" placeholder="mandarinoak_uae — press Enter" items={value.mandatory_tags} onChange={(v) => set({ mandatory_tags: v })} />
-          <ChipInput label="Mandatory #hashtags" prefix="#" placeholder="ThaiFireEdit — press Enter" items={value.mandatory_hashtags} onChange={(v) => set({ mandatory_hashtags: v })} />
+          <ChipInput label="Mandatory @tags" prefix="@" placeholder="mandarinoak_uae - press Enter" items={value.mandatory_tags} onChange={(v) => set({ mandatory_tags: v })} />
+          <ChipInput label="Mandatory #hashtags" prefix="#" placeholder="ThaiFireEdit - press Enter" items={value.mandatory_hashtags} onChange={(v) => set({ mandatory_hashtags: v })} />
         </CardContent>
       </Card>
 
       {/* Audience context (informational, not a filter) */}
       <Card>
-        <CardHeader><CardTitle>Audience Context</CardTitle><CardDescription>Shown to creators as guidance — these do not filter who can apply.</CardDescription></CardHeader>
+        <CardHeader><CardTitle>Audience Context</CardTitle><CardDescription>Shown to creators as guidance - these do not filter who can apply.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="space-y-2"><Label>Age from</Label><Input type="number" value={value.age_min} onChange={(e) => set({ age_min: e.target.value })} placeholder="18" /></div>

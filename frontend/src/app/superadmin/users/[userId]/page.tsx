@@ -250,7 +250,7 @@ export default function UserEditPage() {
     }
   }
 
-  // Adjust credits — uses separate add/remove endpoints
+  // Adjust credits - uses separate add/remove endpoints
   const adjustCredits = async () => {
     try {
       setSaving(true)
@@ -294,15 +294,15 @@ export default function UserEditPage() {
     }
   }
 
-  // verifyEmail / reset2FA removed — backend endpoints not implemented
+  // verifyEmail / reset2FA removed - backend endpoints not implemented
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return '—'
+    if (!dateString) return '-'
     try {
       return format(new Date(dateString), 'MMM d, yyyy h:mm a')
     } catch (error) {
       console.error('Date format error:', error)
-      return '—'
+      return '-'
     }
   }
 

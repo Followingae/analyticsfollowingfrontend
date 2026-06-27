@@ -3,7 +3,7 @@
 /**
  * Superadmin → Influencer Database → Analyzed Creators.
  *
- * The creators run through Creator Analytics (the `profiles` table) — distinct
+ * The creators run through Creator Analytics (the `profiles` table) - distinct
  * from the curated Master Database and from Add/Import. Each links to the full
  * /creator-analytics/[username] report.
  */
@@ -135,7 +135,7 @@ export default function AnalyzedCreatorsPage() {
                             {c.is_verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-blue-500" />}
                             <ArrowUpRight className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                           </div>
-                          <p className="truncate text-xs text-muted-foreground">{c.full_name || "—"}</p>
+                          <p className="truncate text-xs text-muted-foreground">{c.full_name || "-"}</p>
                           {(c.content_type || c.category) && (
                             <Badge variant="secondary" className="mt-1.5 capitalize text-[10px]">
                               {c.content_type || c.category}
@@ -149,7 +149,7 @@ export default function AnalyzedCreatorsPage() {
                         </span>
                         <span className="flex items-center gap-1 text-muted-foreground">
                           <TrendingUp className="h-3.5 w-3.5" />
-                          {c.engagement_rate != null ? `${c.engagement_rate.toFixed(2)}%` : "—"}
+                          {c.engagement_rate != null ? `${c.engagement_rate.toFixed(2)}%` : "-"}
                         </span>
                       </div>
                     </CardContent>

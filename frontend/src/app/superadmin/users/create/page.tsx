@@ -66,7 +66,7 @@ export default function CreateBrandAccountPage() {
     monthly_posts_limit: 0,
   })
 
-  // Subscription tier presets — matches SUBSCRIPTION_TIER_LIMITS in backend
+  // Subscription tier presets - matches SUBSCRIPTION_TIER_LIMITS in backend
   const tierPresets = {
     free: {
       initial_credits: 125,       // 5 profiles × 25 credits
@@ -74,7 +74,7 @@ export default function CreateBrandAccountPage() {
       monthly_email_limit: 0,
       monthly_posts_limit: 0,
       max_team_members: 1,
-      create_team: true,          // Always create team — required for platform
+      create_team: true,          // Always create team - required for platform
     },
     standard: {
       initial_credits: 8750,      // د.إ199 tier canonical credits
@@ -325,7 +325,7 @@ export default function CreateBrandAccountPage() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {accountType === 'admin'
-                ? 'Create a module-scoped admin — they can only access the areas you tick'
+                ? 'Create a module-scoped admin - they can only access the areas you tick'
                 : accountType === 'staff'
                 ? 'Create an internal agency team member (talent manager, account manager, cofounder, CEO)'
                 : 'Set up a brand account with subscription, credits, and team'}
@@ -504,7 +504,7 @@ export default function CreateBrandAccountPage() {
         <Card>
           <CardHeader>
             <CardTitle>Staff Role</CardTitle>
-            <CardDescription>The internal role for this team member — governs what they can access and approve.</CardDescription>
+            <CardDescription>The internal role for this team member - governs what they can access and approve.</CardDescription>
           </CardHeader>
           <CardContent>
             <Select value={staffRole} onValueChange={(v) => setStaffRole(v as any)}>

@@ -497,7 +497,7 @@ function CreateProposalContent() {
   }
 
   // -- Submit: Create new ---------------------------------------------------
-  // Create the proposal SHELL. Influencers are NOT required here — in the new flow
+  // Create the proposal SHELL. Influencers are NOT required here - in the new flow
   // they're added by talent managers in the approval workspace. `startApproval`
   // routes straight into that workspace; otherwise we save a draft.
   async function handleCreate(startApproval: boolean) {
@@ -533,7 +533,7 @@ function CreateProposalContent() {
       }
 
       if (startApproval) {
-        toast.success("Proposal created — opening the approval workflow")
+        toast.success("Proposal created - opening the approval workflow")
         router.push(`/superadmin/proposals/${proposal.id}/approval`)
       } else {
         toast.success("Proposal saved as draft")
@@ -685,7 +685,7 @@ function CreateProposalContent() {
                     {brandUsers.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {u.full_name
-                          ? `${u.full_name}${u.company ? ` — ${u.company}` : ""} (${u.email})`
+                          ? `${u.full_name}${u.company ? ` - ${u.company}` : ""} (${u.email})`
                           : u.email}
                       </SelectItem>
                     ))}
@@ -727,7 +727,7 @@ function CreateProposalContent() {
 
               <div>
                 <Label>Payment schedule</Label>
-                <p className="text-xs text-muted-foreground mb-2">Milestones the client pays against — the <strong>first</strong> is the advance that unlocks the influencer list. Should total 100%.</p>
+                <p className="text-xs text-muted-foreground mb-2">Milestones the client pays against - the <strong>first</strong> is the advance that unlocks the influencer list. Should total 100%.</p>
                 <div className="space-y-2">
                   {paymentSchedule.map((m, i) => (
                     <div key={i} className="flex items-center gap-2">
@@ -954,7 +954,7 @@ function CreateProposalContent() {
             <CardDescription>
               {isAddMoreMode
                 ? "Search master DB, pick FA members, or add by Instagram handle"
-                : "Optional — you can leave this empty and assign a talent manager to add creators in the approval workflow. Add here only if you want to pre-fill the list."}
+                : "Optional - you can leave this empty and assign a talent manager to add creators in the approval workflow. Add here only if you want to pre-fill the list."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1026,7 +1026,7 @@ function CreateProposalContent() {
                               </Avatar>
                               <div className="leading-tight min-w-0">
                                 <p className="font-medium text-sm truncate">
-                                  @{m.instagram_username ?? "—"}
+                                  @{m.instagram_username ?? "-"}
                                 </p>
                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                   {m.full_name && <span className="truncate">{m.full_name}</span>}
@@ -1082,7 +1082,7 @@ function CreateProposalContent() {
               </div>
             )}
 
-            {/* Master DB filters — only when master tab is active */}
+            {/* Master DB filters - only when master tab is active */}
             {pickerTab === "master" && (
             <>
             <div className="flex flex-wrap gap-3">
@@ -1447,7 +1447,7 @@ function CreateProposalContent() {
         </div>
       </motion.div>
 
-      {/* Inline creator analytics drawer — opens /creator-analytics/[username] in a side sheet */}
+      {/* Inline creator analytics drawer - opens /creator-analytics/[username] in a side sheet */}
       <Sheet
         open={!!analyticsUsername}
         onOpenChange={(open: boolean) => { if (!open) setAnalyticsUsername(null) }}
@@ -1455,7 +1455,7 @@ function CreateProposalContent() {
         <SheetContent side="right" className="w-full sm:max-w-3xl p-0 overflow-hidden">
           <SheetHeader className="px-6 pt-5 pb-3 border-b">
             <SheetTitle>@{analyticsUsername}</SheetTitle>
-            <SheetDescription>Full creator analytics — same data the brand will see.</SheetDescription>
+            <SheetDescription>Full creator analytics - same data the brand will see.</SheetDescription>
           </SheetHeader>
           {analyticsUsername && (
             <iframe

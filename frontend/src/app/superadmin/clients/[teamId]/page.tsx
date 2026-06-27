@@ -319,7 +319,7 @@ export default function ClientDetailPage() {
           <TabsTrigger value="activity"><Activity className="mr-1.5 h-3.5 w-3.5" />Activity</TabsTrigger>
         </TabsList>
 
-        {/* SCOPE TAB — The "All Scope" spreadsheet replacement */}
+        {/* SCOPE TAB - The "All Scope" spreadsheet replacement */}
         <TabsContent value="scope" className="space-y-4">
           <QuotaProgressCard teamId={teamId} editable />
 
@@ -734,7 +734,7 @@ export default function ClientDetailPage() {
       <Dialog open={!!commercialCampaign} onOpenChange={(o) => !o && setCommercialCampaign(null)}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Commercial — {commercialCampaign?.name}</DialogTitle>
+            <DialogTitle>Commercial - {commercialCampaign?.name}</DialogTitle>
           </DialogHeader>
           {commercialCampaign && (
             <ClientCommercialTab teamId={teamId} campaignId={commercialCampaign.id} />

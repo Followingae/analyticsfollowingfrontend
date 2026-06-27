@@ -104,7 +104,7 @@ export function InfluencerCard({
             <p
               className={`text-sm font-semibold ${inf.engagement_rate !== null ? getEngagementColor(inf.engagement_rate) : ""}`}
             >
-              {inf.engagement_rate !== null ? `${inf.engagement_rate.toFixed(2)}%` : "—"}
+              {inf.engagement_rate !== null ? `${inf.engagement_rate.toFixed(2)}%` : "-"}
             </p>
           </div>
         </div>

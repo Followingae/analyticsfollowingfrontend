@@ -88,7 +88,7 @@ export default function CreateBarterPage() {
         brand_name: selectedClient?.company_name || selectedClient?.name,
         barter_items: validItems.map((item) => ({
           name: item.name.trim(),
-          // Mobile reads `value_aed` — keep both keys so old + new readers agree.
+          // Mobile reads `value_aed` - keep both keys so old + new readers agree.
           value_aed: item.value_aed || 0,
           estimated_value_aed: item.value_aed || 0,
           description: item.description.trim() || undefined,

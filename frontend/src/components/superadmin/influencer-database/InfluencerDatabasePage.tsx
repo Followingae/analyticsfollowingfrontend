@@ -140,7 +140,7 @@ export function InfluencerDatabasePage() {
       toast.success("Analytics refreshed from profiles table")
       fetchData()
     } catch {
-      toast.error("Failed to refresh — influencer may not have Creator Analytics data yet")
+      toast.error("Failed to refresh - influencer may not have Creator Analytics data yet")
     }
   }, [fetchData])
 

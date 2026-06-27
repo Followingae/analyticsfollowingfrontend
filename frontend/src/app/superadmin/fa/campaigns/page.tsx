@@ -126,7 +126,7 @@ export default function FACampaignsPage() {
               <h1 className="text-2xl font-bold">FA Campaigns</h1>
               <p className="text-muted-foreground text-sm">Create and manage cashback, paid deal, and barter campaigns</p>
             </div>
-            {/* One create entry — type is chosen in the wizard's first step */}
+            {/* One create entry - type is chosen in the wizard's first step */}
             <Link href="/superadmin/fa/campaigns/new">
               <Button size="sm"><Plus className="h-4 w-4 mr-1" />Create Campaign</Button>
             </Link>
@@ -227,10 +227,10 @@ export default function FACampaignsPage() {
           <Dialog open={!!addTarget} onOpenChange={(o: boolean) => { if (!o) { setAddTarget(null); setAddHandles("") } }}>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Suggest creators — {addTarget?.name}</DialogTitle>
+                <DialogTitle>Suggest creators - {addTarget?.name}</DialogTitle>
                 <DialogDescription>
                   Add Instagram handles the Following team is suggesting. Each will land as &quot;Team
-                  Suggested&quot; in pending review — the brand decides who gets approved.
+                  Suggested&quot; in pending review - the brand decides who gets approved.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-2">
@@ -242,7 +242,7 @@ export default function FACampaignsPage() {
                   className="w-full min-h-[140px] rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Handles that match FA-app members are linked automatically — others are managed offline by the Following team.
+                  Handles that match FA-app members are linked automatically - others are managed offline by the Following team.
                 </p>
               </div>
               <DialogFooter>
