@@ -49,7 +49,7 @@ function CampaignList({ type }: { type: "cashback" | "paid_deal" | "barter" }) {
         const badge = TYPE_BADGE[c.campaign_type] || TYPE_BADGE.cashback
         const Icon = badge.icon
         return (
-          <Link key={c.id} href={`/campaigns/fa/${c.id}`}>
+          <Link key={c.id} href={`/campaigns/${c.id}/posts`}>
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">

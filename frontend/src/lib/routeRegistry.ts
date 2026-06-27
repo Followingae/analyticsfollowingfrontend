@@ -45,6 +45,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/superadmin/fa/campaigns": "FA Campaigns",
   "/superadmin/fa/deliverables": "Deliverables",
   "/superadmin/fa/withdrawals": "Withdrawals",
+  "/superadmin/fa/wallets": "Creator Wallets",
   "/superadmin/fa/receipt-claims": "Receipt Claims",
   "/superadmin/billing": "Billing",
   "/superadmin/system": "System",

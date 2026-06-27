@@ -440,11 +440,12 @@ function AllCampaignsTab({
                     className="cursor-pointer hover:bg-muted/40 transition-colors"
                     onClick={() => {
                       const ct = c.campaign_type || "influencer";
+                      // FA types (cashback / paid_deal / barter) use the same progress
+                      // panel as superadmin (/posts → FaCampaignProgressPanel), which
+                      // surfaces pending applicants and approves via the participant flow.
                       const href = ct === "ugc"
                         ? `/campaigns/${campaign.id}/ugc`
-                        : ["cashback", "paid_deal", "barter"].includes(ct)
-                          ? `/campaigns/fa/${campaign.id}`
-                          : `/campaigns/${campaign.id}/posts`;
+                        : `/campaigns/${campaign.id}/posts`;
                       router.push(href);
                     }}
                   >

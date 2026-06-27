@@ -132,8 +132,30 @@ export const faDeliverableApi = {
 // ─── SUPERADMIN: FA Withdrawals ──────────────────────────────────────
 export const faWithdrawalApi = {
   listPending: () => get('/api/v1/admin/fa/withdrawals/pending'),
+  /** Full withdrawal history with optional status filter (processing|completed|failed). */
+  list: (params?: { status?: string; limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams()
+    if (params?.status) qs.set('status', params.status)
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.offset !== undefined) qs.set('offset', String(params.offset))
+    const q = qs.toString()
+    return get(`/api/v1/admin/fa/withdrawals${q ? `?${q}` : ''}`)
+  },
   approve: (id: string) => post(`/api/v1/admin/fa/withdrawals/${id}/approve`),
   reject: (id: string, reason?: string) => post(`/api/v1/admin/fa/withdrawals/${id}/reject`, { reason }),
+}
+
+// ─── SUPERADMIN: FA Creator Wallets ──────────────────────────────────
+export const faWalletApi = {
+  /** Searchable list of creator wallet balances (amounts in AED). */
+  list: (params?: { search?: string; limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams()
+    if (params?.search) qs.set('search', params.search)
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.offset !== undefined) qs.set('offset', String(params.offset))
+    const q = qs.toString()
+    return get(`/api/v1/admin/fa/wallets${q ? `?${q}` : ''}`)
+  },
 }
 
 // ─── SUPERADMIN: FA Receipt Claims ──────────────────────────────────
