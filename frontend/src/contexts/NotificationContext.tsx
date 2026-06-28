@@ -26,7 +26,7 @@ interface NotificationContextType {
 }
 
 const defaultCounts: UnreadCounts = {
-  total_unread: 0, unread_shares: 0, unread_proposals: 0,
+  total_unread: 0, unread_shares: 0, unread_proposals: 0, unread_campaigns: 0,
   unread_analytics: 0, unread_billing: 0, unread_team: 0, unread_system: 0,
 }
 
@@ -133,8 +133,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       ...prev,
       total_unread: Math.max(0, prev.total_unread - 1),
     }))
-    notificationApiService.markAsRead(id)
-  }, [])
+    // Persist, then re-sync the per-category counts from the server so the
+    // category badges (campaigns/proposals/etc.) stay accurate, not just total.
+    notificationApiService.markAsRead(id).then(() => {
+      fetchUnreadCounts()
+    })
+  }, [fetchUnreadCounts])
 
   const markAllAsRead = useCallback((notificationType?: string) => {
     setNotifications(prev =>

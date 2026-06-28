@@ -20,6 +20,8 @@ import {
   AlertTriangle,
   UserPlus,
   Users,
+  Megaphone,
+  FileUp,
   ChevronLeft,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -45,6 +47,8 @@ const ICON_MAP: Record<ServerNotificationType, {
   share_extended:      { icon: Clock,          color: 'text-blue-500',   bg: 'bg-blue-500/10' },
   proposal_received:   { icon: FileText,       color: 'text-blue-500',   bg: 'bg-blue-500/10' },
   proposal_updated:    { icon: FileCheck,      color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+  campaign_application:{ icon: Megaphone,      color: 'text-emerald-500',bg: 'bg-emerald-500/10' },
+  campaign_deliverable:{ icon: FileUp,         color: 'text-cyan-500',   bg: 'bg-cyan-500/10' },
   analytics_completed: { icon: BarChart3,      color: 'text-purple-500', bg: 'bg-purple-500/10' },
   credit_purchase:     { icon: CreditCard,     color: 'text-green-500',  bg: 'bg-green-500/10' },
   low_balance:         { icon: AlertTriangle,  color: 'text-orange-500', bg: 'bg-orange-500/10' },
@@ -87,6 +91,7 @@ const CATEGORY_TABS: CategoryTab[] = [
   { key: 'all',       label: 'All Notifications' },
   { key: 'shares',    label: 'Shares',    countKey: 'unread_shares' },
   { key: 'proposals', label: 'Proposals', countKey: 'unread_proposals' },
+  { key: 'campaigns', label: 'Campaigns', countKey: 'unread_campaigns' },
   { key: 'analytics', label: 'Analytics', countKey: 'unread_analytics' },
   { key: 'billing',   label: 'Billing',   countKey: 'unread_billing' },
   { key: 'team',      label: 'Team',      countKey: 'unread_team' },

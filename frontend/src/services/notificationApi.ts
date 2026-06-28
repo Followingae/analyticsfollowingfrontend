@@ -8,6 +8,7 @@ import { fetchWithAuth } from '@/utils/apiInterceptor'
 export type ServerNotificationType =
   | 'share_received' | 'share_revoked' | 'share_extended'
   | 'proposal_received' | 'proposal_updated'
+  | 'campaign_application' | 'campaign_deliverable'
   | 'analytics_completed'
   | 'credit_purchase' | 'low_balance'
   | 'team_invite' | 'team_update'
@@ -33,6 +34,7 @@ export interface UnreadCounts {
   total_unread: number
   unread_shares: number
   unread_proposals: number
+  unread_campaigns: number
   unread_analytics: number
   unread_billing: number
   unread_team: number
@@ -51,6 +53,7 @@ export interface NotificationListParams {
 export const NOTIFICATION_CATEGORIES = {
   shares: ['share_received', 'share_revoked', 'share_extended'],
   proposals: ['proposal_received', 'proposal_updated'],
+  campaigns: ['campaign_application', 'campaign_deliverable'],
   analytics: ['analytics_completed'],
   billing: ['credit_purchase', 'low_balance'],
   team: ['team_invite', 'team_update'],
@@ -98,7 +101,7 @@ class NotificationApiService {
 
   async getUnreadCount(): Promise<{ success: boolean; data: UnreadCounts }> {
     const empty: UnreadCounts = {
-      total_unread: 0, unread_shares: 0, unread_proposals: 0,
+      total_unread: 0, unread_shares: 0, unread_proposals: 0, unread_campaigns: 0,
       unread_analytics: 0, unread_billing: 0, unread_team: 0, unread_system: 0,
     }
     try {

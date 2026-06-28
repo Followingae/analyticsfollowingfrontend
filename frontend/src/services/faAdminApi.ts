@@ -284,3 +284,19 @@ export const brandCampaignApi = {
   confirmDeliverable: (campaignId: string, delId: string) =>
     post(`/api/v1/campaigns/${campaignId}/deliverables/${delId}/confirm`),
 }
+
+// ─── SUPERADMIN: FA Platform Activity (360° awareness) ───────────────
+// Appended object — see CLAUDE task note: do not modify existing exports.
+export const faActivityApi = {
+  /** Unified, time-sorted feed of recent FA platform events. */
+  feed: (params?: { type?: string; limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams()
+    if (params?.type) qs.set('type', params.type)
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.offset !== undefined) qs.set('offset', String(params.offset))
+    const q = qs.toString()
+    return get(`/api/v1/admin/fa/activity${q ? `?${q}` : ''}`)
+  },
+  /** Today's headline counts for stat cards. */
+  summary: () => get('/api/v1/admin/fa/activity/summary'),
+}

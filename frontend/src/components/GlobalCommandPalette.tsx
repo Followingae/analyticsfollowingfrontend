@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation"
 import {
   LayoutDashboard, Users, Compass, List, Share2, Target, FileText,
   CreditCard, Settings, Bell, BookOpen, Building2, ListChecks, Megaphone,
-  Database, Wrench, Banknote, UserPlus, Plus, Receipt,
+  Database, Wrench, Banknote, UserPlus, Plus, Receipt, Activity,
 } from "lucide-react"
 import {
   CommandDialog,
@@ -52,6 +52,7 @@ const OPERATOR_NAV: (CmdEntry & { module?: string })[] = [
   { title: "Influencer Database", href: "/superadmin/influencers", icon: Database, module: "influencers" },
   { title: "Analyzed Creators", href: "/superadmin/influencers/analyzed", icon: Users, module: "influencers" },
   { title: "FA Overview", href: "/superadmin/fa", icon: LayoutDashboard, module: "fa" },
+  { title: "FA Activity", href: "/superadmin/fa/activity", icon: Activity, module: "fa" },
   { title: "FA Members", href: "/superadmin/fa/members", icon: Users, module: "fa" },
   { title: "FA Campaigns", href: "/superadmin/fa/campaigns", icon: Megaphone, module: "fa" },
   { title: "Receipt Claims", href: "/superadmin/fa/receipt-claims", icon: Receipt, module: "fa" },

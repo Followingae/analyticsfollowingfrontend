@@ -38,6 +38,7 @@ import {
   Bell,
   Wallet,
   Image as ImageIcon,
+  Activity,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -114,6 +115,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
 
   const followingAppItems = can("fa") ? [
     { title: "Overview", url: "/superadmin/fa", icon: LayoutDashboard },
+    { title: "Activity", url: "/superadmin/fa/activity", icon: Activity },
     { title: "Members", url: "/superadmin/fa/members", icon: Users },
     { title: "Merchants", url: "/superadmin/fa/merchants", icon: Store },
     { title: "FA Campaigns", url: "/superadmin/fa/campaigns", icon: Megaphone },

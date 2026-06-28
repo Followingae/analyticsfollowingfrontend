@@ -40,6 +40,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/superadmin/influencers/analyzed": "Analyzed Creators",
   "/superadmin/influencers/add": "Add / Import",
   "/superadmin/fa": "Following App",
+  "/superadmin/fa/activity": "Activity",
   "/superadmin/fa/members": "Members",
   "/superadmin/fa/merchants": "Merchants",
   "/superadmin/fa/campaigns": "FA Campaigns",

@@ -4,12 +4,24 @@ import { useState, useEffect, useCallback } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Store, Megaphone, ClipboardCheck, Banknote, Clock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Users, Store, Megaphone, ClipboardCheck, Banknote, Clock, Activity, ArrowRight, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { faStatsApi } from "@/services/faAdminApi"
+import { faStatsApi, faActivityApi } from "@/services/faAdminApi"
+import { ActivityRow } from "@/app/superadmin/fa/activity/page"
 
 export default function FADashboardPage() {
   const [stats, setStats] = useState<any>(null)
+  const [activity, setActivity] = useState<any[] | null>(null)
+
+  const loadActivity = useCallback(() => {
+    faActivityApi.feed({ limit: 6 })
+      .then((res) => {
+        const list = res?.data?.activity ?? res?.data ?? []
+        setActivity(Array.isArray(list) ? list : [])
+      })
+      .catch(() => setActivity([]))
+  }, [])
 
   const loadStats = useCallback(() => {
     // Tolerate either { success, data } or a raw stats payload - different backend
@@ -27,12 +39,12 @@ export default function FADashboardPage() {
   }, [])
 
   // Load on mount
-  useEffect(() => { loadStats() }, [loadStats])
+  useEffect(() => { loadStats(); loadActivity() }, [loadStats, loadActivity])
 
   // Re-fetch when tab/page becomes visible again (user navigated back)
   useEffect(() => {
     const handleVisibility = () => { if (document.visibilityState === 'visible') loadStats() }
-    const handleFocus = () => { loadStats() }
+    const handleFocus = () => { loadStats(); loadActivity() }
     document.addEventListener('visibilitychange', handleVisibility)
     window.addEventListener('focus', handleFocus)
     return () => {
@@ -73,6 +85,31 @@ export default function FADashboardPage() {
               </Link>
             ))}
           </div>
+
+          {/* Recent activity preview → full feed */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />Recent Activity
+              </CardTitle>
+              <Link href="/superadmin/fa/activity">
+                <Button variant="ghost" size="sm">View all<ArrowRight className="h-4 w-4 ml-1" /></Button>
+              </Link>
+            </CardHeader>
+            <CardContent>
+              {activity === null ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                </div>
+              ) : activity.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">No recent activity</p>
+              ) : (
+                <div className="divide-y">
+                  {activity.map((it: any) => <ActivityRow key={it.id} item={it} />)}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </SuperAdminInterface>
     </AuthGuard>
