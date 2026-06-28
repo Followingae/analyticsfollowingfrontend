@@ -28,7 +28,7 @@ import { Check, X, Users, QrCode, Coins, Gift, Loader2, Sparkles, ChevronDown, C
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { toast } from "sonner"
-import { ParticipantDetailSheet } from "./ParticipantDetailSheet"
+import { ParticipantDetailSheet, type CreatorAnalyticsBundle } from "./ParticipantDetailSheet"
 
 type CampaignType = "cashback" | "paid_deal" | "barter"
 type ParticipantStatus =
@@ -62,6 +62,8 @@ interface Participant {
     tier?: string
     followers_count?: number
     engagement_rate?: number | null
+    // First-party (Instagram) vs AI/Apify-estimated analytics envelope.
+    analytics?: CreatorAnalyticsBundle | null
   }
   lifecycle: {
     invited_at?: string | null

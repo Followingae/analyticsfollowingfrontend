@@ -12,13 +12,40 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import {
   Check, X, Loader2, BarChart3, Instagram, Film, ImageIcon, Camera, Layers,
-  Gift, Coins, QrCode, CheckCircle2, Clock, Sparkles, ExternalLink,
+  Gift, Coins, QrCode, CheckCircle2, Clock, Sparkles, ExternalLink, BadgeCheck, Bot,
 } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FirstPartyAudienceAnalytics } from "@/components/analytics/FirstPartyAudienceAnalytics"
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { toast } from "sonner"
 
 type CampaignType = "cashback" | "paid_deal" | "barter"
+
+// First-party Instagram vs AI/Apify-estimated analytics envelope, served per
+// participant by GET /fa-progress (member.analytics). When has_first_party is
+// false the demographics/insights are null — we never fabricate them.
+export interface CreatorAnalyticsBundle {
+  analytics_source?: "instagram_first_party" | "ai_estimated"
+  has_first_party?: boolean
+  demographics?: {
+    gender_distribution?: Record<string, number> | null
+    age_distribution?: Record<string, number> | null
+    location_distribution?: Record<string, number> | null
+    sample_size?: number | null
+    confidence_score?: number | null
+    analysis_method?: string | null
+  } | null
+  insights?: {
+    reach?: number | null
+    impressions?: number | null
+    profile_views?: number | null
+    accounts_engaged?: number | null
+    total_interactions?: number | null
+    period?: string | null
+  } | null
+  fetched_at?: string | null
+}
 
 // Loose shape — mirrors the participant object from /fa-progress.
 export interface ParticipantLike {
@@ -29,7 +56,12 @@ export interface ParticipantLike {
   source: "curated" | "applied"
   application_mode?: "receipt" | "intent" | null
   receipt?: { merchant?: string | null; amount?: number | null; date?: string | null; image_url?: string | null; status?: string | null } | null
-  member: { full_name?: string; instagram_username?: string; avatar_url?: string; tier?: string; followers_count?: number; engagement_rate?: number | null }
+  member: {
+    full_name?: string; instagram_username?: string; avatar_url?: string; tier?: string
+    followers_count?: number; engagement_rate?: number | null
+    // First-party (Instagram Graph) vs AI/Apify-estimated analytics envelope.
+    analytics?: CreatorAnalyticsBundle | null
+  }
   lifecycle: { invited_at?: string | null; brand_approved_at?: string | null; creator_accepted_at?: string | null; joined_at?: string | null; completed_at?: string | null }
   cashback: { scan_count: number; total_transaction_amount: number; total_cashback_amount: number }
   paid_deal: { payout_cents: number | null }
@@ -93,6 +125,8 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
 
   const username = participant?.member.instagram_username
   const canShowAnalytics = !!username && !participant?.is_offline
+  const analytics = participant?.member.analytics
+  const hasFirstParty = !!analytics?.has_first_party
 
   const loadDeliverables = useCallback(async () => {
     if (!participant) return
@@ -337,19 +371,72 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
         </SheetContent>
       </Sheet>
 
-      {/* Full analytics — reuses the creator-analytics embed (same as proposals) */}
+      {/* Full analytics — TWO clearly separated displays:
+          (1) Instagram Analytics — first-party Graph data (authoritative), shown
+              only when the creator OAuth-connected and Instagram has synced;
+          (2) Our Analytics — AI/Apify-estimated, the real creator-analytics embed.
+          Each labelled with its source. No mock numbers — first-party falls back
+          to an honest empty state when absent. */}
       <Sheet open={analyticsOpen} onOpenChange={setAnalyticsOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-3xl p-0 overflow-hidden">
-          <SheetHeader className="px-6 pt-5 pb-3 border-b">
+        <SheetContent side="right" className="w-full sm:max-w-3xl p-0 overflow-hidden flex flex-col gap-0">
+          <SheetHeader className="px-6 pt-5 pb-3 border-b shrink-0">
             <SheetTitle>@{username}</SheetTitle>
             <SheetDescription>Full creator analytics</SheetDescription>
           </SheetHeader>
           {username && (
-            <iframe
-              src={`/creator-analytics/${username}?embed=1`}
-              className="w-full h-[calc(100vh-5rem)] border-0"
-              title={`Analytics for @${username}`}
-            />
+            <Tabs defaultValue={hasFirstParty ? "instagram" : "ours"} className="flex-1 flex flex-col min-h-0 gap-0">
+              <div className="px-6 pt-3 pb-2 border-b shrink-0">
+                <TabsList className="w-full">
+                  <TabsTrigger value="instagram" className="flex-1 gap-1.5">
+                    <BadgeCheck className="h-3.5 w-3.5" /> Instagram Analytics
+                  </TabsTrigger>
+                  <TabsTrigger value="ours" className="flex-1 gap-1.5">
+                    <Bot className="h-3.5 w-3.5" /> Our Analytics
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              {/* (1) First-party Instagram — authoritative */}
+              <TabsContent value="instagram" className="flex-1 overflow-y-auto m-0 px-6 py-5 data-[state=inactive]:hidden">
+                <div className="mb-4 flex items-center gap-2">
+                  <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <BadgeCheck className="mr-1 h-3 w-3" /> First-party · Instagram
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">Owner-consented Graph API data — authoritative.</span>
+                </div>
+                {hasFirstParty ? (
+                  <FirstPartyAudienceAnalytics
+                    demographics={analytics?.demographics}
+                    insights={analytics?.insights}
+                    fetchedAt={analytics?.fetched_at}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-14 text-center">
+                    <Instagram className="mb-3 h-9 w-9 text-muted-foreground" />
+                    <p className="text-sm font-medium">No first-party Instagram data</p>
+                    <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                      This creator hasn’t connected Instagram (or it’s still syncing).
+                      See “Our Analytics” for AI/Apify estimates.
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* (2) Our Analytics — AI/Apify estimated (real creator-analytics page) */}
+              <TabsContent value="ours" className="flex-1 m-0 flex flex-col min-h-0 data-[state=inactive]:hidden">
+                <div className="px-6 py-2.5 border-b shrink-0 flex items-center gap-2">
+                  <Badge variant="outline" className="border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                    <Bot className="mr-1 h-3 w-3" /> AI / Apify · estimated
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">Modelled from public signals — not first-party.</span>
+                </div>
+                <iframe
+                  src={`/creator-analytics/${username}?embed=1`}
+                  className="w-full flex-1 border-0"
+                  title={`Analytics for @${username}`}
+                />
+              </TabsContent>
+            </Tabs>
           )}
         </SheetContent>
       </Sheet>

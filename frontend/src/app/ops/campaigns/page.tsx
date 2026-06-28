@@ -41,7 +41,15 @@ import {
   RefreshCcw,
   Briefcase
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
+
+/** Format a date defensively — "—" for null/invalid instead of throwing
+ *  `RangeError: Invalid time value` (FA campaigns can have null dates). */
+const safeDate = (value?: string | null, fmt = 'MMM d, yyyy'): string => {
+  if (!value) return '—';
+  const d = new Date(value);
+  return isValid(d) ? format(d, fmt) : '—';
+};
 
 export default function OperationsCampaignsPage() {
   const router = useRouter();
@@ -217,8 +225,8 @@ export default function OperationsCampaignsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(campaign.start_date), 'MMM d')} -{' '}
-                        {format(new Date(campaign.end_date), 'MMM d, yyyy')}
+                        {safeDate(campaign.start_date, 'MMM d')} -{' '}
+                        {safeDate(campaign.end_date)}
                       </TableCell>
                       <TableCell>
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />

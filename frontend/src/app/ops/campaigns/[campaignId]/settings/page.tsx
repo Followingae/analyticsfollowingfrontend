@@ -256,7 +256,7 @@ export default function SettingsPage() {
     try {
       await operationsApi.updateCampaignStatus(campaignId, 'archived');
       toast.success('Campaign archived');
-      router.push('/ops');
+      router.push('/ops/campaigns');
     } catch {
       toast.error('Failed to archive campaign');
       setSaving(false);

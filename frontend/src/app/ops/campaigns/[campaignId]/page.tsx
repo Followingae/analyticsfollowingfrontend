@@ -37,10 +37,22 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { format, isAfter, isBefore, startOfDay } from 'date-fns';
+import { format, isValid, isAfter, isBefore, startOfDay } from 'date-fns';
 import { operationsApi } from '@/services/operationsApi';
 import { getFilteredActivity } from '@/utils/operationsAccess';
 import { useUserStore } from '@/stores/userStore';
+
+/**
+ * Format a date string defensively. Returns "—" for null/undefined/invalid
+ * values instead of throwing `RangeError: Invalid time value` — FA campaign
+ * types (cashback/paid_deal/barter) and empty ops shadows can surface
+ * null dates.
+ */
+const safeDate = (value?: string | null, fmt = 'MMM d, yyyy'): string => {
+  if (!value) return '—';
+  const d = new Date(value);
+  return isValid(d) ? format(d, fmt) : '—';
+};
 
 interface CampaignOverview {
   summary: {
@@ -154,8 +166,8 @@ export default function CampaignOperationsHome() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight">{currentCampaign.campaign_name}</h1>
           <p className="text-muted-foreground mt-1">
-            {format(new Date(currentCampaign.start_date), 'MMM d, yyyy')} -{' '}
-            {format(new Date(currentCampaign.end_date), 'MMM d, yyyy')}
+            {safeDate(currentCampaign.start_date)} -{' '}
+            {safeDate(currentCampaign.end_date)}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -256,7 +268,7 @@ export default function CampaignOperationsHome() {
                         <div>
                           <p className="font-medium">{shoot.location}</p>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(shoot.date), 'MMM d, yyyy')}
+                            {safeDate(shoot.date)}
                           </p>
                         </div>
                       </div>
@@ -281,7 +293,7 @@ export default function CampaignOperationsHome() {
                         <div>
                           <p className="font-medium">{deadline.deliverable}</p>
                           <p className="text-sm text-muted-foreground">
-                            {deadline.creator} • {format(new Date(deadline.date), 'MMM d')}
+                            {deadline.creator} • {safeDate(deadline.date, 'MMM d')}
                           </p>
                         </div>
                       </div>
@@ -303,7 +315,7 @@ export default function CampaignOperationsHome() {
                         <div>
                           <p className="font-medium">{event.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(event.date), 'MMM d, yyyy')}
+                            {safeDate(event.date)}
                           </p>
                         </div>
                       </div>
@@ -470,7 +482,7 @@ export default function CampaignOperationsHome() {
                       {activity.action}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(activity.timestamp), 'MMM d, h:mm a')}
+                      {safeDate(activity.timestamp, 'MMM d, h:mm a')}
                     </p>
                     <InternalOnly>
                       {activity.type && (

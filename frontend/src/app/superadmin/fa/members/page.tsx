@@ -377,6 +377,18 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
 
   const analytics = member.analytics
   const approvalStatus = member.is_approved === 1 ? "approved" : member.is_approved === 2 ? "rejected" : "pending"
+
+  // Eligibility display: the backend `eligible` flag is set at signup BEFORE engagement
+  // is known (engagement defaults to 0, so the signup check always yields false) and is
+  // only corrected once stats are refreshed. So never contradict an approval decision —
+  // an approved member is eligible by definition — and otherwise derive eligibility from
+  // the member's actual current metrics rather than the stale signup-time flag.
+  const isEligible =
+    member.is_approved === 1 ||
+    member.eligible ||
+    ((member.followers_count ?? 0) >= 1000 &&
+      (member.engagement_rate ?? 0) >= 1.0 &&
+      (member.fraud_score ?? 0) < 0.3)
   const joinDate = member.created_at
     ? new Date(member.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
     : "-"
@@ -434,15 +446,17 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
   const handleRunAnalytics = async () => {
     setAnalyzing(true)
     try {
-      await faMemberApi.triggerAnalytics(member.id)
-      toast.success(`Analytics triggered for ${member.full_name}`)
-      // Give backend a moment to process, then refresh
-      setTimeout(() => {
-        onAction()
-        setAnalyzing(false)
-      }, 2000)
-    } catch {
-      toast.error("Failed to trigger analytics")
+      // Endpoint runs synchronously (refreshes follower/engagement/tier stats +
+      // first-party Instagram analytics), so the data is ready once it resolves.
+      const res = await faMemberApi.triggerAnalytics(member.id)
+      if (res && res.success === false) {
+        throw new Error(res.message || res.detail || "Analytics failed")
+      }
+      toast.success(`Analytics refreshed for ${member.full_name}`)
+      onAction()
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to run analytics")
+    } finally {
       setAnalyzing(false)
     }
   }
@@ -471,7 +485,7 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
                   {member.verified && (
                     <Badge className="bg-blue-500/10 text-blue-600 border-blue-300 text-[10px] px-1.5">Verified</Badge>
                   )}
-                  {!member.eligible && (
+                  {!isEligible && (
                     <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Ineligible</Badge>
                   )}
                 </div>
