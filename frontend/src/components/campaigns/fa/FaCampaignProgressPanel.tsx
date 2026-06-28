@@ -29,6 +29,7 @@ import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { toast } from "sonner"
 import { ParticipantDetailSheet, type CreatorAnalyticsBundle } from "./ParticipantDetailSheet"
+import { AISnapshotView } from "./AISnapshotView"
 
 type CampaignType = "cashback" | "paid_deal" | "barter"
 type ParticipantStatus =
@@ -275,76 +276,9 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
               )}
             </div>
           </CardHeader>
-          {snapshot && snapshotOpen && (
-            <CardContent className="space-y-4">
-              {snapshot.headline && (
-                <p className="text-sm font-medium leading-snug">{snapshot.headline}</p>
-              )}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {snapshot.scores?.total_reach != null && (
-                  <SummaryCard
-                    icon={<Users className="h-4 w-4 text-muted-foreground" />}
-                    label="Combined reach"
-                    value={snapshot.scores.total_reach.toLocaleString()}
-                  />
-                )}
-                {snapshot.scores?.avg_engagement != null && (
-                  <SummaryCard
-                    icon={<Sparkles className="h-4 w-4 text-muted-foreground" />}
-                    label="Avg engagement"
-                    value={`${snapshot.scores.avg_engagement}%`}
-                  />
-                )}
-                {snapshot.scores?.authenticity != null && (
-                  <SummaryCard
-                    icon={<Sparkles className="h-4 w-4 text-muted-foreground" />}
-                    label="Authenticity"
-                    value={`${snapshot.scores.authenticity}`}
-                  />
-                )}
-                {snapshot.scores?.total_selected != null && (
-                  <SummaryCard
-                    icon={<Users className="h-4 w-4 text-muted-foreground" />}
-                    label="Creators"
-                    value={snapshot.scores.total_selected}
-                  />
-                )}
-              </div>
-              {Array.isArray(snapshot.recommendations) && snapshot.recommendations.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Recommendations</p>
-                  <ul className="space-y-1 text-sm">
-                    {snapshot.recommendations.map((rec, i) => (
-                      <li key={i} className="flex gap-2">
-                        <Sparkles className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                        <span>{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {Array.isArray(snapshot.insights) && snapshot.insights.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {snapshot.insights.map((ins, i) => (
-                    <div key={i} className="rounded-lg border bg-muted/30 p-3">
-                      <p className="text-xs font-semibold mb-2">{ins.title}</p>
-                      {Array.isArray(ins.data) ? (
-                        <div className="flex flex-wrap gap-1.5">
-                          {(ins.data as Array<{ name: string; value: number }>).map((d, j) => (
-                            <Badge key={j} variant="secondary" className="text-[10px]">
-                              {d.name} · {d.value}%
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <pre className="text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
-                          {JSON.stringify(ins.data, null, 2)}
-                        </pre>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+          {snapshotOpen && (
+            <CardContent>
+              <AISnapshotView snapshot={snapshot} loading={snapshotLoading} />
             </CardContent>
           )}
         </Card>
