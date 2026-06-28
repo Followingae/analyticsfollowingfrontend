@@ -37,6 +37,7 @@ import {
   ListChecks,
   Bell,
   Wallet,
+  Image as ImageIcon,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -120,6 +121,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     { title: "Withdrawals", url: "/superadmin/fa/withdrawals", icon: Banknote },
     { title: "Creator Wallets", url: "/superadmin/fa/wallets", icon: Wallet },
     { title: "Receipt Claims", url: "/superadmin/fa/receipt-claims", icon: Receipt },
+    { title: "Ad Banners", url: "/superadmin/fa/ad-banners", icon: ImageIcon },
     { title: "Notifications", url: "/superadmin/fa/notifications", icon: Bell },
   ] : []
 

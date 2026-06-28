@@ -12,7 +12,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import {
   Check, X, Loader2, BarChart3, Instagram, Film, ImageIcon, Camera, Layers,
-  Gift, Coins, QrCode, CheckCircle2, Clock, Sparkles, ExternalLink, BadgeCheck, Bot,
+  Gift, Coins, QrCode, CheckCircle2, Clock, Sparkles, ExternalLink, BadgeCheck, Bot, Pencil,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FirstPartyAudienceAnalytics } from "@/components/analytics/FirstPartyAudienceAnalytics"
@@ -74,6 +74,12 @@ interface Deliverable {
   type: string
   quantity: number
   status: "pending" | "submitted" | "verified" | "rejected" | string
+  // Two-stage flow: content review (content_status) → proof of posting (status).
+  content_status?: "pending" | "submitted" | "approved" | "revision_requested" | string | null
+  content_url?: string | null
+  revision_count?: number | null
+  revision_limit?: number | null
+  rejection_reason?: string | null
   proof_url: string | null
   submitted_at: string | null
   verified_at: string | null
@@ -169,19 +175,42 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
     }
   }
 
-  const deliverableAction = async (d: Deliverable, action: "approve" | "reject") => {
+  // Two-stage proof-of-post flow:
+  //   approve-content → creator may post; request-edit → bounded revisions;
+  //   confirm → verified + payout release. Reject (proof) uses the admin path.
+  const deliverableAction = async (
+    d: Deliverable,
+    action: "approve-content" | "request-edit" | "confirm" | "reject",
+    note?: string,
+  ) => {
     setBusy(d.id + action)
     try {
+      const path =
+        action === "reject"
+          ? `/api/v1/admin/fa/deliverables/${d.id}/reject`
+          : `/api/v1/campaigns/${campaignId}/deliverables/${d.id}/${action}`
       const res = await fetchWithAuth(
-        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/deliverables/${d.id}/${action}`,
-        { method: "POST", headers: getAuthHeaders() }
+        `${API_CONFIG.BASE_URL}${path}`,
+        action === "request-edit"
+          ? { method: "POST", headers: { ...getAuthHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({ note: note || null }) }
+          : { method: "POST", headers: getAuthHeaders() }
       )
-      if (!res.ok) throw new Error(await res.text())
-      toast.success(action === "approve" ? "Submission approved" : "Submission rejected")
+      if (!res.ok) {
+        let msg = ""
+        try { msg = (await res.json())?.detail } catch { msg = await res.text() }
+        throw new Error(msg || "Action failed")
+      }
+      const okMsg: Record<string, string> = {
+        "approve-content": "Content approved — creator can post now",
+        "request-edit": "Edit requested",
+        confirm: "Verified — payout released",
+        reject: "Submission rejected",
+      }
+      toast.success(okMsg[action])
       await loadDeliverables()
       onChanged?.()
     } catch (e: any) {
-      toast.error(e.message || `Could not ${action} submission`)
+      toast.error(e.message || "Could not update submission")
     } finally {
       setBusy(null)
     }
@@ -190,8 +219,8 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   const barterItems: any[] = Array.isArray(participant?.barter?.items) ? participant!.barter.items : []
   const isPending = participant?.status === "pending_brand_approval"
 
-  const submittedCount = deliverables.filter((d) => d.status === "submitted").length
-  const verifiedCount = deliverables.filter((d) => d.status === "verified" || d.status === "approved").length
+  const submittedCount = deliverables.filter((d) => d.status === "submitted" || d.content_status === "submitted").length
+  const verifiedCount = deliverables.filter((d) => d.status === "verified").length
 
   return (
     <>
@@ -347,7 +376,9 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                           avatar={participant.member.avatar_url}
                           username={username}
                           busy={busy}
-                          onApprove={() => deliverableAction(d, "approve")}
+                          onApproveContent={() => deliverableAction(d, "approve-content")}
+                          onRequestEdit={(note) => deliverableAction(d, "request-edit", note)}
+                          onConfirm={() => deliverableAction(d, "confirm")}
                           onReject={() => deliverableAction(d, "reject")}
                         />
                       ))}
@@ -475,27 +506,43 @@ function TimelineRow({ label, at }: { label: string; at?: string | null }) {
   )
 }
 
+// Derive the single lifecycle stage from the two tracks (content_status + status).
+function deliverableStage(d: Deliverable): string {
+  if (d.status === "verified") return "verified"
+  if (d.status === "rejected") return "rejected"
+  if (d.status === "submitted") return "proof_submitted"
+  if (d.content_status === "submitted") return "content_review"
+  if (d.content_status === "revision_requested") return "revision_requested"
+  if (d.content_status === "approved") return "content_approved"
+  return "pending"
+}
+
 function SubmissionCard({
-  d, avatar, username, busy, onApprove, onReject,
+  d, avatar, username, busy, onApproveContent, onRequestEdit, onConfirm, onReject,
 }: {
   d: Deliverable; avatar?: string; username?: string; busy: string | null
-  onApprove: () => void; onReject: () => void
+  onApproveContent: () => void; onRequestEdit: (note: string) => void; onConfirm: () => void; onReject: () => void
 }) {
+  const [editNote, setEditNote] = useState("")
   const meta = dtypeMeta(d.type)
   const Icon = meta.icon
-  const isDone = d.status === "verified" || d.status === "approved"
-  const showContent = d.status === "submitted" || isDone
+  const stage = deliverableStage(d)
+  const isDone = stage === "verified"
+  // Prefer proof media once posted, else the content under review.
+  const previewUrl = d.proof_url || d.content_url || null
+  const showContent = !!previewUrl || stage === "verified"
+  const editsLeft = Math.max(0, (d.revision_limit ?? 2) - (d.revision_count ?? 0))
   return (
     <div className="rounded-xl border bg-card overflow-hidden flex flex-col">
       <div className="relative aspect-[4/5]" style={{ background: gradientFor(d.id) }}>
         {showContent ? (
           <>
-            {d.proof_url ? (
-              <a href={d.proof_url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 block">
-                {isImageProof(d.proof_url) ? (
-                  <img src={d.proof_url} alt={`${meta.label} submission`} className="absolute inset-0 h-full w-full object-cover" />
-                ) : isVideoProof(d.proof_url) ? (
-                  <video src={d.proof_url} className="absolute inset-0 h-full w-full object-cover" muted playsInline />
+            {previewUrl ? (
+              <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="absolute inset-0 block">
+                {isImageProof(previewUrl) ? (
+                  <img src={previewUrl} alt={`${meta.label} submission`} className="absolute inset-0 h-full w-full object-cover" />
+                ) : isVideoProof(previewUrl) ? (
+                  <video src={previewUrl} className="absolute inset-0 h-full w-full object-cover" muted playsInline />
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-white/90">
                     <Icon className="h-9 w-9" /><span className="text-[10px] underline">Open submission</span>
@@ -525,17 +572,55 @@ function SubmissionCard({
       <div className="p-2.5 flex flex-col gap-1.5 flex-1">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold">{meta.label}{d.quantity > 1 ? ` ×${d.quantity}` : ""}</span>
-          <StatusPill status={d.status} />
+          <StatusPill stage={stage} />
         </div>
         <p className="text-[10px] text-muted-foreground/70 mt-auto">
-          {isDone ? `Verified ${fmtDate(d.verified_at)}` : d.status === "submitted" ? `Submitted ${fmtDate(d.submitted_at)}` : `Due ${fmtDate(d.deadline)}`}
+          {isDone ? `Verified ${fmtDate(d.verified_at)}`
+            : stage === "proof_submitted" ? `Proof ${fmtDate(d.submitted_at)}`
+            : stage === "content_review" ? "Content awaiting your review"
+            : stage === "revision_requested" ? `Edit requested · ${editsLeft} left`
+            : stage === "content_approved" ? "Approved · awaiting post"
+            : `Due ${fmtDate(d.deadline)}`}
         </p>
-        {d.status === "submitted" && (
+
+        {/* Stage 1 — content review: Approve (primary) + understated Request edit */}
+        {stage === "content_review" && (
           <div className="flex items-center gap-1.5 pt-1">
-            <Button size="sm" className="h-7 flex-1 text-xs" disabled={!!busy} onClick={onApprove}>
-              {busy === d.id + "approve" ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Check className="h-3 w-3 mr-1" />Approve</>}
+            <Button size="sm" className="h-7 flex-1 text-xs" disabled={!!busy} onClick={onApproveContent}>
+              {busy === d.id + "approve-content" ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Check className="h-3 w-3 mr-1" />Approve</>}
             </Button>
-            <Button size="sm" variant="outline" className="h-7 flex-1 text-xs" disabled={!!busy} onClick={onReject}>
+            {editsLeft > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="ghost" className="h-7 text-[11px] text-muted-foreground px-2" disabled={!!busy}>
+                    <Pencil className="h-3 w-3 mr-1" />Edit
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Request an edit</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      The creator resubmits their content. {editsLeft} edit{editsLeft !== 1 ? "s" : ""} remaining.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <Textarea value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="What needs changing? (optional)" />
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setEditNote("")}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => { onRequestEdit(editNote); setEditNote("") }}>Send</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        )}
+
+        {/* Stage 2 — proof of posting submitted: Verify (primary) + Reject */}
+        {stage === "proof_submitted" && (
+          <div className="flex items-center gap-1.5 pt-1">
+            <Button size="sm" className="h-7 flex-1 text-xs" disabled={!!busy} onClick={onConfirm}>
+              {busy === d.id + "confirm" ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Check className="h-3 w-3 mr-1" />Verify</>}
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-[11px] px-2" disabled={!!busy} onClick={onReject}>
               {busy === d.id + "reject" ? <Loader2 className="h-3 w-3 animate-spin" /> : <><X className="h-3 w-3 mr-1" />Reject</>}
             </Button>
           </div>
@@ -545,14 +630,19 @@ function SubmissionCard({
   )
 }
 
-function StatusPill({ status }: { status: string }) {
+function StatusPill({ stage }: { stage: string }) {
   const map: Record<string, string> = {
     verified: "bg-emerald-500/15 text-emerald-700 border-emerald-300/40",
-    approved: "bg-emerald-500/15 text-emerald-700 border-emerald-300/40",
-    submitted: "bg-amber-500/15 text-amber-700 border-amber-300/40",
+    proof_submitted: "bg-violet-500/15 text-violet-700 border-violet-300/40",
+    content_review: "bg-amber-500/15 text-amber-700 border-amber-300/40",
+    revision_requested: "bg-orange-500/15 text-orange-700 border-orange-300/40",
+    content_approved: "bg-sky-500/15 text-sky-700 border-sky-300/40",
     rejected: "bg-rose-500/15 text-rose-700 border-rose-300/40",
     pending: "bg-slate-500/10 text-slate-600 border-slate-300/40",
   }
-  const label: Record<string, string> = { verified: "Verified", approved: "Approved", submitted: "Review", rejected: "Rejected", pending: "Pending" }
-  return <Badge variant="outline" className={`text-[9px] ${map[status] ?? map.pending}`}>{label[status] ?? status}</Badge>
+  const label: Record<string, string> = {
+    verified: "Verified", proof_submitted: "Proof in", content_review: "Review",
+    revision_requested: "Edit asked", content_approved: "Approved", rejected: "Rejected", pending: "Pending",
+  }
+  return <Badge variant="outline" className={`text-[9px] ${map[stage] ?? map.pending}`}>{label[stage] ?? stage}</Badge>
 }

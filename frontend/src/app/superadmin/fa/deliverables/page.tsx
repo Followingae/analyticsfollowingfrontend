@@ -6,41 +6,114 @@ import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Check, X, ExternalLink, ClipboardCheck, Camera } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Check, X, ExternalLink, ClipboardCheck, Camera, ImageIcon, Loader2, Pencil } from "lucide-react"
 import { faDeliverableApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
-export default function FADeliverablesPage() {
-  const [deliverables, setDeliverables] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+interface Deliverable {
+  id: string
+  member_id: string | null
+  member_name: string | null
+  member_handle: string | null
+  campaign_id: string | null
+  campaign_name: string | null
+  campaign_type: string | null
+  type: string
+  quantity: number
+  deadline: string | null
+  status: string
+  content_status: string | null
+  content_url: string | null
+  proof_url: string | null
+  revision_count: number
+  revision_limit: number
+  rejection_reason: string | null
+  stage: string
+  submitted_at: string | null
+  verified_at: string | null
+  cashback_linked: number
+  created_at: string | null
+}
 
-  const load = useCallback(async () => {
+// Filters map to the backend `stage` query (computed from content_status + status).
+const FILTERS: { value: string; label: string }[] = [
+  { value: "active", label: "Active" },
+  { value: "content_review", label: "Content review" },
+  { value: "revision_requested", label: "Edit requested" },
+  { value: "content_approved", label: "Approved · awaiting post" },
+  { value: "proof_submitted", label: "Proof submitted" },
+  { value: "verified", label: "Verified" },
+  { value: "rejected", label: "Rejected" },
+  { value: "archive", label: "Archive" },
+  { value: "all", label: "All" },
+]
+
+const STAGE_META: Record<string, { label: string; cls: string }> = {
+  pending: { label: "Pending", cls: "bg-slate-500/10 text-slate-600 border-slate-300/40" },
+  content_review: { label: "Content review", cls: "bg-amber-500/15 text-amber-700 border-amber-300/40" },
+  revision_requested: { label: "Edit requested", cls: "bg-orange-500/15 text-orange-700 border-orange-300/40" },
+  content_approved: { label: "Approved · awaiting post", cls: "bg-sky-500/15 text-sky-700 border-sky-300/40" },
+  proof_submitted: { label: "Proof submitted", cls: "bg-violet-500/15 text-violet-700 border-violet-300/40" },
+  verified: { label: "Verified", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-300/40" },
+  rejected: { label: "Rejected", cls: "bg-rose-500/15 text-rose-700 border-rose-300/40" },
+}
+
+const fmtDate = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleDateString("en-AE", { month: "short", day: "numeric" }) : "—"
+
+export default function FADeliverablesPage() {
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState("active")
+  const [busy, setBusy] = useState<string | null>(null)
+  const [editNote, setEditNote] = useState("")
+
+  const load = useCallback(async (stage: string) => {
     setLoading(true)
     try {
-      const res = await faDeliverableApi.listPending()
-      const list = res?.data?.deliverables || res?.data || []
+      const res = await faDeliverableApi.listAll({ stage, limit: 100 })
+      const list = res?.data?.deliverables || []
       setDeliverables(Array.isArray(list) ? list : [])
     } catch { toast.error("Failed to load deliverables") }
     finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load(filter) }, [filter, load])
 
-  const handleVerify = async (id: string) => {
+  const act = async (key: string, fn: () => Promise<any>, okMsg: string) => {
+    setBusy(key)
     try {
-      await faDeliverableApi.verify(id)
-      toast.success("Deliverable verified - cashback released to influencer")
-      load()
-    } catch { toast.error("Failed to verify") }
+      const r = await fn()
+      if (r && r.success === false) throw new Error(r.detail || r.message || "Action failed")
+      toast.success(okMsg)
+      await load(filter)
+    } catch (e: any) {
+      toast.error(e?.message || "Action failed")
+    } finally {
+      setBusy(null)
+    }
   }
 
-  const handleReject = async (id: string) => {
-    try {
-      await faDeliverableApi.reject(id)
-      toast.success("Deliverable rejected")
-      load()
-    } catch { toast.error("Failed to reject") }
+  const approveContent = (d: Deliverable) => {
+    if (!d.campaign_id) return toast.error("No campaign linked")
+    return act(d.id + "ac", () => faDeliverableApi.approveContent(d.campaign_id!, d.id), "Content approved — creator notified")
   }
+  const requestEdit = (d: Deliverable, note: string) => {
+    if (!d.campaign_id) return toast.error("No campaign linked")
+    return act(d.id + "re", () => faDeliverableApi.requestEdit(d.campaign_id!, d.id, note || undefined), "Edit requested")
+  }
+  const confirm = (d: Deliverable) =>
+    act(d.id + "cf",
+      () => (d.campaign_id ? faDeliverableApi.confirm(d.campaign_id, d.id) : faDeliverableApi.verify(d.id)),
+      "Verified — payout released")
+  const reject = (d: Deliverable) =>
+    act(d.id + "rj", () => faDeliverableApi.reject(d.id), "Deliverable rejected")
 
   return (
     <AuthGuard requiredRole="admin">
@@ -48,53 +121,129 @@ export default function FADeliverablesPage() {
         <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold">FA Deliverables</h1>
-            <p className="text-muted-foreground text-sm">Review and verify influencer content submissions</p>
+            <p className="text-muted-foreground text-sm">
+              Oversight across every campaign — content review, proof of posting, and verification.
+            </p>
           </div>
+
+          <Tabs value={filter} onValueChange={setFilter}>
+            <TabsList className="flex flex-wrap h-auto">
+              {FILTERS.map((f) => (
+                <TabsTrigger key={f.value} value={f.value} className="text-xs">{f.label}</TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
           {loading ? (
             <p className="text-sm text-muted-foreground text-center py-12">Loading...</p>
           ) : deliverables.length === 0 ? (
-            <Card><CardContent className="text-center py-12"><ClipboardCheck className="h-10 w-10 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">No pending deliverables</p></CardContent></Card>
+            <Card><CardContent className="text-center py-12">
+              <ClipboardCheck className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">No deliverables in this view</p>
+            </CardContent></Card>
           ) : (
             <div className="space-y-3">
-              {deliverables.map((d: any) => (
-                <Card key={d.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Camera className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{d.member_name || "Influencer"}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>{d.type} x{d.quantity}</span>
-                            <span>|</span>
-                            <span>Due {new Date(d.deadline).toLocaleDateString("en-AE", { month: "short", day: "numeric" })}</span>
-                            {d.cashback_linked > 0 && (
-                              <><span>|</span><span className="font-medium">AED {d.cashback_linked} linked</span></>
-                            )}
+              {deliverables.map((d) => {
+                const meta = STAGE_META[d.stage] ?? STAGE_META.pending
+                const isContentReview = d.stage === "content_review"
+                const isProofSubmitted = d.stage === "proof_submitted"
+                const editsLeft = Math.max(0, (d.revision_limit ?? 2) - (d.revision_count ?? 0))
+                return (
+                  <Card key={d.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-4 min-w-0">
+                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Camera className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">
+                              {d.member_handle ? `@${d.member_handle}` : d.member_name || "Creator"}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground mt-0.5">
+                              <span className="truncate">{d.campaign_name || "—"}</span>
+                              {d.campaign_type && <Badge variant="outline" className="text-[10px]">{d.campaign_type}</Badge>}
+                              <span>·</span>
+                              <span>{d.type} x{d.quantity}</span>
+                              <span>·</span>
+                              <span>Due {fmtDate(d.deadline)}</span>
+                              {d.cashback_linked > 0 && <><span>·</span><span className="font-medium">AED {d.cashback_linked} linked</span></>}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <Badge variant="outline" className={`text-[10px] ${meta.cls}`}>{meta.label}</Badge>
+                              {(d.revision_count ?? 0) > 0 && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  {d.revision_count}/{d.revision_limit} edits used
+                                </span>
+                              )}
+                              {d.rejection_reason && (
+                                <span className="text-[11px] text-orange-600 italic truncate max-w-[280px]">“{d.rejection_reason}”</span>
+                              )}
+                            </div>
                           </div>
                         </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {d.content_url && (
+                            <a href={d.content_url} target="_blank" rel="noopener noreferrer">
+                              <Button size="sm" variant="ghost" className="text-xs"><ImageIcon className="h-4 w-4 mr-1" />Content</Button>
+                            </a>
+                          )}
+                          {d.proof_url && (
+                            <a href={d.proof_url} target="_blank" rel="noopener noreferrer">
+                              <Button size="sm" variant="ghost" className="text-xs"><ExternalLink className="h-4 w-4 mr-1" />Proof</Button>
+                            </a>
+                          )}
+
+                          {isContentReview && (
+                            <>
+                              {/* Request edit is intentionally understated to favour fast approvals. */}
+                              {editsLeft > 0 && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="text-xs text-muted-foreground" disabled={!!busy}>
+                                      <Pencil className="h-3.5 w-3.5 mr-1" />Request edit
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Request an edit</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        The creator will be asked to resubmit. {editsLeft} edit{editsLeft !== 1 ? "s" : ""} remaining for this {d.campaign_type || "campaign"}.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <Textarea value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="What needs changing? (optional)" />
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel onClick={() => setEditNote("")}>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => { requestEdit(d, editNote); setEditNote("") }}>
+                                        Send edit request
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                              <Button size="sm" disabled={!!busy} onClick={() => approveContent(d)}>
+                                {busy === d.id + "ac" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4 mr-1" />Approve content</>}
+                              </Button>
+                            </>
+                          )}
+
+                          {isProofSubmitted && (
+                            <>
+                              <Button size="sm" variant="outline" disabled={!!busy} onClick={() => reject(d)}>
+                                <X className="h-4 w-4 mr-1" />Reject
+                              </Button>
+                              <Button size="sm" disabled={!!busy} onClick={() => confirm(d)}>
+                                {busy === d.id + "cf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4 mr-1" />Verify</>}
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {d.proof_url && (
-                          <a href={d.proof_url} target="_blank" rel="noopener noreferrer">
-                            <Button size="sm" variant="outline"><ExternalLink className="h-4 w-4 mr-1" />View Proof</Button>
-                          </a>
-                        )}
-                        <Badge variant="secondary">{d.status}</Badge>
-                        <Button size="sm" variant="outline" onClick={() => handleReject(d.id)}>
-                          <X className="h-4 w-4 mr-1" />Reject
-                        </Button>
-                        <Button size="sm" onClick={() => handleVerify(d.id)}>
-                          <Check className="h-4 w-4 mr-1" />Verify
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
         </div>

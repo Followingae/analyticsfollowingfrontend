@@ -103,6 +103,33 @@ export const faCampaignApi = {
   },
 }
 
+// ─── SUPERADMIN: Ad Banners (creator app home carousel) ──────────────
+export interface AdBanner {
+  id: string
+  title?: string | null
+  image_url: string
+  link_url?: string | null
+  link_type: 'internal' | 'external'
+  is_active: boolean
+  sort_order: number
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+export const faAdBannerApi = {
+  list: () => get('/api/v1/admin/ad-banners'),
+  create: (data: Partial<AdBanner>) => post('/api/v1/admin/ad-banners', data),
+  update: (id: string, data: Partial<AdBanner>) => put(`/api/v1/admin/ad-banners/${id}`, data),
+  delete: (id: string) => del(`/api/v1/admin/ad-banners/${id}`),
+  /** Reuse the FA image bucket upload (cover/logo) → { data: { url } }. */
+  uploadImage: async (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetchWithAuth(`${BASE}/api/v1/admin/fa/merchants/logo`, { method: 'POST', body: form })
+    return res.json()
+  },
+}
+
 // ─── SUPERADMIN: FA Members ──────────────────────────────────────────
 export const faMemberApi = {
   list: (params?: { tier?: string; status?: string; is_approved?: number; limit?: number; offset?: number }) => {
@@ -124,9 +151,27 @@ export const faMemberApi = {
 
 // ─── SUPERADMIN: FA Deliverables ─────────────────────────────────────
 export const faDeliverableApi = {
+  /** @deprecated submitted-only view — use listAll for full pipeline visibility. */
   listPending: () => get('/api/v1/admin/fa/deliverables/pending'),
+  /** Oversight: ALL deliverables, computed `stage`. stage='archive' → completed (verified|rejected). */
+  listAll: (params?: { stage?: string; limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams()
+    if (params?.stage) qs.set('stage', params.stage)
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.offset !== undefined) qs.set('offset', String(params.offset))
+    const q = qs.toString()
+    return get(`/api/v1/admin/fa/deliverables${q ? `?${q}` : ''}`)
+  },
+  // Proof-track (admin) — releases payout. Used when there's no campaign context.
   verify: (id: string) => post(`/api/v1/admin/fa/deliverables/${id}/verify`),
   reject: (id: string, reason?: string) => post(`/api/v1/admin/fa/deliverables/${id}/reject`, { reason }),
+  // Two-stage lifecycle (campaign-scoped; superadmin bypasses owner check).
+  approveContent: (campaignId: string, id: string) =>
+    post(`/api/v1/campaigns/${campaignId}/deliverables/${id}/approve-content`),
+  requestEdit: (campaignId: string, id: string, note?: string) =>
+    post(`/api/v1/campaigns/${campaignId}/deliverables/${id}/request-edit`, { note }),
+  confirm: (campaignId: string, id: string) =>
+    post(`/api/v1/campaigns/${campaignId}/deliverables/${id}/confirm`),
 }
 
 // ─── SUPERADMIN: FA Withdrawals ──────────────────────────────────────
@@ -229,8 +274,13 @@ export const brandCampaignApi = {
     post(`/api/v1/campaigns/${campaignId}/applications/${appId}/accept`),
   rejectApplication: (campaignId: string, appId: string) =>
     post(`/api/v1/campaigns/${campaignId}/applications/${appId}/reject`),
-  approveDeliverable: (campaignId: string, delId: string) =>
-    post(`/api/v1/campaigns/${campaignId}/deliverables/${delId}/approve`),
-  rejectDeliverable: (campaignId: string, delId: string) =>
-    post(`/api/v1/campaigns/${campaignId}/deliverables/${delId}/reject`),
+  // Two-stage proof-of-post flow:
+  //  Stage 1 (content review): approveContent / requestEdit (limited by campaign type)
+  //  Stage 2 (proof of posting): confirmDeliverable → verified + payout release
+  approveContent: (campaignId: string, delId: string) =>
+    post(`/api/v1/campaigns/${campaignId}/deliverables/${delId}/approve-content`),
+  requestEdit: (campaignId: string, delId: string, note?: string) =>
+    post(`/api/v1/campaigns/${campaignId}/deliverables/${delId}/request-edit`, { note }),
+  confirmDeliverable: (campaignId: string, delId: string) =>
+    post(`/api/v1/campaigns/${campaignId}/deliverables/${delId}/confirm`),
 }
