@@ -111,7 +111,7 @@ export function ClientAccessDialog({ teamId, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden">
+      <DialogContent className="w-[95vw] max-w-5xl sm:max-w-5xl p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6">
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-4 w-4" /> Account access &amp; onboarding email
