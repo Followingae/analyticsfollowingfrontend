@@ -297,8 +297,8 @@ function BillingContent() {
         >
           <TabsList>
             <TabsTrigger value="subscription">Subscription</TabsTrigger>
-            <TabsTrigger value="invoices">Invoices</TabsTrigger>
-            <TabsTrigger value="cashback-pool">Cashback Pool</TabsTrigger>
+            {!isAdminManaged && <TabsTrigger value="invoices">Invoices</TabsTrigger>}
+            {!isAdminManaged && <TabsTrigger value="cashback-pool">Cashback Pool</TabsTrigger>}
           </TabsList>
 
           {/* Subscription Tab */}
@@ -336,9 +336,11 @@ function BillingContent() {
                             : trialInfo.trial_end
                         ).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                       </span>
-                      <span className="text-muted-foreground">
-                        . After your trial, you will be charged د.إ199/month for the Standard plan. You can cancel anytime.
-                      </span>
+                      {!isAdminManaged && (
+                        <span className="text-muted-foreground">
+                          . After your trial, you will be charged د.إ199/month for the Standard plan. You can cancel anytime.
+                        </span>
+                      )}
                     </p>
                   </div>
                 </CardContent>
@@ -368,7 +370,7 @@ function BillingContent() {
                       </div>
                     </div>
 
-                    {!isFreeTier && (
+                    {!isFreeTier && !isAdminManaged && (
                       <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">Price</p>
                         <p className="text-2xl font-bold">
@@ -541,7 +543,8 @@ function BillingContent() {
               </Card>
             </div>
 
-            {/* Credits */}
+            {/* Credits — hidden for admin-managed clients (no amounts shown) */}
+            {!isAdminManaged && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -581,6 +584,7 @@ function BillingContent() {
                 </div>
               </CardContent>
             </Card>
+            )}
 
             {/* Usage */}
             <Card>
@@ -628,7 +632,6 @@ function BillingContent() {
                     <ul className="list-disc pl-5 space-y-1">
                       <li>Contact your account manager</li>
                       <li>Email support@following.ae with your request</li>
-                      <li>Call +971 50 123 4567 during business hours</li>
                     </ul>
                     <div className="bg-muted rounded-lg p-3 mt-4">
                       <p className="font-medium">Benefits of Admin Managed Billing:</p>
@@ -653,22 +656,25 @@ function BillingContent() {
               <CardContent>
                 <div className="space-y-2 text-sm">
                   <p>Email: support@following.ae</p>
-                  <p>Phone: +971 50 123 4567</p>
                   <p>Available Monday - Friday, 9am - 6pm GST</p>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Invoices Tab */}
-          <TabsContent value="invoices" className="space-y-6">
-            <InvoicesTab />
-          </TabsContent>
+          {/* Invoices Tab — hidden for admin-managed clients (billing handled offline) */}
+          {!isAdminManaged && (
+            <TabsContent value="invoices" className="space-y-6">
+              <InvoicesTab />
+            </TabsContent>
+          )}
 
-          {/* Cashback Pool Tab */}
-          <TabsContent value="cashback-pool" className="space-y-6">
-            <CashbackPoolTab />
-          </TabsContent>
+          {/* Cashback Pool Tab — hidden for admin-managed clients */}
+          {!isAdminManaged && (
+            <TabsContent value="cashback-pool" className="space-y-6">
+              <CashbackPoolTab />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

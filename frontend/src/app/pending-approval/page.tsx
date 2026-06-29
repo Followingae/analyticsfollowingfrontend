@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Clock, Mail, Phone, ArrowLeft } from 'lucide-react'
+import { Clock, Mail, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function PendingApprovalPage() {
@@ -62,12 +62,6 @@ export default function PendingApprovalPage() {
                 <a href="mailto:enterprise@following.ae" className="flex items-center gap-2">
                   <Mail className="h-4 w-4" />
                   enterprise@following.ae
-                </a>
-              </Button>
-              <Button variant="outline" className="flex-1" asChild>
-                <a href="tel:+971501234567" className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  +971 50 123 4567
                 </a>
               </Button>
             </div>
