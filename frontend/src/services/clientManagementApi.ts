@@ -190,7 +190,36 @@ export const clientApi = {
     const base = `${BASE}/${teamId}/export`;
     return year ? `${base}?year=${year}` : base;
   },
+
+  // --- Account access / onboarding email ---
+  previewAccountEmail: (teamId: string, overrides: Partial<AccountEmailFields> = {}) =>
+    authFetch(`${BASE}/${teamId}/account-email/preview`, {
+      method: 'POST',
+      body: JSON.stringify(overrides),
+    }) as Promise<{ success: boolean; data: { html: string; to: string; default_cc: string[]; fields: AccountEmailFields } }>,
+
+  sendAccountEmail: (teamId: string, payload: Partial<AccountEmailFields> & { cc?: string[] }) =>
+    authFetch(`${BASE}/${teamId}/account-email/send`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }) as Promise<{ success: boolean; message: string; data: { to: string; cc: string[] } }>,
+
+  resetPassword: (teamId: string, password?: string) =>
+    authFetch(`${BASE}/${teamId}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify(password ? { password } : {}),
+    }) as Promise<{ success: boolean; data: { password: string; email: string }; message: string }>,
 };
+
+export interface AccountEmailFields {
+  recipient_name: string;
+  email: string;
+  password: string;
+  login_url: string;
+  cta_label: string;
+  show_security_note: boolean;
+  subject: string;
+}
 
 // Unified campaigns API for brand users
 const CAMPAIGNS_BASE = `${API_CONFIG.BASE_URL}/api/v1/campaigns`;

@@ -304,8 +304,8 @@ function AllCampaignsTab({
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<CampaignCardData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [groupBy, setGroupBy] = useState<"type" | "status">("type");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [groupBy, setGroupBy] = useState<"type" | "status">("status");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Persist the chosen view (grid/list) across sessions

@@ -31,8 +31,9 @@ import {
 import {
   ArrowLeft, Building2, Coins, FileText, Users, Video,
   Calendar, Activity, TrendingUp, AlertCircle, CheckCircle2,
-  Clock, XCircle, ChevronRight, Upload, Loader2
+  Clock, XCircle, ChevronRight, Upload, Loader2, ShieldCheck
 } from 'lucide-react';
+import { ClientAccessDialog } from '@/components/clients/ClientAccessDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/clientManagementApi';
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
@@ -105,6 +106,7 @@ export default function ClientDetailPage() {
   const [scopeYear, setScopeYear] = useState<string>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [accessOpen, setAccessOpen] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
 
   const handleAssignAM = async (value: string) => {
@@ -258,6 +260,9 @@ export default function ClientDetailPage() {
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAccessOpen(true)}>
+            <ShieldCheck className="h-4 w-4" /> Manage access
+          </Button>
           <span className="text-xs text-muted-foreground whitespace-nowrap">Account Manager</span>
           <Select value={client.account_manager_id || 'unassigned'} onValueChange={handleAssignAM}>
             <SelectTrigger className="h-8 w-52 text-sm">
@@ -272,6 +277,8 @@ export default function ClientDetailPage() {
           </Select>
         </div>
       </div>
+
+      <ClientAccessDialog teamId={teamId} open={accessOpen} onOpenChange={setAccessOpen} />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
