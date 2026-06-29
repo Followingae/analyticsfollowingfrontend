@@ -82,6 +82,23 @@ export const faCampaignApi = {
   /** Add "Following Team Suggested" creators to an open FA campaign. */
   addCurated: (id: string, creators: Array<{ fa_member_id?: string; instagram_username?: string }>) =>
     post(`/api/v1/admin/fa/campaigns/${id}/add-curated-creators`, { creators }),
+  // ─── Master (package) / sub linkage ──────────────────────────────────
+  listMasters: (params?: { merchant_id?: string; campaign_type?: string }) => {
+    const qs = new URLSearchParams()
+    if (params?.merchant_id) qs.set('merchant_id', params.merchant_id)
+    if (params?.campaign_type) qs.set('campaign_type', params.campaign_type)
+    const s = qs.toString()
+    return get(`/api/v1/admin/fa/masters${s ? `?${s}` : ''}`)
+  },
+  createMaster: (data: { name: string; campaign_type: string; merchant_id?: string; brand_user_id?: string; target_influencer_count?: number; description?: string }) =>
+    post('/api/v1/admin/fa/masters', data),
+  promoteToMaster: (id: string, data?: { target_influencer_count?: number; description?: string }) =>
+    post(`/api/v1/admin/fa/campaigns/${id}/promote-to-master`, data || {}),
+  linkMaster: (id: string, masterCampaignId: string) =>
+    post(`/api/v1/admin/fa/campaigns/${id}/link-master`, { master_campaign_id: masterCampaignId }),
+  unlinkMaster: (id: string) => post(`/api/v1/admin/fa/campaigns/${id}/unlink-master`, {}),
+  setBrandExcluded: (id: string, brandExcluded: boolean) =>
+    post(`/api/v1/admin/fa/campaigns/${id}/brand-excluded`, { brand_excluded: brandExcluded }),
   // ─── Coupon codes (brand-supplied, unique per creator) ───────────────
   /** Bulk-upload coupon codes for a campaign (idempotent on re-upload). */
   uploadCoupons: (id: string, codes: string[]) =>

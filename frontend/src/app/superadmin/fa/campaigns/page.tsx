@@ -10,6 +10,9 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download, ImagePlus } from "lucide-react"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
+import { MasterPackageDialog } from "@/components/superadmin/fa/MasterPackageDialog"
+import { CreateMasterDialog } from "@/components/superadmin/fa/CreateMasterDialog"
+import { Layers } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +55,8 @@ export default function FACampaignsPage() {
   const [couponTarget, setCouponTarget] = useState<any | null>(null)
 
   // Share dialog state — canonical creatorapp.following.ae link + QR
+  const [packageTarget, setPackageTarget] = useState<any | null>(null)
+  const [createMasterOpen, setCreateMasterOpen] = useState(false)
   const [shareTarget, setShareTarget] = useState<any | null>(null)
   const [shareUrl, setShareUrl] = useState("")
   const [shareQr, setShareQr] = useState<string | null>(null)
@@ -183,9 +188,14 @@ export default function FACampaignsPage() {
               <p className="text-muted-foreground text-sm">Create and manage cashback, paid deal, and barter campaigns</p>
             </div>
             {/* One create entry - type is chosen in the wizard's first step */}
-            <Link href="/superadmin/fa/campaigns/new">
-              <Button size="sm"><Plus className="h-4 w-4 mr-1" />Create Campaign</Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setCreateMasterOpen(true)}>
+                <Layers className="h-4 w-4 mr-1" />New package
+              </Button>
+              <Link href="/superadmin/fa/campaigns/new">
+                <Button size="sm"><Plus className="h-4 w-4 mr-1" />Create Campaign</Button>
+              </Link>
+            </div>
           </div>
 
           <Tabs value={tab} onValueChange={setTab}>
@@ -236,6 +246,14 @@ export default function FACampaignsPage() {
                       >
                         <Ticket className="h-3.5 w-3.5 mr-1.5" />
                         Coupons
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => { e.stopPropagation(); setPackageTarget(c) }}
+                      >
+                        <Layers className="h-3.5 w-3.5 mr-1.5" />
+                        Package
                       </Button>
                       {isActive && (
                         <>
@@ -397,6 +415,18 @@ export default function FACampaignsPage() {
             campaignName={couponTarget?.name}
             open={!!couponTarget}
             onOpenChange={(o) => { if (!o) setCouponTarget(null) }}
+          />
+
+          {/* Master package management */}
+          <MasterPackageDialog
+            campaign={packageTarget}
+            onClose={() => setPackageTarget(null)}
+            onChanged={load}
+          />
+          <CreateMasterDialog
+            open={createMasterOpen}
+            onClose={() => setCreateMasterOpen(false)}
+            onCreated={load}
           />
 
           {!loading && campaigns.length === 0 && (

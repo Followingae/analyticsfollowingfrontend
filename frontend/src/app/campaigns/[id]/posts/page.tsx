@@ -69,6 +69,7 @@ import { CampaignWorkflow } from "@/components/campaigns/unified/CampaignWorkflo
 import { InfluencerSelection } from "@/components/campaigns/unified/InfluencerSelection";
 import { PostCard } from "@/components/campaigns/PostCard";
 import { FaCampaignProgressPanel } from "@/components/campaigns/fa/FaCampaignProgressPanel";
+import { MasterCampaignPanel } from "@/components/campaigns/MasterCampaignPanel";
 
 // Backend response interfaces (UPDATED with collaboration support)
 interface BackendCampaignPost {
@@ -160,6 +161,11 @@ interface BackendCampaignDetails {
   start_date?: string | null;
   hero_image_url?: string | null;
   is_pre_platform?: boolean;
+  is_master?: boolean;
+  master_campaign_id?: string | null;
+  master_name?: string | null;
+  sub_count?: number;
+  brand_excluded?: boolean;
 }
 
 interface BackendAudience {
@@ -570,6 +576,11 @@ export default function CampaignDetailsPage() {
         start_date: processedCampaignData.start_date ?? null,
         hero_image_url: processedCampaignData.hero_image_url ?? null,
         is_pre_platform: processedCampaignData.is_pre_platform ?? false,
+        is_master: processedCampaignData.is_master ?? false,
+        master_campaign_id: processedCampaignData.master_campaign_id ?? null,
+        master_name: processedCampaignData.master_name ?? null,
+        sub_count: processedCampaignData.sub_count ?? 0,
+        brand_excluded: processedCampaignData.brand_excluded ?? false,
       };
 
 
@@ -1806,6 +1817,41 @@ export default function CampaignDetailsPage() {
       )}
     </div>
   ) : null;
+
+  // MASTER (package) campaign → reconciliation umbrella view (not the FA participant panel,
+  // which has no participants of its own). Must come BEFORE the FA-type branch.
+  if (campaign.is_master) {
+    return (
+      <AuthGuard>
+        <BrandUserInterface>
+          <div className="container mx-auto py-8 px-4 space-y-6">
+            {coverBanner}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => router.push("/campaigns")}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={campaign.brand_logo_url || undefined} />
+                  <AvatarFallback>{campaign.brand_name?.[0]?.toUpperCase() ?? "?"}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">{campaign.brand_name}</span>
+                    <Badge variant="outline" className="text-[10px]">Master package</Badge>
+                  </div>
+                </div>
+              </div>
+              <Badge>{campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : "Active"}</Badge>
+            </div>
+            {campaignOverview}
+            <MasterCampaignPanel campaignId={String(campaign.id)} isSuperadmin={isSuperadmin} />
+          </div>
+        </BrandUserInterface>
+      </AuthGuard>
+    );
+  }
 
   // FA campaign types (cashback / paid_deal / barter) render the dedicated progress panel
   // instead of the influencer-post analytics view.

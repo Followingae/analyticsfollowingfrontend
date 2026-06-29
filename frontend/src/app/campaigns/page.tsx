@@ -26,6 +26,7 @@ import {
   Pencil,
   Eye,
   TrendingUp,
+  Layers,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -657,7 +658,17 @@ function AllCampaignsTab({
                         <div className="truncate font-semibold leading-tight text-foreground">{campaign.name}</div>
                         <span className="truncate text-xs text-muted-foreground">{campaign.brand_name || "\u2014"}</span>
                       </div>
-                      {c.is_pre_platform ? (
+                      {c.master_name && (
+                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <Layers className="h-3 w-3 shrink-0" /> Part of: <span className="truncate font-medium text-foreground">{c.master_name}</span>
+                        </div>
+                      )}
+                      {c.is_master ? (
+                        <div className="flex items-center gap-1.5 rounded-md bg-primary/5 px-2.5 py-2 text-[11px] text-muted-foreground">
+                          <Layers className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          Master package \u00b7 {c.sub_count || 0} campaign{(c.sub_count || 0) === 1 ? "" : "s"}
+                        </div>
+                      ) : c.is_pre_platform ? (
                         <div className="flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-2 text-[11px] text-muted-foreground">
                           <Clock className="h-3.5 w-3.5 shrink-0" />
                           Executed before platform \u2014 data limited
