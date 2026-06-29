@@ -76,7 +76,10 @@ interface Participant {
   cashback: { scan_count: number; total_transaction_amount: number; total_cashback_amount: number }
   paid_deal: { payout_cents: number | null }
   barter: { items: any }
-  deliverables: { pending: number; submitted: number; verified: number }
+  deliverables: { pending: number; submitted: number; verified: number; posting?: number }
+  // Human-readable "influencer is posting approved content…" line (or null) for
+  // deliverables that are content-approved but not yet posted/verified.
+  posting_status?: string | null
 }
 
 const STATUS_META: Record<ParticipantStatus, { label: string; tone: string }> = {
@@ -514,6 +517,17 @@ function ParticipantTable({
                     <Badge variant="outline" className="text-[10px] w-fit bg-rose-500/10 text-rose-600 border-rose-300/40">
                       Waiting {hoursSince(p.lifecycle.invited_at)}h
                     </Badge>
+                  )}
+                  {/* Posting-in-progress hint on active rows (full text on hover) */}
+                  {p.posting_status && (p.status === "active" || p.status === "accepted") && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="outline" className="text-[10px] w-fit bg-sky-500/10 text-sky-600 border-sky-300/40">
+                          Posting approved content…
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[240px]">{p.posting_status}</TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
               </TableCell>

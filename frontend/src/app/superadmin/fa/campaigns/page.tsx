@@ -331,34 +331,39 @@ export default function FACampaignsPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col items-center gap-4">
-                {/* Dynamic landing visuals — shown on the public /c/<id> page */}
+                {/* Dynamic landing visuals — pulled from the campaign (cover + brand
+                    logo). These feed the public /c/<id> page and the in-app cards, so
+                    there's nothing to fill in when the campaign already has them. */}
                 <div className="grid w-full grid-cols-2 gap-3">
-                  <div>
-                    <p className="mb-1.5 text-xs font-medium text-muted-foreground">Cover image</p>
-                    <label className="relative flex aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-md border bg-muted/40 hover:bg-muted">
-                      {shareHero ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={shareHero} alt="Cover" className="h-full w-full object-cover" />
+                  {([
+                    { kind: "hero" as const, label: "Cover image", url: shareHero, fit: "object-cover" },
+                    { kind: "logo" as const, label: "Brand logo", url: shareLogo, fit: "object-contain p-2" },
+                  ]).map(({ kind, label, url, fit }) => (
+                    <div key={kind}>
+                      <p className="mb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
+                      {url ? (
+                        // Already on the campaign — show it as a preview, with a quiet
+                        // hover affordance to replace it (no required input).
+                        <label className="group relative flex aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-md border bg-muted/40">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt={label} className={`h-full w-full ${fit}`} />
+                          <div className="absolute inset-0 hidden place-items-center bg-background/60 group-hover:grid">
+                            <span className="flex items-center gap-1 text-xs font-medium"><ImagePlus className="h-3.5 w-3.5" />Change</span>
+                          </div>
+                          {uploading === kind && <div className="absolute inset-0 grid place-items-center bg-background/60"><Loader2 className="h-4 w-4 animate-spin" /></div>}
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadShareImage(kind, f); e.currentTarget.value = "" }} />
+                        </label>
                       ) : (
-                        <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                        // Genuinely missing on the campaign — fall back to a manual upload.
+                        <label className="relative flex aspect-video cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-md border border-dashed bg-muted/40 hover:bg-muted">
+                          <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">Upload {label.toLowerCase()}</span>
+                          {uploading === kind && <div className="absolute inset-0 grid place-items-center bg-background/60"><Loader2 className="h-4 w-4 animate-spin" /></div>}
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadShareImage(kind, f); e.currentTarget.value = "" }} />
+                        </label>
                       )}
-                      {uploading === "hero" && <div className="absolute inset-0 grid place-items-center bg-background/60"><Loader2 className="h-4 w-4 animate-spin" /></div>}
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadShareImage("hero", f); e.currentTarget.value = "" }} />
-                    </label>
-                  </div>
-                  <div>
-                    <p className="mb-1.5 text-xs font-medium text-muted-foreground">Brand logo</p>
-                    <label className="relative flex aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-md border bg-muted/40 hover:bg-muted">
-                      {shareLogo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={shareLogo} alt="Brand logo" className="h-full w-full object-contain p-2" />
-                      ) : (
-                        <ImagePlus className="h-5 w-5 text-muted-foreground" />
-                      )}
-                      {uploading === "logo" && <div className="absolute inset-0 grid place-items-center bg-background/60"><Loader2 className="h-4 w-4 animate-spin" /></div>}
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadShareImage("logo", f); e.currentTarget.value = "" }} />
-                    </label>
-                  </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="flex h-[200px] w-[200px] items-center justify-center rounded-lg border bg-white">
                   {shareLoading ? (

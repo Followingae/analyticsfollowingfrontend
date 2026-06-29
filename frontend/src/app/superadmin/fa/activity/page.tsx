@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { faActivityApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
+import Link from "next/link"
 
 type ActivityItem = {
   id: string
@@ -21,6 +22,8 @@ type ActivityItem = {
   subtitle?: string | null
   actor?: string | null
   campaign_name?: string | null
+  // Optional — present only if the backend feed carries a campaign id for the row.
+  campaign_id?: string | null
   at: string
 }
 
@@ -75,11 +78,36 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString("en-AE", { month: "short", day: "numeric" })
 }
 
+// Deep-link an activity row to the most relevant superadmin destination.
+// Campaign-scoped kinds prefer the campaign's posts page when a campaign id is
+// available on the row; otherwise they fall back to the FA campaigns list.
+const DELIVERABLE_KINDS = new Set([
+  "content_submitted", "content_edit_requested", "content_approved",
+  "proof_submitted", "deliverable_verified",
+])
+const CAMPAIGN_KINDS = new Set(["application", "brand_approved", "brand_rejected"])
+const WITHDRAWAL_KINDS = new Set(["withdrawal_requested", "withdrawal_processed"])
+
+export function activityHref(item: ActivityItem): string {
+  const k = item.kind
+  if (DELIVERABLE_KINDS.has(k)) return "/superadmin/fa/deliverables"
+  if (WITHDRAWAL_KINDS.has(k)) return "/superadmin/fa/withdrawals"
+  if (k === "signup") return "/superadmin/fa/members"
+  if (k === "receipt_claim") return "/superadmin/fa/receipt-claims"
+  if (CAMPAIGN_KINDS.has(k)) {
+    return item.campaign_id ? `/campaigns/${item.campaign_id}/posts` : "/superadmin/fa/campaigns"
+  }
+  return "/superadmin/fa/activity"
+}
+
 export function ActivityRow({ item }: { item: ActivityItem }) {
   const meta = KIND_META[item.kind] || { label: item.kind, icon: ActivityIcon, color: "text-muted-foreground", bg: "bg-muted" }
   const Icon = meta.icon
   return (
-    <div className="flex items-start gap-3 py-3">
+    <Link
+      href={activityHref(item)}
+      className="-mx-2 flex items-start gap-3 rounded-md px-2 py-3 transition-colors hover:bg-muted/60"
+    >
       <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${meta.bg}`}>
         <Icon className={`h-4 w-4 ${meta.color}`} />
       </div>
@@ -93,7 +121,7 @@ export function ActivityRow({ item }: { item: ActivityItem }) {
         </p>
       </div>
       <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap pt-0.5">{timeAgo(item.at)}</span>
-    </div>
+    </Link>
   )
 }
 

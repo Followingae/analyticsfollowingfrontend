@@ -43,16 +43,20 @@ import {
   Globe2,
   Wallet,
   RefreshCcw,
+  Megaphone,
+  QrCode,
+  Coins,
+  Gift,
 } from "lucide-react"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { faMemberApi } from "@/services/faAdminApi"
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { faMemberApi, faMemberCampaignsApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -285,9 +289,138 @@ function DistroBars({
   )
 }
 
-/** Full member detail (OAuth health, wallet, first-party demographics, insights)
- *  via the previously-unused faMemberApi.get(id). */
-function MemberDetailDialog({ memberId, name }: { memberId: string; name: string }) {
+// ─── Member campaigns (per-member participation) ─────────────────────────────
+
+interface MemberCampaign {
+  campaign_id: string | null
+  campaign_name: string | null
+  brand_name: string | null
+  campaign_type: string | null
+  campaign_status: string | null
+  participant_status: string | null
+  participation_type: string | null
+  source: string | null
+  joined_at: string | null
+  last_event_at: string | null
+}
+
+const CAMPAIGN_TYPE_META: Record<string, { label: string; icon: any; color: string }> = {
+  cashback:  { label: "Cashback",  icon: QrCode, color: "bg-green-500/10 text-green-600 border-green-300" },
+  paid_deal: { label: "Paid Deal", icon: Coins,  color: "bg-purple-500/10 text-purple-600 border-purple-300" },
+  barter:    { label: "Barter",    icon: Gift,   color: "bg-blue-500/10 text-blue-600 border-blue-300" },
+}
+
+const PARTICIPANT_STATUS_STYLES: Record<string, string> = {
+  pending_brand_approval: "bg-amber-500/10 text-amber-600 border-amber-300",
+  brand_rejected:         "bg-red-500/10 text-red-600 border-red-300",
+  accepted:               "bg-emerald-500/10 text-emerald-600 border-emerald-300",
+  active:                 "bg-emerald-500/10 text-emerald-600 border-emerald-300",
+  completed:              "bg-blue-500/10 text-blue-600 border-blue-300",
+  declined_by_creator:    "bg-muted text-muted-foreground",
+  cancelled:              "bg-muted text-muted-foreground",
+}
+
+function prettyStatus(s?: string | null): string {
+  if (!s) return "—"
+  return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function MemberCampaignsSection({ memberId, fallbackCount }: { memberId: string; fallbackCount: number }) {
+  const [data, setData] = useState<{ total: number; types: string[]; campaigns: MemberCampaign[] } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [unavailable, setUnavailable] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    faMemberCampaignsApi
+      .list(memberId)
+      .then((res) => {
+        if (!active) return
+        const payload = res?.data ?? res
+        if (payload && Array.isArray(payload.campaigns)) setData(payload)
+        else setUnavailable(true)
+      })
+      .catch(() => { if (active) setUnavailable(true) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [memberId])
+
+  return (
+    <section>
+      <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        <Megaphone className="h-3.5 w-3.5" />Campaigns participated
+        <Badge variant="secondary" className="ml-1 text-[10px]">{data?.total ?? fallbackCount}</Badge>
+      </h4>
+
+      {/* Distinct campaign types */}
+      {data && data.types.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {data.types.map((t) => {
+            const cfg = CAMPAIGN_TYPE_META[t] || { label: t, icon: Megaphone, color: "" }
+            const Icon = cfg.icon
+            return (
+              <Badge key={t} variant="outline" className={`text-[10px] ${cfg.color}`}>
+                <Icon className="h-3 w-3 mr-1" />{cfg.label}
+              </Badge>
+            )
+          })}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading campaigns…
+        </div>
+      ) : unavailable ? (
+        <p className="text-xs text-muted-foreground">
+          {fallbackCount > 0
+            ? `Participated in ${fallbackCount} campaign${fallbackCount === 1 ? "" : "s"}. Per-campaign breakdown unavailable.`
+            : "No campaign participation yet."}
+        </p>
+      ) : !data || data.campaigns.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No campaign participation yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {data.campaigns.map((c, i) => {
+            const cfg = CAMPAIGN_TYPE_META[c.campaign_type || ""] || { label: c.campaign_type || "Campaign", icon: Megaphone, color: "" }
+            const Icon = cfg.icon
+            const row = (
+              <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                  <Icon className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{c.campaign_name || "Untitled campaign"}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {[cfg.label, c.brand_name].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={`shrink-0 text-[10px] capitalize ${PARTICIPANT_STATUS_STYLES[c.participant_status || ""] || ""}`}
+                >
+                  {prettyStatus(c.participant_status)}
+                </Badge>
+              </div>
+            )
+            return c.campaign_id ? (
+              <a key={c.campaign_id + i} href={`/campaigns/${c.campaign_id}/posts`} className="block transition-opacity hover:opacity-80">
+                {row}
+              </a>
+            ) : (
+              <div key={(c.campaign_name || "c") + i}>{row}</div>
+            )
+          })}
+        </div>
+      )}
+    </section>
+  )
+}
+
+/** Full member detail (campaigns, OAuth health, wallet, first-party demographics,
+ *  insights) in a large side Sheet so the analytics lay out properly. */
+function MemberDetailSheet({ memberId, name, campaignsCount }: { memberId: string; name: string; campaignsCount: number }) {
   const [open, setOpen] = useState(false)
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -305,66 +438,65 @@ function MemberDetailDialog({ memberId, name }: { memberId: string; name: string
   const demo: InstagramAudienceDemographics | null = data?.instagram_audience_demographics
   const insights: InstagramInsights | null = data?.instagram_insights
   const wallet = data?.wallet
-  const insightStats = [
-    { label: "Reach", value: insights?.reach, Icon: Users },
-    { label: "Profile views", value: insights?.profile_views, Icon: Eye },
-    { label: "Interactions", value: insights?.total_interactions ?? insights?.impressions, Icon: BarChart3 },
-  ].filter((s) => typeof s.value === "number" && (s.value as number) > 0)
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
         <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground">
           <Eye className="h-3.5 w-3.5 mr-1" />Details
         </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Member detail</DialogTitle>
-          <DialogDescription>{name}</DialogDescription>
-        </DialogHeader>
-        {loading || !data ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading...
-          </div>
-        ) : (
-          <div className="space-y-5">
-            <section>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Instagram connection</h4>
-              <OAuthHealthBadges m={data} />
-            </section>
+      </SheetTrigger>
+      <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-2xl">
+        <SheetHeader className="border-b">
+          <SheetTitle>Member detail</SheetTitle>
+          <SheetDescription>{name}</SheetDescription>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto p-4">
+          {loading || !data ? (
+            <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <MemberCampaignsSection memberId={memberId} fallbackCount={campaignsCount} />
 
-            {wallet && (
               <section>
-                <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  <Wallet className="h-3.5 w-3.5" />Wallet ({wallet.currency || "AED"})
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="rounded-lg bg-muted/50 px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Available</p>
-                    <p className="text-sm font-bold">{formatNumber(wallet.balance_available)}</p>
-                  </div>
-                  <div className="rounded-lg bg-muted/50 px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Earned</p>
-                    <p className="text-sm font-bold">{formatNumber(wallet.total_earned)}</p>
-                  </div>
-                  <div className="rounded-lg bg-muted/50 px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Withdrawn</p>
-                    <p className="text-sm font-bold">{formatNumber(wallet.total_withdrawn)}</p>
-                  </div>
-                </div>
+                <h4 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Instagram connection</h4>
+                <OAuthHealthBadges m={data} />
               </section>
-            )}
 
-            <FirstPartyAudienceAnalytics
-              demographics={demo}
-              insights={insights}
-              fetchedAt={(data as any)?.instagram_audience_fetched_at ?? null}
-            />
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+              {wallet && (
+                <section>
+                  <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    <Wallet className="h-3.5 w-3.5" />Wallet ({wallet.currency || "AED"})
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-lg bg-muted/50 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Available</p>
+                      <p className="text-sm font-bold">{formatNumber(wallet.balance_available)}</p>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Earned</p>
+                      <p className="text-sm font-bold">{formatNumber(wallet.total_earned)}</p>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Withdrawn</p>
+                      <p className="text-sm font-bold">{formatNumber(wallet.total_withdrawn)}</p>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              <FirstPartyAudienceAnalytics
+                demographics={demo}
+                insights={insights}
+                fetchedAt={(data as any)?.instagram_audience_fetched_at ?? null}
+              />
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }
 
@@ -623,7 +755,7 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
           {/* ─── Row 1.5: Instagram connection health ─── */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <OAuthHealthBadges m={member} />
-            <MemberDetailDialog memberId={member.id} name={member.full_name} />
+            <MemberDetailSheet memberId={member.id} name={member.full_name} campaignsCount={member.campaigns_participated} />
           </div>
 
           {/* ─── Rejection reason input (inline) ─── */}

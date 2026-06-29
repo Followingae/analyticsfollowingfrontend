@@ -133,6 +133,12 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   const canShowAnalytics = !!username && !participant?.is_offline
   const analytics = participant?.member.analytics
   const hasFirstParty = !!analytics?.has_first_party
+  // A "direct Instagram signup" is a first-party-connected creator whose analytics
+  // bundle resolves to Instagram Graph (not AI/Apify). For these we have no
+  // meaningful "Our Analytics" (AI/Apify) data, so we hide that tab and show only
+  // the authoritative first-party Instagram view.
+  const isDirectInstagram = hasFirstParty && analytics?.analytics_source === "instagram_first_party"
+  const showOurAnalytics = !isDirectInstagram
 
   const loadDeliverables = useCallback(async () => {
     if (!participant) return
@@ -175,20 +181,18 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
     }
   }
 
-  // Two-stage proof-of-post flow:
-  //   approve-content → creator may post; request-edit → bounded revisions;
-  //   confirm → verified + payout release. Reject (proof) uses the admin path.
+  // Brand-side content review ONLY (stage 1): approve-content lets the creator
+  // post; request-edit asks for bounded revisions. The proof-of-posting stage
+  // (verify/reject) is owned by the Following team — the brand confirm endpoint
+  // now 403s, so it is never called here and shows a read-only status instead.
   const deliverableAction = async (
     d: Deliverable,
-    action: "approve-content" | "request-edit" | "confirm" | "reject",
+    action: "approve-content" | "request-edit",
     note?: string,
   ) => {
     setBusy(d.id + action)
     try {
-      const path =
-        action === "reject"
-          ? `/api/v1/admin/fa/deliverables/${d.id}/reject`
-          : `/api/v1/campaigns/${campaignId}/deliverables/${d.id}/${action}`
+      const path = `/api/v1/campaigns/${campaignId}/deliverables/${d.id}/${action}`
       const res = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}${path}`,
         action === "request-edit"
@@ -203,8 +207,6 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
       const okMsg: Record<string, string> = {
         "approve-content": "Content approved — creator can post now",
         "request-edit": "Edit requested",
-        confirm: "Verified — payout released",
-        reject: "Submission rejected",
       }
       toast.success(okMsg[action])
       await loadDeliverables()
@@ -378,8 +380,6 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                           busy={busy}
                           onApproveContent={() => deliverableAction(d, "approve-content")}
                           onRequestEdit={(note) => deliverableAction(d, "request-edit", note)}
-                          onConfirm={() => deliverableAction(d, "confirm")}
-                          onReject={() => deliverableAction(d, "reject")}
                         />
                       ))}
                     </div>
@@ -415,15 +415,17 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
             <SheetDescription>Full creator analytics</SheetDescription>
           </SheetHeader>
           {username && (
-            <Tabs defaultValue={hasFirstParty ? "instagram" : "ours"} className="flex-1 flex flex-col min-h-0 gap-0">
+            <Tabs defaultValue={showOurAnalytics && !hasFirstParty ? "ours" : "instagram"} className="flex-1 flex flex-col min-h-0 gap-0">
               <div className="px-6 pt-3 pb-2 border-b shrink-0">
                 <TabsList className="w-full">
                   <TabsTrigger value="instagram" className="flex-1 gap-1.5">
                     <BadgeCheck className="h-3.5 w-3.5" /> Instagram Analytics
                   </TabsTrigger>
-                  <TabsTrigger value="ours" className="flex-1 gap-1.5">
-                    <Bot className="h-3.5 w-3.5" /> Our Analytics
-                  </TabsTrigger>
+                  {showOurAnalytics && (
+                    <TabsTrigger value="ours" className="flex-1 gap-1.5">
+                      <Bot className="h-3.5 w-3.5" /> Our Analytics
+                    </TabsTrigger>
+                  )}
                 </TabsList>
               </div>
 
@@ -453,7 +455,9 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                 )}
               </TabsContent>
 
-              {/* (2) Our Analytics — AI/Apify estimated (real creator-analytics page) */}
+              {/* (2) Our Analytics — AI/Apify estimated (real creator-analytics page).
+                  Hidden for direct Instagram signups (no AI/Apify data to show). */}
+              {showOurAnalytics && (
               <TabsContent value="ours" className="flex-1 m-0 flex flex-col min-h-0 data-[state=inactive]:hidden">
                 <div className="px-6 py-2.5 border-b shrink-0 flex items-center gap-2">
                   <Badge variant="outline" className="border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400">
@@ -467,6 +471,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                   title={`Analytics for @${username}`}
                 />
               </TabsContent>
+              )}
             </Tabs>
           )}
         </SheetContent>
@@ -518,10 +523,10 @@ function deliverableStage(d: Deliverable): string {
 }
 
 function SubmissionCard({
-  d, avatar, username, busy, onApproveContent, onRequestEdit, onConfirm, onReject,
+  d, avatar, username, busy, onApproveContent, onRequestEdit,
 }: {
   d: Deliverable; avatar?: string; username?: string; busy: string | null
-  onApproveContent: () => void; onRequestEdit: (note: string) => void; onConfirm: () => void; onReject: () => void
+  onApproveContent: () => void; onRequestEdit: (note: string) => void
 }) {
   const [editNote, setEditNote] = useState("")
   const meta = dtypeMeta(d.type)
@@ -583,6 +588,21 @@ function SubmissionCard({
             : `Due ${fmtDate(d.deadline)}`}
         </p>
 
+        {/* Stage 2 — proof of posting (read-only for brands; the Following team
+            verifies). Content approved but not yet posted, or proof submitted. */}
+        {stage === "content_approved" && (
+          <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-sky-700">
+            <Loader2 className="h-3 w-3 mt-px shrink-0 animate-spin" />
+            <span>Influencer is posting approved content — system will update once it&apos;s posted</span>
+          </div>
+        )}
+        {stage === "proof_submitted" && (
+          <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-violet-700">
+            <Clock className="h-3 w-3 mt-px shrink-0" />
+            <span>Proof submitted — under review by the Following team</span>
+          </div>
+        )}
+
         {/* Stage 1 — content review: Approve (primary) + understated Request edit */}
         {stage === "content_review" && (
           <div className="flex items-center gap-1.5 pt-1">
@@ -611,18 +631,6 @@ function SubmissionCard({
                 </AlertDialogContent>
               </AlertDialog>
             )}
-          </div>
-        )}
-
-        {/* Stage 2 — proof of posting submitted: Verify (primary) + Reject */}
-        {stage === "proof_submitted" && (
-          <div className="flex items-center gap-1.5 pt-1">
-            <Button size="sm" className="h-7 flex-1 text-xs" disabled={!!busy} onClick={onConfirm}>
-              {busy === d.id + "confirm" ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Check className="h-3 w-3 mr-1" />Verify</>}
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-[11px] px-2" disabled={!!busy} onClick={onReject}>
-              {busy === d.id + "reject" ? <Loader2 className="h-3 w-3 animate-spin" /> : <><X className="h-3 w-3 mr-1" />Reject</>}
-            </Button>
           </div>
         )}
       </div>

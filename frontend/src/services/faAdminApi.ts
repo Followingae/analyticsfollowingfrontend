@@ -300,3 +300,11 @@ export const faActivityApi = {
   /** Today's headline counts for stat cards. */
   summary: () => get('/api/v1/admin/fa/activity/summary'),
 }
+
+// ─── SUPERADMIN: FA Member Campaigns (appended — see task note) ───────
+// Per-member campaign participation: count + distinct types + latest status.
+// Standalone export so existing faMemberApi shape is untouched.
+export const faMemberCampaignsApi = {
+  /** Campaigns a member participated in → { total, types[], campaigns[] }. */
+  list: (memberId: string) => get(`/api/v1/admin/fa/members/${memberId}/campaigns`),
+}
