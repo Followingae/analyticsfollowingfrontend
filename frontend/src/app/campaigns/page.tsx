@@ -12,14 +12,23 @@ import {
   Archive,
   ClipboardList,
   LayoutList,
+  LayoutGrid,
   Filter,
   ChevronRight,
   Gift,
   Banknote,
   BadgePercent,
   Video,
+  PlayCircle,
+  CheckCircle2,
+  PauseCircle,
+  XCircle,
+  Pencil,
+  Eye,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,6 +119,31 @@ function getTypeVisual(type: string) {
   return (
     CAMPAIGN_TYPE_VISUAL[type] || {
       label: (type || "campaign").replace(/_/g, " "),
+      Icon: Target,
+      tile: "bg-muted",
+      text: "text-muted-foreground",
+    }
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Status visual — big icon + label tile (used by the summary tiles / grid)
+// ---------------------------------------------------------------------------
+const CAMPAIGN_STATUS_VISUAL: Record<
+  string,
+  { label: string; Icon: LucideIcon; tile: string; text: string }
+> = {
+  active:    { label: "Active",    Icon: PlayCircle,  tile: "bg-green-100 dark:bg-green-900/30",   text: "text-green-600 dark:text-green-400" },
+  completed: { label: "Completed", Icon: CheckCircle2, tile: "bg-slate-100 dark:bg-slate-800/40",  text: "text-slate-600 dark:text-slate-300" },
+  draft:     { label: "Draft",     Icon: Pencil,      tile: "bg-gray-100 dark:bg-gray-800/40",     text: "text-gray-600 dark:text-gray-400" },
+  paused:    { label: "Paused",    Icon: PauseCircle, tile: "bg-amber-100 dark:bg-amber-900/30",   text: "text-amber-600 dark:text-amber-400" },
+  cancelled: { label: "Cancelled", Icon: XCircle,     tile: "bg-red-100 dark:bg-red-900/30",       text: "text-red-600 dark:text-red-400" },
+  archived:  { label: "Archived",  Icon: Archive,     tile: "bg-zinc-100 dark:bg-zinc-800/40",     text: "text-zinc-500 dark:text-zinc-400" },
+};
+function getStatusVisual(status: string) {
+  return (
+    CAMPAIGN_STATUS_VISUAL[(status || "").toLowerCase()] || {
+      label: (status || "unknown").replace(/_/g, " "),
       Icon: Target,
       tile: "bg-muted",
       text: "text-muted-foreground",
@@ -236,19 +270,57 @@ function formatAED(amount: number | null | undefined): string {
   return `AED ${Number(amount).toLocaleString()}`;
 }
 
+// Small metric cell used inside the grid cards
+function MiniStat({
+  icon: Icon,
+  value,
+  label,
+}: {
+  icon: LucideIcon;
+  value: string | number;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-0.5 text-center">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      <span className="text-sm font-semibold leading-none tabular-nums">{value}</span>
+      <span className="text-[10px] text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
 // ============================================================================
 // ALL CAMPAIGNS TAB
 // ============================================================================
 function AllCampaignsTab({
   searchQuery,
   typeFilter,
+  setTypeFilter,
 }: {
   searchQuery: string;
   typeFilter: string;
+  setTypeFilter: (v: string) => void;
 }) {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<CampaignCardData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [groupBy, setGroupBy] = useState<"type" | "status">("type");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Persist the chosen view (grid/list) across sessions
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("campaignsViewMode") : null;
+    if (saved === "list" || saved === "grid") setViewMode(saved);
+  }, []);
+  const changeView = (mode: "grid" | "list") => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("campaignsViewMode", mode);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const fetchCampaigns = useCallback(async () => {
     try {
@@ -365,6 +437,9 @@ function AllCampaignsTab({
       const ct = (c as any).campaign_type || "influencer";
       if (ct !== typeFilter) return false;
     }
+    if (statusFilter !== "all") {
+      if ((c.status || "").toLowerCase() !== statusFilter) return false;
+    }
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -372,6 +447,37 @@ function AllCampaignsTab({
       c.brand_name.toLowerCase().includes(q)
     );
   });
+
+  // Counts for the summary tiles — computed over the full set so totals stay stable
+  const typeCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const c of campaigns) {
+      const k = (c as any).campaign_type || "influencer";
+      m[k] = (m[k] || 0) + 1;
+    }
+    return m;
+  }, [campaigns]);
+  const statusCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const c of campaigns) {
+      const k = (c.status || "unknown").toLowerCase();
+      m[k] = (m[k] || 0) + 1;
+    }
+    return m;
+  }, [campaigns]);
+
+  // Active grouping dimension drives the tiles + which filter they set
+  const counts = groupBy === "type" ? typeCounts : statusCounts;
+  const activeFilter = groupBy === "type" ? typeFilter : statusFilter;
+  const setActiveFilter = groupBy === "type" ? setTypeFilter : setStatusFilter;
+  const visualFor = groupBy === "type" ? getTypeVisual : getStatusVisual;
+  const tileKeys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+
+  const openCampaign = (c: any) => {
+    const ct = c.campaign_type || "influencer";
+    const href = ct === "ugc" ? `/campaigns/${c.id}/ugc` : `/campaigns/${c.id}/posts`;
+    router.push(href);
+  };
 
   const fmtCompact = (n: number) =>
     n >= 1_000_000
@@ -399,25 +505,199 @@ function AllCampaignsTab({
     );
   }
 
-  if (filteredCampaigns.length === 0) {
+  // Nothing at all (not merely filtered out)
+  if (campaigns.length === 0) {
     return (
       <EmptyState
-        title="No campaigns found"
-        description={
-          searchQuery || typeFilter !== "all"
-            ? "No campaigns match your filters. Try adjusting your search or type filter."
-            : "No campaigns yet \u2014 your campaigns will appear here when your account manager sends you a proposal."
-        }
+        title="No campaigns yet"
+        description={"Your campaigns will appear here when your account manager sends you a proposal."}
         icons={[Target, Users, FileText]}
       />
     );
   }
 
+  const controls = (
+    <div className="space-y-4">
+      {/* Summary tiles \u2014 big icons by Type / Status; click to filter */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <button
+          type="button"
+          onClick={() => setActiveFilter("all")}
+          className={cn(
+            "flex items-center gap-3 rounded-xl border px-4 py-3 shrink-0 transition-all",
+            activeFilter === "all"
+              ? "border-primary ring-2 ring-primary/30 bg-primary/5"
+              : "bg-card hover:bg-muted/50"
+          )}
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+            <LayoutGrid className="h-5 w-5 text-foreground/70" />
+          </div>
+          <div className="text-left">
+            <div className="text-xl font-bold leading-none tabular-nums">{campaigns.length}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">All</div>
+          </div>
+        </button>
+        {tileKeys.map((key) => {
+          const v = visualFor(key);
+          const active = activeFilter === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveFilter(active ? "all" : key)}
+              className={cn(
+                "flex items-center gap-3 rounded-xl border px-4 py-3 shrink-0 transition-all",
+                active
+                  ? "border-primary ring-2 ring-primary/30 bg-primary/5"
+                  : "bg-card hover:bg-muted/50"
+              )}
+            >
+              <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", v.tile)}>
+                <v.Icon className={cn("h-5 w-5", v.text)} />
+              </div>
+              <div className="text-left">
+                <div className="text-xl font-bold leading-none tabular-nums">{counts[key]}</div>
+                <div className="text-xs text-muted-foreground mt-0.5 capitalize">{v.label}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Group-by + view-mode toggles */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="inline-flex items-center rounded-lg border bg-card p-0.5 text-xs">
+          <span className="px-2 text-muted-foreground">Group by</span>
+          {(["type", "status"] as const).map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => setGroupBy(g)}
+              className={cn(
+                "rounded-md px-3 py-1.5 font-medium capitalize transition-colors",
+                groupBy === g
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
+        <div className="inline-flex items-center rounded-lg border bg-card p-0.5">
+          <button
+            type="button"
+            aria-label="Grid view"
+            onClick={() => changeView("grid")}
+            className={cn(
+              "rounded-md p-1.5 transition-colors",
+              viewMode === "grid"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="List view"
+            onClick={() => changeView("list")}
+            className={cn(
+              "rounded-md p-1.5 transition-colors",
+              viewMode === "list"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutList className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (viewMode === "grid") {
+    return (
+      <div className="space-y-4">
+        {controls}
+        {filteredCampaigns.length === 0 ? (
+          <EmptyState
+            title="No campaigns match your filters"
+            description="Try clearing the search or selecting a different tile."
+            icons={[Target, Filter, Search]}
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredCampaigns.map((campaign) => {
+              const c = campaign as any;
+              const v = getTypeVisual(c.campaign_type || "influencer");
+              const statusBadge = getStatusBadge(campaign.status);
+              return (
+                <button
+                  key={campaign.id}
+                  type="button"
+                  onClick={() => openCampaign(c)}
+                  className="group text-left"
+                >
+                  <Card className="h-full overflow-hidden border transition-all hover:-translate-y-0.5 hover:shadow-md">
+                    <div className={cn("flex items-center gap-3 p-4", v.tile)}>
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-background/70 backdrop-blur">
+                        <v.Icon className={cn("h-5 w-5", v.text)} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className={cn("text-[10px] font-bold uppercase tracking-wider", v.text)}>
+                          {v.label}
+                        </span>
+                        <div className="truncate font-semibold leading-tight text-foreground">
+                          {campaign.name}
+                        </div>
+                      </div>
+                    </div>
+                    <CardContent className="space-y-3 p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-xs text-muted-foreground">
+                          {campaign.brand_name || "\u2014"}
+                        </span>
+                        <Badge variant="outline" className={cn("shrink-0 text-xs", statusBadge.className)}>
+                          {statusBadge.label}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2 border-t pt-3">
+                        <MiniStat icon={Users} value={c.creators_count || 0} label="Creators" />
+                        <MiniStat icon={FileText} value={c.posts_count || 0} label="Posts" />
+                        <MiniStat icon={Eye} value={fmtCompact(c.total_reach || 0)} label="Reach" />
+                        <MiniStat
+                          icon={TrendingUp}
+                          value={c.engagement_rate ? `${Number(c.engagement_rate).toFixed(1)}%` : "\u2014"}
+                          label="Eng."
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <Card className="border-0 shadow-sm">
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <Table>
+    <div className="space-y-4">
+      {controls}
+      {filteredCampaigns.length === 0 ? (
+        <EmptyState
+          title="No campaigns match your filters"
+          description="Try clearing the search or selecting a different tile."
+          icons={[Target, Filter, Search]}
+        />
+      ) : (
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[280px]">Campaign</TableHead>
@@ -486,7 +766,9 @@ function AllCampaignsTab({
           </Table>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+      )}
+    </div>
   );
 }
 // SCOPE TAB
@@ -828,15 +1110,6 @@ export default function UnifiedCampaignsDashboard() {
     fetchPendingCount();
   }, []);
 
-  const TYPE_FILTER_OPTIONS = [
-    { value: "all", label: "All Types" },
-    { value: "influencer", label: "Influencer" },
-    { value: "ugc", label: "UGC" },
-    { value: "cashback", label: "Cashback" },
-    { value: "paid_deal", label: "Paid Deal" },
-    { value: "barter", label: "Barter" },
-  ];
-
   return (
     <AuthGuard>
       <BrandUserInterface>
@@ -915,33 +1188,13 @@ export default function UnifiedCampaignsDashboard() {
                 </div>
               </div>
 
-              {/* Type filter pills — only visible on "All Campaigns" tab */}
-              {activeTab === "all" && (
-                <div className="flex items-center gap-2 mt-4">
-                  <span className="text-sm text-muted-foreground mr-1">
-                    Type:
-                  </span>
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-[160px] h-8">
-                      <SelectValue placeholder="All Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TYPE_FILTER_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
               {/* Tab content */}
               <div className="mt-6 pb-8">
                 <TabsContent value="all" className="mt-0">
                   <AllCampaignsTab
                     searchQuery={searchQuery}
                     typeFilter={typeFilter}
+                    setTypeFilter={setTypeFilter}
                   />
                 </TabsContent>
 
