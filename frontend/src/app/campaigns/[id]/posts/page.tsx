@@ -150,6 +150,14 @@ interface BackendCampaignDetails {
   creators_count?: number;
   total_reach?: number;
   engagement_rate?: number;
+  // Scope / history fields (surfaced for past-campaign visibility)
+  description?: string | null;
+  budget?: number | null;
+  payment_status?: string | null;
+  report_status?: string | null;
+  client_feedback?: string | null;
+  closure_date?: string | null;
+  start_date?: string | null;
 }
 
 interface BackendAudience {
@@ -550,6 +558,13 @@ export default function CampaignDetailsPage() {
         creators_count: processedCampaignData.creators_count,
         total_reach: processedCampaignData.total_reach,
         engagement_rate: processedCampaignData.engagement_rate,
+        description: processedCampaignData.description ?? null,
+        budget: processedCampaignData.budget ?? null,
+        payment_status: processedCampaignData.payment_status ?? null,
+        report_status: processedCampaignData.report_status ?? null,
+        client_feedback: processedCampaignData.client_feedback ?? null,
+        closure_date: processedCampaignData.closure_date ?? null,
+        start_date: processedCampaignData.start_date ?? null,
       };
 
 
@@ -1679,6 +1694,54 @@ export default function CampaignDetailsPage() {
   const topGender = getTopGender();
   const topCountry = getTopCountry();
 
+  // Past-campaign scope/results summary — renders whatever the campaign has on record
+  const prettyLabel = (s?: string | null) =>
+    s ? s.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()) : null;
+  const hasOverview = Boolean(
+    campaign.description || campaign.budget != null || campaign.payment_status ||
+    campaign.report_status || campaign.client_feedback || campaign.closure_date
+  );
+  const campaignOverview = hasOverview ? (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Campaign Overview</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {campaign.budget != null && (
+            <Badge variant="secondary" className="text-xs">
+              Budget: AED {Number(campaign.budget).toLocaleString()}
+            </Badge>
+          )}
+          {campaign.payment_status && (
+            <Badge variant="outline" className="text-xs">Payment: {prettyLabel(campaign.payment_status)}</Badge>
+          )}
+          {campaign.report_status && (
+            <Badge variant="outline" className="text-xs">Report: {prettyLabel(campaign.report_status)}</Badge>
+          )}
+          {(campaign.start_date || campaign.closure_date) && (
+            <Badge variant="outline" className="text-xs">
+              {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) : ""}
+              {campaign.closure_date ? ` – ${new Date(campaign.closure_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}` : ""}
+            </Badge>
+          )}
+        </div>
+        {campaign.description && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Summary</p>
+            <p className="text-sm leading-relaxed whitespace-pre-line">{campaign.description}</p>
+          </div>
+        )}
+        {campaign.client_feedback && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Your feedback</p>
+            <p className="text-sm leading-relaxed whitespace-pre-line">{campaign.client_feedback}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  ) : null;
+
   // FA campaign types (cashback / paid_deal / barter) render the dedicated progress panel
   // instead of the influencer-post analytics view.
   const faType = campaign.campaign_type as string | undefined;
@@ -1709,6 +1772,8 @@ export default function CampaignDetailsPage() {
               </div>
               <Badge>{campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : "Draft"}</Badge>
             </div>
+
+            {campaignOverview}
 
             <FaCampaignProgressPanel
               campaignId={String(campaign.id)}
@@ -1785,6 +1850,8 @@ export default function CampaignDetailsPage() {
           </DropdownMenu>
         </div>
       </div>
+
+      {campaignOverview}
 
       {/* Tabs */}
       <Tabs defaultValue="stats" className="space-y-6">
