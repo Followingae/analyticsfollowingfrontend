@@ -519,63 +519,16 @@ function AllCampaignsTab({
   const controls = (
     <div className="space-y-4">
       {/* Summary tiles \u2014 big icons by Type / Status; click to filter */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <button
-          type="button"
-          onClick={() => setActiveFilter("all")}
-          className={cn(
-            "flex items-center gap-3 rounded-xl border px-4 py-3 shrink-0 transition-all",
-            activeFilter === "all"
-              ? "border-primary ring-2 ring-primary/30 bg-primary/5"
-              : "bg-card hover:bg-muted/50"
-          )}
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-            <LayoutGrid className="h-5 w-5 text-foreground/70" />
-          </div>
-          <div className="text-left">
-            <div className="text-xl font-bold leading-none tabular-nums">{campaigns.length}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">All</div>
-          </div>
-        </button>
-        {tileKeys.map((key) => {
-          const v = visualFor(key);
-          const active = activeFilter === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setActiveFilter(active ? "all" : key)}
-              className={cn(
-                "flex items-center gap-3 rounded-xl border px-4 py-3 shrink-0 transition-all",
-                active
-                  ? "border-primary ring-2 ring-primary/30 bg-primary/5"
-                  : "bg-card hover:bg-muted/50"
-              )}
-            >
-              <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", v.tile)}>
-                <v.Icon className={cn("h-5 w-5", v.text)} />
-              </div>
-              <div className="text-left">
-                <div className="text-xl font-bold leading-none tabular-nums">{counts[key]}</div>
-                <div className="text-xs text-muted-foreground mt-0.5 capitalize">{v.label}</div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Group-by + view-mode toggles */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="inline-flex items-center rounded-lg border bg-card p-0.5 text-xs">
-          <span className="px-2 text-muted-foreground">Group by</span>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex items-center gap-0.5 rounded-lg border bg-card p-0.5">
+          <span className="px-2 text-xs text-muted-foreground">View by</span>
           {(["type", "status"] as const).map((g) => (
             <button
               key={g}
               type="button"
               onClick={() => setGroupBy(g)}
               className={cn(
-                "rounded-md px-3 py-1.5 font-medium capitalize transition-colors",
+                "rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors",
                 groupBy === g
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -592,9 +545,7 @@ function AllCampaignsTab({
             onClick={() => changeView("grid")}
             className={cn(
               "rounded-md p-1.5 transition-colors",
-              viewMode === "grid"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
+              viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <LayoutGrid className="h-4 w-4" />
@@ -605,14 +556,53 @@ function AllCampaignsTab({
             onClick={() => changeView("list")}
             className={cn(
               "rounded-md p-1.5 transition-colors",
-              viewMode === "list"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
+              viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <LayoutList className="h-4 w-4" />
           </button>
         </div>
+      </div>
+
+      {/* Filter chips */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <button
+          type="button"
+          onClick={() => setActiveFilter("all")}
+          className={cn(
+            "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm shrink-0 transition-all",
+            activeFilter === "all"
+              ? "border-primary bg-primary/5 text-foreground"
+              : "bg-card text-muted-foreground hover:bg-muted/50"
+          )}
+        >
+          <LayoutGrid className="h-3.5 w-3.5" />
+          <span>All</span>
+          <span className="text-xs tabular-nums opacity-70">{campaigns.length}</span>
+        </button>
+        {tileKeys.map((key) => {
+          const v = visualFor(key);
+          const active = activeFilter === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveFilter(active ? "all" : key)}
+              className={cn(
+                "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm shrink-0 capitalize transition-all",
+                active
+                  ? "border-primary bg-primary/5 text-foreground"
+                  : "bg-card text-muted-foreground hover:bg-muted/50"
+              )}
+            >
+              <span className={cn("flex h-5 w-5 items-center justify-center rounded-full", v.tile)}>
+                <v.Icon className={cn("h-3 w-3", v.text)} />
+              </span>
+              <span>{v.label}</span>
+              <span className="text-xs tabular-nums opacity-70">{counts[key]}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -641,38 +631,49 @@ function AllCampaignsTab({
                   className="group text-left"
                 >
                   <Card className="h-full overflow-hidden border transition-all hover:-translate-y-0.5 hover:shadow-md">
-                    <div className={cn("flex items-center gap-3 p-4", v.tile)}>
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-background/70 backdrop-blur">
-                        <v.Icon className={cn("h-5 w-5", v.text)} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <span className={cn("text-[10px] font-bold uppercase tracking-wider", v.text)}>
-                          {v.label}
-                        </span>
-                        <div className="truncate font-semibold leading-tight text-foreground">
-                          {campaign.name}
+                    {/* Cover */}
+                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
+                      {c.hero_image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={c.hero_image_url}
+                          alt={campaign.name}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className={cn("flex h-full w-full items-center justify-center", v.tile)}>
+                          <v.Icon className={cn("h-10 w-10 opacity-80", v.text)} />
                         </div>
-                      </div>
+                      )}
+                      <span className={cn("absolute left-2 top-2 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur", v.text)}>
+                        {v.label}
+                      </span>
+                      <Badge variant="outline" className={cn("absolute right-2 top-2 bg-background/85 text-[10px] backdrop-blur", statusBadge.className)}>
+                        {statusBadge.label}
+                      </Badge>
                     </div>
                     <CardContent className="space-y-3 p-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-xs text-muted-foreground">
-                          {campaign.brand_name || "\u2014"}
-                        </span>
-                        <Badge variant="outline" className={cn("shrink-0 text-xs", statusBadge.className)}>
-                          {statusBadge.label}
-                        </Badge>
+                      <div>
+                        <div className="truncate font-semibold leading-tight text-foreground">{campaign.name}</div>
+                        <span className="truncate text-xs text-muted-foreground">{campaign.brand_name || "\u2014"}</span>
                       </div>
-                      <div className="grid grid-cols-4 gap-2 border-t pt-3">
-                        <MiniStat icon={Users} value={c.creators_count || 0} label="Creators" />
-                        <MiniStat icon={FileText} value={c.posts_count || 0} label="Posts" />
-                        <MiniStat icon={Eye} value={fmtCompact(c.total_reach || 0)} label="Reach" />
-                        <MiniStat
-                          icon={TrendingUp}
-                          value={c.engagement_rate ? `${Number(c.engagement_rate).toFixed(1)}%` : "\u2014"}
-                          label="Eng."
-                        />
-                      </div>
+                      {c.is_pre_platform ? (
+                        <div className="flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-2 text-[11px] text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5 shrink-0" />
+                          Executed before platform \u2014 data limited
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-2 border-t pt-3">
+                          <MiniStat icon={Users} value={c.creators_count || 0} label="Creators" />
+                          <MiniStat icon={FileText} value={c.posts_count || 0} label="Posts" />
+                          <MiniStat icon={Eye} value={fmtCompact(c.total_reach || 0)} label="Reach" />
+                          <MiniStat
+                            icon={TrendingUp}
+                            value={c.engagement_rate ? `${Number(c.engagement_rate).toFixed(1)}%` : "\u2014"}
+                            label="Eng."
+                          />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </button>
@@ -739,9 +740,16 @@ function AllCampaignsTab({
                             {v.label}
                           </span>
                           <div className="font-medium leading-tight truncate">{campaign.name}</div>
-                          {campaign.brand_name && (
-                            <div className="text-xs text-muted-foreground truncate">{campaign.brand_name}</div>
-                          )}
+                          <div className="flex items-center gap-1.5">
+                            {campaign.brand_name && (
+                              <span className="text-xs text-muted-foreground truncate">{campaign.brand_name}</span>
+                            )}
+                            {c.is_pre_platform && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[9px] text-muted-foreground">
+                                <Clock className="h-2.5 w-2.5" /> Pre-platform
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -750,11 +758,11 @@ function AllCampaignsTab({
                         {statusBadge.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center tabular-nums">{c.creators_count || 0}</TableCell>
-                    <TableCell className="text-center tabular-nums">{c.posts_count || 0}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtCompact(c.total_reach || 0)}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {c.engagement_rate ? `${Number(c.engagement_rate).toFixed(1)}%` : "—"}
+                    <TableCell className="text-center tabular-nums text-muted-foreground/70">{c.is_pre_platform ? "—" : (c.creators_count || 0)}</TableCell>
+                    <TableCell className="text-center tabular-nums text-muted-foreground/70">{c.is_pre_platform ? "—" : (c.posts_count || 0)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground/70">{c.is_pre_platform ? "—" : fmtCompact(c.total_reach || 0)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground/70">
+                      {c.is_pre_platform ? "—" : (c.engagement_rate ? `${Number(c.engagement_rate).toFixed(1)}%` : "—")}
                     </TableCell>
                     <TableCell className="text-muted-foreground/50">
                       <ChevronRight className="h-4 w-4" />

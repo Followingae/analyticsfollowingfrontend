@@ -158,6 +158,8 @@ interface BackendCampaignDetails {
   client_feedback?: string | null;
   closure_date?: string | null;
   start_date?: string | null;
+  hero_image_url?: string | null;
+  is_pre_platform?: boolean;
 }
 
 interface BackendAudience {
@@ -371,6 +373,7 @@ export default function CampaignDetailsPage() {
   const { user, isLoading: authLoading } = useEnhancedAuth();
 
   const [campaign, setCampaign] = useState<BackendCampaignDetails | null>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
   const [posts, setPosts] = useState<BackendCampaignPost[]>([]);
   const [creators, setCreators] = useState<BackendCreator[]>([]);
   const [audience, setAudience] = useState<BackendAudience | null>(null);
@@ -565,6 +568,8 @@ export default function CampaignDetailsPage() {
         client_feedback: processedCampaignData.client_feedback ?? null,
         closure_date: processedCampaignData.closure_date ?? null,
         start_date: processedCampaignData.start_date ?? null,
+        hero_image_url: processedCampaignData.hero_image_url ?? null,
+        is_pre_platform: processedCampaignData.is_pre_platform ?? false,
       };
 
 
@@ -1659,6 +1664,33 @@ export default function CampaignDetailsPage() {
     }
   };
 
+  // Superadmin: upload/replace the campaign cover image
+  const handleCoverFile = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      setCoverUploading(true);
+      const { API_CONFIG } = await import("@/config/api");
+      const { tokenManager } = await import("@/utils/tokenManager");
+      const tokenResult = await tokenManager.getValidTokenWithRefresh();
+      const fd = new FormData();
+      fd.append("cover", file);
+      const res = await fetch(`${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/cover`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${tokenResult.token}` },
+        body: fd,
+      });
+      if (!res.ok) throw new Error("upload failed");
+      const result = await res.json();
+      const url = result?.data?.hero_image_url;
+      if (url) setCampaign((prev) => (prev ? { ...prev, hero_image_url: url } : prev));
+      toast.success("Campaign cover updated");
+    } catch {
+      toast.error("Failed to upload cover");
+    } finally {
+      setCoverUploading(false);
+    }
+  };
+
   // Show consistent loading state to prevent hydration mismatch
   if (authLoading || isLoading || !user) {
     return (
@@ -1742,6 +1774,39 @@ export default function CampaignDetailsPage() {
     </Card>
   ) : null;
 
+  // Cover banner (hero image) — shown on top of the detail; superadmin can upload/replace
+  const coverBanner = (campaign.hero_image_url || isSuperadmin) ? (
+    <div className="relative aspect-[16/6] w-full overflow-hidden rounded-xl border bg-muted">
+      {campaign.hero_image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={campaign.hero_image_url} alt={campaign.name} className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-muted/40">
+          <span className="text-sm text-muted-foreground">No cover image</span>
+        </div>
+      )}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+      {campaign.is_pre_platform && (
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/85 px-2.5 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur">
+          <Clock className="h-3 w-3" /> Executed before platform
+        </span>
+      )}
+      {isSuperadmin && (
+        <label className="absolute bottom-3 right-3 inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-background/85 px-3 py-1.5 text-xs font-medium backdrop-blur transition-colors hover:bg-background">
+          <Image className="h-3.5 w-3.5" />
+          {coverUploading ? "Uploading…" : campaign.hero_image_url ? "Change cover" : "Add cover"}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            disabled={coverUploading}
+            onChange={(e) => handleCoverFile(e.target.files?.[0])}
+          />
+        </label>
+      )}
+    </div>
+  ) : null;
+
   // FA campaign types (cashback / paid_deal / barter) render the dedicated progress panel
   // instead of the influencer-post analytics view.
   const faType = campaign.campaign_type as string | undefined;
@@ -1750,6 +1815,7 @@ export default function CampaignDetailsPage() {
       <AuthGuard>
         <BrandUserInterface>
           <div className="container mx-auto py-8 px-4 space-y-6">
+            {coverBanner}
             {/* Header reuses existing pattern for visual consistency */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -1789,6 +1855,7 @@ export default function CampaignDetailsPage() {
     <AuthGuard>
       <BrandUserInterface>
           <div className="container mx-auto py-8 px-4 space-y-6">
+      {coverBanner}
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.push("/campaigns")}>
