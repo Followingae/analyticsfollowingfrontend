@@ -70,6 +70,8 @@ export interface EnhancedUser {
     seed?: string
   }
   permissions?: PermissionType[]
+  staff_role?: string | null
+  admin_modules?: string[] | null
   subscription_tier?: string
   subscription_expires_at?: string
   subscription_auto_renew?: boolean

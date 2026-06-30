@@ -35,15 +35,17 @@ export default function LoginPage() {
         const { roleHome } = await import('@/lib/roleHome')
         let role: string | null = null
         let userEmail: string | null = email
+        let staffRole: string | null = null
         try {
           const stored = localStorage.getItem('user_data') || localStorage.getItem('user')
           if (stored) {
             const u = JSON.parse(stored)
             role = u?.role ?? null
             userEmail = u?.email ?? email
+            staffRole = u?.staff_role ?? null
           }
         } catch { /* fall through to default */ }
-        router.push(roleHome(role, userEmail))
+        router.push(roleHome(role, userEmail, staffRole))
       }
       // Error toast is already shown by AuthContext.login()
     } catch (error: any) {

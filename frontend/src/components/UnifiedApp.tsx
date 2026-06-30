@@ -63,6 +63,11 @@ export function UnifiedApp() {
       router.replace('/superadmin')
       return
     }
+    // INTERNAL STAFF: never the brand UI — send to their own /staff workspace
+    if (user.staff_role) {
+      router.replace('/staff')
+      return
+    }
   }, [user, isAuthenticated, router])
 
   // Authentication redirects are handled by AuthGuard - no need to duplicate here
@@ -81,7 +86,7 @@ export function UnifiedApp() {
 
   // Dynamic interface switching based on user role
   // If superadmin, return null while redirect happens
-  if (user?.email === 'zain@following.ae' || user?.role === 'super_admin') {
+  if (user?.email === 'zain@following.ae' || user?.role === 'super_admin' || user?.staff_role) {
     return <LoadingScreen />
   }
 

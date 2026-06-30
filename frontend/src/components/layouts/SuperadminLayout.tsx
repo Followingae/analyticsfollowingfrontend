@@ -22,6 +22,7 @@ interface SuperadminLayoutProps {
 const ROUTE_MODULES: { prefix: string; module: AdminModule }[] = [
   { prefix: "/superadmin/operations", module: "operations" },
   { prefix: "/superadmin/clients", module: "clients" },
+  { prefix: "/superadmin/staff", module: "users" },
   { prefix: "/superadmin/users", module: "users" },
   { prefix: "/superadmin/campaigns", module: "campaigns" },
   { prefix: "/superadmin/proposals", module: "proposals" },

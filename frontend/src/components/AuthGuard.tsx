@@ -44,6 +44,9 @@ export function AuthGuard({
 
   // Use enhanced user role directly (no normalization needed)
   const userRole = user?.role || null
+  // Internal staff (role=user + staff_role) are admitted to admin-gated CONSOLE pages
+  // but scoped by their modules (SuperAdminSidebar + ModuleRouteGuard + backend).
+  const isStaff = !!(user as { staff_role?: string | null } | null)?.staff_role
 
 
   useEffect(() => {
@@ -154,8 +157,8 @@ export function AuthGuard({
       return <UnauthorizedAccess />
     }
     
-    // Check admin requirement
-    if (requireAdmin && !(userRole === 'super_admin' || userRole === 'admin')) {
+    // Check admin requirement (internal staff admitted, scoped by their modules)
+    if (requireAdmin && !(userRole === 'super_admin' || userRole === 'admin' || isStaff)) {
       return <UnauthorizedAccess />
     }
     

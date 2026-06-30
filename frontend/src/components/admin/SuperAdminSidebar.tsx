@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sidebar"
 import {
   Shield,
+  ShieldCheck,
   BarChart3,
   Users,
   Coins,
@@ -80,6 +81,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   const managementItems = [
     ...(can("clients") ? [{ title: "Clients", url: "/superadmin/clients", icon: Building2 }] : []),
     ...(can("users") ? [{ title: "Users", url: "/superadmin/users", icon: Users }] : []),
+    ...(can("users") ? [{ title: "Staff", url: "/superadmin/staff", icon: ShieldCheck }] : []),
   ]
 
   const campaignItems = [

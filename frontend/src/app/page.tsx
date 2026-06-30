@@ -14,7 +14,7 @@ function RootRedirect() {
 
   useEffect(() => {
     if (!isLoading) {
-      router.replace(roleHome(user?.role, user?.email))
+      router.replace(roleHome(user?.role, user?.email, user?.staff_role))
     }
   }, [isLoading, user, router])
 

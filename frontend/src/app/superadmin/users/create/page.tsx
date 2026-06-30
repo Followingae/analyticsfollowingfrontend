@@ -189,6 +189,7 @@ export default function CreateBrandAccountPage() {
       } else {
         const errorMsg = result.error || 'Failed to create user'
         setFormError(errorMsg)
+        toast.error(errorMsg)
       }
     } catch (error: any) {
       setFormError(error.response?.data?.detail || error.message || 'Network error while creating user')
