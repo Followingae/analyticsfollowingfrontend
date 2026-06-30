@@ -29,6 +29,7 @@ import {
   Plus,
   MoreHorizontal,
   Send,
+  Mail,
   CheckCircle,
   ArrowRight,
   Trash2,
@@ -42,10 +43,12 @@ export const dynamic = "force-dynamic"
 
 import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
+import { ProposalEmailDialog } from "@/components/proposals/ProposalEmailDialog"
 
 export default function SuperadminProposalsPage() {
   const { isSuperAdmin } = useAdminAccess()
   const [proposals, setProposals] = useState<AdminProposal[]>([])
+  const [emailProposalId, setEmailProposalId] = useState<string | null>(null)
   const [stats, setStats] = useState<AdminProposalStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -296,6 +299,10 @@ export default function SuperadminProposalsPage() {
                                   Send directly to client
                                 </DropdownMenuItem>
                               )}
+                              <DropdownMenuItem onClick={() => setEmailProposalId(p.id)}>
+                                <Mail className="mr-2 h-3.5 w-3.5" />
+                                Send proposal email
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleDelete(p.id, p.campaign_name || p.title || "Untitled")}
                                 className="text-destructive focus:text-destructive"
@@ -315,6 +322,11 @@ export default function SuperadminProposalsPage() {
             </CardContent>
           </Card>
       </div>
+      <ProposalEmailDialog
+        proposalId={emailProposalId}
+        open={!!emailProposalId}
+        onOpenChange={(o) => { if (!o) setEmailProposalId(null) }}
+      />
     </SuperadminLayout>
   )
 }
