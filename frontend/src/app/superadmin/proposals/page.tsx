@@ -31,6 +31,7 @@ import {
   Send,
   CheckCircle,
   ArrowRight,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
 import { adminProposalApi, AdminProposal, AdminProposalStats } from "@/services/adminProposalMasterApi"
@@ -74,6 +75,17 @@ export default function SuperadminProposalsPage() {
       loadData()
     } catch (err) {
       toast.error("Failed to send proposal")
+    }
+  }
+
+  const handleDelete = async (id: string, title: string) => {
+    if (!confirm(`Delete proposal "${title}"? This removes its influencers, approvals and share links. Any campaign created from it is kept (just unlinked). This cannot be undone.`)) return
+    try {
+      await adminProposalApi.deleteProposal(id)
+      toast.success("Proposal deleted")
+      loadData()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete proposal")
     }
   }
 
@@ -276,6 +288,13 @@ export default function SuperadminProposalsPage() {
                                   Send to client
                                 </DropdownMenuItem>
                               )}
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(p.id, p.campaign_name || p.title || "Untitled")}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                Delete proposal
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

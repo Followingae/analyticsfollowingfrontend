@@ -376,6 +376,22 @@ export class AdminProposalApiService {
   }
 
   // ---------------------------------------------------------------------------
+  // DELETE /api/v1/admin/proposals/{id} - Delete a proposal (superadmin)
+  // ---------------------------------------------------------------------------
+  async deleteProposal(proposalId: string): Promise<{ deleted: boolean }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    })
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Failed to delete proposal: ${errorText}`)
+    }
+    const result = await response.json()
+    return result.data
+  }
+
+  // ---------------------------------------------------------------------------
   // POST /api/v1/admin/proposals/{id}/send - Send to brand
   // ---------------------------------------------------------------------------
   async sendToBrand(proposalId: string): Promise<{
