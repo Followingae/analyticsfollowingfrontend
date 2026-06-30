@@ -12,6 +12,7 @@ import { ProcessingToastProvider } from "@/contexts/ProcessingToastContext";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { UserStoreProvider } from "@/components/providers/UserStoreProvider";
 import { ServiceWorkerProvider } from "@/components/ServiceWorkerProvider";
+import { WhatsNewModal } from "@/components/notifications/WhatsNewModal";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -72,6 +73,7 @@ export default function RootLayout({
                     <ProcessingToastProvider>
                       <ServiceWorkerProvider>
                         {children}
+                        <WhatsNewModal />
                         <Toaster />
                       </ServiceWorkerProvider>
                     </ProcessingToastProvider>
