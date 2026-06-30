@@ -41,8 +41,10 @@ import { proposalMotion } from "@/components/proposals/proposal-utils"
 export const dynamic = "force-dynamic"
 
 import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
+import { useAdminAccess } from "@/hooks/useAdminAccess"
 
 export default function SuperadminProposalsPage() {
+  const { isSuperAdmin } = useAdminAccess()
   const [proposals, setProposals] = useState<AdminProposal[]>([])
   const [stats, setStats] = useState<AdminProposalStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -286,6 +288,12 @@ export default function SuperadminProposalsPage() {
                                 <DropdownMenuItem onClick={() => handleSend(p.id)}>
                                   <Send className="mr-2 h-3.5 w-3.5" />
                                   Send to client
+                                </DropdownMenuItem>
+                              )}
+                              {isSuperAdmin && ["draft", "building", "internal_changes_requested", "pending_internal_review"].includes(p.status) && (
+                                <DropdownMenuItem onClick={() => handleSend(p.id)}>
+                                  <Send className="mr-2 h-3.5 w-3.5" />
+                                  Send directly to client
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem
