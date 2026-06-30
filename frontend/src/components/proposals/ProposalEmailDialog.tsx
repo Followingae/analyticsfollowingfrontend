@@ -85,7 +85,7 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] sm:max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Mail className="h-4 w-4" /> Send proposal email</DialogTitle>
           <DialogDescription>Manually email the client that their proposal is ready. zain@following.ae is always CC&apos;d.</DialogDescription>
