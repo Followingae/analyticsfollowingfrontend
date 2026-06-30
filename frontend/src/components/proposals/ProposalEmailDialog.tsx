@@ -85,7 +85,7 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Mail className="h-4 w-4" /> Send proposal email</DialogTitle>
           <DialogDescription>Manually email the client that their proposal is ready. zain@following.ae is always CC&apos;d.</DialogDescription>
@@ -94,8 +94,8 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin" /></div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-5">
+            <div className="space-y-3 md:col-span-2">
               <div className="space-y-1.5">
                 <Label className="text-xs">To</Label>
                 <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="client@brand.com" />
@@ -120,10 +120,10 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
                 <Input value={reviewUrl} onChange={(e) => setReviewUrl(e.target.value)} />
               </div>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 md:col-span-3">
               <Label className="text-xs">Live preview</Label>
               <iframe title="Email preview" srcDoc={html}
-                className="h-[420px] w-full rounded-lg border bg-white" />
+                className="h-[640px] w-full rounded-lg border bg-white" />
             </div>
           </div>
         )}
