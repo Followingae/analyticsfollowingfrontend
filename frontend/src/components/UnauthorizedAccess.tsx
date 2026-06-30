@@ -10,7 +10,13 @@ export function UnauthorizedAccess() {
   const { user, logout } = useEnhancedAuth()
 
   const handleGoHome = () => {
-    if (user?.role?.startsWith('brand_')) {
+    let staffRole = (user as { staff_role?: string | null } | null)?.staff_role
+    if (!staffRole && typeof window !== 'undefined') {
+      try { staffRole = JSON.parse(localStorage.getItem('user_data') || '{}')?.staff_role } catch { /* ignore */ }
+    }
+    if (staffRole) {
+      window.location.href = '/staff'
+    } else if (user?.role?.startsWith('brand_')) {
       window.location.href = '/dashboard'
     } else {
       window.location.href = '/auth/login'

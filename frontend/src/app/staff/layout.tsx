@@ -27,6 +27,18 @@ function StaffShell({ children }: { children: React.ReactNode }) {
       try {
         const m = await staffApi.me();
         if (!m.staff_role) { router.replace("/dashboard"); return; }
+        // Persist staff_role into the session so admin-scoped console pages (AuthGuard)
+        // reliably recognise this user as staff even if login/cache didn't include it.
+        try {
+          const raw = localStorage.getItem("user_data");
+          if (raw) {
+            const u = JSON.parse(raw);
+            if (u && u.staff_role !== m.staff_role) {
+              u.staff_role = m.staff_role;
+              localStorage.setItem("user_data", JSON.stringify(u));
+            }
+          }
+        } catch { /* ignore */ }
         setMe(m);
       } catch {
         router.replace("/dashboard");

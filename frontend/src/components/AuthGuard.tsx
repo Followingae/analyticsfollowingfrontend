@@ -101,9 +101,9 @@ export function AuthGuard({
           redirectPath = '/unauthorized'
         }
       }
-      // Check admin requirement (if not already checking superadmin)
+      // Check admin requirement (if not already checking superadmin). Staff admitted (scoped).
       else if (requireAdmin) {
-        hasPermission = userRole === 'super_admin' || userRole === 'admin'
+        hasPermission = userRole === 'super_admin' || userRole === 'admin' || isStaff
         if (!hasPermission) {
           redirectPath = '/unauthorized'
         }
