@@ -46,7 +46,16 @@ export function AuthGuard({
   const userRole = user?.role || null
   // Internal staff (role=user + staff_role) are admitted to admin-gated CONSOLE pages
   // but scoped by their modules (SuperAdminSidebar + ModuleRouteGuard + backend).
-  const isStaff = !!(user as { staff_role?: string | null } | null)?.staff_role
+  // Fall back to the persisted session (login + /me always store staff_role) in case the
+  // in-memory enhanced user hasn't synced yet.
+  const isStaff = (() => {
+    if ((user as { staff_role?: string | null } | null)?.staff_role) return true
+    if (typeof window === 'undefined') return false
+    try {
+      const raw = localStorage.getItem('user_data')
+      return !!(raw && JSON.parse(raw)?.staff_role)
+    } catch { return false }
+  })()
 
 
   useEffect(() => {
