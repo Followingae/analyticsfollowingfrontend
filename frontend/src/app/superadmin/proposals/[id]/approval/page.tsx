@@ -154,8 +154,8 @@ export default function ProposalApprovalPage() {
                       <TableHead>Creator</TableHead>
                       <TableHead>Followers</TableHead>
                       <TableHead>Rate (AED)</TableHead>
-                      <TableHead>Internal</TableHead>
-                      <TableHead className="text-right">Review</TableHead>
+                      {viewer.is_operator && <TableHead>Internal</TableHead>}
+                      {viewer.is_operator && <TableHead className="text-right">Review</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -166,31 +166,35 @@ export default function ProposalApprovalPage() {
                           <TableCell className="font-medium">@{inf.username || '-'}<div className="text-xs text-muted-foreground">{inf.full_name}</div></TableCell>
                           <TableCell>{inf.followers_count ? Number(inf.followers_count).toLocaleString() : '-'}</TableCell>
                           <TableCell>{rate === '-' ? '-' : `AED ${Number(rate).toLocaleString('en-AE')}`}</TableCell>
-                          <TableCell>
-                            {inf.internal_status === 'approved' && <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Approved</Badge>}
-                            {inf.internal_status === 'flagged' && <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20" title={inf.internal_flag_note || ''}>Flagged</Badge>}
-                            {(!inf.internal_status || inf.internal_status === 'pending') && <Badge variant="outline">Pending</Badge>}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button size="sm" variant="ghost" disabled={busy} title="Approve"
-                                onClick={() => run(() => proposalApprovalApi.reviewInfluencer(proposalId, inf.id, 'approved'))}>
-                                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                              </Button>
-                              <Button size="sm" variant="ghost" disabled={busy} title="Flag"
-                                onClick={() => {
-                                  const note = window.prompt('Reason for flag (optional):') || undefined
-                                  run(() => proposalApprovalApi.reviewInfluencer(proposalId, inf.id, 'flagged', note))
-                                }}>
-                                <Flag className="h-4 w-4 text-orange-600" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                          {viewer.is_operator && (
+                            <TableCell>
+                              {inf.internal_status === 'approved' && <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Approved</Badge>}
+                              {inf.internal_status === 'flagged' && <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20" title={inf.internal_flag_note || ''}>Flagged</Badge>}
+                              {(!inf.internal_status || inf.internal_status === 'pending') && <Badge variant="outline">Pending</Badge>}
+                            </TableCell>
+                          )}
+                          {viewer.is_operator && (
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button size="sm" variant="ghost" disabled={busy} title="Approve"
+                                  onClick={() => run(() => proposalApprovalApi.reviewInfluencer(proposalId, inf.id, 'approved'))}>
+                                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                </Button>
+                                <Button size="sm" variant="ghost" disabled={busy} title="Flag"
+                                  onClick={() => {
+                                    const note = window.prompt('Reason for flag (optional):') || undefined
+                                    run(() => proposalApprovalApi.reviewInfluencer(proposalId, inf.id, 'flagged', note))
+                                  }}>
+                                  <Flag className="h-4 w-4 text-orange-600" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                       )
                     })}
                     {(ws.influencers || []).length === 0 && (
-                      <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">No influencers yet</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={viewer.is_operator ? 5 : 3} className="text-center text-sm text-muted-foreground py-6">No influencers yet</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
