@@ -428,10 +428,11 @@ export default function CampaignDetailsPage() {
   const [isProcessingBatch, setIsProcessingBatch] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
 
-  // View-only mode: only campaigns with active workflow (superadmin-direct) are read-only
-  // Proposal-approved campaigns have created_by='superadmin' but has_workflow=false — brand has full access
+  // View-only mode for brands on managed campaigns: superadmin-direct (has_workflow) OR
+  // proposal-approved / superadmin-created (created_by='superadmin'). The agency manages
+  // posts on these — the brand can view but not add/edit. Superadmin always has full access.
   const isSuperadmin = user?.role === 'superadmin' || user?.role === 'super_admin' || user?.role === 'admin';
-  const isViewOnly = campaign?.has_workflow === true && !isSuperadmin;
+  const isViewOnly = (campaign?.has_workflow === true || campaign?.created_by === 'superadmin') && !isSuperadmin;
 
   // Export handler
   const handleExport = async (format: 'csv' | 'json' | 'pdf' = 'csv') => {

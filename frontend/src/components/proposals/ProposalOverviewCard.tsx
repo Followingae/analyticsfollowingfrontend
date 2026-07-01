@@ -22,6 +22,7 @@ interface ProposalListItem {
   sent_at?: string
   more_added_at?: string
   campaign_type_target?: string
+  cover_image_url?: string
 }
 
 interface ProposalOverviewCardProps {
@@ -88,7 +89,7 @@ export function ProposalOverviewCard({
       className={archived ? "opacity-60 hover:opacity-80 transition-opacity" : ""}
     >
       <WorkflowBuilderCard
-        imageUrl={getStockImage(proposal.id)}
+        imageUrl={proposal.cover_image_url || getStockImage(proposal.id)}
         status={isPending ? "Active" : "Inactive"}
         lastUpdated={relativeTime(proposal.sent_at || proposal.created_at)}
         title={proposal.title}
