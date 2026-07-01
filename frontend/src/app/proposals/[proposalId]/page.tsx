@@ -59,6 +59,8 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
+  Coins,
+  Wallet,
   Users,
   X,
   Calendar,
@@ -597,7 +599,7 @@ function BrandProposalViewPageContent() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="grid grid-cols-2 gap-px bg-border/40 rounded-xl overflow-hidden border border-border/40 my-6"
+              className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border/40 rounded-xl overflow-hidden border border-border/40 my-6"
             >
               {[
                 {
@@ -617,6 +619,32 @@ function BrandProposalViewPageContent() {
                     : `of ${summary.total_influencers} creators`,
                   subClass: selectedIds.size > 0 ? "text-emerald-600 dark:text-emerald-400" : undefined,
                 },
+                ...(showPricing && (proposal as any).total_budget
+                  ? [
+                      {
+                        icon: Wallet,
+                        label: "Your budget",
+                        value: formatCurrency((proposal as any).total_budget),
+                        isNumber: false,
+                        sub: "campaign budget",
+                      },
+                      {
+                        icon: Coins,
+                        label: "Selection total",
+                        value: formatCurrency(estimatedTotal),
+                        isNumber: false,
+                        sub: (() => {
+                          const b = Number((proposal as any).total_budget) || 0;
+                          if (!b) return " ";
+                          const pct = Math.round((estimatedTotal / b) * 100);
+                          return `${pct}% of budget${estimatedTotal > b ? " · over budget" : ""}`;
+                        })(),
+                        subClass: estimatedTotal > (Number((proposal as any).total_budget) || 0)
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-emerald-600 dark:text-emerald-400",
+                      },
+                    ]
+                  : []),
               ].map((kpi) => (
                 <div key={kpi.label} className="bg-background px-5 py-4 flex flex-col gap-1">
                   <div className="flex items-center gap-1.5">
