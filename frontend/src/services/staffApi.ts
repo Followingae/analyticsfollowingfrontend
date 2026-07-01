@@ -22,7 +22,10 @@ async function jpost(path: string, body: unknown) {
 
 export interface StaffMe { staff_role: string | null; full_access: boolean; modules: string[] | null }
 export interface StaffTask { proposal_id: string; campaign_name?: string; title?: string; status: string; task_type: 'curate' | 'approve'; label: string; step_name?: string }
-export interface StaffClient { team_id: string; name: string; logo_url?: string | null; campaigns: number }
+export interface StaffClient {
+  team_id: string; name: string; logo_url?: string | null;
+  campaigns: number; active_campaigns?: number; open_proposals?: number; last_activity?: string | null;
+}
 
 export const staffApi = {
   me: () => jget('/api/v1/staff/me').then(r => r.data as StaffMe),
