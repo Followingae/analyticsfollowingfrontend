@@ -81,4 +81,14 @@ export const proposalApprovalApi = {
 
   // Generate (or reuse) the public client share link.
   createShare: (proposalId: string) => jfetch(`${BASE}/${proposalId}/share`, { method: 'POST', body: '{}' }),
+
+  // Search the master database (active creators) for the picker.
+  searchMasterDb: (query: string) =>
+    jfetch(`${API_CONFIG.BASE_URL}/api/v1/admin/influencers/database?status=active&page_size=30${query ? `&search=${encodeURIComponent(query)}` : ''}`),
+
+  // TM adds selected master-DB creators (with deliverable assignments) to the proposal.
+  addFromDb: (
+    proposalId: string,
+    payload: { influencer_ids: string[]; deliverable_assignments?: { influencer_db_id: string; deliverables: { type: string; quantity: number }[] }[] },
+  ) => jfetch(`${BASE}/${proposalId}/add-from-db`, { method: 'POST', body: JSON.stringify(payload) }),
 };

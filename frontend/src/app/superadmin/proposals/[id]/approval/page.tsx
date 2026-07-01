@@ -21,6 +21,7 @@ import {
 import { proposalApprovalApi, type ApprovalStep } from '@/services/proposalApprovalApi'
 import { clientApi } from '@/services/clientManagementApi'
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab'
+import { TmAddCreatorsDialog } from '@/components/proposals/TmAddCreatorsDialog'
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   draft: { label: 'Draft', cls: 'bg-muted text-foreground' },
@@ -52,8 +53,7 @@ export default function ProposalApprovalPage() {
   // form state
   const [assignTM, setAssignTM] = useState('')
   const [steps, setSteps] = useState<Partial<ApprovalStep>[]>([])
-  const [newUsername, setNewUsername] = useState('')
-  const [newRate, setNewRate] = useState('')
+  const [showPicker, setShowPicker] = useState(false)
   const [approveNotes, setApproveNotes] = useState('')
   const [sendBackNotes, setSendBackNotes] = useState('')
   const [shareUrl, setShareUrl] = useState<string | null>(null)
@@ -209,28 +209,13 @@ export default function ProposalApprovalPage() {
                   <CardDescription>Adds to the master database and attaches to this proposal.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex flex-wrap items-end gap-2">
-                    <div className="flex-1 min-w-[180px]">
-                      <Label className="text-xs">Instagram handle</Label>
-                      <Input placeholder="@handle" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} />
-                    </div>
-                    <div className="w-40">
-                      <Label className="text-xs">Reel rate (AED)</Label>
-                      <Input type="number" placeholder="0" value={newRate} onChange={(e) => setNewRate(e.target.value)} />
-                    </div>
-                    <Button disabled={busy || !newUsername.trim()} onClick={() => run(async () => {
-                      const cents = newRate ? Math.round(parseFloat(newRate) * 100) : undefined
-                      await proposalApprovalApi.addCreator(proposalId, {
-                        username: newUsername.trim(),
-                        cost_pricing: cents ? { cost_reel_aed_cents: cents } : undefined,
-                        sell_pricing: cents ? { sell_reel_aed_cents: cents } : undefined,
-                      })
-                      setNewUsername(''); setNewRate('')
-                    })}>
-                      <UserPlus className="mr-1 h-4 w-4" /> Add
-                    </Button>
-                  </div>
-                  <Button variant="default" disabled={busy || (ws.influencers || []).length === 0}
+                  <Button variant="outline" className="w-full justify-center" disabled={busy} onClick={() => setShowPicker(true)}>
+                    <UserPlus className="mr-1.5 h-4 w-4" /> Add creators from database
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Need a creator not in the database? Add them (with cost prices) from the Influencer Database — a superadmin sets sell pricing before they become selectable.
+                  </p>
+                  <Button variant="default" className="w-full" disabled={busy || (ws.influencers || []).length === 0}
                     onClick={() => run(() => proposalApprovalApi.submit(proposalId))}>
                     <Send className="mr-1 h-4 w-4" /> Submit for internal approval
                   </Button>
@@ -379,6 +364,12 @@ export default function ProposalApprovalPage() {
           </Card>
         )}
       </div>
+      <TmAddCreatorsDialog
+        proposalId={proposalId}
+        open={showPicker}
+        onOpenChange={setShowPicker}
+        onAdded={() => load()}
+      />
     </SuperadminLayout>
   )
 }
