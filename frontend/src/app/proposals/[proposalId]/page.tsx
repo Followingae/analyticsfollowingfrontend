@@ -14,6 +14,9 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { API_CONFIG } from "@/config/api"
+import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
@@ -53,6 +56,9 @@ import {
 import {
   LayoutGrid,
   List,
+  Download,
+  FileSpreadsheet,
+  FileText,
   Users,
   X,
   Calendar,
@@ -138,6 +144,25 @@ function BrandProposalViewPageContent() {
   const params = useParams<{ proposalId: string }>()
   const proposalId = params.proposalId
   const router = useRouter()
+
+  const exportProposal = async (fmt: "xlsx" | "csv") => {
+    try {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/campaigns/proposals/${proposalId}/export?format=${fmt}`)
+      if (!res.ok) throw new Error(`Export failed (${res.status})`)
+      const blob = await res.blob()
+      const cd = res.headers.get("content-disposition") || ""
+      const m = cd.match(/filename="?([^"]+)"?/)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = m?.[1] || `proposal_influencers.${fmt}`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+      toast.success(fmt === "xlsx" ? "Excel exported" : "CSV exported")
+    } catch (e) {
+      toast.error((e as Error).message || "Export failed")
+    }
+  }
   const { markReadByReference } = useNotifications()
 
   // Data
@@ -642,6 +667,21 @@ function BrandProposalViewPageContent() {
                   </div>
 
                   <div className="flex items-center gap-1.5">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                          <Download className="h-3.5 w-3.5" /> Export
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => exportProposal("xlsx")}>
+                          <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel (.xlsx)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportProposal("csv")}>
+                          <FileText className="mr-2 h-4 w-4" /> CSV
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <div className="bg-muted rounded-lg p-0.5">
                       <ToggleGroup
                         type="single"
