@@ -9,10 +9,8 @@ import { MetricCard } from "@/components/analytics-cards";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import {
   Users,
-  Coins,
   Briefcase,
   BarChart3,
-  TrendingUp,
   UserPlus,
   Activity,
   Target,
@@ -101,14 +99,6 @@ export default function SuperadminDashboard() {
       metric: (stats?.users?.total || 0).toLocaleString(),
       subMetric: `${stats?.users?.active || 0} active users`,
       description: 'Manage users and permissions'
-    },
-    {
-      label: 'Billing & Revenue',
-      path: '/superadmin/billing',
-      icon: Coins,
-      metric: `د.إ${((stats?.revenue?.total_mrr || 0) / 1000).toFixed(1)}k`,
-      subMetric: `Monthly recurring revenue`,
-      description: 'Track payments and subscriptions'
     },
     {
       label: 'Proposals',
@@ -241,12 +231,6 @@ export default function SuperadminDashboard() {
               title="Active Users"
               value={stats.users?.active?.toLocaleString() || "0"}
               icon={<Activity className="h-4 w-4 text-muted-foreground" />}
-            />
-
-            <MetricCard
-              title="Monthly Revenue"
-              value={`د.إ${(stats.revenue?.total_mrr || 0).toLocaleString()}`}
-              icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
             />
 
             <MetricCard
