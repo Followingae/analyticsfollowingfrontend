@@ -493,7 +493,7 @@ function BrandProposalViewPageContent() {
           <div className="mx-4 md:mx-6 lg:mx-8 mt-4 relative rounded-2xl overflow-hidden group/hero">
             {/* Background image — taller for impact */}
             <img
-              src={getStockImage(proposal.id)}
+              src={proposal.cover_image_url || getStockImage(proposal.id)}
               alt=""
               className="h-40 md:h-48 w-full object-cover transition-transform duration-700 group-hover/hero:scale-[1.02]"
             />

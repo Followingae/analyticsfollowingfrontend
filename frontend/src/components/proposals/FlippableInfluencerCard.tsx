@@ -231,7 +231,9 @@ export function FlippableInfluencerCard({
             stats={healthStats}
             graphData={graphData}
             graphHeight={100}
-            showLegend={false}
+            showLegend={true}
+            legendTitle="Metrics"
+            legendFormat={(item) => (item.description ? `${item.label} · ${item.description}` : item.label)}
             className="max-w-none flex-1 flex flex-col [&>div:nth-child(3)]:flex-1"
           />
 
