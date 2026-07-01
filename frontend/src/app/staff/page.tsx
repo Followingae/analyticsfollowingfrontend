@@ -130,7 +130,7 @@ export default function StaffHome() {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {clients.map((c) => (
               <button key={c.team_id} type="button"
-                onClick={() => router.push(`/superadmin/clients/${c.team_id}`)}
+                onClick={() => router.push(`/staff/clients/${c.team_id}`)}
                 className="group text-left">
                 <Card className="h-full transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <CardContent className="p-4">

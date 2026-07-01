@@ -27,10 +27,19 @@ export interface StaffClient {
   campaigns: number; active_campaigns?: number; open_proposals?: number; last_activity?: string | null;
 }
 
+export interface StaffBrandCampaign { id: string; name: string; status: string; campaign_type?: string; updated_at?: string | null }
+export interface StaffBrandProposal { id: string; name: string; status: string; updated_at?: string | null }
+export interface StaffBrandDetail {
+  brand: { team_id: string; name: string; logo_url?: string | null };
+  campaigns: StaffBrandCampaign[];
+  proposals: StaffBrandProposal[];
+}
+
 export const staffApi = {
   me: () => jget('/api/v1/staff/me').then(r => r.data as StaffMe),
   myTasks: () => jget('/api/v1/staff/my-tasks').then(r => r.data as { tasks: StaffTask[]; count: number }),
   myClients: () => jget('/api/v1/staff/my-clients').then(r => r.data as StaffClient[]),
+  clientDetail: (teamId: string) => jget(`/api/v1/staff/clients/${teamId}`).then(r => r.data as StaffBrandDetail),
 }
 
 // ── Superadmin staff management ──────────────────────────────────────────
