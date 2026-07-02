@@ -32,20 +32,23 @@ export function WhatsNewModal() {
   const [items, setItems] = useState<ServerNotification[]>([]);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [shownThisLoad, setShownThisLoad] = useState(false);
   const balloonsRef = useRef<{ launchAnimation: () => void } | null>(null);
 
   const onAuthPage = pathname?.startsWith("/auth/") || pathname === "/login";
 
   useEffect(() => {
     if (isLoading || !isAuthenticated || !user || onAuthPage) return;
-    const key = `whatsnew_seen_${user.email || user.id}`;
-    if (typeof window !== "undefined" && sessionStorage.getItem(key)) return;
+    // Show on each page load while there are unread notifications — it persists until the
+    // user marks them read (or "Later"). A per-load guard avoids re-opening if the effect
+    // re-runs within the same mounted session, without suppressing it across reloads.
+    if (shownThisLoad) return;
 
     (async () => {
       const res = await notificationApiService.getNotifications({ unread_only: true, page_size: 8 });
       const unread = (res.data || []).filter((n) => !n.is_read);
       if (unread.length === 0) return;
-      sessionStorage.setItem(key, "1");
+      setShownThisLoad(true);
       setItems(unread);
       setOpen(true);
     })();
