@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download, ImagePlus } from "lucide-react"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 import { MasterPackageDialog } from "@/components/superadmin/fa/MasterPackageDialog"
@@ -39,6 +40,7 @@ const TYPE_CONFIG: Record<string, { icon: any; label: string; color: string }> =
 export default function FACampaignsPage() {
   const router = useRouter()
   const [tab, setTab] = useState("all")
+  const [statusFilter, setStatusFilter] = useState<"active" | "closed">("active")
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -198,17 +200,40 @@ export default function FACampaignsPage() {
             </div>
           </div>
 
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="cashback">Cashback</TabsTrigger>
-              <TabsTrigger value="paid_deal">Paid Deals</TabsTrigger>
-              <TabsTrigger value="barter">Barter</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Tabs value={tab} onValueChange={setTab}>
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="cashback">Cashback</TabsTrigger>
+                <TabsTrigger value="paid_deal">Paid Deals</TabsTrigger>
+                <TabsTrigger value="barter">Barter</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <ToggleGroup
+              type="single"
+              value={statusFilter}
+              onValueChange={(v) => v && setStatusFilter(v as "active" | "closed")}
+              variant="outline"
+              size="sm"
+            >
+              <ToggleGroupItem value="active" className="text-xs">Active</ToggleGroupItem>
+              <ToggleGroupItem value="closed" className="text-xs">Closed</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
 
           <div className="space-y-3">
-            {campaigns.map((c: any) => {
+            {(() => {
+              const visible = campaigns.filter((c: any) =>
+                statusFilter === "closed" ? c.status === "closed" : c.status !== "closed"
+              )
+              if (!loading && visible.length === 0) {
+                return (
+                  <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
+                    No {statusFilter} campaigns{tab !== "all" ? ` in ${tab.replace("_", " ")}` : ""}.
+                  </CardContent></Card>
+                )
+              }
+              return visible.map((c: any) => {
               const cfg = TYPE_CONFIG[c.campaign_type] || TYPE_CONFIG.cashback
               const Icon = cfg.icon
               const isActive = c.status === "active"
@@ -280,7 +305,8 @@ export default function FACampaignsPage() {
                   </CardContent>
                 </Card>
               )
-            })}
+              })
+            })()}
           </div>
 
           {/* Close campaign confirmation */}
