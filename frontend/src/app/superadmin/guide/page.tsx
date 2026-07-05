@@ -26,6 +26,7 @@ import {
   ChevronRight,
   ExternalLink,
   ArrowUp,
+  Bell,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -56,6 +57,52 @@ interface GuideSection {
 }
 
 const sections: GuideSection[] = [
+  /* 0 ---- Email Alerts ----------------------------------------------------- */
+  {
+    id: 'notifications',
+    icon: <Bell className="h-5 w-5" />,
+    color: 'bg-rose-500/15',
+    textColor: 'text-rose-500',
+    title: 'Email Alerts',
+    tagline: 'Decide which platform events send email — and exactly who receives them.',
+    path: '/superadmin/notifications',
+    subsections: [
+      {
+        title: 'How it works',
+        description:
+          'The platform fires an in-app notification whenever something notable happens (a proposal is approved, a creator applies to a campaign, a deliverable needs a revision, a payment fails, and more). Email Alerts lets you turn any of those events into an email and choose its recipients. Every event is OFF by default — nothing sends until you enable it. Creators (mobile app users) are never emailed here; they receive push notifications.',
+        steps: [
+          { text: 'Open Email Alerts from the sidebar (System section).' },
+          { text: 'Events are grouped by domain: Proposals, Campaigns, Deliverables, Payouts, Shares, Analytics, Billing, Team.' },
+          { text: 'Use the search bar to quickly find an event by name or description.' },
+          { text: 'The counter at the top shows how many events currently have email enabled.' },
+        ],
+      },
+      {
+        title: 'Enabling an event & choosing recipients',
+        description:
+          'Toggle the Email switch on an event to reveal its recipient controls. You can mix and match: the natural recipient (the brand/user the notification is about), every superadmin, hand-picked team members, and any extra external email addresses. You can also override the email subject line.',
+        steps: [
+          { text: 'Flip the Email switch on the event you want.' },
+          { text: 'Notify natural recipient — emails the brand/user the event concerns.' },
+          { text: 'All superadmins — emails every operator account.' },
+          { text: 'Specific team recipients — tick individual admin/staff members.' },
+          { text: 'Extra email addresses — add external recipients (comma or space separated).' },
+          { text: 'Click Save. Changes take effect immediately.' },
+        ],
+      },
+      {
+        title: 'Testing & avoiding duplicates',
+        description:
+          'Every event has a Test button — enter any address and send yourself a live preview of that email. For team events that already notify every operator (e.g. new applications, proof-to-verify), prefer "Notify natural recipient" over "All superadmins" so each operator gets exactly one email rather than several. All emails are sent via Resend and always CC zain@following.ae.',
+        steps: [
+          { text: 'Type an address in the Test field and click Test to preview the email.' },
+          { text: 'For team-wide events, keep "Notify natural recipient" on and "All superadmins" off to avoid duplicate emails.' },
+          { text: 'Check the audit trail if you need to confirm what was sent.' },
+        ],
+      },
+    ],
+  },
   /* 1 ---- Client Management ------------------------------------------------ */
   {
     id: 'clients',
