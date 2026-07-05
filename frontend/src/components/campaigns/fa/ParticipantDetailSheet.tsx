@@ -58,7 +58,7 @@ export interface ParticipantLike {
   receipt?: { merchant?: string | null; amount?: number | null; date?: string | null; image_url?: string | null; status?: string | null } | null
   member: {
     full_name?: string; instagram_username?: string; avatar_url?: string; tier?: string
-    followers_count?: number; engagement_rate?: number | null
+    followers_count?: number; engagement_rate?: number | null; posts_count?: number; analytics_pending?: boolean
     // First-party (Instagram Graph) vs AI/Apify-estimated analytics envelope.
     analytics?: CreatorAnalyticsBundle | null
   }
@@ -248,13 +248,21 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                       {participant.member.tier && (
                         <Badge variant="outline" className="text-[10px] uppercase">{participant.member.tier}</Badge>
                       )}
-                      <Badge variant="secondary" className="text-[10px] tabular-nums">
-                        {fmtCount(participant.member.followers_count)} followers
-                      </Badge>
-                      {participant.member.engagement_rate != null && (
-                        <Badge variant="secondary" className="text-[10px] tabular-nums">
-                          {participant.member.engagement_rate.toFixed(1)}% eng.
+                      {participant.member.analytics_pending ? (
+                        <Badge variant="secondary" className="text-[10px] inline-flex items-center gap-1">
+                          <Loader2 className="h-2.5 w-2.5 animate-spin" /> Analyzing…
                         </Badge>
+                      ) : (
+                        <>
+                          <Badge variant="secondary" className="text-[10px] tabular-nums">
+                            {fmtCount(participant.member.followers_count)} followers
+                          </Badge>
+                          {participant.member.engagement_rate != null && (
+                            <Badge variant="secondary" className="text-[10px] tabular-nums">
+                              {participant.member.engagement_rate.toFixed(1)}% eng.
+                            </Badge>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>

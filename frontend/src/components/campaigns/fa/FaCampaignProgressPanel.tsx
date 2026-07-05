@@ -63,6 +63,9 @@ interface Participant {
     tier?: string
     followers_count?: number
     engagement_rate?: number | null
+    posts_count?: number
+    // True while our analytics pipeline is still running on an offline suggestion.
+    analytics_pending?: boolean
     // First-party (Instagram) vs AI/Apify-estimated analytics envelope.
     analytics?: CreatorAnalyticsBundle | null
   }
@@ -502,7 +505,11 @@ function ParticipantTable({
                       {p.member.tier && (
                         <Badge variant="outline" className="text-[10px] uppercase">{p.member.tier}</Badge>
                       )}
-                      <span className="tabular-nums">{fmtCount(p.member.followers_count)} followers</span>
+                      {p.member.analytics_pending ? (
+                        <span className="inline-flex items-center gap-1 text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Analyzing…</span>
+                      ) : (
+                        <span className="tabular-nums">{fmtCount(p.member.followers_count)} followers</span>
+                      )}
                     </div>
                   </div>
                 </div>
