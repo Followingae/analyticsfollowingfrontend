@@ -79,23 +79,34 @@ const sections: GuideSection[] = [
         ],
       },
       {
-        title: 'What managers can operate',
+        title: 'What managers do — curate & coordinate (they don’t decide)',
         description:
-          'For their assigned clients, account managers can now open a campaign and run it: approve or reject applicants, review deliverables (approve content, request edits), review UGC concepts and videos, and change campaign status. Talent managers can browse the influencer master database and build/curate proposals. Managers reach campaigns from their /staff cockpit → a client → a campaign.',
+          'Managers populate and coordinate campaigns; the BRAND makes the approve/reject decisions. For their assigned clients, both account and talent managers can add creators to an FA campaign (they land as Team-Suggested → pending brand approval) and view campaigns, participants, deliverables and progress. Talent managers also browse the influencer master database and build/curate proposals. Approving or rejecting creators and content is the brand’s call — never the manager’s.',
         steps: [
           { text: 'Manager signs in and lands on their /staff cockpit.' },
-          { text: 'They open a client, then a campaign, and operate it (participants, deliverables, status).' },
+          { text: 'They open a client, then a campaign, and add curated creators to it.' },
+          { text: 'Added creators go to the brand for approval — managers do not approve/reject.' },
           { text: 'They can view — but not edit — their clients’ agreements and invoices.' },
+        ],
+      },
+      {
+        title: 'Who decides what',
+        description:
+          'Clear separation of duties. The brand approves/rejects creators and deliverable content. The Following team (superadmin) removes creators, verifies deliverables, and handles all money. Managers curate and coordinate in between.',
+        steps: [
+          { text: 'Brand: approve/reject applicants and curated creators; approve/reject deliverable content.' },
+          { text: 'Manager: add/curate creators, coordinate, and view — for their assigned clients only.' },
+          { text: 'Following team (superadmin): remove creators, verify deliverables, all money & deletes.' },
         ],
       },
       {
         title: 'Hard guardrails (what managers can NEVER do)',
         description:
-          'Managers can operate but never destroy or move money. The backend enforces this regardless of the UI: no deleting campaigns, deliverables, proposals, clients, influencers, members or merchants; no money movement — proof verification (cashback release), receipt-claim approval, withdrawals, and wallet/pool adjustments all remain Following-team (superadmin) only. Commercial writes (creating/voiding agreements, creating/marking invoices) are superadmin only; managers get read-only visibility.',
+          'The backend enforces this regardless of the UI: managers never approve/reject on the brand’s behalf; never delete or destroy anything (campaigns, deliverables, proposals, clients, influencers, members, merchants); and never move money — proof verification (cashback release), receipt-claim approval, withdrawals, and wallet/pool adjustments all remain Following-team only. Commercial writes (creating/voiding agreements, creating/marking invoices) are superadmin only; managers get read-only visibility.',
         steps: [
+          { text: 'Approve/reject creators & content: brand only (managers can’t).' },
           { text: 'Deletes and destructive actions: superadmin only.' },
           { text: 'Cashback release, withdrawals, wallet/pool: superadmin only.' },
-          { text: 'Agreements & invoices: managers view; superadmin creates/signs/voids/marks-paid.' },
           { text: 'To email a manager about their clients’ events, add them as a recipient in Email Alerts.' },
         ],
       },
