@@ -105,18 +105,24 @@ export default function StaffClientDetail() {
           <Card><CardContent className="py-6 text-sm text-muted-foreground">No campaigns yet.</CardContent></Card>
         ) : (
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-            {campaigns.map((c) => (
-              <Card key={c.id}>
-                <CardContent className="flex items-center gap-3 p-4">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10"><Megaphone className="h-4 w-4 text-primary" /></div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{c.name}</div>
-                    {c.campaign_type && <div className="text-xs capitalize text-muted-foreground">{c.campaign_type.replace(/_/g, " ")}</div>}
-                  </div>
-                  <Badge className={`shrink-0 capitalize ${statusTone(c.status)}`}>{(c.status || "").replace(/_/g, " ")}</Badge>
-                </CardContent>
-              </Card>
-            ))}
+            {campaigns.map((c) => {
+              const href = c.campaign_type === "ugc" ? `/campaigns/${c.id}/ugc` : `/campaigns/${c.id}`;
+              return (
+                <button key={c.id} type="button" onClick={() => router.push(href)} className="w-full text-left">
+                  <Card className="transition-all hover:-translate-y-0.5 hover:shadow-md">
+                    <CardContent className="flex items-center gap-3 p-4">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10"><Megaphone className="h-4 w-4 text-primary" /></div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">{c.name}</div>
+                        {c.campaign_type && <div className="text-xs capitalize text-muted-foreground">{c.campaign_type.replace(/_/g, " ")}</div>}
+                      </div>
+                      <Badge className={`shrink-0 capitalize ${statusTone(c.status)}`}>{(c.status || "").replace(/_/g, " ")}</Badge>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                    </CardContent>
+                  </Card>
+                </button>
+              );
+            })}
           </div>
         )}
       </section>

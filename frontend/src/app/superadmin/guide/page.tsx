@@ -57,6 +57,50 @@ interface GuideSection {
 }
 
 const sections: GuideSection[] = [
+  /* 00 ---- Team & Manager Access ------------------------------------------- */
+  {
+    id: 'staff-access',
+    icon: <Users className="h-5 w-5" />,
+    color: 'bg-indigo-500/15',
+    textColor: 'text-indigo-500',
+    title: 'Team & Manager Access',
+    tagline: 'What account managers and talent managers can do — and the guardrails.',
+    path: '/superadmin/staff',
+    subsections: [
+      {
+        title: 'The two manager roles',
+        description:
+          'Account managers own the client (demand) side: they operate their assigned clients’ campaigns end-to-end. Talent managers own the creator (supply) side: they build proposals and curate the influencer master database. Both are scoped to their assigned clients only — they never see other managers’ clients.',
+        steps: [
+          { text: 'Assign a manager to a client from Staff → a staff member → their client access.' },
+          { text: 'Account manager = clients + campaigns + proposals modules.' },
+          { text: 'Talent manager = proposals + influencer database modules.' },
+          { text: 'Cofounder / CEO = full access (all clients, all modules).' },
+        ],
+      },
+      {
+        title: 'What managers can operate',
+        description:
+          'For their assigned clients, account managers can now open a campaign and run it: approve or reject applicants, review deliverables (approve content, request edits), review UGC concepts and videos, and change campaign status. Talent managers can browse the influencer master database and build/curate proposals. Managers reach campaigns from their /staff cockpit → a client → a campaign.',
+        steps: [
+          { text: 'Manager signs in and lands on their /staff cockpit.' },
+          { text: 'They open a client, then a campaign, and operate it (participants, deliverables, status).' },
+          { text: 'They can view — but not edit — their clients’ agreements and invoices.' },
+        ],
+      },
+      {
+        title: 'Hard guardrails (what managers can NEVER do)',
+        description:
+          'Managers can operate but never destroy or move money. The backend enforces this regardless of the UI: no deleting campaigns, deliverables, proposals, clients, influencers, members or merchants; no money movement — proof verification (cashback release), receipt-claim approval, withdrawals, and wallet/pool adjustments all remain Following-team (superadmin) only. Commercial writes (creating/voiding agreements, creating/marking invoices) are superadmin only; managers get read-only visibility.',
+        steps: [
+          { text: 'Deletes and destructive actions: superadmin only.' },
+          { text: 'Cashback release, withdrawals, wallet/pool: superadmin only.' },
+          { text: 'Agreements & invoices: managers view; superadmin creates/signs/voids/marks-paid.' },
+          { text: 'To email a manager about their clients’ events, add them as a recipient in Email Alerts.' },
+        ],
+      },
+    ],
+  },
   /* 0 ---- Email Alerts ----------------------------------------------------- */
   {
     id: 'notifications',
