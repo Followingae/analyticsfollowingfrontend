@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -219,6 +220,10 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   }
 
   const barterItems: any[] = Array.isArray(participant?.barter?.items) ? participant!.barter.items : []
+  // Scoped agency managers (account/talent) curate + view; approve/reject is the
+  // brand's (or Following team's) decision, so hide those actions from them.
+  const { isStaff, isFullAccessStaff } = useAdminAccess()
+  const canDecide = !(isStaff && !isFullAccessStaff)
   const isPending = participant?.status === "pending_brand_approval"
 
   const submittedCount = deliverables.filter((d) => d.status === "submitted" || d.content_status === "submitted").length
@@ -284,7 +289,13 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                   )}
                 </div>
 
-                {isPending && (
+                {isPending && !canDecide && (
+                  <div className="flex items-center gap-2 mt-3 rounded-lg border border-amber-300/40 bg-amber-500/5 p-2.5">
+                    <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
+                    <span className="text-xs text-amber-700 flex-1">Awaiting the brand’s approval decision.</span>
+                  </div>
+                )}
+                {isPending && canDecide && (
                   <div className="flex items-center gap-2 mt-3 rounded-lg border border-amber-300/40 bg-amber-500/5 p-2.5">
                     <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
                     <span className="text-xs text-amber-700 flex-1">Awaiting your approval. Review their analytics, then decide.</span>
@@ -386,6 +397,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                           avatar={participant.member.avatar_url}
                           username={username}
                           busy={busy}
+                          canDecide={canDecide}
                           onApproveContent={() => deliverableAction(d, "approve-content")}
                           onRequestEdit={(note) => deliverableAction(d, "request-edit", note)}
                         />
@@ -531,9 +543,10 @@ function deliverableStage(d: Deliverable): string {
 }
 
 function SubmissionCard({
-  d, avatar, username, busy, onApproveContent, onRequestEdit,
+  d, avatar, username, busy, canDecide = true, onApproveContent, onRequestEdit,
 }: {
   d: Deliverable; avatar?: string; username?: string; busy: string | null
+  canDecide?: boolean
   onApproveContent: () => void; onRequestEdit: (note: string) => void
 }) {
   const [editNote, setEditNote] = useState("")
@@ -611,8 +624,14 @@ function SubmissionCard({
           </div>
         )}
 
-        {/* Stage 1 — content review: Approve (primary) + understated Request edit */}
-        {stage === "content_review" && (
+        {/* Stage 1 — content review: brand/superadmin decision only (managers can't). */}
+        {stage === "content_review" && !canDecide && (
+          <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-amber-700">
+            <Clock className="h-3 w-3 mt-px shrink-0" />
+            <span>Submitted — awaiting the brand’s review</span>
+          </div>
+        )}
+        {stage === "content_review" && canDecide && (
           <div className="flex items-center gap-1.5 pt-1">
             <Button size="sm" className="h-7 flex-1 text-xs" disabled={!!busy} onClick={onApproveContent}>
               {busy === d.id + "approve-content" ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Check className="h-3 w-3 mr-1" />Approve</>}

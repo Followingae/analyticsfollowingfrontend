@@ -30,6 +30,8 @@ import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { toast } from "sonner"
 import { ParticipantDetailSheet, type CreatorAnalyticsBundle } from "./ParticipantDetailSheet"
 import { AISnapshotView } from "./AISnapshotView"
+import { AddCuratedCreatorsDialog } from "./AddCuratedCreatorsDialog"
+import { useAdminAccess } from "@/hooks/useAdminAccess"
 
 type CampaignType = "cashback" | "paid_deal" | "barter"
 type ParticipantStatus =
@@ -143,6 +145,14 @@ interface AiSnapshot {
 }
 
 export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
+  // Access model: the BRAND (or Following team) approves/rejects creators; scoped agency
+  // managers (account/talent) curate + view but never decide. Anyone on the agency side
+  // (staff or superadmin) may add curated creators.
+  const { isSuperAdmin, isStaff, isFullAccessStaff } = useAdminAccess()
+  const isScopedManager = isStaff && !isFullAccessStaff
+  const canDecide = !isScopedManager        // brand / superadmin / ceo / cofounder
+  const canCurate = isStaff || isSuperAdmin  // agency side adds creators
+
   const [loading, setLoading] = useState(true)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [actionId, setActionId] = useState<string | null>(null)
@@ -322,13 +332,23 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
           )}
         </div>
 
+        {/* Curate: add Team-Suggested creators (agency side only; brand still approves) */}
+        {canCurate && (
+          <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
+            <div className="text-sm text-muted-foreground">
+              Suggest creators for this campaign — they’ll go to the brand for approval.
+            </div>
+            <AddCuratedCreatorsDialog campaignId={campaignId} onAdded={load} />
+          </div>
+        )}
+
         {/* Pending approvals */}
         {grouped.pending.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Sparkles className="h-4 w-4 text-amber-600" />
-                Pending your approval ({grouped.pending.length})
+                {canDecide ? `Pending your approval (${grouped.pending.length})` : `Pending brand approval (${grouped.pending.length})`}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -337,6 +357,9 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
                 campaignType={campaignType}
                 onRowClick={openParticipant}
                 renderActions={(p) => (
+                  !canDecide ? (
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">Awaiting brand decision</span>
+                  ) : (
                   <div className="flex items-center gap-1.5">
                     <Button
                       size="sm"
@@ -379,6 +402,7 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
+                  )
                 )}
               />
             </CardContent>
