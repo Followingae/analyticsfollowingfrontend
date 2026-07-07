@@ -29,6 +29,7 @@ const ROUTE_MODULES: { prefix: string; module: AdminModule }[] = [
   { prefix: "/superadmin/influencers", module: "influencers" },
   { prefix: "/superadmin/fa", module: "fa" },
   { prefix: "/superadmin/notifications", module: "system" },
+  { prefix: "/superadmin/whatsapp", module: "system" },
   { prefix: "/superadmin/system", module: "system" },
   { prefix: "/superadmin/billing", module: "billing" },
   { prefix: "/ops", module: "operations" },

@@ -38,6 +38,7 @@ import {
   ListChecks,
   Bell,
   MailCheck,
+  MessageCircle,
   Wallet,
   Image as ImageIcon,
   Activity,
@@ -133,6 +134,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   const systemItems = [
     ...(can("billing") ? [{ title: "Billing", url: "/superadmin/billing", icon: Banknote }] : []),
     ...(can("system") ? [{ title: "Email Alerts", url: "/superadmin/notifications", icon: MailCheck }] : []),
+    ...(can("system") ? [{ title: "WhatsApp", url: "/superadmin/whatsapp", icon: MessageCircle }] : []),
     ...(can("system") ? [{ title: "System", url: "/superadmin/system", icon: Wrench }] : []),
   ]
 
