@@ -66,6 +66,20 @@ export interface WhatsAppBroadcast {
   template_category?: string | null
 }
 
+export interface BroadcastAnalytics {
+  total: number
+  queued: number
+  sent: number
+  delivered: number
+  read: number
+  failed: number
+  by_status: Record<string, number>
+  delivery_rate: number
+  read_rate: number
+  fail_rate: number
+  failures: { reason: string; error_code?: string | null; n: number }[]
+}
+
 export interface BroadcastRecipient {
   id: string
   phone: string
@@ -193,6 +207,11 @@ class WhatsAppApiService {
       method: 'POST', headers: getAuthHeaders(),
     })
     return this.json<{ status: string; total?: number }>(res, 'Send broadcast')
+  }
+
+  async broadcastAnalytics(id: string) {
+    const res = await fetchWithAuth(`${this.baseUrl}/broadcasts/${id}/analytics`, { headers: getAuthHeaders() })
+    return this.json<BroadcastAnalytics>(res, 'Load analytics')
   }
 
   async broadcastRecipients(id: string, status?: string) {

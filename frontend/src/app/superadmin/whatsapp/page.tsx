@@ -138,6 +138,7 @@ function BroadcastsTab({
   const [estimate, setEstimate] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [detailId, setDetailId] = useState<string | null>(null)
 
   const template = useMemo(() => active.find(t => t.id === templateId), [active, templateId])
 
@@ -298,7 +299,7 @@ function BroadcastsTab({
                 <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No broadcasts yet</TableCell></TableRow>
               )}
               {broadcasts.map(b => (
-                <TableRow key={b.id}>
+                <TableRow key={b.id} className="cursor-pointer" onClick={() => setDetailId(b.id)}>
                   <TableCell className="font-medium">{b.name}</TableCell>
                   <TableCell><StatusBadge status={b.status} /></TableCell>
                   <TableCell className="text-right">{b.sent_count}/{b.total_recipients}</TableCell>
@@ -308,18 +309,182 @@ function BroadcastsTab({
               ))}
             </TableBody>
           </Table>
+          {broadcasts.length > 0 && (
+            <p className="px-4 py-2 text-[11px] text-muted-foreground">Tap a broadcast for full delivery analytics.</p>
+          )}
         </CardContent>
       </Card>
+
+      {detailId && (
+        <BroadcastDetail
+          broadcast={broadcasts.find(b => b.id === detailId)!}
+          onClose={() => setDetailId(null)}
+          onRefresh={onChange}
+        />
+      )}
     </div>
+  )
+}
+
+/* ======================================================================= */
+/*  Broadcast detail — delivery funnel + recipients                       */
+/* ======================================================================= */
+function Funnel({ label, value, sub, color }: { label: string; value: number | string; sub?: string; color?: string }) {
+  return (
+    <div className="rounded-lg border p-3">
+      <p className="text-2xl font-bold leading-none" style={color ? { color } : undefined}>{value}</p>
+      <p className="mt-1 text-xs font-medium">{label}</p>
+      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+    </div>
+  )
+}
+
+function BroadcastDetail({
+  broadcast, onClose, onRefresh,
+}: {
+  broadcast: WhatsAppBroadcast
+  onClose: () => void
+  onRefresh: () => void
+}) {
+  const [a, setA] = useState<import("@/services/whatsappApi").BroadcastAnalytics | null>(null)
+  const [recipients, setRecipients] = useState<import("@/services/whatsappApi").BroadcastRecipient[]>([])
+  const [statusFilter, setStatusFilter] = useState<string>("")
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    try {
+      const [an, rc] = await Promise.all([
+        whatsappApi.broadcastAnalytics(broadcast.id),
+        whatsappApi.broadcastRecipients(broadcast.id, statusFilter || undefined),
+      ])
+      setA(an); setRecipients(rc.recipients)
+    } catch (e: any) { toast.error(e?.message || "Failed to load analytics") }
+    finally { setLoading(false) }
+  }, [broadcast.id, statusFilter])
+
+  useEffect(() => { load() }, [load])
+
+  // live-refresh while the broadcast is still sending
+  useEffect(() => {
+    if (broadcast.status !== "sending") return
+    const t = setInterval(() => { load(); onRefresh() }, 5000)
+    return () => clearInterval(t)
+  }, [broadcast.status, load, onRefresh])
+
+  const seg = (n: number, color: string) => a && a.total > 0
+    ? <div style={{ width: `${(n / a.total) * 100}%`, backgroundColor: color }} className="h-full" /> : null
+
+  return (
+    <Dialog open onOpenChange={(o: boolean) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {broadcast.name} <StatusBadge status={broadcast.status} />
+          </DialogTitle>
+        </DialogHeader>
+
+        {loading && !a ? (
+          <div className="py-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div>
+        ) : a ? (
+          <div className="space-y-4">
+            {/* funnel tiles */}
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              <Funnel label="Recipients" value={a.total} />
+              <Funnel label="Sent" value={a.sent} />
+              <Funnel label="Delivered" value={a.delivered} sub={`${a.delivery_rate}%`} color="#16a34a" />
+              <Funnel label="Read" value={a.read} sub={`${a.read_rate}%`} color="#2563eb" />
+              <Funnel label="Failed" value={a.failed} sub={`${a.fail_rate}%`} color="#dc2626" />
+            </div>
+
+            {/* delivery bar */}
+            <div>
+              <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
+                {seg(a.read, "#2563eb")}
+                {seg(a.delivered - a.read, "#16a34a")}
+                {seg(a.sent - a.delivered, "#84cc16")}
+                {seg(a.failed, "#dc2626")}
+                {seg(a.queued, "#d1d5db")}
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#2563eb]" />Read</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#16a34a]" />Delivered</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#84cc16]" />Sent</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#dc2626]" />Failed</span>
+                {a.queued > 0 && <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#d1d5db]" />Queued</span>}
+              </div>
+            </div>
+
+            {/* failure reasons */}
+            {a.failures.length > 0 && (
+              <div className="rounded-lg border p-3">
+                <p className="mb-2 text-xs font-semibold text-red-600">Failure reasons</p>
+                <div className="space-y-1">
+                  {a.failures.map((f, i) => (
+                    <div key={i} className="flex items-start justify-between gap-3 text-[12px]">
+                      <span className="text-muted-foreground">{f.reason}{f.error_code ? ` (${f.error_code})` : ""}</span>
+                      <span className="font-semibold">{f.n}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* recipients */}
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <p className="text-xs font-semibold">Recipients</p>
+                <Select value={statusFilter || "all"} onValueChange={(v: string) => setStatusFilter(v === "all" ? "" : v)}>
+                  <SelectTrigger className="h-7 w-40 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    {["queued", "sent", "delivered", "read", "failed", "undelivered"].map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="max-h-64 overflow-auto rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Error</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recipients.length === 0 && (
+                      <TableRow><TableCell colSpan={4} className="text-center text-xs text-muted-foreground">No recipients</TableCell></TableRow>
+                    )}
+                    {recipients.map(r => (
+                      <TableRow key={r.id}>
+                        <TableCell className="text-xs">{r.full_name || (r.instagram_handle ? `@${r.instagram_handle}` : "—")}</TableCell>
+                        <TableCell className="font-mono text-[11px]">{r.phone}</TableCell>
+                        <TableCell><StatusBadge status={r.status} /></TableCell>
+                        <TableCell className="text-[11px] text-red-600">{r.error_message || ""}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   )
 }
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     sending: "bg-blue-100 text-blue-700",
-    sent: "bg-green-100 text-green-700",
+    sent: "bg-lime-100 text-lime-700",
+    delivered: "bg-green-100 text-green-700",
+    read: "bg-blue-100 text-blue-700",
     draft: "bg-gray-100 text-gray-700",
     failed: "bg-red-100 text-red-700",
+    undelivered: "bg-red-100 text-red-700",
     queued: "bg-amber-100 text-amber-700",
     cancelled: "bg-gray-100 text-gray-500",
   }
