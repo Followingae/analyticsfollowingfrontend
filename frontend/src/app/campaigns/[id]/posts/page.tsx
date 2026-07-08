@@ -69,6 +69,7 @@ import { CampaignWorkflow } from "@/components/campaigns/unified/CampaignWorkflo
 import { InfluencerSelection } from "@/components/campaigns/unified/InfluencerSelection";
 import { PostCard } from "@/components/campaigns/PostCard";
 import { FaCampaignProgressPanel } from "@/components/campaigns/fa/FaCampaignProgressPanel";
+import { CampaignShareCard } from "@/components/campaigns/fa/CampaignShareCard";
 import { MasterCampaignPanel } from "@/components/campaigns/MasterCampaignPanel";
 
 // Backend response interfaces (UPDATED with collaboration support)
@@ -1885,6 +1886,12 @@ export default function CampaignDetailsPage() {
               </div>
               <Badge>{campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : "Draft"}</Badge>
             </div>
+
+            <CampaignShareCard
+              campaignId={String(campaign.id)}
+              coverUrl={campaign.hero_image_url}
+              logoUrl={campaign.brand_logo_url}
+            />
 
             {campaignOverview}
 
