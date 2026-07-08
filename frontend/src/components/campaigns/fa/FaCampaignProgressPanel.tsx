@@ -77,6 +77,9 @@ interface Participant {
     creator_accepted_at?: string | null
     joined_at?: string | null
     completed_at?: string | null
+    // When a pending paid/barter applicant will be auto-approved if the brand
+    // doesn't act first (applied_at + 72h). Null for non-eligible rows.
+    auto_approve_at?: string | null
   }
   cashback: { scan_count: number; total_transaction_amount: number; total_cashback_amount: number }
   paid_deal: { payout_cents: number | null }
@@ -549,6 +552,16 @@ function ParticipantTable({
                       Waiting {hoursSince(p.lifecycle.invited_at)}h
                     </Badge>
                   )}
+                  {/* Auto-approve countdown (paid/barter) — approve or reject before this */}
+                  {p.status === "pending_brand_approval" && p.lifecycle.auto_approve_at && (() => {
+                    const ms = new Date(p.lifecycle.auto_approve_at).getTime() - Date.now()
+                    const h = Math.max(0, Math.round(ms / 3_600_000))
+                    return (
+                      <Badge variant="outline" className="text-[10px] w-fit bg-amber-500/10 text-amber-700 border-amber-300/40">
+                        {h <= 0 ? "Auto-approving…" : `Auto-approves in ${h}h`}
+                      </Badge>
+                    )
+                  })()}
                   {/* Posting-in-progress hint on active rows (full text on hover) */}
                   {p.posting_status && (p.status === "active" || p.status === "accepted") && (
                     <Tooltip>
