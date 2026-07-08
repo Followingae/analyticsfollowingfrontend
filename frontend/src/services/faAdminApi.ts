@@ -111,6 +111,10 @@ export const faCampaignApi = {
   /** Share asset: canonical creatorapp.following.ae link + QR PNG (base64). */
   share: (id: string): Promise<{ url: string; qr_png_base64: string | null }> =>
     get(`/api/v1/admin/fa/campaigns/${id}/share`),
+  /** Re-enqueue the analytics scrape for every team-suggested (offline) creator
+   *  with no profile yet — fixes creators stuck on "Analyzing…". Idempotent. */
+  backfillCuratedAnalytics: () =>
+    post(`/api/v1/admin/fa/curated/backfill-analytics`),
   /** Upload an image (cover/brand logo) → { data: { url } }. Reuses the FA image bucket. */
   uploadImage: async (file: File) => {
     const form = new FormData()

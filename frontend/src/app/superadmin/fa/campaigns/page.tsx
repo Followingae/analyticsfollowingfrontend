@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download, ImagePlus } from "lucide-react"
+import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download, ImagePlus, RefreshCcw } from "lucide-react"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 import { MasterPackageDialog } from "@/components/superadmin/fa/MasterPackageDialog"
 import { CreateMasterDialog } from "@/components/superadmin/fa/CreateMasterDialog"
@@ -114,6 +114,24 @@ export default function FACampaignsPage() {
     }
   }
 
+  const [backfilling, setBackfilling] = useState(false)
+  const reanalyzeSuggested = async () => {
+    setBackfilling(true)
+    try {
+      const res: any = await faCampaignApi.backfillCuratedAnalytics()
+      const d = res?.data ?? res
+      const q = d?.queued ?? 0
+      toast.success(
+        q > 0 ? `Re-analyzing ${q} suggested creator(s)` : "Nothing to re-analyze — all suggested creators are up to date",
+        { description: q > 0 ? "Analytics will fill in over the next few minutes." : undefined },
+      )
+    } catch (e: any) {
+      toast.error(e?.message || "Couldn't start re-analysis")
+    } finally {
+      setBackfilling(false)
+    }
+  }
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -191,6 +209,11 @@ export default function FACampaignsPage() {
             </div>
             {/* One create entry - type is chosen in the wizard's first step */}
             <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={reanalyzeSuggested} disabled={backfilling}
+                title="Re-run analytics for team-suggested creators stuck on 'Analyzing'">
+                {backfilling ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCcw className="h-4 w-4 mr-1" />}
+                {backfilling ? "Starting…" : "Re-analyze suggested"}
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setCreateMasterOpen(true)}>
                 <Layers className="h-4 w-4 mr-1" />New package
               </Button>
