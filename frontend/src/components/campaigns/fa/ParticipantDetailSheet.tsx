@@ -140,7 +140,10 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
 
   const username = participant?.member.instagram_username
-  const canShowAnalytics = !!username && !participant?.is_offline
+  // Show analytics for offline/team-suggested creators too — the "Our Analytics"
+  // (Apify snapshot) tab renders from their matched public-profile data, so there's
+  // no reason to hide it anymore. First-party stays gated behind actual OAuth.
+  const canShowAnalytics = !!username
   const analytics = participant?.member.analytics
   const hasFirstParty = !!analytics?.has_first_party
   // A "direct Instagram signup" is a first-party-connected creator whose analytics
