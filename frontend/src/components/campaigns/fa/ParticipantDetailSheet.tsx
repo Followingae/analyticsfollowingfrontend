@@ -23,6 +23,14 @@ import { toast } from "sonner"
 
 type CampaignType = "cashback" | "paid_deal" | "barter"
 
+// Compact number for the Apify snapshot tiles (283710 -> "283.7K").
+const fmtCompact = (n?: number | null): string => {
+  if (n == null) return "—"
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
+}
+
 // First-party Instagram vs AI/Apify-estimated analytics envelope, served per
 // participant by GET /fa-progress (member.analytics). When has_first_party is
 // false the demographics/insights are null — we never fabricate them.
@@ -60,6 +68,7 @@ export interface ParticipantLike {
   member: {
     full_name?: string; instagram_username?: string; avatar_url?: string; tier?: string
     followers_count?: number; engagement_rate?: number | null; posts_count?: number; analytics_pending?: boolean
+    bio?: string | null; content_niche?: string[] | null
     // First-party (Instagram Graph) vs AI/Apify-estimated analytics envelope.
     analytics?: CreatorAnalyticsBundle | null
   }
@@ -483,13 +492,53 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                   <Badge variant="outline" className="border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400">
                     <Bot className="mr-1 h-3 w-3" /> AI · estimated
                   </Badge>
-                  <span className="text-xs text-muted-foreground">Modelled from public signals — not first-party.</span>
+                  <span className="text-xs text-muted-foreground">From public Instagram signals — not first-party.</span>
                 </div>
-                <iframe
-                  src={`/creator-analytics/${username}?embed=1`}
-                  className="w-full flex-1 border-0"
-                  title={`Analytics for @${username}`}
-                />
+                {/* Native Apify snapshot — no full-analytics unlock required. */}
+                <div className="px-6 py-5 space-y-5 overflow-y-auto">
+                  <div className="flex items-center gap-3">
+                    {participant.member.avatar_url
+                      ? <img src={participant.member.avatar_url} alt="" className="h-14 w-14 rounded-full object-cover border" />
+                      : <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center text-lg font-semibold">{(participant.member.full_name?.[0] ?? "@").toUpperCase()}</div>}
+                    <div className="min-w-0">
+                      <div className="font-semibold truncate">{participant.member.full_name || `@${username}`}</div>
+                      <a href={`https://instagram.com/${username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1">
+                        @{username} <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                    {participant.member.tier && <Badge variant="outline" className="ml-auto text-[10px] uppercase">{participant.member.tier}</Badge>}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Followers", value: fmtCompact(participant.member.followers_count) },
+                      { label: "Posts", value: participant.member.posts_count != null ? participant.member.posts_count.toLocaleString() : "—" },
+                      { label: "Engagement", value: participant.member.engagement_rate != null ? `${participant.member.engagement_rate.toFixed(2)}%` : "—" },
+                    ].map(s => (
+                      <div key={s.label} className="rounded-xl border bg-muted/30 px-3 py-3 text-center">
+                        <div className="text-lg font-bold tabular-nums">{s.value}</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {participant.member.content_niche && participant.member.content_niche.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {participant.member.content_niche.map(n => <Badge key={n} variant="secondary" className="text-[11px]">{n}</Badge>)}
+                    </div>
+                  )}
+
+                  {participant.member.bio && (
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Bio</div>
+                      <p className="text-sm whitespace-pre-line text-foreground/90">{participant.member.bio}</p>
+                    </div>
+                  )}
+
+                  {participant.member.analytics_pending && (
+                    <p className="text-xs text-muted-foreground">Analytics still syncing — check back shortly.</p>
+                  )}
+                </div>
               </TabsContent>
               )}
             </Tabs>
