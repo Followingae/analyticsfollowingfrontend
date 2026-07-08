@@ -138,6 +138,10 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   const [busy, setBusy] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState("")
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
+  // Unique coupon code assigned to this participant (team-suggested / member).
+  const [couponCode, setCouponCode] = useState<string | null>(null)
+  // Offline content upload (talent manager / superadmin on behalf of the creator).
+  const [uploadingId, setUploadingId] = useState<string | null>(null)
 
   const username = participant?.member.instagram_username
   // Show analytics for offline/team-suggested creators too — the "Our Analytics"
@@ -164,12 +168,43 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
       if (!res.ok) throw new Error(await res.text())
       const body = await res.json()
       setDeliverables(body?.data?.deliverables ?? [])
+      setCouponCode(body?.data?.coupon_code ?? null)
     } catch {
       setDeliverables([])
+      setCouponCode(null)
     } finally {
       setLoadingDel(false)
     }
   }, [campaignId, participant])
+
+  // Upload deliverable content on behalf of an offline / team-suggested creator
+  // (they're not in the app). Flows into the same brand approve-content review.
+  const uploadOfflineContent = async (d: Deliverable, file: File) => {
+    if (!participant) return
+    setUploadingId(d.id)
+    try {
+      const fd = new FormData()
+      fd.append("content", file)
+      const h: Record<string, string> = { ...getAuthHeaders() }
+      delete h["Content-Type"] // let the browser set the multipart boundary
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/admin/fa/campaigns/${campaignId}/participants/${participant.participant_id}/deliverables/${d.id}/upload-content-media`,
+        { method: "POST", headers: h, body: fd }
+      )
+      if (!res.ok) {
+        let msg = ""
+        try { msg = (await res.json())?.detail } catch { msg = await res.text() }
+        throw new Error(msg || "Upload failed")
+      }
+      toast.success("Content uploaded — sent to brand for approval")
+      await loadDeliverables()
+      onChanged?.()
+    } catch (e: any) {
+      toast.error(e.message || "Could not upload content")
+    } finally {
+      setUploadingId(null)
+    }
+  }
 
   useEffect(() => { if (open && participant) loadDeliverables() }, [open, participant, loadDeliverables])
 
@@ -385,6 +420,21 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                   </Section>
                 )}
 
+                {/* Unique code — the coupon assigned to this creator (team-suggested or member) */}
+                {couponCode && (
+                  <Section title="Unique code" icon={<Gift className="h-4 w-4 text-primary" />}>
+                    <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2">
+                      <code className="text-sm font-semibold tracking-wide">{couponCode}</code>
+                      <Button
+                        size="sm" variant="ghost" className="h-7 text-[11px]"
+                        onClick={() => { navigator.clipboard?.writeText(couponCode); toast.success("Code copied") }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </Section>
+                )}
+
                 {/* Submissions */}
                 <Section
                   title="Content submissions"
@@ -410,6 +460,9 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                           username={username}
                           busy={busy}
                           canDecide={canDecide}
+                          canUpload={!!participant.is_offline}
+                          uploading={uploadingId === d.id}
+                          onUpload={(file) => uploadOfflineContent(d, file)}
                           onApproveContent={() => deliverableAction(d, "approve-content")}
                           onRequestEdit={(note) => deliverableAction(d, "request-edit", note)}
                         />
@@ -595,10 +648,12 @@ function deliverableStage(d: Deliverable): string {
 }
 
 function SubmissionCard({
-  d, avatar, username, busy, canDecide = true, onApproveContent, onRequestEdit,
+  d, avatar, username, busy, canDecide = true, canUpload = false, uploading = false,
+  onUpload, onApproveContent, onRequestEdit,
 }: {
   d: Deliverable; avatar?: string; username?: string; busy: string | null
   canDecide?: boolean
+  canUpload?: boolean; uploading?: boolean; onUpload?: (file: File) => void
   onApproveContent: () => void; onRequestEdit: (note: string) => void
 }) {
   const [editNote, setEditNote] = useState("")
@@ -606,6 +661,9 @@ function SubmissionCard({
   const Icon = meta.icon
   const stage = deliverableStage(d)
   const isDone = stage === "verified"
+  // Offline creators can't submit themselves — an admin/talent manager uploads for
+  // them while the deliverable is still awaiting content (pending or edit-requested).
+  const showUpload = canUpload && (d.content_status === "pending" || d.content_status === "revision_requested" || !d.content_status)
   // Prefer proof media once posted, else the content under review.
   const previewUrl = d.proof_url || d.content_url || null
   const showContent = !!previewUrl || stage === "verified"
@@ -711,6 +769,19 @@ function SubmissionCard({
               </AlertDialog>
             )}
           </div>
+        )}
+
+        {/* Offline creator — admin/talent manager uploads content for brand approval */}
+        {showUpload && (
+          <label className="pt-1">
+            <input
+              type="file" accept="image/*,video/*" className="hidden" disabled={uploading}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f && onUpload) onUpload(f); e.currentTarget.value = "" }}
+            />
+            <span className={`flex items-center justify-center gap-1.5 h-7 rounded-md border border-dashed text-[11px] cursor-pointer hover:bg-muted/50 ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
+              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Camera className="h-3 w-3" />{d.content_status === "revision_requested" ? "Re-upload content" : "Upload content"}</>}
+            </span>
+          </label>
         )}
       </div>
     </div>
