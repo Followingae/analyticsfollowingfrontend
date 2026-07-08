@@ -1789,7 +1789,7 @@ export default function CampaignDetailsPage() {
 
   // Cover banner (hero image) — shown on top of the detail; superadmin can upload/replace
   const coverBanner = (campaign.hero_image_url || isSuperadmin) ? (
-    <div className="relative aspect-[16/6] w-full overflow-hidden rounded-xl border bg-muted">
+    <div className="relative h-28 sm:h-36 md:h-40 w-full overflow-hidden rounded-xl border bg-muted">
       {campaign.hero_image_url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={campaign.hero_image_url} alt={campaign.name} className="h-full w-full object-cover" />
