@@ -88,29 +88,39 @@ export default function StaffHome() {
           </CardContent></Card>
         ) : (
           <div className="space-y-2">
-            {tasks.map((t) => (
-              <button key={`${t.proposal_id}-${t.task_type}`} type="button"
-                onClick={() => router.push(`/superadmin/proposals/${t.proposal_id}/approval`)}
+            {tasks.map((t, i) => {
+              const isUpload = t.task_type === "upload_content";
+              const go = () => router.push(
+                isUpload ? `/campaigns/${t.campaign_id}/posts` : `/superadmin/proposals/${t.proposal_id}/approval`
+              );
+              return (
+              <button key={`${t.proposal_id ?? t.campaign_id ?? i}-${t.task_type}`} type="button"
+                onClick={go}
                 className="group w-full text-left">
                 <Card className="transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <CardContent className="flex items-center gap-3 p-4">
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${t.task_type === "curate" ? "bg-purple-100 dark:bg-purple-900/30" : "bg-amber-100 dark:bg-amber-900/30"}`}>
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${t.task_type === "curate" ? "bg-purple-100 dark:bg-purple-900/30" : isUpload ? "bg-sky-100 dark:bg-sky-900/30" : "bg-amber-100 dark:bg-amber-900/30"}`}>
                       {t.task_type === "curate"
                         ? <PencilRuler className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                        : isUpload
+                        ? <Megaphone className="h-5 w-5 text-sky-600 dark:text-sky-400" />
                         : <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{t.campaign_name || t.title || "Proposal"}</div>
                       <div className="text-xs text-muted-foreground">
-                        {t.task_type === "curate" ? "Curation" : "Approval"} · {t.label}
+                        {t.task_type === "curate" ? "Curation" : isUpload ? "Content upload" : "Approval"} · {t.label}
                       </div>
                     </div>
-                    <Badge variant="outline" className="shrink-0 text-[10px] capitalize">{t.status.replace(/_/g, " ")}</Badge>
+                    {isUpload
+                      ? <Badge className="shrink-0 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 text-[10px]">{t.creator_count} to upload</Badge>
+                      : <Badge variant="outline" className="shrink-0 text-[10px] capitalize">{(t.status || "").replace(/_/g, " ")}</Badge>}
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
                   </CardContent>
                 </Card>
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

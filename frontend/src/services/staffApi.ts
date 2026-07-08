@@ -21,7 +21,12 @@ async function jpost(path: string, body: unknown) {
 }
 
 export interface StaffMe { staff_role: string | null; full_access: boolean; modules: string[] | null }
-export interface StaffTask { proposal_id: string; campaign_name?: string; title?: string; status: string; task_type: 'curate' | 'approve'; label: string; step_name?: string }
+export interface StaffTask {
+  proposal_id?: string; campaign_name?: string; title?: string; status?: string;
+  task_type: 'curate' | 'approve' | 'upload_content'; label: string; step_name?: string;
+  // upload_content tasks (team-suggested FA creators needing content):
+  campaign_id?: string; campaign_type?: string; creator_count?: number; updated_at?: string | null;
+}
 export interface StaffClient {
   team_id: string; name: string; logo_url?: string | null;
   campaigns: number; active_campaigns?: number; open_proposals?: number; last_activity?: string | null;
