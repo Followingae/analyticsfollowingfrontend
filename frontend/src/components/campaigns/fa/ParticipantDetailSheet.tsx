@@ -469,7 +469,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                     <p className="text-sm font-medium">No first-party Instagram data</p>
                     <p className="mt-1 max-w-xs text-xs text-muted-foreground">
                       This creator hasn’t connected Instagram (or it’s still syncing).
-                      See “Our Analytics” for AI/Apify estimates.
+                      See “Our Analytics” for AI estimates.
                     </p>
                   </div>
                 )}
@@ -481,7 +481,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
               <TabsContent value="ours" className="flex-1 m-0 flex flex-col min-h-0 data-[state=inactive]:hidden">
                 <div className="px-6 py-2.5 border-b shrink-0 flex items-center gap-2">
                   <Badge variant="outline" className="border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400">
-                    <Bot className="mr-1 h-3 w-3" /> AI / Apify · estimated
+                    <Bot className="mr-1 h-3 w-3" /> AI · estimated
                   </Badge>
                   <span className="text-xs text-muted-foreground">Modelled from public signals — not first-party.</span>
                 </div>
