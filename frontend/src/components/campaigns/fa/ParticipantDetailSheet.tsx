@@ -87,6 +87,7 @@ interface Deliverable {
   // Two-stage flow: content review (content_status) → proof of posting (status).
   content_status?: "pending" | "submitted" | "approved" | "revision_requested" | string | null
   content_url?: string | null
+  content_urls?: string[] | null
   revision_count?: number | null
   revision_limit?: number | null
   rejection_reason?: string | null
@@ -179,12 +180,12 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
 
   // Upload deliverable content on behalf of an offline / team-suggested creator
   // (they're not in the app). Flows into the same brand approve-content review.
-  const uploadOfflineContent = async (d: Deliverable, file: File) => {
-    if (!participant) return
+  const uploadOfflineContent = async (d: Deliverable, files: File[]) => {
+    if (!participant || files.length === 0) return
     setUploadingId(d.id)
     try {
       const fd = new FormData()
-      fd.append("content", file)
+      files.forEach((file) => fd.append("content", file))
       const h: Record<string, string> = { ...getAuthHeaders() }
       delete h["Content-Type"] // let the browser set the multipart boundary
       const res = await fetchWithAuth(
@@ -462,7 +463,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                           canDecide={canDecide}
                           canUpload={!!participant.is_offline}
                           uploading={uploadingId === d.id}
-                          onUpload={(file) => uploadOfflineContent(d, file)}
+                          onUpload={(files) => uploadOfflineContent(d, files)}
                           onApproveContent={() => deliverableAction(d, "approve-content")}
                           onRequestEdit={(note) => deliverableAction(d, "request-edit", note)}
                         />
@@ -653,7 +654,7 @@ function SubmissionCard({
 }: {
   d: Deliverable; avatar?: string; username?: string; busy: string | null
   canDecide?: boolean
-  canUpload?: boolean; uploading?: boolean; onUpload?: (file: File) => void
+  canUpload?: boolean; uploading?: boolean; onUpload?: (files: File[]) => void
   onApproveContent: () => void; onRequestEdit: (note: string) => void
 }) {
   const [editNote, setEditNote] = useState("")
@@ -664,6 +665,10 @@ function SubmissionCard({
   // Offline creators can't submit themselves — an admin/talent manager uploads for
   // them while the deliverable is still awaiting content (pending or edit-requested).
   const showUpload = canUpload && (d.content_status === "pending" || d.content_status === "revision_requested" || !d.content_status)
+  // Stories are multi-frame — allow selecting several files at once.
+  const allowMultiple = d.type === "story"
+  // All uploaded media (multi-file aware), falling back to the single content_url.
+  const mediaUrls = (d.content_urls && d.content_urls.length ? d.content_urls : (d.content_url ? [d.content_url] : []))
   // Prefer proof media once posted, else the content under review.
   const previewUrl = d.proof_url || d.content_url || null
   const showContent = !!previewUrl || stage === "verified"
@@ -685,6 +690,11 @@ function SubmissionCard({
                   </div>
                 )}
                 <span className="absolute bottom-1.5 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white">View ↗</span>
+                {mediaUrls.length > 1 && (
+                  <span className="absolute bottom-1.5 left-2 rounded bg-black/50 px-1.5 py-0.5 text-[9px] text-white flex items-center gap-0.5">
+                    <Layers className="h-2.5 w-2.5" />{mediaUrls.length}
+                  </span>
+                )}
               </a>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-white/85">
@@ -775,11 +785,11 @@ function SubmissionCard({
         {showUpload && (
           <label className="pt-1">
             <input
-              type="file" accept="image/*,video/*" className="hidden" disabled={uploading}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f && onUpload) onUpload(f); e.currentTarget.value = "" }}
+              type="file" accept="image/*,video/*" className="hidden" disabled={uploading} multiple={allowMultiple}
+              onChange={(e) => { const fs = Array.from(e.target.files || []); if (fs.length && onUpload) onUpload(fs); e.currentTarget.value = "" }}
             />
             <span className={`flex items-center justify-center gap-1.5 h-7 rounded-md border border-dashed text-[11px] cursor-pointer hover:bg-muted/50 ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
-              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Camera className="h-3 w-3" />{d.content_status === "revision_requested" ? "Re-upload content" : "Upload content"}</>}
+              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Camera className="h-3 w-3" />{d.content_status === "revision_requested" ? "Re-upload" : allowMultiple ? "Upload story frames" : "Upload content"}</>}
             </span>
           </label>
         )}
