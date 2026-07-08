@@ -9,13 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Balloons } from "@/components/ui/balloons";
 import { notificationApiService, type ServerNotification } from "@/services/notificationApi";
 
-// Events that deserve the celebratory balloons.
-const CELEBRATORY = (n: ServerNotification): boolean => {
-  const t = (n.notification_type || "").toLowerCase();
-  const hay = `${t} ${(n.title || "").toLowerCase()}`;
-  if (["proposal_received", "proposal_updated", "campaign_application", "campaign_deliverable"].includes(t)) return true;
-  return /campaign|proposal|approv|live|ready|ugc|deliverable|won/.test(hay);
-};
+// Balloons are reserved for a brand-new proposal ONLY — not every celebratory-ish
+// event (they were firing on almost every popup). A new proposal is the one moment
+// worth the confetti.
+const CELEBRATORY = (n: ServerNotification): boolean =>
+  (n.notification_type || "").toLowerCase() === "proposal_received";
 
 function iconFor(n: ServerNotification) {
   const hay = `${n.notification_type} ${n.title}`.toLowerCase();
