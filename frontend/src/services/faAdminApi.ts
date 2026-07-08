@@ -149,11 +149,12 @@ export const faAdBannerApi = {
 
 // ─── SUPERADMIN: FA Members ──────────────────────────────────────────
 export const faMemberApi = {
-  list: (params?: { tier?: string; status?: string; is_approved?: number; limit?: number; offset?: number }) => {
+  list: (params?: { tier?: string; status?: string; is_approved?: number; signup_completed?: boolean; limit?: number; offset?: number }) => {
     const qs = new URLSearchParams()
     if (params?.tier) qs.set('tier', params.tier)
     if (params?.status) qs.set('status', params.status)
     if (params?.is_approved !== undefined) qs.set('is_approved', String(params.is_approved))
+    if (params?.signup_completed !== undefined) qs.set('signup_completed', String(params.signup_completed))
     if (params?.limit) qs.set('limit', String(params.limit))
     if (params?.offset) qs.set('offset', String(params.offset))
     const q = qs.toString()

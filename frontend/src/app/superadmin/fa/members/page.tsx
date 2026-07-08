@@ -47,6 +47,7 @@ import {
   QrCode,
   Coins,
   Gift,
+  Hourglass,
 } from "lucide-react"
 import {
   Sheet,
@@ -868,23 +869,31 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function FAMembersPage() {
-  const [tab, setTab] = useState<"pending" | "approved" | "rejected">("pending")
+  const [tab, setTab] = useState<"pending" | "approved" | "rejected" | "incomplete">("pending")
   const [members, setMembers] = useState<FAMember[]>([])
   const [loading, setLoading] = useState(true)
-  const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0 })
+  const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, incomplete: 0 })
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<SortOption>("newest")
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const approvalFilter = tab === "pending" ? 0 : tab === "approved" ? 1 : 2
+      // "pending" review = only COMPLETE signups (IG + niches + profile all done).
+      // In-progress / abandoned signups live in their own "Incomplete" tab so they
+      // never clutter the approval queue.
+      const listParams =
+        tab === "pending" ? { is_approved: 0, signup_completed: true } :
+        tab === "approved" ? { is_approved: 1 } :
+        tab === "rejected" ? { is_approved: 2 } :
+        { signup_completed: false }
 
-      const [res, pendingRes, approvedRes, rejectedRes] = await Promise.all([
-        faMemberApi.list({ is_approved: approvalFilter, limit: 200 }),
-        faMemberApi.list({ is_approved: 0, limit: 1 }),
+      const [res, pendingRes, approvedRes, rejectedRes, incompleteRes] = await Promise.all([
+        faMemberApi.list({ ...listParams, limit: 200 }),
+        faMemberApi.list({ is_approved: 0, signup_completed: true, limit: 1 }),
         faMemberApi.list({ is_approved: 1, limit: 1 }),
         faMemberApi.list({ is_approved: 2, limit: 1 }),
+        faMemberApi.list({ signup_completed: false, limit: 1 }),
       ])
 
       const list: FAMember[] = Array.isArray(res.data)
@@ -901,6 +910,7 @@ export default function FAMembersPage() {
         pending: getTotal(pendingRes),
         approved: getTotal(approvedRes),
         rejected: getTotal(rejectedRes),
+        incomplete: getTotal(incompleteRes),
       })
     } catch {
       toast.error("Failed to load members")
@@ -1029,6 +1039,17 @@ export default function FAMembersPage() {
               <ShieldX className="h-3.5 w-3.5" />
               Rejected
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[11px]">{counts.rejected}</Badge>
+            </Button>
+            <Button
+              variant={tab === "incomplete" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setTab("incomplete")}
+              className="gap-1.5"
+              title="Signed up but haven't finished — no Instagram, niches, or profile yet"
+            >
+              <Hourglass className="h-3.5 w-3.5" />
+              Incomplete
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[11px]">{counts.incomplete}</Badge>
             </Button>
           </div>
 
