@@ -184,20 +184,20 @@ export default function PublicProposalPage() {
 
       {/* ---------- hero ---------- */}
       <section id="overview" ref={setRef('overview')}>
-        <div className="mx-auto max-w-3xl px-6 pt-24 pb-20 sm:pt-32 sm:pb-24">
+        <div className={`mx-auto max-w-3xl px-6 pt-24 sm:pt-32 ${proposal.cover_image_url ? 'pb-12' : 'pb-20 sm:pb-24'}`}>
           <Reveal><Eyebrow>Campaign proposal</Eyebrow></Reveal>
           <Reveal delay={0.06}>
-            <h1 className="mt-6 text-5xl sm:text-7xl font-semibold tracking-tight leading-[1.02]">
+            <h1 className="mt-6 text-4xl sm:text-6xl font-semibold tracking-tight leading-[1.03]">
               {proposal.campaign_name || proposal.title}
             </h1>
           </Reveal>
           {proposal.description && (
             <Reveal delay={0.12}>
-              <p className="mt-7 text-lg sm:text-xl text-muted-foreground leading-relaxed">{proposal.description}</p>
+              <p className="mt-5 max-w-2xl text-sm sm:text-base text-muted-foreground leading-relaxed">{proposal.description}</p>
             </Reveal>
           )}
           <Reveal delay={0.18}>
-            <div className="mt-10 flex items-center gap-5">
+            <div className="mt-8 flex items-center gap-5">
               <Button size="lg" className="gap-2 rounded-full px-6"
                 onClick={() => scrollTo(hasGate ? 'unlock' : 'creators')}>
                 {hasGate ? 'Get started' : 'View the creators'} <ArrowRight className="h-4 w-4" />
@@ -212,6 +212,15 @@ export default function PublicProposalPage() {
             </div>
           </Reveal>
         </div>
+        {proposal.cover_image_url && (
+          <div className="mx-auto max-w-5xl px-6 pb-20 sm:pb-24">
+            <Reveal delay={0.22}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={proposal.cover_image_url} alt={proposal.campaign_name || 'Campaign cover'}
+                className="w-full aspect-[16/9] object-cover rounded-2xl border border-border bg-muted" />
+            </Reveal>
+          </div>
+        )}
       </section>
 
       {/* ---------- get started (gate) ---------- */}
