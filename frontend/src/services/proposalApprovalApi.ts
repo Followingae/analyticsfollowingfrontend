@@ -56,6 +56,10 @@ export const proposalApprovalApi = {
 
   submit: (proposalId: string) => jfetch(`${BASE}/${proposalId}/submit`, { method: 'POST', body: '{}' }),
 
+  // Operator override: approve the whole chain in one click (superadmin running it solo).
+  internalApprove: (proposalId: string, notes?: string) =>
+    jfetch(`${BASE}/${proposalId}/internal-approve`, { method: 'POST', body: JSON.stringify({ notes }) }),
+
   // Approvers (cofounder -> ceo -> ...): approve their step, or send back.
   approveStep: (proposalId: string, notes?: string) =>
     jfetch(`${BASE}/${proposalId}/approve-step`, { method: 'POST', body: JSON.stringify({ notes }) }),

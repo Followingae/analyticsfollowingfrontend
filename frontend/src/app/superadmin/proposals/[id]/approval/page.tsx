@@ -247,6 +247,25 @@ export default function ProposalApprovalPage() {
               </Card>
             )}
 
+            {/* Operator override: approve the whole chain in one click (running it solo) */}
+            {viewer.is_operator && ['draft', 'building', 'pending_internal_review', 'internal_changes_requested'].includes(status) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Approve internally</CardTitle>
+                  <CardDescription>Doing this proposal yourself? Skip the maker → approver chain and mark it internally approved now.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full" disabled={busy || (ws.influencers || []).length === 0}
+                    onClick={() => run(() => proposalApprovalApi.internalApprove(proposalId))}>
+                    <CheckCircle2 className="mr-1 h-4 w-4" /> Mark internally approved
+                  </Button>
+                  {(ws.influencers || []).length === 0 && (
+                    <p className="mt-2 text-xs text-muted-foreground">Add at least one influencer first.</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Client share (once internally approved) */}
             {viewer.is_operator && status === 'internally_approved' && (
               <Card className="border-emerald-500/30 bg-emerald-500/5">
