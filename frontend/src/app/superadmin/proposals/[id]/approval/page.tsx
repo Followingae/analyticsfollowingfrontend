@@ -264,16 +264,13 @@ export default function ProposalApprovalPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Approve internally</CardTitle>
-                  <CardDescription>Doing this proposal yourself? Skip the maker → approver chain and mark it internally approved now.</CardDescription>
+                  <CardDescription>Skip the maker → approver chain and mark it internally approved now. You can approve with no creators yet and share commercial-first (agreement + advance invoice); curate creators later.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button className="w-full" disabled={busy || (ws.influencers || []).length === 0}
+                  <Button className="w-full" disabled={busy}
                     onClick={() => run(() => proposalApprovalApi.internalApprove(proposalId))}>
                     <CheckCircle2 className="mr-1 h-4 w-4" /> Mark internally approved
                   </Button>
-                  {(ws.influencers || []).length === 0 && (
-                    <p className="mt-2 text-xs text-muted-foreground">Add at least one influencer first.</p>
-                  )}
                 </CardContent>
               </Card>
             )}

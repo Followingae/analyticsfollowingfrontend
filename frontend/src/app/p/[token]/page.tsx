@@ -133,6 +133,7 @@ export default function PublicProposalPage() {
   const shown = gate?.shown ?? influencers.filter((i: any) => !i.locked).length
   const lockedCount = Math.max(0, total - shown)
   const hasGate = !gate?.unlocked
+  const noInfluencers = total === 0 // commercial-first share — creators curated + revealed after payment
   const stepsDone = (gate?.agreement_signed ? 1 : 0) + (gate?.advance_paid ? 1 : 0)
 
   const navItems = [
@@ -160,6 +161,8 @@ export default function PublicProposalPage() {
           <div className="ml-auto md:ml-0">
             {gate?.unlocked ? (
               <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1"><CheckCircle2 className="h-3 w-3" />Full access</Badge>
+            ) : noInfluencers ? (
+              <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" />Step 1 of 2</Badge>
             ) : (
               <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" />{shown} of {total} unlocked</Badge>
             )}
@@ -188,12 +191,18 @@ export default function PublicProposalPage() {
           )}
           <Reveal delay={0.15}>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button size="lg" onClick={() => scrollTo('creators')} className="gap-2">
-                View the creators <ArrowRight className="h-4 w-4" />
-              </Button>
-              {hasGate && (
-                <Button size="lg" variant="outline" onClick={() => scrollTo('unlock')} className="gap-2">
-                  <Lock className="h-4 w-4" />How to unlock the full list
+              {hasGate ? (
+                <Button size="lg" onClick={() => scrollTo('unlock')} className="gap-2">
+                  Get started <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button size="lg" onClick={() => scrollTo('creators')} className="gap-2">
+                  View the creators <ArrowRight className="h-4 w-4" />
+                </Button>
+              )}
+              {!noInfluencers && (
+                <Button size="lg" variant="outline" onClick={() => scrollTo('creators')} className="gap-2">
+                  <Users className="h-4 w-4" />See the lineup
                 </Button>
               )}
             </div>
@@ -203,8 +212,8 @@ export default function PublicProposalPage() {
           <Reveal delay={0.2}>
             <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-px overflow-hidden rounded-2xl border bg-border">
               {[
-                { icon: Users, label: 'Creators curated', value: String(total), sub: `${shown} shown now` },
-                { icon: TrendingUp, label: 'Preview reach', value: compact(previewReach), sub: 'across shown creators' },
+                { icon: Users, label: 'Creators', value: noInfluencers ? 'Soon' : String(total), sub: noInfluencers ? 'curated after payment' : `${shown} shown now` },
+                { icon: TrendingUp, label: 'Preview reach', value: noInfluencers ? '—' : compact(previewReach), sub: noInfluencers ? 'revealed after payment' : 'across shown creators' },
                 { icon: Wallet, label: 'Campaign value', value: proposal.total != null ? money(proposal.total) : '—', sub: 'total' },
                 { icon: CreditCard, label: 'Payment milestones', value: String(schedule.length || (invoices?.length || 0)), sub: 'flexible schedule' },
               ].map((s, i) => (
@@ -225,11 +234,15 @@ export default function PublicProposalPage() {
         <section id="unlock" ref={setRef('unlock')} className="mx-auto max-w-6xl px-5 py-16 scroll-mt-16">
           <Reveal>
             <div className="max-w-2xl">
-              <div className="flex items-center gap-2 text-sm font-medium text-primary"><Lock className="h-4 w-4" />Unlock the full list</div>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight">See every creator in this campaign</h2>
+              <div className="flex items-center gap-2 text-sm font-medium text-primary"><span className="grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground text-[11px] font-bold">1</span>Step 1 — Agreement &amp; advance</div>
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight">Confirm the agreement and advance</h2>
               <p className="mt-2 text-muted-foreground">
-                You’re previewing <strong className="text-foreground">{shown}</strong> of <strong className="text-foreground">{total}</strong> creators.
-                Once the agreement is in place and the advance is settled, all {lockedCount} remaining creators are revealed with full pricing.
+                {noInfluencers ? (
+                  <>Complete these two steps to kick off your campaign — once your advance is confirmed, your curated creator lineup is revealed with full pricing.</>
+                ) : (
+                  <>You’re previewing <strong className="text-foreground">{shown}</strong> of <strong className="text-foreground">{total}</strong> creators.
+                  Once the agreement is in place and the advance is settled, all {lockedCount} remaining creators are revealed with full pricing.</>
+                )}
               </p>
             </div>
           </Reveal>
@@ -329,15 +342,40 @@ export default function PublicProposalPage() {
         <Reveal>
           <div className="flex items-end justify-between gap-4 flex-wrap">
             <div>
-              <div className="flex items-center gap-2 text-sm font-medium text-primary"><Users className="h-4 w-4" />The lineup</div>
+              <div className="flex items-center gap-2 text-sm font-medium text-primary"><span className="grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground text-[11px] font-bold">2</span>Step 2 — Your creators</div>
               <h2 className="mt-2 text-3xl font-semibold tracking-tight">Creators in this campaign</h2>
             </div>
             {gate?.unlocked
-              ? <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1"><CheckCircle2 className="h-3 w-3" />Full list unlocked</Badge>
-              : <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" />{lockedCount} locked</Badge>}
+              ? <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1"><CheckCircle2 className="h-3 w-3" />{noInfluencers ? 'Being finalized' : 'Full list unlocked'}</Badge>
+              : noInfluencers
+                ? <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" />Curated after payment</Badge>
+                : <Badge variant="outline" className="gap-1"><Lock className="h-3 w-3" />{lockedCount} locked</Badge>}
           </div>
         </Reveal>
 
+        {noInfluencers ? (
+          <Reveal delay={0.05}>
+            <Card className="mt-8 border-dashed">
+              <CardContent className="p-10 text-center flex flex-col items-center gap-3">
+                <div className="grid h-12 w-12 place-items-center rounded-full border bg-muted/40">
+                  {gate?.unlocked ? <Users className="h-5 w-5 text-muted-foreground" /> : <Lock className="h-5 w-5 text-muted-foreground" />}
+                </div>
+                <div className="text-lg font-semibold">
+                  {gate?.unlocked ? 'Your lineup is being finalized' : 'Your curated creator lineup is being prepared'}
+                </div>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  {gate?.unlocked
+                    ? 'Thanks — your advance is confirmed. Your creators will appear here shortly as we finalize the lineup.'
+                    : 'We’re curating creators for this campaign. They’re revealed here in full — with pricing — once your advance is confirmed.'}
+                </p>
+                {hasGate && (
+                  <Button onClick={() => scrollTo('unlock')} className="mt-1 gap-2"><Lock className="h-4 w-4" />Complete Step 1</Button>
+                )}
+              </CardContent>
+            </Card>
+          </Reveal>
+        ) : (
+        <>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {influencers.map((inf: any, idx: number) => {
             const { grad, initials } = avatarFor(inf.username || inf.full_name || '?')
@@ -406,6 +444,8 @@ export default function PublicProposalPage() {
               </CardContent>
             </Card>
           </Reveal>
+        )}
+        </>
         )}
       </section>
 
