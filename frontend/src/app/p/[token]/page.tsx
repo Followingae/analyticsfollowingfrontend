@@ -312,12 +312,24 @@ export default function PublicProposalPage() {
                         )}
                         {gate.advance_paid ? (
                           <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1"><CheckCircle2 className="h-3 w-3" />Payment received</Badge>
-                        ) : advance_invoice.payment_link_url ? (
-                          <a href={advance_invoice.payment_link_url} target="_blank" rel="noreferrer">
-                            <Button className="gap-2"><CreditCard className="h-4 w-4" />Pay advance securely</Button>
-                          </a>
                         ) : (
-                          <p className="text-sm text-muted-foreground">A secure payment link will be added shortly.</p>
+                          <>
+                            <div className="flex flex-wrap gap-2">
+                              {advance_invoice.invoice_file_url && (
+                                <a href={advance_invoice.invoice_file_url} target="_blank" rel="noreferrer">
+                                  <Button className="gap-2"><Download className="h-4 w-4" />Download invoice</Button>
+                                </a>
+                              )}
+                              {advance_invoice.payment_link_url && (
+                                <a href={advance_invoice.payment_link_url} target="_blank" rel="noreferrer">
+                                  <Button variant="outline" className="gap-2"><CreditCard className="h-4 w-4" />Pay online</Button>
+                                </a>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              The invoice includes our bank-transfer &amp; cheque details. Prefer a payment link? Just let your account manager know.
+                            </p>
+                          </>
                         )}
                       </>
                     ) : (
@@ -496,9 +508,14 @@ export default function PublicProposalPage() {
                             : inv.status === 'partial'
                               ? <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Partial</Badge>
                               : <Badge variant="outline">Unpaid</Badge>}
+                          {inv.invoice_file_url && (
+                            <a href={inv.invoice_file_url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+                              <Download className="h-3 w-3" />Invoice
+                            </a>
+                          )}
                           {inv.status !== 'paid' && inv.payment_link_url && (
                             <a href={inv.payment_link_url} target="_blank" rel="noreferrer">
-                              <Button size="sm" variant="outline">Pay</Button>
+                              <Button size="sm" variant="outline">Pay online</Button>
                             </a>
                           )}
                         </div>
