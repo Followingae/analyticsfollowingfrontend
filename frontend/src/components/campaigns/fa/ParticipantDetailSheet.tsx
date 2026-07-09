@@ -256,6 +256,32 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
     }
   }
 
+  // Superadmin: (re)send the "you're approved" push + email + WhatsApp to an already
+  // enrolled app creator (e.g. if the approval message didn't fire).
+  const resendApproval = async () => {
+    if (!participant) return
+    setBusy("resend")
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/participants/${participant.participant_id}/resend-approval-notification`,
+        { method: "POST", headers: getAuthHeaders() }
+      )
+      if (!res.ok) {
+        let msg = ""
+        try { msg = (await res.json())?.detail } catch { msg = await res.text() }
+        throw new Error(msg || "Resend failed")
+      }
+      const body = await res.json().catch(() => ({}))
+      toast.success(body?.data?.sent === false
+        ? "No app account/phone on file — nothing to send"
+        : "Approval notification sent (push + email + WhatsApp)")
+    } catch (e: any) {
+      toast.error(e.message || "Could not resend")
+    } finally {
+      setBusy(null)
+    }
+  }
+
   // Brand-side content review ONLY (stage 1): approve-content lets the creator
   // post; request-edit asks for bounded revisions. The proof-of-posting stage
   // (verify/reject) is owned by the Following team — the brand confirm endpoint
@@ -435,6 +461,15 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                  </div>
+                )}
+                {isSuperAdmin && (participant?.status === "active" || participant?.status === "accepted") && (
+                  <div className="flex items-center gap-2 mt-3 rounded-lg border bg-muted/30 p-2.5">
+                    <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-xs text-muted-foreground flex-1">Approval message didn’t go out? Resend push + email + WhatsApp.</span>
+                    <Button size="sm" variant="outline" disabled={!!busy} onClick={resendApproval}>
+                      {busy === "resend" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Resend approval WhatsApp"}
+                    </Button>
                   </div>
                 )}
               </SheetHeader>
