@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -501,7 +502,13 @@ function MemberDetailSheet({ memberId, name, campaignsCount }: { memberId: strin
   )
 }
 
-function MemberCard({ member, onAction }: { member: FAMember; onAction: () => void }) {
+function MemberCard({ member, onAction, selected, onToggleSelect }: {
+  member: FAMember
+  onAction: () => void
+  /** When onToggleSelect is provided the card becomes multi-select capable. */
+  selected?: boolean
+  onToggleSelect?: (id: string) => void
+}) {
   const [acting, setActing] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [rejectMode, setRejectMode] = useState(false)
@@ -601,6 +608,14 @@ function MemberCard({ member, onAction }: { member: FAMember; onAction: () => vo
           {/* ─── Row 1: Avatar + Identity + Actions ─── */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4">
+              {onToggleSelect && (
+                <Checkbox
+                  className="mt-6 shrink-0"
+                  checked={!!selected}
+                  onCheckedChange={() => onToggleSelect(member.id)}
+                  aria-label={`Select ${member.full_name}`}
+                />
+              )}
               {/* Large Avatar */}
               <Avatar className="h-16 w-16 shrink-0 border-2 border-muted">
                 <AvatarImage src={member.instagram_profile_pic || undefined} alt={member.full_name} referrerPolicy="no-referrer" />
@@ -872,6 +887,9 @@ export default function FAMembersPage() {
   const [tab, setTab] = useState<"pending" | "approved" | "rejected" | "incomplete">("pending")
   const [members, setMembers] = useState<FAMember[]>([])
   const [loading, setLoading] = useState(true)
+  // Multi-select bulk approve (only meaningful for not-yet-approved members).
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkApproving, setBulkApproving] = useState(false)
   const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, incomplete: 0 })
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<SortOption>("newest")
@@ -920,6 +938,40 @@ export default function FAMembersPage() {
   }, [tab])
 
   useEffect(() => { load() }, [load])
+  // Selection is per-tab; never carry ids across a tab switch.
+  useEffect(() => { setSelected(new Set()) }, [tab])
+
+  // Bulk approve is offered on any tab whose members aren't already approved.
+  const selectable = tab !== "approved"
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }, [])
+
+  const bulkApprove = async () => {
+    const ids = Array.from(selected)
+    if (!ids.length) return
+    setBulkApproving(true)
+    try {
+      const res = await faMemberApi.bulkApprove(ids)
+      const d = res?.data ?? {}
+      const approved = d.approved ?? ids.length
+      toast.success(
+        `Approved ${approved} member${approved === 1 ? "" : "s"}` +
+        (d.already_approved ? ` · ${d.already_approved} already approved` : "")
+      )
+      setSelected(new Set())
+      await load()
+    } catch (e: any) {
+      toast.error(e?.message || "Bulk approve failed")
+    } finally {
+      setBulkApproving(false)
+    }
+  }
 
   // ─── Filtered + Sorted members ──────────────────────────────────
   const filteredMembers = useMemo(() => {
@@ -1082,8 +1134,47 @@ export default function FAMembersPage() {
             </Card>
           ) : (
             <div className="space-y-3">
+              {selectable && filteredMembers.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/30 px-4 py-2.5">
+                  <Checkbox
+                    checked={selected.size > 0 && selected.size === filteredMembers.length}
+                    onCheckedChange={(v) =>
+                      setSelected(v ? new Set(filteredMembers.map((m) => m.id)) : new Set())
+                    }
+                    aria-label="Select all members"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {selected.size > 0
+                      ? `${selected.size} of ${filteredMembers.length} selected`
+                      : `Select all ${filteredMembers.length}`}
+                  </span>
+                  {selected.size > 0 && (
+                    <div className="ml-auto flex items-center gap-2">
+                      <Button size="sm" variant="ghost" disabled={bulkApproving} onClick={() => setSelected(new Set())}>
+                        Clear
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={bulkApproving}
+                        onClick={bulkApprove}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        {bulkApproving
+                          ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Approving…</>
+                          : <><Check className="h-4 w-4 mr-1" />Approve {selected.size} selected</>}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
               {filteredMembers.map((m) => (
-                <MemberCard key={m.id} member={m} onAction={load} />
+                <MemberCard
+                  key={m.id}
+                  member={m}
+                  onAction={load}
+                  selected={selected.has(m.id)}
+                  onToggleSelect={selectable ? toggleSelect : undefined}
+                />
               ))}
             </div>
           )}
