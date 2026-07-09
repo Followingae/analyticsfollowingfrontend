@@ -230,6 +230,32 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
     }
   }
 
+  // Superadmin override: enrol a creator the brand rejected by accident. Hits the
+  // force-approve endpoint (approved-by-Following), which runs the same enrolment
+  // side-effects as a normal approval and clears the rejection everywhere.
+  const forceApprove = async () => {
+    if (!participant) return
+    setBusy("approve")
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/participants/${participant.participant_id}/force-approve`,
+        { method: "POST", headers: getAuthHeaders() }
+      )
+      if (!res.ok) {
+        let msg = ""
+        try { msg = (await res.json())?.detail } catch { msg = await res.text() }
+        throw new Error(msg || "Enrol failed")
+      }
+      toast.success("Enrolled by Following — creator notified")
+      onChanged?.()
+      onOpenChange(false)
+    } catch (e: any) {
+      toast.error(e.message || "Could not enrol")
+    } finally {
+      setBusy(null)
+    }
+  }
+
   // Brand-side content review ONLY (stage 1): approve-content lets the creator
   // post; request-edit asks for bounded revisions. The proof-of-posting stage
   // (verify/reject) is owned by the Following team — the brand confirm endpoint
@@ -270,9 +296,10 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   const barterItems: any[] = Array.isArray(participant?.barter?.items) ? participant!.barter.items : []
   // Scoped agency managers (account/talent) curate + view; approve/reject is the
   // brand's (or Following team's) decision, so hide those actions from them.
-  const { isStaff, isFullAccessStaff } = useAdminAccess()
+  const { isStaff, isFullAccessStaff, isSuperAdmin } = useAdminAccess()
   const canDecide = !(isStaff && !isFullAccessStaff)
   const isPending = participant?.status === "pending_brand_approval"
+  const isBrandRejected = participant?.status === "brand_rejected"
 
   const submittedCount = deliverables.filter((d) => d.status === "submitted" || d.content_status === "submitted").length
   const verifiedCount = deliverables.filter((d) => d.status === "verified").length
@@ -347,9 +374,23 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                   <div className="flex items-center gap-2 mt-3 rounded-lg border border-amber-300/40 bg-amber-500/5 p-2.5">
                     <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
                     <span className="text-xs text-amber-700 flex-1">Awaiting your approval. Review their analytics, then decide.</span>
-                    <Button size="sm" disabled={!!busy} onClick={() => participantAction("approve")}>
-                      {busy === "approve" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5 mr-1" />Approve</>}
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" disabled={!!busy}>
+                          {busy === "approve" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5 mr-1" />Approve</>}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Approve @{username}?</AlertDialogTitle>
+                          <AlertDialogDescription>They’ll be enrolled in this campaign and notified right away. Please double-check before confirming.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => participantAction("approve")}>Confirm approval</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" variant="outline" disabled={!!busy}><X className="h-3.5 w-3.5 mr-1" />Reject</Button>
@@ -365,6 +406,32 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                           <AlertDialogAction onClick={() => participantAction("reject", rejectReason)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                             Confirm rejection
                           </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
+                {isBrandRejected && isSuperAdmin && (
+                  <div className="flex items-center gap-2 mt-3 rounded-lg border border-rose-300/40 bg-rose-500/5 p-2.5">
+                    <X className="h-4 w-4 text-rose-600 shrink-0" />
+                    <span className="text-xs text-rose-700 flex-1">Rejected by the brand. Enrol anyway as Following (e.g. an accidental reject)?</span>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" disabled={!!busy}>
+                          {busy === "approve" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5 mr-1" />Approve anyway</>}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Enrol @{username} as Following?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This overrides the brand’s rejection. The creator will be enrolled, marked “approved by Following”,
+                            and notified. Use this only when the brand rejected by mistake.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={forceApprove}>Enrol anyway</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
