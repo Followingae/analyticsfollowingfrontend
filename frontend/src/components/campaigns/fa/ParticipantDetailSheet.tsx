@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   Check, X, Loader2, BarChart3, Instagram, Film, ImageIcon, Camera, Layers,
   Gift, Coins, QrCode, CheckCircle2, Clock, Sparkles, ExternalLink, BadgeCheck, Bot, Pencil,
+  Mail, Phone, MessageCircle, Lock,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FirstPartyAudienceAnalytics } from "@/components/analytics/FirstPartyAudienceAnalytics"
@@ -69,6 +70,9 @@ export interface ParticipantLike {
     full_name?: string; instagram_username?: string; avatar_url?: string; tier?: string
     followers_count?: number; engagement_rate?: number | null; posts_count?: number; analytics_pending?: boolean
     bio?: string | null; content_niche?: string[] | null
+    // Following-staff only. Backend returns null for brand users and for offline
+    // (team-suggested) creators, who have no app account.
+    contact?: { email?: string | null; phone?: string | null } | null
     // First-party (Instagram Graph) vs AI/Apify-estimated analytics envelope.
     analytics?: CreatorAnalyticsBundle | null
   }
@@ -389,6 +393,49 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                     </Button>
                   )}
                 </div>
+
+                {/* Creator contact. Internal only: the backend returns `contact` solely to
+                    Following staff, never to brand users. Team-suggested (offline) creators
+                    have no app account, so there is nothing on file. */}
+                {(participant.member.contact || isStaff || isSuperAdmin) && (
+                  <div className="mt-3 rounded-lg border bg-muted/30 p-3">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <Lock className="h-3 w-3" />Creator contact · internal only
+                    </div>
+                    {participant.member.contact ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {participant.member.contact.email && (
+                          <Button size="sm" variant="outline" asChild className="gap-1.5">
+                            <a href={`mailto:${participant.member.contact.email}`}>
+                              <Mail className="h-3.5 w-3.5" />{participant.member.contact.email}
+                            </a>
+                          </Button>
+                        )}
+                        {participant.member.contact.phone && (
+                          <>
+                            <Button size="sm" variant="outline" asChild className="gap-1.5">
+                              <a href={`tel:${participant.member.contact.phone}`}>
+                                <Phone className="h-3.5 w-3.5" />{participant.member.contact.phone}
+                              </a>
+                            </Button>
+                            <Button size="sm" variant="outline" asChild className="gap-1.5">
+                              <a href={`https://wa.me/${participant.member.contact.phone.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer">
+                                <MessageCircle className="h-3.5 w-3.5" />WhatsApp
+                              </a>
+                            </Button>
+                          </>
+                        )}
+                        {!participant.member.contact.email && !participant.member.contact.phone && (
+                          <span className="text-xs text-muted-foreground">No email or mobile on file for this creator.</span>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        Team-suggested creator, not on the Following app. No email or mobile on file.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {isPending && !canDecide && (
                   <div className="flex items-center gap-2 mt-3 rounded-lg border border-amber-300/40 bg-amber-500/5 p-2.5">

@@ -68,6 +68,8 @@ interface Participant {
     posts_count?: number
     // True while our analytics pipeline is still running on an offline suggestion.
     analytics_pending?: boolean
+    // Following-staff only; null for brand users and for offline (team-suggested) creators.
+    contact?: { email?: string | null; phone?: string | null } | null
     // First-party (Instagram) vs AI/Apify-estimated analytics envelope.
     analytics?: CreatorAnalyticsBundle | null
   }
