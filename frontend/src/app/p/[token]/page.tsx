@@ -6,17 +6,19 @@ import { motion } from 'motion/react'
 import { API_CONFIG } from '@/config/api'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Lock, CheckCircle2, Download, CreditCard, ArrowRight, ShieldCheck, Users } from 'lucide-react'
+import {
+  Lock, Check, FileSignature, CreditCard, Users, Download, ArrowRight,
+  ShieldCheck, Sparkles, Wallet, CalendarClock,
+} from 'lucide-react'
 
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/proposals`
 
 // ---------- formatting ----------
 const money = (n: number | null | undefined) =>
-  n == null ? '—' : `AED ${Number(n).toLocaleString('en-AE')}`
+  n == null ? null : `AED ${Number(n).toLocaleString('en-AE')}`
 const compact = (n: number | null | undefined) =>
-  n == null ? '—' : new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n))
+  n == null ? null : new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n))
 
-// Deterministic gradient + initials — avatar fallback when a creator has no photo.
 const AV_GRADIENTS = [
   'from-violet-500 to-fuchsia-500', 'from-sky-500 to-indigo-500', 'from-emerald-500 to-teal-500',
   'from-amber-500 to-orange-500', 'from-rose-500 to-pink-500', 'from-cyan-500 to-blue-500',
@@ -39,44 +41,39 @@ function Logo({ className = 'h-6 w-auto' }: { className?: string }) {
   )
 }
 
-// Quiet status — a dot + label, never a loud pill.
-function Status({ tone = 'muted', children }: { tone?: 'muted' | 'done' | 'wait'; children: React.ReactNode }) {
-  const dot = tone === 'done' ? 'bg-emerald-500' : tone === 'wait' ? 'bg-amber-500' : 'bg-muted-foreground/50'
-  const text = tone === 'done' ? 'text-emerald-600 dark:text-emerald-500'
-    : tone === 'wait' ? 'text-amber-600 dark:text-amber-500' : 'text-muted-foreground'
-  return (
-    <span className={`inline-flex items-center gap-2 text-sm font-medium ${text}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />{children}
-    </span>
-  )
-}
-
-const Eyebrow = ({ children }: { children: React.ReactNode }) => (
-  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">{children}</div>
-)
-
 function Reveal({ children, delay = 0, className }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }} className={className}>
+      viewport={{ once: true, margin: '-50px' }}
+      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }} className={className}>
       {children}
     </motion.div>
   )
 }
 
-// One numbered step in the get-started flow.
-function Step({ n, done, title, children }: { n: string; done: boolean; title: string; children: React.ReactNode }) {
+// A blurred, locked placeholder creator card. Builds anticipation for the lineup.
+function GhostCard({ i }: { i: number }) {
+  const { grad } = avatarFor(`ghost-${i}`)
   return (
-    <div className="grid grid-cols-[2.5rem_1fr] gap-x-5 sm:gap-x-8 border-t border-border py-10">
-      <div className={`text-2xl font-light tabular-nums leading-none pt-0.5 transition-colors ${done ? 'text-primary' : 'text-muted-foreground/40'}`}>{n}</div>
-      <div>
-        <div className="flex items-center gap-2.5">
-          <h3 className="text-xl font-medium tracking-tight">{title}</h3>
-          {done && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="p-5 select-none blur-[6px] pointer-events-none">
+        <div className="flex items-center gap-3">
+          <div className={`h-12 w-12 rounded-full bg-gradient-to-br ${grad} opacity-70`} />
+          <div className="space-y-2">
+            <div className="h-3.5 w-24 rounded-full bg-muted" />
+            <div className="h-3 w-16 rounded-full bg-muted" />
+          </div>
         </div>
-        <div className="mt-5 space-y-3">{children}</div>
+        <div className="mt-5 flex items-center justify-between">
+          <div className="h-3 w-20 rounded-full bg-muted" />
+          <div className="h-4 w-14 rounded-full bg-muted" />
+        </div>
+      </div>
+      <div className="absolute inset-0 grid place-items-center bg-background/40">
+        <div className="grid h-10 w-10 place-items-center rounded-full border border-border bg-background/90 shadow-sm">
+          <Lock className="h-4 w-4 text-muted-foreground" />
+        </div>
       </div>
     </div>
   )
@@ -90,8 +87,6 @@ export default function PublicProposalPage() {
   const [data, setData] = useState<any>(null)
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [active, setActive] = useState('overview')
-  const sections = useRef<Record<string, HTMLElement | null>>({})
 
   const load = useCallback(async () => {
     setLoading(true); setErr(null)
@@ -107,20 +102,7 @@ export default function PublicProposalPage() {
   }, [token])
   useEffect(() => { if (token) load() }, [token, load])
 
-  useEffect(() => {
-    if (!data) return
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)
-        if (vis[0]) setActive(vis[0].target.id)
-      },
-      { rootMargin: '-45% 0px -45% 0px', threshold: [0, 0.25, 0.5, 1] },
-    )
-    Object.values(sections.current).forEach((el) => el && obs.observe(el))
-    return () => obs.disconnect()
-  }, [data])
-
-  // The calm loading screen (kept — this is the moment that feels right).
+  // The calm loading screen (kept as-is).
   if (loading) return (
     <div className="min-h-screen grid place-items-center bg-background">
       <div className="flex flex-col items-center gap-5 text-muted-foreground">
@@ -149,126 +131,143 @@ export default function PublicProposalPage() {
   const total = gate?.total_influencers ?? influencers.length
   const shown = gate?.shown ?? influencers.filter((i: any) => !i.locked).length
   const lockedCount = Math.max(0, total - shown)
-  const hasGate = !gate?.unlocked
-  const noInfluencers = total === 0 // commercial-first — creators curated + revealed after payment
+  const unlocked = !!gate?.unlocked
+  const noInfluencers = total === 0
+  const agreementDone = !!gate?.agreement_signed
+  const advanceDone = !!gate?.advance_paid
+  const value = proposal.total ?? advance_invoice?.amount_aed ?? null
 
-  const navItems = [
-    { id: 'overview', label: 'Overview' },
-    ...(hasGate ? [{ id: 'unlock', label: 'Get started' }] : []),
-    { id: 'creators', label: 'Creators' },
-    ...((schedule.length || invoices?.length) ? [{ id: 'payment', label: 'Payment' }] : []),
+  // 3-stage progress tracker.
+  const stages = [
+    { key: 'agreement', label: 'Agreement', done: agreementDone },
+    { key: 'advance', label: 'Advance', done: advanceDone },
+    { key: 'creators', label: 'Creators', done: unlocked },
   ]
-  const setRef = (id: string) => (el: HTMLElement | null) => { sections.current[id] = el }
+  const doneCount = stages.filter((s) => s.done).length
 
   return (
     <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/20">
       {/* ---------- header ---------- */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto max-w-5xl px-6 h-16 flex items-center">
+        <div className="mx-auto max-w-6xl px-5 h-16 flex items-center gap-4">
           <Logo className="h-6 w-auto" />
-          <nav className="ml-auto hidden md:flex items-center gap-6">
-            {navItems.map((n) => (
-              <button key={n.id} onClick={() => scrollTo(n.id)}
-                className={`text-sm transition-colors ${active === n.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                {n.label}
-              </button>
-            ))}
-          </nav>
-          <div className="ml-auto md:ml-8">
-            {gate?.unlocked
-              ? <Status tone="done">Full access</Status>
-              : noInfluencers ? <Status>Step 1 of 2</Status> : <Status>{shown} of {total} unlocked</Status>}
+          <div className="ml-auto flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-1.5">
+              {stages.map((s) => (
+                <span key={s.key} title={s.label}
+                  className={`h-1.5 w-6 rounded-full ${s.done ? 'bg-primary' : 'bg-muted'}`} />
+              ))}
+            </div>
+            <span className="text-sm font-medium text-muted-foreground tabular-nums">
+              {unlocked ? 'Complete' : `${doneCount}/3`}
+            </span>
           </div>
         </div>
       </header>
 
-      {/* ---------- hero ---------- */}
-      <section id="overview" ref={setRef('overview')}>
-        <div className={`mx-auto max-w-3xl px-6 pt-24 sm:pt-32 ${proposal.cover_image_url ? 'pb-12' : 'pb-20 sm:pb-24'}`}>
-          <Reveal><Eyebrow>Campaign proposal</Eyebrow></Reveal>
-          <Reveal delay={0.06}>
-            <h1 className="mt-6 text-4xl sm:text-6xl font-semibold tracking-tight leading-[1.03]">
-              {proposal.campaign_name || proposal.title}
-            </h1>
-          </Reveal>
-          {proposal.description && (
-            <Reveal delay={0.12}>
-              <p className="mt-5 max-w-2xl text-sm sm:text-base text-muted-foreground leading-relaxed">{proposal.description}</p>
-            </Reveal>
-          )}
-          <Reveal delay={0.18}>
-            <div className="mt-8 flex items-center gap-5">
-              <Button size="lg" className="gap-2 rounded-full px-6"
-                onClick={() => scrollTo(hasGate ? 'unlock' : 'creators')}>
-                {hasGate ? 'Get started' : 'View the creators'} <ArrowRight className="h-4 w-4" />
-              </Button>
-              {(proposal.total != null || advance_invoice?.amount_aed != null) && (
-                <div className="text-sm text-muted-foreground">
-                  {proposal.total != null
-                    ? <><span className="text-foreground font-medium">{money(proposal.total)}</span> campaign value</>
-                    : <><span className="text-foreground font-medium">{money(advance_invoice.amount_aed)}</span> advance</>}
-                </div>
+      <main className="mx-auto max-w-6xl px-5">
+        {/* ---------- cover hero ---------- */}
+        <section className="pt-8 sm:pt-10">
+          <Reveal>
+            <div className="relative overflow-hidden rounded-3xl border border-border bg-muted">
+              {proposal.cover_image_url ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={proposal.cover_image_url} alt={proposal.campaign_name || 'Campaign'}
+                    className="h-[46vh] min-h-[320px] w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                </>
+              ) : (
+                <div className="h-[38vh] min-h-[280px] w-full bg-gradient-to-br from-primary/25 to-primary/5" />
               )}
+              <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10">
+                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${proposal.cover_image_url ? 'bg-white/15 text-white backdrop-blur' : 'bg-primary/10 text-primary'}`}>
+                  <Sparkles className="h-3 w-3" />Campaign proposal
+                </div>
+                <h1 className={`mt-4 max-w-3xl text-4xl sm:text-6xl font-semibold tracking-tight leading-[1.03] ${proposal.cover_image_url ? 'text-white' : ''}`}>
+                  {proposal.campaign_name || proposal.title}
+                </h1>
+                {proposal.description && (
+                  <p className={`mt-3 max-w-2xl text-sm sm:text-[15px] leading-relaxed ${proposal.cover_image_url ? 'text-white/80' : 'text-muted-foreground'}`}>
+                    {proposal.description}
+                  </p>
+                )}
+              </div>
             </div>
           </Reveal>
-        </div>
-        {proposal.cover_image_url && (
-          <div className="mx-auto max-w-5xl px-6 pb-20 sm:pb-24">
-            <Reveal delay={0.22}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={proposal.cover_image_url} alt={proposal.campaign_name || 'Campaign cover'}
-                className="w-full aspect-[16/9] object-cover rounded-2xl border border-border bg-muted" />
-            </Reveal>
-          </div>
-        )}
-      </section>
 
-      {/* ---------- get started (gate) ---------- */}
-      {hasGate && (
-        <section id="unlock" ref={setRef('unlock')} className="border-t border-border scroll-mt-16">
-          <div className="mx-auto max-w-3xl px-6 py-20 sm:py-28">
+          {/* ---------- stat + progress bar ---------- */}
+          <Reveal delay={0.06}>
+            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-stretch">
+              <div className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                <Stat icon={Wallet} label="Campaign value" value={money(value) ?? 'On request'} />
+                <Stat icon={Users} label="Creators" value={noInfluencers ? 'Reserved' : String(total)} />
+                <Stat icon={CalendarClock} label="Milestones" value={String(schedule.length || invoices?.length || 1)} />
+              </div>
+              <div className="flex items-center justify-between gap-6 rounded-2xl border border-border bg-card px-5 py-4 sm:min-w-[240px]">
+                <div>
+                  <div className="text-xs text-muted-foreground">Progress</div>
+                  <div className="text-lg font-semibold">{unlocked ? 'All set' : `${doneCount} of 3 done`}</div>
+                </div>
+                <div className="relative h-11 w-11">
+                  <svg viewBox="0 0 36 36" className="h-11 w-11 -rotate-90">
+                    <circle cx="18" cy="18" r="15.5" fill="none" className="stroke-muted" strokeWidth="3" />
+                    <circle cx="18" cy="18" r="15.5" fill="none" className="stroke-primary" strokeWidth="3" strokeLinecap="round"
+                      strokeDasharray={`${(doneCount / 3) * 97.4} 97.4`} />
+                  </svg>
+                  <div className="absolute inset-0 grid place-items-center text-xs font-semibold tabular-nums">{Math.round((doneCount / 3) * 100)}%</div>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+        </section>
+
+        {/* ---------- get started ---------- */}
+        {!unlocked && (
+          <section id="unlock" className="pt-14 sm:pt-20 scroll-mt-20">
             <Reveal>
-              <Eyebrow>Get started</Eyebrow>
-              <h2 className="mt-5 text-3xl sm:text-4xl font-semibold tracking-tight">Two steps to begin</h2>
-              <p className="mt-4 text-muted-foreground leading-relaxed">
-                {noInfluencers
-                  ? 'Confirm the agreement and advance to kick off your campaign. Your curated creator lineup is revealed — in full, with pricing — once your advance is confirmed.'
-                  : `You’re previewing ${shown} of ${total} creators. Once the agreement is in place and the advance is settled, all ${lockedCount} remaining creators are revealed with full pricing.`}
-              </p>
+              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/10 text-xs">1</span>Get started
+              </div>
+              <h2 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight">Two quick steps to kick off</h2>
             </Reveal>
 
-            <Reveal delay={0.06}>
-              <div className="mt-10">
-                <Step n="01" done={!!gate.agreement_signed} title="Agreement">
-                  {gate.agreement_signed ? (
-                    <>
-                      <Status tone="done">Signed by both parties</Status>
-                      {agreement?.file_url && (
-                        <a href={agreement.file_url} target="_blank" rel="noreferrer" className="block">
-                          <Button variant="outline" className="gap-2 rounded-full"><Download className="h-4 w-4" />Download agreement</Button>
-                        </a>
-                      )}
-                    </>
+            <div className="mt-8 grid gap-4 md:grid-cols-2">
+              {/* Agreement */}
+              <Reveal delay={0.05}>
+                <ActionCard n="1" done={agreementDone} icon={FileSignature} title="Agreement"
+                  status={agreementDone ? { tone: 'done', text: 'Signed by both parties' }
+                    : agreement?.file_url ? { tone: 'wait', text: 'Awaiting your signature' }
+                    : { tone: 'idle', text: 'Coming shortly' }}>
+                  {agreementDone ? (
+                    agreement?.file_url && (
+                      <a href={agreement.file_url} target="_blank" rel="noreferrer">
+                        <Button variant="outline" className="gap-2 rounded-xl"><Download className="h-4 w-4" />Download agreement</Button>
+                      </a>
+                    )
                   ) : agreement?.file_url ? (
                     <>
-                      <Status tone="wait">Awaiting your signature</Status>
-                      <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
-                        Download the agreement, sign it, and email the signed copy back to us — we’ll update the status here once it’s received.
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Download the agreement, sign it, and email the signed copy back to us. We’ll update the status here once it’s received.
                       </p>
-                      <a href={agreement.file_url} target="_blank" rel="noreferrer" className="block">
-                        <Button className="gap-2 rounded-full"><Download className="h-4 w-4" />Download to sign</Button>
+                      <a href={agreement.file_url} target="_blank" rel="noreferrer">
+                        <Button className="gap-2 rounded-xl"><Download className="h-4 w-4" />Download to sign</Button>
                       </a>
                     </>
                   ) : (
-                    <p className="text-sm text-muted-foreground">The agreement will appear here shortly.</p>
+                    <p className="text-sm text-muted-foreground">Your agreement will appear here shortly.</p>
                   )}
-                </Step>
+                </ActionCard>
+              </Reveal>
 
-                <Step n="02" done={!!gate.advance_paid} title="Advance payment">
+              {/* Advance */}
+              <Reveal delay={0.1}>
+                <ActionCard n="2" done={advanceDone} icon={CreditCard} title="Advance payment"
+                  status={advanceDone ? { tone: 'done', text: 'Payment received' }
+                    : advance_invoice ? { tone: 'wait', text: 'Awaiting payment' }
+                    : { tone: 'idle', text: 'Coming shortly' }}>
                   {advance_invoice ? (
-                    gate.advance_paid ? (
-                      <Status tone="done">Payment received</Status>
-                    ) : (
+                    advanceDone ? null : (
                       <>
                         {advance_invoice.amount_aed != null && (
                           <div className="text-3xl font-semibold tracking-tight">
@@ -276,194 +275,229 @@ export default function PublicProposalPage() {
                             {advance_invoice.payment_terms && <span className="ml-2 text-sm font-normal text-muted-foreground">{advance_invoice.payment_terms}</span>}
                           </div>
                         )}
-                        <div className="flex flex-wrap gap-2 pt-1">
+                        <div className="flex flex-wrap gap-2">
                           {advance_invoice.invoice_file_url && (
                             <a href={advance_invoice.invoice_file_url} target="_blank" rel="noreferrer">
-                              <Button className="gap-2 rounded-full"><Download className="h-4 w-4" />Download invoice</Button>
+                              <Button className="gap-2 rounded-xl"><Download className="h-4 w-4" />Download invoice</Button>
                             </a>
                           )}
                           {advance_invoice.payment_link_url && (
                             <a href={advance_invoice.payment_link_url} target="_blank" rel="noreferrer">
-                              <Button variant="outline" className="gap-2 rounded-full"><CreditCard className="h-4 w-4" />Pay online</Button>
+                              <Button variant="outline" className="gap-2 rounded-xl"><CreditCard className="h-4 w-4" />Pay online</Button>
                             </a>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
-                          The invoice includes our bank-transfer &amp; cheque details. Prefer a payment link? Just let your account manager know.
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          The invoice includes our bank transfer and cheque details. Need a payment link instead? Just let your account manager know.
                         </p>
                       </>
                     )
                   ) : (
-                    <p className="text-sm text-muted-foreground">The advance invoice will appear here shortly.</p>
+                    <p className="text-sm text-muted-foreground">Your advance invoice will appear here shortly.</p>
                   )}
-                </Step>
-                <div className="border-t border-border" />
-              </div>
-            </Reveal>
+                </ActionCard>
+              </Reveal>
+            </div>
 
-            <Reveal delay={0.1}>
-              <div className="mt-6 flex items-center gap-2 text-xs text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5" />Handled securely. Your details are never shared.
-              </div>
-            </Reveal>
-          </div>
-        </section>
-      )}
+            <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+              <ShieldCheck className="h-3.5 w-3.5" />Handled securely. Your details are never shared.
+            </div>
+          </section>
+        )}
 
-      {/* ---------- creators ---------- */}
-      <section id="creators" ref={setRef('creators')} className="border-t border-border scroll-mt-16">
-        <div className="mx-auto max-w-5xl px-6 py-20 sm:py-28">
+        {/* ---------- creators ---------- */}
+        <section id="creators" className="pt-14 sm:pt-20 scroll-mt-20">
           <Reveal>
             <div className="flex items-end justify-between gap-4 flex-wrap">
               <div>
-                <Eyebrow>The lineup</Eyebrow>
-                <h2 className="mt-5 text-3xl sm:text-4xl font-semibold tracking-tight">Your creators</h2>
+                <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/10 text-xs">{unlocked ? <Check className="h-3.5 w-3.5" /> : '2'}</span>
+                  The lineup
+                </div>
+                <h2 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight">
+                  {unlocked ? 'Your creators' : 'Your creators, unlocking soon'}
+                </h2>
               </div>
-              {gate?.unlocked
-                ? <Status tone="done">{noInfluencers ? 'Being finalized' : 'Full list unlocked'}</Status>
-                : noInfluencers ? <Status>Curated after payment</Status> : <Status>{lockedCount} locked</Status>}
+              {!unlocked && (
+                <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm">
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                  {noInfluencers ? 'Revealed after your advance' : `${lockedCount} more unlock after payment`}
+                </div>
+              )}
             </div>
           </Reveal>
 
-          {noInfluencers ? (
-            <Reveal delay={0.06}>
-              <div className="mt-16 flex flex-col items-center text-center">
-                <div className="grid h-14 w-14 place-items-center rounded-full border border-border">
-                  {gate?.unlocked ? <Users className="h-6 w-6 text-muted-foreground" /> : <Lock className="h-5 w-5 text-muted-foreground" />}
+          {!unlocked && (
+            <Reveal delay={0.05}>
+              <p className="mt-3 max-w-2xl text-sm text-muted-foreground leading-relaxed">
+                {noInfluencers
+                  ? 'We’re hand-picking creators for this campaign. The full lineup, with real profiles and pricing, is revealed the moment your advance is confirmed.'
+                  : 'A preview is shown below. Complete the two steps above to reveal every creator in full, with pricing.'}
+              </p>
+            </Reveal>
+          )}
+
+          {/* grid: real cards (samples/unlocked) + ghost cards to fill anticipation */}
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {influencers.map((inf: any, idx: number) => {
+              const { grad, initials } = avatarFor(inf.username || inf.full_name || '?')
+              if (inf.locked) return <Reveal key={inf.id} delay={Math.min(idx * 0.03, 0.24)}><GhostCard i={idx} /></Reveal>
+              return (
+                <Reveal key={inf.id} delay={Math.min(idx * 0.03, 0.24)}>
+                  <div className="rounded-2xl border border-border bg-card p-5 h-full transition-all hover:border-foreground/20 hover:shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={inf.profile_image_url || undefined} alt={inf.username || ''} />
+                        <AvatarFallback className={`bg-gradient-to-br ${grad} text-white text-sm font-bold`}>{initials}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <div className="font-semibold truncate">@{inf.username || 'creator'}</div>
+                        {inf.full_name && <div className="text-sm text-muted-foreground truncate">{inf.full_name}</div>}
+                      </div>
+                    </div>
+                    <div className="mt-5 flex items-center justify-between text-sm">
+                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                        <Users className="h-3.5 w-3.5" />{compact(inf.followers_count) ?? '0'} followers
+                      </span>
+                      {inf.sell_price != null && <span className="font-semibold">{money(inf.sell_price)}</span>}
+                    </div>
+                  </div>
+                </Reveal>
+              )
+            })}
+            {/* Commercial-first: no real rows yet, so tease with ghost cards. */}
+            {noInfluencers && !unlocked && Array.from({ length: 6 }).map((_, i) => (
+              <Reveal key={`ghost-${i}`} delay={Math.min(i * 0.03, 0.24)}><GhostCard i={i} /></Reveal>
+            ))}
+          </div>
+
+          {noInfluencers && unlocked && (
+            <div className="mt-8 rounded-2xl border border-dashed border-border p-10 text-center">
+              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full border border-border"><Users className="h-5 w-5 text-muted-foreground" /></div>
+              <p className="mt-4 font-medium">Your lineup is being finalized</p>
+              <p className="mt-1 text-sm text-muted-foreground">Your advance is confirmed. Your creators will appear here shortly.</p>
+            </div>
+          )}
+
+          {!unlocked && (
+            <Reveal delay={0.12}>
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-primary/25 bg-primary/[0.04] p-6 text-center sm:text-left">
+                <div>
+                  <div className="font-semibold">Ready to meet your creators?</div>
+                  <p className="text-sm text-muted-foreground">Complete the agreement and advance to unlock the full lineup.</p>
                 </div>
-                <p className="mt-6 text-xl font-medium tracking-tight">
-                  {gate?.unlocked ? 'Your lineup is being finalized' : 'Your lineup is being curated'}
-                </p>
-                <p className="mt-2 max-w-md text-muted-foreground leading-relaxed">
-                  {gate?.unlocked
-                    ? 'Your advance is confirmed — your creators will appear here shortly as we finalize the lineup.'
-                    : 'We’re hand-picking creators for this campaign. They’re revealed here in full, with pricing, once your advance is confirmed.'}
-                </p>
-                {hasGate && (
-                  <Button onClick={() => scrollTo('unlock')} className="mt-7 gap-2 rounded-full"><ArrowRight className="h-4 w-4" />Get started</Button>
-                )}
+                <Button onClick={() => scrollTo('unlock')} className="gap-2 rounded-xl shrink-0"><ArrowRight className="h-4 w-4" />Get started</Button>
               </div>
             </Reveal>
-          ) : (
-            <>
-              <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {influencers.map((inf: any, idx: number) => {
-                  const { grad, initials } = avatarFor(inf.username || inf.full_name || '?')
-                  return (
-                    <Reveal key={inf.id} delay={Math.min(idx * 0.035, 0.28)}>
-                      {inf.locked ? (
-                        <div className="relative overflow-hidden rounded-xl border border-border h-full">
-                          <div className="p-5 select-none blur-md pointer-events-none">
-                            <div className="flex items-center gap-3">
-                              <div className="h-11 w-11 rounded-full bg-muted" />
-                              <div className="space-y-2"><div className="h-3.5 w-24 rounded bg-muted" /><div className="h-3 w-16 rounded bg-muted" /></div>
-                            </div>
-                            <div className="mt-4 h-3 w-28 rounded bg-muted" />
-                          </div>
-                          <div className="absolute inset-0 grid place-items-center bg-background/50">
-                            <div className="grid h-9 w-9 place-items-center rounded-full border border-border bg-background/80"><Lock className="h-4 w-4 text-muted-foreground" /></div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="rounded-xl border border-border p-5 h-full transition-colors hover:border-foreground/20">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-11 w-11">
-                              <AvatarImage src={inf.profile_image_url || undefined} alt={inf.username || ''} />
-                              <AvatarFallback className={`bg-gradient-to-br ${grad} text-white text-sm font-bold`}>{initials}</AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0">
-                              <div className="font-medium truncate">@{inf.username || '—'}</div>
-                              {inf.full_name && <div className="text-sm text-muted-foreground truncate">{inf.full_name}</div>}
-                            </div>
-                          </div>
-                          <div className="mt-4 flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">{inf.followers_count ? `${compact(inf.followers_count)} followers` : '—'}</span>
-                            {inf.sell_price != null && <span className="font-medium">{money(inf.sell_price)}</span>}
-                          </div>
-                        </div>
-                      )}
-                    </Reveal>
-                  )
-                })}
-              </div>
+          )}
+        </section>
 
-              {hasGate && lockedCount > 0 && (
-                <Reveal delay={0.1}>
-                  <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border pt-8 text-center sm:text-left">
-                    <div>
-                      <div className="font-medium">{lockedCount} more {lockedCount === 1 ? 'creator' : 'creators'} in the full list</div>
-                      <p className="text-sm text-muted-foreground">Complete the two steps to reveal everyone with pricing.</p>
+        {/* ---------- payment ---------- */}
+        {(schedule.length > 0 || (invoices && invoices.length > 0)) && (
+          <section id="payment" className="pt-14 sm:pt-20 scroll-mt-20">
+            <Reveal>
+              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/10"><Wallet className="h-3.5 w-3.5" /></span>Payment plan
+              </div>
+              <h2 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight">Clear, milestone-based pricing</h2>
+            </Reveal>
+
+            <div className="mt-8 grid gap-4 lg:grid-cols-2">
+              {schedule.length > 0 && (
+                <Reveal delay={0.05}>
+                  <div className="rounded-2xl border border-border bg-card p-6">
+                    <div className="text-sm font-semibold text-muted-foreground">Milestones</div>
+                    <div className="mt-5 flex flex-wrap gap-x-8 gap-y-4">
+                      {schedule.map((m: any, i: number) => (
+                        <div key={i}>
+                          <div className="text-2xl font-semibold tracking-tight tabular-nums">{m.pct}%</div>
+                          <div className="text-sm text-muted-foreground">{m.label}</div>
+                        </div>
+                      ))}
                     </div>
-                    <Button onClick={() => scrollTo('unlock')} className="gap-2 rounded-full shrink-0"><ArrowRight className="h-4 w-4" />Get started</Button>
                   </div>
                 </Reveal>
               )}
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* ---------- payment ---------- */}
-      {(schedule.length > 0 || (invoices && invoices.length > 0)) && (
-        <section id="payment" ref={setRef('payment')} className="border-t border-border scroll-mt-16">
-          <div className="mx-auto max-w-3xl px-6 py-20 sm:py-28">
-            <Reveal>
-              <Eyebrow>Transparent pricing</Eyebrow>
-              <h2 className="mt-5 text-3xl sm:text-4xl font-semibold tracking-tight">Payment plan</h2>
-            </Reveal>
-
-            {schedule.length > 0 && (
-              <Reveal delay={0.05}>
-                <div className="mt-12 flex flex-wrap gap-x-8 gap-y-3">
-                  {schedule.map((m: any, i: number) => (
-                    <div key={i} className="flex items-baseline gap-2">
-                      <span className="text-2xl font-semibold tracking-tight tabular-nums">{m.pct}%</span>
-                      <span className="text-sm text-muted-foreground">{m.label}</span>
+              {invoices && invoices.length > 0 && (
+                <Reveal delay={0.08}>
+                  <div className="rounded-2xl border border-border bg-card p-6">
+                    <div className="text-sm font-semibold text-muted-foreground">Invoices</div>
+                    <div className="mt-4 divide-y divide-border">
+                      {invoices.map((inv: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between gap-4 py-3 first:pt-0">
+                          <div className="min-w-0">
+                            <div className="font-medium capitalize truncate">{inv.milestone_label || inv.invoice_type}</div>
+                            {inv.amount_aed != null && <div className="text-sm text-muted-foreground">{money(inv.amount_aed)}</div>}
+                          </div>
+                          <div className="flex items-center gap-4 shrink-0">
+                            <StatusDot tone={inv.status === 'paid' ? 'done' : inv.status === 'partial' ? 'wait' : 'idle'}>
+                              {inv.status === 'paid' ? 'Paid' : inv.status === 'partial' ? 'Partial' : 'Unpaid'}
+                            </StatusDot>
+                            {inv.invoice_file_url && (
+                              <a href={inv.invoice_file_url} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1"><Download className="h-3.5 w-3.5" />Invoice</a>
+                            )}
+                            {inv.status !== 'paid' && inv.payment_link_url && (
+                              <a href={inv.payment_link_url} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">Pay online</a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </Reveal>
-            )}
-
-            {invoices && invoices.length > 0 && (
-              <Reveal delay={0.08}>
-                <div className="mt-12">
-                  {invoices.map((inv: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between gap-4 border-t border-border py-4">
-                      <div className="min-w-0">
-                        <div className="font-medium capitalize truncate">{inv.milestone_label || inv.invoice_type}</div>
-                        {inv.amount_aed != null && <div className="text-sm text-muted-foreground">{money(inv.amount_aed)}</div>}
-                      </div>
-                      <div className="flex items-center gap-4 shrink-0">
-                        {inv.status === 'paid' ? <Status tone="done">Paid</Status>
-                          : inv.status === 'partial' ? <Status tone="wait">Partial</Status>
-                          : <Status>Unpaid</Status>}
-                        {inv.invoice_file_url && (
-                          <a href={inv.invoice_file_url} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-                            <Download className="h-3.5 w-3.5" />Invoice
-                          </a>
-                        )}
-                        {inv.status !== 'paid' && inv.payment_link_url && (
-                          <a href={inv.payment_link_url} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">Pay online</a>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  <div className="border-t border-border" />
-                </div>
-              </Reveal>
-            )}
-          </div>
-        </section>
-      )}
+                  </div>
+                </Reveal>
+              )}
+            </div>
+          </section>
+        )}
+      </main>
 
       {/* ---------- footer ---------- */}
-      <footer className="border-t border-border">
-        <div className="mx-auto max-w-5xl px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+      <footer className="mt-16 border-t border-border">
+        <div className="mx-auto max-w-6xl px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <Logo className="h-5 w-auto opacity-80" />
-          <div className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />Private &amp; confidential — shared only with you.</div>
+          <div className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />Private and confidential. Shared only with you.</div>
         </div>
       </footer>
+    </div>
+  )
+}
+
+// ---------- small building blocks ----------
+function Stat({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="p-5">
+      <Icon className="h-4 w-4 text-muted-foreground" />
+      <div className="mt-3 text-xl font-semibold tracking-tight truncate">{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+    </div>
+  )
+}
+
+function StatusDot({ tone, children }: { tone: 'done' | 'wait' | 'idle'; children: React.ReactNode }) {
+  const dot = tone === 'done' ? 'bg-emerald-500' : tone === 'wait' ? 'bg-amber-500' : 'bg-muted-foreground/50'
+  const text = tone === 'done' ? 'text-emerald-600 dark:text-emerald-500' : tone === 'wait' ? 'text-amber-600 dark:text-amber-500' : 'text-muted-foreground'
+  return <span className={`inline-flex items-center gap-2 text-sm font-medium ${text}`}><span className={`h-1.5 w-1.5 rounded-full ${dot}`} />{children}</span>
+}
+
+function ActionCard({ n, done, icon: Icon, title, status, children }: {
+  n: string; done: boolean; icon: any; title: string
+  status: { tone: 'done' | 'wait' | 'idle'; text: string }; children: React.ReactNode
+}) {
+  return (
+    <div className={`h-full rounded-2xl border bg-card p-6 transition-colors ${done ? 'border-emerald-500/30' : 'border-border'}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`grid h-10 w-10 place-items-center rounded-xl ${done ? 'bg-emerald-500 text-white' : 'bg-primary/10 text-primary'}`}>
+            {done ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Step {n}</div>
+            <div className="font-semibold leading-tight">{title}</div>
+          </div>
+        </div>
+        <StatusDot tone={status.tone}>{status.text}</StatusDot>
+      </div>
+      <div className="mt-5 space-y-3">{children}</div>
     </div>
   )
 }
