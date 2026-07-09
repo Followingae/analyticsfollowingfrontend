@@ -73,6 +73,10 @@ export const proposalApprovalApi = {
       body: JSON.stringify({ notes, target: opts?.target ?? 'talent_manager', requires_full_reapproval: opts?.requires_full_reapproval ?? true }),
     }),
 
+  // Operator: remove a creator from the proposal (allowed through internally_approved/shared).
+  removeInfluencer: (proposalId: string, influencerId: string) =>
+    jfetch(`${BASE}/${proposalId}/influencers/${influencerId}`, { method: 'DELETE' }),
+
   // Per-influencer checker review.
   reviewInfluencer: (proposalId: string, influencerId: string, internalStatus: 'approved' | 'flagged' | 'pending', note?: string) =>
     jfetch(`${BASE}/${proposalId}/influencers/${influencerId}/review`, {

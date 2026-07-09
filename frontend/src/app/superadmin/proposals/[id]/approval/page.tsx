@@ -146,6 +146,11 @@ export default function ProposalApprovalPage() {
                   <CardTitle>Influencers</CardTitle>
                   <CardDescription>{(ws.influencers || []).length} added{budgetVisible ? '' : ' · per-influencer pricing only'}</CardDescription>
                 </div>
+                {viewer.is_operator && (
+                  <Button size="sm" variant="outline" disabled={busy} onClick={() => setShowPicker(true)}>
+                    <UserPlus className="mr-1.5 h-4 w-4" />Add creators
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 <Table>
@@ -186,6 +191,13 @@ export default function ProposalApprovalPage() {
                                     run(() => proposalApprovalApi.reviewInfluencer(proposalId, inf.id, 'flagged', note))
                                   }}>
                                   <Flag className="h-4 w-4 text-orange-600" />
+                                </Button>
+                                <Button size="sm" variant="ghost" disabled={busy} title="Remove from proposal"
+                                  onClick={() => {
+                                    if (window.confirm(`Remove @${inf.username || 'this creator'} from the proposal?`))
+                                      run(() => proposalApprovalApi.removeInfluencer(proposalId, inf.id))
+                                  }}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                               </div>
                             </TableCell>

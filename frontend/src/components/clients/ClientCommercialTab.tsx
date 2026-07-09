@@ -72,7 +72,11 @@ export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2"><FileText className="h-4 w-4" />Agreements</CardTitle>
-            <CardDescription>Upload, send, and attach signed copies. New uploads supersede the prior version.</CardDescription>
+            <CardDescription>
+              Upload the company-signed PDF, then <strong>Send</strong> to show the client “download, sign &amp; email back”.
+              Once their signed copy returns, <strong>Mark signed</strong> (counter-signed / fully executed) — that ticks the
+              agreement gate on the client’s share link. New uploads supersede the prior version.
+            </CardDescription>
           </div>
           <Button size="sm" disabled={busy} onClick={() => agrInput.current?.click()}>
             <Upload className="mr-1 h-4 w-4" />Upload agreement
