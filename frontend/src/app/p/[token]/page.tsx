@@ -170,25 +170,27 @@ export default function PublicProposalPage() {
         <section className="pt-8 sm:pt-10">
           <Reveal>
             <div className="relative overflow-hidden rounded-3xl border border-border bg-muted">
+              {/* background layer — fills whatever height the content needs (no cropping of the title) */}
               {proposal.cover_image_url ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={proposal.cover_image_url} alt={proposal.campaign_name || 'Campaign'}
-                    className="h-[46vh] min-h-[320px] w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                    className="absolute inset-0 h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10" />
                 </>
               ) : (
-                <div className="h-[38vh] min-h-[280px] w-full bg-gradient-to-br from-primary/25 to-primary/5" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-primary/10 to-primary/[0.04]" />
               )}
-              <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10">
-                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${proposal.cover_image_url ? 'bg-white/15 text-white backdrop-blur' : 'bg-primary/10 text-primary'}`}>
+              {/* content in normal flow — container grows to fit the heading */}
+              <div className="relative flex min-h-[320px] sm:min-h-[420px] flex-col justify-end p-6 sm:p-10">
+                <div className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${proposal.cover_image_url ? 'bg-white/15 text-white backdrop-blur' : 'bg-primary/10 text-primary'}`}>
                   <Sparkles className="h-3 w-3" />Campaign proposal
                 </div>
-                <h1 className={`mt-4 max-w-3xl text-4xl sm:text-6xl font-semibold tracking-tight leading-[1.03] ${proposal.cover_image_url ? 'text-white' : ''}`}>
+                <h1 className={`mt-4 max-w-3xl text-3xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.05] break-words hyphens-auto ${proposal.cover_image_url ? 'text-white' : ''}`}>
                   {proposal.campaign_name || proposal.title}
                 </h1>
                 {proposal.description && (
-                  <p className={`mt-3 max-w-2xl text-sm sm:text-[15px] leading-relaxed ${proposal.cover_image_url ? 'text-white/80' : 'text-muted-foreground'}`}>
+                  <p className={`mt-3 max-w-2xl text-sm sm:text-[15px] leading-relaxed line-clamp-3 ${proposal.cover_image_url ? 'text-white/85' : 'text-muted-foreground'}`}>
                     {proposal.description}
                   </p>
                 )}
