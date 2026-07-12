@@ -174,6 +174,12 @@ export const faMemberApi = {
 }
 
 // ─── SUPERADMIN: FA Deliverables ─────────────────────────────────────
+export const faReliabilityApi = {
+  /** APP creators with their reliability score, standing + open overdue deliverables. */
+  list: (onlyAtRisk = false) =>
+    get(`/api/v1/admin/fa/reliability${onlyAtRisk ? '?only_at_risk=true' : ''}`),
+}
+
 export const faDeliverableApi = {
   /** @deprecated submitted-only view — use listAll for full pipeline visibility. */
   listPending: () => get('/api/v1/admin/fa/deliverables/pending'),

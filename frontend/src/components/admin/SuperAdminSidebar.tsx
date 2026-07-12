@@ -124,6 +124,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     { title: "Merchants", url: "/superadmin/fa/merchants", icon: Store },
     { title: "FA Campaigns", url: "/superadmin/fa/campaigns", icon: Megaphone },
     { title: "Deliverables", url: "/superadmin/fa/deliverables", icon: ClipboardCheck },
+    { title: "Reliability", url: "/superadmin/fa/reliability", icon: ShieldCheck },
     { title: "Withdrawals", url: "/superadmin/fa/withdrawals", icon: Banknote },
     { title: "Creator Wallets", url: "/superadmin/fa/wallets", icon: Wallet },
     { title: "Receipt Claims", url: "/superadmin/fa/receipt-claims", icon: Receipt },
