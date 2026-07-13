@@ -215,14 +215,17 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
 
   // Upload deliverable content on behalf of an offline / team-suggested creator
   // (they're not in the app). Flows into the same brand approve-content review.
-  const uploadOfflineContent = async (d: Deliverable, files: File[]) => {
+  // Shared presigned direct-to-R2 upload for offline/team-suggested deliverables.
+  // kind="content" -> stage 1 (brand review); kind="proof" -> stage 2 (proof of
+  // posting, submitted on the creator's behalf → Following team verifies).
+  const runPresignedUpload = async (d: Deliverable, files: File[], kind: "content" | "proof") => {
     if (!participant || files.length === 0) return
     const base = `${API_CONFIG.BASE_URL}/api/v1/admin/fa/campaigns/${campaignId}/participants/${participant.participant_id}/deliverables/${d.id}`
     setUploadingId(d.id)
     setUploadPct(0)
     try {
       // 1. Ask the API for one presigned R2 PUT URL per file (tiny JSON request).
-      const urlRes = await fetchWithAuth(`${base}/content-upload-urls`, {
+      const urlRes = await fetchWithAuth(`${base}/${kind}-upload-urls`, {
         method: "POST",
         headers: { ...getAuthHeaders() },
         body: JSON.stringify({ files: files.map((f) => ({ content_type: f.type || "application/octet-stream" })) }),
@@ -244,8 +247,8 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
         keys.push(u.key)
       }
 
-      // 3. Confirm — the API verifies the objects landed and flips content → submitted.
-      const confRes = await fetchWithAuth(`${base}/content-confirm`, {
+      // 3. Confirm — the API verifies the objects landed and advances the stage.
+      const confRes = await fetchWithAuth(`${base}/${kind}-confirm`, {
         method: "POST",
         headers: { ...getAuthHeaders() },
         body: JSON.stringify({ keys }),
@@ -255,16 +258,21 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
         throw new Error(msg || "Upload confirm failed")
       }
 
-      toast.success("Content uploaded — sent to brand for approval")
+      toast.success(kind === "proof"
+        ? "Proof of posting submitted — sent to the Following team to verify"
+        : "Content uploaded — sent to brand for approval")
       await loadDeliverables()
       onChanged?.()
     } catch (e: any) {
-      toast.error(e.message || "Could not upload content")
+      toast.error(e.message || (kind === "proof" ? "Could not submit proof" : "Could not upload content"))
     } finally {
       setUploadingId(null)
       setUploadPct(null)
     }
   }
+
+  const uploadOfflineContent = (d: Deliverable, files: File[]) => runPresignedUpload(d, files, "content")
+  const uploadOfflineProof = (d: Deliverable, files: File[]) => runPresignedUpload(d, files, "proof")
 
   useEffect(() => { if (open && participant) loadDeliverables() }, [open, participant, loadDeliverables])
 
@@ -669,6 +677,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                           uploading={uploadingId === d.id}
                           uploadPct={uploadingId === d.id ? uploadPct : null}
                           onUpload={(files) => uploadOfflineContent(d, files)}
+                          onUploadProof={(files) => uploadOfflineProof(d, files)}
                           onApproveContent={() => deliverableAction(d, "approve-content")}
                           onRequestEdit={(note) => deliverableAction(d, "request-edit", note)}
                         />
@@ -855,11 +864,12 @@ function deliverableStage(d: Deliverable): string {
 
 function SubmissionCard({
   d, avatar, username, busy, canDecide = true, canUpload = false, uploading = false, uploadPct = null,
-  onUpload, onApproveContent, onRequestEdit,
+  onUpload, onUploadProof, onApproveContent, onRequestEdit,
 }: {
   d: Deliverable; avatar?: string; username?: string; busy: string | null
   canDecide?: boolean
-  canUpload?: boolean; uploading?: boolean; uploadPct?: number | null; onUpload?: (files: File[]) => void
+  canUpload?: boolean; uploading?: boolean; uploadPct?: number | null
+  onUpload?: (files: File[]) => void; onUploadProof?: (files: File[]) => void
   onApproveContent: () => void; onRequestEdit: (note: string) => void
 }) {
   const [editNote, setEditNote] = useState("")
@@ -870,6 +880,9 @@ function SubmissionCard({
   // Offline creators can't submit themselves — an admin/talent manager uploads for
   // them while the deliverable is still awaiting content (pending or edit-requested).
   const showUpload = canUpload && (d.content_status === "pending" || d.content_status === "revision_requested" || !d.content_status)
+  // Stage 2 for offline creators: content is brand-approved and proof isn't in yet —
+  // the team uploads proof of posting on the creator's behalf.
+  const showProofUpload = canUpload && stage === "content_approved"
   // Stories are multi-frame — allow selecting several files at once.
   const allowMultiple = d.type === "story"
   // All uploaded media (multi-file aware), falling back to the single content_url.
@@ -936,11 +949,28 @@ function SubmissionCard({
 
         {/* Stage 2 — proof of posting (read-only for brands; the Following team
             verifies). Content approved but not yet posted, or proof submitted. */}
-        {stage === "content_approved" && (
+        {stage === "content_approved" && !showProofUpload && (
           <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-sky-700">
             <Loader2 className="h-3 w-3 mt-px shrink-0 animate-spin" />
             <span>Influencer is posting approved content — system will update once it&apos;s posted</span>
           </div>
+        )}
+        {/* Offline/team-suggested stage 2 — team uploads proof of posting on the
+            creator's behalf. Content is brand-approved; this flips to "under review". */}
+        {showProofUpload && (
+          <label className="pt-1">
+            <input
+              type="file" accept="image/*,video/*" className="hidden" disabled={uploading}
+              onChange={(e) => { const fs = Array.from(e.target.files || []); if (fs.length && onUploadProof) onUploadProof(fs); e.currentTarget.value = "" }}
+            />
+            <span className={`flex items-center justify-center gap-1.5 h-7 rounded-md border border-dashed border-emerald-500/50 text-emerald-700 text-[11px] cursor-pointer hover:bg-emerald-50 ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
+              {uploading ? (
+                <><Loader2 className="h-3 w-3 animate-spin" />{uploadPct != null ? `Uploading ${uploadPct}%` : "Uploading…"}</>
+              ) : (
+                <><Camera className="h-3 w-3" />Upload proof of posting</>
+              )}
+            </span>
+          </label>
         )}
         {stage === "proof_submitted" && (
           <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-violet-700">
