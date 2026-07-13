@@ -24,6 +24,36 @@ import { toast } from "sonner"
 
 type CampaignType = "cashback" | "paid_deal" | "barter"
 
+// Direct-to-R2 upload via presigned PUT. Uses XHR (not fetch) so we get real
+// upload progress and a hard timeout — the file streams straight to R2, bypassing
+// the API/nginx/Cloudflare body-size limits that make large reels hang forever.
+function xhrPutToR2(
+  url: string,
+  file: File,
+  contentType: string,
+  onProgress: (pct: number) => void,
+  timeoutMs = 30 * 60 * 1000, // 30 min ceiling for very large videos on slow uplinks
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open("PUT", url)
+    // Content-Type MUST match what the presigned URL was signed with, and no other
+    // headers (no Authorization) — the signature is in the query string.
+    xhr.setRequestHeader("Content-Type", contentType)
+    xhr.timeout = timeoutMs
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+    }
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error(`Upload failed (${xhr.status})`))
+    xhr.onerror = () => reject(new Error("Network error during upload"))
+    xhr.ontimeout = () => reject(new Error("Upload timed out — file may be too large or the connection dropped"))
+    xhr.send(file)
+  })
+}
+
 // Compact number for the Apify snapshot tiles (283710 -> "283.7K").
 const fmtCompact = (n?: number | null): string => {
   if (n == null) return "—"
@@ -147,6 +177,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   const [couponCode, setCouponCode] = useState<string | null>(null)
   // Offline content upload (talent manager / superadmin on behalf of the creator).
   const [uploadingId, setUploadingId] = useState<string | null>(null)
+  const [uploadPct, setUploadPct] = useState<number | null>(null)
 
   const username = participant?.member.instagram_username
   // Show analytics for offline/team-suggested creators too — the "Our Analytics"
@@ -186,21 +217,44 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   // (they're not in the app). Flows into the same brand approve-content review.
   const uploadOfflineContent = async (d: Deliverable, files: File[]) => {
     if (!participant || files.length === 0) return
+    const base = `${API_CONFIG.BASE_URL}/api/v1/admin/fa/campaigns/${campaignId}/participants/${participant.participant_id}/deliverables/${d.id}`
     setUploadingId(d.id)
+    setUploadPct(0)
     try {
-      const fd = new FormData()
-      files.forEach((file) => fd.append("content", file))
-      const h: Record<string, string> = { ...getAuthHeaders() }
-      delete h["Content-Type"] // let the browser set the multipart boundary
-      const res = await fetchWithAuth(
-        `${API_CONFIG.BASE_URL}/api/v1/admin/fa/campaigns/${campaignId}/participants/${participant.participant_id}/deliverables/${d.id}/upload-content-media`,
-        { method: "POST", headers: h, body: fd }
-      )
-      if (!res.ok) {
-        let msg = ""
-        try { msg = (await res.json())?.detail } catch { msg = await res.text() }
-        throw new Error(msg || "Upload failed")
+      // 1. Ask the API for one presigned R2 PUT URL per file (tiny JSON request).
+      const urlRes = await fetchWithAuth(`${base}/content-upload-urls`, {
+        method: "POST",
+        headers: { ...getAuthHeaders() },
+        body: JSON.stringify({ files: files.map((f) => ({ content_type: f.type || "application/octet-stream" })) }),
+      })
+      if (!urlRes.ok) {
+        let msg = ""; try { msg = (await urlRes.json())?.detail } catch { msg = await urlRes.text() }
+        throw new Error(msg || "Could not start upload")
       }
+      const uploads = ((await urlRes.json())?.data?.uploads ?? []) as { put_url: string; key: string; content_type: string }[]
+      if (uploads.length !== files.length) throw new Error("Upload URL mismatch")
+
+      // 2. Stream each file DIRECTLY to R2 (bypasses the proxy body limits) with progress.
+      const keys: string[] = []
+      for (let i = 0; i < files.length; i++) {
+        const u = uploads[i]
+        await xhrPutToR2(u.put_url, files[i], u.content_type, (pct) => {
+          setUploadPct(Math.round(((i + pct / 100) / files.length) * 100))
+        })
+        keys.push(u.key)
+      }
+
+      // 3. Confirm — the API verifies the objects landed and flips content → submitted.
+      const confRes = await fetchWithAuth(`${base}/content-confirm`, {
+        method: "POST",
+        headers: { ...getAuthHeaders() },
+        body: JSON.stringify({ keys }),
+      })
+      if (!confRes.ok) {
+        let msg = ""; try { msg = (await confRes.json())?.detail } catch { msg = await confRes.text() }
+        throw new Error(msg || "Upload confirm failed")
+      }
+
       toast.success("Content uploaded — sent to brand for approval")
       await loadDeliverables()
       onChanged?.()
@@ -208,6 +262,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
       toast.error(e.message || "Could not upload content")
     } finally {
       setUploadingId(null)
+      setUploadPct(null)
     }
   }
 
@@ -612,6 +667,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                           canDecide={canDecide}
                           canUpload={!!participant.is_offline}
                           uploading={uploadingId === d.id}
+                          uploadPct={uploadingId === d.id ? uploadPct : null}
                           onUpload={(files) => uploadOfflineContent(d, files)}
                           onApproveContent={() => deliverableAction(d, "approve-content")}
                           onRequestEdit={(note) => deliverableAction(d, "request-edit", note)}
@@ -798,12 +854,12 @@ function deliverableStage(d: Deliverable): string {
 }
 
 function SubmissionCard({
-  d, avatar, username, busy, canDecide = true, canUpload = false, uploading = false,
+  d, avatar, username, busy, canDecide = true, canUpload = false, uploading = false, uploadPct = null,
   onUpload, onApproveContent, onRequestEdit,
 }: {
   d: Deliverable; avatar?: string; username?: string; busy: string | null
   canDecide?: boolean
-  canUpload?: boolean; uploading?: boolean; onUpload?: (files: File[]) => void
+  canUpload?: boolean; uploading?: boolean; uploadPct?: number | null; onUpload?: (files: File[]) => void
   onApproveContent: () => void; onRequestEdit: (note: string) => void
 }) {
   const [editNote, setEditNote] = useState("")
@@ -938,7 +994,11 @@ function SubmissionCard({
               onChange={(e) => { const fs = Array.from(e.target.files || []); if (fs.length && onUpload) onUpload(fs); e.currentTarget.value = "" }}
             />
             <span className={`flex items-center justify-center gap-1.5 h-7 rounded-md border border-dashed text-[11px] cursor-pointer hover:bg-muted/50 ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
-              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Camera className="h-3 w-3" />{d.content_status === "revision_requested" ? "Re-upload" : allowMultiple ? "Upload story frames" : "Upload content"}</>}
+              {uploading ? (
+                <><Loader2 className="h-3 w-3 animate-spin" />{uploadPct != null ? `Uploading ${uploadPct}%` : "Uploading…"}</>
+              ) : (
+                <><Camera className="h-3 w-3" />{d.content_status === "revision_requested" ? "Re-upload" : allowMultiple ? "Upload story frames" : "Upload content"}</>
+              )}
             </span>
           </label>
         )}
