@@ -1,8 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
+import { API_CONFIG, getAuthHeaders } from "@/config/api"
+import { fetchWithAuth } from "@/utils/apiInterceptor"
 import {
   BarChart3,
   Coins,
@@ -12,7 +17,49 @@ import {
   Bell,
   Settings,
   Workflow,
+  Loader2,
+  RefreshCw,
+  Sparkles,
 } from "lucide-react"
+
+function DemoSandboxCard() {
+  const [resetting, setResetting] = useState(false)
+  const resetDemo = async () => {
+    setResetting(true)
+    try {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/demo/reset`, {
+        method: "POST", headers: { ...getAuthHeaders() },
+      })
+      if (!res.ok) { let m = ""; try { m = (await res.json())?.detail } catch { m = await res.text() }; throw new Error(m || "Reset failed") }
+      toast.success("Demo sandbox reset to the golden snapshot.")
+    } catch (e: any) {
+      toast.error(e.message || "Could not reset the demo sandbox")
+    } finally {
+      setResetting(false)
+    }
+  }
+  return (
+    <Card className="border-dashed">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+            <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <CardTitle className="text-lg">Demo Sandbox</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <CardDescription className="text-sm">
+          The shared prospect account (<span className="font-medium">demo@following.ae</span>, brand “Auré”).
+          Rebuilds to the golden snapshot nightly — use this to reset it right before a live demo.
+        </CardDescription>
+        <Button size="sm" variant="outline" disabled={resetting} onClick={resetDemo}>
+          {resetting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Resetting…</> : <><RefreshCw className="h-4 w-4 mr-2" />Reset now</>}
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -63,6 +110,7 @@ export default function SuperadminSystemPage() {
               </Link>
             )
           })}
+          <DemoSandboxCard />
         </div>
       </div>
     </SuperadminLayout>
