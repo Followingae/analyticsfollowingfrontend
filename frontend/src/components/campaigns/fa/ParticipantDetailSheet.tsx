@@ -274,6 +274,27 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   const uploadOfflineContent = (d: Deliverable, files: File[]) => runPresignedUpload(d, files, "content")
   const uploadOfflineProof = (d: Deliverable, files: File[]) => runPresignedUpload(d, files, "proof")
 
+  // Remove team-suggested content while it's still awaiting the brand's decision —
+  // reverts to 'pending' so the team can upload a replacement.
+  const removeOfflineContent = async (d: Deliverable) => {
+    if (!participant) return
+    setUploadingId(d.id)
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/admin/fa/campaigns/${campaignId}/participants/${participant.participant_id}/deliverables/${d.id}/content-remove`,
+        { method: "POST", headers: { ...getAuthHeaders() } }
+      )
+      if (!res.ok) { let m = ""; try { m = (await res.json())?.detail } catch { m = await res.text() }; throw new Error(m || "Could not remove content") }
+      toast.success("Content removed — you can upload a replacement")
+      await loadDeliverables()
+      onChanged?.()
+    } catch (e: any) {
+      toast.error(e.message || "Could not remove content")
+    } finally {
+      setUploadingId(null)
+    }
+  }
+
   useEffect(() => { if (open && participant) loadDeliverables() }, [open, participant, loadDeliverables])
 
   const participantAction = async (action: "approve" | "reject", reason?: string) => {
@@ -678,6 +699,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                           uploadPct={uploadingId === d.id ? uploadPct : null}
                           onUpload={(files) => uploadOfflineContent(d, files)}
                           onUploadProof={(files) => uploadOfflineProof(d, files)}
+                          onRemove={() => removeOfflineContent(d)}
                           onApproveContent={() => deliverableAction(d, "approve-content")}
                           onRequestEdit={(note) => deliverableAction(d, "request-edit", note)}
                         />
@@ -864,12 +886,12 @@ function deliverableStage(d: Deliverable): string {
 
 function SubmissionCard({
   d, avatar, username, busy, canDecide = true, canUpload = false, uploading = false, uploadPct = null,
-  onUpload, onUploadProof, onApproveContent, onRequestEdit,
+  onUpload, onUploadProof, onRemove, onApproveContent, onRequestEdit,
 }: {
   d: Deliverable; avatar?: string; username?: string; busy: string | null
   canDecide?: boolean
   canUpload?: boolean; uploading?: boolean; uploadPct?: number | null
-  onUpload?: (files: File[]) => void; onUploadProof?: (files: File[]) => void
+  onUpload?: (files: File[]) => void; onUploadProof?: (files: File[]) => void; onRemove?: () => void
   onApproveContent: () => void; onRequestEdit: (note: string) => void
 }) {
   const [editNote, setEditNote] = useState("")
@@ -976,6 +998,25 @@ function SubmissionCard({
           <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-violet-700">
             <Clock className="h-3 w-3 mt-px shrink-0" />
             <span>Proof submitted — under review by the Following team</span>
+          </div>
+        )}
+
+        {/* Team-suggested (offline): while content is awaiting the brand's decision,
+            the team can Replace it or Remove it. Locks the moment the brand acts. */}
+        {stage === "content_review" && canUpload && (
+          <div className="flex items-center gap-1.5 pt-1">
+            <label className="flex-1">
+              <input
+                type="file" accept="image/*,video/*" className="hidden" multiple={allowMultiple} disabled={uploading}
+                onChange={(e) => { const fs = Array.from(e.target.files || []); if (fs.length && onUpload) onUpload(fs); e.currentTarget.value = "" }}
+              />
+              <span className={`flex items-center justify-center gap-1 h-7 rounded-md border border-dashed text-[11px] cursor-pointer hover:bg-muted/50 ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
+                {uploading ? <><Loader2 className="h-3 w-3 animate-spin" />{uploadPct != null ? `${uploadPct}%` : ""}</> : <><Camera className="h-3 w-3" />Replace</>}
+              </span>
+            </label>
+            <Button size="sm" variant="ghost" className="h-7 text-[11px] text-muted-foreground px-2" disabled={uploading} onClick={onRemove}>
+              <X className="h-3 w-3 mr-1" />Remove
+            </Button>
           </div>
         )}
 
