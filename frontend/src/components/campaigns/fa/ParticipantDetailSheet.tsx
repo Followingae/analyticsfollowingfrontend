@@ -905,8 +905,9 @@ function SubmissionCard({
   // Stage 2 for offline creators: content is brand-approved and proof isn't in yet —
   // the team uploads proof of posting on the creator's behalf.
   const showProofUpload = canUpload && stage === "content_approved"
-  // Stories are multi-frame — allow selecting several files at once.
-  const allowMultiple = d.type === "story"
+  // Stories are multi-frame — allow selecting several files at once. Deliverable
+  // types are human-readable ("Instagram Story"), so match case-insensitively.
+  const allowMultiple = (d.type || "").toLowerCase().includes("story")
   // All uploaded media (multi-file aware), falling back to the single content_url.
   const mediaUrls = (d.content_urls && d.content_urls.length ? d.content_urls : (d.content_url ? [d.content_url] : []))
   // Prefer proof media once posted, else the content under review.
