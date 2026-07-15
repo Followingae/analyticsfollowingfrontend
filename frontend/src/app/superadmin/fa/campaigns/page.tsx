@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download, ImagePlus, RefreshCcw } from "lucide-react"
+import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download, ImagePlus, RefreshCcw, Users } from "lucide-react"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 import { MasterPackageDialog } from "@/components/superadmin/fa/MasterPackageDialog"
 import { CreateMasterDialog } from "@/components/superadmin/fa/CreateMasterDialog"
@@ -279,6 +279,15 @@ export default function FACampaignsPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant="outline" className={cfg.color}>{cfg.label}</Badge>
                       <Badge variant={isActive ? "default" : "secondary"}>{c.status}</Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => { e.stopPropagation(); router.push(`/superadmin/fa/campaigns/${c.id}`) }}
+                        title="Creator funnel — who's enrolled, approved, submitted, verified"
+                      >
+                        <Users className="h-3.5 w-3.5 mr-1.5" />
+                        Creators
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"

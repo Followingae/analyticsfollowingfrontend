@@ -30,6 +30,7 @@ interface Deliverable {
   status: string
   content_status: string | null
   content_url: string | null
+  content_urls: string[] | null
   proof_url: string | null
   revision_count: number
   revision_limit: number
@@ -66,6 +67,11 @@ const STAGE_META: Record<string, { label: string; cls: string }> = {
 
 const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-AE", { month: "short", day: "numeric" }) : "—"
+
+// Creators occasionally type a message ("Contact me in WhatsApp") instead of a link;
+// rendering that as an href navigates to a broken relative URL. Link only real URLs.
+const isHttpUrl = (v?: string | null): v is string =>
+  !!v && (v.startsWith("http://") || v.startsWith("https://"))
 
 export default function FADeliverablesPage() {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
@@ -179,17 +185,28 @@ export default function FADeliverablesPage() {
                               {d.rejection_reason && (
                                 <span className="text-[11px] text-orange-600 italic truncate max-w-[280px]">“{d.rejection_reason}”</span>
                               )}
+                              {d.content_url && !isHttpUrl(d.content_url) && (
+                                <span className="text-[11px] text-amber-700 italic truncate max-w-[320px]" title={d.content_url}>
+                                  Creator note: “{d.content_url}”
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          {d.content_url && (
-                            <a href={d.content_url} target="_blank" rel="noopener noreferrer">
-                              <Button size="sm" variant="ghost" className="text-xs"><ImageIcon className="h-4 w-4 mr-1" />Content</Button>
+                          {(d.content_urls && d.content_urls.length > 0
+                            ? d.content_urls
+                            : isHttpUrl(d.content_url) ? [d.content_url] : []
+                          ).filter(isHttpUrl).map((url, i, arr) => (
+                            <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                              <Button size="sm" variant="ghost" className="text-xs">
+                                <ImageIcon className="h-4 w-4 mr-1" />
+                                {arr.length > 1 ? `Content ${i + 1}` : "Content"}
+                              </Button>
                             </a>
-                          )}
-                          {d.proof_url && (
+                          ))}
+                          {isHttpUrl(d.proof_url) && (
                             <a href={d.proof_url} target="_blank" rel="noopener noreferrer">
                               <Button size="sm" variant="ghost" className="text-xs"><ExternalLink className="h-4 w-4 mr-1" />Proof</Button>
                             </a>

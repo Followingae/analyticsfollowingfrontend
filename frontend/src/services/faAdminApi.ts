@@ -72,6 +72,8 @@ export const faCampaignApi = {
     const qs = params.toString()
     return get(`/api/v1/admin/fa/campaigns${qs ? `?${qs}` : ''}`)
   },
+  /** Creator funnel: participants bucketed by lifecycle stage + per-creator deliverable counts. */
+  funnel: (id: string) => get(`/api/v1/admin/fa/campaigns/${id}/funnel`),
   createCashback: (data: any) => post('/api/v1/admin/fa/campaigns/cashback', data),
   createPaidDeal: (data: any) => post('/api/v1/admin/fa/campaigns/paid-deal', data),
   createBarter: (data: any) => post('/api/v1/admin/fa/campaigns/barter', data),
