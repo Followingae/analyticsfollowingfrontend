@@ -12,7 +12,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { Check, X, ExternalLink, ClipboardCheck, Camera, ImageIcon, Loader2, Pencil } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Check, X, ExternalLink, ClipboardCheck, Camera, ImageIcon, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react"
 import { faDeliverableApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
@@ -73,12 +74,25 @@ const fmtDate = (iso?: string | null) =>
 const isHttpUrl = (v?: string | null): v is string =>
   !!v && (v.startsWith("http://") || v.startsWith("https://"))
 
+// In-page media kind — raw R2/CDN files (especially iPhone .mov) don't view well in a
+// bare browser tab, so we render them in a dialog with <img>/<video> instead.
+const mediaKind = (url: string): "image" | "video" | "other" => {
+  try {
+    const p = new URL(url).pathname.toLowerCase()
+    if (/\.(jpe?g|png|webp|gif|avif|heic)$/.test(p)) return "image"
+    if (/\.(mp4|mov|webm|m4v)$/.test(p)) return "video"
+  } catch { /* fall through */ }
+  return "other"
+}
+
 export default function FADeliverablesPage() {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("active")
   const [busy, setBusy] = useState<string | null>(null)
   const [editNote, setEditNote] = useState("")
+  // In-page content viewer: which deliverable's files are open + current index
+  const [viewer, setViewer] = useState<{ d: Deliverable; urls: string[]; index: number } | null>(null)
 
   const load = useCallback(async (stage: string) => {
     setLoading(true)
@@ -195,17 +209,19 @@ export default function FADeliverablesPage() {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          {(d.content_urls && d.content_urls.length > 0
-                            ? d.content_urls
-                            : isHttpUrl(d.content_url) ? [d.content_url] : []
-                          ).filter(isHttpUrl).map((url, i, arr) => (
-                            <a key={url} href={url} target="_blank" rel="noopener noreferrer">
-                              <Button size="sm" variant="ghost" className="text-xs">
+                          {(() => {
+                            const urls = (d.content_urls && d.content_urls.length > 0
+                              ? d.content_urls
+                              : isHttpUrl(d.content_url) ? [d.content_url] : []
+                            ).filter(isHttpUrl)
+                            if (urls.length === 0) return null
+                            return (
+                              <Button size="sm" variant="ghost" className="text-xs" onClick={() => setViewer({ d, urls, index: 0 })}>
                                 <ImageIcon className="h-4 w-4 mr-1" />
-                                {arr.length > 1 ? `Content ${i + 1}` : "Content"}
+                                Content{urls.length > 1 ? ` (${urls.length})` : ""}
                               </Button>
-                            </a>
-                          ))}
+                            )
+                          })()}
                           {isHttpUrl(d.proof_url) && (
                             <a href={d.proof_url} target="_blank" rel="noopener noreferrer">
                               <Button size="sm" variant="ghost" className="text-xs"><ExternalLink className="h-4 w-4 mr-1" />Proof</Button>
@@ -263,6 +279,63 @@ export default function FADeliverablesPage() {
               })}
             </div>
           )}
+
+          {/* In-page content viewer — images and videos render right here instead of a
+              raw file tab (Chrome downloads .mov files rather than playing them). */}
+          <Dialog open={!!viewer} onOpenChange={(o: boolean) => { if (!o) setViewer(null) }}>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="flex flex-wrap items-center gap-2 text-base">
+                  {viewer?.d.member_handle ? `@${viewer.d.member_handle}` : viewer?.d.member_name || "Creator"}
+                  <span className="text-sm font-normal text-muted-foreground">
+                    · {viewer?.d.campaign_name} · {viewer?.d.type} x{viewer?.d.quantity}
+                  </span>
+                </DialogTitle>
+              </DialogHeader>
+              {viewer && (() => {
+                const url = viewer.urls[viewer.index]
+                const kind = mediaKind(url)
+                return (
+                  <div className="space-y-3">
+                    <div className="relative flex items-center justify-center rounded-lg bg-black/90 min-h-[320px] max-h-[70vh] overflow-hidden">
+                      {kind === "image" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={url} alt="Submitted content" className="max-h-[70vh] w-auto object-contain" />
+                      ) : kind === "video" ? (
+                        <video key={url} src={url} controls autoPlay playsInline className="max-h-[70vh] w-full" />
+                      ) : (
+                        <div className="text-center text-sm text-muted-foreground p-10">
+                          This file type can&apos;t be previewed here.
+                        </div>
+                      )}
+                      {viewer.urls.length > 1 && (
+                        <>
+                          <Button
+                            size="icon" variant="secondary"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 opacity-80"
+                            disabled={viewer.index === 0}
+                            onClick={() => setViewer({ ...viewer, index: viewer.index - 1 })}
+                          ><ChevronLeft className="h-4 w-4" /></Button>
+                          <Button
+                            size="icon" variant="secondary"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 opacity-80"
+                            disabled={viewer.index === viewer.urls.length - 1}
+                            onClick={() => setViewer({ ...viewer, index: viewer.index + 1 })}
+                          ><ChevronRight className="h-4 w-4" /></Button>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{viewer.urls.length > 1 ? `File ${viewer.index + 1} of ${viewer.urls.length}` : " "}</span>
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:underline">
+                        <ExternalLink className="h-3 w-3" />Open original
+                      </a>
+                    </div>
+                  </div>
+                )
+              })()}
+            </DialogContent>
+          </Dialog>
         </div>
       </SuperAdminInterface>
     </AuthGuard>
