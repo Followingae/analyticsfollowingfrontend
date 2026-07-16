@@ -172,32 +172,17 @@ function scoreBg(score: number): string {
   return "bg-red-500/10 border-red-500/20"
 }
 
-function getFraudRiskLevel(analytics: FAMemberAnalytics | null | undefined, fraudScore: number): { label: string; color: string; bgColor: string } {
-  // Try analytics AI fraud detection first
-  if (analytics?.ai_fraud_detection) {
-    const fd = analytics.ai_fraud_detection
-    const risk = fd.risk_level || fd.fraud_risk || fd.level
-    if (typeof risk === "string") {
-      const lower = risk.toLowerCase()
-      if (lower === "high" || lower === "critical") return { label: risk, color: "text-red-600", bgColor: "bg-red-500/10 border-red-500/20" }
-      if (lower === "medium" || lower === "moderate") return { label: risk, color: "text-amber-600", bgColor: "bg-amber-500/10 border-amber-500/20" }
-      return { label: risk, color: "text-emerald-600", bgColor: "bg-emerald-500/10 border-emerald-500/20" }
-    }
-  }
-  // Fall back to fraud_score
-  if (fraudScore > 0.2) return { label: "High", color: "text-red-600", bgColor: "bg-red-500/10 border-red-500/20" }
-  if (fraudScore > 0.1) return { label: "Medium", color: "text-amber-600", bgColor: "bg-amber-500/10 border-amber-500/20" }
-  return { label: "Low", color: "text-emerald-600", bgColor: "bg-emerald-500/10 border-emerald-500/20" }
-}
-
-function getAudienceQualityLabel(analytics: FAMemberAnalytics | null | undefined, aqScore: number): { label: string; score: number } {
-  if (analytics?.ai_audience_quality) {
-    const aq = analytics.ai_audience_quality
-    const score = aq.overall_score ?? aq.score ?? aq.quality_score ?? aqScore
-    return { label: `${Math.round((score ?? 0) * 100)}%`, score: score ?? 0 }
-  }
-  return { label: `${Math.round(aqScore * 100)}%`, score: aqScore }
-}
+// getFraudRiskLevel / getAudienceQualityLabel removed. Both read profiles.ai_* columns
+// that no longer have a writer — the analyzers behind them were deleted in July after
+// it turned out they produced fabricated output (a 130% audience gender split) or
+// never ran at all. With the columns empty, getFraudRiskLevel fell through to
+// fraud_score, which is 0.0 for all 118 members, and would have labelled every single
+// creator a confident green "Low" risk; getAudienceQualityLabel would have rendered
+// "0%" for everyone. Neither result was ever rendered — both were computed into unused
+// variables — but leaving them was an invitation to wire them up.
+//
+// If a real fraud signal is ever wanted, it has to be measured, not derived from a
+// column nothing writes.
 
 // ─── Member Card ────────────────────────────────────────────────────────────
 
@@ -523,18 +508,18 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
   // only corrected once stats are refreshed. So never contradict an approval decision —
   // an approved member is eligible by definition — and otherwise derive eligibility from
   // the member's actual current metrics rather than the stale signup-time flag.
+  // Mirrors fa_auth_service.check_eligible(followers, engagement). The `fraud_score
+  // < 0.3` term was dropped from the backend in July: fraud_score was 0.0 for every
+  // member, so the term was always true and never once changed an outcome. Keeping it
+  // here made the frontend gate disagree with the backend's on paper while agreeing by
+  // accident.
   const isEligible =
     member.is_approved === 1 ||
     member.eligible ||
-    ((member.followers_count ?? 0) >= 1000 &&
-      (member.engagement_rate ?? 0) >= 1.0 &&
-      (member.fraud_score ?? 0) < 0.3)
+    ((member.followers_count ?? 0) >= 1000 && (member.engagement_rate ?? 0) >= 1.0)
   const joinDate = member.created_at
     ? new Date(member.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
     : "-"
-
-  const fraudRisk = getFraudRiskLevel(analytics, member.fraud_score)
-  const audienceQuality = getAudienceQualityLabel(analytics, member.audience_quality_score)
 
   // Content categories: prefer analytics AI categories, fall back to content_niche
   const categories = analytics?.ai_top_3_categories && analytics.ai_top_3_categories.length > 0
@@ -995,9 +980,8 @@ export default function FAMembersPage() {
       case "engagement":
         result.sort((a, b) => (b.engagement_rate ?? 0) - (a.engagement_rate ?? 0))
         break
-      case "fraud":
-        result.sort((a, b) => (b.fraud_score ?? 0) - (a.fraud_score ?? 0))
-        break
+      // "Highest Fraud Score" removed: fraud_score is 0.0 for all 118 members, so the
+      // control reordered nothing while implying the roster had been screened.
       case "newest":
       default:
         result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -1047,7 +1031,6 @@ export default function FAMembersPage() {
                   <SelectItem value="newest">Newest First</SelectItem>
                   <SelectItem value="followers">Most Followers</SelectItem>
                   <SelectItem value="engagement">Highest Engagement</SelectItem>
-                  <SelectItem value="fraud">Highest Fraud Score</SelectItem>
                 </SelectContent>
               </Select>
             </div>
