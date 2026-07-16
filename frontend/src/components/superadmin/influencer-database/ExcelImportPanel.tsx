@@ -1,153 +1,54 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { toast } from "sonner"
+import { useRef, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
-  Download,
-  Upload,
-  FileSpreadsheet,
-  Loader2,
-  CheckCircle,
-  RefreshCw,
-  AlertTriangle,
-  Info,
-  X,
-  Coins,
+  Download, Upload, FileSpreadsheet, Loader2, CheckCircle,
+  RefreshCw, AlertTriangle, Info, X, Eye, Coins,
 } from "lucide-react"
-import { API_CONFIG, getAuthHeaders } from "@/config/api"
-import { fetchWithAuth } from "@/utils/apiInterceptor"
-import type { ExcelImportResult } from "@/types/influencerDatabase"
-import { PostImportPricingStep } from "./PostImportPricingStep"
+import { ExcelImportReview } from "./ExcelImportReview"
+import { useExcelImport } from "./useExcelImport"
+
+const STEPS = [
+  { key: "upload", label: "Upload" },
+  { key: "review", label: "Review" },
+  { key: "result", label: "Done" },
+] as const
 
 export function ExcelImportPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [file, setFile] = useState<File | null>(null)
-  const [importing, setImporting] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [result, setResult] = useState<ExcelImportResult | null>(null)
   const [dragOver, setDragOver] = useState(false)
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const {
+    step, file, preview, result, previewing, committing,
+    selectFile, downloadTemplate, runPreview, commit, reset, backToUpload,
+  } = useExcelImport()
 
-  const handleDownloadTemplate = async () => {
-    try {
-      const response = await fetchWithAuth(
-        `${API_CONFIG.BASE_URL}/api/v1/admin/influencer-database/template/download`,
-        { headers: getAuthHeaders() }
-      )
-      if (!response.ok) throw new Error("Failed to download template")
-
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = "influencer_import_template.xlsx"
-      a.click()
-      URL.revokeObjectURL(url)
-      toast.success("Template downloaded")
-    } catch {
-      toast.error("Failed to download template")
-    }
-  }
-
-  const handleFileSelect = (selected: File) => {
-    if (!selected.name.endsWith(".xlsx") && !selected.name.endsWith(".xls")) {
-      toast.error("Please select an .xlsx or .xls file")
-      return
-    }
-    if (selected.size > 5 * 1024 * 1024) {
-      toast.error("File size must be under 5MB")
-      return
-    }
-    setFile(selected)
-    setResult(null)
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDragOver(false)
-    const dropped = e.dataTransfer.files[0]
-    if (dropped) handleFileSelect(dropped)
-  }
-
-  const handleImport = async () => {
-    if (!file) return
-    setImporting(true)
-    setResult(null)
-    setProgress(10)
-
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const headers = getAuthHeaders()
-      delete (headers as Record<string, string>)["Content-Type"]
-
-      setProgress(30)
-
-      const response = await fetchWithAuth(
-        `${API_CONFIG.BASE_URL}/api/v1/admin/influencer-database/import/excel`,
-        { method: "POST", headers, body: formData }
-      )
-
-      setProgress(80)
-
-      if (!response.ok) {
-        const err = await response.text()
-        throw new Error(err || "Import failed")
-      }
-
-      const data = await response.json()
-      setProgress(100)
-      setResult(data.data)
-      setStep(2)
-
-      if (data.data.imported > 0 || data.data.updated > 0) {
-        toast.success(`Imported ${data.data.imported}, updated ${data.data.updated} influencers`)
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Import failed"
-      toast.error(message)
-    } finally {
-      setImporting(false)
-    }
-  }
-
-  const resetForm = () => {
-    setFile(null)
-    setResult(null)
-    setProgress(0)
-    setStep(1)
-  }
+  const stepIndex = STEPS.findIndex((s) => s.key === step)
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    // Wide on the review step: the whole point is seeing the deck comfortably.
+    <div className={`space-y-4 ${step === "review" ? "max-w-none" : "max-w-2xl"}`}>
       {/* Step indicator */}
-      <div className="flex items-center justify-center gap-2 mb-4">
-        {[
-          { num: 1, label: "Upload" },
-          { num: 2, label: "Results" },
-          { num: 3, label: "Pricing" },
-        ].map((s, i) => (
-          <div key={s.num} className="flex items-center gap-2">
-            {i > 0 && <div className="w-8 h-px bg-border" />}
+      <div className="mb-4 flex items-center justify-center gap-2">
+        {STEPS.map((s, i) => (
+          <div key={s.key} className="flex items-center gap-2">
+            {i > 0 && <div className="h-px w-8 bg-border" />}
             <div className="flex items-center gap-1.5">
               <div
-                className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                  step === s.num
+                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
+                  stepIndex === i
                     ? "bg-primary text-primary-foreground"
-                    : step > s.num
+                    : stepIndex > i
                       ? "bg-primary/20 text-primary"
                       : "bg-muted text-muted-foreground"
                 }`}
               >
-                {step > s.num ? <CheckCircle className="h-3.5 w-3.5" /> : s.num}
+                {stepIndex > i ? <CheckCircle className="h-3.5 w-3.5" /> : i + 1}
               </div>
-              <span className={`text-xs ${step === s.num ? "font-medium" : "text-muted-foreground"}`}>
+              <span className={`text-xs ${stepIndex === i ? "font-medium" : "text-muted-foreground"}`}>
                 {s.label}
               </span>
             </div>
@@ -155,46 +56,56 @@ export function ExcelImportPanel() {
         ))}
       </div>
 
-      {/* Step 1: Upload */}
-      {step === 1 && (
+      {/* 1: Upload */}
+      {step === "upload" && (
         <>
-          {/* Template download */}
           <Card>
             <CardContent className="pt-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-500/10">
                   <FileSpreadsheet className="h-4 w-4 text-green-600" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Excel Template</p>
                   <p className="text-xs text-muted-foreground">
-                    Only username is required. Analytics populate automatically. Set pricing in the app after import.
+                    Only username is required. Analytics populate automatically after import.
                   </p>
                 </div>
-                <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={handleDownloadTemplate}>
+                <Button variant="outline" size="sm" className="shrink-0 gap-1.5" onClick={downloadTemplate}>
                   <Download className="h-3.5 w-3.5" />
                   Download .xlsx
                 </Button>
               </div>
-              <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 space-y-0.5">
-                <p><span className="font-medium">Required:</span> username (column A)</p>
-                <p><span className="font-medium">Optional:</span> status, tier, categories, tags, internal notes</p>
+              <div className="space-y-0.5 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                <p><span className="font-medium">Required:</span> username</p>
+                <p><span className="font-medium">Optional:</span> status, tier, categories, tags, internal_notes</p>
+                <p>
+                  <span className="font-medium">Pricing:</span> cost_reel_aed + sell_reel_aed
+                  (and post / story / carousel / video / bundle / monthly if needed), in whole AED
+                </p>
+                <p className="pt-1 text-[11px]">
+                  Columns are matched by header name, so order does not matter — keep row 1 as the header row.
+                </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* File upload */}
           <Card>
             <CardContent className="pt-5">
               <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+                className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
                   dragOver
                     ? "border-primary bg-primary/5"
                     : file
                       ? "border-green-500/50 bg-green-50/50 dark:bg-green-950/20"
                       : "border-muted-foreground/20 hover:border-primary/50"
                 }`}
-                onDrop={handleDrop}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setDragOver(false)
+                  const dropped = e.dataTransfer.files[0]
+                  if (dropped) selectFile(dropped)
+                }}
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
                 onDragLeave={() => setDragOver(false)}
                 onClick={() => fileInputRef.current?.click()}
@@ -206,7 +117,7 @@ export function ExcelImportPanel() {
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0]
-                    if (f) handleFileSelect(f)
+                    if (f) selectFile(f)
                   }}
                 />
                 {file ? (
@@ -217,96 +128,93 @@ export function ExcelImportPanel() {
                       {(file.size / 1024).toFixed(0)} KB
                     </Badge>
                     <button
-                      className="ml-1 p-0.5 rounded-full hover:bg-muted"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setFile(null)
-                      }}
+                      className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                      onClick={(e) => { e.stopPropagation(); reset() }}
                     >
                       <X className="h-3.5 w-3.5 text-muted-foreground" />
                     </button>
                   </div>
                 ) : (
                   <>
-                    <Upload className="h-6 w-6 mx-auto mb-1.5 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">
-                      Drop an .xlsx file here, or click to browse
-                    </p>
+                    <Upload className="mx-auto mb-1.5 h-6 w-6 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">Drop an .xlsx file here, or click to browse</p>
                   </>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Progress */}
-          {importing && (
-            <Card>
-              <CardContent className="pt-5">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Importing...
-                    </span>
-                    <span className="text-muted-foreground tabular-nums">{progress}%</span>
-                  </div>
-                  <Progress value={progress} />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Action */}
-          <Button
-            onClick={handleImport}
-            disabled={!file || importing}
-            className="w-full"
-            size="lg"
-          >
-            {importing ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
-            )}
-            {file ? `Import ${file.name}` : "Select a file to import"}
+          <Button onClick={runPreview} disabled={!file || previewing} className="w-full" size="lg">
+            {previewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
+            {file ? "Review before importing" : "Select a file to import"}
           </Button>
+          {file && (
+            <p className="text-center text-xs text-muted-foreground">
+              You will see every creator and every price before anything is saved.
+            </p>
+          )}
         </>
       )}
 
-      {/* Step 2: Results */}
-      {step === 2 && result && (
+      {/* 2: Review */}
+      {step === "review" && preview && (
+        <ExcelImportReview
+          rows={preview.rows}
+          summary={preview.summary}
+          unknownColumns={preview.unknown_columns}
+          fileName={file?.name ?? ""}
+          committing={committing}
+          onCommit={commit}
+          onBack={backToUpload}
+        />
+      )}
+
+      {/* 3: Result */}
+      {step === "result" && result && (
         <>
           <Card>
-            <CardContent className="pt-5 space-y-4">
-              {/* Stats */}
+            <CardContent className="space-y-4 pt-5">
               <div className="grid grid-cols-2 gap-3">
-                <div className="text-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                  <CheckCircle className="h-4 w-4 mx-auto mb-1 text-green-600" />
-                  <div className="text-xl font-bold text-green-600 tabular-nums">{result.imported}</div>
+                <div className="rounded-lg bg-green-50 p-3 text-center dark:bg-green-950/30">
+                  <CheckCircle className="mx-auto mb-1 h-4 w-4 text-green-600" />
+                  <div className="text-xl font-bold tabular-nums text-green-600">{result.imported}</div>
                   <p className="text-[11px] text-muted-foreground">Imported</p>
                 </div>
-                <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                  <RefreshCw className="h-4 w-4 mx-auto mb-1 text-blue-600" />
-                  <div className="text-xl font-bold text-blue-600 tabular-nums">{result.updated}</div>
+                <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-950/30">
+                  <RefreshCw className="mx-auto mb-1 h-4 w-4 text-blue-600" />
+                  <div className="text-xl font-bold tabular-nums text-blue-600">{result.updated}</div>
                   <p className="text-[11px] text-muted-foreground">Updated</p>
                 </div>
                 {result.analytics_queued > 0 && (
-                  <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-                    <Loader2 className="h-4 w-4 mx-auto mb-1 text-purple-600" />
-                    <div className="text-xl font-bold text-purple-600 tabular-nums">{result.analytics_queued}</div>
+                  <div className="rounded-lg bg-purple-50 p-3 text-center dark:bg-purple-950/30">
+                    <Loader2 className="mx-auto mb-1 h-4 w-4 text-purple-600" />
+                    <div className="text-xl font-bold tabular-nums text-purple-600">{result.analytics_queued}</div>
                     <p className="text-[11px] text-muted-foreground">Analytics Queued</p>
                   </div>
                 )}
                 {result.errors.length > 0 && (
-                  <div className="text-center p-3 bg-red-50 dark:bg-red-950/30 rounded-lg">
-                    <AlertTriangle className="h-4 w-4 mx-auto mb-1 text-red-600" />
-                    <div className="text-xl font-bold text-red-600 tabular-nums">{result.errors.length}</div>
+                  <div className="rounded-lg bg-red-50 p-3 text-center dark:bg-red-950/30">
+                    <AlertTriangle className="mx-auto mb-1 h-4 w-4 text-red-600" />
+                    <div className="text-xl font-bold tabular-nums text-red-600">{result.errors.length}</div>
                     <p className="text-[11px] text-muted-foreground">Errors</p>
                   </div>
                 )}
               </div>
 
-              {/* Analytics notice */}
+              {result.held_inactive_unpriced && result.held_inactive_unpriced.length > 0 && (
+                <Alert>
+                  <Coins className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    {result.held_inactive_unpriced.length} creator
+                    {result.held_inactive_unpriced.length === 1 ? "" : "s"} imported as{" "}
+                    <Badge variant="outline" className="mx-0.5 text-[10px]">inactive</Badge>
+                    because {result.held_inactive_unpriced.length === 1 ? "it has" : "they have"} no sell price.
+                    Set pricing in the database to make {result.held_inactive_unpriced.length === 1 ? "it" : "them"}{" "}
+                    selectable in proposals.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {result.analytics_queued > 0 && (
                 <Alert>
                   <Info className="h-4 w-4" />
@@ -317,25 +225,23 @@ export function ExcelImportPanel() {
                 </Alert>
               )}
 
-              {/* Analytics failures */}
               {result.analytics_failures?.length > 0 && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription className="text-xs">
                     {result.analytics_failures.length} creator{result.analytics_failures.length !== 1 ? "s" : ""} failed analytics queueing:
                     {result.analytics_failures.slice(0, 5).map((f) => (
-                      <span key={f.username} className="block ml-2">@{f.username}: {f.reason}</span>
+                      <span key={f.username} className="ml-2 block">@{f.username}: {f.reason}</span>
                     ))}
                     {result.analytics_failures.length > 5 && (
-                      <span className="block ml-2">...and {result.analytics_failures.length - 5} more</span>
+                      <span className="ml-2 block">...and {result.analytics_failures.length - 5} more</span>
                     )}
                   </AlertDescription>
                 </Alert>
               )}
 
-              {/* Queue health indicator */}
               {result.queue_status && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
                   <div
                     className={`h-2 w-2 rounded-full ${
                       result.queue_status.utilization_percent < 70
@@ -349,17 +255,16 @@ export function ExcelImportPanel() {
                 </div>
               )}
 
-              {/* Error details */}
               {result.errors.length > 0 && (
-                <div className="max-h-48 overflow-y-auto space-y-1">
+                <div className="max-h-48 space-y-1 overflow-y-auto">
                   {result.errors.slice(0, 20).map((e, i) => (
-                    <div key={i} className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-muted/50 text-sm">
+                    <div key={i} className="flex items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-muted/50">
                       <span className="text-xs text-muted-foreground">Row {e.row}</span>
-                      <span className="text-xs text-destructive max-w-[300px] truncate">{e.error}</span>
+                      <span className="max-w-[300px] truncate text-xs text-destructive">{e.error}</span>
                     </div>
                   ))}
                   {result.errors.length > 20 && (
-                    <p className="text-xs text-muted-foreground text-center py-1">
+                    <p className="py-1 text-center text-xs text-muted-foreground">
                       ...and {result.errors.length - 20} more errors
                     </p>
                   )}
@@ -368,29 +273,10 @@ export function ExcelImportPanel() {
             </CardContent>
           </Card>
 
-          {/* Actions */}
-          <div className="flex gap-3">
-            {result.imported > 0 && (
-              <Button className="flex-1 gap-2" onClick={() => setStep(3)}>
-                <Coins className="h-4 w-4" />
-                Set Pricing
-              </Button>
-            )}
-            <Button variant="outline" className="flex-1" onClick={resetForm}>
-              Import Another File
-            </Button>
-          </div>
+          <Button variant="outline" className="w-full" onClick={reset}>
+            Import Another File
+          </Button>
         </>
-      )}
-
-      {/* Step 3: Pricing */}
-      {step === 3 && (
-        <PostImportPricingStep
-          importedIds={result?.imported_ids || []}
-          importedUsernames={result?.imported_usernames || []}
-          onComplete={resetForm}
-          onSkip={resetForm}
-        />
       )}
     </div>
   )
