@@ -334,7 +334,8 @@ export const ENDPOINTS = {
     send: (id: string) => `/api/v1/admin/proposals/${id}/send`, // POST - Send to brand
     addMore: (id: string) => `/api/v1/admin/proposals/${id}/add-more`, // POST - Add more after request
     templateDownload: '/api/v1/admin/influencer-database/template/download', // GET - Excel template
-    excelImport: '/api/v1/admin/influencer-database/import/excel', // POST - Excel import
+    excelImportPreview: '/api/v1/admin/influencer-database/import/excel/preview', // POST - parse + validate, writes nothing
+    excelImportCommit: '/api/v1/admin/influencer-database/import/excel/commit', // POST - write the reviewed rows
   },
 
   // Influencer Master Database (/api/v1/admin/influencers/...)

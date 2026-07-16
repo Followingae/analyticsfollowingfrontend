@@ -332,6 +332,79 @@ export interface ExcelImportResult {
   imported_ids: string[]
   imported_usernames: string[]
   queue_status: { depth: number; max_depth: number; utilization_percent: number }
+  /** Creators asked to be 'active' but held as 'inactive' because they carry no sell price. */
+  held_inactive_unpriced?: string[]
+}
+
+// ─── Excel Import: preview → review → commit ──────────────────────────
+// The preview endpoint parses and validates WITHOUT writing. Prices travel as whole
+// AED here (not fils) because that is what the operator types and reads; the backend
+// converts to *_aed_cents on commit.
+
+export interface ImportRowIssue {
+  level: 'error' | 'warning'
+  message: string
+}
+
+/** What we already know about this creator, for verifying the row is the right person. */
+export interface ImportKnownProfile {
+  full_name: string | null
+  followers_count: number | null
+  engagement_rate: number | null
+  is_verified: boolean | null
+  profile_image_url: string | null
+  has_analytics: boolean
+}
+
+export interface ImportPreviewRow {
+  row_number: number
+  username: string | null
+  status: string
+  tier: string | null
+  categories: string[]
+  tags: string[]
+  internal_notes: string | null
+
+  cost_reel_aed: number | null
+  sell_reel_aed: number | null
+  cost_post_aed: number | null
+  sell_post_aed: number | null
+  cost_story_aed: number | null
+  sell_story_aed: number | null
+  cost_carousel_aed: number | null
+  sell_carousel_aed: number | null
+  cost_video_aed: number | null
+  sell_video_aed: number | null
+  cost_bundle_aed: number | null
+  sell_bundle_aed: number | null
+  cost_monthly_aed: number | null
+  sell_monthly_aed: number | null
+
+  known_profile: ImportKnownProfile | null
+  action: 'create' | 'update'
+  existing: { id: string; status: string; followers_count: number | null } | null
+  /** Status this row will actually land with — 'inactive' when it has no sell price. */
+  effective_status: string
+  /** True when an issue is fatal; the row is skipped at commit. */
+  blocked: boolean
+  issues: ImportRowIssue[]
+}
+
+export interface ImportPreviewSummary {
+  total_rows: number
+  will_create: number
+  will_update: number
+  blocked: number
+  warnings: number
+  unpriced: number
+}
+
+export interface ExcelImportPreview {
+  rows: ImportPreviewRow[]
+  columns_detected: string[]
+  pricing_columns_detected: string[]
+  unknown_columns: string[]
+  summary: ImportPreviewSummary
 }
 
 // ─── View State ───────────────────────────────────────────────────────

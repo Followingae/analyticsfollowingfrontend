@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { toast } from "sonner"
+import { useRef } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,11 +12,12 @@ import {
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Download, Upload, FileSpreadsheet, Loader2, CheckCircle, AlertTriangle, RefreshCw, Info, Coins } from "lucide-react"
-import { API_CONFIG, getAuthHeaders } from "@/config/api"
-import { fetchWithAuth } from "@/utils/apiInterceptor"
-import type { ExcelImportResult } from "@/types/influencerDatabase"
-import { PostImportPricingStep } from "./PostImportPricingStep"
+import {
+  Download, Upload, FileSpreadsheet, Loader2, CheckCircle,
+  AlertTriangle, RefreshCw, Info, Coins, Eye,
+} from "lucide-react"
+import { ExcelImportReview } from "./ExcelImportReview"
+import { useExcelImport } from "./useExcelImport"
 
 interface ExcelImportDialogProps {
   open: boolean
@@ -25,126 +25,53 @@ interface ExcelImportDialogProps {
   onImportComplete: () => void
 }
 
+const STEPS = [
+  { key: "upload", label: "Upload" },
+  { key: "review", label: "Review" },
+  { key: "result", label: "Done" },
+] as const
+
 export function ExcelImportDialog({ open, onOpenChange, onImportComplete }: ExcelImportDialogProps) {
-  const [file, setFile] = useState<File | null>(null)
-  const [importing, setImporting] = useState(false)
-  const [result, setResult] = useState<ExcelImportResult | null>(null)
-  const [step, setStep] = useState<1 | 2 | 3>(1)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const {
+    step, file, preview, result, previewing, committing,
+    selectFile, downloadTemplate, runPreview, commit, reset, backToUpload,
+  } = useExcelImport(onImportComplete)
 
-  const handleDownloadTemplate = async () => {
-    try {
-      const response = await fetchWithAuth(
-        `${API_CONFIG.BASE_URL}/api/v1/admin/influencer-database/template/download`,
-        { headers: getAuthHeaders() }
-      )
-      if (!response.ok) throw new Error("Failed to download template")
-
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = "influencer_import_template.xlsx"
-      a.click()
-      URL.revokeObjectURL(url)
-      toast.success("Template downloaded")
-    } catch {
-      toast.error("Failed to download template")
-    }
-  }
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0]
-    if (selected) {
-      if (!selected.name.endsWith(".xlsx") && !selected.name.endsWith(".xls")) {
-        toast.error("Please select an .xlsx or .xls file")
-        return
-      }
-      if (selected.size > 5 * 1024 * 1024) {
-        toast.error("File size must be under 5MB")
-        return
-      }
-      setFile(selected)
-      setResult(null)
-    }
-  }
-
-  const handleImport = async () => {
-    if (!file) return
-    setImporting(true)
-    setResult(null)
-
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const headers = getAuthHeaders()
-      delete (headers as Record<string, string>)["Content-Type"]
-
-      const response = await fetchWithAuth(
-        `${API_CONFIG.BASE_URL}/api/v1/admin/influencer-database/import/excel`,
-        { method: "POST", headers, body: formData }
-      )
-
-      if (!response.ok) {
-        const err = await response.text()
-        throw new Error(err || "Import failed")
-      }
-
-      const data = await response.json()
-      setResult(data.data)
-      setStep(2)
-
-      if (data.data.imported > 0 || data.data.updated > 0) {
-        toast.success(`Imported ${data.data.imported}, updated ${data.data.updated} influencers`)
-        onImportComplete()
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Import failed"
-      toast.error(message)
-    } finally {
-      setImporting(false)
-    }
-  }
+  const stepIndex = STEPS.findIndex((s) => s.key === step)
 
   const handleClose = () => {
-    setFile(null)
-    setResult(null)
-    setStep(1)
+    reset()
     onOpenChange(false)
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={step === 3 ? "sm:max-w-2xl" : "sm:max-w-lg"}>
+    <Dialog open={open} onOpenChange={(next: boolean) => (next ? onOpenChange(true) : handleClose())}>
+      {/* The review step needs room — that is the whole point of it. */}
+      <DialogContent className={step === "review" ? "max-w-[92vw] xl:max-w-[1200px]" : "sm:max-w-lg"}>
         <DialogHeader>
           <DialogTitle>Import Influencers from Excel</DialogTitle>
           <DialogDescription>
-            Upload an .xlsx file to bulk import or update influencers in the master database.
+            Upload an .xlsx file, review every creator and price, then import.
           </DialogDescription>
 
-          {/* Step indicator */}
           <div className="flex items-center justify-center gap-2 pt-2">
-            {[
-              { num: 1, label: "Upload" },
-              { num: 2, label: "Results" },
-              { num: 3, label: "Pricing" },
-            ].map((s, i) => (
-              <div key={s.num} className="flex items-center gap-2">
-                {i > 0 && <div className="w-8 h-px bg-border" />}
+            {STEPS.map((s, i) => (
+              <div key={s.key} className="flex items-center gap-2">
+                {i > 0 && <div className="h-px w-8 bg-border" />}
                 <div className="flex items-center gap-1.5">
                   <div
-                    className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                      step === s.num
+                    className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
+                      stepIndex === i
                         ? "bg-primary text-primary-foreground"
-                        : step > s.num
+                        : stepIndex > i
                           ? "bg-primary/20 text-primary"
                           : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {step > s.num ? <CheckCircle className="h-3.5 w-3.5" /> : s.num}
+                    {stepIndex > i ? <CheckCircle className="h-3.5 w-3.5" /> : i + 1}
                   </div>
-                  <span className={`text-xs ${step === s.num ? "font-medium" : "text-muted-foreground"}`}>
+                  <span className={`text-xs ${stepIndex === i ? "font-medium" : "text-muted-foreground"}`}>
                     {s.label}
                   </span>
                 </div>
@@ -154,168 +81,144 @@ export function ExcelImportDialog({ open, onOpenChange, onImportComplete }: Exce
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Step 1: Upload */}
-          {step === 1 && (
+          {/* 1: Upload */}
+          {step === "upload" && (
             <>
-              <Button variant="link" className="p-0 h-auto" onClick={handleDownloadTemplate}>
+              <Button variant="link" className="h-auto p-0" onClick={downloadTemplate}>
                 <Download className="mr-2 h-4 w-4" />
                 Download template (.xlsx)
               </Button>
 
               <div
-                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                className="cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors hover:border-primary/50"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept=".xlsx,.xls"
-                  onChange={handleFileSelect}
                   className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) selectFile(f)
+                  }}
                 />
                 {file ? (
                   <div className="flex items-center justify-center gap-2">
                     <FileSpreadsheet className="h-6 w-6 text-primary" />
                     <span className="font-medium">{file.name}</span>
-                    <Badge variant="outline">{(file.size / 1024).toFixed(0)} KB</Badge>
+                    <Badge variant="outline" className="text-xs tabular-nums">
+                      {(file.size / 1024).toFixed(0)} KB
+                    </Badge>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                  <>
+                    <Upload className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">Click to select an .xlsx file</p>
-                  </div>
+                  </>
                 )}
+              </div>
+
+              <div className="space-y-0.5 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                <p><span className="font-medium">Required:</span> username</p>
+                <p><span className="font-medium">Optional:</span> status, tier, categories, tags, internal_notes</p>
+                <p>
+                  <span className="font-medium">Pricing:</span> cost_reel_aed + sell_reel_aed
+                  (plus post / story / carousel / video / bundle / monthly), in whole AED
+                </p>
+                <p className="pt-1 text-[11px]">Columns are matched by header name — order does not matter.</p>
               </div>
             </>
           )}
 
-          {/* Step 2: Results */}
-          {step === 2 && result && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="text-center p-2.5 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                  <CheckCircle className="h-4 w-4 mx-auto mb-0.5 text-green-600" />
-                  <div className="text-lg font-bold text-green-600">{result.imported}</div>
+          {/* 2: Review */}
+          {step === "review" && preview && (
+            <div className="max-h-[75vh] overflow-y-auto pr-1">
+              <ExcelImportReview
+                rows={preview.rows}
+                summary={preview.summary}
+                unknownColumns={preview.unknown_columns}
+                fileName={file?.name ?? ""}
+                committing={committing}
+                onCommit={commit}
+                onBack={backToUpload}
+              />
+            </div>
+          )}
+
+          {/* 3: Result */}
+          {step === "result" && result && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-green-50 p-3 text-center dark:bg-green-950/30">
+                  <CheckCircle className="mx-auto mb-1 h-4 w-4 text-green-600" />
+                  <div className="text-xl font-bold tabular-nums text-green-600">{result.imported}</div>
                   <p className="text-[11px] text-muted-foreground">Imported</p>
                 </div>
-                <div className="text-center p-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                  <RefreshCw className="h-4 w-4 mx-auto mb-0.5 text-blue-600" />
-                  <div className="text-lg font-bold text-blue-600">{result.updated}</div>
+                <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-950/30">
+                  <RefreshCw className="mx-auto mb-1 h-4 w-4 text-blue-600" />
+                  <div className="text-xl font-bold tabular-nums text-blue-600">{result.updated}</div>
                   <p className="text-[11px] text-muted-foreground">Updated</p>
                 </div>
-                {result.analytics_queued > 0 && (
-                  <div className="text-center p-2.5 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-                    <Loader2 className="h-4 w-4 mx-auto mb-0.5 text-purple-600" />
-                    <div className="text-lg font-bold text-purple-600">{result.analytics_queued}</div>
-                    <p className="text-[11px] text-muted-foreground">Analytics Queued</p>
-                  </div>
-                )}
-                {result.errors.length > 0 && (
-                  <div className="text-center p-2.5 bg-red-50 dark:bg-red-950/30 rounded-lg">
-                    <AlertTriangle className="h-4 w-4 mx-auto mb-0.5 text-red-600" />
-                    <div className="text-lg font-bold text-red-600">{result.errors.length}</div>
-                    <p className="text-[11px] text-muted-foreground">Errors</p>
-                  </div>
-                )}
               </div>
+
+              {result.held_inactive_unpriced && result.held_inactive_unpriced.length > 0 && (
+                <Alert>
+                  <Coins className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    {result.held_inactive_unpriced.length} creator
+                    {result.held_inactive_unpriced.length === 1 ? "" : "s"} imported as{" "}
+                    <Badge variant="outline" className="mx-0.5 text-[10px]">inactive</Badge>
+                    for having no sell price, and will not appear in the proposal creator picker until priced.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {result.analytics_queued > 0 && (
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription className="text-xs">
                     {result.analytics_queued} creator{result.analytics_queued !== 1 ? "s are" : " is"} being
-                    analyzed in the background. Check the database page for real-time progress.
+                    analyzed in the background.
                   </AlertDescription>
                 </Alert>
               )}
 
-              {/* Analytics failures */}
-              {result.analytics_failures?.length > 0 && (
+              {result.errors.length > 0 && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription className="text-xs">
-                    {result.analytics_failures.length} creator{result.analytics_failures.length !== 1 ? "s" : ""} failed analytics queueing:
-                    {result.analytics_failures.slice(0, 5).map((f) => (
-                      <span key={f.username} className="block ml-2">@{f.username}: {f.reason}</span>
+                    {result.errors.length} row{result.errors.length === 1 ? "" : "s"} failed:
+                    {result.errors.slice(0, 5).map((e, i) => (
+                      <span key={i} className="ml-2 block">Row {e.row}: {e.error}</span>
                     ))}
-                    {result.analytics_failures.length > 5 && (
-                      <span className="block ml-2">...and {result.analytics_failures.length - 5} more</span>
+                    {result.errors.length > 5 && (
+                      <span className="ml-2 block">...and {result.errors.length - 5} more</span>
                     )}
                   </AlertDescription>
                 </Alert>
               )}
-
-              {/* Queue health indicator */}
-              {result.queue_status && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
-                  <div
-                    className={`h-2 w-2 rounded-full ${
-                      result.queue_status.utilization_percent < 70
-                        ? "bg-green-500"
-                        : result.queue_status.utilization_percent < 90
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
-                    }`}
-                  />
-                  Queue: {result.queue_status.depth}/{result.queue_status.max_depth} ({result.queue_status.utilization_percent}% utilized)
-                </div>
-              )}
-
-              {result.errors.length > 0 && (
-                <div className="max-h-32 overflow-y-auto text-xs space-y-1 p-2 bg-muted rounded">
-                  {result.errors.slice(0, 10).map((e, i) => (
-                    <div key={i} className="text-destructive">
-                      Row {e.row}: {e.error}
-                    </div>
-                  ))}
-                  {result.errors.length > 10 && (
-                    <div className="text-muted-foreground">...and {result.errors.length - 10} more</div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 3: Pricing */}
-          {step === 3 && (
-            <PostImportPricingStep
-              importedIds={result?.imported_ids || []}
-              importedUsernames={result?.imported_usernames || []}
-              onComplete={handleClose}
-              onSkip={handleClose}
-            />
+            </>
           )}
         </div>
 
-        {/* Footer - hidden in step 3 */}
-        {step !== 3 && (
-          <DialogFooter>
-            <Button variant="outline" onClick={handleClose}>
-              {result ? "Close" : "Cancel"}
-            </Button>
-            {step === 1 && (
-              <Button onClick={handleImport} disabled={!file || importing}>
-                {importing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Importing...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import {file ? file.name : ""}
-                  </>
-                )}
+        <DialogFooter>
+          {step === "upload" && (
+            <>
+              <Button variant="outline" onClick={handleClose}>Cancel</Button>
+              <Button onClick={runPreview} disabled={!file || previewing}>
+                {previewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
+                Review before importing
               </Button>
-            )}
-            {step === 2 && result && result.imported > 0 && (
-              <Button className="gap-2" onClick={() => setStep(3)}>
-                <Coins className="h-4 w-4" />
-                Set Pricing
-              </Button>
-            )}
-          </DialogFooter>
-        )}
+            </>
+          )}
+          {step === "review" && (
+            <p className="mr-auto text-xs text-muted-foreground">
+              Nothing has been saved yet — edit any price above, then import.
+            </p>
+          )}
+          {step === "result" && <Button onClick={handleClose}>Done</Button>}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
