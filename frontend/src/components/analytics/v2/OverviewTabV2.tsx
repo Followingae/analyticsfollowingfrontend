@@ -8,8 +8,8 @@ import {
   Activity, CalendarClock, Clock, Heart, MessageCircle, TrendingUp, Trophy, Eye,
 } from "lucide-react"
 import {
-  isPresent, formatPct, formatCount, CONTENT_TYPE_LABELS,
-  type CreatorAnalyticsV2,
+  isPresent, formatPct, formatCount, headlineEngagement, CONTENT_TYPE_LABELS,
+  type CreatorAnalyticsV2, type EngagementByType, type HeadlineMetric,
 } from "@/types/creatorAnalyticsV2"
 
 /**
@@ -26,66 +26,92 @@ export function OverviewTabV2({ data }: { data: CreatorAnalyticsV2 }) {
 
   return (
     <div className="space-y-6">
-      {isPresent(engagement) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Engagement</CardTitle>
-            <CardDescription>
-              Median across {engagement.sample_size} posts
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="flex flex-wrap items-end gap-6">
-              <div>
-                <div className="text-3xl font-bold tabular-nums">
-                  {formatPct(engagement.engagement_rate)}
-                </div>
-                <p className="text-xs text-muted-foreground">Engagement rate</p>
-              </div>
-              {/* The mean is shown small and secondary on purpose: it is what the
-                  old pipeline reported as the headline, and one viral reel drags
-                  it far above what a brand should expect from a typical post. */}
-              <div className="pb-1">
-                <div className="text-sm text-muted-foreground tabular-nums">
-                  mean {formatPct(engagement.engagement_rate_mean)}
-                </div>
-              </div>
-            </div>
+      {isPresent(engagement) && (() => {
+        // Obey the backend's choice of denominator. Reading `engagement_rate`
+        // directly here would print 98.79% for a 248-follower account whose reels
+        // pull 16,841 views — true division, meaningless number.
+        const { value, byView } = headlineEngagement(engagement)
+        const perType = (v: EngagementByType) =>
+          byView ? v.engagement_rate_by_view : v.engagement_rate
+        const typed = Object.entries(engagement.by_content_type)
+          .filter(([, v]) => perType(v) !== null)
+          .sort((a, b) => (perType(b[1]) ?? 0) - (perType(a[1]) ?? 0))
+        const max = Math.max(0, ...typed.map(([, v]) => perType(v) ?? 0))
 
-            {Object.keys(engagement.by_content_type).length > 1 && (
-              <>
-                <Separator />
-                <div>
-                  <p className="mb-3 text-sm font-medium">By format</p>
-                  <div className="space-y-3">
-                    {Object.entries(engagement.by_content_type)
-                      .sort((a, b) => b[1].engagement_rate - a[1].engagement_rate)
-                      .map(([kind, v]) => {
-                        const max = Math.max(
-                          ...Object.values(engagement.by_content_type).map((x) => x.engagement_rate)
-                        )
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Engagement</CardTitle>
+              <CardDescription>
+                Median across {byView ? engagement.view_sample_size : engagement.sample_size} posts
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {value !== null && (
+                <div className="flex flex-wrap items-end gap-6">
+                  <div>
+                    <div className="text-3xl font-bold tabular-nums">{formatPct(value)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {byView ? "of people who saw the post" : "of followers"}
+                    </p>
+                  </div>
+                  {/* Only meaningful against followers. Against views it would be
+                      contrasting a median with a mean of a different denominator. */}
+                  {!byView && engagement.engagement_rate_mean !== null && (
+                    <div className="pb-1">
+                      <div className="text-sm text-muted-foreground tabular-nums">
+                        mean {formatPct(engagement.engagement_rate_mean)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Say plainly why the denominator changed. A brand comparing this
+                  creator against one measured on followers needs to know they are
+                  not the same ratio — and the reach multiple is the evidence. */}
+              {byView && engagement.reach_ratio !== null && (
+                <p className="text-xs text-muted-foreground">
+                  Typical post reaches{" "}
+                  <span className="font-medium text-foreground tabular-nums">
+                    {engagement.reach_ratio.toFixed(1)}x
+                  </span>{" "}
+                  this creator&apos;s follower count, so engagement is measured against
+                  views rather than followers.
+                </p>
+              )}
+
+              {typed.length > 1 && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="mb-3 text-sm font-medium">By format</p>
+                    <div className="space-y-3">
+                      {typed.map(([kind, v]) => {
+                        const rate = perType(v) ?? 0
                         return (
                           <div key={kind}>
                             <div className="mb-1 flex items-center justify-between text-sm">
                               <span>{CONTENT_TYPE_LABELS[kind] ?? kind}</span>
                               <span className="tabular-nums">
-                                {formatPct(v.engagement_rate)}
+                                {formatPct(rate)}
                                 <span className="ml-2 text-xs text-muted-foreground">
                                   n={v.sample_size}
                                 </span>
                               </span>
                             </div>
-                            <Progress value={max > 0 ? (v.engagement_rate / max) * 100 : 0} className="h-1.5" />
+                            <Progress value={max > 0 ? (rate / max) * 100 : 0} className="h-1.5" />
                           </div>
                         )
                       })}
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {isPresent(performance) && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -143,11 +169,11 @@ export function OverviewTabV2({ data }: { data: CreatorAnalyticsV2 }) {
         <div className="grid gap-3 md:grid-cols-2">
           {performance.best_post && (
             <PostCard title="Best post" icon={<Trophy className="h-4 w-4 text-amber-500" />}
-                      post={performance.best_post} />
+                      post={performance.best_post} rankedBy={performance.ranked_by} />
           )}
           {performance.worst_post && (
             <PostCard title="Weakest post" icon={<TrendingUp className="h-4 w-4 rotate-180 text-muted-foreground" />}
-                      post={performance.worst_post} />
+                      post={performance.worst_post} rankedBy={performance.ranked_by} />
           )}
         </div>
       )}
@@ -202,10 +228,13 @@ function Stat({ icon, label, value, sub }: {
   )
 }
 
-function PostCard({ title, icon, post }: {
+function PostCard({ title, icon, post, rankedBy }: {
   title: string; icon: React.ReactNode; post: NonNullable<
     Extract<CreatorAnalyticsV2["performance"], { source: "measured" }>["best_post"]
   >
+  /** The badge is a bare percentage, so it has to say what it is a percentage OF —
+   *  otherwise it reads as the follower rate and silently contradicts the headline. */
+  rankedBy: HeadlineMetric
 }) {
   return (
     <Card>
@@ -227,6 +256,9 @@ function PostCard({ title, icon, post }: {
           )}
           <Badge variant="secondary" className="ml-auto tabular-nums">
             {formatPct(post.engagement_rate)}
+            <span className="ml-1 font-normal opacity-70">
+              {rankedBy === "engagement_rate_by_view" ? "of views" : "of followers"}
+            </span>
           </Badge>
         </div>
         {post.url && (

@@ -54,21 +54,50 @@ export interface ProfileBlock {
 // ─── Engagement ───────────────────────────────────────────────────────
 
 export interface EngagementByType {
-  engagement_rate: number
+  /** Null when this content type has no posts with a usable denominator. */
+  engagement_rate: number | null
+  engagement_rate_by_view: number | null
   sample_size: number
 }
+
+/** Which denominator actually describes this creator. Chosen by the backend from
+ *  measured reach — never guessed here. */
+export type HeadlineMetric = 'engagement_rate' | 'engagement_rate_by_view'
 
 export interface EngagementBlock {
   source: 'measured'
   sample_size: number
-  /** MEDIAN — the headline. Engagement is heavy-tailed; the mean flattered
-   *  reel-heavy creators (one account read 92.93%). */
-  engagement_rate: number
+  /** MEDIAN of (likes + comments) / FOLLOWERS. Only meaningful when reach is roughly
+   *  the follower base — see `headline_metric`. Null if no post had a usable value. */
+  engagement_rate: number | null
   /** Shown for contrast only. Never the headline. */
-  engagement_rate_mean: number
+  engagement_rate_mean: number | null
+  /** MEDIAN of (likes + comments) / VIEWS — the share of people who actually SAW the
+   *  post and engaged. Stays meaningful however far the post travels. */
+  engagement_rate_by_view: number | null
+  view_sample_size: number
+  /** Median views / followers. >1 means the typical post reaches beyond the follower
+   *  base, which is normal for reels and makes the follower rate meaningless. */
+  reach_ratio: number | null
+  reach_exceeds_followers: boolean
+  /** The field to LEAD WITH. Read this rather than defaulting to `engagement_rate`:
+   *  on reel-led accounts the follower rate is arithmetically true and absurd
+   *  (@_ssaeeedd: 248 followers, 16,841 median views -> 98.79% of followers vs 1.45%
+   *  of viewers). The backend picks from measured reach; the UI just obeys. */
+  headline_metric: HeadlineMetric
   /** reel / carousel / video / image — reels routinely out-engage stills ~1.7x,
    *  which a blended rate hides entirely. */
   by_content_type: Record<string, EngagementByType>
+}
+
+/** The engagement figure to display, with the reason for its denominator.
+ *  Single source of truth for every render site. */
+export function headlineEngagement(e: EngagementBlock): {
+  value: number | null
+  byView: boolean
+} {
+  const byView = e.headline_metric === 'engagement_rate_by_view'
+  return { value: byView ? e.engagement_rate_by_view : e.engagement_rate, byView }
 }
 
 export interface PostBrief {
@@ -84,6 +113,10 @@ export interface PostBrief {
 
 export interface PerformanceBlock {
   source: 'measured'
+  /** Which ratio best_post/worst_post were ranked and reported by — always the same
+   *  one the Engagement card headlines, so "best post" can't quote a denominator the
+   *  rest of the page isn't using. */
+  ranked_by: HeadlineMetric
   median_likes: number | null
   median_comments: number | null
   median_views: number | null
@@ -201,6 +234,9 @@ export interface CommentersBlock {
 export interface SelfDeclaredAdsBlock {
   source: 'measured'
   method: 'caption_heuristic'
+  /** Denominator behind both rates below — the page's headline metric, so ads vs
+   *  organic is like-for-like. Absent when no declared ads were found. */
+  measured_by?: HeadlineMetric
   declared_ad_posts: number
   organic_posts?: number
   declared_ad_engagement_rate?: number | null

@@ -207,7 +207,11 @@ export function ContentTabV2({ data }: { data: CreatorAnalyticsV2 }) {
             <CardTitle className="text-sm">Paid vs organic</CardTitle>
             {/* Named honestly: these are the creator's own #ad/sponsored captions.
                 Instagram's paid-partnership label is not obtainable via scraping. */}
-            <CardDescription>From the creator&apos;s own #ad / sponsored captions</CardDescription>
+            <CardDescription>
+              From the creator&apos;s own #ad / sponsored captions
+              {self_declared_ads.measured_by === "engagement_rate_by_view" &&
+                " · engagement measured against views"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
