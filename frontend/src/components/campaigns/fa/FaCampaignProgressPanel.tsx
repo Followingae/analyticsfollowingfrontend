@@ -102,6 +102,36 @@ const STATUS_META: Record<ParticipantStatus, { label: string; tone: string }> = 
   cancelled:              { label: "Cancelled",         tone: "bg-slate-500/10 text-slate-600 border-slate-300/40" },
 }
 
+// Submission state per creator, derived from their deliverable counts. Without this
+// the brand can't tell who has sent content and who hasn't without opening each
+// creator one by one.
+type ContentState = "awaiting" | "review" | "posting" | "done"
+
+const CONTENT_META: Record<ContentState, { label: string; tone: string }> = {
+  awaiting: { label: "Awaiting content", tone: "bg-slate-500/10 text-slate-600 border-slate-300/40" },
+  review:   { label: "Submitted · review", tone: "bg-violet-500/10 text-violet-700 border-violet-300/40" },
+  posting:  { label: "Posting", tone: "bg-sky-500/10 text-sky-700 border-sky-300/40" },
+  done:     { label: "Completed", tone: "bg-emerald-500/10 text-emerald-700 border-emerald-300/40" },
+}
+
+const contentState = (p: Participant): ContentState | null => {
+  const d = p.deliverables
+  if (!d) return null
+  if ((d.submitted ?? 0) > 0) return "review"          // needs the brand's eyes first
+  if ((d.posting ?? 0) > 0) return "posting"
+  if ((d.pending ?? 0) > 0) return "awaiting"
+  if ((d.verified ?? 0) > 0) return "done"
+  return null
+}
+
+const CONTENT_FILTERS: { value: string; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "review", label: "Submitted · review" },
+  { value: "awaiting", label: "Awaiting content" },
+  { value: "posting", label: "Posting" },
+  { value: "done", label: "Completed" },
+]
+
 const TYPE_ICON: Record<CampaignType, { icon: typeof QrCode; label: string; accent: string }> = {
   cashback:  { icon: QrCode, label: "Cashback",  accent: "text-emerald-600" },
   paid_deal: { icon: Coins,  label: "Paid deal", accent: "text-blue-600" },
@@ -167,6 +197,8 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
   const [snapshotOpen, setSnapshotOpen] = useState(false)
   const [selected, setSelected] = useState<Participant | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  // Filter the active roster by submission state — "who has sent content" at a glance.
+  const [contentFilter, setContentFilter] = useState<string>("all")
   const openParticipant = (p: Participant) => { setSelected(p); setSheetOpen(true) }
 
   const load = async () => {
@@ -252,6 +284,22 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
     }
     return groups
   }, [participants])
+
+  const activeFiltered = useMemo(
+    () => (contentFilter === "all"
+      ? grouped.active
+      : grouped.active.filter((p) => contentState(p) === contentFilter)),
+    [grouped.active, contentFilter]
+  )
+  // Counts per submission bucket, so the tabs show how many are waiting on whom.
+  const contentCounts = useMemo(() => {
+    const c: Record<string, number> = { all: grouped.active.length }
+    for (const p of grouped.active) {
+      const s = contentState(p)
+      if (s) c[s] = (c[s] ?? 0) + 1
+    }
+    return c
+  }, [grouped.active])
 
   const meta = TYPE_ICON[campaignType]
   const TypeIcon = meta.icon
@@ -416,11 +464,34 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
 
         {/* Active + accepted */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <TypeIcon className={`h-4 w-4 ${meta.accent}`} />
               {meta.label} progress ({grouped.active.length})
             </CardTitle>
+            {/* Submission filters — jump straight to who's submitted vs who hasn't. */}
+            {grouped.active.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {CONTENT_FILTERS.map((f) => {
+                  const n = contentCounts[f.value] ?? 0
+                  if (f.value !== "all" && n === 0) return null
+                  const on = contentFilter === f.value
+                  return (
+                    <button
+                      key={f.value}
+                      type="button"
+                      onClick={() => setContentFilter(f.value)}
+                      className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                        on ? "bg-primary text-primary-foreground border-primary"
+                           : "bg-background hover:bg-muted/60 text-muted-foreground"
+                      }`}
+                    >
+                      {f.label} ({n})
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
@@ -429,8 +500,12 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
               <div className="py-10 text-center text-sm text-muted-foreground">
                 No active participants yet.
               </div>
+            ) : activeFiltered.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                No creators in this state.
+              </div>
             ) : (
-              <ParticipantTable rows={grouped.active} campaignType={campaignType} onRowClick={openParticipant} />
+              <ParticipantTable rows={activeFiltered} campaignType={campaignType} onRowClick={openParticipant} />
             )}
           </CardContent>
         </Card>
@@ -548,6 +623,16 @@ function ParticipantTable({
                   <Badge variant="outline" className={`text-xs w-fit ${statusMeta.tone}`}>
                     {statusMeta.label}
                   </Badge>
+                  {/* Submission state — who has sent content vs who hasn't, at a glance */}
+                  {(p.status === "active" || p.status === "accepted" || p.status === "completed") && (() => {
+                    const cs = contentState(p)
+                    if (!cs) return null
+                    return (
+                      <Badge variant="outline" className={`text-[10px] w-fit ${CONTENT_META[cs].tone}`}>
+                        {CONTENT_META[cs].label}
+                      </Badge>
+                    )
+                  })()}
                   {/* SLA urgency — pending >24h */}
                   {p.status === "pending_brand_approval" && isStale(p.lifecycle.invited_at) && (
                     <Badge variant="outline" className="text-[10px] w-fit bg-rose-500/10 text-rose-600 border-rose-300/40">
