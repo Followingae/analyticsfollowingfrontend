@@ -368,7 +368,7 @@ const sections: GuideSection[] = [
         steps: [
           { text: 'Click an influencer name or row to open their detail view.' },
           { text: 'Review cost and sell pricing per deliverable type.' },
-          { text: 'View analytics: followers, engagement rate, audience demographics.' },
+          { text: 'View analytics: followers, median engagement rate, content categories and languages.' },
           { text: 'Add or edit internal notes for coordination.' },
           { text: 'Manage tags and tier assignment.' },
         ],
@@ -517,11 +517,11 @@ const sections: GuideSection[] = [
       {
         title: 'Members',
         description:
-          'Review and manage influencer applications to the Following App. Approve or reject applicants, view fraud scores, and monitor active members.',
+          'Review and manage influencer applications to the Following App. Approve or reject applicants, review their measured metrics, and monitor active members.',
         steps: [
           { text: 'Navigate to Following App > Members in the sidebar.' },
           { text: 'View pending applications at the top.' },
-          { text: 'Review each applicant\'s profile, social metrics, and fraud score.' },
+          { text: 'Review each applicant\'s profile, follower count and median engagement rate.' },
           { text: 'Approve or reject applications with an optional note.' },
           { text: 'Search and filter active members.' },
         ],

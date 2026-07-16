@@ -402,17 +402,17 @@ function useSections(): GuideSection[] {
               'Go to the Discover page and type an Instagram username into the search bar.',
               'Browse the search results. You will see a preview with follower count, engagement rate, and content highlights.',
               'To access the full analytics, unlock the creator profile (costs 25 credits). Unlocking grants you 30 days of access.',
-              'Once unlocked, view AI-powered insights: sentiment analysis, language detection, content categorisation, audience demographics, and more.',
+              'Once unlocked, view the full analysis: engagement, content categories, languages, formats, hashtags, tagged brands and locations.',
             ]}
           />
 
           <h4 className="text-sm font-semibold text-foreground mt-4">AI-powered insights include</h4>
           <FeatureBullets
             items={[
-              { icon: <Sparkles className="h-4 w-4" />, text: 'Sentiment analysis -- understand the emotional tone of a creator\'s content.' },
-              { icon: <Globe className="h-4 w-4" />, text: 'Language detection -- know what language(s) a creator posts in.' },
-              { icon: <Tag className="h-4 w-4" />, text: 'Content categorisation -- automatically classifies content into niches (fashion, food, travel, etc.).' },
-              { icon: <TrendingUp className="h-4 w-4" />, text: 'Engagement analysis -- real engagement rates calculated from actual post performance.' },
+              { icon: <Tag className="h-4 w-4" />, text: 'Content categorisation -- classifies content into niches (fashion, food, travel, etc.) from captions and images.' },
+              { icon: <Globe className="h-4 w-4" />, text: 'Language detection -- what language(s) a creator posts in, including Arabic and Arabizi.' },
+              { icon: <Sparkles className="h-4 w-4" />, text: 'Tone and themes -- how a creator writes, and the subjects they return to.' },
+              { icon: <TrendingUp className="h-4 w-4" />, text: 'Engagement analysis -- median engagement rates measured from 90 real posts.' },
             ]}
           />
 
@@ -430,11 +430,11 @@ function useSections(): GuideSection[] {
       iconBg: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400',
       title: 'Creator Analytics',
       tagline: 'Deep performance data for individual creators.',
-      keywords: ['creator analytics', 'performance', 'demographics', 'audience', 'engagement', 'export', 'pdf', 'csv', 'json', 'post-level'],
+      keywords: ['creator analytics', 'performance', 'engagement', 'reach', 'median', 'language', 'category', 'hashtags', 'brands', 'post-level'],
       content: (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Once you have unlocked a creator, you can access their full analytics page. This is your most detailed view of any creator on the platform.
+            Once you have unlocked a creator, you can access their full analytics page. This is your most detailed view of any creator on the platform. Every figure is measured from the creator&apos;s last 90 posts -- if we could not measure something, the section is not shown rather than filled with a placeholder.
           </p>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Navigate to</span>
@@ -444,13 +444,19 @@ function useSections(): GuideSection[] {
           <h4 className="text-sm font-semibold text-foreground">What you get</h4>
           <FeatureBullets
             items={[
-              { icon: <TrendingUp className="h-4 w-4" />, text: 'Performance metrics -- follower growth, engagement rate trends, and posting frequency.' },
-              { icon: <Users className="h-4 w-4" />, text: 'Audience demographics -- age, gender, and location breakdowns (AI-estimated with confidence labels).' },
-              { icon: <Star className="h-4 w-4" />, text: 'Content quality scoring -- visual analysis of production quality and brand safety.' },
-              { icon: <MessageSquare className="h-4 w-4" />, text: 'Post-level engagement analysis -- likes, comments, and views for every recent post.' },
-              { icon: <Download className="h-4 w-4" />, text: 'Export analytics reports in PDF, CSV, or JSON format for offline use.' },
+              { icon: <TrendingUp className="h-4 w-4" />, text: 'Engagement -- the MEDIAN across 90 posts, not the average. One viral reel should not set your expectations for a typical post.' },
+              { icon: <Eye className="h-4 w-4" />, text: 'Reach-aware rates -- where a creator\'s reels travel beyond their followers, engagement is measured against the people who actually saw the post, and the page says so.' },
+              { icon: <MessageSquare className="h-4 w-4" />, text: 'Best and weakest post -- ranked by the same rate shown at the top of the page, with the numbers behind them.' },
+              { icon: <Video className="h-4 w-4" />, text: 'Format breakdown -- how reels, carousels and stills each perform for this creator, and what they actually post.' },
+              { icon: <Globe className="h-4 w-4" />, text: 'Languages and categories -- what they post about and in which languages, read from their captions and images.' },
+              { icon: <Tag className="h-4 w-4" />, text: 'Hashtags, tagged brands and locations -- taken from the posts themselves.' },
+              { icon: <Clapperboard className="h-4 w-4" />, text: 'Declared ads vs organic -- how sponsored posts perform against the rest, from the creator\'s own #ad captions.' },
             ]}
           />
+
+          <Tip>
+            Engagement is shown as a median, which will usually read lower than rates quoted elsewhere in the industry -- those are typically averages, and averages flatter creators with one viral post. The median is what a brand should expect from a typical post.
+          </Tip>
 
           <Tip>
             The Creator Analytics page is the same page you land on when you unlock a creator from Discovery. You can also navigate directly using the URL if you know the username.
