@@ -128,10 +128,10 @@ export default function FADeliverablesPage() {
     if (!d.campaign_id) return toast.error("No campaign linked")
     return act(d.id + "re", () => faDeliverableApi.requestEdit(d.campaign_id!, d.id, note || undefined), "Edit requested")
   }
+  // Proof verification is Following-team ONLY — the campaign-scoped /confirm endpoint
+  // is intentionally disabled (403) for everyone, so always use the admin verify route.
   const confirm = (d: Deliverable) =>
-    act(d.id + "cf",
-      () => (d.campaign_id ? faDeliverableApi.confirm(d.campaign_id, d.id) : faDeliverableApi.verify(d.id)),
-      "Verified — payout released")
+    act(d.id + "cf", () => faDeliverableApi.verify(d.id), "Verified — payout released")
   const reject = (d: Deliverable) =>
     act(d.id + "rj", () => faDeliverableApi.reject(d.id), "Deliverable rejected")
 

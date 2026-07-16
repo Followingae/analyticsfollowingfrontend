@@ -694,7 +694,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                           username={username}
                           busy={busy}
                           canDecide={canDecide}
-                          canUpload={!!participant.is_offline}
+                          canUpload={isStaff}
                           uploading={uploadingId === d.id}
                           uploadPct={uploadingId === d.id ? uploadPct : null}
                           onUpload={(files) => uploadOfflineContent(d, files)}
