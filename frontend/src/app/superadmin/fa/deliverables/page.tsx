@@ -14,7 +14,8 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Check, X, ExternalLink, ClipboardCheck, Camera, ImageIcon, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react"
-import { faDeliverableApi } from "@/services/faAdminApi"
+import { faDeliverableApi, faCampaignApi } from "@/services/faAdminApi"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 
 interface Deliverable {
@@ -93,18 +94,34 @@ export default function FADeliverablesPage() {
   const [editNote, setEditNote] = useState("")
   // In-page content viewer: which deliverable's files are open + current index
   const [viewer, setViewer] = useState<{ d: Deliverable; urls: string[]; index: number } | null>(null)
+  // Campaign filter — the pipeline spans every campaign, which is unusable once a
+  // few are live. "all" keeps the old behaviour.
+  const [campaignId, setCampaignId] = useState<string>("all")
+  const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([])
 
-  const load = useCallback(async (stage: string) => {
+  const load = useCallback(async (stage: string, campaign: string) => {
     setLoading(true)
     try {
-      const res = await faDeliverableApi.listAll({ stage, limit: 100 })
+      const res = await faDeliverableApi.listAll({
+        stage, limit: 100, ...(campaign !== "all" ? { campaign_id: campaign } : {}),
+      })
       const list = res?.data?.deliverables || []
       setDeliverables(Array.isArray(list) ? list : [])
     } catch { toast.error("Failed to load deliverables") }
     finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { load(filter) }, [filter, load])
+  useEffect(() => { load(filter, campaignId) }, [filter, campaignId, load])
+
+  // FA campaigns for the filter dropdown (barter/paid_deal/cashback).
+  useEffect(() => {
+    faCampaignApi.list()
+      .then((res: any) => {
+        const list = res?.data?.campaigns ?? res?.data ?? []
+        setCampaigns(Array.isArray(list) ? list.map((c: any) => ({ id: c.id, name: c.name })) : [])
+      })
+      .catch(() => setCampaigns([]))
+  }, [])
 
   const act = async (key: string, fn: () => Promise<any>, okMsg: string) => {
     setBusy(key)
@@ -112,7 +129,7 @@ export default function FADeliverablesPage() {
       const r = await fn()
       if (r && r.success === false) throw new Error(r.detail || r.message || "Action failed")
       toast.success(okMsg)
-      await load(filter)
+      await load(filter, campaignId)
     } catch (e: any) {
       toast.error(e?.message || "Action failed")
     } finally {
@@ -146,13 +163,26 @@ export default function FADeliverablesPage() {
             </p>
           </div>
 
-          <Tabs value={filter} onValueChange={setFilter}>
-            <TabsList className="flex flex-wrap h-auto">
-              {FILTERS.map((f) => (
-                <TabsTrigger key={f.value} value={f.value} className="text-xs">{f.label}</TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <div className="flex flex-wrap items-center gap-3">
+            <Tabs value={filter} onValueChange={setFilter} className="flex-1 min-w-[280px]">
+              <TabsList className="flex flex-wrap h-auto">
+                {FILTERS.map((f) => (
+                  <TabsTrigger key={f.value} value={f.value} className="text-xs">{f.label}</TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+            <Select value={campaignId} onValueChange={setCampaignId}>
+              <SelectTrigger className="w-[260px]">
+                <SelectValue placeholder="All campaigns" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All campaigns</SelectItem>
+                {campaigns.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {loading ? (
             <p className="text-sm text-muted-foreground text-center py-12">Loading...</p>

@@ -186,9 +186,10 @@ export const faDeliverableApi = {
   /** @deprecated submitted-only view — use listAll for full pipeline visibility. */
   listPending: () => get('/api/v1/admin/fa/deliverables/pending'),
   /** Oversight: ALL deliverables, computed `stage`. stage='archive' → completed (verified|rejected). */
-  listAll: (params?: { stage?: string; limit?: number; offset?: number }) => {
+  listAll: (params?: { stage?: string; campaign_id?: string; limit?: number; offset?: number }) => {
     const qs = new URLSearchParams()
     if (params?.stage) qs.set('stage', params.stage)
+    if (params?.campaign_id) qs.set('campaign_id', params.campaign_id)
     if (params?.limit) qs.set('limit', String(params.limit))
     if (params?.offset !== undefined) qs.set('offset', String(params.offset))
     const q = qs.toString()
