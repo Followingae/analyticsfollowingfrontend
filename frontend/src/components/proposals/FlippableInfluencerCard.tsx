@@ -7,7 +7,10 @@ import { CheckCircle, BarChart3, X, ArrowLeft } from "lucide-react"
 import { getTierConfig, formatCount, formatCurrency, DEFAULT_AVATAR } from "./proposal-utils"
 import { motion, AnimatePresence } from "motion/react"
 import { FreelancerProfileCard } from "@/components/ui/freelancer-profile-card"
-import { HealthStatCard, type StatData, type HealthGraphData } from "@/components/ui/health-stat-card"
+// Types only. HealthStatCard itself is gone from this card: its title row, mb-5/mb-6
+// rhythm and legend were the reason the back face could never fit, and the legend only
+// re-printed the values already written under each bar. The bars are rendered inline.
+import { type StatData, type HealthGraphData } from "@/components/ui/health-stat-card"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 
 interface FlippableInfluencerCardProps {
@@ -205,8 +208,12 @@ export function FlippableInfluencerCard({
         {/* ================================================================= */}
         {/* FRONT FACE                                                        */}
         {/* ================================================================= */}
+        {/* pointer-events, not just backface-visibility. A hidden backface still sits in
+            the layout and still swallows clicks — the back face is absolute inset-0, so
+            while the card was unflipped it lay invisibly on top of the front and ate every
+            press, including "View Analytics". Only the face you can see may be clicked. */}
         <div
-          className="relative w-full cursor-pointer"
+          className={`relative w-full cursor-pointer ${isFlipped ? "pointer-events-none" : ""}`}
           style={{ backfaceVisibility: "hidden" }}
           onClick={(e) => {
             if ((e.target as HTMLElement).closest("button")) return
@@ -246,61 +253,75 @@ export function FlippableInfluencerCard({
         {/* ================================================================= */}
         {/* BACK FACE                                                         */}
         {/* ================================================================= */}
+        {/* It FITS. No scrolling — a card that scrolls inside itself is not a card.
+            What was making it overflow was never the creator's data: HealthStatCard's own
+            chrome (its title row, mb-5/mb-6 spacing) plus a legend that just re-printed the
+            four values already written under the bars. All of it is gone; the bars are
+            rendered directly and labelled in place. */}
         <div
-          className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden flex flex-col bg-card"
+          className={`absolute inset-0 w-full h-full rounded-2xl overflow-hidden flex flex-col bg-card border border-border ${
+            isFlipped ? "" : "pointer-events-none"
+          }`}
           style={{
             backfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
           }}
         >
-          {/* Back button. Pinned OUTSIDE the scroll area — it used to sit inside the
-              content, so once the content overflowed there was no way back to the front. */}
-          <div className="flex items-center justify-between gap-2 border-b border-border/40 px-3 py-2 shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1 px-2 text-[11px]"
-              onClick={() => onUnflip()}
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
+          {/* Header — the one way back, pinned and never scrolled away. */}
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/40 px-2 py-1.5">
+            <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-[11px]" onClick={() => onUnflip()}>
+              <ArrowLeft className="h-3 w-3" />
               Back
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => onUnflip()}
-              aria-label="Close analytics"
-            >
-              <X className="h-4 w-4" />
+            <span className="truncate text-[11px] font-medium text-muted-foreground">@{inf.username}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => onUnflip()} aria-label="Close">
+              <X className="h-3.5 w-3.5" />
             </Button>
           </div>
 
-          {/* The scroll area. The back face is absolutely positioned to the front's height,
-              so stats + a 4-bar chart + a legend + deliverables + a button could not
-              possibly fit — and overflow-hidden simply cut them off. Scroll instead of
-              clip: nothing is unreachable now. */}
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <HealthStatCard
-              headerIcon={<BarChart3 className="h-5 w-5" />}
-              title="Creator Analytics"
-              stats={healthStats}
-              graphData={graphData}
-              graphHeight={100}
-              showLegend={true}
-              legendTitle={benchmarks ? "Metrics · vs. best in this proposal" : "Metrics"}
-              legendFormat={(item) => (item.description ? `${item.label} · ${item.description}` : item.label)}
-              className="max-w-none border-0 shadow-none"
-            />
+          <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
+            {/* Stats */}
+            <div className="grid shrink-0 grid-cols-3 gap-1 text-center">
+              {healthStats.map((s, i) => (
+                <div key={i} className="rounded-md bg-muted/50 py-1">
+                  <div className="text-[13px] font-semibold leading-tight tabular-nums">{s.value}</div>
+                  <div className="text-[9px] uppercase tracking-wide text-muted-foreground">{s.title}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Bars — each creator against the best in this proposal, so the tallest bar is
+                a real creator rather than an invented ceiling. */}
+            <div className="flex min-h-0 flex-1 flex-col justify-end gap-1 rounded-md bg-muted/40 px-2 pb-1 pt-2">
+              <div className="flex min-h-0 flex-1 items-end justify-around gap-2">
+                {graphData.map((b, i) => (
+                  <div key={i} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1">
+                    <span className="shrink-0 text-[9px] font-semibold leading-none tabular-nums">{b.description}</span>
+                    <div
+                      className="w-full rounded-t transition-all duration-500"
+                      style={{ height: `${b.value}%`, backgroundColor: b.color, minHeight: 2 }}
+                    />
+                    <span className="w-full shrink-0 truncate text-center text-[8px] leading-none text-muted-foreground">
+                      {b.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {benchmarks && (
+                <p className="shrink-0 text-center text-[8px] leading-none text-muted-foreground/70">
+                  relative to the strongest creator in this proposal
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Deliverables + Pricing + Select */}
-          <div className="shrink-0 border-t border-border/40 bg-card p-4 pt-3 space-y-3">
+          <div className="shrink-0 border-t border-border/40 bg-card p-3 pt-2 space-y-2">
             {/* The main action. It was a 7px-tall outline button tucked in a corner, on the
                 back of a card you had to find first. */}
             {onViewAnalytics && inf.username && (
               <Button
-                className="w-full gap-1.5"
+                className="h-8 w-full gap-1.5"
                 size="sm"
                 onClick={() => onViewAnalytics(inf.username!)}
               >
@@ -322,48 +343,44 @@ export function FlippableInfluencerCard({
 
               if (deliverablesToShow.length === 0) return null
 
+              const total = deliverablesToShow.reduce((sum, d) => sum + (d.value || 0) * d.quantity, 0)
+
               return (
-                <div>
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                    {hasAssigned ? "Assigned Deliverables" : "Deliverables"}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="space-y-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {hasAssigned ? "Assigned" : "Deliverables"}
+                    </p>
+                    {hasAssigned && (
+                      <p className="text-[11px] font-semibold tabular-nums">{formatCurrency(total)}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
                     {deliverablesToShow.map(({ key, value, quantity }) => {
                       const isActive = selectedDeliverables.includes(key)
                       return (
                         <button
                           key={key}
                           onClick={() => onToggleDeliverable?.(inf.id, key)}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border transition-all ${
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-all ${
                             isActive
-                              ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                              : "bg-muted/50 text-muted-foreground border-border/50 hover:border-primary/50 hover:text-foreground"
+                              ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                              : "border-border/50 bg-muted/50 text-muted-foreground hover:border-primary/50 hover:text-foreground"
                           }`}
                         >
                           {DELIVERABLE_LABELS[key] || key}
-                          {quantity > 1 && (
-                            <span className="font-semibold">x{quantity}</span>
-                          )}
-                          <span className="font-bold text-[11px]">
-                            {formatCurrency(value! * quantity)}
-                          </span>
+                          {quantity > 1 && <span className="font-semibold">x{quantity}</span>}
+                          <span className="text-[10px] font-bold">{formatCurrency(value! * quantity)}</span>
                         </button>
                       )
                     })}
                   </div>
-                  {hasAssigned && (
-                    <p className="text-xs font-semibold text-foreground mt-2 tabular-nums">
-                      Total: {formatCurrency(
-                        deliverablesToShow.reduce((sum, d) => sum + (d.value || 0) * d.quantity, 0)
-                      )}
-                    </p>
-                  )}
                 </div>
               )
             })()}
             <Button
-              className="w-full"
-              variant={isSelected ? "outline" : "default"}
+              className="h-8 w-full"
+              variant={isSelected ? "outline" : "secondary"}
               size="sm"
               onClick={() => onToggle(inf.id)}
             >
