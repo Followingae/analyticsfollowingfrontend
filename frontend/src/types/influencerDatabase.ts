@@ -482,11 +482,27 @@ export function formatCount(num: number | null | undefined): string {
   return num.toString()
 }
 
-/** Get engagement rate color class */
+/**
+ * Engagement rate colour, calibrated to the roster we actually have.
+ *
+ * The old thresholds (green >=5, yellow >=2, red below) were written for the MEAN
+ * engagement rate, which ran 5-90% because one viral reel dragged an average over 12
+ * posts. Engagement is now a MEDIAN over ~90 posts, measured against views where a
+ * creator's reels outreach their followers. Real numbers, real distribution:
+ *
+ *   187 creators   p25 = 0.21   median = 0.51   p75 = 1.06   p90 = 1.77   max = 11.87
+ *
+ * Under the old thresholds that painted 172 of 187 red and 2 green — a colour that is
+ * "bad" 92% of the time is not information, it is decoration, and it would have had
+ * superadmins reading perfectly healthy creators as failures.
+ *
+ * These cuts are the roster's own quartiles, so the colour answers the only question it
+ * can honestly answer: how does this creator compare to the others we have?
+ */
 export function getEngagementColor(rate: number): string {
-  if (rate >= 5) return 'text-green-600'
-  if (rate >= 2) return 'text-yellow-600'
-  return 'text-red-600'
+  if (rate >= 1.0) return 'text-green-600'   // top ~25% (p75 = 1.06)
+  if (rate >= 0.2) return 'text-yellow-600'  // middle 50%
+  return 'text-red-600'                      // bottom ~25% (p25 = 0.21)
 }
 
 /** Get default empty cost pricing */
