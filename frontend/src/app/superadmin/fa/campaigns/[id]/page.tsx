@@ -26,6 +26,9 @@ interface FunnelCreator {
   bucket: string
   joined_at: string | null
   brand_rejection_reason: string | null
+  /** The edit the brand asked for, off the DELIVERABLE. Distinct from
+   *  brand_rejection_reason, which is the proposal-level rejection. */
+  revision_reason: string | null
   deliverables: Record<string, number> & { total: number }
 }
 
@@ -183,6 +186,16 @@ export default function FACampaignFunnelPage() {
                           </div>
                           {c.bucket === "rejected" && c.brand_rejection_reason && (
                             <p className="text-[11px] text-rose-600 italic truncate max-w-[420px] mt-0.5">“{c.brand_rejection_reason}”</p>
+                          )}
+                          {/* The edit the brand asked for. The row already showed an
+                              "Edit requested" badge with no text beside it, so the team
+                              could see that an edit was wanted and never what it was —
+                              which makes the badge worse than useless. Not truncated:
+                              this is an instruction someone has to act on. */}
+                          {c.bucket === "revision_requested" && c.revision_reason && (
+                            <p className="text-[11px] text-orange-700 italic max-w-[520px] mt-0.5">
+                              Edit requested: “{c.revision_reason}”
+                            </p>
                           )}
                         </div>
                       </div>
