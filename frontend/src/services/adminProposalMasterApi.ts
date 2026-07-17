@@ -105,6 +105,11 @@ export interface BrandProposalView {
     created_at: string
     more_added_at?: string
     request_more_at?: string
+    /** The team is mid-edit. When true the API serves NO influencers and blocks
+     *  select/approve/reject — the client screen is a message, not a cover over data that
+     *  was sent anyway. */
+    work_in_progress?: boolean
+    work_in_progress_note?: string | null
   }
   influencers: BrandInfluencer[]
   summary: {

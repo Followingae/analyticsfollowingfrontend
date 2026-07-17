@@ -68,6 +68,7 @@ import {
   UserCheck,
   Sparkles,
   MessageSquare,
+  Construction,
 } from "lucide-react"
 
 // Motion
@@ -517,6 +518,36 @@ function BrandProposalViewPageContent() {
               </Button>
             </div>
           </div>
+      </BrandUserInterface>
+    )
+  }
+
+  // The team is mid-edit. The API serves no creators at all in this state — this screen is
+  // what there is, not a cover over data that was sent anyway.
+  if (data.proposal?.work_in_progress) {
+    return (
+      <BrandUserInterface>
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div className="max-w-md space-y-5 text-center">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-500/10">
+              <Construction className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-semibold tracking-tight">We&apos;re still working on this</h1>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {data.proposal.work_in_progress_note
+                  || "Our team is putting the finishing touches to this proposal. It'll be ready for you shortly — we'll let you know the moment it is."}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {data.proposal.campaign_name || data.proposal.title}
+            </p>
+            <div className="flex justify-center gap-2">
+              <Button variant="outline" onClick={loadData}>Check again</Button>
+              <Button variant="ghost" onClick={() => router.push("/proposals")}>All proposals</Button>
+            </div>
+          </div>
+        </div>
       </BrandUserInterface>
     )
   }

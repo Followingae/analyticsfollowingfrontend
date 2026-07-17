@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/table'
 import {
   ArrowLeft, Send, UserPlus, CheckCircle2, RotateCcw, Flag, ArrowUp, ArrowDown, Plus, Trash2,
+  Construction,
 } from 'lucide-react'
 import { proposalApprovalApi, type ApprovalStep } from '@/services/proposalApprovalApi'
 import { clientApi } from '@/services/clientManagementApi'
@@ -57,6 +58,12 @@ export default function ProposalApprovalPage() {
   const [approveNotes, setApproveNotes] = useState('')
   const [sendBackNotes, setSendBackNotes] = useState('')
   const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [wipNote, setWipNote] = useState('')
+
+  const toggleWip = (enabled: boolean) => run(async () => {
+    await proposalApprovalApi.setWorkInProgress(proposalId, enabled, enabled ? wipNote : undefined)
+    await load()
+  })
 
   const genShare = () => run(async () => {
     const res = await proposalApprovalApi.createShare(proposalId)
@@ -102,6 +109,7 @@ export default function ProposalApprovalPage() {
   const status: string = ws.proposal?.status
   const sb = STATUS_LABEL[status] || { label: status, cls: 'bg-muted' }
   const budgetVisible: boolean = ws.budget_visible
+  const wip: boolean = !!ws.proposal?.work_in_progress
   // Role-based visibility - only show each actor the cards they can act on.
   const viewer = ws.viewer || {}
   const chainEditable = ['draft', 'building', 'internal_changes_requested'].includes(status)
@@ -271,6 +279,52 @@ export default function ProposalApprovalPage() {
                     onClick={() => run(() => proposalApprovalApi.internalApprove(proposalId))}>
                     <CheckCircle2 className="mr-1 h-4 w-4" /> Mark internally approved
                   </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* "Still working on this" — the curtain.
+                Only meaningful once the client can actually reach the proposal; before
+                that they cannot see it anyway and the toggle would just be noise. */}
+            {viewer.is_operator && (status === 'sent' || status === 'in_review' || status === 'more_requested') && (
+              <Card className={wip ? 'border-amber-500/40 bg-amber-500/5' : undefined}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Construction className="h-4 w-4" />
+                    {wip ? 'Client sees "we\'re still working on this"' : 'Park this proposal'}
+                  </CardTitle>
+                  <CardDescription>
+                    {wip
+                      ? 'The proposal stays in their list, but opening it shows an overlay instead of the creators, and they cannot select or approve. Lift it when you\'re ready for them to look again.'
+                      : 'Adding more creators or re-pricing? Park it. The client keeps the proposal but sees an overlay instead of a half-finished roster — nothing is served to them and nothing can be approved until you lift it.'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {wip ? (
+                    <>
+                      {ws.proposal?.work_in_progress_note && (
+                        <p className="rounded-md border bg-background p-2 text-xs">
+                          They see: “{ws.proposal.work_in_progress_note}”
+                        </p>
+                      )}
+                      <Button disabled={busy} onClick={() => toggleWip(false)}>
+                        Lift — let the client see it again
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Label className="text-xs">Message to the client (optional)</Label>
+                      <Input
+                        value={wipNote}
+                        onChange={(e) => setWipNote(e.target.value)}
+                        placeholder="e.g. Adding a few more creators — back to you Tuesday"
+                      />
+                      <Button variant="secondary" disabled={busy} onClick={() => toggleWip(true)}>
+                        <Construction className="mr-1 h-4 w-4" />
+                        Park it
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             )}

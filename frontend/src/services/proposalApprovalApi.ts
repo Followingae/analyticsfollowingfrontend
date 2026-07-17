@@ -90,6 +90,15 @@ export const proposalApprovalApi = {
   // Generate (or reuse) the public client share link.
   createShare: (proposalId: string) => jfetch(`${BASE}/${proposalId}/share`, { method: 'POST', body: '{}' }),
 
+  // Draw/lift the "we're still working on this" curtain. While it is down the client keeps
+  // the proposal in their list but the API serves them no roster, and select/approve/reject
+  // are rejected with a 409.
+  setWorkInProgress: (proposalId: string, enabled: boolean, note?: string) =>
+    jfetch(`${BASE}/${proposalId}/work-in-progress`, {
+      method: 'POST',
+      body: JSON.stringify({ enabled, note: note || null }),
+    }),
+
   // Search the master database (active creators) for the picker.
   //
   // excludeProposalId hides creators already on the proposal, at the SOURCE. Filtering the
