@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import React, { Suspense } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { CreatorAnalyticsV2 } from '@/components/analytics/v2/CreatorAnalyticsV2'
 import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { AuthGuard } from '@/components/AuthGuard'
@@ -18,10 +18,28 @@ import { ArrowLeft } from 'lucide-react'
  * otherwise. One import is a fact; a flag is a claim.
  */
 
-export default function CreatorAnalyticsPage() {
+function CreatorAnalyticsInner() {
   const params = useParams()
   const router = useRouter()
   const username = params.username as string
+
+  // ?embed=1 — rendered inside an iframe (the proposal page's analytics drawer).
+  // The proposal drawer has always requested this; nothing ever read it, so the iframe
+  // loaded the WHOLE app — sidebar, header, nav — nested inside a narrow sheet. That is
+  // what "full analytics doesn't work" was: it worked, it just rendered a second copy of
+  // the app in a 3rem-wide column.
+  const embed = useSearchParams().get('embed') === '1'
+
+  if (embed) {
+    // No AuthGuard: a same-origin iframe carries the parent's session, and an AuthGuard
+    // redirect inside an iframe navigates the FRAME, not the tab — it would blank the
+    // drawer rather than send anyone to a login page.
+    return (
+      <div className="p-4 md:p-6">
+        <CreatorAnalyticsV2 username={username} />
+      </div>
+    )
+  }
 
   return (
     <AuthGuard requireAuth={true}>
@@ -47,5 +65,14 @@ export default function CreatorAnalyticsPage() {
           </div>
       </BrandUserInterface>
     </AuthGuard>
+  )
+}
+
+export default function CreatorAnalyticsPage() {
+  // useSearchParams() needs a Suspense boundary above it or the build fails prerendering.
+  return (
+    <Suspense fallback={null}>
+      <CreatorAnalyticsInner />
+    </Suspense>
   )
 }

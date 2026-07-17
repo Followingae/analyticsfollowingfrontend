@@ -282,6 +282,22 @@ function BrandProposalViewPageContent() {
   }, [sortedInfluencers])
   const showBatchHeaders = batches.length > 1
 
+  // The best value for each metric across every creator in the proposal. The card's bars
+  // are drawn against these, so each one reads as "this creator vs the strongest here" —
+  // a comparison the data supports. Without a reference set the bars needed invented
+  // absolute scales, which is why three of them were permanently empty and the fourth was
+  // a hardcoded 90.
+  const benchmarks = useMemo(() => {
+    const max = (pick: (i: BrandInfluencer) => number | null | undefined) =>
+      sortedInfluencers.reduce((m, i) => Math.max(m, pick(i) ?? 0), 0)
+    return {
+      followers: max((i) => i.followers_count),
+      engagement: max((i) => i.engagement_rate),
+      likes: max((i) => i.avg_likes),
+      comments: max((i) => i.avg_comments),
+    }
+  }, [sortedInfluencers])
+
   // Selected-only metrics
   const selectedReach = useMemo(() => {
     if (!data) return 0
@@ -783,6 +799,7 @@ function BrandProposalViewPageContent() {
                                   selectedDeliverables={deliverableSelections[inf.id] || []}
                                   onToggleDeliverable={toggleDeliverable}
                                   onViewAnalytics={setAnalyticsUsername}
+                                  benchmarks={benchmarks}
                                 />
                               </DraggableGridCard>
                             </motion.div>

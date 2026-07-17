@@ -3,7 +3,7 @@
 import { BrandInfluencer } from "@/services/adminProposalMasterApi"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, BarChart3, X } from "lucide-react"
+import { CheckCircle, BarChart3, X, ArrowLeft } from "lucide-react"
 import { getTierConfig, formatCount, formatCurrency, DEFAULT_AVATAR } from "./proposal-utils"
 import { motion, AnimatePresence } from "motion/react"
 import { FreelancerProfileCard } from "@/components/ui/freelancer-profile-card"
@@ -21,6 +21,18 @@ interface FlippableInfluencerCardProps {
   selectedDeliverables?: string[]
   onToggleDeliverable?: (influencerId: string, deliverable: string) => void
   onViewAnalytics?: (username: string) => void
+  /** The best value for each metric across the whole proposal. The back-face bars are a
+   *  comparison against these, so "how does this creator stack up here" is a question the
+   *  chart can actually answer. Without them every bar would need an invented absolute
+   *  scale — which is what it had, and why three of them were always empty. */
+  benchmarks?: ProposalBenchmarks
+}
+
+export interface ProposalBenchmarks {
+  followers: number
+  engagement: number
+  likes: number
+  comments: number
 }
 
 function seedColor(seed: string): string {
@@ -65,6 +77,7 @@ export function FlippableInfluencerCard({
   selectedDeliverables = [],
   onToggleDeliverable,
   onViewAnalytics,
+  benchmarks,
 }: FlippableInfluencerCardProps) {
   const inf = influencer
   const pricing = inf.sell_pricing ?? {}
@@ -103,32 +116,48 @@ export function FlippableInfluencerCard({
       : [{ title: "Posts", value: formatCount(inf.posts_count) }]),
   ]
 
-  const maxFollowers = inf.followers_count ?? 1
+  // Each bar is this creator MEASURED AGAINST THE BEST IN THIS PROPOSAL, so the strongest
+  // creator fills the bar and everyone else reads as a share of them. That is a comparison
+  // the number can actually support.
+  //
+  // What was here before could not:
+  //   Followers    -> hardcoded 90. Every creator, always. It showed nothing at all.
+  //   Engagement   -> rate x 10. Real rates run ~0.2-1.5%, so every bar sat at 2-15%.
+  //   Avg Likes    -> likes/followers x 100. That IS engagement, ~1%, so: another stub.
+  //   Avg Comments -> comments/likes x 100, capped at 80. ~5%.
+  // Three permanently-empty bars next to one permanently-full fake one — which is exactly
+  // what you see on the card, and none of it was about the creator.
+  const bar = (value: number | null | undefined, best: number | null | undefined) => {
+    const v = value ?? 0
+    const b = best ?? 0
+    if (v <= 0 || b <= 0) return 0
+    // Floor at 4 so a real-but-small value still renders as a bar rather than vanishing
+    // into the axis and reading as "no data".
+    return Math.max(4, Math.min(100, (v / b) * 100))
+  }
+
   const graphData: HealthGraphData[] = [
     {
       label: "Followers",
-      value: 90,
+      value: bar(inf.followers_count, benchmarks?.followers),
       color: "#8b5cf6",
       description: formatCount(inf.followers_count),
     },
     {
       label: "Engagement",
-      value: Math.min((inf.engagement_rate ?? 0) * 10, 100),
+      value: bar(inf.engagement_rate, benchmarks?.engagement),
       color: "#3b82f6",
-      description: `${(inf.engagement_rate ?? 0).toFixed(1)}%`,
+      description: `${(inf.engagement_rate ?? 0).toFixed(2)}%`,
     },
     {
       label: "Avg Likes",
-      value: Math.min(((inf.avg_likes ?? 0) / maxFollowers) * 100, 95),
+      value: bar(inf.avg_likes, benchmarks?.likes),
       color: "#10b981",
       description: formatCount(inf.avg_likes),
     },
     {
       label: "Avg Comments",
-      value: Math.min(
-        ((inf.avg_comments ?? 0) / Math.max(inf.avg_likes ?? 1, 1)) * 100,
-        80
-      ),
+      value: bar(inf.avg_comments, benchmarks?.comments),
       color: "#f59e0b",
       description: formatCount(inf.avg_comments),
     },
@@ -218,50 +247,67 @@ export function FlippableInfluencerCard({
         {/* BACK FACE                                                         */}
         {/* ================================================================= */}
         <div
-          className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden flex flex-col"
+          className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden flex flex-col bg-card"
           style={{
             backfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
           }}
         >
-          {/* HealthStatCard fills the available space */}
-          <HealthStatCard
-            headerIcon={<BarChart3 className="h-5 w-5" />}
-            title="Creator Analytics"
-            stats={healthStats}
-            graphData={graphData}
-            graphHeight={100}
-            showLegend={true}
-            legendTitle="Metrics"
-            legendFormat={(item) => (item.description ? `${item.label} · ${item.description}` : item.label)}
-            className="max-w-none flex-1 flex flex-col [&>div:nth-child(3)]:flex-1"
-          />
-
-          {/* Close button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 h-7 w-7 z-10"
-            onClick={() => onUnflip()}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-
-          {/* Drill-down to full creator analytics */}
-          {onViewAnalytics && inf.username && (
+          {/* Back button. Pinned OUTSIDE the scroll area — it used to sit inside the
+              content, so once the content overflowed there was no way back to the front. */}
+          <div className="flex items-center justify-between gap-2 border-b border-border/40 px-3 py-2 shrink-0">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="absolute top-4 left-4 h-7 text-[11px] z-10"
-              onClick={() => onViewAnalytics(inf.username!)}
+              className="h-7 gap-1 px-2 text-[11px]"
+              onClick={() => onUnflip()}
             >
-              <BarChart3 className="h-3 w-3 mr-1" />
-              Full analytics
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back
             </Button>
-          )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => onUnflip()}
+              aria-label="Close analytics"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* The scroll area. The back face is absolutely positioned to the front's height,
+              so stats + a 4-bar chart + a legend + deliverables + a button could not
+              possibly fit — and overflow-hidden simply cut them off. Scroll instead of
+              clip: nothing is unreachable now. */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <HealthStatCard
+              headerIcon={<BarChart3 className="h-5 w-5" />}
+              title="Creator Analytics"
+              stats={healthStats}
+              graphData={graphData}
+              graphHeight={100}
+              showLegend={true}
+              legendTitle={benchmarks ? "Metrics · vs. best in this proposal" : "Metrics"}
+              legendFormat={(item) => (item.description ? `${item.label} · ${item.description}` : item.label)}
+              className="max-w-none border-0 shadow-none"
+            />
+          </div>
 
           {/* Deliverables + Pricing + Select */}
-          <div className="p-4 pt-3 border-t border-border/40 bg-card space-y-3">
+          <div className="shrink-0 border-t border-border/40 bg-card p-4 pt-3 space-y-3">
+            {/* The main action. It was a 7px-tall outline button tucked in a corner, on the
+                back of a card you had to find first. */}
+            {onViewAnalytics && inf.username && (
+              <Button
+                className="w-full gap-1.5"
+                size="sm"
+                onClick={() => onViewAnalytics(inf.username!)}
+              >
+                <BarChart3 className="h-4 w-4" />
+                View full analytics
+              </Button>
+            )}
             {showPricing && (() => {
               const assigned = inf.assigned_deliverables || []
               const hasAssigned = assigned.length > 0
