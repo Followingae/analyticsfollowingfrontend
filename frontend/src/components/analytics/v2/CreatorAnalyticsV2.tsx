@@ -129,10 +129,15 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
                   </Badge>
                 )}
                 {p.external_urls?.slice(0, 1).map((u) => (
-                  <a key={u} href={u} target="_blank" rel="noopener noreferrer"
+                  <a key={u.url} href={u.url} target="_blank" rel="noopener noreferrer"
                      className="flex items-center gap-1 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground">
                     <ExternalLink className="h-3 w-3" />
-                    {u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}
+                    {/* Prefer the creator's own label; fall back to the bare domain.
+                        Guarded because this exact line assumed a string and threw
+                        "e.replace is not a function" on Instagram's link objects. */}
+                    {u.title || (typeof u.url === "string"
+                      ? u.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]
+                      : "Link")}
                   </a>
                 ))}
               </div>

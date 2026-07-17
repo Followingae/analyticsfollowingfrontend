@@ -47,8 +47,18 @@ export interface ProfileBlock {
   is_business: boolean | null
   business_category: string | null
   profile_pic_url: string | null
-  external_urls: string[]
+  external_urls: ExternalUrl[]
   related_profiles: RelatedProfile[]
+}
+
+/** The creator's bio links. This was typed `string[]` and is not — Instagram returns
+ *  an object per link, and calling .replace() on it threw "e.replace is not a function"
+ *  and blanked the page. The type now matches what the API actually sends. */
+export interface ExternalUrl {
+  url: string
+  /** The creator's own label for the link ("Collaboration details", "Whatsapp"). Null
+   *  when they didn't set one — fall back to the domain. */
+  title: string | null
 }
 
 // ─── Engagement ───────────────────────────────────────────────────────

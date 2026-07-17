@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ComprehensiveCreatorAnalytics } from '@/components/analytics/ComprehensiveCreatorAnalytics'
 import { CreatorAnalyticsV2 } from '@/components/analytics/v2/CreatorAnalyticsV2'
 import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { AuthGuard } from '@/components/AuthGuard'
@@ -10,13 +9,14 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 
 /**
- * v2 is the rebuilt pipeline: /api/v2/creator-analytics, three tabs, and no
- * fabricated audience data. Flagged rather than swapped outright so v1 stays one
- * env var away while v2 is validated against real creators.
+ * The rebuilt pipeline (/api/v2/creator-analytics) is the only creator analytics.
  *
- * Set NEXT_PUBLIC_CREATOR_ANALYTICS_V2=true to enable.
+ * There is no flag any more, and v1 is deleted. The flag was a build-time
+ * NEXT_PUBLIC_ var, which meant "is the new analytics live?" was answered by an
+ * env string in a dashboard — and it got stored with a UTF-8 BOM and a trailing
+ * CRLF, so `=== 'true'` was false and the old page shipped while every check said
+ * otherwise. One import is a fact; a flag is a claim.
  */
-const USE_V2 = process.env.NEXT_PUBLIC_CREATOR_ANALYTICS_V2 === 'true'
 
 export default function CreatorAnalyticsPage() {
   const params = useParams()
@@ -43,9 +43,7 @@ export default function CreatorAnalyticsPage() {
                 <p className="text-muted-foreground text-sm">Creator Analytics</p>
               </div>
             </div>
-            {USE_V2
-              ? <CreatorAnalyticsV2 username={username} />
-              : <ComprehensiveCreatorAnalytics username={username} />}
+            <CreatorAnalyticsV2 username={username} />
           </div>
       </BrandUserInterface>
     </AuthGuard>
