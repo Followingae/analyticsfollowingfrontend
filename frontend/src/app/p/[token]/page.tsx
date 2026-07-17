@@ -132,6 +132,15 @@ export default function PublicProposalPage() {
   const shown = gate?.shown ?? influencers.filter((i: any) => !i.locked).length
   const lockedCount = Math.max(0, total - shown)
   const unlocked = !!gate?.unlocked
+  // Clearing the commercials hands the client to their account — it does not reveal the
+  // roster here. The backend stops serving creator data at the same moment, so this is a
+  // prompt, not a curtain: there is nothing behind it to inspect.
+  const requiresLogin = !!gate?.requires_login
+  // /auth/login is the canonical page; /login is a bare redirect stub that drops the query
+  // string, which would silently lose `next` and land the client on the dashboard.
+  const loginHref = gate?.app_path
+    ? `/auth/login?next=${encodeURIComponent(gate.app_path)}`
+    : '/auth/login'
   const noInfluencers = total === 0
   const agreementDone = !!gate?.agreement_signed
   const advanceDone = !!gate?.advance_paid
@@ -307,17 +316,43 @@ export default function PublicProposalPage() {
           </section>
         )}
 
-        {/* ---------- creators ---------- */}
+        {/* ---------- creators ----------
+            Once the commercials clear this section stops being the lineup and becomes the
+            handoff: the roster lives in the client's account, not on a permanent public
+            link that anyone it was forwarded to can still open. */}
         <section id="creators" className="pt-14 sm:pt-20 scroll-mt-20">
+          {requiresLogin ? (
+            <Reveal>
+              <div className="rounded-2xl border border-primary/25 bg-primary/[0.04] p-8 sm:p-10 text-center">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-primary/10">
+                  <Check className="h-5 w-5 text-primary" />
+                </div>
+                <h2 className="mt-5 text-2xl sm:text-3xl font-semibold tracking-tight">
+                  You&apos;re all set{total > 0 ? ` — your ${total} creators are ready` : ''}
+                </h2>
+                <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground leading-relaxed">
+                  Your agreement and advance are confirmed. Sign in to your Following account
+                  to view every creator and approve your final lineup.
+                </p>
+                <Button asChild className="mt-6 gap-2 rounded-xl">
+                  <a href={loginHref}>Log in to view &amp; approve<ArrowRight className="h-4 w-4" /></a>
+                </Button>
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Use the account we set up for you. Contact your account manager if you need access.
+                </p>
+              </div>
+            </Reveal>
+          ) : (
+          <>
           <Reveal>
             <div className="flex items-end justify-between gap-4 flex-wrap">
               <div>
                 <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                  <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/10 text-xs">{unlocked ? <Check className="h-3.5 w-3.5" /> : '2'}</span>
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/10 text-xs">2</span>
                   The lineup
                 </div>
                 <h2 className="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight">
-                  {unlocked ? 'Your creators' : 'Your creators, unlocking soon'}
+                  Your creators, unlocking soon
                 </h2>
               </div>
               {!unlocked && (
@@ -373,24 +408,16 @@ export default function PublicProposalPage() {
             ))}
           </div>
 
-          {noInfluencers && unlocked && (
-            <div className="mt-8 rounded-2xl border border-dashed border-border p-10 text-center">
-              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full border border-border"><Users className="h-5 w-5 text-muted-foreground" /></div>
-              <p className="mt-4 font-medium">Your lineup is being finalized</p>
-              <p className="mt-1 text-sm text-muted-foreground">Your advance is confirmed. Your creators will appear here shortly.</p>
-            </div>
-          )}
-
-          {!unlocked && (
-            <Reveal delay={0.12}>
-              <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-primary/25 bg-primary/[0.04] p-6 text-center sm:text-left">
-                <div>
-                  <div className="font-semibold">Ready to meet your creators?</div>
-                  <p className="text-sm text-muted-foreground">Complete the agreement and advance to unlock the full lineup.</p>
-                </div>
-                <Button onClick={() => scrollTo('unlock')} className="gap-2 rounded-xl shrink-0"><ArrowRight className="h-4 w-4" />Get started</Button>
+          <Reveal delay={0.12}>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-primary/25 bg-primary/[0.04] p-6 text-center sm:text-left">
+              <div>
+                <div className="font-semibold">Ready to meet your creators?</div>
+                <p className="text-sm text-muted-foreground">Complete the agreement and advance to unlock the full lineup.</p>
               </div>
-            </Reveal>
+              <Button onClick={() => scrollTo('unlock')} className="gap-2 rounded-xl shrink-0"><ArrowRight className="h-4 w-4" />Get started</Button>
+            </div>
+          </Reveal>
+          </>
           )}
         </section>
 

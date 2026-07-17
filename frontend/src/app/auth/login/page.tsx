@@ -1,16 +1,29 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { toast } from 'sonner'
 import { SignInPage } from '@/components/sign-in'
 
-export default function LoginPage() {
+/** Only ever follow a same-site path. An open redirect on a login page hands an attacker a
+ *  credible phishing hop off our own domain. */
+function safeNext(raw: string | null): string | null {
+  if (!raw) return null
+  // Must be a single-slash-rooted path: rejects "//evil.com" and "https://evil.com" alike.
+  if (!raw.startsWith('/') || raw.startsWith('//')) return null
+  return raw
+}
+
+function LoginPageInner() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const { login } = useEnhancedAuth()
   const router = useRouter()
+  // Set when a client arrives from a proposal share link, which sends them here to view
+  // and approve their creators. Without this they land on the generic dashboard and have
+  // to go hunting for the proposal they just paid for.
+  const nextPath = safeNext(useSearchParams().get('next'))
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -31,6 +44,10 @@ export default function LoginPage() {
       const success = await login(email, password)
 
       if (success) {
+        if (nextPath) {
+          router.push(nextPath)
+          return
+        }
         // Centralized role-aware landing (operators -> /superadmin, brands -> /dashboard)
         const { roleHome } = await import('@/lib/roleHome')
         let role: string | null = null
@@ -97,5 +114,15 @@ export default function LoginPage() {
       onResetPassword={handleResetPassword}
       onCreateAccount={handleCreateAccount}
     />
+  )
+}
+
+// useSearchParams() needs a Suspense boundary above it, or the build fails trying to
+// prerender this route.
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
   )
 }
