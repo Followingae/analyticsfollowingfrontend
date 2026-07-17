@@ -118,6 +118,9 @@ export interface MasterInfluencer {
   internal_notes: string | null
   status: InfluencerStatus
   tier: string | null
+  /** Country this creator is open to WORK in — our commercial record, set by an operator.
+   *  Not profiles.detected_country, which infers where they ARE. null = not yet recorded. */
+  country: string | null
   added_by: string | null
   last_analytics_refresh: string | null
 
@@ -152,6 +155,7 @@ export type ColumnKey =
   | 'engagement'
   | 'categories'
   | 'tier'
+  | 'country'
   | 'ig_post_cost'
   | 'ig_post_sell'
   | 'ig_reel_cost'
@@ -182,6 +186,7 @@ export const COLUMN_DEFINITIONS: ColumnDefinition[] = [
   { key: 'engagement', label: 'Engagement', defaultVisible: true, sortable: true, sortKey: 'engagement_rate' },
   { key: 'categories', label: 'Categories', defaultVisible: true, sortable: false },
   { key: 'tier', label: 'Tier', defaultVisible: true, sortable: true, sortKey: 'tier' },
+  { key: 'country', label: 'Country', defaultVisible: true, sortable: false },
   { key: 'ig_post_cost', label: 'Post Cost', defaultVisible: true, sortable: false },
   { key: 'ig_post_sell', label: 'Post Sell', defaultVisible: true, sortable: false },
   { key: 'ig_reel_cost', label: 'Reel Cost', defaultVisible: false, sortable: false },
@@ -204,6 +209,9 @@ export interface InfluencerDatabaseFilters {
   search: string
   categories: InfluencerCategory[]
   tags: string[]
+  /** Free text, not an enum — the dropdown is built from what is actually in the data,
+   *  so a newly imported country appears without a code change. */
+  countries: string[]
   pricing_tier: PricingTier[]
   status: InfluencerStatus[]
   followers_min: number | null
@@ -222,6 +230,7 @@ export const DEFAULT_FILTERS: InfluencerDatabaseFilters = {
   search: '',
   categories: [],
   tags: [],
+  countries: [],
   pricing_tier: [],
   status: [],
   followers_min: null,

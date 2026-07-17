@@ -407,7 +407,7 @@ export class SuperadminApiService {
   async getInfluencerDatabase(filters?: any): Promise<ApiResponse<any>> {
     const params = new URLSearchParams()
     if (filters) {
-      const { page, page_size, search, status, pricing_tier, tags, categories, followers_min, followers_max, engagement_min, engagement_max, is_verified, has_pricing, sort_by, sort_order } = filters
+      const { page, page_size, search, status, pricing_tier, tags, categories, countries, followers_min, followers_max, engagement_min, engagement_max, is_verified, has_pricing, sort_by, sort_order } = filters
       if (page) params.append('page', page.toString())
       if (page_size) params.append('page_size', page_size.toString())
       if (search) params.append('search', search)
@@ -415,6 +415,8 @@ export class SuperadminApiService {
       if (pricing_tier && Array.isArray(pricing_tier) && pricing_tier.length > 0) params.append('tier', pricing_tier[0])
       if (tags && Array.isArray(tags) && tags.length > 0) params.append('tags', tags.join(','))
       if (categories && Array.isArray(categories) && categories.length > 0) params.append('categories', categories.join(','))
+      // Multi-value, unlike status/tier above which only ever send the first selection.
+      if (countries && Array.isArray(countries) && countries.length > 0) params.append('countries', countries.join(','))
       if (followers_min !== undefined && followers_min !== null) params.append('min_followers', followers_min.toString())
       if (followers_max !== undefined && followers_max !== null) params.append('max_followers', followers_max.toString())
       if (engagement_min !== undefined && engagement_min !== null) params.append('engagement_min', engagement_min.toString())

@@ -1,9 +1,11 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import { proposalApprovalApi } from "@/services/proposalApprovalApi"
 import {
   Popover,
   PopoverContent,
@@ -78,12 +80,25 @@ function MultiSelectFilter<T extends string>({
 }
 
 export function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
+  const [countryOptions, setCountryOptions] = useState<{ label: string; value: string }[]>([])
+
+  useEffect(() => {
+    proposalApprovalApi.getCountries()
+      .then((r) => setCountryOptions(
+        (r?.data?.countries ?? []).map((c: { country: string; n: number }) => ({
+          label: `${c.country} (${c.n})`, value: c.country,
+        })),
+      ))
+      .catch(() => setCountryOptions([]))
+  }, [])
+
   const update = (patch: Partial<InfluencerDatabaseFilters>) => {
     onFiltersChange({ ...filters, ...patch, page: 1 })
   }
 
   const hasActiveFilters =
     filters.categories.length > 0 ||
+    filters.countries.length > 0 ||
     filters.pricing_tier.length > 0 ||
     filters.status.length > 0 ||
     filters.engagement_min !== null ||
@@ -100,6 +115,7 @@ export function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
       engagement_max: null,
       is_verified: null,
       has_pricing: null,
+      countries: [],
     })
   }
 
@@ -117,6 +133,18 @@ export function FilterBar({ filters, onFiltersChange }: FilterBarProps) {
         selected={filters.pricing_tier}
         onChange={(pricing_tier) => update({ pricing_tier })}
       />
+      {/* Options come from the data, never a hardcoded list: the filter can then only ever
+          offer a country that actually matches something, and a newly imported one shows up
+          without a code change. Hidden entirely until some creator has a country — an empty
+          dropdown is worse than no dropdown. */}
+      {countryOptions.length > 0 && (
+        <MultiSelectFilter<string>
+          label="Country"
+          options={countryOptions}
+          selected={filters.countries}
+          onChange={(countries) => update({ countries })}
+        />
+      )}
       <MultiSelectFilter<InfluencerStatus>
         label="Status"
         options={STATUS_OPTIONS}

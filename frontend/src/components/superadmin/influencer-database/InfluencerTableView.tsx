@@ -225,6 +225,12 @@ export function InfluencerTableView({
           </span>
         )
       }
+      case "country":
+        // "--" not "UAE": country is only ever what an operator recorded. Showing a guess
+        // here would make an unset creator look filterable when they are not.
+        return inf.country
+          ? <span className="text-xs">{inf.country}</span>
+          : <span className="text-muted-foreground">--</span>
       case "ig_post_cost":
         return (
           <InlineEditCell

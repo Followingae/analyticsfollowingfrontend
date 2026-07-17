@@ -335,7 +335,7 @@ const sections: GuideSection[] = [
           { text: 'Toggle between Table view and Card view using the view switcher.' },
           { text: 'Use the search bar to find influencers by name or Instagram handle.' },
           { text: 'Sort by clicking column headers (followers, engagement rate, tier, etc.).' },
-          { text: 'Use filters to narrow by tag, tier, or status.' },
+          { text: 'Use filters to narrow by category, country, tier, or status.' },
         ],
       },
       {
@@ -347,6 +347,27 @@ const sections: GuideSection[] = [
           { text: 'Enter Instagram handle, name, tier, and tags.' },
           { text: 'Set cost pricing (what you pay) and sell pricing (what the client pays) per deliverable type in AED.' },
           { text: 'For bulk import: click Bulk Import, download the Excel template, fill it in, and upload.' },
+        ],
+      },
+      {
+        title: 'Country — where a creator is open to work',
+        description:
+          'Country is OUR commercial record of where a creator will take work — one country each. It is not detected from their posts or audience, and it is not where they live: it is what you tell us. A creator with no country set shows "--" and will not appear when you filter by country, which is deliberate — we would rather show you nothing than guess a market and have you sell against it. Set it on a creator, or fill the country column in the Excel template ("market", "location" and "based in" are accepted as column names too).',
+        steps: [
+          { text: 'Open a creator from the master database and set Country on the Overview tab. Existing values are suggested, but you can type a new one.' },
+          { text: 'In bulk: download the Excel template, fill the country column (e.g. UAE, KSA), and import. Blank stays blank.' },
+          { text: 'Filter by Country from the filter bar. The dropdown only lists countries that actually exist in the data.' },
+        ],
+      },
+      {
+        title: 'Lists',
+        description:
+          'A list is a shortlist of master-database creators you build once and reuse — "KSA food creators", a client shortlist, whatever you look for repeatedly. Adding a whole list to a proposal is the same operation as adding creators by hand: same pricing snapshot, same everything. Re-adding is always safe — anyone already in the list, or already on the proposal, is skipped, and the count you are shown is what actually landed, not what you asked for.',
+        steps: [
+          { text: 'Go to Influencer Database > Lists to create and manage lists.' },
+          { text: 'Or: select creators in the master database and click "Add to list" — you can add them to an existing list or create a new one from the selection.' },
+          { text: 'In a proposal, open Add creators — your saved lists appear at the top, and one click adds the whole list.' },
+          { text: 'Deleting a list only removes the grouping. The creators stay in the master database and any proposal they are already on is unaffected.' },
         ],
       },
       {
@@ -398,6 +419,17 @@ const sections: GuideSection[] = [
           { text: 'For each influencer, review or override the sell pricing per deliverable.' },
           { text: 'Assign deliverable types and quantities.' },
           { text: 'Save the proposal as a Draft.' },
+        ],
+      },
+      {
+        title: 'Adding creators to a proposal',
+        description:
+          'Open a proposal\'s approval page and click "Add creators". Tick as many as you like, set deliverables and quantities per creator, and add them in one go. Anyone already on the proposal is hidden from the picker, so everything you see is addable. Filter by country, search by handle or name, or load more to browse the whole roster rather than only what a search returns. Saved lists appear at the top — one click adds an entire list. The count you are shown afterwards is what was actually added; if some were already on the proposal it tells you that too.',
+        steps: [
+          { text: 'Open the proposal, go to its approval page, and click Add creators.' },
+          { text: 'Filter by country or search, then tick the creators you want — or use "Select these" to take the whole page.' },
+          { text: 'For each one, add deliverable types and quantities (defaults to one reel).' },
+          { text: 'Click Add. Or skip all of it and click a saved list to add every creator in it.' },
         ],
       },
       {

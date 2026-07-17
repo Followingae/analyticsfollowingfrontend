@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { proposalApprovalApi } from "@/services/proposalApprovalApi"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -36,6 +37,22 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
   )
   const [notes, setNotes] = useState(influencer.internal_notes || "")
   const [status, setStatus] = useState(influencer.status)
+  const [country, setCountry] = useState(influencer.country || "")
+  const [countryOptions, setCountryOptions] = useState<string[]>([])
+
+  useEffect(() => {
+    proposalApprovalApi.getCountries()
+      .then((r) => setCountryOptions((r?.data?.countries ?? []).map((c: { country: string }) => c.country)))
+      .catch(() => setCountryOptions([]))
+  }, [])
+
+  function handleCountryBlur() {
+    const v = country.trim()
+    if (v === (influencer.country || "")) return
+    // Empty means "not recorded" — send null rather than "" so it reads as unknown, not as
+    // a creator whose country is the empty string.
+    onSave({ country: v || null })
+  }
 
   const metrics = [
     { label: "Followers", value: formatCount(influencer.followers_count), icon: Users },
@@ -168,6 +185,28 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
           onBlur={handleNotesBlur}
           rows={3}
         />
+      </div>
+
+      {/* Country — where they are OPEN TO WORK */}
+      <div className="space-y-2">
+        <Label>Country</Label>
+        {/* Free text with existing values suggested, not a fixed dropdown: the real spread
+            is not known yet, and an enum would reject a country nobody thought to list.
+            The datalist keeps spellings consistent without forbidding a new one. */}
+        <Input
+          list="imd-country-options"
+          className="w-[200px]"
+          placeholder="e.g. UAE"
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+          onBlur={handleCountryBlur}
+        />
+        <datalist id="imd-country-options">
+          {countryOptions.map((c) => <option key={c} value={c} />)}
+        </datalist>
+        <p className="text-xs text-muted-foreground">
+          Where this creator is open to <em>work</em> — our record, not where they live. Leave blank if unknown.
+        </p>
       </div>
 
       {/* Status */}

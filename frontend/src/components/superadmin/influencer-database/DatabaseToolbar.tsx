@@ -20,6 +20,7 @@ interface DatabaseToolbarProps {
   onExportClick: () => void
   onBulkPricingClick: () => void
   onBulkTagClick: () => void
+  onAddToListClick?: () => void
 }
 
 export function DatabaseToolbar({
@@ -33,6 +34,7 @@ export function DatabaseToolbar({
   onExportClick,
   onBulkPricingClick,
   onBulkTagClick,
+  onAddToListClick,
 }: DatabaseToolbarProps) {
   const [searchValue, setSearchValue] = useState(filters.search)
 
@@ -95,6 +97,7 @@ export function DatabaseToolbar({
           onExport={onExportClick}
           onTag={onBulkTagClick}
           onPricing={onBulkPricingClick}
+          onAddToList={onAddToListClick}
         />
       )}
     </div>
