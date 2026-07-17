@@ -111,6 +111,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       icon: Database,
       items: [
         { title: "Master Database", url: "/superadmin/influencers" },
+        { title: "Lists", url: "/superadmin/influencers/lists" },
         { title: "Analyzed Creators", url: "/superadmin/influencers/analyzed" },
         { title: "Add / Import", url: "/superadmin/influencers/add" },
       ],

@@ -91,8 +91,32 @@ export const proposalApprovalApi = {
   createShare: (proposalId: string) => jfetch(`${BASE}/${proposalId}/share`, { method: 'POST', body: '{}' }),
 
   // Search the master database (active creators) for the picker.
-  searchMasterDb: (query: string) =>
-    jfetch(`${API_CONFIG.BASE_URL}/api/v1/admin/influencers/database?status=active&page_size=30${query ? `&search=${encodeURIComponent(query)}` : ''}`),
+  //
+  // excludeProposalId hides creators already on the proposal, at the SOURCE. Filtering the
+  // returned page instead would silently shrink it: ask for 40, render 31, with no way to
+  // tell that 9 were dropped or that more exist behind them.
+  searchMasterDb: (opts: {
+    query?: string
+    page?: number
+    pageSize?: number
+    countries?: string[]
+    excludeProposalId?: string
+    excludeListId?: string
+  } = {}) => {
+    const p = new URLSearchParams({
+      status: 'active',
+      page: String(opts.page ?? 1),
+      page_size: String(opts.pageSize ?? 40),
+    })
+    if (opts.query) p.set('search', opts.query)
+    if (opts.countries?.length) p.set('countries', opts.countries.join(','))
+    if (opts.excludeProposalId) p.set('exclude_proposal_id', opts.excludeProposalId)
+    if (opts.excludeListId) p.set('exclude_list_id', opts.excludeListId)
+    return jfetch(`${API_CONFIG.BASE_URL}/api/v1/admin/influencers/database?${p.toString()}`)
+  },
+
+  // Countries actually present in the master DB, for the filter dropdown.
+  getCountries: () => jfetch(`${API_CONFIG.BASE_URL}/api/v1/admin/imd-countries`),
 
   // TM adds selected master-DB creators (with deliverable assignments) to the proposal.
   addFromDb: (
