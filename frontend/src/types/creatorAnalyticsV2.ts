@@ -119,6 +119,36 @@ export interface PostBrief {
   views: number | null
   engagement_rate: number
   timestamp: string | null
+  /** Attached by the API from our CDN. Null when no mirrored image exists. */
+  thumbnail_url?: string | null
+}
+
+/** One post in the grid. `thumbnail_url` is attached by the API from OUR CDN —
+ *  Instagram's own image urls are signed, expiring and hotlink-blocked, so they are
+ *  never sent. Null means we have no mirrored image; render a placeholder, not a
+ *  broken <img>. */
+export interface RecentPost {
+  shortcode: string | null
+  url: string | null
+  type: string
+  caption: string | null
+  likes: number | null
+  comments: number | null
+  views: number | null
+  /** Uses the page's headline denominator — see `measured_by`. */
+  engagement_rate: number | null
+  timestamp: string | null
+  thumbnail_url: string | null
+}
+
+export interface RecentPostsBlock {
+  source: 'measured'
+  /** Which denominator the per-post rates use, so a post's number means the same thing
+   *  as the headline at the top of the page. */
+  measured_by: HeadlineMetric
+  sample_size: number
+  total_available: number
+  posts: RecentPost[]
 }
 
 export interface PerformanceBlock {
@@ -311,6 +341,7 @@ export interface CreatorAnalyticsV2 {
   profile: ProfileBlock
   engagement: EngagementBlock | Unavailable
   performance: PerformanceBlock | Unavailable
+  recent_posts: RecentPostsBlock | Unavailable
   content_mix: ContentMixBlock | Unavailable
   format_detail: FormatDetailBlock | Unavailable
   cadence: CadenceBlock | Unavailable

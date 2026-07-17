@@ -24,6 +24,17 @@ const nextConfig: NextConfig = {
     ],
     remotePatterns: [
       {
+        // OUR CDN — the only image host that actually works. Instagram's scontent-*
+        // urls below are signed, short-lived and hotlink-blocked, so they render as
+        // broken images; the CDN worker mirrors avatars and post thumbnails to R2 and
+        // this is where they are served from. It was missing entirely, which meant
+        // next/image would refuse every mirrored thumbnail we had already paid to
+        // store.
+        protocol: 'https',
+        hostname: 'cdn.following.ae',
+        pathname: '/**',
+      },
+      {
         protocol: 'https',
         hostname: '*.cdninstagram.com',
         pathname: '/**',

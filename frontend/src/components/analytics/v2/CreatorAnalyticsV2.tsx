@@ -15,6 +15,7 @@ import {
   isPresent, formatCount, formatPct, type CreatorAnalyticsV2 as Payload,
 } from "@/types/creatorAnalyticsV2"
 import { OverviewTabV2 } from "./OverviewTabV2"
+import { PostsTabV2 } from "./PostsTabV2"
 import { ContentTabV2 } from "./ContentTabV2"
 
 /**
@@ -97,6 +98,8 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
 
   const p = data.profile
   const eng = data.engagement
+  const hasPosts =
+    isPresent(data.recent_posts) && data.recent_posts.posts.some((x) => x.thumbnail_url)
 
   return (
     <div className="space-y-6">
@@ -185,6 +188,10 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
       <Tabs defaultValue="overview">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          {/* Hidden entirely when we hold no image for any post — an empty tab is worse
+              than no tab. The CDN only ever mirrored 12 posts per creator, and 54 of
+              195 creators have none at all. */}
+          {hasPosts && <TabsTrigger value="posts">Posts</TabsTrigger>}
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="quality">Engagement quality</TabsTrigger>
         </TabsList>
@@ -192,6 +199,11 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
         <TabsContent value="overview" className="mt-6">
           <OverviewTabV2 data={data} />
         </TabsContent>
+        {hasPosts && (
+          <TabsContent value="posts" className="mt-6">
+            <PostsTabV2 data={data} />
+          </TabsContent>
+        )}
         <TabsContent value="content" className="mt-6">
           <ContentTabV2 data={data} />
         </TabsContent>
@@ -233,16 +245,6 @@ function QualityTab({ data }: { data: Payload }) {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground">
-            Based on <span className="font-medium text-foreground">{c.comments_analysed}</span> comments
-            from <span className="font-medium text-foreground">{c.unique_commenters}</span> accounts.
-            This describes the people who <em>comment</em> — not the full follower base.
-          </p>
-        </CardContent>
-      </Card>
-
       <TooltipProvider delayDuration={200}>
         <div className="grid gap-3 sm:grid-cols-3">
           {items.map((i) => (
