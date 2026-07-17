@@ -362,6 +362,17 @@ export class SuperadminApiService {
     })
   }
 
+  // Backend: POST /api/v1/admin/users/{user_id}/reset-password
+  // Sets the password in Supabase Auth. The body is a bare JSON string — the endpoint
+  // declares `new_password: str = Body(...)` with no embed, so it expects the value
+  // itself, not {"new_password": ...}.
+  async resetUserPassword(userId: string, newPassword: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/v1/admin/users/${userId}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify(newPassword)
+    })
+  }
+
   // Backend: POST /api/v1/admin/credits/adjust
   async adjustUserCredits(userId: string, data: { amount: number; reason: string }): Promise<ApiResponse<any>> {
     return this.makeRequest(ENDPOINTS.admin.adjustCredits, {

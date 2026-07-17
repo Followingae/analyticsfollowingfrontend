@@ -60,6 +60,9 @@ import {
   TrendingUp,
   TrendingDown,
   History,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 
 interface UserDetails {
@@ -108,6 +111,9 @@ export default function UserEditPage() {
   const [user, setUser] = useState<UserDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [transactions, setTransactions] = useState<CreditTxn[]>([])
 
   // Form states
@@ -220,7 +226,21 @@ export default function UserEditPage() {
       setSaving(true)
       const result = await superadminApiService.updateUser(userId, basicInfo)
       if (result.success) {
-        toast.success('Basic information updated successfully')
+        // Name what actually changed. The API used to echo back every field you sent as
+        // "updated" even when it had dropped some of them, so an ignored field looked
+        // exactly like a saved one. Now it reports both — say so rather than claiming a
+        // blanket success.
+        const applied: string[] = result.data?.updated_fields ?? []
+        const ignored: string[] = result.data?.ignored_fields ?? []
+        if (ignored.length > 0) {
+          toast.warning(
+            applied.length > 0
+              ? `Saved ${applied.join(', ')}. Not saved: ${ignored.join(', ')}.`
+              : `Nothing was saved. This form cannot change: ${ignored.join(', ')}.`,
+          )
+        } else {
+          toast.success('Basic information updated successfully')
+        }
         loadUserData()
       } else {
         toast.error(result.error || 'Failed to update basic information')
@@ -229,6 +249,29 @@ export default function UserEditPage() {
       toast.error('Failed to update basic information')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Set a password directly. Separate from saveBasicInfo because it does not touch the
+  // users table at all — the password lives in Supabase Auth.
+  const savePassword = async () => {
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+    try {
+      setSavingPassword(true)
+      const result = await superadminApiService.resetUserPassword(userId, newPassword)
+      if (result.success) {
+        toast.success('Password set. Give it to the client — they are not emailed automatically.')
+        setNewPassword('')
+      } else {
+        toast.error(result.error || 'Failed to set password')
+      }
+    } catch (error) {
+      toast.error('Failed to set password')
+    } finally {
+      setSavingPassword(false)
     }
   }
 
@@ -402,6 +445,10 @@ export default function UserEditPage() {
                     value={basicInfo.email}
                     onChange={(e) => setBasicInfo(prev => ({ ...prev, email: e.target.value }))}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    This is their login. Changing it updates the sign-in address immediately —
+                    tell them, or they will try the old one.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="full_name">Full Name</Label>
@@ -444,6 +491,47 @@ export default function UserEditPage() {
               <Button onClick={saveBasicInfo} disabled={saving}>
                 <Save className="h-4 w-4 mr-2" />
                 Save Basic Information
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Password — lives in Supabase Auth, not the users table, which is why it is its
+              own card with its own save rather than part of Basic Information. */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5" />
+                Password
+              </CardTitle>
+              <CardDescription>
+                Set this account&apos;s password directly. It takes effect immediately and no
+                email is sent — you have to pass it to them yourself.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new_password">New password</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="new_password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    placeholder="At least 8 characters"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <Button
+                    type="button" variant="outline" size="icon"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <Button onClick={savePassword} disabled={savingPassword || newPassword.length < 8}>
+                <KeyRound className="h-4 w-4 mr-2" />
+                {savingPassword ? 'Setting…' : 'Set password'}
               </Button>
             </CardContent>
           </Card>
