@@ -549,6 +549,18 @@ const sections: GuideSection[] = [
         ],
       },
       {
+        title: 'Campaigns without a brand account ("No brand account — we manage this")',
+        description:
+          'Some clients never touch the platform — our team runs their campaigns end-to-end on their behalf. Turn on "No brand account — we manage this" when creating any of the three campaign types. The campaign is then invisible to every brand view, and YOUR TEAM approves and rejects applicants instead of the brand. Because there is no brand waiting to respond, the 72-hour auto-approval never runs on these campaigns: applicants wait until someone on the team decides, so check them regularly.',
+        steps: [
+          { text: 'Create a Cashback, Paid Deal, or Barter campaign and switch on "No brand account — we manage this".' },
+          { text: 'Barter and Paid Deal: the merchant becomes optional. With no merchant, enter the Client Name — creators see that name in the app.' },
+          { text: 'Cashback: a merchant is still required, because cashback is claimed by scanning a receipt at one. Only the "merchant has no brand linked" warning is lifted.' },
+          { text: 'Paid Deal: pick the funding pool that pays the creators. A paid deal always needs one, and with no brand there is no pool to default to — choose it deliberately.' },
+          { text: 'Approve or reject applicants yourself under the campaign — nothing is auto-approved.' },
+        ],
+      },
+      {
         title: 'Deliverables',
         description:
           'Review and verify content submissions from influencers. Check that deliverables meet campaign requirements before approving.',
