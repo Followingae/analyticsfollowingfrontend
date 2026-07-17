@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { UserCheck, Users, X, TrendingUp } from "lucide-react"
+import { UserCheck, Users, X, TrendingUp, AlertTriangle } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 import { useDroppable } from "@dnd-kit/core"
 import { formatCount, formatCurrency, DEFAULT_AVATAR } from "./proposal-utils"
@@ -29,6 +29,9 @@ interface SelectedCreatorsPanelProps {
   deliverableSelections: Record<string, string[]>
   selectedReach?: number
   selectedAvgEngagement?: number
+  /** The campaign budget, when the client has one. This panel is where the running total
+   *  is watched, so it is where going over has to be visible. */
+  totalBudget?: number | null
 }
 
 export function SelectedCreatorsPanel({
@@ -40,10 +43,17 @@ export function SelectedCreatorsPanel({
   deliverableSelections,
   selectedReach,
   selectedAvgEngagement,
+  totalBudget,
 }: SelectedCreatorsPanelProps) {
   const { setNodeRef, isOver } = useDroppable({ id: "selection-sidebar" })
 
   const selectedInfluencers = influencers.filter((inf) => selectedIds.has(inf.id))
+
+  const budget = Number(totalBudget) || 0
+  const hasBudget = showPricing && budget > 0
+  const overBy = hasBudget ? estimatedTotal - budget : 0
+  const isOverBudget = hasBudget && overBy > 0
+  const budgetPct = hasBudget ? (estimatedTotal / budget) * 100 : 0
 
   return (
     <div
@@ -66,25 +76,53 @@ export function SelectedCreatorsPanel({
         {showPricing && estimatedTotal > 0 && (
           <p className="text-xs text-muted-foreground mt-1.5">
             Est. total:{" "}
-            <span className="font-semibold text-foreground tabular-nums">
+            <span className={`font-semibold tabular-nums ${isOverBudget ? "text-red-600 dark:text-red-400" : "text-foreground"}`}>
               {formatCurrency(estimatedTotal)}
             </span>
+            {hasBudget && (
+              <span className="text-muted-foreground"> of {formatCurrency(budget)}</span>
+            )}
           </p>
         )}
-        {/* Mini progress bar */}
-        <div className="mt-2 w-full h-1 rounded-full bg-muted overflow-hidden">
+
+        {/* Progress. Against the BUDGET when there is one — the old bar tracked
+            "creators picked / creators offered", which looks like progress but says nothing
+            about the only number that can actually stop the deal. Over budget it fills red
+            and says by how much, because "9% of budget" in grey sub-text is not something
+            anyone notices while they are busy picking creators. */}
+        <div className="mt-2 w-full h-1.5 rounded-full bg-muted overflow-hidden">
           <motion.div
-            className="h-full bg-emerald-500 rounded-full"
+            className={`h-full rounded-full ${isOverBudget ? "bg-red-500" : "bg-emerald-500"}`}
             initial={{ width: 0 }}
             animate={{
-              width:
-                influencers.length > 0
+              width: hasBudget
+                ? `${Math.min(budgetPct, 100)}%`
+                : influencers.length > 0
                   ? `${(selectedInfluencers.length / influencers.length) * 100}%`
                   : "0%",
             }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         </div>
+
+        {hasBudget && estimatedTotal > 0 && (
+          isOverBudget ? (
+            <div className="mt-2 flex items-start gap-1.5 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1.5">
+              <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
+              <p className="text-[11px] leading-tight text-red-600 dark:text-red-400">
+                <span className="font-semibold">{formatCurrency(overBy)} over budget</span>
+                {" — "}remove a creator or a deliverable, or talk to us about raising it.
+              </p>
+            </div>
+          ) : (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(budget - estimatedTotal)} left
+              </span>
+              {" · "}{Math.round(budgetPct)}% used
+            </p>
+          )
+        )}
         {selectedInfluencers.length > 0 && selectedReach != null && selectedAvgEngagement != null && (
           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">

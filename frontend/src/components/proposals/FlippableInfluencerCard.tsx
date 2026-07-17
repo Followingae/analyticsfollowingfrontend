@@ -7,10 +7,10 @@ import { CheckCircle, BarChart3, X, ArrowLeft } from "lucide-react"
 import { getTierConfig, formatCount, formatCurrency, DEFAULT_AVATAR } from "./proposal-utils"
 import { motion, AnimatePresence } from "motion/react"
 import { FreelancerProfileCard } from "@/components/ui/freelancer-profile-card"
-// Types only. HealthStatCard itself is gone from this card: its title row, mb-5/mb-6
+// Type only. HealthStatCard itself is gone from this card: its title row, mb-5/mb-6
 // rhythm and legend were the reason the back face could never fit, and the legend only
 // re-printed the values already written under each bar. The bars are rendered inline.
-import { type StatData, type HealthGraphData } from "@/components/ui/health-stat-card"
+import { type StatData } from "@/components/ui/health-stat-card"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 
 interface FlippableInfluencerCardProps {
@@ -24,18 +24,17 @@ interface FlippableInfluencerCardProps {
   selectedDeliverables?: string[]
   onToggleDeliverable?: (influencerId: string, deliverable: string) => void
   onViewAnalytics?: (username: string) => void
-  /** The best value for each metric across the whole proposal. The back-face bars are a
-   *  comparison against these, so "how does this creator stack up here" is a question the
-   *  chart can actually answer. Without them every bar would need an invented absolute
-   *  scale — which is what it had, and why three of them were always empty. */
+  /** Every real value for each metric across the proposal, sorted ascending. The bars are
+   *  a RANK against these, not a share of the maximum — see `rankBar`. */
   benchmarks?: ProposalBenchmarks
 }
 
+/** Sorted ascending, zeros and nulls excluded — a missing metric is not a low one. */
 export interface ProposalBenchmarks {
-  followers: number
-  engagement: number
-  likes: number
-  comments: number
+  followers: number[]
+  engagement: number[]
+  likes: number[]
+  comments: number[]
 }
 
 function seedColor(seed: string): string {
@@ -119,50 +118,58 @@ export function FlippableInfluencerCard({
       : [{ title: "Posts", value: formatCount(inf.posts_count) }]),
   ]
 
-  // Each bar is this creator MEASURED AGAINST THE BEST IN THIS PROPOSAL, so the strongest
-  // creator fills the bar and everyone else reads as a share of them. That is a comparison
-  // the number can actually support.
+  // Each bar is this creator's RANK for that metric among the others in this proposal.
+  // Best in the proposal fills the bar, the middle sits near half, the weakest still shows.
   //
-  // What was here before could not:
-  //   Followers    -> hardcoded 90. Every creator, always. It showed nothing at all.
-  //   Engagement   -> rate x 10. Real rates run ~0.2-1.5%, so every bar sat at 2-15%.
-  //   Avg Likes    -> likes/followers x 100. That IS engagement, ~1%, so: another stub.
-  //   Avg Comments -> comments/likes x 100, capped at 80. ~5%.
-  // Three permanently-empty bars next to one permanently-full fake one — which is exactly
-  // what you see on the card, and none of it was about the creator.
-  const bar = (value: number | null | undefined, best: number | null | undefined) => {
+  // Rank, not share-of-max, because these metrics are wildly skewed: in a real proposal
+  // avg_likes ran 42,650 down to 31 — one creator 1,376x the smallest. Dividing by the max
+  // gave that creator 0.07% of a bar. Share-of-max only reads well on evenly spread data,
+  // and follower/like counts never are; one big account flattens everyone else into the
+  // axis. That is what "engagement and likes and comments are SO small" was.
+  //
+  // (Before that it was worse and not even about the creator: Followers was hardcoded to
+  // 90 for everybody, Engagement was rate x 10 against real rates of ~0.2-1.5%, Avg Likes
+  // was likes/followers — which is just engagement again — and Avg Comments was
+  // comments/likes capped at 80.)
+  const rankBar = (value: number | null | undefined, sorted: number[] | undefined) => {
     const v = value ?? 0
-    const b = best ?? 0
-    if (v <= 0 || b <= 0) return 0
-    // Floor at 4 so a real-but-small value still renders as a bar rather than vanishing
-    // into the axis and reading as "no data".
-    return Math.max(4, Math.min(100, (v / b) * 100))
+    // A metric we don't have is NOT a metric of zero. Ranking a creator last because their
+    // avg_likes never got backfilled would be inventing a judgement about them.
+    if (v <= 0 || !sorted?.length) return null
+    if (sorted.length === 1) return 100
+    const below = sorted.filter((x) => x < v).length
+    const pct = (below / (sorted.length - 1)) * 100
+    // Floor at 8 so the weakest still reads as a bar rather than as missing data.
+    return Math.max(8, Math.min(100, pct))
   }
 
-  const graphData: HealthGraphData[] = [
+  // Own type, not HealthGraphData: `value` here is deliberately nullable, and null means
+  // "we have no figure for this creator" — a state HealthGraphData cannot express, which
+  // is precisely how a missing metric used to get drawn as a zero.
+  const graphData: { label: string; value: number | null; color: string; description: string }[] = [
     {
       label: "Followers",
-      value: bar(inf.followers_count, benchmarks?.followers),
+      value: rankBar(inf.followers_count, benchmarks?.followers),
       color: "#8b5cf6",
       description: formatCount(inf.followers_count),
     },
     {
       label: "Engagement",
-      value: bar(inf.engagement_rate, benchmarks?.engagement),
+      value: rankBar(inf.engagement_rate, benchmarks?.engagement),
       color: "#3b82f6",
-      description: `${(inf.engagement_rate ?? 0).toFixed(2)}%`,
+      description: inf.engagement_rate ? `${inf.engagement_rate.toFixed(2)}%` : "—",
     },
     {
       label: "Avg Likes",
-      value: bar(inf.avg_likes, benchmarks?.likes),
+      value: rankBar(inf.avg_likes, benchmarks?.likes),
       color: "#10b981",
-      description: formatCount(inf.avg_likes),
+      description: inf.avg_likes ? formatCount(inf.avg_likes) : "—",
     },
     {
       label: "Avg Comments",
-      value: bar(inf.avg_comments, benchmarks?.comments),
+      value: rankBar(inf.avg_comments, benchmarks?.comments),
       color: "#f59e0b",
-      description: formatCount(inf.avg_comments),
+      description: inf.avg_comments ? formatCount(inf.avg_comments) : "—",
     },
   ]
 
@@ -297,10 +304,17 @@ export function FlippableInfluencerCard({
                 {graphData.map((b, i) => (
                   <div key={i} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1">
                     <span className="shrink-0 text-[9px] font-semibold leading-none tabular-nums">{b.description}</span>
-                    <div
-                      className="w-full rounded-t transition-all duration-500"
-                      style={{ height: `${b.value}%`, backgroundColor: b.color, minHeight: 2 }}
-                    />
+                    {/* null = we have no value for this creator. Drawn as an empty track,
+                        never as a zero-height bar — a bar at the floor is a claim that they
+                        rank last, which is not the same as us not knowing. */}
+                    {b.value === null ? (
+                      <div className="w-full flex-1 rounded-t border border-dashed border-muted-foreground/25" />
+                    ) : (
+                      <div
+                        className="w-full rounded-t transition-all duration-500"
+                        style={{ height: `${b.value}%`, backgroundColor: b.color, minHeight: 2 }}
+                      />
+                    )}
                     <span className="w-full shrink-0 truncate text-center text-[8px] leading-none text-muted-foreground">
                       {b.label}
                     </span>
@@ -309,7 +323,7 @@ export function FlippableInfluencerCard({
               </div>
               {benchmarks && (
                 <p className="shrink-0 text-center text-[8px] leading-none text-muted-foreground/70">
-                  relative to the strongest creator in this proposal
+                  rank vs. the other creators in this proposal
                 </p>
               )}
             </div>

@@ -282,19 +282,21 @@ function BrandProposalViewPageContent() {
   }, [sortedInfluencers])
   const showBatchHeaders = batches.length > 1
 
-  // The best value for each metric across every creator in the proposal. The card's bars
-  // are drawn against these, so each one reads as "this creator vs the strongest here" —
-  // a comparison the data supports. Without a reference set the bars needed invented
-  // absolute scales, which is why three of them were permanently empty and the fourth was
-  // a hardcoded 90.
+  // Every real value per metric, sorted, so a card can rank its creator against the rest
+  // of the proposal. Zeros and nulls are excluded, not treated as lows — a creator whose
+  // avg_likes never got backfilled has no likes VALUE, which is not the same as few likes,
+  // and ranking them last would invent a judgement about them.
   const benchmarks = useMemo(() => {
-    const max = (pick: (i: BrandInfluencer) => number | null | undefined) =>
-      sortedInfluencers.reduce((m, i) => Math.max(m, pick(i) ?? 0), 0)
+    const values = (pick: (i: BrandInfluencer) => number | null | undefined) =>
+      sortedInfluencers
+        .map(pick)
+        .filter((v): v is number => typeof v === "number" && v > 0)
+        .sort((a, b) => a - b)
     return {
-      followers: max((i) => i.followers_count),
-      engagement: max((i) => i.engagement_rate),
-      likes: max((i) => i.avg_likes),
-      comments: max((i) => i.avg_comments),
+      followers: values((i) => i.followers_count),
+      engagement: values((i) => i.engagement_rate),
+      likes: values((i) => i.avg_likes),
+      comments: values((i) => i.avg_comments),
     }
   }, [sortedInfluencers])
 
@@ -649,14 +651,22 @@ function BrandProposalViewPageContent() {
                         label: "Selection total",
                         value: formatCurrency(estimatedTotal),
                         isNumber: false,
+                        // Going over budget was a grey "over budget" tacked onto the end
+                        // of a sub-label — the right thing said far too quietly. The value
+                        // itself now turns red and the sub says by HOW MUCH, which is the
+                        // number that decides what gets dropped.
+                        valueClass: estimatedTotal > (Number((proposal as any).total_budget) || 0)
+                          ? "text-red-600 dark:text-red-400"
+                          : undefined,
                         sub: (() => {
                           const b = Number((proposal as any).total_budget) || 0;
                           if (!b) return " ";
-                          const pct = Math.round((estimatedTotal / b) * 100);
-                          return `${pct}% of budget${estimatedTotal > b ? " · over budget" : ""}`;
+                          const over = estimatedTotal - b;
+                          if (over > 0) return formatCurrency(over) + " over budget";
+                          return formatCurrency(b - estimatedTotal) + " left";
                         })(),
                         subClass: estimatedTotal > (Number((proposal as any).total_budget) || 0)
-                          ? "text-red-600 dark:text-red-400"
+                          ? "font-semibold text-red-600 dark:text-red-400"
                           : "text-emerald-600 dark:text-emerald-400",
                       },
                     ]
@@ -674,7 +684,7 @@ function BrandProposalViewPageContent() {
                       transformTiming={{ duration: 750, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }}
                     />
                   ) : (
-                    <p className="text-2xl font-bold tabular-nums">{kpi.value}</p>
+                    <p className={`text-2xl font-bold tabular-nums ${(kpi as any).valueClass ?? ""}`}>{kpi.value}</p>
                   )}
                   <p className={`text-[11px] ${kpi.subClass ?? "text-muted-foreground"}`}>{kpi.sub}</p>
                 </div>
@@ -898,12 +908,20 @@ function BrandProposalViewPageContent() {
             {/* =========================================================== */}
             {!isTerminal && (
               <div className="w-[380px] shrink-0 hidden lg:flex flex-col sticky top-[var(--header-height)] h-[calc(100vh-var(--header-height)-4rem)] border rounded-xl border-border/40 bg-muted/20 overflow-hidden">
-                {/* AI Snapshot */}
-                <AISnapshotPanel
-                  proposalId={proposalId}
-                  selectedIds={selectedIds}
-                  onFetchSnapshot={fetchAISnapshot}
-                />
+                {/* AI Snapshot.
+                    Bounded and scrolled on its own. The column is a fixed
+                    h-[calc(100vh-…)] with overflow-hidden, and this panel had neither a
+                    max height nor shrink-0 — so a snapshot with a few insights grew past
+                    the bottom of the viewport and crushed the selection list under it.
+                    Capped at 45% of the column: whatever the AI returns, the client can
+                    always still see what they have selected. */}
+                <div className="shrink-0 max-h-[45%] overflow-y-auto">
+                  <AISnapshotPanel
+                    proposalId={proposalId}
+                    selectedIds={selectedIds}
+                    onFetchSnapshot={fetchAISnapshot}
+                  />
+                </div>
 
                 {/* Selected Creators (scrollable) */}
                 <div className="flex-1 overflow-hidden flex flex-col min-h-0">
@@ -916,6 +934,7 @@ function BrandProposalViewPageContent() {
                     deliverableSelections={deliverableSelections}
                     selectedReach={selectedReach}
                     selectedAvgEngagement={selectedAvgEngagement}
+                    totalBudget={(proposal as any)?.total_budget}
                   />
                 </div>
               </div>
