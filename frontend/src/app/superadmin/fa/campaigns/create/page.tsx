@@ -46,6 +46,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { faCampaignApi, faPoolApi, faMerchantApi } from "@/services/faAdminApi"
+import { SelfManagedToggle } from "@/components/superadmin/fa/SelfManagedToggle"
 import { toast } from "sonner"
 import {
   CampaignBriefSection, DeliverablePicker, emptyBrief, buildBriefPayload, buildDeliverablePayload,
@@ -76,6 +77,7 @@ export default function CreateCashbackCampaignPage() {
   // ─── Form state ─────────────────────────────────────────────────
   const [selectedMerchantId, setSelectedMerchantId] = useState("")
   const [selectedPoolId, setSelectedPoolId] = useState("")
+  const [selfManaged, setSelfManaged] = useState(false)
 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -149,8 +151,12 @@ export default function CreateCashbackCampaignPage() {
   // ─── Submit ─────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!name.trim()) return toast.error("Campaign name is required")
+    // Cashback is always merchant-based: the claim is a receipt scanned AT a merchant.
+    // Self-managed changes who owns the campaign, not where the scan happens.
     if (!selectedMerchantId) return toast.error("Select a merchant")
-    if (!derivedBrandId) return toast.error("This merchant has no brand linked. Edit it in /superadmin/fa/merchants and assign a brand first.")
+    // A self-managed campaign deliberately has no brand, so an unlinked merchant is
+    // expected there rather than a misconfiguration.
+    if (!selfManaged && !derivedBrandId) return toast.error("This merchant has no brand linked. Edit it in /superadmin/fa/merchants and assign a brand first.")
     // Pool is optional for testing
     if (cashbackPercentage <= 0 || cashbackPercentage > 100) return toast.error("Cashback % must be between 1 and 100")
 
@@ -171,7 +177,11 @@ export default function CreateCashbackCampaignPage() {
     try {
       const payload: Record<string, any> = {
         name: name.trim(),
-        brand_user_id: derivedBrandId,
+        // Omitted when self-managed — the backend force-clears it regardless, but sending
+        // a brand id for a campaign that must have none is a contradiction worth not
+        // putting on the wire.
+        brand_user_id: selfManaged ? undefined : derivedBrandId,
+        self_managed: selfManaged,
         brand_name: (selectedMerchant as any)?.brand_name || selectedMerchant?.name,
         merchant_id: selectedMerchantId,
         pool_id: selectedPoolId,
@@ -241,6 +251,12 @@ export default function CreateCashbackCampaignPage() {
               <p className="text-sm text-muted-foreground">
                 Cashback is redeemed at a specific merchant location. Pick the merchant this campaign applies to.
               </p>
+              <SelfManagedToggle
+                selfManaged={selfManaged}
+                onSelfManagedChange={setSelfManaged}
+                merchantSelected={!!selectedMerchantId}
+                requiresMerchant
+              />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {loadingData ? (
                   Array.from({ length: 3 }).map((_, i) => (

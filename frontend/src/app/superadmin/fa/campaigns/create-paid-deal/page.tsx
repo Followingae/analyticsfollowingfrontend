@@ -20,6 +20,7 @@ import {
   type BriefState, type DeliverableSpec, DELIVERABLE_OPTIONS,
 } from "@/components/superadmin/fa/CampaignBriefFields"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
+import { SelfManagedToggle } from "@/components/superadmin/fa/SelfManagedToggle"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.following.ae"
 
@@ -28,6 +29,8 @@ export default function CreatePaidDealPage() {
   const [merchants, setMerchants] = useState<any[]>([])
   const [allPools, setAllPools] = useState<any[]>([])
   const [selectedMerchantId, setSelectedMerchantId] = useState("")
+  const [selfManaged, setSelfManaged] = useState(false)
+  const [clientName, setClientName] = useState("")
   const [selectedPoolId, setSelectedPoolId] = useState("")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -60,11 +63,18 @@ export default function CreatePaidDealPage() {
   }, [])
 
   const selectedMerchant = merchants.find((m) => m.id === selectedMerchantId)
-  const merchantPools = allPools.filter((p) => selectedMerchant && p.brand_user_id === selectedMerchant.brand_user_id)
+  // Pools belong to a brand. A self-managed campaign has no brand, so there is nothing to
+  // filter by — the operator picks which pool funds the payout, because a paid deal still
+  // pays real money and the backend requires a pool either way.
+  const merchantPools = selfManaged
+    ? allPools
+    : allPools.filter((p) => selectedMerchant && p.brand_user_id === selectedMerchant.brand_user_id)
 
   const handleSubmit = async () => {
     if (!name.trim()) return toast.error("Campaign name is required")
-    if (!selectedMerchantId) return toast.error("Select a merchant")
+    if (!selfManaged && !selectedMerchantId) return toast.error("Select a merchant")
+    if (selfManaged && !selectedMerchantId && !clientName.trim()) return toast.error("Enter the client name")
+    if (!selectedPoolId) return toast.error("Select a pool to fund the payout")
     if (startDate && endDate && new Date(endDate) <= new Date(startDate)) return toast.error("End date must be after start date")
     if (payoutAed <= 0) return toast.error("Payout amount must be greater than 0")
     if (deliverables.length === 0) return toast.error("Pick at least one deliverable")
@@ -75,13 +85,16 @@ export default function CreatePaidDealPage() {
       const payload: Record<string, any> = {
         name: name.trim(),
         // Merchant-first: backend derives brand_user_id + brand_name from the merchant.
-        merchant_id: selectedMerchantId,
+        // On a self-managed campaign it derives the name only — never the brand id.
+        merchant_id: selectedMerchantId || undefined,
+        self_managed: selfManaged,
         pool_id: selectedPoolId || undefined,
         payout_aed: payoutAed,
         deliverable_requirements: buildDeliverablePayload(deliverables),
         ...buildBriefPayload(brief),
       }
       if (description.trim()) payload.description = description.trim()
+      if (selfManaged && clientName.trim()) payload.brand_name = clientName.trim()
       if (startDate) payload.start_date = startDate
       if (endDate) payload.end_date = endDate
       if (maxParticipants) payload.max_participants = parseInt(maxParticipants)
@@ -117,18 +130,28 @@ export default function CreatePaidDealPage() {
           {/* Merchant Selection */}
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Select Merchant</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <SelfManagedToggle
+                selfManaged={selfManaged}
+                onSelfManagedChange={(v: boolean) => { setSelfManaged(v); setSelectedPoolId("") }}
+                clientName={clientName}
+                onClientNameChange={setClientName}
+                merchantSelected={!!selectedMerchantId}
+              />
               <Select value={selectedMerchantId} onValueChange={(v: string) => { setSelectedMerchantId(v); setSelectedPoolId("") }}>
-                <SelectTrigger><SelectValue placeholder="Choose a merchant..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={selfManaged ? "Choose a merchant (optional)..." : "Choose a merchant..."} /></SelectTrigger>
                 <SelectContent>
                   {merchants.map((m) => (
                     <SelectItem key={m.id} value={m.id}>{m.name}{m.category ? ` (${m.category})` : ""}{m.brand_name ? ` — ${m.brand_name}` : ""}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {selectedMerchantId && merchantPools.length > 0 && (
+              {/* A paid deal always needs a funded pool — the backend rejects one without.
+                  Shown for self-managed even with no merchant, or the form would demand a
+                  pool it never offered. */}
+              {(selectedMerchantId || selfManaged) && merchantPools.length > 0 && (
                 <div className="mt-4">
-                  <Label>Funding Pool (optional)</Label>
+                  <Label>Funding Pool *</Label>
                   <Select value={selectedPoolId} onValueChange={setSelectedPoolId}>
                     <SelectTrigger><SelectValue placeholder="Select pool..." /></SelectTrigger>
                     <SelectContent>
