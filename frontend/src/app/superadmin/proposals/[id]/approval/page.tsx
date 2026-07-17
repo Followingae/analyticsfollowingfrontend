@@ -275,15 +275,26 @@ export default function ProposalApprovalPage() {
               </Card>
             )}
 
-            {/* Client share (once internally approved) */}
-            {viewer.is_operator && status === 'internally_approved' && (
+            {/* Client share — from internal approval onwards.
+                'sent' is included because the proposal moves there automatically once the
+                client's agreement + advance clear, and the link is still needed then: it
+                becomes the "log in to view & approve" handoff. Gating on
+                internally_approved alone made the card vanish at the exact moment the
+                client was most likely to ask for the link again. */}
+            {viewer.is_operator && (status === 'internally_approved' || status === 'sent') && (
               <Card className="border-emerald-500/30 bg-emerald-500/5">
                 <CardHeader>
                   <CardTitle>Client share link</CardTitle>
-                  <CardDescription>Internally approved. Share with the client - they see samples + a sign/pay gate.</CardDescription>
+                  <CardDescription>
+                    {status === 'sent'
+                      ? 'Commercials cleared. The link no longer shows creators — it now asks the client to log in, and the proposal is live in their account.'
+                      : 'Internally approved. Share with the client - they see samples + a sign/pay gate.'}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <Button disabled={busy} onClick={genShare}><Send className="mr-1 h-4 w-4" />Generate share link</Button>
+                  <Button disabled={busy} onClick={genShare}><Send className="mr-1 h-4 w-4" />
+                    {shareUrl ? 'Regenerate link' : 'Generate share link'}
+                  </Button>
                   {shareUrl && (
                     <div className="rounded-md border bg-background p-2 text-xs break-all">
                       {shareUrl}
