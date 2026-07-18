@@ -522,15 +522,15 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                 )}
 
                 {isPending && !canDecide && (
-                  <div className="flex items-center gap-2 mt-3 rounded-lg border border-amber-300/40 bg-amber-500/5 p-2.5">
+                  <div className="flex items-center gap-2 mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5">
                     <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
-                    <span className="text-xs text-amber-700 flex-1">Awaiting the brand’s approval decision.</span>
+                    <span className="text-xs text-amber-600 dark:text-amber-400 flex-1">Awaiting the brand’s approval decision.</span>
                   </div>
                 )}
                 {isPending && canDecide && (
-                  <div className="flex items-center gap-2 mt-3 rounded-lg border border-amber-300/40 bg-amber-500/5 p-2.5">
+                  <div className="flex items-center gap-2 mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5">
                     <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
-                    <span className="text-xs text-amber-700 flex-1">Awaiting your approval. Review their analytics, then decide.</span>
+                    <span className="text-xs text-amber-600 dark:text-amber-400 flex-1">Awaiting your approval. Review their analytics, then decide.</span>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" disabled={!!busy}>
@@ -569,9 +569,9 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                   </div>
                 )}
                 {isBrandRejected && isSuperAdmin && (
-                  <div className="flex items-center gap-2 mt-3 rounded-lg border border-rose-300/40 bg-rose-500/5 p-2.5">
+                  <div className="flex items-center gap-2 mt-3 rounded-lg border border-rose-500/30 bg-rose-500/10 p-2.5">
                     <X className="h-4 w-4 text-rose-600 shrink-0" />
-                    <span className="text-xs text-rose-700 flex-1">Rejected by the brand. Enrol anyway as Following (e.g. an accidental reject)?</span>
+                    <span className="text-xs text-rose-600 dark:text-rose-400 flex-1">Rejected by the brand. Enrol anyway as Following (e.g. an accidental reject)?</span>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" disabled={!!busy}>
@@ -675,8 +675,8 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                   icon={<Film className="h-4 w-4 text-primary" />}
                   right={
                     <div className="flex items-center gap-1.5 text-xs">
-                      {verifiedCount > 0 && <Badge className="bg-emerald-500/15 text-emerald-700 border border-emerald-300/40">{verifiedCount} verified</Badge>}
-                      {submittedCount > 0 && <Badge variant="outline" className="text-amber-600 border-amber-300/40">{submittedCount} to review</Badge>}
+                      {verifiedCount > 0 && <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">{verifiedCount} verified</Badge>}
+                      {submittedCount > 0 && <Badge variant="outline" className="text-amber-600 border-amber-500/30">{submittedCount} to review</Badge>}
                     </div>
                   }
                 >
@@ -858,7 +858,7 @@ function Stat({ label, value, accent }: { label: string; value: React.ReactNode;
   return (
     <div className="rounded-lg border bg-card p-3">
       <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
-      <p className={`text-base font-semibold tabular-nums ${accent ? "text-emerald-600" : ""}`}>{value}</p>
+      <p className={`text-base font-semibold tabular-nums ${accent ? "text-emerald-600 dark:text-emerald-400" : ""}`}>{value}</p>
     </div>
   )
 }
@@ -973,7 +973,7 @@ function SubmissionCard({
         {/* Stage 2 — proof of posting (read-only for brands; the Following team
             verifies). Content approved but not yet posted, or proof submitted. */}
         {stage === "content_approved" && !showProofUpload && (
-          <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-sky-700">
+          <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-sky-600 dark:text-sky-400">
             <Loader2 className="h-3 w-3 mt-px shrink-0 animate-spin" />
             <span>Influencer is posting approved content — system will update once it&apos;s posted</span>
           </div>
@@ -986,7 +986,7 @@ function SubmissionCard({
               type="file" accept="image/*,video/*" className="hidden" disabled={uploading}
               onChange={(e) => { const fs = Array.from(e.target.files || []); if (fs.length && onUploadProof) onUploadProof(fs); e.currentTarget.value = "" }}
             />
-            <span className={`flex items-center justify-center gap-1.5 h-7 rounded-md border border-dashed border-emerald-500/50 text-emerald-700 text-[11px] cursor-pointer hover:bg-emerald-50 ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
+            <span className={`flex items-center justify-center gap-1.5 h-7 rounded-md border border-dashed border-emerald-500/50 text-emerald-600 dark:text-emerald-400 text-[11px] cursor-pointer hover:bg-emerald-500/10${uploading ? "opacity-60 pointer-events-none" : ""}`}>
               {uploading ? (
                 <><Loader2 className="h-3 w-3 animate-spin" />{uploadPct != null ? `Uploading ${uploadPct}%` : "Uploading…"}</>
               ) : (
@@ -996,7 +996,7 @@ function SubmissionCard({
           </label>
         )}
         {stage === "proof_submitted" && (
-          <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-violet-700">
+          <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-violet-600 dark:text-violet-400">
             <Clock className="h-3 w-3 mt-px shrink-0" />
             <span>Proof submitted — under review by the Following team</span>
           </div>
@@ -1023,7 +1023,7 @@ function SubmissionCard({
 
         {/* Stage 1 — content review: brand/superadmin decision only (managers can't). */}
         {stage === "content_review" && !canDecide && (
-          <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-amber-700">
+          <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-amber-600 dark:text-amber-400">
             <Clock className="h-3 w-3 mt-px shrink-0" />
             <span>Submitted — awaiting the brand’s review</span>
           </div>
@@ -1081,13 +1081,13 @@ function SubmissionCard({
 
 function StatusPill({ stage }: { stage: string }) {
   const map: Record<string, string> = {
-    verified: "bg-emerald-500/15 text-emerald-700 border-emerald-300/40",
-    proof_submitted: "bg-violet-500/15 text-violet-700 border-violet-300/40",
-    content_review: "bg-amber-500/15 text-amber-700 border-amber-300/40",
-    revision_requested: "bg-orange-500/15 text-orange-700 border-orange-300/40",
-    content_approved: "bg-sky-500/15 text-sky-700 border-sky-300/40",
-    rejected: "bg-rose-500/15 text-rose-700 border-rose-300/40",
-    pending: "bg-slate-500/10 text-slate-600 border-slate-300/40",
+    verified: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    proof_submitted: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/30",
+    content_review: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
+    revision_requested: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
+    content_approved: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30",
+    rejected: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
+    pending: "bg-secondary text-muted-foreground border-border",
   }
   const label: Record<string, string> = {
     verified: "Verified", proof_submitted: "Proof in", content_review: "Review",
