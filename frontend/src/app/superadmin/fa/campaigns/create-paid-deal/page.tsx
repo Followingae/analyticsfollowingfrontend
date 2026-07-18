@@ -68,8 +68,8 @@ export default function CreatePaidDealPage() {
 
   const selectedMerchant = merchants.find((m) => m.id === selectedMerchantId)
   // Pools belong to a brand. A self-managed campaign has no brand, so there is nothing to
-  // filter by — the operator picks which pool funds the payout, because a paid deal still
-  // pays real money and the backend requires a pool either way.
+  // filter by — the operator may pick any pool to fund the payout. A pool is optional:
+  // when none is linked, verify still pays the creator from their wallet.
   const merchantPools = selfManaged
     ? allPools
     : allPools.filter((p) => selectedMerchant && p.brand_user_id === selectedMerchant.brand_user_id)
@@ -78,7 +78,8 @@ export default function CreatePaidDealPage() {
     if (!name.trim()) return toast.error("Campaign name is required")
     if (!selfManaged && !selectedMerchantId) return toast.error("Select a merchant")
     if (selfManaged && !selectedMerchantId && !clientName.trim()) return toast.error("Enter the client name")
-    if (!selectedPoolId) return toast.error("Select a pool to fund the payout")
+    // Pool is optional: a paid deal can be created before a pool is funded, or team-managed
+    // with no brand pool at all. Verify pays the creator from their wallet regardless.
     if (startDate && endDate && new Date(endDate) <= new Date(startDate)) return toast.error("End date must be after start date")
     if (payoutAed <= 0) return toast.error("Payout amount must be greater than 0")
     if (deliverables.length === 0) return toast.error("Pick at least one deliverable")
@@ -160,7 +161,7 @@ export default function CreatePaidDealPage() {
                   pool it never offered. */}
               {(selectedMerchantId || selfManaged) && merchantPools.length > 0 && (
                 <div className="mt-4">
-                  <Label>Funding Pool *</Label>
+                  <Label>Funding Pool (optional)</Label>
                   <Select value={selectedPoolId} onValueChange={setSelectedPoolId}>
                     <SelectTrigger><SelectValue placeholder="Select pool..." /></SelectTrigger>
                     <SelectContent>
