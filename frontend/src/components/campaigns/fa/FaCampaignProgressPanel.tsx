@@ -79,8 +79,9 @@ interface Participant {
     creator_accepted_at?: string | null
     joined_at?: string | null
     completed_at?: string | null
-    // When a pending paid/barter applicant will be auto-approved if the brand
-    // doesn't act first (applied_at + 72h). Null for non-eligible rows.
+    // When a pending barter applicant will be auto-approved if the brand doesn't
+    // act first (applied_at + the backend auto-approve window). Null for non-eligible
+    // rows (paid deals are never auto-approved).
     auto_approve_at?: string | null
   }
   cashback: { scan_count: number; total_transaction_amount: number; total_cashback_amount: number }
@@ -561,7 +562,7 @@ function ParticipantTable({
   onRowClick?: (p: Participant) => void
 }) {
   return (
-    <Table>
+    <Table className="min-w-[760px]">
       <TableHeader>
         <TableRow>
           <TableHead className="min-w-[220px]">Creator</TableHead>
@@ -620,70 +621,70 @@ function ParticipantTable({
               </TableCell>
               <TableCell>
                 <div className="flex flex-col gap-1">
-                  <Badge variant="outline" className={`text-xs w-fit ${statusMeta.tone}`}>
+                  <Badge variant="outline" className={`text-xs w-fit whitespace-nowrap ${statusMeta.tone}`}>
                     {statusMeta.label}
                   </Badge>
-                  {/* Submission state — who has sent content vs who hasn't, at a glance */}
+                  {/* Submission state — who has sent content vs who hasn't, at a glance.
+                      The richer "posting approved content…" copy rides on this badge's
+                      tooltip instead of a separate pill, to keep the cell uncluttered. */}
                   {(p.status === "active" || p.status === "accepted" || p.status === "completed") && (() => {
                     const cs = contentState(p)
                     if (!cs) return null
-                    return (
-                      <Badge variant="outline" className={`text-[10px] w-fit ${CONTENT_META[cs].tone}`}>
+                    const badge = (
+                      <Badge variant="outline" className={`text-[10px] w-fit whitespace-nowrap ${CONTENT_META[cs].tone}`}>
                         {CONTENT_META[cs].label}
                       </Badge>
                     )
+                    return p.posting_status ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>{badge}</TooltipTrigger>
+                        <TooltipContent className="max-w-[240px]">{p.posting_status}</TooltipContent>
+                      </Tooltip>
+                    ) : badge
                   })()}
-                  {/* SLA urgency — pending >24h */}
-                  {p.status === "pending_brand_approval" && isStale(p.lifecycle.invited_at) && (
-                    <Badge variant="outline" className="text-[10px] w-fit bg-rose-500/10 text-rose-600 border-rose-300/40">
-                      Waiting {hoursSince(p.lifecycle.invited_at)}h
-                    </Badge>
-                  )}
-                  {/* Auto-approve countdown (paid/barter) — approve or reject before this */}
-                  {p.status === "pending_brand_approval" && p.lifecycle.auto_approve_at && (() => {
-                    const ms = new Date(p.lifecycle.auto_approve_at).getTime() - Date.now()
-                    const h = Math.max(0, Math.round(ms / 3_600_000))
+                  {/* Pending SLA + auto-approve countdown — one compact muted line, not
+                      two more colored badges. */}
+                  {p.status === "pending_brand_approval" && (() => {
+                    const waited = isStale(p.lifecycle.invited_at)
+                      ? `Waiting ${hoursSince(p.lifecycle.invited_at)}h`
+                      : null
+                    let auto: string | null = null
+                    if (p.lifecycle.auto_approve_at) {
+                      const h = Math.max(0, Math.round((new Date(p.lifecycle.auto_approve_at).getTime() - Date.now()) / 3_600_000))
+                      auto = h <= 0 ? "auto-approving…" : `auto-approves in ${h}h`
+                    }
+                    const parts = [waited, auto].filter(Boolean)
+                    if (parts.length === 0) return null
                     return (
-                      <Badge variant="outline" className="text-[10px] w-fit bg-amber-500/10 text-amber-700 border-amber-300/40">
-                        {h <= 0 ? "Auto-approving…" : `Auto-approves in ${h}h`}
-                      </Badge>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        {parts.join(" · ")}
+                      </span>
                     )
                   })()}
-                  {/* Posting-in-progress hint on active rows (full text on hover) */}
-                  {p.posting_status && (p.status === "active" || p.status === "accepted") && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Badge variant="outline" className="text-[10px] w-fit bg-sky-500/10 text-sky-600 border-sky-300/40">
-                          Posting approved content…
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-[240px]">{p.posting_status}</TooltipContent>
-                    </Tooltip>
-                  )}
                 </div>
               </TableCell>
               <TableCell>
                 <div className="flex flex-col gap-1">
                   {p.source === "applied" ? (
-                    <Badge variant="outline" className="text-[10px] w-fit bg-blue-500/10 text-blue-600 border-blue-300/40">
+                    <Badge variant="outline" className="text-[10px] w-fit whitespace-nowrap bg-blue-500/10 text-blue-600 border-blue-300/40">
                       Applied via app
                     </Badge>
                   ) : p.is_offline ? (
-                    <Badge variant="outline" className="text-[10px] w-fit bg-amber-500/10 text-amber-700 border-amber-300/40">
+                    <Badge variant="outline" className="text-[10px] w-fit whitespace-nowrap bg-amber-500/10 text-amber-700 border-amber-300/40">
                       Team Suggested · Offline
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-[10px] w-fit bg-purple-500/10 text-purple-600 border-purple-300/40">
+                    <Badge variant="outline" className="text-[10px] w-fit whitespace-nowrap bg-purple-500/10 text-purple-600 border-purple-300/40">
                       Team Suggested
                     </Badge>
                   )}
                   {p.application_mode === "receipt" && p.receipt && (
-                    <Badge variant="outline" className="text-[10px] w-fit bg-emerald-500/10 text-emerald-700 border-emerald-300/40">
+                    <Badge variant="outline" className="text-[10px] w-fit whitespace-nowrap bg-emerald-500/10 text-emerald-700 border-emerald-300/40">
                       Receipt on file · {p.receipt.amount != null ? fmtAED(p.receipt.amount) : "—"}
                     </Badge>
                   )}
                   {p.application_mode === "intent" && (
-                    <Badge variant="outline" className="text-[10px] w-fit bg-sky-500/10 text-sky-700 border-sky-300/40">
+                    <Badge variant="outline" className="text-[10px] w-fit whitespace-nowrap bg-sky-500/10 text-sky-700 border-sky-300/40">
                       Pre-visit application
                     </Badge>
                   )}
