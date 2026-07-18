@@ -47,6 +47,7 @@ import {
 import Link from "next/link"
 import { faCampaignApi, faPoolApi, faMerchantApi } from "@/services/faAdminApi"
 import { SelfManagedToggle } from "@/components/superadmin/fa/SelfManagedToggle"
+import { SelfManagedBranding } from "@/components/superadmin/fa/SelfManagedBranding"
 import { toast } from "sonner"
 import {
   CampaignBriefSection, DeliverablePicker, emptyBrief, buildBriefPayload, buildDeliverablePayload,
@@ -78,6 +79,9 @@ export default function CreateCashbackCampaignPage() {
   const [selectedMerchantId, setSelectedMerchantId] = useState("")
   const [selectedPoolId, setSelectedPoolId] = useState("")
   const [selfManaged, setSelfManaged] = useState(false)
+  // Team-managed branding — optional override of the merchant logo creators would otherwise see.
+  const [brandLogoUrl, setBrandLogoUrl] = useState("")
+  const [heroImageUrl, setHeroImageUrl] = useState("")
 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -191,6 +195,11 @@ export default function CreateCashbackCampaignPage() {
         ...buildBriefPayload(brief),
       }
       if (tiersPayload) payload.cashback_tiers = tiersPayload
+      // Only team-managed campaigns set their own branding; merchant campaigns inherit it.
+      if (selfManaged) {
+        if (brandLogoUrl) payload.brand_logo_url = brandLogoUrl
+        if (heroImageUrl) payload.hero_image_url = heroImageUrl
+      }
       if (description.trim()) payload.description = description.trim()
       if (startDate) payload.start_date = startDate
       if (endDate) payload.end_date = endDate
@@ -257,6 +266,14 @@ export default function CreateCashbackCampaignPage() {
                 merchantSelected={!!selectedMerchantId}
                 requiresMerchant
               />
+              {selfManaged && (
+                <SelfManagedBranding
+                  brandLogoUrl={brandLogoUrl}
+                  heroImageUrl={heroImageUrl}
+                  onBrandLogoChange={setBrandLogoUrl}
+                  onHeroImageChange={setHeroImageUrl}
+                />
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {loadingData ? (
                   Array.from({ length: 3 }).map((_, i) => (

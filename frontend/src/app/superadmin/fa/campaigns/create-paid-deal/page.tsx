@@ -21,6 +21,7 @@ import {
 } from "@/components/superadmin/fa/CampaignBriefFields"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 import { SelfManagedToggle } from "@/components/superadmin/fa/SelfManagedToggle"
+import { SelfManagedBranding } from "@/components/superadmin/fa/SelfManagedBranding"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.following.ae"
 
@@ -31,6 +32,9 @@ export default function CreatePaidDealPage() {
   const [selectedMerchantId, setSelectedMerchantId] = useState("")
   const [selfManaged, setSelfManaged] = useState(false)
   const [clientName, setClientName] = useState("")
+  // Team-managed campaigns set their own branding (no merchant to inherit it from).
+  const [brandLogoUrl, setBrandLogoUrl] = useState("")
+  const [heroImageUrl, setHeroImageUrl] = useState("")
   const [selectedPoolId, setSelectedPoolId] = useState("")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -95,6 +99,11 @@ export default function CreatePaidDealPage() {
       }
       if (description.trim()) payload.description = description.trim()
       if (selfManaged && clientName.trim()) payload.brand_name = clientName.trim()
+      // Only team-managed campaigns set their own branding; merchant campaigns inherit it.
+      if (selfManaged) {
+        if (brandLogoUrl) payload.brand_logo_url = brandLogoUrl
+        if (heroImageUrl) payload.hero_image_url = heroImageUrl
+      }
       if (startDate) payload.start_date = startDate
       if (endDate) payload.end_date = endDate
       if (maxParticipants) payload.max_participants = parseInt(maxParticipants)
@@ -162,6 +171,15 @@ export default function CreatePaidDealPage() {
                   </Select>
                 </div>
               )}
+
+              {selfManaged && (
+                <SelfManagedBranding
+                  brandLogoUrl={brandLogoUrl}
+                  heroImageUrl={heroImageUrl}
+                  onBrandLogoChange={setBrandLogoUrl}
+                  onHeroImageChange={setHeroImageUrl}
+                />
+              )}
             </CardContent>
           </Card>
 
@@ -220,7 +238,7 @@ export default function CreatePaidDealPage() {
           {/* Submit */}
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => router.push("/superadmin/fa/campaigns")}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={submitting || !name.trim() || !selectedMerchantId || payoutAed <= 0}>
+            <Button onClick={handleSubmit} disabled={submitting || !name.trim() || (!selfManaged && !selectedMerchantId) || (selfManaged && !selectedMerchantId && !clientName.trim()) || payoutAed <= 0}>
               {submitting ? "Creating..." : "Create Paid Deal Campaign"}
             </Button>
           </div>
