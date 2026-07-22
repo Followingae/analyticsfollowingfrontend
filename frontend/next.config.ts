@@ -107,6 +107,14 @@ const nextConfig: NextConfig = {
   // Redirects for better SEO
   async redirects() {
     return [
+      // Sales demo — self-contained static build in public/demo. It holds no API
+      // URL, no keys and makes no network calls, so it cannot reach the platform
+      // or its data; this only gives it a tidy URL.
+      {
+        source: '/demo',
+        destination: '/demo/index.html',
+        permanent: false,
+      },
       {
         source: '/login',
         destination: '/auth/login',
