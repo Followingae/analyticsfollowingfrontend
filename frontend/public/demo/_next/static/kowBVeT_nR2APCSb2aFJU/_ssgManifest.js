@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fcampaigns\u002F[id]","\u002Fcreator-analytics\u002F[username]","\u002Fproposals\u002F[proposalId]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()

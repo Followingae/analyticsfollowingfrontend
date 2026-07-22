@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Cache - Following Analytics</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #5100f3; margin-bottom: 20px; }
+        .btn {
+            background: #5100f3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .btn:hover { background: #4000d3; }
+        .btn.danger { background: #dc3545; }
+        .btn.danger:hover { background: #c82333; }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .cache-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Cache Management Tool</h1>
+        <p>Use this tool to clear browser and service worker caches when experiencing issues with the superadmin interface.</p>
+
+        <div class="cache-info" id="cacheInfo">
+            <strong>Cache Status:</strong><br>
+            <span id="swStatus">Checking service worker...</span><br>
+            <span id="cacheStorage">Checking cache storage...</span>
+        </div>
+
+        <button class="btn" onclick="clearServiceWorkerCache()">Clear Service Worker Cache</button>
+        <button class="btn" onclick="unregisterServiceWorker()">Unregister Service Worker</button>
+        <button class="btn" onclick="clearBrowserCache()">Clear Browser Cache</button>
+        <button class="btn danger" onclick="clearAll()">Clear Everything & Reload</button>
+
+        <div class="status" id="status"></div>
+
+        <h3>Common Issues Fixed:</h3>
+        <ul>
+            <li>Superadmin pages showing old/cached data</li>
+            <li>Login redirects to wrong version</li>
+            <li>API responses showing stale data</li>
+            <li>Hard refresh required after changes</li>
+        </ul>
+
+        <p><strong>Tip:</strong> After clearing cache, close all tabs and reopen the application.</p>
+    </div>
+
+    <script>
+        let statusEl = document.getElementById('status');
+        let swStatusEl = document.getElementById('swStatus');
+        let cacheStorageEl = document.getElementById('cacheStorage');
+
+        function showStatus(message, isError = false) {
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + (isError ? 'error' : 'success');
+            statusEl.style.display = 'block';
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 5000);
+        }
+
+        async function checkCacheStatus() {
+            // Check service worker
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                swStatusEl.textContent = `Service Worker: ${registrations.length} registered`;
+            } else {
+                swStatusEl.textContent = 'Service Worker: Not supported';
+            }
+
+            // Check cache storage
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                cacheStorageEl.textContent = `Cache Storage: ${cacheNames.length} caches (${cacheNames.join(', ')})`;
+            } else {
+                cacheStorageEl.textContent = 'Cache Storage: Not supported';
+            }
+        }
+
+        async function clearServiceWorkerCache() {
+            try {
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(
+                        cacheNames.map(name => caches.delete(name))
+                    );
+                    showStatus(`Cleared ${cacheNames.length} service worker caches`);
+                } else {
+                    showStatus('Cache API not supported', true);
+                }
+                checkCacheStatus();
+            } catch (error) {
+                showStatus('Failed to clear service worker cache: ' + error.message, true);
+            }
+        }
+
+        async function unregisterServiceWorker() {
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(
+                        registrations.map(reg => reg.unregister())
+                    );
+                    showStatus(`Unregistered ${registrations.length} service workers`);
+                } else {
+                    showStatus('Service Worker not supported', true);
+                }
+                checkCacheStatus();
+            } catch (error) {
+                showStatus('Failed to unregister service worker: ' + error.message, true);
+            }
+        }
+
+        function clearBrowserCache() {
+            try {
+                // Clear localStorage
+                localStorage.clear();
+                // Clear sessionStorage
+                sessionStorage.clear();
+                showStatus('Cleared browser storage (localStorage & sessionStorage)');
+            } catch (error) {
+                showStatus('Failed to clear browser cache: ' + error.message, true);
+            }
+        }
+
+        async function clearAll() {
+            try {
+                await clearServiceWorkerCache();
+                await unregisterServiceWorker();
+                clearBrowserCache();
+                showStatus('All caches cleared! Reloading in 2 seconds...');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } catch (error) {
+                showStatus('Failed to clear all caches: ' + error.message, true);
+            }
+        }
+
+        // Check status on load
+        checkCacheStatus();
+        setInterval(checkCacheStatus, 5000);
+    </script>
+</body>
+</html>
