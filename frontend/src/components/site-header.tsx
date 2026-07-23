@@ -10,7 +10,24 @@ import { Balloons } from "@/components/ui/balloons"
 import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import React, { useMemo, useState, useEffect, useRef } from "react"
-import { Crown, Coins, PartyPopper, LogOut, BookOpen } from "lucide-react"
+import { Crown, Coins, PartyPopper, LogOut, BookOpen, Search, MoreHorizontal } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { creditsApiService } from "@/services/creditsApi"
 import { teamApiService, TeamContext } from "@/services/teamApi"
 import { useRouter } from 'next/navigation'
@@ -203,6 +220,20 @@ export function SiteHeader() {
 
         {/* Right side: badges + actions */}
         <div className="ml-auto flex items-center gap-2">
+          {/* Command-palette entry point — visible affordance for the ⌘K palette */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+            className="inline-flex h-8 items-center gap-2 rounded-md border border-input bg-background px-2.5 text-sm text-muted-foreground transition-colors duration-150 hover:bg-muted/50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            aria-label="Open command palette"
+          >
+            <Search className="h-4 w-4" />
+            <span className="hidden lg:inline">Search</span>
+            <kbd className="hidden lg:inline-flex h-5 items-center rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+              ⌘K
+            </kbd>
+          </button>
+
           {/* Superadmin Badge */}
           {user && (user.role === 'superadmin' || user.role === 'admin') && (
             <Badge variant="outline" className="hidden sm:inline-flex text-[10px] py-0 px-1.5 h-5 font-normal text-muted-foreground border-muted-foreground/20 uppercase tracking-wider">
@@ -260,23 +291,6 @@ export function SiteHeader() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => balloonsRef.current?.launchAnimation()}
-                    className="hidden sm:inline-flex transition-colors duration-150"
-                  >
-                    <PartyPopper className="h-4 w-4" />
-                    <span className="sr-only">Launch balloons</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>Launch balloons</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
                     onClick={() => {
                       const isSuperadmin = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'super_admin';
                       router.push(isSuperadmin ? '/superadmin/guide' : '/guide');
@@ -294,25 +308,72 @@ export function SiteHeader() {
 
               <ModeToggle />
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      logout()
-                      router.push('/auth/login')
-                    }}
-                    className="transition-colors duration-150"
-                    aria-label="Sign out"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>Sign out</p>
-                </TooltipContent>
-              </Tooltip>
+              {/* Sign out — now behind a confirm dialog (session-ending action) */}
+              <AlertDialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="transition-colors duration-150"
+                        aria-label="Sign out"
+                      >
+                        <LogOut className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Sign out</p>
+                  </TooltipContent>
+                </Tooltip>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Sign out?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      You&apos;ll be returned to the login screen and need to sign in again to continue.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => {
+                        logout()
+                        router.push('/auth/login')
+                      }}
+                    >
+                      Sign out
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              {/* Overflow — houses the non-essential balloons toy, out of the primary toolbar */}
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hidden sm:inline-flex transition-colors duration-150 text-muted-foreground"
+                        aria-label="More"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>More</p>
+                  </TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => balloonsRef.current?.launchAnimation()}>
+                    <PartyPopper className="h-4 w-4" />
+                    Launch balloons
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </TooltipProvider>
         </div>

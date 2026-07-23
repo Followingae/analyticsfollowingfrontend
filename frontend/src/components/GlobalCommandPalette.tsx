@@ -84,8 +84,14 @@ export function GlobalCommandPalette() {
         setOpen((o) => !o)
       }
     }
+    // Visible entry points (e.g. the topbar "Search ⌘K" chip) open the palette via this event.
+    const openViaEvent = () => setOpen(true)
     document.addEventListener("keydown", down)
-    return () => document.removeEventListener("keydown", down)
+    window.addEventListener("open-command-palette", openViaEvent)
+    return () => {
+      document.removeEventListener("keydown", down)
+      window.removeEventListener("open-command-palette", openViaEvent)
+    }
   }, [])
 
   const go = useCallback(

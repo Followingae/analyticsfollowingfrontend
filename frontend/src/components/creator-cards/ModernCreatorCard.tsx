@@ -41,9 +41,9 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ProfileImage } from '@/components/ProfileImage'
 import { getCountryCode } from '@/lib/countryUtils'
-import { toast } from 'sonner'
 import { CreatorProfile } from '@/types/creator'
 import { getOptimizedProfilePicture, getOptimizedCountry } from '@/utils/cdnUtils'
 
@@ -93,12 +93,13 @@ export function ModernCreatorCard({
     }
   }
 
+  // No handler wired → the "Add to list" feature has no home yet. Render the
+  // control disabled with a "coming soon" tooltip instead of a dead-end toast.
+  const addComingSoon = !onAddClick
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (onAddClick) {
       onAddClick(creator)
-    } else {
-      toast.info(`Add to list functionality coming soon for @${creator.username}`)
     }
   }
 
@@ -110,25 +111,27 @@ export function ModernCreatorCard({
   // Tier Badge Component
   const TierBadge = ({ tier }: { tier: 'nano' | 'micro' | 'macro' | 'mega' }) => {
     const tierConfig = {
+      // OKLCH semantic tokens (matches CreatorGridCard) — no raw slate/emerald/
+      // blue/purple/pink palette, so the badge tracks the theme in light + dark.
       nano: {
         label: 'Nano',
         icon: Star,
-        className: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+        className: 'bg-muted text-muted-foreground border-border'
       },
       micro: {
         label: 'Micro',
         icon: Zap,
-        className: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800'
+        className: 'bg-primary/10 text-primary border-primary/20'
       },
       macro: {
         label: 'Macro',
         icon: TrendingUp,
-        className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
+        className: 'bg-primary/15 text-primary border-primary/30 font-medium'
       },
       mega: {
         label: 'Mega',
         icon: Crown,
-        className: 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-purple-200 dark:from-purple-900/30 dark:to-pink-900/30 dark:text-purple-400 dark:border-purple-700'
+        className: 'bg-gradient-to-r from-primary/20 to-primary/15 text-primary border-primary/40 font-semibold shadow-sm'
       }
     }
 
@@ -365,15 +368,40 @@ export function ModernCreatorCard({
             </Button>
           )}
           {showAddButton && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddClick}
-              className="border-2 hover:bg-primary/5 hover:border-primary/50 transition-all duration-200"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add
-            </Button>
+            addComingSoon ? (
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {/* span wrapper: disabled buttons don't emit the pointer
+                        events Radix Tooltip listens for. */}
+                    <span className="inline-flex">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        aria-label="Add to list — coming soon"
+                        className="w-full border-2 transition-all duration-200"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>Coming soon</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddClick}
+                aria-label="Add to list"
+                className="border-2 hover:bg-primary/5 hover:border-primary/50 transition-all duration-200"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add
+              </Button>
+            )
           )}
         </div>
 

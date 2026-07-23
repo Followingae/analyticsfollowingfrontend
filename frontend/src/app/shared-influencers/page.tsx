@@ -57,13 +57,16 @@ interface SharedInfluencer {
   sell_monthly_aed_cents?: number | null
 }
 
+// Tier badges use the theme's OKLCH categorical (chart) tokens rather than raw Tailwind
+// palette classes, so they stay on-system and theme-aware in both light and dark. Text
+// stays `foreground` for guaranteed contrast; the tinted fill + border differentiate tiers.
 function getTierColor(tier?: string | null) {
   switch (tier?.toLowerCase()) {
-    case "mega": return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
-    case "macro": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-    case "mid": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-    case "micro": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-    case "nano": return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300"
+    case "mega": return "bg-chart-2/15 text-foreground border border-chart-2/40"
+    case "macro": return "bg-chart-1/15 text-foreground border border-chart-1/40"
+    case "mid": return "bg-chart-5/15 text-foreground border border-chart-5/40"
+    case "micro": return "bg-chart-4/15 text-foreground border border-chart-4/40"
+    case "nano": return "bg-chart-3/15 text-foreground border border-chart-3/40"
     default: return "bg-muted text-muted-foreground"
   }
 }

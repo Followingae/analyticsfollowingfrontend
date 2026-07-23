@@ -169,9 +169,12 @@ const validatePassword = (password: string): {valid: boolean, errors: string[]} 
   }
 
   // Common weak passwords that Supabase rejects
+  // Client-side vanity blocklist only — real strength is enforced by length/complexity
+  // rules above and by Supabase. Do NOT add real/internal credentials here: this array
+  // ships in client JS, so any specific secret placed here is publicly readable.
   const weakPasswords = [
     'password', 'Password123', '12345678', 'qwerty123',
-    'admin123', 'Welcome123', 'Password1', 'Following0925_25'
+    'admin123', 'Welcome123', 'Password1'
   ]
 
   if (weakPasswords.some(weak => password.toLowerCase().includes(weak.toLowerCase()))) {

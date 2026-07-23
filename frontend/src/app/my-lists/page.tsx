@@ -608,30 +608,23 @@ function MyListsContent() {
                                   <Edit3 className="h-4 w-4 mr-2" />
                                   Edit
                                 </DropdownMenuItem>
+                                {/* Share / Export / Analytics have no dialog wired yet.
+                                    Kept visible but honest — they announce "coming soon"
+                                    instead of silently setting state no dialog consumes. */}
                                 <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedListForSharing(list)
-                                    setIsShareDialogOpen(true)
-                                  }}
+                                  onClick={() => toast.info("Sharing lists is coming soon.")}
                                 >
                                   <Share2 className="h-4 w-4 mr-2" />
                                   Share
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedListForExport(list)
-                                    setIsExportDialogOpen(true)
-                                  }}
+                                  onClick={() => toast.info("Exporting lists is coming soon.")}
                                 >
                                   <Download className="h-4 w-4 mr-2" />
                                   Export
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedListForAnalytics(list)
-                                    getListAnalytics(list.id)
-                                    setIsAnalyticsDialogOpen(true)
-                                  }}
+                                  onClick={() => toast.info("List analytics are coming soon.")}
                                 >
                                   <BarChart3 className="h-4 w-4 mr-2" />
                                   Analytics
@@ -828,8 +821,8 @@ function MyListsContent() {
                             onClick={() => setSelectedColor(color)}
                             className={`w-8 h-8 rounded border-2 transition-all ${
                               selectedColor === color
-                                ? 'border-gray-400 scale-110'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-foreground scale-110'
+                                : 'border-border hover:border-muted-foreground'
                             }`}
                             style={{ backgroundColor: color }}
                           />
@@ -896,8 +889,8 @@ function MyListsContent() {
                             onClick={() => setSelectedColor(color)}
                             className={`w-8 h-8 rounded border-2 transition-all ${
                               selectedColor === color
-                                ? 'border-gray-400 scale-110'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-foreground scale-110'
+                                : 'border-border hover:border-muted-foreground'
                             }`}
                             style={{ backgroundColor: color }}
                           />

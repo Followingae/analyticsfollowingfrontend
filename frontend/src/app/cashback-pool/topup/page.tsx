@@ -8,8 +8,19 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { ArrowLeft, CreditCard, Check, Zap, Edit3 } from "lucide-react"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 import { brandPoolApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
@@ -26,6 +37,7 @@ export default function TopupPage() {
   const [customAmount, setCustomAmount] = useState("")
   const [useCustom, setUseCustom] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -105,38 +117,54 @@ export default function TopupPage() {
             <p className="text-muted-foreground text-sm">Select a package or enter a custom amount to fund your pool via Stripe (AED)</p>
           </div>
 
-          {/* Packages */}
+          {/* Packages — real <button>s so they're keyboard-selectable. A package
+              with no stripe_price_id (e.g. the offline fallback list) can't start
+              a valid checkout, so it's disabled and marked unavailable. */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {packages.map((pkg) => (
-              <Card
-                key={pkg.id}
-                className={`cursor-pointer transition-all ${!useCustom && selected === pkg.id ? "ring-2 ring-primary shadow-lg" : "hover:shadow-md"} ${useCustom ? "opacity-50" : ""}`}
-                onClick={() => { setSelected(pkg.id); setUseCustom(false) }}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <Badge variant={!useCustom && selected === pkg.id ? "default" : "secondary"}>{pkg.name}</Badge>
-                    {!useCustom && selected === pkg.id && <Check className="h-5 w-5 text-primary" />}
+            {packages.map((pkg) => {
+              const isSelected = !useCustom && selected === pkg.id
+              const isUnavailable = !pkg.stripe_price_id
+              return (
+                <button
+                  key={pkg.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  disabled={isUnavailable}
+                  onClick={() => { setSelected(pkg.id); setUseCustom(false) }}
+                  className={cn(
+                    "rounded-lg border bg-card text-card-foreground shadow-sm w-full text-left transition-all",
+                    isSelected ? "ring-2 ring-primary shadow-lg" : "hover:shadow-md",
+                    useCustom ? "opacity-50" : "",
+                    isUnavailable ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                  )}
+                >
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <Badge variant={isSelected ? "default" : "secondary"}>{pkg.name}</Badge>
+                      {isSelected && <Check className="h-5 w-5 text-primary" />}
+                    </div>
+                    <p className="text-3xl font-bold">AED {pkg.amount_aed.toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {isUnavailable ? "Currently unavailable" : "One-time pool topup"}
+                    </p>
                   </div>
-                  <p className="text-3xl font-bold">AED {pkg.amount_aed.toLocaleString()}</p>
-                  <p className="text-sm text-muted-foreground mt-1">One-time pool topup</p>
-                </CardContent>
-              </Card>
-            ))}
+                </button>
+              )
+            })}
           </div>
 
-          {/* Custom Amount */}
-          <Card className={`transition-all ${useCustom ? "ring-2 ring-primary shadow-lg" : "hover:shadow-md cursor-pointer"}`}
-            onClick={() => { if (!useCustom) { setUseCustom(true); setSelected(null) } }}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <Badge variant={useCustom ? "default" : "secondary"} className="flex items-center gap-1">
-                  <Edit3 className="h-3 w-3" />Custom Amount
-                </Badge>
-                {useCustom && <Check className="h-5 w-5 text-primary" />}
-              </div>
-              {useCustom ? (
+          {/* Custom Amount — collapsed state is a real <button> (keyboard-selectable);
+              expanded state stays a Card because it contains an <input>. */}
+          {useCustom ? (
+            <Card className="transition-all ring-2 ring-primary shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Badge variant="default" className="flex items-center gap-1">
+                    <Edit3 className="h-3 w-3" />Custom Amount
+                  </Badge>
+                  <Check className="h-5 w-5 text-primary" />
+                </div>
                 <div className="space-y-2">
                   <Label>Amount (AED)</Label>
                   <div className="flex items-center gap-2">
@@ -155,14 +183,27 @@ export default function TopupPage() {
                   </div>
                   <p className="text-xs text-muted-foreground">Min AED 100 — Max AED 100,000</p>
                 </div>
-              ) : (
-                <>
-                  <p className="text-lg font-semibold">Enter your own amount</p>
-                  <p className="text-sm text-muted-foreground mt-1">AED 100 – 100,000</p>
-                </>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <button
+              type="button"
+              role="radio"
+              aria-checked={false}
+              onClick={() => { setUseCustom(true); setSelected(null) }}
+              className="rounded-lg border bg-card text-card-foreground shadow-sm w-full text-left transition-all hover:shadow-md cursor-pointer"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Edit3 className="h-3 w-3" />Custom Amount
+                  </Badge>
+                </div>
+                <p className="text-lg font-semibold">Enter your own amount</p>
+                <p className="text-sm text-muted-foreground mt-1">AED 100 – 100,000</p>
+              </div>
+            </button>
+          )}
 
           {/* Pay Button */}
           {canPay && (
@@ -180,7 +221,7 @@ export default function TopupPage() {
                   </div>
                   <Zap className="h-5 w-5 text-amber-500" />
                 </div>
-                <Button onClick={handleTopup} disabled={loading} className="w-full" size="lg">
+                <Button onClick={() => setConfirmOpen(true)} disabled={loading} className="w-full" size="lg">
                   <CreditCard className="h-4 w-4 mr-2" />
                   {loading ? "Redirecting to Stripe..." : `Pay AED ${displayAmount.toLocaleString()} with Stripe`}
                 </Button>
@@ -190,6 +231,27 @@ export default function TopupPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Confirmation interstitial — states the exact amount before the
+              Stripe redirect. */}
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirm top-up</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You&apos;re about to fund your cashback pool with{" "}
+                  <span className="font-semibold text-foreground">AED {displayAmount.toLocaleString()}</span>.
+                  You&apos;ll be taken to Stripe to complete the payment securely.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleTopup} disabled={loading}>
+                  Continue to Stripe
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </BrandUserInterface>
     </AuthGuard>

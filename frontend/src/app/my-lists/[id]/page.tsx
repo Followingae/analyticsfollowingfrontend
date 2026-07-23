@@ -453,11 +453,21 @@ export default function ListDetailPage() {
                       <UserPlus className="w-4 h-4" />
                       Add Creator
                     </Button>
-                    <Button variant="outline" size="sm">
+                    {/* No handler wired yet — kept visible but honest via a coming-soon
+                        toast rather than reading as a live capability that does nothing. */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toast.info("Sharing lists is coming soon.")}
+                    >
                       <Share className="w-4 h-4 mr-2" />
                       Share
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toast.info("Exporting lists is coming soon.")}
+                    >
                       <Download className="w-4 h-4 mr-2" />
                       Export
                     </Button>
@@ -685,7 +695,7 @@ export default function ListDetailPage() {
                               <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
                               <div>
                                 <p className="font-medium">No available creators to add</p>
-                                <p className="text-xs mt-2">Check console for API response details</p>
+                                <p className="text-xs mt-2">Every creator you&apos;ve unlocked is already in this list. Unlock more from Discovery to add them here.</p>
                               </div>
                             </div>
                           </div>

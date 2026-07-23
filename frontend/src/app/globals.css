@@ -20,7 +20,8 @@
 :root {
   --background: oklch(0.9911 0 0);
   --foreground: oklch(0.2046 0 0);
-  --card: oklch(0.9911 0 0);
+  /* Card is pure white — subtly lighter than the near-white background so cards read as elevated in light mode */
+  --card: oklch(1 0 0);
   --card-foreground: oklch(0.2046 0 0);
   --popover: oklch(0.9911 0 0);
   --popover-foreground: oklch(0.4386 0 0);
@@ -36,7 +37,17 @@
   --destructive-foreground: oklch(0.9934 0.0032 17.2118);
   --border: oklch(0.9037 0 0);
   --input: oklch(0.9731 0 0);
-  --ring: oklch(0.4718 0.2853 280.0726);
+  /* Focus ring shares the brand primary hue (302.8°) instead of the old off-brand indigo (280°) */
+  --ring: oklch(0.5500 0.2000 302.8047);
+  /* Semantic status tokens — one source of truth so screens stop inventing raw red/green */
+  --success: oklch(0.6271 0.1699 149.2138);
+  --success-foreground: oklch(0.9851 0 0);
+  --warning: oklch(0.7451 0.1580 70.0000);
+  --warning-foreground: oklch(0.2046 0 0);
+  --info: oklch(0.6180 0.1900 256.0000);
+  --info-foreground: oklch(0.9851 0 0);
+  --danger: oklch(0.5523 0.1927 32.7272);
+  --danger-foreground: oklch(0.9934 0.0032 17.2118);
   --chart-1: oklch(0.7880 0.1190 302.8047);
   --chart-2: oklch(0.4718 0.2853 280.0726);
   --chart-3: oklch(0.9354 0.2254 121.4851);
@@ -49,7 +60,7 @@
   --sidebar-accent: oklch(0.9461 0 0);
   --sidebar-accent-foreground: oklch(0.2435 0 0);
   --sidebar-border: oklch(0.9037 0 0);
-  --sidebar-ring: oklch(0.4718 0.2853 280.0726);
+  --sidebar-ring: oklch(0.5500 0.2000 302.8047);
   --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-serif: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-mono: monospace;
@@ -76,8 +87,9 @@
   --card-foreground: oklch(0.9288 0.0126 255.5078);
   --popover: oklch(0.2603 0 0);
   --popover-foreground: oklch(0.7348 0 0);
-  --primary: oklch(0.9354 0.2254 121.4851);
-  --primary-foreground: oklch(0.1822 0 0);
+  /* Same brand hue as light (violet 302.8°), lifted in lightness for dark backgrounds — no more hue flip between themes */
+  --primary: oklch(0.8600 0.1200 302.8047);
+  --primary-foreground: oklch(0.2046 0 0);
   --secondary: oklch(0.2603 0 0);
   --secondary-foreground: oklch(0.9851 0 0);
   --muted: oklch(0.2393 0 0);
@@ -88,7 +100,17 @@
   --destructive-foreground: oklch(0.9368 0.0045 34.3092);
   --border: oklch(0.2809 0 0);
   --input: oklch(0.2603 0 0);
-  --ring: oklch(0.9354 0.2254 121.4851);
+  /* Focus ring shares the brand primary hue (302.8°) in dark too */
+  --ring: oklch(0.8600 0.1200 302.8047);
+  /* Semantic status tokens (dark) — lighter fills, dark foregrounds, so they stay legible on the near-black surface */
+  --success: oklch(0.7227 0.1920 149.5000);
+  --success-foreground: oklch(0.1822 0 0);
+  --warning: oklch(0.8369 0.1644 84.4286);
+  --warning-foreground: oklch(0.1822 0 0);
+  --info: oklch(0.7090 0.1400 256.0000);
+  --info-foreground: oklch(0.1822 0 0);
+  --danger: oklch(0.7040 0.1900 27.0000);
+  --danger-foreground: oklch(0.1822 0 0);
   --chart-1: oklch(0.9354 0.2254 121.4851);
   --chart-2: oklch(0.9575 0.1596 117.3156);
   --chart-3: oklch(0.7090 0.1592 293.5412);
@@ -96,12 +118,13 @@
   --chart-5: oklch(0.7845 0.1325 181.9120);
   --sidebar: oklch(0.1822 0 0);
   --sidebar-foreground: oklch(0.6301 0 0);
-  --sidebar-primary: oklch(0.9354 0.2254 121.4851);
-  --sidebar-primary-foreground: oklch(0.9213 0.0135 167.1556);
+  /* Align sidebar primary + ring to the unified brand hue (302.8°) so the active-nav pill matches light mode */
+  --sidebar-primary: oklch(0.8600 0.1200 302.8047);
+  --sidebar-primary-foreground: oklch(0.2046 0 0);
   --sidebar-accent: oklch(0.3132 0 0);
   --sidebar-accent-foreground: oklch(0.9851 0 0);
   --sidebar-border: oklch(0.2809 0 0);
-  --sidebar-ring: oklch(0.9575 0.1596 117.3156);
+  --sidebar-ring: oklch(0.8600 0.1200 302.8047);
   --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-serif: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-mono: monospace;
@@ -137,6 +160,14 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -235,9 +266,11 @@
     @apply outline-2 outline-offset-2 outline-ring;
   }
 
-  /* Better selection colors */
+  /* Better selection colors — use `foreground` (legible in BOTH themes) over a stronger
+     primary tint. The old `text-primary-foreground` was near-black in dark mode over a
+     faint tint on a black bg → selected text was invisible. */
   ::selection {
-    @apply bg-primary/10 text-primary-foreground;
+    @apply bg-primary/25 text-foreground;
   }
 }
 

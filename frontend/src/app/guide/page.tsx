@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import {
   BookOpen,
   Search,
@@ -530,21 +531,21 @@ function useSections(): GuideSection[] {
               <Card className="border-muted">
                 <CardContent className="py-3 px-4 text-center">
                   <p className="text-xs text-muted-foreground">Free</p>
-                  <p className="text-lg font-bold">0 AED/mo</p>
+                  <p className="text-lg font-bold">$0/mo</p>
                   <p className="text-xs text-muted-foreground">1 user &middot; 5 profiles/mo</p>
                 </CardContent>
               </Card>
               <Card className="border-purple-300 dark:border-purple-700 ring-1 ring-purple-200 dark:ring-purple-800">
                 <CardContent className="py-3 px-4 text-center">
                   <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Standard</p>
-                  <p className="text-lg font-bold">730 AED/mo</p>
+                  <p className="text-lg font-bold">$199/mo</p>
                   <p className="text-xs text-muted-foreground">2 users &middot; 500 profiles/mo</p>
                 </CardContent>
               </Card>
               <Card className="border-muted">
                 <CardContent className="py-3 px-4 text-center">
                   <p className="text-xs text-muted-foreground">Premium</p>
-                  <p className="text-lg font-bold">1,830 AED/mo</p>
+                  <p className="text-lg font-bold">$499/mo</p>
                   <p className="text-xs text-muted-foreground">5 users &middot; 2,000 profiles/mo</p>
                 </CardContent>
               </Card>
@@ -715,26 +716,30 @@ function GettingStartedCards() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {cards.map((card) => (
-        <Card
-          key={card.title}
-          className="group relative overflow-hidden border-muted hover:border-primary/30 hover:shadow-md transition-all duration-200 cursor-default"
-        >
-          <CardHeader className="pb-2">
-            <div className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${card.iconBg} mb-2`}>
-              {card.icon}
-            </div>
-            <CardTitle className="text-base">{card.title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="text-sm leading-relaxed">
-              {card.description}
-            </CardDescription>
-            <div className="flex items-center gap-1.5 mt-3">
-              <NavPath path={card.path} />
-              <ArrowRight className="h-3 w-3 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
+        // These cards carried hover-lift + arrow affordances but no destination — they
+        // looked clickable and weren't. Each has a real `path`, so they now navigate,
+        // making the affordance honest.
+        <Link key={card.title} href={card.path} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg">
+          <Card
+            className="group relative h-full overflow-hidden border-muted hover:border-primary/30 hover:shadow-md transition-all duration-200 cursor-pointer"
+          >
+            <CardHeader className="pb-2">
+              <div className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${card.iconBg} mb-2`}>
+                {card.icon}
+              </div>
+              <CardTitle className="text-base">{card.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="text-sm leading-relaxed">
+                {card.description}
+              </CardDescription>
+              <div className="flex items-center gap-1.5 mt-3">
+                <NavPath path={card.path} />
+                <ArrowRight className="h-3 w-3 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       ))}
     </div>
   )

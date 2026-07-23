@@ -23,6 +23,9 @@ interface FreelancerProfileCardProps extends React.HTMLAttributes<HTMLDivElement
   buttonLabel?: string
   statLabels?: { rating?: string; duration?: string; rate?: string }
   toolsLabel?: string
+  /** Accessible name for the corner icon button. Defaults to "Bookmark profile", but
+   *  consumers that repurpose it (e.g. selection) should announce what it actually does. */
+  bookmarkAriaLabel?: string
 }
 
 const cardVariants = {
@@ -73,6 +76,7 @@ const FreelancerProfileCard = React.forwardRef<
       buttonLabel,
       statLabels,
       toolsLabel,
+      bookmarkAriaLabel,
       ...props
     },
     ref
@@ -108,7 +112,8 @@ const FreelancerProfileCard = React.forwardRef<
           size="icon"
           className="absolute right-4 top-4 h-9 w-9 rounded-lg bg-background/50 backdrop-blur-sm text-card-foreground/80 hover:bg-background/70"
           onClick={onBookmark}
-          aria-label="Bookmark profile"
+          aria-label={bookmarkAriaLabel ?? "Bookmark profile"}
+          title={bookmarkAriaLabel ?? "Bookmark profile"}
         >
           <Bookmark className="h-4 w-4" />
         </Button>

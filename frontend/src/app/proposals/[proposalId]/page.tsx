@@ -319,15 +319,21 @@ function BrandProposalViewPageContent() {
 
   const estimatedTotal = useMemo(() => {
     if (!showPricing || !data) return 0
+    // Must equal the sum of the per-creator line items the client actually sees in
+    // SelectedCreatorsPanel (assigned_deliverables × quantity). The old version added
+    // only the first available price key per creator, so the approve-dialog total could
+    // differ from the rows in front of the approver.
     return data.influencers
       .filter((inf) => selectedIds.has(inf.id))
       .reduce((total, inf) => {
+        const assigned = inf.assigned_deliverables || []
         const pricing = inf.sell_pricing ?? {}
-        for (const key of PRICE_KEYS) {
-          const v = pricing[key]
-          if (v !== null && v !== undefined) return total + v
+        let creatorTotal = 0
+        for (const d of assigned) {
+          const price = pricing[d.type]
+          if (price != null) creatorTotal += price * d.quantity
         }
-        return total
+        return total + creatorTotal
       }, 0)
   }, [data, selectedIds, showPricing])
 

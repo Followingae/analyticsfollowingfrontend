@@ -15,6 +15,32 @@ import { notificationApiService, type ServerNotification } from "@/services/noti
 const CELEBRATORY = (n: ServerNotification): boolean =>
   (n.notification_type || "").toLowerCase() === "proposal_received";
 
+// Show-once persistence — once the user dismisses ("Later") a set of unread
+// notifications, we remember their ids so the modal does NOT re-nag on every
+// subsequent page load. They remain fully reachable via the bell / mark-read.
+const DISMISS_KEY = "whatsnew_dismissed_ids";
+
+function getDismissed(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(DISMISS_KEY);
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function addDismissed(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const merged = Array.from(new Set([...getDismissed(), ...ids]));
+    // Keep the list bounded so it can't grow forever.
+    window.localStorage.setItem(DISMISS_KEY, JSON.stringify(merged.slice(-200)));
+  } catch {
+    /* localStorage unavailable — non-fatal */
+  }
+}
+
 function iconFor(n: ServerNotification) {
   const hay = `${n.notification_type} ${n.title}`.toLowerCase();
   if (/campaign|live/.test(hay)) return Megaphone;
@@ -46,6 +72,11 @@ export function WhatsNewModal() {
       const res = await notificationApiService.getNotifications({ unread_only: true, page_size: 8 });
       const unread = (res.data || []).filter((n) => !n.is_read);
       if (unread.length === 0) return;
+      // Only auto-open if there's at least one unread the user hasn't already
+      // dismissed via "Later" — otherwise this becomes a per-load nag.
+      const dismissed = getDismissed();
+      const fresh = unread.filter((n) => !dismissed.has(n.id));
+      if (fresh.length === 0) return;
       setShownThisLoad(true);
       setItems(unread);
       setOpen(true);
@@ -89,7 +120,14 @@ export function WhatsNewModal() {
         <Balloons ref={balloonsRef as never} type="default" />
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next: boolean) => {
+          // Any close (X / escape / outside-click) also counts as dismissal → no re-nag.
+          if (!next) addDismissed(items.map((n) => n.id));
+          setOpen(next);
+        }}
+      >
         <DialogContent className="max-w-md overflow-hidden p-0">
           <div className="bg-gradient-to-br from-primary/10 via-background to-background px-6 pt-6 pb-4">
             <DialogHeader>
@@ -109,35 +147,49 @@ export function WhatsNewModal() {
             {items.map((n) => {
               const Icon = iconFor(n);
               return (
-                <button key={n.id} type="button" onClick={() => openItem(n)}
-                  className="group flex w-full items-start gap-3 rounded-xl border bg-card p-3 text-left transition-colors hover:bg-accent">
-                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">{n.title}</div>
-                    {n.message && <div className="line-clamp-2 text-xs text-muted-foreground">{n.message}</div>}
-                  </div>
+                // Flattened: the row is a plain container with TWO sibling buttons
+                // (open + mark-read) — no button-inside-a-button (WCAG 4.1.2).
+                <div key={n.id}
+                  className="group flex w-full items-start gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-accent">
+                  <button type="button" onClick={() => openItem(n)}
+                    className="flex min-w-0 flex-1 items-start gap-3 text-left">
+                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <Icon className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">{n.title}</div>
+                      {n.message && <div className="line-clamp-2 text-xs text-muted-foreground">{n.message}</div>}
+                    </div>
+                  </button>
                   <div className="flex items-center gap-1.5 self-center">
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => { e.stopPropagation(); markRead(n.id); }}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); markRead(n.id); } }}
+                    <button
+                      type="button"
+                      onClick={() => markRead(n.id)}
                       title="Mark as read"
+                      aria-label="Mark as read"
                       className="rounded-md p-1.5 text-muted-foreground hover:bg-background hover:text-foreground"
                     >
                       <Check className="h-3.5 w-3.5" />
-                    </span>
+                    </button>
                     {n.action_url && <ArrowRight className="h-4 w-4 text-muted-foreground/50" />}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
 
           <div className="flex items-center justify-between gap-2 border-t px-6 py-4">
-            <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Later</Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                // Persist dismissal so these don't re-open the modal on the next load.
+                addDismissed(items.map((n) => n.id));
+                setOpen(false);
+              }}
+            >
+              Later
+            </Button>
             <Button size="sm" onClick={markAll} disabled={busy} className="gap-1.5">
               <Check className="h-4 w-4" /> Mark all as read
             </Button>

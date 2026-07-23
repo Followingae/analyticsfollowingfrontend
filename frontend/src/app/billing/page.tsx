@@ -42,6 +42,16 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { billingManager, type BillingStatus } from '@/services/billingManager'
 import { API_CONFIG, ENDPOINTS, getAuthHeaders } from '@/config/api'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
@@ -102,6 +112,15 @@ function BillingContent() {
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState<BillingStatus | null>(null)
   const [loadingPortal, setLoadingPortal] = useState(false)
+  // Confirmation gate for money-mutating actions (Stripe checkout / portal).
+  const [confirmAction, setConfirmAction] = useState<
+    { type: 'upgrade'; tier: string } | { type: 'manage' } | null
+  >(null)
+
+  const PLAN_LABELS: Record<string, string> = {
+    standard: 'Standard ($199/month)',
+    premium: 'Premium ($499/month)',
+  }
 
   // Deep-linkable tabs: /billing?tab=cashback-pool (the old standalone
   // /cashback-pool page redirects here).
@@ -194,6 +213,58 @@ function BillingContent() {
     }
   }
 
+  // Request wrappers: open a confirmation before any action that leaves for
+  // Stripe. Admin-managed / free / no-subscription branches don't hit Stripe,
+  // so they run their original (toast-only) behavior directly — no dialog.
+  const requestUpgrade = (tier: string) => {
+    if (status?.user?.billing_type === 'admin_managed') {
+      handleUpgrade(tier)
+      return
+    }
+    setConfirmAction({ type: 'upgrade', tier })
+  }
+
+  const requestManageSubscription = () => {
+    if (status?.user?.billing_type === 'admin_managed') {
+      handleManageSubscription()
+      return
+    }
+    if (!status || !status.plan || status.plan.tier === 'free' || status.plan.status === 'none') {
+      handleManageSubscription()
+      return
+    }
+    setConfirmAction({ type: 'manage' })
+  }
+
+  const runConfirmedAction = () => {
+    if (confirmAction?.type === 'upgrade') handleUpgrade(confirmAction.tier)
+    else if (confirmAction?.type === 'manage') handleManageSubscription()
+    setConfirmAction(null)
+  }
+
+  const confirmDialog = (
+    <AlertDialog open={confirmAction !== null} onOpenChange={(open: boolean) => { if (!open) setConfirmAction(null) }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {confirmAction?.type === 'upgrade' ? 'Continue to checkout?' : 'Open billing portal?'}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {confirmAction?.type === 'upgrade'
+              ? `You'll be taken to Stripe to subscribe to the ${PLAN_LABELS[confirmAction.tier] ?? confirmAction.tier} plan. You can review the total before you're charged.`
+              : "This opens the Stripe billing portal, where you can update your payment method, change your plan, or cancel your subscription."}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={runConfirmedAction}>
+            {confirmAction?.type === 'upgrade' ? 'Continue to Stripe' : 'Open portal'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+
   const getStatusBadge = (planStatus: string) => {
     switch (planStatus) {
       case 'active':
@@ -265,13 +336,14 @@ function BillingContent() {
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Active Subscription</h3>
               <p className="text-muted-foreground mb-4">Get started with a plan to unlock analytics features.</p>
-              <Button onClick={() => handleUpgrade('standard')}>
+              <Button onClick={() => requestUpgrade('standard')}>
                 <Zap className="h-4 w-4 mr-2" />
                 Upgrade Now
               </Button>
             </CardContent>
           </Card>
         </div>
+        {confirmDialog}
       </div>
     )
   }
@@ -426,7 +498,7 @@ function BillingContent() {
                     <div className="flex gap-3 pt-2">
                       {hasStripeCustomer && status.plan?.status === 'active' && !isAdminManaged && (
                         <Button
-                          onClick={handleManageSubscription}
+                          onClick={requestManageSubscription}
                           disabled={loadingPortal}
                           className="flex items-center gap-2"
                         >
@@ -438,17 +510,17 @@ function BillingContent() {
 
                       {isFreeTier && !isAdminManaged && (
                         <Button
-                          onClick={() => handleUpgrade('standard')}
+                          onClick={() => requestUpgrade('standard')}
                           className="flex items-center gap-2"
                         >
                           <Zap className="h-4 w-4" />
-                          Upgrade to Premium
+                          Upgrade to Standard
                         </Button>
                       )}
 
                       {status.plan?.status === 'past_due' && hasStripeCustomer && (
                         <Button
-                          onClick={handleManageSubscription}
+                          onClick={requestManageSubscription}
                           variant="destructive"
                           disabled={loadingPortal}
                         >
@@ -677,6 +749,7 @@ function BillingContent() {
           )}
         </Tabs>
       </div>
+      {confirmDialog}
     </div>
   )
 }
