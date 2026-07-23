@@ -87,9 +87,9 @@
   --card-foreground: oklch(0.9288 0.0126 255.5078);
   --popover: oklch(0.2603 0 0);
   --popover-foreground: oklch(0.7348 0 0);
-  /* Same brand hue as light (violet 302.8°), lifted in lightness for dark backgrounds — no more hue flip between themes */
-  --primary: oklch(0.8600 0.1200 302.8047);
-  --primary-foreground: oklch(0.2046 0 0);
+  /* Dark mode is intentionally lime (302.8° violet is the LIGHT-mode brand hue). Two-tone by design. */
+  --primary: oklch(0.9354 0.2254 121.4851);
+  --primary-foreground: oklch(0.1822 0 0);
   --secondary: oklch(0.2603 0 0);
   --secondary-foreground: oklch(0.9851 0 0);
   --muted: oklch(0.2393 0 0);
@@ -100,8 +100,8 @@
   --destructive-foreground: oklch(0.9368 0.0045 34.3092);
   --border: oklch(0.2809 0 0);
   --input: oklch(0.2603 0 0);
-  /* Focus ring shares the brand primary hue (302.8°) in dark too */
-  --ring: oklch(0.8600 0.1200 302.8047);
+  /* Focus ring shares the dark-mode brand hue (lime) */
+  --ring: oklch(0.9354 0.2254 121.4851);
   /* Semantic status tokens (dark) — lighter fills, dark foregrounds, so they stay legible on the near-black surface */
   --success: oklch(0.7227 0.1920 149.5000);
   --success-foreground: oklch(0.1822 0 0);
@@ -118,13 +118,13 @@
   --chart-5: oklch(0.7845 0.1325 181.9120);
   --sidebar: oklch(0.1822 0 0);
   --sidebar-foreground: oklch(0.6301 0 0);
-  /* Align sidebar primary + ring to the unified brand hue (302.8°) so the active-nav pill matches light mode */
-  --sidebar-primary: oklch(0.8600 0.1200 302.8047);
-  --sidebar-primary-foreground: oklch(0.2046 0 0);
+  /* Sidebar active-nav pill stays lime in dark (matches the dark-mode brand hue) */
+  --sidebar-primary: oklch(0.9354 0.2254 121.4851);
+  --sidebar-primary-foreground: oklch(0.9213 0.0135 167.1556);
   --sidebar-accent: oklch(0.3132 0 0);
   --sidebar-accent-foreground: oklch(0.9851 0 0);
   --sidebar-border: oklch(0.2809 0 0);
-  --sidebar-ring: oklch(0.8600 0.1200 302.8047);
+  --sidebar-ring: oklch(0.9575 0.1596 117.3156);
   --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-serif: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-mono: monospace;
