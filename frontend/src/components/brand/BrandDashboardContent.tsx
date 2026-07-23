@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useEffect, useState, useRef } from "react"
+import { useMemo, useEffect, useState, useRef, useCallback, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useDashboardData } from "@/hooks/useDashboardData"
@@ -71,12 +71,13 @@ export function BrandDashboardContent() {
     }
   }, [notifications, celebrationDone])
 
-  // Pool balance for low-balance warning — single fetch, no retry on failure
+  // Pool balance for low-balance warning. A fetch FAILURE is now a distinct
+  // error state (with retry) — not silently conflated with a zero/empty pool.
   const [poolBalance, setPoolBalance] = useState<{ available_aed: number; total_funded_aed: number } | null>(null)
+  const [poolError, setPoolError] = useState(false)
   const poolFetchedRef = useRef(false)
-  useEffect(() => {
-    if (poolFetchedRef.current) return
-    poolFetchedRef.current = true
+  const fetchPool = useCallback(() => {
+    setPoolError(false)
     brandPoolApi.balance().then((res: any) => {
       if (res?.success && res.data) {
         setPoolBalance({
@@ -84,8 +85,19 @@ export function BrandDashboardContent() {
           total_funded_aed: res.data.total_funded_aed ?? (res.data.total_funded_cents ? res.data.total_funded_cents / 100 : 0),
         })
       }
-    }).catch(() => {})
+      // success:false with no data = brand simply has no funded pool (genuine
+      // zero-data) → leave poolBalance null, show nothing. Only exceptions below
+      // are treated as an error.
+    }).catch(() => {
+      setPoolBalance(null)
+      setPoolError(true)
+    })
   }, [])
+  useEffect(() => {
+    if (poolFetchedRef.current) return
+    poolFetchedRef.current = true
+    fetchPool()
+  }, [fetchPool])
 
   const userDisplayData = useMemo(() => {
     if (!user || isLoading) return null
@@ -140,21 +152,36 @@ export function BrandDashboardContent() {
     return tier ? (tierMap[tier] || tier) : 'Free'
   }, [userStoreLoading, teamsLoading, team, subscription, teamsOverview])
 
-  const brandMetrics = [
+  // Ranked, all present. HERO = "Creators unlocked (all time)" (the brand's
+  // accumulated value); the other two rank below. Every card now has a real
+  // destination, so the hover affordance is honest. The label is disambiguated
+  // from the adjacent "Profile Unlocks" gauge (remaining/month) to end the
+  // lifetime-vs-monthly collision.
+  const brandMetrics: {
+    title: string
+    value: string
+    icon: ReactNode
+    href?: string
+    emphasis?: "hero" | "default"
+  }[] = [
+    {
+      title: "Creators unlocked (all time)",
+      value: profilesLoading ? "Loading..." : unlockedProfilesCount.toString(),
+      icon: <Users className="h-4 w-4 text-primary" />,
+      href: "/creators",
+      emphasis: "hero",
+    },
     {
       title: "Active Campaigns",
       value: campaignsLoading ? "Loading..." : activeCampaignsCount.toString(),
       icon: <Target className="h-4 w-4 text-primary" />,
-    },
-    {
-      title: "Unlocked Creators",
-      value: profilesLoading ? "Loading..." : unlockedProfilesCount.toString(),
-      icon: <Users className="h-4 w-4 text-primary" />,
+      href: "/campaigns",
     },
     {
       title: "Your Plan",
       value: tierValue,
       icon: <Star className="h-4 w-4 text-primary" />,
+      href: "/billing",
     },
   ]
 
@@ -206,6 +233,20 @@ export function BrandDashboardContent() {
           )
           return null
         })()}
+
+        {/* Cashback pool load failure — a DISTINCT error state (muted, not the
+            red "depleted" state) so a failed fetch is never read as an empty
+            pool. Offers a retry. */}
+        {poolError && !poolBalance && (
+          <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/40 border border-border">
+            <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Couldn&apos;t load your cashback pool balance</p>
+              <p className="text-xs text-muted-foreground">This is a display issue — it doesn&apos;t mean your pool is empty.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={fetchPool}>Retry</Button>
+          </div>
+        )}
 
         {/* Row 1: Welcome + Metric Cards */}
         <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-12">
@@ -271,6 +312,8 @@ export function BrandDashboardContent() {
                     title={metric.title}
                     value={metric.value}
                     icon={metric.icon}
+                    href={metric.href}
+                    emphasis={metric.emphasis}
                   />
                 </div>
               ))}
@@ -278,9 +321,9 @@ export function BrandDashboardContent() {
           </div>
         </div>
 
-        {/* Row 2: Discovery + Charts */}
+        {/* Row 2: Discovery (primary action) + Usage this cycle */}
         <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-12">
-          {/* Smart Discovery */}
+          {/* Smart Discovery — the single primary next action */}
           <div className={`md:col-span-6 transition-all duration-500 ease-out ${
             showDiscovery ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
           }`}>
@@ -292,33 +335,36 @@ export function BrandDashboardContent() {
             </div>
           </div>
 
-          {/* Profile Analysis Chart */}
+          {/* Usage this cycle — the two capacity gauges grouped + demoted under
+              one shared label so they read as reference data, not the page hero.
+              Contract quota + recent activity sit below as companion detail. */}
           <div
-            className={`md:col-span-3 transition-all duration-500 ease-out ${
+            className={`md:col-span-6 transition-all duration-500 ease-out ${
               showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
             }`}
             style={{ transitionDelay: '80ms' }}
           >
-            <div className="h-[320px]">
-              <ChartProfileAnalysisV2 />
+            <div className="mb-3">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Usage this cycle
+              </span>
             </div>
-            {/* Contract delivery quota — only renders when a quota is set */}
-            <div className="mt-4">
-              <BrandQuotaWidget />
-            </div>
-          </div>
 
-          {/* Remaining Credits + Notification Preview stacked */}
-          <div
-            className={`md:col-span-3 transition-all duration-500 ease-out ${
-              showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-            }`}
-            style={{ transitionDelay: '160ms' }}
-          >
-            <div className="grid grid-rows-[auto_1fr] gap-4 h-full">
-              <div className="h-[320px]">
+            <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2">
+              {/* Profile Unlocks gauge — remaining this billing cycle */}
+              <section aria-label="Profile unlocks remaining this billing cycle" className="h-[320px]">
+                <ChartProfileAnalysisV2 />
+              </section>
+              {/* Remaining Credits gauge — this billing cycle */}
+              <section aria-label="Remaining credits this billing cycle" className="h-[320px]">
                 <ChartRemainingCreditsV2 />
-              </div>
+              </section>
+            </div>
+
+            {/* Companion detail: contract quota (only renders when set) + activity */}
+            <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 mt-4">
+              {/* Contract delivery quota — only renders when a quota is set */}
+              <BrandQuotaWidget />
 
               {/* Compact Notification Preview */}
               <Card className="overflow-hidden">
@@ -349,13 +395,23 @@ export function BrandDashboardContent() {
                       }
                       const cfg = iconMap[n.notification_type] || { icon: Bell, color: "text-muted-foreground" }
                       const Icon = cfg.icon
+                      const activate = () => {
+                        if (!n.is_read) markAsRead(n.id)
+                        if (n.action_url) router.push(n.action_url)
+                      }
                       return (
                         <div
                           key={n.id}
-                          className="flex items-center gap-2.5 px-4 py-2 cursor-pointer hover:bg-muted/40 transition-colors"
-                          onClick={() => {
-                            if (!n.is_read) markAsRead(n.id)
-                            if (n.action_url) router.push(n.action_url)
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Notification: ${n.title}${n.is_read ? '' : ' (unread)'}`}
+                          className="flex items-center gap-2.5 px-4 py-2 cursor-pointer hover:bg-muted/40 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                          onClick={activate}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              activate()
+                            }
                           }}
                         >
                           <Icon className={`h-3.5 w-3.5 shrink-0 ${cfg.color}`} />

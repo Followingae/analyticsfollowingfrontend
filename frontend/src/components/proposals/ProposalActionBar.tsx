@@ -1,6 +1,5 @@
 "use client"
 
-import { useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { MessageSquare, CheckCircle, Save, Loader2, XCircle } from "lucide-react"
@@ -42,36 +41,6 @@ export function ProposalActionBar({
   const canApprove = selectedCount > 0 && !isTerminal
   const canReject = !isTerminal
   const canSave = selectionDirty && !isTerminal
-
-  // Magnetic button effect for approve CTA
-  const approveRef = useRef<HTMLButtonElement>(null)
-
-  useEffect(() => {
-    const btn = approveRef.current
-    if (!btn || isTerminal) return
-
-    const supportsHover = window.matchMedia("(hover: hover)").matches
-    if (!supportsHover) return
-
-    const handleMove = (e: MouseEvent) => {
-      const rect = btn.getBoundingClientRect()
-      const x = e.clientX - rect.left - rect.width / 2
-      const y = e.clientY - rect.top - rect.height / 2
-      btn.style.transform = `translate(${x * 0.12}px, ${y * 0.12}px)`
-      btn.style.transition = "transform 0.2s cubic-bezier(0.33, 1, 0.68, 1)"
-    }
-    const handleLeave = () => {
-      btn.style.transform = "translate(0, 0)"
-      btn.style.transition = "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)"
-    }
-
-    btn.addEventListener("mousemove", handleMove)
-    btn.addEventListener("mouseleave", handleLeave)
-    return () => {
-      btn.removeEventListener("mousemove", handleMove)
-      btn.removeEventListener("mouseleave", handleLeave)
-    }
-  }, [isTerminal])
 
   if (isTerminal) {
     return (
@@ -188,17 +157,19 @@ export function ProposalActionBar({
             <div className="h-6 w-px bg-border" />
           )}
 
-          {/* Primary actions */}
+          {/* Primary actions — Reject carries a visible text label and Approve is spaced
+              away from it so the two terminal actions can't be mis-clicked. */}
           {canReject && onReject && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="icon"
                   onClick={onReject}
+                  aria-label="Reject"
                   className="text-destructive hover:bg-destructive/10 transition-colors"
                 >
-                  <XCircle className="h-4 w-4" />
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Reject
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Reject Proposal</TooltipContent>
@@ -206,10 +177,9 @@ export function ProposalActionBar({
           )}
 
           <Button
-            ref={approveRef}
             onClick={onApprove}
             disabled={!canApprove}
-            className="shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow px-6"
+            className="ml-3 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow px-6"
           >
             <CheckCircle className="h-4 w-4 mr-2" />
             Approve

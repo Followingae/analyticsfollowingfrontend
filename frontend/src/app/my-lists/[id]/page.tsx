@@ -453,11 +453,21 @@ export default function ListDetailPage() {
                       <UserPlus className="w-4 h-4" />
                       Add Creator
                     </Button>
-                    <Button variant="outline" size="sm">
+                    {/* No handler wired yet — kept visible but honest via a coming-soon
+                        toast rather than reading as a live capability that does nothing. */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toast.info("Sharing lists is coming soon.")}
+                    >
                       <Share className="w-4 h-4 mr-2" />
                       Share
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toast.info("Exporting lists is coming soon.")}
+                    >
                       <Download className="w-4 h-4 mr-2" />
                       Export
                     </Button>

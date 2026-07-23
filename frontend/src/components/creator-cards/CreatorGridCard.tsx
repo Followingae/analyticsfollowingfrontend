@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { getCountryCode } from '@/lib/countryUtils'
 import { toast } from 'sonner'
 import { CreatorProfile } from '@/types/creator'
@@ -80,12 +81,14 @@ export function CreatorGridCard({
     }
   }
 
+  // Only a live action when a handler is wired. Without one the "Add to list"
+  // feature has no home yet, so the control is rendered disabled with a
+  // "coming soon" tooltip rather than firing a dead-end toast (see below).
+  const addComingSoon = !onAddClick
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (onAddClick) {
       onAddClick(creator)
-    } else {
-      toast.info(`Add to list functionality coming soon for @${creator.username}`)
     }
   }
 
@@ -134,10 +137,23 @@ export function CreatorGridCard({
     router.push(analyticsUrl)
   }
 
+  // Keyboard parity for the whole-card nav: Enter / Space opens the creator,
+  // matching the pointer onClick. tabIndex + role make it focusable.
+  const handleCardKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleCardClick()
+    }
+  }
+
   return (
     <Card
-      className="group relative overflow-hidden bg-card border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+      role="button"
+      tabIndex={0}
+      aria-label={`Open analytics for @${creator.username}`}
+      className="group relative overflow-hidden bg-card border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
     >
       {/* Hover gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -262,25 +278,53 @@ export function CreatorGridCard({
           </div>
         )}
 
-        {/* Action buttons */}
+        {/* Action buttons.
+            The whole card is already the primary click target for Analytics, so
+            this button is demoted to a secondary (outline) weight — the page keeps
+            a single filled primary instead of one per card. Same label + action. */}
         <div className="flex gap-1.5">
           <Button
+            variant="outline"
             size="sm"
             onClick={handleAnalyticsClick}
-            className={`${showAddButton ? 'flex-1' : 'w-full'} bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all duration-200 text-xs py-1.5`}
+            className={`${showAddButton ? 'flex-1' : 'w-full'} border-border hover:bg-muted transition-all duration-200 text-xs py-1.5`}
           >
             <BarChart3 className="h-3 w-3 mr-1" />
             Analytics
           </Button>
           {showAddButton && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddClick}
-              className="px-2 border-border hover:bg-muted hover:border-border transition-all duration-200"
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
+            addComingSoon ? (
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {/* span wrapper: disabled buttons don't emit the pointer
+                        events Radix Tooltip listens for. */}
+                    <span className="inline-flex">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        aria-label="Add to list — coming soon"
+                        className="px-2 border-border transition-all duration-200"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>Coming soon</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddClick}
+                aria-label="Add to list"
+                className="px-2 border-border hover:bg-muted hover:border-border transition-all duration-200"
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            )
           )}
         </div>
       </CardContent>

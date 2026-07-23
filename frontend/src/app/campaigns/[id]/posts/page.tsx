@@ -33,6 +33,9 @@ import {
   AlertCircle,
   Save,
   BadgeCheck,
+  RefreshCw,
+  ChevronDown,
+  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -46,6 +49,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Tooltip,
   TooltipContent,
@@ -403,6 +407,9 @@ export default function CampaignDetailsPage() {
   // Campaign creators state
   const [campaignCreators, setCampaignCreators] = useState<CampaignCreatorDetail[]>([]);
   const [isLoadingCreators, setIsLoadingCreators] = useState(false);
+  const [creatorsError, setCreatorsError] = useState(false);
+  const [audienceError, setAudienceError] = useState(false);
+  const [showMoreMetrics, setShowMoreMetrics] = useState(false);
   const [editingCreatorId, setEditingCreatorId] = useState<string | null>(null);
   const [creatorEditForm, setCreatorEditForm] = useState<{
     ethnicity: string;
@@ -978,11 +985,15 @@ export default function CampaignDetailsPage() {
 
   const fetchCampaignCreators = async () => {
     setIsLoadingCreators(true);
+    setCreatorsError(false);
     try {
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
       const tokenResult = await tokenManager.getValidTokenWithRefresh();
-      if (!tokenResult.isValid || !tokenResult.token) return;
+      if (!tokenResult.isValid || !tokenResult.token) {
+        setCreatorsError(true);
+        return;
+      }
 
       const response = await fetch(
         `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/creators`,
@@ -998,9 +1009,12 @@ export default function CampaignDetailsPage() {
         const data = await response.json();
         const creatorsList = data.data?.creators || [];
         setCampaignCreators(creatorsList);
+      } else {
+        setCreatorsError(true);
       }
     } catch (error) {
-      // Silent fail
+      // Distinguish a failed fetch from a genuinely-empty campaign
+      setCreatorsError(true);
     } finally {
       setIsLoadingCreators(false);
     }
@@ -1008,11 +1022,15 @@ export default function CampaignDetailsPage() {
 
   // Fetch dedicated audience demographics (richer than analytics-embedded data)
   const fetchAudienceData = async () => {
+    setAudienceError(false);
     try {
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
       const tokenResult = await tokenManager.getValidTokenWithRefresh();
-      if (!tokenResult.isValid || !tokenResult.token) return;
+      if (!tokenResult.isValid || !tokenResult.token) {
+        setAudienceError(true);
+        return;
+      }
 
       const response = await fetch(
         `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/audience`,
@@ -1028,9 +1046,12 @@ export default function CampaignDetailsPage() {
         const data = await response.json();
         const audienceResult = data.data || data;
         if (audienceResult) setAudience(audienceResult);
+      } else {
+        setAudienceError(true);
       }
     } catch {
-      // Keep existing audience data from analytics
+      // Distinguish a failed fetch from genuinely-empty audience data
+      setAudienceError(true);
     }
   };
 
@@ -1830,7 +1851,7 @@ export default function CampaignDetailsPage() {
             {coverBanner}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" onClick={() => router.push("/campaigns")}>
+                <Button variant="ghost" size="icon" aria-label="Back to campaigns" onClick={() => router.push("/campaigns")}>
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <Avatar className="h-12 w-12">
@@ -1867,7 +1888,7 @@ export default function CampaignDetailsPage() {
             {/* Header reuses existing pattern for visual consistency */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" onClick={() => router.push("/campaigns")}>
+                <Button variant="ghost" size="icon" aria-label="Back to campaigns" onClick={() => router.push("/campaigns")}>
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <Avatar className="h-12 w-12">
@@ -1912,7 +1933,7 @@ export default function CampaignDetailsPage() {
       {coverBanner}
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/campaigns")}>
+        <Button variant="ghost" size="icon" aria-label="Back to campaigns" onClick={() => router.push("/campaigns")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
@@ -1925,7 +1946,7 @@ export default function CampaignDetailsPage() {
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
                 {!isViewOnly && (
-                  <Button variant="ghost" size="icon" onClick={handleOpenEditDialog}>
+                  <Button variant="ghost" size="icon" aria-label="Edit campaign" onClick={handleOpenEditDialog}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                 )}
@@ -2026,6 +2047,7 @@ export default function CampaignDetailsPage() {
               {(['7d', '30d', '90d', 'all'] as const).map((period) => (
                 <button
                   key={period}
+                  aria-pressed={analyticsPeriod === period}
                   onClick={() => { setAnalyticsPeriod(period); }}
                   className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
                     analyticsPeriod === period
@@ -2039,8 +2061,10 @@ export default function CampaignDetailsPage() {
             </div>
           </div>
 
-          {/* Primary Metrics - Enhanced with Collaboration Support */}
-          <div className="grid gap-4 md:grid-cols-5">
+          {/* Overview — headline metrics (Enhanced with Collaboration Support) */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Overview</h4>
+            <div className="grid gap-4 md:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Creators</CardTitle>
@@ -2079,14 +2103,28 @@ export default function CampaignDetailsPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Estimated Reach</CardTitle>
+                <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                  Est. Reach
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" aria-label="About estimated reach" className="text-muted-foreground/70 hover:text-foreground transition-colors">
+                          <AlertCircle className="h-3 w-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p className="text-xs">Estimated, not measured. Instagram does not expose true reach — this figure is inferred from follower counts and engagement using an industry-standard model.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </CardTitle>
                 <Eye className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {formatNumber(stats?.totalReach || 0)}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Industry-standard estimation</p>
+                <p className="text-xs text-muted-foreground mt-1">Estimated · not a measured metric</p>
               </CardContent>
             </Card>
 
@@ -2106,8 +2144,12 @@ export default function CampaignDetailsPage() {
                 <p className="text-xs text-muted-foreground mt-1">Campaign average</p>
               </CardContent>
             </Card>
+            </div>
           </div>
 
+          {/* Engagement */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Engagement</h4>
           {/* Engagement Metrics */}
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
@@ -2167,7 +2209,11 @@ export default function CampaignDetailsPage() {
               </Card>
             </div>
           )}
+          </div>
 
+          {/* Content */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Content</h4>
           {/* Post Type Breakdown */}
           <Card>
             <CardHeader>
@@ -2205,10 +2251,21 @@ export default function CampaignDetailsPage() {
               </div>
             </CardContent>
           </Card>
+          </div>
 
-          {/* AI Content Intelligence */}
+          {/* More metrics — AI content intelligence (lower priority, collapsible) */}
           {aiInsights && aiInsights.total_posts > 0 && (
-            <>
+            <Collapsible open={showMoreMetrics} onOpenChange={setShowMoreMetrics} className="space-y-4">
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full justify-between" aria-expanded={showMoreMetrics}>
+                  <span className="flex items-center gap-2 text-sm font-semibold">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    More metrics · AI content intelligence
+                  </span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${showMoreMetrics ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-6">
               {/* Content Quality & Authenticity */}
               <Card>
                 <CardHeader>
@@ -2499,13 +2556,28 @@ export default function CampaignDetailsPage() {
                   </Card>
                 </div>
               )}
-            </>
+              </CollapsibleContent>
+            </Collapsible>
           )}
         </TabsContent>
 
         {/* Audience Tab */}
         <TabsContent value="audience" className="space-y-6">
-          {posts.length === 0 ? (
+          {audienceError && !audience ? (
+            <Card>
+              <CardContent className="py-12 text-center space-y-4">
+                <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Couldn&apos;t load audience data</p>
+                  <p className="text-sm text-muted-foreground mt-1">Something went wrong fetching audience insights.</p>
+                </div>
+                <Button variant="outline" onClick={() => fetchAudienceData()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
+          ) : posts.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <p className="text-muted-foreground">No audience data available yet.</p>
@@ -2801,6 +2873,20 @@ export default function CampaignDetailsPage() {
                 <p className="text-muted-foreground">Loading creators...</p>
               </CardContent>
             </Card>
+          ) : creatorsError && campaignCreators.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12 space-y-4">
+                <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Couldn&apos;t load creators</p>
+                  <p className="text-sm text-muted-foreground mt-1">Something went wrong fetching this campaign&apos;s creators.</p>
+                </div>
+                <Button variant="outline" onClick={() => fetchCampaignCreators()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
           ) : campaignCreators.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
@@ -2952,6 +3038,7 @@ export default function CampaignDetailsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="Edit creator details"
                             onClick={() => openCreatorEditDialog(creator)}
                           >
                             <Pencil className="h-4 w-4" />

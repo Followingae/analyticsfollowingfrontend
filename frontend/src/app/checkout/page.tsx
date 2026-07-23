@@ -1,12 +1,12 @@
 'use client'
 import { tokenManager } from '@/utils/tokenManager'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { billingManager } from '@/services/billingManager'
 
@@ -16,18 +16,27 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
 function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [loading, setLoading] = useState(true)
+  // Do NOT auto-redirect on mount — show an in-app order summary first and only
+  // create the Stripe session once the user explicitly confirms.
+  const [loading, setLoading] = useState(false)
+  const [started, setStarted] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const tier = searchParams.get('tier') || 'free'
   // Backend hosted checkout only — embedded mode (client_secret) is not supported.
   const mode = searchParams.get('mode') || 'redirect'
 
-  useEffect(() => {
-    initializeCheckout()
-  }, [tier, mode])
+  const getPlanPrice = (planTier: string) => {
+    const prices: Record<string, string> = {
+      free: '$0',
+      standard: '$199 / month',
+      premium: '$499 / month'
+    }
+    return prices[planTier] || ''
+  }
 
   const initializeCheckout = async () => {
+    setStarted(true)
     try {
       setLoading(true)
       setError(null)
@@ -117,10 +126,37 @@ function CheckoutContent() {
         </div>
 
         <Card className="p-6">
+          {/* Order summary — shown BEFORE any redirect. The Stripe session is only
+              created when the user clicks "Continue to payment". */}
+          {!started && !error && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold mb-4">Order summary</h2>
+                <div className="flex items-center justify-between py-3 border-b">
+                  <span className="text-muted-foreground">Plan</span>
+                  <span className="font-medium">{getPlanDisplayName(tier)}</span>
+                </div>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-muted-foreground">Price</span>
+                  <span className="text-xl font-bold">{getPlanPrice(tier)}</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
+                <p>You&apos;ll be taken to Stripe to complete your payment securely. You can review the full total before you&apos;re charged.</p>
+              </div>
+
+              <Button className="w-full" size="lg" onClick={initializeCheckout}>
+                Continue to payment
+              </Button>
+            </div>
+          )}
+
           {loading && (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex items-center justify-center py-12" role="status" aria-live="polite">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-3 text-muted-foreground">Loading checkout...</span>
+              <span className="ml-3 text-muted-foreground">Redirecting to secure checkout...</span>
             </div>
           )}
 

@@ -75,6 +75,9 @@ export function PostsTabV2({ data }: { data: CreatorAnalyticsV2 }) {
               {p.engagement_rate != null && (
                 <Badge className="absolute right-2 top-2 bg-background/85 text-foreground backdrop-blur-sm tabular-nums hover:bg-background/85">
                   {formatPct(p.engagement_rate)}
+                  <span className="ml-1 font-normal opacity-70">
+                    {byView ? "of views" : "of followers"}
+                  </span>
                 </Badge>
               )}
             </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { motion, AnimatePresence } from "motion/react"
+import { motion } from "motion/react"
 import { MoreHorizontal } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -42,22 +42,8 @@ export const WorkflowBuilderCard = ({
   actions,
   className,
 }: WorkflowBuilderCardProps) => {
-  const [isHovered, setIsHovered] = React.useState(false)
-
-  const detailVariants = {
-    hidden: { opacity: 0, height: 0, marginTop: 0 },
-    visible: {
-      opacity: 1,
-      height: "auto",
-      marginTop: "1rem",
-      transition: { duration: 0.3, ease: "easeInOut" },
-    },
-  }
-
   return (
     <motion.div
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
       whileHover={{ y: -6 }}
       transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
       className={cn("w-full max-w-sm cursor-pointer", className)}
@@ -82,7 +68,7 @@ export const WorkflowBuilderCard = ({
                   <span
                     className={cn(
                       "h-2 w-2 rounded-full",
-                      status === "Active" ? "bg-green-500" : "bg-red-500"
+                      status === "Active" ? "bg-primary" : "bg-muted-foreground/40"
                     )}
                     aria-label={status}
                   />
@@ -93,35 +79,34 @@ export const WorkflowBuilderCard = ({
                 {title}
               </h3>
             </div>
+            {/* No per-card menu exists yet. Kept visible but disabled + labelled so it
+                reads as "not available", not a broken control (disabled = no click, so it
+                also can't accidentally trigger the card's own navigation). */}
             <button
-              aria-label="More options"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              type="button"
+              disabled
+              aria-label="More options (coming soon)"
+              title="More options — coming soon"
+              className="cursor-not-allowed text-muted-foreground/40"
             >
               <MoreHorizontal size={20} />
             </button>
           </div>
 
-          <AnimatePresence>
-            {isHovered && (
-              <motion.div
-                key="details"
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-                variants={detailVariants}
-                className="overflow-hidden"
-              >
-                <p className="text-sm text-muted-foreground">{description}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <Badge key={tag} variant="secondary">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </motion.div>
+          {/* Description + tags render unconditionally — hover-gating hid every informative
+              detail on touch devices, which cannot hover. */}
+          <div className="mt-4">
+            <p className="text-sm text-muted-foreground">{description}</p>
+            {tags.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <Badge key={tag} variant="secondary">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
             )}
-          </AnimatePresence>
+          </div>
         </div>
 
         <div className="flex items-center justify-between border-t border-border p-4">

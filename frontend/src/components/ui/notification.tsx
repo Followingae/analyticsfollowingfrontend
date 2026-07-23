@@ -42,18 +42,19 @@ const ICON_MAP: Record<ServerNotificationType, {
   color: string
   bg: string
 }> = {
-  share_received:      { icon: Link2,          color: 'text-green-500',  bg: 'bg-green-500/10' },
-  share_revoked:       { icon: Link2,          color: 'text-red-500',    bg: 'bg-red-500/10' },
-  share_extended:      { icon: Clock,          color: 'text-blue-500',   bg: 'bg-blue-500/10' },
-  proposal_received:   { icon: FileText,       color: 'text-blue-500',   bg: 'bg-blue-500/10' },
-  proposal_updated:    { icon: FileCheck,      color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-  campaign_application:{ icon: Megaphone,      color: 'text-emerald-500',bg: 'bg-emerald-500/10' },
-  campaign_deliverable:{ icon: FileUp,         color: 'text-cyan-500',   bg: 'bg-cyan-500/10' },
-  analytics_completed: { icon: BarChart3,      color: 'text-purple-500', bg: 'bg-purple-500/10' },
-  credit_purchase:     { icon: CreditCard,     color: 'text-green-500',  bg: 'bg-green-500/10' },
-  low_balance:         { icon: AlertTriangle,  color: 'text-orange-500', bg: 'bg-orange-500/10' },
-  team_invite:         { icon: UserPlus,       color: 'text-blue-500',   bg: 'bg-blue-500/10' },
-  team_update:         { icon: Users,          color: 'text-blue-500',   bg: 'bg-blue-500/10' },
+  // Colors map to semantic status tokens (globals.css) — no raw Tailwind palette.
+  share_received:      { icon: Link2,          color: 'text-success',          bg: 'bg-success/10' },
+  share_revoked:       { icon: Link2,          color: 'text-danger',           bg: 'bg-danger/10' },
+  share_extended:      { icon: Clock,          color: 'text-info',             bg: 'bg-info/10' },
+  proposal_received:   { icon: FileText,       color: 'text-info',             bg: 'bg-info/10' },
+  proposal_updated:    { icon: FileCheck,      color: 'text-info',             bg: 'bg-info/10' },
+  campaign_application:{ icon: Megaphone,      color: 'text-success',          bg: 'bg-success/10' },
+  campaign_deliverable:{ icon: FileUp,         color: 'text-info',             bg: 'bg-info/10' },
+  analytics_completed: { icon: BarChart3,      color: 'text-primary',          bg: 'bg-primary/10' },
+  credit_purchase:     { icon: CreditCard,     color: 'text-success',          bg: 'bg-success/10' },
+  low_balance:         { icon: AlertTriangle,  color: 'text-warning',          bg: 'bg-warning/10' },
+  team_invite:         { icon: UserPlus,       color: 'text-info',             bg: 'bg-info/10' },
+  team_update:         { icon: Users,          color: 'text-info',             bg: 'bg-info/10' },
   system:              { icon: Bell,           color: 'text-muted-foreground', bg: 'bg-muted' },
 }
 
@@ -156,7 +157,7 @@ export function NotificationBell({
                       {n.title}
                     </p>
                     {!n.is_read && (
-                      <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                      <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-info" />
                     )}
                   </div>
                   {n.message && (

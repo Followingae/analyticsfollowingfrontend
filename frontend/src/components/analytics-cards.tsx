@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -20,9 +21,20 @@ interface MetricCardProps {
   change?: number
   icon: React.ReactNode
   loading?: boolean
+  /**
+   * Optional destination. When provided the card becomes a real link with a
+   * hover affordance; when omitted the card is a plain display tile with NO
+   * hover elevation, so it does not falsely signal interactivity.
+   */
+  href?: string
+  /**
+   * "hero" renders the value at a larger size so a single tile can win the
+   * visual hierarchy. Defaults to the standard size.
+   */
+  emphasis?: "hero" | "default"
 }
 
-export function MetricCard({ title, value, change, icon, loading }: MetricCardProps) {
+export function MetricCard({ title, value, change, icon, loading, href, emphasis = "default" }: MetricCardProps) {
   if (loading) {
     return (
       <Card>
@@ -38,8 +50,8 @@ export function MetricCard({ title, value, change, icon, loading }: MetricCardPr
     )
   }
 
-  return (
-    <Card className="transition-shadow duration-200 hover:shadow-md">
+  const inner = (
+    <>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         <div className="flex items-center gap-2">
@@ -59,8 +71,30 @@ export function MetricCard({ title, value, change, icon, loading }: MetricCardPr
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold tracking-tight text-foreground">{value}</div>
+        <div className={`${emphasis === "hero" ? "text-4xl" : "text-2xl"} font-bold tracking-tight text-foreground`}>{value}</div>
       </CardContent>
+    </>
+  )
+
+  // With a destination: a genuinely interactive card (hover + keyboard focus).
+  if (href) {
+    return (
+      <Link
+        href={href}
+        aria-label={`${title}: ${value}`}
+        className="block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <Card className="h-full transition-shadow duration-200 hover:shadow-md">
+          {inner}
+        </Card>
+      </Link>
+    )
+  }
+
+  // No destination: plain display tile, no hover elevation implying clickability.
+  return (
+    <Card className="h-full">
+      {inner}
     </Card>
   )
 }

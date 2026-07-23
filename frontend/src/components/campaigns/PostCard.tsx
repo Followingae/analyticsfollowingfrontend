@@ -158,13 +158,14 @@ export function PostCard({ post, onRemove }: PostCardProps) {
   // Enhanced post type detection using new backend fields
   const enhancedPostType = getEnhancedPostType(post)
 
-  // Use CDN URL from backend, with unavatar fallback
+  // Use CDN URL from backend only — never hotlink an external host.
+  // When the CDN image is missing or fails, return undefined so the
+  // local <AvatarFallback> initials render instead.
   const getProfilePicUrl = () => {
     if (!profileImageError && post.creator_profile_pic_url) {
       return post.creator_profile_pic_url
     }
-    // Fallback to unavatar if CDN fails or is not available
-    return `https://unavatar.io/instagram/${post.creator_username}`
+    return undefined
   }
 
   return (
@@ -397,6 +398,7 @@ export function PostCard({ post, onRemove }: PostCardProps) {
                   variant="ghost"
                   size="sm"
                   className="px-2 hover:bg-muted transition-colors"
+                  aria-label="Post actions"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
