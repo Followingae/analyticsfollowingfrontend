@@ -186,7 +186,10 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
       </Card>
 
       <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-3">
+        {/* Column count must match the number of triggers actually rendered — the
+            Posts tab is conditional, so 4 tabs when it shows, 3 when it doesn't.
+            A fixed grid-cols-3 wrapped the 4th trigger onto a second row. */}
+        <TabsList className={`grid w-full ${hasPosts ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           {/* Hidden entirely when we hold no image for any post — an empty tab is worse
               than no tab. The CDN only ever mirrored 12 posts per creator, and 54 of

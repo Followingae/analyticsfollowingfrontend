@@ -530,21 +530,21 @@ function useSections(): GuideSection[] {
               <Card className="border-muted">
                 <CardContent className="py-3 px-4 text-center">
                   <p className="text-xs text-muted-foreground">Free</p>
-                  <p className="text-lg font-bold">0 AED/mo</p>
+                  <p className="text-lg font-bold">$0/mo</p>
                   <p className="text-xs text-muted-foreground">1 user &middot; 5 profiles/mo</p>
                 </CardContent>
               </Card>
               <Card className="border-purple-300 dark:border-purple-700 ring-1 ring-purple-200 dark:ring-purple-800">
                 <CardContent className="py-3 px-4 text-center">
                   <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Standard</p>
-                  <p className="text-lg font-bold">730 AED/mo</p>
+                  <p className="text-lg font-bold">$199/mo</p>
                   <p className="text-xs text-muted-foreground">2 users &middot; 500 profiles/mo</p>
                 </CardContent>
               </Card>
               <Card className="border-muted">
                 <CardContent className="py-3 px-4 text-center">
                   <p className="text-xs text-muted-foreground">Premium</p>
-                  <p className="text-lg font-bold">1,830 AED/mo</p>
+                  <p className="text-lg font-bold">$499/mo</p>
                   <p className="text-xs text-muted-foreground">5 users &middot; 2,000 profiles/mo</p>
                 </CardContent>
               </Card>

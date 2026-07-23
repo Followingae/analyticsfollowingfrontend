@@ -442,7 +442,7 @@ function BillingContent() {
                           className="flex items-center gap-2"
                         >
                           <Zap className="h-4 w-4" />
-                          Upgrade to Premium
+                          Upgrade to Standard
                         </Button>
                       )}
 

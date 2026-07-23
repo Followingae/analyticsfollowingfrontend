@@ -251,7 +251,7 @@ export function FlippableInfluencerCard({
             onGetInTouch={() => onFlip(inf.id)}
             onBookmark={() => onToggle(inf.id)}
             className="max-w-none card-transparent-banner relative z-[1] [&_h2]:truncate [&_h2]:max-w-[200px]"
-            buttonLabel="View Analytics"
+            buttonLabel="View details"
             statLabels={{ rating: "engagement", duration: "followers", rate: showPricing ? "price" : "posts" }}
             toolsLabel=""
           />

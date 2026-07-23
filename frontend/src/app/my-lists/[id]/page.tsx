@@ -685,7 +685,7 @@ export default function ListDetailPage() {
                               <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
                               <div>
                                 <p className="font-medium">No available creators to add</p>
-                                <p className="text-xs mt-2">Check console for API response details</p>
+                                <p className="text-xs mt-2">Every creator you&apos;ve unlocked is already in this list. Unlock more from Discovery to add them here.</p>
                               </div>
                             </div>
                           </div>
