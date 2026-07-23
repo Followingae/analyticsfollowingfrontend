@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[8278],{18278:(e,a,n)=>{n.d(a,{roleHome:()=>s});function s(e,a,n){let s=(e||"").toLowerCase();return"super_admin"===s||"superadmin"===s||"admin"===s||"zain@following.ae"===a?"/superadmin":n?"/staff":"/dashboard"}}}]);
