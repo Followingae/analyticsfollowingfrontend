@@ -152,9 +152,11 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge variant="outline"
-                             className="cursor-help border-orange-500/20 bg-orange-500/10 text-orange-600">
-                        Partial
+                      {/* Neutral, not orange. This flags OUR collection falling short,
+                          not a shortcoming of the creator — an amber warning sitting on
+                          someone's profile reads as a mark against them. */}
+                      <Badge variant="secondary" className="cursor-help font-normal">
+                        Partial data
                       </Badge>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
