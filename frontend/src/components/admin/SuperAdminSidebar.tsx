@@ -94,6 +94,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       items: [
         { title: "All Campaigns", url: "/superadmin/campaigns" },
         { title: "Create Campaign", url: "/superadmin/campaigns/create" },
+        { title: "Report Campaigns", url: "/superadmin/report-campaigns" },
       ],
     }] : []),
     ...(can("proposals") ? [{
