@@ -67,6 +67,8 @@ export default function ReportCampaignsPage() {
       setOpen(false); setName(""); setBrand(""); setDescr("")
       await load()
       if (r?.data?.id) window.location.href = `/campaigns/${r.data.id}/posts`
+      // Straight to Add Posts on create is deliberate: a new report has nothing to show
+      // until links are in it. Every later visit goes to the report itself.
     } catch (e) {
       toast.error((e as Error).message || "Could not create campaign")
     } finally {
@@ -188,7 +190,10 @@ export default function ReportCampaignsPage() {
               <CardContent className="flex flex-wrap items-center gap-4 p-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Link href={`/campaigns/${r.id}/posts`}
+                    {/* Opens the REPORT, not the generic campaign screen. Clicking a
+                        report campaign used to land on /campaigns/[id]/posts, so the
+                        report itself was unreachable without minting a share link. */}
+                    <Link href={`/superadmin/report-campaigns/${r.id}`}
                           className="truncate font-medium hover:underline">
                       {r.name}
                     </Link>
@@ -206,6 +211,11 @@ export default function ReportCampaignsPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  <Button asChild variant="secondary" size="sm" className="gap-1.5">
+                    <Link href={`/superadmin/report-campaigns/${r.id}`}>
+                      <BarChart3 className="h-3.5 w-3.5" /> View report
+                    </Link>
+                  </Button>
                   <Button asChild variant="outline" size="sm" className="gap-1.5">
                     <Link href={`/campaigns/${r.id}/posts`}>
                       <Plus className="h-3.5 w-3.5" /> Add posts
