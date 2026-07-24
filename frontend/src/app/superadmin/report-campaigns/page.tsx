@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
+// Every superadmin page supplies its own shell — app/superadmin/layout.tsx is a
+// pass-through that only sets metadata. SuperadminLayout is what renders the sidebar
+// AND wraps the page in <AuthGuard>, which holds rendering until the session is
+// resolved. Without it this page mounted immediately, fired its fetch before a token
+// existed, and every call came back 401.
+import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import {
   reportCampaignApi,
   shareUrlFor,
@@ -101,6 +107,7 @@ export default function ReportCampaignsPage() {
   }
 
   return (
+    <SuperadminLayout>
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -256,5 +263,6 @@ export default function ReportCampaignsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </SuperadminLayout>
   )
 }
