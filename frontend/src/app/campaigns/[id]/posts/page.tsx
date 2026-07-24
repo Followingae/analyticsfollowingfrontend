@@ -1236,9 +1236,10 @@ export default function CampaignDetailsPage() {
     // Create updated toast content
     const updatedContent = (
       <div className="flex items-center gap-3">
-        <ToastLoader size={40} text="AI" />
+        {/* Was text="AI" — this path runs no AI at all. It fetches counted metrics. */}
+        <ToastLoader size={40} text="IG" />
         <div>
-          <div className="font-medium">AI Post Analytics Processing</div>
+          <div className="font-medium">Fetching post metrics</div>
           <div className="text-xs text-gray-400">
             {progressPercent > 0 ? `${progressPercent}% complete` : 'Starting...'} - {currentStage}
           </div>
@@ -1366,9 +1367,10 @@ export default function CampaignDetailsPage() {
     const { ToastLoader } = await import("@/components/ui/toast-loader");
     let processingToastId = toast(
       <div className="flex items-center gap-3">
-        <ToastLoader size={40} text="AI" />
+        {/* Was text="AI" — this path runs no AI at all. It fetches counted metrics. */}
+        <ToastLoader size={40} text="IG" />
         <div>
-          <div className="font-medium">AI Post Analytics Processing</div>
+          <div className="font-medium">Fetching post metrics</div>
           <div className="text-xs text-gray-400" id={`progress-${postShortcode}`}>
             Starting analytics for {postShortcode}...
           </div>
@@ -1456,9 +1458,10 @@ export default function CampaignDetailsPage() {
       toast.dismiss(processingToastId);
       processingToastId = toast(
         <div className="flex items-center gap-3">
-          <ToastLoader size={40} text="AI" />
+          {/* Was text="AI" — this path runs no AI at all. It fetches counted metrics. */}
+        <ToastLoader size={40} text="IG" />
           <div>
-            <div className="font-medium">AI Post Analytics Processing</div>
+            <div className="font-medium">Fetching post metrics</div>
             <div className="text-xs text-gray-400">
               Analyzing {postShortcode} - Background processing...
             </div>
@@ -1535,11 +1538,12 @@ export default function CampaignDetailsPage() {
     const { ToastLoader } = await import("@/components/ui/toast-loader");
     const processingToastId = toast(
       <div className="flex items-center gap-3">
-        <ToastLoader size={40} text="AI" />
+        {/* Was text="AI" — this path runs no AI at all. It fetches counted metrics. */}
+        <ToastLoader size={40} text="IG" />
         <div>
-          <div className="font-medium">AI Post Analytics Processing</div>
+          <div className="font-medium">Fetching post metrics</div>
           <div className="text-xs text-gray-400">
-            Processing {urls.length} posts with complete analytics
+            {urls.length} post{urls.length === 1 ? "" : "s"} queued — appearing as each finishes
           </div>
         </div>
       </div>,
@@ -2199,18 +2203,17 @@ export default function CampaignDetailsPage() {
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-6">
               {/* Content Quality & Authenticity */}
+              {/* Renders nothing when there is no quality data. It used to fall back to a
+                  spinner saying "AI analysis in progress… Quality metrics will appear
+                  shortly" — which, now that campaign posts run no AI, would spin forever
+                  and promise data that is never coming. */}
+              {(aiInsights.audience_quality?.available || aiInsights.visual_content?.available || aiInsights.fraud_detection?.available) && (
               <Card>
                 <CardHeader>
                   <CardTitle>Content Quality & Authenticity</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {!aiInsights.audience_quality?.available && !aiInsights.visual_content?.available && !aiInsights.fraud_detection?.available ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                      <div className="text-sm">AI analysis in progress...</div>
-                      <p className="text-xs mt-2">Quality metrics will appear shortly</p>
-                    </div>
-                  ) : (
+                  {false ? null : (
                     <div className="grid gap-4 md:grid-cols-3">
                       {aiInsights.audience_quality?.available && (
                         <div className="p-4 border rounded-lg space-y-2">
@@ -2267,6 +2270,7 @@ export default function CampaignDetailsPage() {
                   )}
                 </CardContent>
               </Card>
+              )}
 
               {/* Sentiment & Category Analysis */}
               <div className="grid gap-4 md:grid-cols-2">
