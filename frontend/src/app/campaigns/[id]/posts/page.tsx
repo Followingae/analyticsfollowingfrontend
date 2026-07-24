@@ -1580,14 +1580,16 @@ export default function CampaignDetailsPage() {
         const r = result as unknown as {
           total_queued?: number
           total_failed?: number
+          completed?: number
           failed?: Array<{ url: string; error: string }>
         };
         const queued = r.total_queued ?? 0;
         const failed = r.total_failed ?? 0;
+        const done = r.completed ?? 0;
 
-        if (queued > 0) {
+        if (done > 0 || queued > 0) {
           toast.success(
-            `Queued ${queued} of ${urls.length} post${urls.length === 1 ? "" : "s"}. They appear as each finishes.`,
+            `Processed ${done} of ${urls.length} post${urls.length === 1 ? "" : "s"}.`,
             { duration: 6000, position: 'bottom-center' }
           );
         }

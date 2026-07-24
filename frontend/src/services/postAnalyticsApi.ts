@@ -323,24 +323,53 @@ class PostAnalyticsApiService {
       body: JSON.stringify(finalRequest)
     })
 
-    // If backend returned 202, poll for completion
-    if ((result as any).isAsync && (result as any).jobId) {
-      try {
-        const finalResult = await pollJobToCompletion((result as any).jobId, {
-          pollInterval: 5000,
-          maxAttempts: 60, // ~5 minutes for batch
-        })
-        return {
-          success: true,
-          data: finalResult.data || finalResult,
-          message: 'Batch analysis completed'
-        }
-      } catch (pollErr: any) {
-        return {
-          success: false,
-          error: pollErr.message || 'Batch analysis failed'
-        }
-      }
+    // The endpoint enqueues ONE JOB PER URL and returns 202 with the full set:
+    //   { isAsync, jobId: job_ids[0], job_ids[], total_queued, total_failed, failed[] }
+    //
+    // This used to poll `jobId` — job_ids[0] — and then return that single job's
+    // result AS THE BATCH RESULT, discarding job_ids, total_queued, total_failed and
+    // failed[]. So a batch of 7 reported on post #1 and nothing else: the remaining
+    // jobs were queued server-side but the UI never waited for them, never counted
+    // them, and never surfaced the ones the queue had rejected outright.
+    const async202 = result as unknown as {
+      isAsync?: boolean
+      jobId?: string
+      job_ids?: string[]
+      total_queued?: number
+      total_failed?: number
+      failed?: Array<{ url: string; error: string }>
+    }
+
+    if (async202.isAsync) {
+      const ids = async202.job_ids?.length
+        ? async202.job_ids
+        : (async202.jobId ? [async202.jobId] : [])
+
+      // Poll EVERY job, not just the first. allSettled so one failure doesn't discard
+      // the outcome of the others.
+      const settled = await Promise.allSettled(
+        ids.map((jid) =>
+          pollJobToCompletion(jid, {
+            pollInterval: 5000,
+            // Scale the wait with batch size — the worker processes these serially, so
+            // a fixed 5-minute cap silently "failed" every job after roughly the third.
+            maxAttempts: Math.min(24 + ids.length * 24, 240),
+          })
+        )
+      )
+
+      const succeeded = settled.filter((s) => s.status === 'fulfilled').length
+      const pollFailed = settled.length - succeeded
+
+      return {
+        // Queue-level rejections (quota/depth) plus jobs that errored while running.
+        ...async202,
+        success: succeeded > 0 || (async202.total_queued ?? 0) > 0,
+        total_queued: async202.total_queued ?? ids.length,
+        total_failed: (async202.total_failed ?? 0) + pollFailed,
+        completed: succeeded,
+        message: `Processed ${succeeded} of ${ids.length} queued posts`,
+      } as unknown as ApiResponse<never>
     }
 
     return result
