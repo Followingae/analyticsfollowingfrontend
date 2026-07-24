@@ -65,11 +65,15 @@ export function EngagementAnalytics({ metrics }: EngagementAnalyticsProps) {
     }
   }
 
+  // Describes where a rate sits; it does not grade the creator. The old scale called
+  // anything under 1% "Poor" in destructive red and reserved "Good" for 3-6% — nano
+  // territory. Our measured median across 270 creators is 0.75%, so that scale branded
+  // most of a healthy roster as failing and pushed brands off creators who were fine.
   const getEngagementRateQuality = (rate: number): { label: string; color: string } => {
-    if (rate >= 0.06) return { label: 'Excellent', color: 'text-green-600 dark:text-green-500' }
-    if (rate >= 0.03) return { label: 'Good', color: 'text-primary' }
-    if (rate >= 0.01) return { label: 'Average', color: 'text-yellow-600 dark:text-yellow-500' }
-    return { label: 'Poor', color: 'text-destructive' }
+    if (rate >= 0.03) return { label: 'Exceptional', color: 'text-green-600 dark:text-green-500' }
+    if (rate >= 0.01) return { label: 'Strong', color: 'text-green-600 dark:text-green-500' }
+    if (rate >= 0.004) return { label: 'Typical', color: 'text-foreground' }
+    return { label: 'Below typical', color: 'text-muted-foreground' }
   }
 
   const getPostingFrequencyColor = (frequency: string): string => {
@@ -173,17 +177,19 @@ export function EngagementAnalytics({ metrics }: EngagementAnalyticsProps) {
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+              {/* Bands reflect what we actually measure (median 0.75% across 270
+                  creators), not the 3-6% nano benchmark that made everyone look bad. */}
               <div className="text-center p-3 rounded-lg border bg-muted/50">
-                <div className="text-sm text-muted-foreground">Poor</div>
-                <div className="font-semibold text-destructive">&lt; 1%</div>
+                <div className="text-sm text-muted-foreground">Typical</div>
+                <div className="font-semibold text-foreground">0.4-1%</div>
               </div>
               <div className="text-center p-3 rounded-lg border bg-muted/50">
-                <div className="text-sm text-muted-foreground">Good</div>
-                <div className="font-semibold text-primary">3-6%</div>
+                <div className="text-sm text-muted-foreground">Strong</div>
+                <div className="font-semibold text-primary">1-3%</div>
               </div>
               <div className="text-center p-3 rounded-lg border bg-muted/50">
-                <div className="text-sm text-muted-foreground">Excellent</div>
-                <div className="font-semibold text-green-600 dark:text-green-500">&gt; 6%</div>
+                <div className="text-sm text-muted-foreground">Exceptional</div>
+                <div className="font-semibold text-green-600 dark:text-green-500">&gt; 3%</div>
               </div>
             </div>
           </div>

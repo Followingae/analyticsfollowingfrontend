@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Search, UserPlus, Check, Minus, Plus, Users, ListPlus, X, Globe } from "lucide-react";
+import { Loader2, Search, UserPlus, Check, Minus, Plus, Users, ListPlus, X, Globe, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
   // Matches hidden because they are already on this proposal. Without this a search for
   // someone already added returns an empty list that reads as "we don't have them".
   const [alreadyAdded, setAlreadyAdded] = useState(0);
+  const [sort, setSort] = useState<string>("created_at:desc");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -54,12 +55,15 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
   const fetchPage = useCallback(async (p: number, append: boolean) => {
     append ? setLoadingMore(true) : setLoading(true);
     try {
+      const [sortBy, sortOrder] = sort.split(":") as [string, "asc" | "desc"];
       const res = await proposalApprovalApi.searchMasterDb({
         query: search || undefined,
         page: p,
         pageSize: PAGE_SIZE,
         countries: country !== ANY_COUNTRY ? [country] : undefined,
         excludeProposalId: proposalId,
+        sortBy,
+        sortOrder,
       });
       const list: Creator[] = res?.data?.influencers ?? [];
       setTotal(res?.data?.total_count ?? list.length);
@@ -71,11 +75,12 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
     } finally {
       setLoading(false); setLoadingMore(false);
     }
-  }, [search, country, proposalId]);
+  }, [search, country, proposalId, sort]);
 
   useEffect(() => {
     if (!open) return;
     setSelected({}); setSearch(""); setCountry(ANY_COUNTRY); setResults([]); setPage(1);
+    setSort("created_at:desc");
     fetchPage(1, false);
     proposalApprovalApi.getCountries()
       .then((r) => setCountries(r?.data?.countries ?? []))
@@ -89,7 +94,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
     const t = setTimeout(() => fetchPage(1, false), 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, country]);
+  }, [search, country, sort]);
 
   const toggle = (c: Creator) => {
     setSelected((prev) => {
@@ -196,6 +201,24 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
                 {countries.map((c) => (
                   <SelectItem key={c.country} value={c.country}>{c.country} ({c.n})</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            {/* The roster was always served newest-first, but with no control there was
+                no way to say so or to change it. Values must stay inside the server's
+                sort whitelist. */}
+            <Select value={sort} onValueChange={setSort}>
+              <SelectTrigger className="sm:w-48" aria-label="Sort creators">
+                <ArrowUpDown className="mr-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created_at:desc">Newest added</SelectItem>
+                <SelectItem value="created_at:asc">Oldest added</SelectItem>
+                <SelectItem value="updated_at:desc">Recently updated</SelectItem>
+                <SelectItem value="followers_count:desc">Most followers</SelectItem>
+                <SelectItem value="followers_count:asc">Fewest followers</SelectItem>
+                <SelectItem value="engagement_rate:desc">Highest engagement</SelectItem>
+                <SelectItem value="username:asc">Username A–Z</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -340,12 +340,17 @@ export function ModernCreatorCard({
               <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-muted-foreground">Sentiment Analysis</span>
+                  {/* Caption tone, not a verdict on the creator. This used to render
+                      'Negative' in destructive RED, which reads as a warning on the
+                      person — but mildly sub-zero sentiment is normal for commentary,
+                      news-led or deadpan captions and says nothing about whether they
+                      are good to work with. Tone is described, never graded. */}
                   <Badge
-                    variant={creator.ai_insights.average_sentiment > 0.1 ? 'default' : creator.ai_insights.average_sentiment < -0.1 ? 'destructive' : 'secondary'}
+                    variant={creator.ai_insights.average_sentiment > 0.1 ? 'default' : 'secondary'}
                     className="text-xs"
                   >
-                    {creator.ai_insights.average_sentiment > 0.1 ? 'Positive' :
-                     creator.ai_insights.average_sentiment < -0.1 ? 'Negative' : 'Neutral'}
+                    {creator.ai_insights.average_sentiment > 0.1 ? 'Upbeat' :
+                     creator.ai_insights.average_sentiment < -0.1 ? 'Serious' : 'Neutral'}
                   </Badge>
                 </div>
               </div>

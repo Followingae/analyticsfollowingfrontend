@@ -111,11 +111,17 @@ export const proposalApprovalApi = {
     countries?: string[]
     excludeProposalId?: string
     excludeListId?: string
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
   } = {}) => {
     const p = new URLSearchParams({
       status: 'active',
       page: String(opts.page ?? 1),
       page_size: String(opts.pageSize ?? 40),
+      // Server whitelists these; it already defaulted to created_at desc, but the picker
+      // never sent them so there was no way to change the order from the dialog.
+      sort_by: opts.sortBy ?? 'created_at',
+      sort_order: opts.sortOrder ?? 'desc',
     })
     if (opts.query) p.set('search', opts.query)
     if (opts.countries?.length) p.set('countries', opts.countries.join(','))
