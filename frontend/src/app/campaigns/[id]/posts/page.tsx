@@ -2559,14 +2559,17 @@ export default function CampaignDetailsPage() {
 
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Total Reach</CardTitle>
+                {/* Titled "Total Reach" while its own caption admitted it was a
+                    combined audience size — the value is a SUM OF FOLLOWER COUNTS, not
+                    reach. Named for what it is. */}
+                <CardTitle className="text-sm font-medium">Combined followers</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {audience?.total_reach ? (audience.total_reach >= 1000000 ? `${(audience.total_reach/1000000).toFixed(1)}M` : audience.total_reach >= 1000 ? `${(audience.total_reach/1000).toFixed(0)}K` : audience.total_reach) : 'N/A'}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Combined audience size
+                  Sum of each creator&apos;s follower count — not reach
                 </p>
               </CardContent>
             </Card>
@@ -2675,79 +2678,15 @@ export default function CampaignDetailsPage() {
                 )}
               </div>
 
-              {/* Demographic Insights - Age Distribution */}
-              {aiInsights.audience_insights.demographic_insights &&
-               aiInsights.audience_insights.demographic_insights.estimated_age_groups &&
-               typeof aiInsights.audience_insights.demographic_insights.estimated_age_groups === 'object' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Audience Age Distribution</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {Object.entries(aiInsights.audience_insights.demographic_insights.estimated_age_groups)
-                        .sort(([a], [b]) => {
-                          const aNum = parseInt(a.split('-')[0]);
-                          const bNum = parseInt(b.split('-')[0]);
-                          return aNum - bNum;
-                        })
-                        .map(([age, percentage]) => (
-                          <div key={age} className="flex items-center justify-between">
-                            <span className="text-sm font-medium">{age} years</span>
-                            <span className="text-sm">{(percentage * 100).toFixed(1)}%</span>
-                          </div>
-                        ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {/* Audience age + gender panels REMOVED (not hidden).
+                  They rendered `estimated_age_groups` / `estimated_gender_split` —
+                  inferred numbers with no measurement behind them, from the pipeline
+                  that once produced a 130% audience gender split. Instagram does not
+                  expose a viewer's age or gender for posts we don't own, so a
+                  plausible-looking chart here is worse than no chart. */}
 
               {/* Gender Distribution and Audience Interests - Single Row */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Audience Gender */}
-                {aiInsights.audience_insights.demographic_insights &&
-                 aiInsights.audience_insights.demographic_insights.estimated_gender_split &&
-                 typeof aiInsights.audience_insights.demographic_insights.estimated_gender_split === 'object' && (() => {
-                  const genderData = Object.entries(aiInsights.audience_insights.demographic_insights.estimated_gender_split)
-                    .filter(([gender]) => gender.toLowerCase() === 'male' || gender.toLowerCase() === 'female');
-                  const malePercentage = (genderData.find(([g]) => g.toLowerCase() === 'male')?.[1] || 0) * 100;
-                  const femalePercentage = (genderData.find(([g]) => g.toLowerCase() === 'female')?.[1] || 0) * 100;
-                  return (
-                    <Card>
-                      <CardHeader className="items-center">
-                        <CardTitle>Audience Gender</CardTitle>
-                        <CardDescription>Gender distribution of campaign audience</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <div className="border rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="text-sm font-medium text-muted-foreground">Male</div>
-                              <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-bold" style={{ color: "#3b82f6" }}>
-                                  {malePercentage.toFixed(0)}
-                                </span>
-                                <span className="text-lg text-muted-foreground">%</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="border rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="text-sm font-medium text-muted-foreground">Female</div>
-                              <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-bold" style={{ color: "#ec4899" }}>
-                                  {femalePercentage.toFixed(0)}
-                                </span>
-                                <span className="text-lg text-muted-foreground">%</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })()}
-
                 {/* Audience Interests */}
                 {aiInsights.audience_insights.audience_interests?.interest_distribution &&
                  typeof aiInsights.audience_insights.audience_interests.interest_distribution === 'object' && (
