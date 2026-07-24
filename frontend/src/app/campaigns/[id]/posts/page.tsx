@@ -762,16 +762,17 @@ export default function CampaignDetailsPage() {
         const collaborationPosts = campaignPosts.filter(p => p.is_collaboration).length;
         const collaborationRate = campaignPosts.length > 0 ? (collaborationPosts / campaignPosts.length) * 100 : 0;
 
-        // Calculate estimated reach
-        const totalReach = calculateCampaignReach(campaignPosts);
-
-
+        // Measured plays — no estimation, no multipliers.
+        const totalPlays = calculateCampaignPlays(campaignPosts);
 
         setStats({
           totalCreators: uniqueCreators.size,
           totalPosts: campaignPosts.length,
           totalFollowers,
-          totalReach: totalReach || campaignDetails.total_reach || 0,
+          // Do NOT fall back to campaignDetails.total_reach: that is the old estimated
+          // figure, and silently substituting it would put an invented number back
+          // under a label that now promises a measured one.
+          totalReach: totalPlays,
           overallEngagementRate: avgEngagement,
           totalComments,
           totalLikes,
@@ -832,123 +833,37 @@ export default function CampaignDetailsPage() {
   };
 
   // ========================================================================
-  // REACH CALCULATION UTILITIES (Industry-Standard Estimation)
+  // CAMPAIGN PLAYS (measured)
   // ========================================================================
+  //
+  // The estimator suite that lived here is DELETED, not disabled:
+  // calculateEstimatedReach / calculateVideoReach / calculatePostReach. Between them
+  // they manufactured a "Total Reach" from `post.likes * 100`, a "minimum 40% of
+  // followers for videos" floor, a x1.5 virality cap, collaborator audiences guessed
+  // as (likes + comments) x 20, and a flat x1.2 multi-creator boost. Brands were shown
+  // the result as a campaign outcome.
+  //
+  // Removed rather than left unused so it cannot be quietly wired back up.
 
-  const calculateEstimatedReach = (post: BackendCampaignPost, followerCount: number): number => {
-    const followers = followerCount;
-    const likes = post.likes;
-    const comments = post.comments;
-
-    // Method 1: Engagement-based reach estimation
-    const totalEngagement = likes + comments;
-    if (followers === 0) return totalEngagement * 100; // Much better fallback
-
-    // For organic posts, reach should be MINIMUM 20% of followers (Instagram reality)
-    const baseReachRate = 0.25; // 25% minimum organic reach
-    const followerBasedReach = followers * baseReachRate;
-
-    // Engagement-based estimation (much more aggressive)
-    const engagementBasedReach = totalEngagement * 50; // Way higher multiplier
-
-    // Use the HIGHER of the two estimates - reach should be substantial!
-    const estimatedReach = Math.max(
-      followerBasedReach,     // At least 25% of followers
-      engagementBasedReach,   // Or 50x engagement
-      followers * 0.15        // Absolute minimum 15% of followers
-    );
-
-    // Cap at reasonable maximum but allow for viral content
-    const maxReach = followers * 1.5; // Can reach 150% of followers (viral/shares)
-
-    return Math.round(Math.min(estimatedReach, maxReach));
-  };
-
-  const calculateVideoReach = (post: BackendCampaignPost, followerCount: number): number => {
-    if (!post.is_video || !post.views) {
-      return calculateEstimatedReach(post, followerCount);
-    }
-
-    // For videos, views are a direct reach indicator
-    const videoViews = post.views;
-    const followers = followerCount;
-
-    // Videos get MUCH better reach than static posts
-    const baseReach = Math.max(
-      videoViews,           // Full view count as reach
-      followers * 0.4,      // Minimum 40% of followers for videos
-      post.likes * 100      // Or 100x likes (videos get shared more)
-    );
-
-    // Videos can go viral - allow much higher reach
-    const maxReach = Math.max(followers * 5, videoViews * 1.2); // 5x followers or 120% of views
-
-    return Math.round(Math.min(baseReach, maxReach));
-  };
-
-  const calculatePostReach = (post: BackendCampaignPost): number => {
-    const mainCreatorFollowers = post.creator_followers_count;
-
-    // Calculate base reach for main creator
-    let totalReach = post.is_video
-      ? calculateVideoReach(post, mainCreatorFollowers)
-      : calculateEstimatedReach(post, mainCreatorFollowers);
-
-    // Add collaborator reach (with overlap reduction)
-    if (post.is_collaboration && post.collaborators) {
-      for (const collaborator of post.collaborators) {
-        if (collaborator.collaboration_type === 'coauthor_producer') {
-          // Estimate collaborator followers (we don't have this data, so estimate based on engagement)
-          const estimatedCollabFollowers = (post.likes + post.comments) * 20; // Rough estimate
-          const collabReach = calculateEstimatedReach(post, estimatedCollabFollowers);
-          // Assume 30% overlap between audiences
-          totalReach += collabReach * 0.7;
-        }
-      }
-    }
-
-    return Math.round(totalReach);
-  };
-
-  const calculateCampaignReach = (posts: BackendCampaignPost[]): number => {
-    if (posts.length === 0) return 0;
-
-    let totalReach = 0;
-    const creatorReachMap = new Map<string, number>();
-
-    // Calculate reach per creator (to avoid double-counting same creator's audience)
-    for (const post of posts) {
-      const postReach = calculatePostReach(post);
-      const creator = post.creator_username;
-
-      // Track the highest reach for each creator (don't sum multiple posts from same creator)
-      const currentCreatorReach = creatorReachMap.get(creator) || 0;
-      creatorReachMap.set(creator, Math.max(currentCreatorReach, postReach));
-
-      // For collaborators, add their estimated contribution
-      if (post.collaborators) {
-        post.collaborators.forEach(collaborator => {
-          if (collaborator.collaboration_type === 'coauthor_producer') {
-            const collabKey = collaborator.username;
-            const estimatedCollabReach = postReach * 0.3; // Assume collaborator contributes 30% additional reach
-            const currentCollabReach = creatorReachMap.get(collabKey) || 0;
-            creatorReachMap.set(collabKey, Math.max(currentCollabReach, estimatedCollabReach));
-          }
-        });
-      }
-    }
-
-    // Sum up unique creator reaches
-    totalReach = Array.from(creatorReachMap.values()).reduce((sum, reach) => sum + reach, 0);
-
-    // NO DEDUPLICATION - reach should be ADDITIVE across creators!
-    // Multiple creators = MORE reach, not less!
-    // Only apply a slight boost for multi-creator campaigns
-    const uniqueCreators = creatorReachMap.size;
-    const reachMultiplier = uniqueCreators > 1 ? 1.2 : 1; // 20% BOOST for multi-creator campaigns
-
-    return Math.round(totalReach * reachMultiplier);
-  };
+  /**
+   * MEASURED video plays across the campaign. Nothing here is estimated.
+   *
+   * This replaced a stack of invented multipliers that produced a figure labelled
+   * "Total Reach" for brands: collaborator followers guessed as (likes + comments) x 20,
+   * a x0.7 "assumed 30% audience overlap", a x0.3 "assumed collaborator contribution",
+   * and finally a flat x1.2 "20% BOOST for multi-creator campaigns". Not one measured
+   * input, and a number a client makes spend decisions on.
+   *
+   * `views` is the post's real play count (posts.video_view_count, which reads Apify's
+   * videoPlayCount). Images have no play count and contribute nothing rather than a
+   * guess. This is the same figure the shareable campaign report totals, so the two
+   * surfaces cannot disagree.
+   *
+   * It is NOT reach: true reach and impressions are visible only to the account owner.
+   * Labelled as plays everywhere it is shown.
+   */
+  const calculateCampaignPlays = (posts: BackendCampaignPost[]): number =>
+    posts.reduce((sum, p) => sum + (p.is_video ? (p.views || 0) : 0), 0);
 
   const getPostTypeIcon = (type: string) => {
     switch (type) {
@@ -2104,16 +2019,20 @@ export default function CampaignDetailsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-1.5">
-                  Est. Reach
+                  Video plays
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button type="button" aria-label="About estimated reach" className="text-muted-foreground/70 hover:text-foreground transition-colors">
+                        <button type="button" aria-label="About video plays" className="text-muted-foreground/70 hover:text-foreground transition-colors">
                           <AlertCircle className="h-3 w-3" />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs">
-                        <p className="text-xs">Estimated, not measured. Instagram does not expose true reach — this figure is inferred from follower counts and engagement using an industry-standard model.</p>
+                        <p className="text-xs">
+                          Instagram&apos;s play count, summed across the campaign&apos;s video
+                          posts. Images contribute nothing. This is not reach — true reach
+                          and impressions are visible only to the account owner.
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -2124,7 +2043,9 @@ export default function CampaignDetailsPage() {
                 <div className="text-2xl font-bold">
                   {formatNumber(stats?.totalReach || 0)}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Estimated · not a measured metric</p>
+                {/* Was "Estimated · not a measured metric" sitting under an invented
+                    figure. It is now a counted play total, so the caption says so. */}
+                <p className="text-xs text-muted-foreground mt-1">Counted from video plays</p>
               </CardContent>
             </Card>
 
