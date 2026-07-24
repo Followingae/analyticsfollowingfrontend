@@ -37,6 +37,9 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
   const [countries, setCountries] = useState<{ country: string; n: number }[]>([]);
   const [results, setResults] = useState<Creator[]>([]);
   const [total, setTotal] = useState(0);
+  // Matches hidden because they are already on this proposal. Without this a search for
+  // someone already added returns an empty list that reads as "we don't have them".
+  const [alreadyAdded, setAlreadyAdded] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -60,6 +63,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
       });
       const list: Creator[] = res?.data?.influencers ?? [];
       setTotal(res?.data?.total_count ?? list.length);
+      setAlreadyAdded(res?.data?.already_added_count ?? 0);
       setResults((prev) => (append ? [...prev, ...list] : list));
       setPage(p);
     } catch (e) {
@@ -214,9 +218,21 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
             <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
           ) : results.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
-              {search || country !== ANY_COUNTRY
-                ? "No creators match these filters."
-                : "Every active creator is already on this proposal."}
+              {/* An exact match that is already on the proposal used to return this same
+                  blank "no creators match", which reads as a broken search rather than
+                  "you already have them". Say which it is. */}
+              {alreadyAdded > 0 ? (
+                <>
+                  <Check className="mx-auto mb-2 h-5 w-5 text-primary" />
+                  {alreadyAdded === 1
+                    ? "That creator is already on this proposal."
+                    : `All ${alreadyAdded} matching creators are already on this proposal.`}
+                </>
+              ) : search || country !== ANY_COUNTRY ? (
+                "No creators match these filters."
+              ) : (
+                "Every active creator is already on this proposal."
+              )}
             </div>
           ) : (
             <>
@@ -224,7 +240,10 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
                 <button type="button" onClick={selectAllVisible} className="text-xs font-medium text-primary hover:underline">
                   {results.every((c) => selected[c.id]) ? "Clear these" : `Select these ${results.length}`}
                 </button>
-                <span className="text-xs text-muted-foreground">Showing {results.length} of {total}</span>
+                <span className="text-xs text-muted-foreground">
+                  Showing {results.length} of {total}
+                  {alreadyAdded > 0 && ` · ${alreadyAdded} already added`}
+                </span>
               </div>
 
               {results.map((c) => {

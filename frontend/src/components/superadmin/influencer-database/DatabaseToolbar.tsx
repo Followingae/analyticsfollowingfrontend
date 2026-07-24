@@ -7,7 +7,29 @@ import type { InfluencerDatabaseFilters, ColumnKey, ViewMode } from "@/types/inf
 import { FilterBar } from "./FilterBar"
 import { ColumnVisibilityToggle } from "./ColumnVisibilityToggle"
 import { BulkActionsBar } from "./BulkActionsBar"
-import { Search, LayoutGrid, Table2 } from "lucide-react"
+import { Search, LayoutGrid, Table2, ArrowUpDown } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+// The API has always accepted sort_by/sort_order (whitelisted server-side) and defaulted
+// to created_at DESC — there was simply no way to change it from the UI, so "show me what
+// we added most recently" meant scrolling. Values must stay inside the server whitelist:
+// created_at, updated_at, username, followers_count, engagement_rate, status, tier.
+const SORT_OPTIONS: Array<{ value: string; label: string; by: string; order: "asc" | "desc" }> = [
+  { value: "created_at:desc", label: "Newest added", by: "created_at", order: "desc" },
+  { value: "created_at:asc", label: "Oldest added", by: "created_at", order: "asc" },
+  { value: "updated_at:desc", label: "Recently updated", by: "updated_at", order: "desc" },
+  { value: "updated_at:asc", label: "Least recently updated", by: "updated_at", order: "asc" },
+  { value: "followers_count:desc", label: "Most followers", by: "followers_count", order: "desc" },
+  { value: "followers_count:asc", label: "Fewest followers", by: "followers_count", order: "asc" },
+  { value: "engagement_rate:desc", label: "Highest engagement", by: "engagement_rate", order: "desc" },
+  { value: "username:asc", label: "Username A–Z", by: "username", order: "asc" },
+]
 
 interface DatabaseToolbarProps {
   filters: InfluencerDatabaseFilters
@@ -66,6 +88,26 @@ export function DatabaseToolbar({
         </div>
         <FilterBar filters={filters} onFiltersChange={onFiltersChange} />
         <div className="ml-auto flex items-center gap-2">
+          <Select
+            value={`${filters.sort_by}:${filters.sort_order}`}
+            onValueChange={(v) => {
+              const opt = SORT_OPTIONS.find((o) => o.value === v)
+              if (!opt) return
+              // Reset to page 1: staying on page 4 of the old order lands the user in the
+              // middle of a list they did not ask for.
+              onFiltersChange({ ...filters, sort_by: opt.by, sort_order: opt.order, page: 1 })
+            }}
+          >
+            <SelectTrigger className="h-9 w-[190px]" aria-label="Sort creators">
+              <ArrowUpDown className="mr-1.5 size-3.5 shrink-0 text-muted-foreground" />
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {SORT_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="flex items-center rounded-md border">
             <Button
               variant={viewMode === "table" ? "secondary" : "ghost"}
