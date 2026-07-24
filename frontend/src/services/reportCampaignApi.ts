@@ -1,21 +1,28 @@
 import { API_CONFIG } from '@/config/api'
+import { fetchWithAuth } from '@/utils/apiInterceptor'
 
 const ADMIN = `${API_CONFIG.BASE_URL}/api/v1/admin/report-campaigns`
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/campaign-reports`
 
+/** Operator calls — must go through the shared interceptor, which owns token storage
+ *  and refresh. Reading localStorage directly here guessed the wrong key and 401'd. */
 async function jfetch(url: string, init: RequestInit = {}) {
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('access_token') || localStorage.getItem('token')
-      : null
-  const res = await fetch(url, {
+  const method = (init.method || 'GET').toUpperCase()
+  const needsCT = ['POST', 'PUT', 'PATCH'].includes(method)
+  const res = await fetchWithAuth(url, {
     ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init.headers || {}),
-    },
+    headers: { ...(needsCT ? { 'Content-Type': 'application/json' } : {}), ...(init.headers || {}) },
   })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body?.detail || body?.message || `Request failed (${res.status})`)
+  return body
+}
+
+/** The client report is UNAUTHENTICATED by design. It must never go through
+ *  fetchWithAuth: on a logged-out browser that can trigger a refresh/redirect, and a
+ *  client opening a shared link has no session to refresh. */
+async function pfetch(url: string) {
+  const res = await fetch(url, { headers: { Accept: 'application/json' } })
   const body = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(body?.detail || body?.message || `Request failed (${res.status})`)
   return body
@@ -119,7 +126,7 @@ export const reportCampaignApi = {
     jfetch(`${ADMIN}/${id}/share`, { method: 'DELETE' }),
 
   /** Unauthenticated — possession of the token is the authorisation. */
-  publicReport: (token: string): Promise<{ data: CampaignReport }> => jfetch(`${PUBLIC}/${token}`),
+  publicReport: (token: string): Promise<{ data: CampaignReport }> => pfetch(`${PUBLIC}/${token}`),
 }
 
 export const shareUrlFor = (token: string) =>
