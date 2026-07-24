@@ -180,7 +180,7 @@ function BrandProposalViewPageContent() {
 
   // View / filter
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [sortBy, setSortBy] = useState("followers_desc")
+  const [sortBy, setSortBy] = useState("newest_added")
 
   // Flip state — only one card flipped at a time
   const [flippedId, setFlippedId] = useState<string | null>(null)
@@ -243,6 +243,17 @@ function BrandProposalViewPageContent() {
     let list = [...data.influencers]
 
     switch (sortBy) {
+      case "newest_added":
+        // Newest first, and it is the DEFAULT: what a brand wants on open is what we
+        // added since they last looked, not the biggest account on the list.
+        // priority_order breaks ties so a batch added in one go keeps its curated order.
+        list.sort((a, b) => {
+          const at = a.added_at ? Date.parse(a.added_at) : 0
+          const bt = b.added_at ? Date.parse(b.added_at) : 0
+          if (bt !== at) return bt - at
+          return (a.priority_order ?? 0) - (b.priority_order ?? 0)
+        })
+        break
       case "followers_desc":
         list.sort((a, b) => (b.followers_count ?? 0) - (a.followers_count ?? 0))
         break
@@ -279,7 +290,10 @@ function BrandProposalViewPageContent() {
       group.items.push(inf)
       if (inf.added_at && (!group.addedAt || inf.added_at < group.addedAt)) group.addedAt = inf.added_at
     }
-    return Array.from(groups.values()).sort((a, b) => a.batch - b.batch)
+    // NEWEST batch first. This used to run ascending, so a brand opening a proposal we
+    // had added to five times landed on the oldest round and had to scroll past
+    // everything they had already reviewed to reach what was new.
+    return Array.from(groups.values()).sort((a, b) => b.batch - a.batch)
   }, [sortedInfluencers])
   const showBatchHeaders = batches.length > 1
 
@@ -750,6 +764,7 @@ function BrandProposalViewPageContent() {
                         <SelectValue placeholder="Sort by" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="newest_added">Newest added</SelectItem>
                         <SelectItem value="followers_desc">Followers (high-low)</SelectItem>
                         <SelectItem value="engagement_desc">Engagement (high-low)</SelectItem>
                         <SelectItem value="price_desc">Price (high-low)</SelectItem>
