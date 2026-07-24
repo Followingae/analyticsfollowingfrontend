@@ -22,6 +22,11 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
+// Audience SIZE, not a grade. This used to run a traffic light down the tiers — mid
+// green, micro yellow, nano orange — so a client scanning a proposal saw amber and red
+// warnings sitting on perfectly good creators and read them as flagged. Smaller
+// audiences usually engage HARDER, so the old colouring inverted the truth it implied.
+// Cool, equal-weight hues only: they separate the tiers without ranking them.
 export function getTierColor(tier?: string) {
   switch (tier?.toLowerCase()) {
     case "mega":
@@ -30,14 +35,57 @@ export function getTierColor(tier?: string) {
       return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
     case "mid":
     case "mid-tier":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+      return "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200"
     case "micro":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+      return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
     case "nano":
-      return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+      return "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200"
     default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
+      return "bg-muted text-foreground"
   }
+}
+
+// ---------------------------------------------------------------------------
+// Engagement rate, in context
+// ---------------------------------------------------------------------------
+
+// Mirrors _ER_BENCHMARKS in app/services/creator_analytics/derive.py. Engagement falls
+// as an account grows, so one global threshold mislabels most of the roster: 0.58% is
+// the median for a 250k creator and would look like a failure against the 3% a brand
+// half-remembers from a nano case study.
+const ER_BANDS: Array<[number | null, number, number]> = [
+  [10_000, 0.8, 4.0],
+  [50_000, 0.6, 2.0],
+  [250_000, 0.3, 1.0],
+  [1_000_000, 0.25, 1.0],
+  [null, 0.15, 1.0],
+]
+
+export type EngagementStanding = "below_average" | "typical" | "above_average" | "exceptional"
+
+/** Label an engagement rate against creators of a COMPARABLE SIZE. */
+export function engagementStanding(
+  rate?: number | null,
+  followers?: number | null
+): { standing: EngagementStanding; label: string; className: string } | null {
+  if (rate == null || !followers || followers <= 0) return null
+  const band = ER_BANDS.find(([max]) => max === null || followers < max)!
+  const [, low, high] = band
+
+  let standing: EngagementStanding = "below_average"
+  if (rate >= high * 2) standing = "exceptional"
+  else if (rate >= high) standing = "above_average"
+  else if (rate >= low) standing = "typical"
+
+  // Deliberately no red. "Below average for this size" already says it in words; the
+  // colour only ever added alarm to a number the brand was going to judge anyway.
+  const map = {
+    exceptional: { label: "Exceptional for this size", className: "text-emerald-600 dark:text-emerald-400" },
+    above_average: { label: "Above average for this size", className: "text-emerald-600 dark:text-emerald-400" },
+    typical: { label: "Typical for this size", className: "text-muted-foreground" },
+    below_average: { label: "Below average for this size", className: "text-muted-foreground" },
+  } as const
+  return { standing, ...map[standing] }
 }
 
 export interface TierConfig {

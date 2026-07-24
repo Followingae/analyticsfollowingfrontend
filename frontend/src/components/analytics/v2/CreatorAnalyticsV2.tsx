@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AlertTriangle, BadgeCheck, ExternalLink, Loader2, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { creatorAnalyticsV2Api, NotAnalysedError } from "@/services/creatorAnalyticsV2Api"
+import { engagementStanding } from "@/components/proposals/proposal-utils"
 import {
   isPresent, formatCount, formatPct, type CreatorAnalyticsV2 as Payload,
 } from "@/types/creatorAnalyticsV2"
@@ -179,7 +180,28 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
             <Head label="Following" value={formatCount(p.following_count)} />
             <Head label="Posts" value={formatCount(p.posts_count)} />
             {isPresent(eng) && (
-              <Head label="Engagement" value={formatPct(eng.engagement_rate)} sub="median" />
+              <Head
+                label="Engagement"
+                value={formatPct(
+                  eng.headline_metric === "engagement_rate_by_view"
+                    ? eng.engagement_rate_by_view
+                    : eng.engagement_rate
+                )}
+                /* A bare percentage is what made brands reject good creators: 0.58% is
+                   the median for a 250k account but reads as failure without a peer
+                   group. Say where it sits instead of leaving them to guess. */
+                sub={
+                  engagementStanding(
+                    eng.headline_metric === "engagement_rate_by_view"
+                      ? eng.engagement_rate_by_view
+                      : eng.engagement_rate,
+                    p.followers_count
+                  )?.label ??
+                  (eng.headline_metric === "engagement_rate_by_view"
+                    ? "of viewers"
+                    : "of followers")
+                }
+              />
             )}
           </div>
         </CardContent>
