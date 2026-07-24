@@ -650,7 +650,12 @@ class PostAnalyticsApiService {
       onProgress(100, 100)
     }
 
+    // Spread the raw response through. The batch endpoint returns queue counts at the
+    // TOP level (total_queued / total_failed / failed[]), not under `data.summary` —
+    // stripping to {success, data, message} discarded them, so partial failures (queue
+    // quota, depth rejection) reached the caller as silence.
     return {
+      ...(result as Record<string, unknown>),
       success: result.success,
       data: result.data,
       message: result.message,

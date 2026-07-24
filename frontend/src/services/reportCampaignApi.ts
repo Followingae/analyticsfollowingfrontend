@@ -37,8 +37,19 @@ export interface ReportPost {
   likes: number
   comments: number
   engagement: number
-  /** Video only. Null on an image — not zero, so the UI can omit rather than imply nobody watched. */
+  /** Video only. Null on an image — and null when the creator HIDES view counts, so the
+   *  UI can show "—" rather than claim nobody watched. */
   plays: number | null
+  /** Apify returns plays AND views; they differ (403,774 vs 86,656 on one reel). */
+  views: number | null
+  duration_seconds: number | null
+  location: string | null
+  /** Compliance evidence — what the creator actually tagged. */
+  hashtags: string[]
+  mentions: string[]
+  tagged_users: string[]
+  collaborators: string[]
+  music: { song: string | null; artist: string | null } | null
   thumbnail: string | null
   posted_at: string | null
   caption: string | null
@@ -84,12 +95,19 @@ export interface CampaignReport {
     engagement: number
     /** Measured plays. Deliberately NOT called reach — true reach isn't visible to us. */
     views: number | null
+    total_duration_seconds: number | null
     combined_followers: number | null
     engagement_rate_by_followers: number | null
     engagement_rate_by_views: number | null
   }
   posts: ReportPost[]
   creators: ReportCreator[]
+  /** Counted roll-up of what actually ran — answers "did they use our hashtag". */
+  tagging: {
+    hashtags: Array<{ tag: string; posts: number }>
+    mentions: Array<{ handle: string; posts: number }>
+    tagged_accounts: Array<{ handle: string; posts: number }>
+  }
   measurement: { source: string; note: string }
 }
 

@@ -84,7 +84,11 @@ export default function PublicCampaignReport() {
     )
   }
 
-  const { campaign, totals, posts, creators, measurement } = data
+  const { campaign, totals, posts, creators, tagging, measurement } = data
+  const hasTagging =
+    (tagging?.hashtags?.length ?? 0) > 0 ||
+    (tagging?.mentions?.length ?? 0) > 0 ||
+    (tagging?.tagged_accounts?.length ?? 0) > 0
   const erByFollowers = totals.engagement_rate_by_followers
   const erByViews = totals.engagement_rate_by_views
 
@@ -132,6 +136,61 @@ export default function PublicCampaignReport() {
               <Stat label="Engagement rate (of plays)" value={`${erByViews.toFixed(2)}%`}
                     sub="Engagement ÷ video plays" />
             )}
+          </section>
+        )}
+
+        {/* What the creators actually tagged. Counted from the published posts — this
+            is the evidence for whether a paid deliverable met its brief. */}
+        {hasTagging && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold">What ran</h2>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {tagging.hashtags.length > 0 && (
+                <Card>
+                  <CardContent className="p-5">
+                    <div className="text-xs font-medium text-muted-foreground">Hashtags used</div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {tagging.hashtags.slice(0, 12).map((h) => (
+                        <Badge key={h.tag} variant="secondary" className="font-normal">
+                          #{h.tag}
+                          <span className="ml-1 text-muted-foreground">{h.posts}</span>
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {tagging.tagged_accounts.length > 0 && (
+                <Card>
+                  <CardContent className="p-5">
+                    <div className="text-xs font-medium text-muted-foreground">Accounts tagged</div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {tagging.tagged_accounts.slice(0, 12).map((t) => (
+                        <Badge key={t.handle} variant="secondary" className="font-normal">
+                          @{t.handle}
+                          <span className="ml-1 text-muted-foreground">{t.posts}</span>
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {tagging.mentions.length > 0 && (
+                <Card>
+                  <CardContent className="p-5">
+                    <div className="text-xs font-medium text-muted-foreground">Mentioned in caption</div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {tagging.mentions.slice(0, 12).map((m) => (
+                        <Badge key={m.handle} variant="secondary" className="font-normal">
+                          @{m.handle}
+                          <span className="ml-1 text-muted-foreground">{m.posts}</span>
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </section>
         )}
 
@@ -208,12 +267,30 @@ export default function PublicCampaignReport() {
                       <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground tabular-nums">
-                      <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{compact(p.likes)}</span>
-                      <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" />{compact(p.comments)}</span>
-                      {p.plays != null && (
-                        <span className="flex items-center gap-1"><Play className="h-3 w-3" />{compact(p.plays)}</span>
+                      {/* A hidden count is "—", never 0 — 0 would claim nobody engaged. */}
+                      <span className="flex items-center gap-1">
+                        <Heart className="h-3 w-3" />{p.likes != null ? compact(p.likes) : "—"}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MessageCircle className="h-3 w-3" />{p.comments != null ? compact(p.comments) : "—"}
+                      </span>
+                      {p.is_video && (
+                        <span className="flex items-center gap-1" title="Instagram play count">
+                          <Play className="h-3 w-3" />{p.plays != null ? compact(p.plays) : "—"}
+                        </span>
                       )}
+                      {p.duration_seconds != null && <span>{p.duration_seconds}s</span>}
                     </div>
+                    {(p.hashtags.length > 0 || p.tagged_users.length > 0) && (
+                      <div className="flex flex-wrap gap-1">
+                        {p.tagged_users.slice(0, 2).map((u) => (
+                          <span key={u} className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">@{u}</span>
+                        ))}
+                        {p.hashtags.slice(0, 3).map((h) => (
+                          <span key={h} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">#{h}</span>
+                        ))}
+                      </div>
+                    )}
                     {p.posted_at && (
                       <div className="text-[11px] text-muted-foreground">
                         {new Date(p.posted_at).toLocaleDateString()}

@@ -1568,29 +1568,38 @@ export default function CampaignDetailsPage() {
         }
       });
 
-      if (result.success && result.data) {
-        const { summary } = result.data;
-
-        // Dismiss processing toast
+      if (result.success) {
         toast.dismiss(processingToastId);
 
-        if (summary.successful > 0) {
+        // The batch endpoint returns { total_queued, total_failed, failed[] } and
+        // enqueues ONE job per URL. This block previously read result.data.summary,
+        // which the endpoint has never returned — so `summary.successful` was undefined,
+        // no accurate count was ever shown, and URLs the queue REJECTED (tier quota /
+        // queue depth) were reported to nobody. That is why a batch of 7 could look
+        // like it ran one.
+        const r = result as unknown as {
+          total_queued?: number
+          total_failed?: number
+          failed?: Array<{ url: string; error: string }>
+        };
+        const queued = r.total_queued ?? 0;
+        const failed = r.total_failed ?? 0;
+
+        if (queued > 0) {
           toast.success(
-            `✅ Successfully processed ${summary.successful}/${summary.total_requested} posts! Analytics ready.`,
-            {
-              duration: 6000,
-              position: 'bottom-center',
-            }
+            `Queued ${queued} of ${urls.length} post${urls.length === 1 ? "" : "s"}. They appear as each finishes.`,
+            { duration: 6000, position: 'bottom-center' }
           );
         }
 
-        if (summary.failed > 0) {
+        if (failed > 0) {
+          // Name the first rejection instead of a generic "check your URLs" — the usual
+          // cause is a queue/quota rejection, which no amount of URL-checking fixes.
+          const first = r.failed?.[0];
           toast.error(
-            `❌ ${summary.failed} posts failed to process. Check URLs and try again.`,
-            {
-              duration: 6000,
-              position: 'bottom-center',
-            }
+            `${failed} post${failed === 1 ? "" : "s"} could not be queued` +
+              (first?.error ? ` — ${String(first.error).slice(0, 120)}` : ""),
+            { duration: 10000, position: 'bottom-center' }
           );
         }
 
