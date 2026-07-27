@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useMemo, useState } from "react"
+import { Fragment, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -12,9 +12,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   AlertTriangle, ArrowLeft, BadgeCheck, ChevronDown, ChevronRight, Coins,
-  Loader2, Plus, RefreshCw, Upload, XCircle,
+  Loader2, Plus, RefreshCw, ShieldCheck, SkipForward, Upload, XCircle,
 } from "lucide-react"
-import type { ImportPreviewRow, ImportPreviewSummary } from "@/types/influencerDatabase"
+import type {
+  ExistingRowMode, ImportPreviewRow, ImportPreviewSummary,
+} from "@/types/influencerDatabase"
 
 // Reel first — it is the rate quoted in the overwhelming majority of deals, so it gets
 // dedicated columns. The rest live behind the per-row expander.
@@ -82,16 +84,27 @@ interface Props {
   unknownColumns: string[]
   fileName: string
   committing: boolean
+  existingMode: ExistingRowMode
+  previewing: boolean
+  onExistingModeChange: (mode: ExistingRowMode) => void
   onCommit: (rows: ImportPreviewRow[]) => void
   onBack: () => void
 }
 
 export function ExcelImportReview({
-  rows: initialRows, summary, unknownColumns, fileName, committing, onCommit, onBack,
+  rows: initialRows, summary, unknownColumns, fileName, committing,
+  existingMode, previewing, onExistingModeChange, onCommit, onBack,
 }: Props) {
   const [rows, setRows] = useState<ImportPreviewRow[]>(initialRows)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [onlyProblems, setOnlyProblems] = useState(false)
+
+  // Switching skip/update re-previews server-side, so the rows prop changes underneath.
+  // Without this the table keeps rendering the previous mode's labels and the operator
+  // commits against something other than what they are looking at.
+  useEffect(() => {
+    setRows(initialRows)
+  }, [initialRows])
 
   const setPrice = (rowNumber: number, key: string, v: number | null) => {
     setRows((prev) =>
@@ -144,6 +157,13 @@ export function ExcelImportReview({
     ? rows.filter((r) => r.blocked || r.issues.length > 0)
     : rows
 
+  // What the button will actually write. In skip mode the already-present rows travel with
+  // the request but are left alone, so promising to "import 200 creators" when 160 of them
+  // will be untouched would be a lie told at the last possible moment.
+  const willWrite = existingMode === "skip"
+    ? importable.filter((r) => r.action !== "skip").length
+    : importable.length
+
   return (
     <div className="space-y-4">
       {/* Summary bar — what is about to happen, before anything is written */}
@@ -162,15 +182,77 @@ export function ExcelImportReview({
                 <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
                 Choose another file
               </Button>
-              <Button size="sm" onClick={() => onCommit(rows)} disabled={committing || importable.length === 0}>
+              <Button
+                size="sm"
+                onClick={() => onCommit(rows)}
+                disabled={committing || previewing || willWrite === 0}
+              >
                 {committing ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Upload className="mr-1.5 h-3.5 w-3.5" />
                 )}
-                Import {importable.length} creator{importable.length === 1 ? "" : "s"}
+                {existingMode === "skip"
+                  ? `Import ${willWrite} new creator${willWrite === 1 ? "" : "s"}`
+                  : `Import ${willWrite} creator${willWrite === 1 ? "" : "s"}`}
               </Button>
             </div>
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* Existing creators: skip or overwrite. Placed above the counts because it
+              changes what every number below means. */}
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  {summary.will_create + summary.will_update + summary.will_skip > 0 &&
+                   (summary.will_update + summary.will_skip) > 0
+                    ? `${summary.will_update + summary.will_skip} creator${
+                        summary.will_update + summary.will_skip === 1 ? " is" : "s are"
+                      } already in the database`
+                    : "No creators in this file are already in the database"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {existingMode === "skip"
+                    ? "Their stored pricing, tags and notes stay exactly as they are."
+                    : "Their stored pricing, tags and notes will be overwritten by this file. This cannot be undone."}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1 rounded-md border bg-background p-1">
+                <Button
+                  size="sm"
+                  variant={existingMode === "skip" ? "default" : "ghost"}
+                  className="h-7 text-xs"
+                  disabled={previewing || committing}
+                  onClick={() => onExistingModeChange("skip")}
+                >
+                  <SkipForward className="mr-1.5 h-3.5 w-3.5" />
+                  Skip existing
+                </Button>
+                <Button
+                  size="sm"
+                  variant={existingMode === "update" ? "default" : "ghost"}
+                  className="h-7 text-xs"
+                  disabled={previewing || committing}
+                  onClick={() => onExistingModeChange("update")}
+                >
+                  <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                  Update existing
+                </Button>
+              </div>
+            </div>
+            {existingMode === "update" && summary.will_update > 0 && (
+              <Alert variant="destructive" className="mt-3 py-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  {summary.will_update} existing record{summary.will_update === 1 ? "" : "s"} will be
+                  overwritten from this file — including any price that was negotiated after the
+                  sheet was exported. There is no undo.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           <Separator className="my-4" />
@@ -181,11 +263,19 @@ export function ExcelImportReview({
               <div className="text-xl font-bold tabular-nums text-emerald-600">{summary.will_create}</div>
               <p className="text-[11px] text-muted-foreground">New</p>
             </div>
-            <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-950/30">
-              <RefreshCw className="mx-auto mb-1 h-4 w-4 text-blue-600" />
-              <div className="text-xl font-bold tabular-nums text-blue-600">{summary.will_update}</div>
-              <p className="text-[11px] text-muted-foreground">Update existing</p>
-            </div>
+            {existingMode === "skip" ? (
+              <div className="rounded-lg bg-muted/50 p-3 text-center">
+                <ShieldCheck className="mx-auto mb-1 h-4 w-4 text-muted-foreground" />
+                <div className="text-xl font-bold tabular-nums">{summary.will_skip}</div>
+                <p className="text-[11px] text-muted-foreground">Left untouched</p>
+              </div>
+            ) : (
+              <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-950/30">
+                <RefreshCw className="mx-auto mb-1 h-4 w-4 text-blue-600" />
+                <div className="text-xl font-bold tabular-nums text-blue-600">{summary.will_update}</div>
+                <p className="text-[11px] text-muted-foreground">Update existing</p>
+              </div>
+            )}
             <div className="rounded-lg bg-muted/50 p-3 text-center">
               <Coins className="mx-auto mb-1 h-4 w-4 text-muted-foreground" />
               <div className="text-xl font-bold tabular-nums">{fmtAed(totals.cost)}</div>
@@ -341,6 +431,10 @@ export function ExcelImportReview({
                               {r.action === "create" ? (
                                 <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-600">
                                   New
+                                </Badge>
+                              ) : r.action === "skip" ? (
+                                <Badge variant="outline" className="text-muted-foreground">
+                                  Skipped
                                 </Badge>
                               ) : (
                                 <Badge variant="outline" className="border-blue-500/20 bg-blue-500/10 text-blue-600">

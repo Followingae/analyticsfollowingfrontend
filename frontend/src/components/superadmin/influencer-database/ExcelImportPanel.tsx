@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Download, Upload, FileSpreadsheet, Loader2, CheckCircle,
-  RefreshCw, AlertTriangle, Info, X, Eye, Coins,
+  RefreshCw, AlertTriangle, Info, X, Eye, Coins, SkipForward,
 } from "lucide-react"
 import { ExcelImportReview } from "./ExcelImportReview"
 import { useExcelImport } from "./useExcelImport"
@@ -22,8 +22,9 @@ export function ExcelImportPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
   const {
-    step, file, preview, result, previewing, committing,
+    step, file, preview, result, previewing, committing, existingMode,
     selectFile, downloadTemplate, runPreview, commit, reset, backToUpload,
+    changeExistingMode,
   } = useExcelImport()
 
   const stepIndex = STEPS.findIndex((s) => s.key === step)
@@ -144,7 +145,7 @@ export function ExcelImportPanel() {
             </CardContent>
           </Card>
 
-          <Button onClick={runPreview} disabled={!file || previewing} className="w-full" size="lg">
+          <Button onClick={() => runPreview()} disabled={!file || previewing} className="w-full" size="lg">
             {previewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
             {file ? "Review before importing" : "Select a file to import"}
           </Button>
@@ -164,6 +165,9 @@ export function ExcelImportPanel() {
           unknownColumns={preview.unknown_columns}
           fileName={file?.name ?? ""}
           committing={committing}
+          previewing={previewing}
+          existingMode={existingMode}
+          onExistingModeChange={changeExistingMode}
           onCommit={commit}
           onBack={backToUpload}
         />
@@ -180,11 +184,21 @@ export function ExcelImportPanel() {
                   <div className="text-xl font-bold tabular-nums text-green-600">{result.imported}</div>
                   <p className="text-[11px] text-muted-foreground">Imported</p>
                 </div>
-                <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-950/30">
-                  <RefreshCw className="mx-auto mb-1 h-4 w-4 text-blue-600" />
-                  <div className="text-xl font-bold tabular-nums text-blue-600">{result.updated}</div>
-                  <p className="text-[11px] text-muted-foreground">Updated</p>
-                </div>
+                {result.existing_mode === "skip" ? (
+                  <div className="rounded-lg bg-muted/50 p-3 text-center">
+                    <SkipForward className="mx-auto mb-1 h-4 w-4 text-muted-foreground" />
+                    <div className="text-xl font-bold tabular-nums">
+                      {result.skipped_existing_count}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Already in database</p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-950/30">
+                    <RefreshCw className="mx-auto mb-1 h-4 w-4 text-blue-600" />
+                    <div className="text-xl font-bold tabular-nums text-blue-600">{result.updated}</div>
+                    <p className="text-[11px] text-muted-foreground">Updated</p>
+                  </div>
+                )}
                 {result.analytics_queued > 0 && (
                   <div className="rounded-lg bg-purple-50 p-3 text-center dark:bg-purple-950/30">
                     <Loader2 className="mx-auto mb-1 h-4 w-4 text-purple-600" />
@@ -200,6 +214,27 @@ export function ExcelImportPanel() {
                   </div>
                 )}
               </div>
+
+              {result.existing_mode === "skip" && result.skipped_existing_count > 0 && (
+                <Alert>
+                  <SkipForward className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    {result.skipped_existing_count} creator
+                    {result.skipped_existing_count === 1 ? " was" : "s were"} already in the
+                    database and left untouched — their stored pricing, tags and notes are
+                    unchanged.
+                    <span className="mt-1 block break-words font-mono text-[11px] text-muted-foreground">
+                      {result.skipped_existing.map((u) => `@${u}`).join(", ")}
+                      {result.skipped_existing_count > result.skipped_existing.length &&
+                        ` +${result.skipped_existing_count - result.skipped_existing.length} more`}
+                    </span>
+                    <span className="mt-1 block">
+                      To refresh them from this file, import it again with{" "}
+                      <strong>Update existing</strong>.
+                    </span>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {result.held_inactive_unpriced && result.held_inactive_unpriced.length > 0 && (
                 <Alert>

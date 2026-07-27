@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import {
   Download, Upload, FileSpreadsheet, Loader2, CheckCircle,
-  AlertTriangle, RefreshCw, Info, Coins, Eye,
+  AlertTriangle, RefreshCw, Info, Coins, Eye, SkipForward,
 } from "lucide-react"
 import { ExcelImportReview } from "./ExcelImportReview"
 import { useExcelImport } from "./useExcelImport"
@@ -34,8 +34,9 @@ const STEPS = [
 export function ExcelImportDialog({ open, onOpenChange, onImportComplete }: ExcelImportDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const {
-    step, file, preview, result, previewing, committing,
+    step, file, preview, result, previewing, committing, existingMode,
     selectFile, downloadTemplate, runPreview, commit, reset, backToUpload,
+    changeExistingMode,
   } = useExcelImport(onImportComplete)
 
   const stepIndex = STEPS.findIndex((s) => s.key === step)
@@ -140,6 +141,9 @@ export function ExcelImportDialog({ open, onOpenChange, onImportComplete }: Exce
                 unknownColumns={preview.unknown_columns}
                 fileName={file?.name ?? ""}
                 committing={committing}
+                previewing={previewing}
+                existingMode={existingMode}
+                onExistingModeChange={changeExistingMode}
                 onCommit={commit}
                 onBack={backToUpload}
               />
@@ -155,12 +159,34 @@ export function ExcelImportDialog({ open, onOpenChange, onImportComplete }: Exce
                   <div className="text-xl font-bold tabular-nums text-green-600">{result.imported}</div>
                   <p className="text-[11px] text-muted-foreground">Imported</p>
                 </div>
-                <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-950/30">
-                  <RefreshCw className="mx-auto mb-1 h-4 w-4 text-blue-600" />
-                  <div className="text-xl font-bold tabular-nums text-blue-600">{result.updated}</div>
-                  <p className="text-[11px] text-muted-foreground">Updated</p>
-                </div>
+                {result.existing_mode === "skip" ? (
+                  <div className="rounded-lg bg-muted/50 p-3 text-center">
+                    <SkipForward className="mx-auto mb-1 h-4 w-4 text-muted-foreground" />
+                    <div className="text-xl font-bold tabular-nums">
+                      {result.skipped_existing_count}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Already in database</p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-950/30">
+                    <RefreshCw className="mx-auto mb-1 h-4 w-4 text-blue-600" />
+                    <div className="text-xl font-bold tabular-nums text-blue-600">{result.updated}</div>
+                    <p className="text-[11px] text-muted-foreground">Updated</p>
+                  </div>
+                )}
               </div>
+
+              {result.existing_mode === "skip" && result.skipped_existing_count > 0 && (
+                <Alert>
+                  <SkipForward className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    {result.skipped_existing_count} creator
+                    {result.skipped_existing_count === 1 ? " was" : "s were"} already in the
+                    database and left untouched. To refresh them from this file, import it
+                    again with <strong>Update existing</strong>.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {result.held_inactive_unpriced && result.held_inactive_unpriced.length > 0 && (
                 <Alert>
@@ -206,7 +232,7 @@ export function ExcelImportDialog({ open, onOpenChange, onImportComplete }: Exce
           {step === "upload" && (
             <>
               <Button variant="outline" onClick={handleClose}>Cancel</Button>
-              <Button onClick={runPreview} disabled={!file || previewing}>
+              <Button onClick={() => runPreview()} disabled={!file || previewing}>
                 {previewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
                 Review before importing
               </Button>

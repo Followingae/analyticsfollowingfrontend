@@ -333,6 +333,10 @@ export interface BulkImportResult {
 export interface ExcelImportResult {
   imported: number
   updated: number
+  existing_mode: ExistingRowMode
+  /** Usernames left exactly as stored because the import ran in 'skip' mode. */
+  skipped_existing: string[]
+  skipped_existing_count: number
   analytics_queued: number
   analytics_skipped: number
   analytics_failures: Array<{ username: string; reason: string }>
@@ -390,7 +394,8 @@ export interface ImportPreviewRow {
   sell_monthly_aed: number | null
 
   known_profile: ImportKnownProfile | null
-  action: 'create' | 'update'
+  /** Reflects the chosen existing_mode: an already-present username is 'update' or 'skip'. */
+  action: 'create' | 'update' | 'skip'
   existing: { id: string; status: string; followers_count: number | null } | null
   /** Status this row will actually land with — 'inactive' when it has no sell price. */
   effective_status: string
@@ -403,16 +408,24 @@ export interface ImportPreviewSummary {
   total_rows: number
   will_create: number
   will_update: number
+  will_skip: number
   blocked: number
   warnings: number
   unpriced: number
 }
+
+/**
+ * What happens to a username already in the database.
+ * 'skip' is the default: overwriting curated pricing and notes from a spreadsheet has no undo.
+ */
+export type ExistingRowMode = 'skip' | 'update'
 
 export interface ExcelImportPreview {
   rows: ImportPreviewRow[]
   columns_detected: string[]
   pricing_columns_detected: string[]
   unknown_columns: string[]
+  existing_mode: ExistingRowMode
   summary: ImportPreviewSummary
 }
 
