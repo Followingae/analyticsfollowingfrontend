@@ -10,6 +10,7 @@ import {
   Lock, Check, FileSignature, CreditCard, Users, Download, ArrowRight,
   ShieldCheck, Sparkles, Wallet, CalendarClock,
 } from 'lucide-react'
+import { QuoteView } from './QuoteView'
 
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/proposals`
 
@@ -146,12 +147,25 @@ export default function PublicProposalPage() {
   const advanceDone = !!gate?.advance_paid
   const value = proposal.total ?? advance_invoice?.amount_aed ?? null
 
-  // 3-stage progress tracker.
-  const stages = [
-    { key: 'agreement', label: 'Agreement', done: agreementDone },
-    { key: 'advance', label: 'Advance', done: advanceDone },
-    { key: 'creators', label: 'Creators', done: unlocked },
-  ]
+  // QUOTE links let a prospect choose deliverables before any paperwork exists. The sales
+  // flow below (teaser → agreement → advance → log in) does not apply until the client has
+  // confirmed and we have raised the commercials, at which point this same link becomes
+  // the sales view it always was.
+  const isQuote = data.mode === 'quote' && !requiresLogin
+
+  // 3-stage progress tracker. A quote has its own first step — choosing — because at that
+  // point there is no agreement or invoice to be waiting on.
+  const stages = isQuote
+    ? [
+        { key: 'select', label: 'Selection', done: !!data.quote?.confirmed_at },
+        { key: 'agreement', label: 'Agreement', done: agreementDone },
+        { key: 'advance', label: 'Advance', done: advanceDone },
+      ]
+    : [
+        { key: 'agreement', label: 'Agreement', done: agreementDone },
+        { key: 'advance', label: 'Advance', done: advanceDone },
+        { key: 'creators', label: 'Creators', done: unlocked },
+      ]
   const doneCount = stages.filter((s) => s.done).length
 
   return (
@@ -193,7 +207,7 @@ export default function PublicProposalPage() {
               {/* content in normal flow — container grows to fit the heading */}
               <div className="relative flex min-h-[320px] sm:min-h-[420px] flex-col justify-end p-6 sm:p-10">
                 <div className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${proposal.cover_image_url ? 'bg-white/15 text-white backdrop-blur' : 'bg-primary/10 text-primary'}`}>
-                  <Sparkles className="h-3 w-3" />Campaign proposal
+                  <Sparkles className="h-3 w-3" />{isQuote ? 'Quotation' : 'Campaign proposal'}
                 </div>
                 <h1 className={`mt-4 max-w-3xl text-3xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.05] break-words hyphens-auto ${proposal.cover_image_url ? 'text-white' : ''}`}>
                   {proposal.campaign_name || proposal.title}
@@ -233,8 +247,16 @@ export default function PublicProposalPage() {
           </Reveal>
         </section>
 
-        {/* ---------- get started ---------- */}
-        {!unlocked && (
+        {/* ---------- quotation ----------
+            Shown first on a quote link: choosing is the client's job here, and the
+            commercial steps below only appear once we have actually raised them. */}
+        {isQuote && <QuoteView token={token} data={data} onReload={load} />}
+
+        {/* ---------- get started ----------
+            On a quote link this stays hidden until there is a real agreement or invoice —
+            an empty "coming shortly" pair would promise paperwork before the client has
+            told us what to prepare. */}
+        {!unlocked && (!isQuote || agreement || advance_invoice) && (
           <section id="unlock" className="pt-14 sm:pt-20 scroll-mt-20">
             <Reveal>
               <div className="flex items-center gap-2 text-sm font-semibold text-primary">
@@ -320,6 +342,7 @@ export default function PublicProposalPage() {
             Once the commercials clear this section stops being the lineup and becomes the
             handoff: the roster lives in the client's account, not on a permanent public
             link that anyone it was forwarded to can still open. */}
+        {!isQuote && (
         <section id="creators" className="pt-14 sm:pt-20 scroll-mt-20">
           {requiresLogin ? (
             <Reveal>
@@ -420,6 +443,7 @@ export default function PublicProposalPage() {
           </>
           )}
         </section>
+        )}
 
         {/* ---------- payment ---------- */}
         {(schedule.length > 0 || (invoices && invoices.length > 0)) && (

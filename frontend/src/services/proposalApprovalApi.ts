@@ -87,8 +87,53 @@ export const proposalApprovalApi = {
   // Budget-gated workspace read (TMs get per-influencer pricing, not campaign totals).
   getWorkspace: (proposalId: string) => jfetch(`${BASE}/${proposalId}/workspace`),
 
-  // Generate (or reuse) the public client share link.
-  createShare: (proposalId: string) => jfetch(`${BASE}/${proposalId}/share`, { method: 'POST', body: '{}' }),
+  // Generate (or reuse) a public client link.
+  //   'gated' = the sales pitch: needs commercials attached, shows 5 samples until the
+  //             agreement is signed and the advance paid.
+  //   'open'  = a quotation: full roster and pricing immediately, no paperwork needed,
+  //             expires (default 30 days) and can be revoked.
+  createShare: (
+    proposalId: string,
+    opts?: { reveal_mode?: 'gated' | 'open'; expires_in_days?: number },
+  ) =>
+    jfetch(`${BASE}/${proposalId}/share`, {
+      method: 'POST',
+      body: JSON.stringify({
+        reveal_mode: opts?.reveal_mode ?? 'gated',
+        expires_in_days: opts?.expires_in_days ?? null,
+      }),
+    }),
+
+  // Kill every live link for this proposal. The only way to take a forwarded quote back.
+  revokeShare: (proposalId: string) =>
+    jfetch(`${BASE}/${proposalId}/share/revoke`, { method: 'POST', body: '{}' }),
+
+  // The optional priced add-on offered per deliverable on a quote, e.g. "With MEFCC visit".
+  getPriceModifier: (proposalId: string) => jfetch(`${BASE}/${proposalId}/price-modifier`),
+
+  savePriceModifier: (
+    proposalId: string,
+    body: {
+      label: string
+      kind?: 'percent' | 'fixed'
+      percent_value?: number | null
+      amount_aed?: number | null
+      description?: string | null
+      is_enabled?: boolean
+    },
+  ) =>
+    jfetch(`${BASE}/${proposalId}/price-modifier`, {
+      method: 'PUT',
+      body: JSON.stringify({ kind: 'percent', is_enabled: true, ...body }),
+    }),
+
+  // Which of a creator's assigned deliverables may offer the add-on. Defining the add-on
+  // alone prices nothing — a line has to be marked eligible before the client is offered it.
+  setModifierEligibility: (proposalId: string, influencerId: string, eligibleTypes: string[]) =>
+    jfetch(`${BASE}/${proposalId}/influencers/${influencerId}/modifier-eligibility`, {
+      method: 'PUT',
+      body: JSON.stringify({ eligible_types: eligibleTypes }),
+    }),
 
   // Draw/lift the "we're still working on this" curtain. While it is down the client keeps
   // the proposal in their list but the API serves them no roster, and select/approve/reject

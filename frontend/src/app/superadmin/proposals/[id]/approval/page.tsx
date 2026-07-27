@@ -23,6 +23,7 @@ import { proposalApprovalApi, type ApprovalStep } from '@/services/proposalAppro
 import { clientApi } from '@/services/clientManagementApi'
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab'
 import { TmAddCreatorsDialog } from '@/components/proposals/TmAddCreatorsDialog'
+import { PriceModifierCard } from '@/components/superadmin/proposals/PriceModifierCard'
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   draft: { label: 'Draft', cls: 'bg-muted text-foreground' },
@@ -58,6 +59,7 @@ export default function ProposalApprovalPage() {
   const [approveNotes, setApproveNotes] = useState('')
   const [sendBackNotes, setSendBackNotes] = useState('')
   const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [shareMode, setShareMode] = useState<'gated' | 'open' | null>(null)
   const [wipNote, setWipNote] = useState('')
 
   const toggleWip = (enabled: boolean) => run(async () => {
@@ -65,11 +67,18 @@ export default function ProposalApprovalPage() {
     await load()
   })
 
-  const genShare = () => run(async () => {
-    const res = await proposalApprovalApi.createShare(proposalId)
+  const genShare = (mode: 'gated' | 'open' = 'gated') => run(async () => {
+    const res = await proposalApprovalApi.createShare(proposalId, { reveal_mode: mode })
     const url = `${window.location.origin}${res.data?.share_path || ''}`
     setShareUrl(url)
+    setShareMode(res.data?.reveal_mode || mode)
     try { await navigator.clipboard.writeText(url) } catch { /* ignore */ }
+  })
+
+  const revokeShare = () => run(async () => {
+    await proposalApprovalApi.revokeShare(proposalId)
+    setShareUrl(null)
+    setShareMode(null)
   })
 
   const load = async () => {
@@ -345,18 +354,65 @@ export default function ProposalApprovalPage() {
                       : 'Internally approved. Share with the client - they see samples + a sign/pay gate.'}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button disabled={busy} onClick={genShare}><Send className="mr-1 h-4 w-4" />
-                    {shareUrl ? 'Regenerate link' : 'Generate share link'}
-                  </Button>
+                <CardContent className="space-y-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-md border bg-background p-3">
+                      <div className="text-sm font-medium">Sales link</div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        5 creators shown, the rest locked until the agreement is signed and the
+                        advance is paid. Needs paperwork attached first.
+                      </p>
+                      <Button size="sm" className="mt-2" disabled={busy} onClick={() => genShare('gated')}>
+                        <Send className="mr-1 h-4 w-4" />
+                        {shareMode === 'gated' && shareUrl ? 'Regenerate' : 'Generate sales link'}
+                      </Button>
+                    </div>
+                    <div className="rounded-md border bg-background p-3">
+                      <div className="text-sm font-medium">Quotation link</div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Full roster and pricing straight away, no paperwork needed — the prospect
+                        picks deliverables and confirms. Expires in 30 days.
+                      </p>
+                      <Button size="sm" variant="outline" className="mt-2" disabled={busy}
+                        onClick={() => genShare('open')}>
+                        <Send className="mr-1 h-4 w-4" />
+                        {shareMode === 'open' && shareUrl ? 'Regenerate' : 'Generate quote link'}
+                      </Button>
+                    </div>
+                  </div>
+
                   {shareUrl && (
                     <div className="rounded-md border bg-background p-2 text-xs break-all">
+                      <span className="mr-2 rounded bg-muted px-1.5 py-0.5 font-medium">
+                        {shareMode === 'open' ? 'Quotation' : 'Sales'}
+                      </span>
                       {shareUrl}
                       <div className="text-muted-foreground mt-1">Copied to clipboard.</div>
                     </div>
                   )}
+
+                  {/* These links are authorised by the URL alone. Once one has been forwarded
+                      past the person we sent it to, revoking is the only way to take the
+                      roster and its prices back. */}
+                  <Button size="sm" variant="ghost" disabled={busy} onClick={revokeShare}
+                    className="text-destructive hover:text-destructive">
+                    Revoke all links for this proposal
+                  </Button>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Priced add-on — only meaningful once there is a roster to price it against. */}
+            {viewer.is_operator && (status === 'internally_approved' || status === 'sent') && (
+              <PriceModifierCard
+                proposalId={proposalId}
+                creators={(ws.influencers || []).map((inf: any) => ({
+                  id: String(inf.id),
+                  username: inf.username,
+                  assigned_deliverables: inf.assigned_deliverables || [],
+                }))}
+                onChanged={load}
+              />
             )}
 
             {/* Approval chain builder */}

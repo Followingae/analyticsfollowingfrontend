@@ -350,6 +350,17 @@ const sections: GuideSection[] = [
         ],
       },
       {
+        title: 'Importing a sheet that contains creators you already have',
+        description:
+          'On the review screen you choose what happens to any handle already in the master database: Skip existing (the default) leaves their stored record exactly as it is, or Update existing overwrites it from your file. Skip is the default on purpose — an overwrite replaces curated pricing, tags and internal notes with whatever the sheet says, including prices that were renegotiated after it was exported, and there is no undo. Re-uploading the same sheet in Skip mode is always safe and never counts against your daily add limit.',
+        steps: [
+          { text: 'Upload the file and review it. The toggle sits above the counts, because it changes what every number below means.' },
+          { text: 'Skip existing: the row shows a grey "Skipped" badge and the button reads "Import N new creators".' },
+          { text: 'Update existing: you get a warning naming how many stored records will be overwritten. Only pick this when the sheet is the newer truth.' },
+          { text: 'After importing, the result screen lists every creator that was skipped by handle, so nothing disappears silently.' },
+        ],
+      },
+      {
         title: 'Country — where a creator is open to work',
         description:
           'Country is OUR commercial record of where a creator will take work — one country each. It is not detected from their posts or audience, and it is not where they live: it is what you tell us. A creator with no country set shows "--" and will not appear when you filter by country, which is deliberate — we would rather show you nothing than guess a market and have you sell against it. Set it on a creator, or fill the country column in the Excel template ("market", "location" and "based in" are accepted as column names too).',
@@ -430,6 +441,29 @@ const sections: GuideSection[] = [
           { text: 'Filter by country or search, then tick the creators you want — or use "Select these" to take the whole page.' },
           { text: 'For each one, add deliverable types and quantities (defaults to one reel).' },
           { text: 'Click Add. Or skip all of it and click a saved list to add every creator in it.' },
+        ],
+      },
+      {
+        title: 'Quoting a prospect who has no account yet',
+        description:
+          'A quotation link shows the full roster and pricing straight away, with no agreement or invoice attached — because the point is for the prospect to choose before there is anything to sign. They pick deliverables per creator, and their picks set the quoted total directly: the agreement and advance you raise afterwards are priced off that exact number. The page also tells them, in writing, that this is their FIRST curated round and that once they are onboarded you can send as many more rounds of creators as they want. When they hit Confirm you get a notification to create their account and send the paperwork; nothing about the proposal status changes until the commercials clear.',
+        steps: [
+          { text: 'On the approval page, use "Generate quote link" (the sales link is the other button — it needs paperwork attached and shows only 5 samples).' },
+          { text: 'Quote links expire after 30 days and can be revoked. Use Revoke once a quote has been forwarded somewhere you did not intend.' },
+          { text: 'The client selects deliverables and confirms. You are notified with their name, note and total.' },
+          { text: 'Create their Following account, then attach the agreement and advance invoice to the SAME proposal — the same link carries them.' },
+          { text: 'Attaching either one freezes their selection, so a forwarded link can no longer re-price a deal you have already papered.' },
+        ],
+      },
+      {
+        title: 'Charging more for an add-on (e.g. "With MEFCC visit")',
+        description:
+          'A quotation can carry one priced add-on: you set the label the client reads and the percentage it adds, then mark which individual deliverables may offer it. The client then chooses per deliverable — so one quote can carry a reel WITH the event visit and a story without, each priced accordingly, with both prices shown side by side on every eligible line. Leave it switched off (the default) and the client never sees the option at all. The add-on is sell-side only: it does not change cost, so margin shows the uplift as pure upside — say so if the add-on actually costs us something.',
+        steps: [
+          { text: 'On the approval page, open "Priced add-on". Enter the label (e.g. "With MEFCC visit") and the uplift (e.g. 15%).' },
+          { text: 'Tick which deliverables can offer it, per creator. A creator who is not attending should stay unticked — defining the add-on alone offers it nowhere.' },
+          { text: 'Switch it off to remove it from the quote entirely without losing its terms.' },
+          { text: 'Changing the percentage re-prices every line already picked against it, and the stored total updates immediately.' },
         ],
       },
       {
