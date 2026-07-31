@@ -48,6 +48,41 @@ export interface ImdListCreator {
   country?: string | null
   sell_reel_aed_cents?: number | null
   sell_post_aed_cents?: number | null
+  /** 'complete' | 'partial' | null — null means we hold no analytics row at all. */
+  analytics_status?: string | null
+  analytics_collected_at?: string | null
+  /** The live public link, when one has been minted. Null until an operator shares. */
+  share_token?: string | null
+  share_path?: string | null
+  share_expires_at?: string | null
+  share_views?: number | null
+}
+
+/** Why a creator has no measured analytics — see availability.py. */
+export interface Unavailability {
+  reason: string
+  fault: 'instagram' | 'ours'
+  retryable: boolean
+  headline: string
+  detail: string
+  instagram_url: string | null
+}
+
+export const creatorShareApi = {
+  /** Mint or reuse the live public link. 400 when the gap is ours to fix. */
+  create: (username: string, expires_in_days?: number): Promise<{
+    data: { token: string; share_path: string; created: boolean; unavailable: Unavailability | null }
+  }> =>
+    jfetch(`${BASE}/creator-shares/${encodeURIComponent(username)}`, {
+      method: 'POST', body: JSON.stringify({ expires_in_days: expires_in_days ?? null }),
+    }),
+
+  revoke: (username: string): Promise<{ data: { revoked: number } }> =>
+    jfetch(`${BASE}/creator-shares/${encodeURIComponent(username)}/revoke`, {
+      method: 'POST', body: '{}',
+    }),
+
+  list: () => jfetch(`${BASE}/creator-shares`),
 }
 
 export const imdListsApi = {
@@ -74,4 +109,25 @@ export const imdListsApi = {
   /** Returns { added, skipped, list_size } — skipped were already on the proposal. */
   addToProposal: (id: string, proposalId: string): Promise<{ data: { added: number; skipped: number; list_size: number } }> =>
     jfetch(`${BASE}/imd-lists/${id}/add-to-proposal/${proposalId}`, { method: 'POST', body: '{}' }),
+
+  /** Download the list as CSV. Streams a file, so it does NOT go through jfetch's
+   *  res.json(). Cost pricing is off by default — the file is built to be forwarded. */
+  async exportCsv(id: string, name: string, includeCost = false): Promise<void> {
+    const res = await fetchWithAuth(
+      `${BASE}/imd-lists/${id}/export.csv${includeCost ? '?include_cost=true' : ''}`
+    )
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error(err.detail || `Export failed: ${res.status}`)
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${(name || 'list').replace(/[^A-Za-z0-9_-]+/g, '_')}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  },
 }

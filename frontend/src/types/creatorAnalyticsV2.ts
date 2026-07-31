@@ -320,12 +320,31 @@ export interface ContentAnalysisBlock {
 // ─── Envelope ─────────────────────────────────────────────────────────
 
 export interface AnalyticsMeta {
-  pipeline_version: string
+  pipeline_version?: string
   /** 'partial' means some sources failed — source_errors says which. Not smoothed over. */
   status: 'complete' | 'partial' | 'failed'
-  source_errors: Record<string, string>
+  /** Absent on the public share payload: which scraper failed is internal. */
+  source_errors?: Record<string, string>
   collected_at: string | null
-  updated_at: string | null
+  updated_at?: string | null
+}
+
+/**
+ * Why a creator has no numbers — present only when there ARE none.
+ *
+ * The "no empty states" rule says don't decorate a missing block. It does NOT say render
+ * a profile header above a page of hidden sections and let the reader conclude the
+ * creator is worthless: 104 of 449 creators land here, and the causes range from "their
+ * profile is private" to "our own scraper ran out of memory". `fault` is the distinction
+ * that matters — we never present our failure as a fact about the creator.
+ */
+export interface Unavailability {
+  reason: 'private' | 'restricted' | 'account_gone' | 'collection_failed' | 'not_analysed'
+  fault: 'instagram' | 'ours'
+  retryable: boolean
+  headline: string
+  detail: string
+  instagram_url: string | null
 }
 
 export interface Provenance_ {
@@ -354,8 +373,11 @@ export interface CreatorAnalyticsV2 {
   /** Withheld unless first-party (creator OAuth'd and Meta returned
    *  follower_demographics). Follower sampling was dropped. */
   audience: Unavailable | Record<string, unknown>
-  _provenance: Provenance_
+  /** Absent on the public share payload — it names our vendor stack. */
+  _provenance?: Provenance_
   _meta?: AnalyticsMeta
+  /** Set only when engagement could not be measured. See `Unavailability`. */
+  unavailable?: Unavailability | null
 }
 
 // ─── Display helpers ──────────────────────────────────────────────────

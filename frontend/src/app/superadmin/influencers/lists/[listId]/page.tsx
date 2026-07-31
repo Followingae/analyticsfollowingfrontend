@@ -14,9 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
-import { ArrowLeft, Loader2, Plus, Search, Users, X, Globe, Check } from "lucide-react"
+import {
+  ArrowLeft, Loader2, Plus, Search, Users, X, Globe, Check,
+  Download, Link2, Copy, BarChart3,
+} from "lucide-react"
 import { toast } from "sonner"
-import { imdListsApi, type ImdListCreator } from "@/services/imdListsApi"
+import { imdListsApi, creatorShareApi, type ImdListCreator } from "@/services/imdListsApi"
 import { proposalApprovalApi } from "@/services/proposalApprovalApi"
 
 const ANY_COUNTRY = "__any__"
@@ -115,6 +118,47 @@ export default function ImdListDetailPage() {
     }
   }
 
+  // Share links are minted on demand, not up front: a token is a live public URL, and
+  // pre-generating one for every creator in every list would put the whole master database
+  // online the moment a list is created.
+  const [sharing, setSharing] = useState<string | null>(null)
+
+  const copy = async (path: string) => {
+    await navigator.clipboard.writeText(`${window.location.origin}${path}`)
+    toast.success("Link copied")
+  }
+
+  const share = async (username: string, existing?: string | null) => {
+    if (existing) return copy(existing)
+    setSharing(username)
+    try {
+      const res = await creatorShareApi.create(username)
+      await copy(res.data.share_path)
+      // A creator Instagram won't let us measure can still be shared — the page explains
+      // why and points at their profile — but the operator should know that's what the
+      // recipient will get before they paste the link into an email.
+      if (res.data.unavailable) {
+        toast.warning(`@${username}: ${res.data.unavailable.headline}`, {
+          description: "The link works and explains this to the viewer.",
+        })
+      }
+      load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not create link")
+    } finally {
+      setSharing(null)
+    }
+  }
+
+  const exportCsv = async () => {
+    try {
+      await imdListsApi.exportCsv(listId, list?.name || "list")
+      toast.success("CSV downloaded")
+    } catch (e) {
+      toast.error((e as Error).message || "Export failed")
+    }
+  }
+
   const removeOne = async (influencerId: string, username: string) => {
     try {
       await imdListsApi.removeItem(listId, influencerId)
@@ -150,7 +194,12 @@ export default function ImdListDetailPage() {
                     <Users className="h-3 w-3" />{list.items.length} creator{list.items.length === 1 ? "" : "s"}
                   </Badge>
                 </div>
-                <Button className="gap-2" onClick={() => setOpen(true)}><Plus className="h-4 w-4" />Add creators</Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" className="gap-2" onClick={exportCsv} disabled={list.items.length === 0}>
+                    <Download className="h-4 w-4" />Export CSV
+                  </Button>
+                  <Button className="gap-2" onClick={() => setOpen(true)}><Plus className="h-4 w-4" />Add creators</Button>
+                </div>
               </div>
 
               {list.items.length === 0 ? (
@@ -176,8 +225,31 @@ export default function ImdListDetailPage() {
                         <div>{fmt(c.followers_count)} followers</div>
                         {c.engagement_rate != null && <div>{Number(c.engagement_rate).toFixed(1)}% eng</div>}
                       </div>
+                      {/* Whether we actually measured this creator decides what a share
+                          link would show, so it belongs on the row next to the button. */}
+                      {!c.analytics_status && (
+                        <Badge variant="outline" className="shrink-0 gap-1 text-muted-foreground">
+                          <BarChart3 className="h-3 w-3" />No analytics
+                        </Badge>
+                      )}
                       {c.country && <Badge variant="secondary" className="shrink-0">{c.country}</Badge>}
                       {c.tier && <Badge variant="outline" className="shrink-0 capitalize">{c.tier}</Badge>}
+
+                      <Button
+                        size="sm"
+                        variant={c.share_token ? "secondary" : "outline"}
+                        className="h-7 shrink-0 gap-1.5 px-2 text-xs"
+                        disabled={sharing === c.username}
+                        onClick={() => share(c.username, c.share_path)}
+                        title={c.share_token
+                          ? `Public link · ${c.share_views ?? 0} view${c.share_views === 1 ? "" : "s"}`
+                          : "Create a public analytics link"}
+                      >
+                        {sharing === c.username
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : c.share_token ? <Copy className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
+                        {c.share_token ? "Copy link" : "Share"}
+                      </Button>
                       <Button
                         size="icon" variant="ghost"
                         className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"

@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { CheckCircle2, XCircle, Clock, Loader2, RefreshCw, CircleDot } from "lucide-react"
+import { CheckCircle2, XCircle, Clock, Loader2, RefreshCw, CircleDot, EyeOff } from "lucide-react"
 import type { AnalyticsStatus } from "@/hooks/useAnalyticsStatusPoller"
 
 interface AnalyticsStatusCellProps {
@@ -101,6 +101,29 @@ export function AnalyticsStatusCell({ status, justCompleted, onRetry }: Analytic
           <CheckCircle2 className="h-3.5 w-3.5" />
           <span>Existing data</span>
         </div>
+      )
+
+    // Instagram will not expose this profile — private, restricted, or the account is
+    // gone. Deliberately NOT red and deliberately without a Retry: this is not a failure
+    // on our side and re-running it can only ever buy the same empty answer again.
+    case "unavailable":
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1.5 text-muted-foreground text-xs cursor-help">
+                <EyeOff className="h-3.5 w-3.5" />
+                <span className="truncate max-w-[110px]">Not measurable</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[300px]">
+              <p className="text-xs">
+                {status.error ||
+                  "Instagram does not expose this profile's posts (private, restricted, or the account no longer exists)."}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )
 
     default:

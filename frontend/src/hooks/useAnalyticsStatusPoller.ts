@@ -4,7 +4,10 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { superadminApiService } from "@/services/superadminApi"
 
 export interface AnalyticsStatus {
-  status: "pending" | "queued" | "processing" | "completed" | "failed" | "skipped"
+  status:
+    | "pending" | "queued" | "processing" | "completed" | "failed" | "skipped"
+    /** Instagram will not expose this profile. Terminal, and not our failure. */
+    | "unavailable"
   progress: number
   progressMessage?: string
   error?: string
@@ -15,7 +18,10 @@ export interface AnalyticsStatusMap {
   [influencerId: string]: AnalyticsStatus
 }
 
-const TERMINAL_STATUSES = new Set(["completed", "failed", "skipped"])
+// 'unavailable' is terminal: Instagram will not expose this profile (private, restricted,
+// or the account is gone), so no amount of polling or re-running changes it. Omitting it
+// here would leave the table polling this creator every 5s forever.
+const TERMINAL_STATUSES = new Set(["completed", "failed", "skipped", "unavailable"])
 const POLL_INTERVAL_MS = 5000
 
 export function useAnalyticsStatusPoller(

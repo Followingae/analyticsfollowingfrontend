@@ -379,6 +379,29 @@ const sections: GuideSection[] = [
           { text: 'Or: select creators in the master database and click "Add to list" — you can add them to an existing list or create a new one from the selection.' },
           { text: 'In a proposal, open Add creators — your saved lists appear at the top, and one click adds the whole list.' },
           { text: 'Deleting a list only removes the grouping. The creators stay in the master database and any proposal they are already on is unaffected.' },
+          { text: 'Export CSV downloads the whole list — creator details, measured analytics and each creator\'s public analytics link. Cost pricing is deliberately left out because the file is built to be forwarded; sell pricing is included.' },
+        ],
+      },
+      {
+        title: 'Public creator analytics links',
+        description:
+          'Share one creator\'s analytics with someone who has no Following account — a prospect, a client who has not been onboarded, anyone. They open a link and see the real analytics page: no login, no credits, no account. The link carries analytics only. Cost pricing, sell pricing, tier, tags and internal notes are never on it.',
+        steps: [
+          { text: 'In Influencer Database > Lists, open a list and click Share on any creator. The link is copied to your clipboard. Click Copy link afterwards to get it again.' },
+          { text: 'Links expire after 30 days and can be revoked at any time. Revoking is the only way to take back a link that has been forwarded, since anyone holding the URL can open it.' },
+          { text: 'A creator whose profile Instagram will not let us measure (private, restricted, or a deleted account) can still be shared — the page explains that plainly and points the viewer at their Instagram profile instead of showing an empty page.' },
+          { text: 'A creator whose analysis failed on OUR side cannot be shared until it is re-run. You will see "Re-run the analysis before sharing" — that state is our failure, not a fact about the creator, and it must not go out to a client.' },
+        ],
+      },
+      {
+        title: 'Reading the Analytics column',
+        description:
+          'The Analytics column says whether we actually measured a creator — not merely whether a job finished. A run that returns a profile and no posts is not a measurement, and it is no longer recorded as Complete.',
+        steps: [
+          { text: 'Complete — engagement was measured from real posts. This is the only status that means the numbers on the analytics page are real.' },
+          { text: 'Failed (red, with a retry button) — collection broke on OUR side, most often the Apify memory cap. Re-run it; the creator is fine. These cannot be shared publicly until they are re-run.' },
+          { text: 'Not measurable (grey) — Instagram will not expose the profile: private, restricted, or the account no longer exists. There is no retry because re-running can only ever buy the same empty answer. Hover for the exact reason.' },
+          { text: 'Existing data — imported with analytics already on file, so no run was needed.' },
         ],
       },
       {

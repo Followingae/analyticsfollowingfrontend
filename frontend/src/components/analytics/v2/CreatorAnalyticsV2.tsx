@@ -30,7 +30,19 @@ import { ContentTabV2 } from "./ContentTabV2"
  *
  * Every block renders only when its own `source` says measured/inferred.
  */
-export function CreatorAnalyticsV2({ username }: { username: string }) {
+/**
+ * `shareToken` switches this to the PUBLIC surface (/c/{token}): the payload comes from
+ * the unauthenticated endpoint and Refresh is gone, because refreshing spends money and
+ * nobody holding a share URL is authorised to spend ours.
+ *
+ * Deliberately the same component rather than a public copy. A second "public analytics"
+ * component would be a lookalike of the product that drifts from it by one fix at a time —
+ * and the whole value of sending this link is that the prospect sees the real thing.
+ */
+export function CreatorAnalyticsV2({
+  username, shareToken,
+}: { username: string; shareToken?: string }) {
+  const isPublic = !!shareToken
   const [data, setData] = useState<Payload | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +52,9 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
   const load = async () => {
     setLoading(true); setError(null); setNotAnalysed(false)
     try {
-      setData(await creatorAnalyticsV2Api.get(username))
+      setData(shareToken
+        ? await creatorAnalyticsV2Api.getShared(shareToken)
+        : await creatorAnalyticsV2Api.get(username))
     } catch (e) {
       if (e instanceof NotAnalysedError) setNotAnalysed(true)
       else setError(e instanceof Error ? e.message : "Failed to load analytics")
@@ -49,7 +63,7 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
     }
   }
 
-  useEffect(() => { void load() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [username])
+  useEffect(() => { void load() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [username, shareToken])
 
   const refresh = async () => {
     setRefreshing(true)
@@ -99,6 +113,7 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
 
   const p = data.profile
   const eng = data.engagement
+  const gap = data.unavailable
   const hasPosts =
     isPresent(data.recent_posts) && data.recent_posts.posts.some((x) => x.thumbnail_url)
 
@@ -160,18 +175,27 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
                       </Badge>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
+                      {/* The public payload carries `status` but not `source_errors` —
+                          the badge must still appear (a half-collected creator must never
+                          read as fully measured), so name the failed sources only when we
+                          were given them. */}
                       Some sources failed, so parts of this are missing rather than
-                      estimated: {Object.keys(data._meta.source_errors).join(", ")}
+                      estimated
+                      {data._meta.source_errors
+                        ? `: ${Object.keys(data._meta.source_errors).join(", ")}`
+                        : "."}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               )}
-              <Button variant="outline" size="sm" onClick={refresh} disabled={refreshing}>
-                {refreshing
-                  ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
-                Refresh
-              </Button>
+              {!isPublic && (
+                <Button variant="outline" size="sm" onClick={refresh} disabled={refreshing}>
+                  {refreshing
+                    ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
+                  Refresh
+                </Button>
+              )}
             </div>
           </div>
 
@@ -209,6 +233,14 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
         </CardContent>
       </Card>
 
+      {/* Nothing was measured, so there are no tabs to show. Say why and hand over the
+          one thing that IS useful — the profile itself. Rendering the tab bar here would
+          give four headings above four empty panels, which reads as "we looked and this
+          creator has nothing", and for the creators whose collection WE broke that is a
+          claim we'd be making about them on our own failure. */}
+      {gap ? (
+        <UnavailableNotice gap={gap} isPublic={isPublic} onRetry={refresh} retrying={refreshing} />
+      ) : (
       <Tabs defaultValue="overview">
         {/* Column count must match the number of triggers actually rendered — the
             Posts tab is conditional, so 4 tabs when it shows, 3 when it doesn't.
@@ -238,14 +270,68 @@ export function CreatorAnalyticsV2({ username }: { username: string }) {
           <QualityTab data={data} />
         </TabsContent>
       </Tabs>
+      )}
 
       {data._meta && (
         <p className="text-center text-xs text-muted-foreground">
-          Updated {data._meta.updated_at ? new Date(data._meta.updated_at).toLocaleDateString() : "—"}
-          {" · "}v{data._meta.pipeline_version}
+          {/* The public payload carries `collected_at` but neither `updated_at` nor the
+              pipeline version — an internal build number is not something a client needs,
+              and "v undefined" is not something they should ever see. */}
+          Measured{" "}
+          {(() => {
+            const when = data._meta.updated_at ?? data._meta.collected_at
+            return when ? new Date(when).toLocaleDateString() : "—"
+          })()}
+          {data._meta.pipeline_version ? ` · v${data._meta.pipeline_version}` : ""}
         </p>
       )}
     </div>
+  )
+}
+
+/**
+ * The honest empty page: why there are no numbers, and where to look instead.
+ *
+ * Two audiences, one component. A brand or prospect gets the plain fact and a link to the
+ * profile. An operator additionally gets a Retry, but ONLY when the failure is ours —
+ * offering "try again" on a private account invites re-buying a scrape that can never
+ * succeed.
+ */
+function UnavailableNotice({
+  gap, isPublic, onRetry, retrying,
+}: {
+  gap: NonNullable<Payload["unavailable"]>
+  isPublic: boolean
+  onRetry: () => void
+  retrying: boolean
+}) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center py-14 text-center">
+        <h3 className="text-lg font-semibold">{gap.headline}</h3>
+        <p className="mt-2 max-w-md text-sm text-muted-foreground">{gap.detail}</p>
+
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          {gap.instagram_url && (
+            <Button asChild variant="outline">
+              <a href={gap.instagram_url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View their Instagram profile
+              </a>
+            </Button>
+          )}
+          {/* Operator-only, and only for failures we can actually fix. */}
+          {!isPublic && gap.retryable && (
+            <Button onClick={onRetry} disabled={retrying}>
+              {retrying
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <RefreshCw className="mr-2 h-4 w-4" />}
+              {retrying ? "Analysing — this takes a minute…" : "Run analysis again"}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
