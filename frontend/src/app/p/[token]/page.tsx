@@ -146,7 +146,10 @@ export default function PublicProposalPage() {
   const noInfluencers = total === 0
   const agreementDone = !!gate?.agreement_signed
   const advanceDone = !!gate?.advance_paid
-  const value = proposal.total ?? advance_invoice?.amount_aed ?? null
+  // The agreed campaign budget — NOT the priced roster total (`proposal.total`), which is
+  // a different and usually larger number. No fallback to it: quoting the sell total under
+  // a "Campaign Budget" label would misstate the deal, so an absent budget says so.
+  const budget = proposal.budget ?? null
 
   // QUOTE links let a prospect choose deliverables before any paperwork exists. The sales
   // flow below (teaser → agreement → advance → log in) does not apply until the client has
@@ -229,7 +232,7 @@ export default function PublicProposalPage() {
                   roster is a first curated round, and a hard number here reads as the whole
                   of what we can offer — then drops when someone is swapped out. */}
               <div className="grid grid-cols-2 divide-x divide-border overflow-hidden rounded-2xl border border-border bg-card">
-                <Stat icon={Wallet} label="Campaign Budget" value={money(value) ?? 'On request'} />
+                <Stat icon={Wallet} label="Campaign Budget" value={money(budget) ?? 'On request'} />
                 <Stat icon={CalendarClock} label="Milestones" value={String(schedule.length || invoices?.length || 1)} />
               </div>
               <div className="flex items-center justify-between gap-6 rounded-2xl border border-border bg-card px-5 py-4 sm:min-w-[240px]">
