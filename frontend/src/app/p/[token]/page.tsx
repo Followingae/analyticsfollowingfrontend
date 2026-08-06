@@ -131,6 +131,7 @@ export default function PublicProposalPage() {
   const schedule = proposal?.payment_schedule || []
   const total = gate?.total_influencers ?? influencers.length
   const shown = gate?.shown ?? influencers.filter((i: any) => !i.locked).length
+  // Kept for the ghost-card count below; no longer surfaced as a number in the copy.
   const lockedCount = Math.max(0, total - shown)
   const unlocked = !!gate?.unlocked
   // Clearing the commercials hands the client to their account — it does not reveal the
@@ -224,9 +225,11 @@ export default function PublicProposalPage() {
           {/* ---------- stat + progress bar ---------- */}
           <Reveal delay={0.06}>
             <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-stretch">
-              <div className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-2xl border border-border bg-card">
-                <Stat icon={Wallet} label="Campaign value" value={money(value) ?? 'On request'} />
-                <Stat icon={Users} label="Creators" value={noInfluencers ? 'Reserved' : String(total)} />
+              {/* Two stats, not three. The creator count was removed deliberately: this
+                  roster is a first curated round, and a hard number here reads as the whole
+                  of what we can offer — then drops when someone is swapped out. */}
+              <div className="grid grid-cols-2 divide-x divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                <Stat icon={Wallet} label="Campaign Budget" value={money(value) ?? 'On request'} />
                 <Stat icon={CalendarClock} label="Milestones" value={String(schedule.length || invoices?.length || 1)} />
               </div>
               <div className="flex items-center justify-between gap-6 rounded-2xl border border-border bg-card px-5 py-4 sm:min-w-[240px]">
@@ -351,7 +354,7 @@ export default function PublicProposalPage() {
                   <Check className="h-5 w-5 text-primary" />
                 </div>
                 <h2 className="mt-5 text-2xl sm:text-3xl font-semibold tracking-tight">
-                  You&apos;re all set{total > 0 ? ` — your ${total} creators are ready` : ''}
+                  You&apos;re all set — your creators are ready
                 </h2>
                 <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground leading-relaxed">
                   Your agreement and advance are confirmed. Sign in to your Following account
@@ -381,7 +384,8 @@ export default function PublicProposalPage() {
               {!unlocked && (
                 <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm">
                   <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                  {noInfluencers ? 'Revealed after your advance' : `${lockedCount} more unlock after payment`}
+                  {/* No count here either — same reason as the stat row. */}
+                  {noInfluencers ? 'Revealed after your advance' : 'Final selection will be available after unlocking'}
                 </div>
               )}
             </div>
