@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Store, Pencil, Trash2, Upload, Loader2, X } from "lucide-react"
+import { Plus, Store, Pencil, Trash2, Upload, Loader2, X, Copy, RefreshCw } from "lucide-react"
 import { faMerchantApi, faClientApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
@@ -132,6 +132,7 @@ export default function FAMerchantsPage() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<any>(null)
+  const [rotating, setRotating] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -163,6 +164,21 @@ export default function FAMerchantsPage() {
       setEditing(null)
       load()
     } catch { toast.error("Failed to save merchant") }
+  }
+
+  // Rotation is destructive to anyone holding the old code, so confirm — but keep
+  // it one step, because the reason you rotate is that the code has leaked and
+  // you want it dead now.
+  const handleRotate = async (m: any) => {
+    if (!confirm(`Issue a new venue code for ${m.name}? The current code stops working immediately.`)) return
+    setRotating(m.id)
+    try {
+      const res = await faMerchantApi.rotateVenueCode(m.id)
+      const code = res?.data?.venue_code
+      setMerchants((prev) => prev.map((x) => (x.id === m.id ? { ...x, venue_code: code } : x)))
+      toast.success(`New venue code: ${code}`)
+    } catch { toast.error("Could not rotate the venue code") }
+    finally { setRotating(null) }
   }
 
   const handleDelete = async (id: string) => {
@@ -212,6 +228,41 @@ export default function FAMerchantsPage() {
                   {!m.brand_user_id && (
                     <Badge variant="destructive" className="text-[10px] mb-2">No brand linked</Badge>
                   )}
+
+                  {/* The venue code. Print it on a card by the till: it's the whole
+                      access control on dine-in confirmation, so it's shown only here
+                      and rotating it is one click. */}
+                  {m.venue_code && (
+                    <div className="mb-3 rounded-lg border bg-muted/40 px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Venue code</p>
+                          <p className="font-mono text-lg font-semibold tracking-widest">{m.venue_code}</p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            size="icon" variant="ghost" className="h-7 w-7"
+                            title="Copy"
+                            onClick={() => { navigator.clipboard.writeText(m.venue_code); toast.success("Venue code copied") }}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon" variant="ghost" className="h-7 w-7"
+                            title="Issue a new code (the old one stops working)"
+                            onClick={() => handleRotate(m)}
+                            disabled={rotating === m.id}
+                          >
+                            {rotating === m.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <RefreshCw className="h-3.5 w-3.5" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">Staff type this to confirm a dine-in walk-in</p>
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => { setEditing(m); setDialogOpen(true) }}>
                       <Pencil className="h-3 w-3 mr-1" />Edit

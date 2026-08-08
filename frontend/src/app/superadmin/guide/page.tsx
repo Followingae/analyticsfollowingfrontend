@@ -624,6 +624,31 @@ const sections: GuideSection[] = [
           { text: 'Click Create Merchant to add a new brand partner.' },
           { text: 'Enter merchant details: name, logo, category, commission structure.' },
           { text: 'Manage existing merchants: edit details, activate/deactivate.' },
+          { text: 'Venue code: each merchant carries a 6-digit code their staff type to confirm a dine-in walk-in. It appears on the merchant card once the venue has its first dine-in campaign. Copy it to the venue (print it, put it by the till) and rotate it if it gets around — rotation kills the old code immediately.' },
+        ],
+      },
+      {
+        title: 'Codes: brand-supplied vs dine-in',
+        description:
+          'A barter campaign can hand each approved creator a unique code. There are two kinds, and picking the wrong one is the main thing to get right. Brand-supplied is for a client with their own ordering system: they give us a list of codes, we release one per approved creator, and their checkout burns it — we never see it used. Dine-in is for a restaurant with no system at all: WE generate the codes, and a member of venue staff confirms the walk-in in person. Only dine-in codes ever show a "visited" state.',
+        steps: [
+          { text: 'When creating the campaign, switch on Coupon-code fulfilment and choose Delivery/online or Dine-in at venue.' },
+          { text: 'Delivery: fill in the redemption URL and ordering steps, then paste the brand\'s codes under the campaign\'s Codes dialog (Brand codes tab).' },
+          { text: 'Dine-in: fill in what the visit covers (e.g. "2 guests · up to AED 300 F&B"). This is shown to venue staff before they confirm, so nobody argues at the table.' },
+          { text: 'Dine-in: open the Codes dialog and use the Dine-in tab to generate as many codes as you need. The campaign must have a merchant linked — the venue code lives on the merchant.' },
+          { text: 'Either way, codes are released one-per-creator automatically the moment a creator is approved. Never before.' },
+        ],
+      },
+      {
+        title: 'How a dine-in visit gets confirmed',
+        description:
+          'Nobody at the venue logs into anything. The creator opens the campaign in their app and shows a QR. A member of staff points their ordinary phone camera at it, which opens a page showing the creator\'s photo, handle and what the visit covers. They type the venue\'s 6-digit code and tap Confirm. That is the whole flow. The creator\'s photo is the real check — it is what stops a code being passed to a friend — so staff should look at the screen, not just scan it.',
+        steps: [
+          { text: 'The visit is recorded against the creator and shows on the campaign\'s creator cards as "Visited" with the date and guest count.' },
+          { text: 'Content deadlines for dine-in start from the VISIT, not from approval — a creator approved on the 1st who eats on the 9th gets their full window from the 9th.' },
+          { text: 'If the QR will not scan, staff can enter the creator\'s short code manually on the same page.' },
+          { text: 'A second scan shows "already confirmed" with the original date. It is not an error and nothing is double-counted.' },
+          { text: 'If staff type the venue code wrong five times the page locks for 15 minutes. Rotate the code from Merchants if it has genuinely leaked.' },
         ],
       },
       {

@@ -63,6 +63,13 @@ export interface BriefState {
   coupon_discount_label: string
   redemption_url: string
   ordering_instructions: string
+  /** How the code is actually redeemed:
+   *  'delivery' — the brand's own codes, burned in the brand's ordering system
+   *  'dine_in'  — our codes, confirmed in person by venue staff at the table */
+  fulfilment_mode: "delivery" | "dine_in"
+  entitlement_label: string
+  entitlement_cap_aed: string
+  guests_allowed: string
 }
 
 export const emptyBrief: BriefState = {
@@ -74,6 +81,7 @@ export const emptyBrief: BriefState = {
   mandatory_tags: [], mandatory_hashtags: [],
   visit_required: false, visit_location: "",
   coupon_enabled: false, coupon_discount_label: "", redemption_url: "", ordering_instructions: "",
+  fulfilment_mode: "delivery", entitlement_label: "", entitlement_cap_aed: "", guests_allowed: "",
 }
 
 const csv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean)
@@ -108,9 +116,18 @@ export function buildBriefPayload(b: BriefState): Record<string, any> {
   if (b.visit_required && b.visit_location.trim()) p.visit_location = b.visit_location.trim()
   if (b.coupon_enabled) {
     p.coupon_enabled = true
+    p.fulfilment_mode = b.fulfilment_mode
     if (b.coupon_discount_label.trim()) p.coupon_discount_label = b.coupon_discount_label.trim()
-    if (b.redemption_url.trim()) p.redemption_url = b.redemption_url.trim()
-    if (b.ordering_instructions.trim()) p.ordering_instructions = b.ordering_instructions.trim()
+    if (b.fulfilment_mode === "delivery") {
+      // Only meaningful when there's somewhere to go and order.
+      if (b.redemption_url.trim()) p.redemption_url = b.redemption_url.trim()
+      if (b.ordering_instructions.trim()) p.ordering_instructions = b.ordering_instructions.trim()
+    } else {
+      // Dine-in: what the host is authorising when they confirm the walk-in.
+      if (b.entitlement_label.trim()) p.entitlement_label = b.entitlement_label.trim()
+      if (b.entitlement_cap_aed.trim()) p.entitlement_cap_aed = Number(b.entitlement_cap_aed)
+      if (b.guests_allowed.trim()) p.guests_allowed = Number(b.guests_allowed)
+    }
   }
   return p
 }
@@ -343,11 +360,54 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
           </div>
           {value.coupon_enabled && (
             <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Discount label</Label><Input value={value.coupon_discount_label} onChange={(e) => set({ coupon_discount_label: e.target.value })} placeholder="AED 200 off" /></div>
-                <div className="space-y-2"><Label className="flex items-center gap-1.5"><Link2 className="h-3.5 w-3.5" />Redemption URL</Label><Input value={value.redemption_url} onChange={(e) => set({ redemption_url: e.target.value })} placeholder="https://order.mandarinoak.com" /></div>
+              {/* Where the code gets burned. This decides everything below it, and
+                  whether the creator app shows an order button or a QR. */}
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  { key: "delivery", title: "Delivery / online", blurb: "The brand gives us their codes. Their checkout burns them." },
+                  { key: "dine_in", title: "Dine-in at venue", blurb: "No system of their own. We generate codes; staff confirm the walk-in." },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => set({ fulfilment_mode: opt.key })}
+                    className={`rounded-lg border p-3 text-left transition-colors ${
+                      value.fulfilment_mode === opt.key
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-muted/50"
+                    }`}
+                  >
+                    <p className="text-sm font-medium">{opt.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{opt.blurb}</p>
+                  </button>
+                ))}
               </div>
-              <div className="space-y-2"><Label>Ordering instructions</Label><Textarea rows={5} value={value.ordering_instructions} onChange={(e) => set({ ordering_instructions: e.target.value })} placeholder={"1. Go to order.mandarinoak.com\n2. Add items from the Thai Fire Edit collection\n3. Apply your code for AED 200 off\n4. Place the order, capture & publish"} /></div>
+
+              <div className="space-y-2"><Label>Discount label</Label><Input value={value.coupon_discount_label} onChange={(e) => set({ coupon_discount_label: e.target.value })} placeholder="AED 200 off" /></div>
+
+              {value.fulfilment_mode === "delivery" ? (
+                <>
+                  <div className="space-y-2"><Label className="flex items-center gap-1.5"><Link2 className="h-3.5 w-3.5" />Redemption URL</Label><Input value={value.redemption_url} onChange={(e) => set({ redemption_url: e.target.value })} placeholder="https://order.mandarinoak.com" /></div>
+                  <div className="space-y-2"><Label>Ordering instructions</Label><Textarea rows={5} value={value.ordering_instructions} onChange={(e) => set({ ordering_instructions: e.target.value })} placeholder={"1. Go to order.mandarinoak.com\n2. Add items from the Thai Fire Edit collection\n3. Apply your code for AED 200 off\n4. Place the order, capture & publish"} /></div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>What the visit covers</Label>
+                    <Input value={value.entitlement_label} onChange={(e) => set({ entitlement_label: e.target.value })} placeholder="2 guests · up to AED 300 food & beverage" />
+                    <p className="text-[11px] text-muted-foreground">Shown to venue staff before they confirm, so nobody has to guess what&apos;s included.</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2"><Label>Spend cap (AED)</Label><Input type="number" min={0} value={value.entitlement_cap_aed} onChange={(e) => set({ entitlement_cap_aed: e.target.value })} placeholder="300" /></div>
+                    <div className="space-y-2"><Label>Guests allowed</Label><Input type="number" min={1} value={value.guests_allowed} onChange={(e) => set({ guests_allowed: e.target.value })} placeholder="2" /></div>
+                  </div>
+                  <p className="text-xs text-muted-foreground rounded-md bg-muted/50 p-3">
+                    Generate the codes after creating the campaign. The venue confirms each
+                    walk-in by scanning the creator&apos;s QR and typing their venue code —
+                    find it on the merchant&apos;s row under FA → Merchants.
+                  </p>
+                </>
+              )}
             </div>
           )}
         </CardContent>

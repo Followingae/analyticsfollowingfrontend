@@ -175,6 +175,8 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
   // Unique coupon code assigned to this participant (team-suggested / member).
   const [couponCode, setCouponCode] = useState<string | null>(null)
+  // Dine-in: whether the venue has confirmed the walk-in, and what it came to.
+  const [visit, setVisit] = useState<{ confirmed_at: string | null; party_size: number | null; bill_amount_aed: number | null } | null>(null)
   // Offline content upload (talent manager / superadmin on behalf of the creator).
   const [uploadingId, setUploadingId] = useState<string | null>(null)
   const [uploadPct, setUploadPct] = useState<number | null>(null)
@@ -205,9 +207,11 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
       const body = await res.json()
       setDeliverables(body?.data?.deliverables ?? [])
       setCouponCode(body?.data?.coupon_code ?? null)
+      setVisit(body?.data?.visit ?? null)
     } catch {
       setDeliverables([])
       setCouponCode(null)
+      setVisit(null)
     } finally {
       setLoadingDel(false)
     }
@@ -666,6 +670,28 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                         Copy
                       </Button>
                     </div>
+                    {/* Dine-in only: `visit` is null on delivery campaigns, where the
+                        brand's own checkout burns the code and we never see it used. */}
+                    {visit && (
+                      visit.confirmed_at ? (
+                        <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
+                          <p className="text-[11px] font-medium text-emerald-600">
+                            Visit confirmed · {new Date(visit.confirmed_at).toLocaleString()}
+                          </p>
+                          {(visit.party_size || visit.bill_amount_aed != null) && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {visit.party_size ? `${visit.party_size} guests` : ""}
+                              {visit.party_size && visit.bill_amount_aed != null ? " · " : ""}
+                              {visit.bill_amount_aed != null ? `AED ${visit.bill_amount_aed.toFixed(2)}` : ""}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          Not visited yet — the venue confirms this when the creator walks in.
+                        </p>
+                      )
+                    )}
                   </Section>
                 )}
 

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Check, QrCode, Coins, Gift, Loader2, Sparkles, ChevronDown, Wand2 } from "lucide-react"
+import { Check, QrCode, Coins, Gift, Loader2, Sparkles, ChevronDown, Wand2, UtensilsCrossed } from "lucide-react"
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { toast } from "sonner"
@@ -79,6 +79,13 @@ interface Participant {
   paid_deal: { payout_cents: number | null }
   barter: { items: any }
   deliverables: { pending: number; submitted: number; verified: number; posting?: number }
+  /** Dine-in only — null on every other campaign type, so the card is unchanged there. */
+  visit?: {
+    code: string | null
+    confirmed_at: string | null
+    party_size: number | null
+    bill_amount_aed: number | null
+  } | null
   // Human-readable "influencer is posting approved content…" line (or null) for
   // deliverables that are content-approved but not yet posted/verified.
   posting_status?: string | null
@@ -689,6 +696,23 @@ function RosterCard({ p, campaignType, onOpen }: { p: Participant; campaignType:
             <span className={`block h-full rounded-full ${csMeta.bar}`} style={{ width: `${Math.max(pct, 3)}%` }} />
           </div>
         </>
+      )}
+
+      {/* Dine-in walk-in state. For these campaigns the visit IS the delivery of the
+          barter, so it sits with the progress rather than behind a click. */}
+      {p.visit && (p.status === "active" || p.status === "accepted" || p.status === "completed") && (
+        p.visit.confirmed_at ? (
+          <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+            <UtensilsCrossed className="h-3.5 w-3.5" />
+            Visited {new Date(p.visit.confirmed_at).toLocaleDateString()}
+            {p.visit.party_size ? ` · ${p.visit.party_size} guests` : ""}
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <UtensilsCrossed className="h-3.5 w-3.5" />
+            Awaiting visit{p.visit.code ? ` · ${p.visit.code}` : ""}
+          </div>
+        )
       )}
 
       {p.posting_status && (p.status === "active" || p.status === "accepted") && (

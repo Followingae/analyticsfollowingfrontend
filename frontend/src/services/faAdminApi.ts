@@ -43,6 +43,9 @@ export const faMerchantApi = {
   create: (data: any) => post('/api/v1/admin/fa/merchants', data),
   update: (id: string, data: any) => put(`/api/v1/admin/fa/merchants/${id}`, data),
   delete: (id: string) => del(`/api/v1/admin/fa/merchants/${id}`),
+  /** Issue a fresh 6-digit venue code. The old one stops working immediately —
+   *  this is the answer when staff have let the code get around. */
+  rotateVenueCode: (id: string) => post(`/api/v1/admin/fa/merchants/${id}/venue-code/rotate`, {}),
   /** Upload a logo image (multipart) → { data: { url } }. */
   uploadLogo: async (file: File) => {
     const form = new FormData()
@@ -105,6 +108,10 @@ export const faCampaignApi = {
   /** Bulk-upload coupon codes for a campaign (idempotent on re-upload). */
   uploadCoupons: (id: string, codes: string[]) =>
     post(`/api/v1/admin/fa/campaigns/${id}/coupons`, { codes }),
+  /** Generate N codes OURSELVES for a dine-in campaign (venue has no system to
+   *  issue codes from). Each carries the visit token the creator's QR encodes. */
+  generateCoupons: (id: string, count: number, prefix?: string) =>
+    post(`/api/v1/admin/fa/campaigns/${id}/coupons/generate`, { count, prefix: prefix || null }),
   /** List a campaign's coupon codes + assignment stats. */
   listCoupons: (id: string) => get(`/api/v1/admin/fa/campaigns/${id}/coupons`),
   /** Remove an unassigned coupon code. */

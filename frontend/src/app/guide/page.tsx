@@ -28,6 +28,7 @@ import {
   Video,
   Image,
   Clapperboard,
+  UtensilsCrossed,
   Wallet,
   Crown,
   Share2,
@@ -321,6 +322,29 @@ function useSections(): GuideSection[] {
             <p className="text-sm text-muted-foreground">
               Review content briefs and approve or reject deliverables before they go live. This is your quality gate.
             </p>
+          </div>
+
+          <Separator />
+
+          {/* Dine-in visits */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <UtensilsCrossed className="h-4 w-4 text-rose-500" /> Dine-in visits
+            </h4>
+            <p className="text-sm text-muted-foreground">
+              On barter campaigns where the collaboration happens at your venue, each approved creator
+              gets a unique code and a QR in their app. Your staff confirm the walk-in on the spot —
+              no login and nothing to install.
+            </p>
+            <StepList
+              steps={[
+                'The creator shows the QR. Your staff scan it with their normal phone camera.',
+                'The page shows the creator photo and handle, and exactly what the visit covers. Check the face — that is what stops a code being passed on.',
+                'Staff type your venue 6-digit code and tap Confirm. Ask your Following contact for the code; keep it by the till.',
+                'Confirmed visits appear on the campaign creator cards, with the date and guest count.',
+                'The content deadline starts from the visit, not from when you approved the creator.',
+              ]}
+            />
           </div>
 
           <Tip>
