@@ -423,6 +423,10 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
                     Generate the codes after creating the campaign. The venue confirms each
                     walk-in by scanning the creator&apos;s QR and typing their venue code —
                     find it on the merchant&apos;s row under FA → Merchants.
+                    <br /><br />
+                    Approved creators have <strong>7 days to visit</strong>. They&apos;re
+                    reminded on day 5, and on day 7 an unused spot is released — the seat
+                    and the code go back to the pool for someone else.
                   </p>
                 </>
               )}

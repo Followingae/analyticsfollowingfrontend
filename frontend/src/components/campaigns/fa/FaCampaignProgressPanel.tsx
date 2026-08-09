@@ -85,6 +85,8 @@ interface Participant {
     confirmed_at: string | null
     party_size: number | null
     bill_amount_aed: number | null
+    due_at?: string | null
+    days_left?: number | null
   } | null
   // Human-readable "influencer is posting approved content…" line (or null) for
   // deliverables that are content-approved but not yet posted/verified.
@@ -708,9 +710,20 @@ function RosterCard({ p, campaignType, onOpen }: { p: Participant; campaignType:
             {p.visit.party_size ? ` · ${p.visit.party_size} guests` : ""}
           </div>
         ) : (
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+          // The seat is released if they never show, so the countdown is the useful
+          // part here — "awaiting visit" alone doesn't tell you to chase anyone.
+          <div className={`mt-3 flex items-center gap-1.5 text-xs ${
+            typeof p.visit.days_left === "number" && p.visit.days_left <= 2
+              ? "text-amber-600 dark:text-amber-400"
+              : "text-muted-foreground"
+          }`}>
             <UtensilsCrossed className="h-3.5 w-3.5" />
-            Awaiting visit{p.visit.code ? ` · ${p.visit.code}` : ""}
+            {typeof p.visit.days_left === "number"
+              ? (p.visit.days_left <= 0
+                  ? "Last day to visit — spot released after today"
+                  : `Awaiting visit · ${p.visit.days_left}d left`)
+              : "Awaiting visit"}
+            {p.visit.code ? ` · ${p.visit.code}` : ""}
           </div>
         )
       )}

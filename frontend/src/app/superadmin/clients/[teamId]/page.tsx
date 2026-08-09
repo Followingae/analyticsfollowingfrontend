@@ -31,9 +31,10 @@ import {
 import {
   ArrowLeft, Building2, Coins, FileText, Users, Video,
   Calendar, Activity, TrendingUp, AlertCircle, CheckCircle2,
-  Clock, XCircle, ChevronRight, Upload, Loader2, ShieldCheck
+  Clock, XCircle, ChevronRight, Upload, Loader2, ShieldCheck, Mail
 } from 'lucide-react';
 import { ClientAccessDialog } from '@/components/clients/ClientAccessDialog';
+import { CampaignBriefingDialog } from '@/components/clients/CampaignBriefingDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/clientManagementApi';
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
@@ -107,6 +108,7 @@ export default function ClientDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
+  const [briefingOpen, setBriefingOpen] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
 
   const handleAssignAM = async (value: string) => {
@@ -263,6 +265,9 @@ export default function ClientDetailPage() {
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAccessOpen(true)}>
             <ShieldCheck className="h-4 w-4" /> Manage access
           </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setBriefingOpen(true)}>
+            <Mail className="h-4 w-4" /> Campaign briefing
+          </Button>
           <span className="text-xs text-muted-foreground whitespace-nowrap">Account Manager</span>
           <Select value={client.account_manager_id || 'unassigned'} onValueChange={handleAssignAM}>
             <SelectTrigger className="h-8 w-52 text-sm">
@@ -279,6 +284,13 @@ export default function ClientDetailPage() {
       </div>
 
       <ClientAccessDialog teamId={teamId} open={accessOpen} onOpenChange={setAccessOpen} />
+      <CampaignBriefingDialog
+        teamId={teamId}
+        open={briefingOpen}
+        onOpenChange={setBriefingOpen}
+        defaultEmail={client.owner_email || undefined}
+        defaultName={(client.owner_name || '').split(' ')[0]}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">

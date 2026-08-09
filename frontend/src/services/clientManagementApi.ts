@@ -204,6 +204,25 @@ export const clientApi = {
       body: JSON.stringify(payload),
     }) as Promise<{ success: boolean; message: string; data: { to: string; cc: string[] } }>,
 
+  // --- Campaign briefing email (how to run what's live) ---
+  briefingCampaigns: (teamId: string) =>
+    authFetch(`${BASE}/${teamId}/campaign-briefing/campaigns`) as Promise<{
+      success: boolean;
+      data: { campaigns: Array<{ id: string; name: string; campaign_type: string; fulfilment_mode: string | null; venue_name: string | null; share_url: string }> };
+    }>,
+
+  previewCampaignBriefing: (teamId: string, payload: CampaignBriefingPayload) =>
+    authFetch(`${BASE}/${teamId}/campaign-briefing/preview`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }) as Promise<{ success: boolean; data: { html: string; to: string; default_cc: string[]; subject: string; campaign_count: number } }>,
+
+  sendCampaignBriefing: (teamId: string, payload: CampaignBriefingPayload & { cc?: string[] }) =>
+    authFetch(`${BASE}/${teamId}/campaign-briefing/send`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }) as Promise<{ success: boolean; message: string; data: { to: string; cc: string[]; campaign_count: number } }>,
+
   resetPassword: (teamId: string, password?: string) =>
     authFetch(`${BASE}/${teamId}/reset-password`, {
       method: 'POST',
@@ -219,6 +238,16 @@ export interface AccountEmailFields {
   cta_label: string;
   show_security_note: boolean;
   subject: string;
+}
+
+/** The briefing body is assembled server-side from the client's live campaigns —
+ *  the caller only chooses which of them to include. */
+export interface CampaignBriefingPayload {
+  recipient_name?: string;
+  email?: string;
+  subject?: string;
+  campaign_ids?: string[];
+  cover_url?: string;
 }
 
 // Unified campaigns API for brand users

@@ -652,6 +652,19 @@ const sections: GuideSection[] = [
         ],
       },
       {
+        title: 'The 7-day visit window (in-person barter)',
+        description:
+          'An approved creator holds a seat AND a unique code nobody else can be issued, so on a 90-seat restaurant campaign, people who apply and forget quietly strangle it. The offer therefore expires: 7 days from approval to actually show up. They are reminded on day 5, and on day 7 an unvisited spot is released automatically — no one has to chase it.',
+        steps: [
+          { text: 'The creator sees the countdown next to their QR in the app, not buried in a notification. It turns urgent in the last two days.' },
+          { text: 'You see it too: the campaign creator cards show "Awaiting visit · 3d left", amber in the last two days, so you can nudge before anyone is dropped.' },
+          { text: 'On release: the participant is cancelled, the seat frees up against max participants, and the code returns to the pool with a NEW QR token — so a screenshotted QR from the dropped creator can never work for whoever gets that code next.' },
+          { text: 'Their pending deliverables are cancelled at the same time. A creator must never be scored as defaulting on work for a seat we took away.' },
+          { text: 'They are told plainly, and they may apply again.' },
+          { text: 'A creator who confirms at the venue slightly after the deadline but before the hourly sweep still counts — they were standing in the restaurant, which is the whole point.' },
+        ],
+      },
+      {
         title: 'Campaigns',
         description:
           'Create and manage cashback campaigns, paid deals, and barter campaigns within the Following App ecosystem.',

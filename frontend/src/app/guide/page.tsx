@@ -343,6 +343,7 @@ function useSections(): GuideSection[] {
                 'Staff type your venue 6-digit code and tap Confirm. Ask your Following contact for the code; keep it by the till.',
                 'Confirmed visits appear on the campaign creator cards, with the date and guest count.',
                 'The content deadline starts from the visit, not from when you approved the creator.',
+                'Approved creators have 7 days to visit. The cards show a countdown, and an unvisited spot is released automatically on day 7 — the seat and the code go back to the pool, so no-shows do not silently consume your capacity.',
               ]}
             />
           </div>

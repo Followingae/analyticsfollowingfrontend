@@ -176,7 +176,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   // Unique coupon code assigned to this participant (team-suggested / member).
   const [couponCode, setCouponCode] = useState<string | null>(null)
   // Dine-in: whether the venue has confirmed the walk-in, and what it came to.
-  const [visit, setVisit] = useState<{ confirmed_at: string | null; party_size: number | null; bill_amount_aed: number | null } | null>(null)
+  const [visit, setVisit] = useState<{ confirmed_at: string | null; party_size: number | null; bill_amount_aed: number | null; due_at?: string | null; days_left?: number | null } | null>(null)
   // Offline content upload (talent manager / superadmin on behalf of the creator).
   const [uploadingId, setUploadingId] = useState<string | null>(null)
   const [uploadPct, setUploadPct] = useState<number | null>(null)
@@ -687,9 +687,19 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                           )}
                         </div>
                       ) : (
-                        <p className="mt-2 text-[11px] text-muted-foreground">
-                          Not visited yet — the venue confirms this when the creator walks in.
-                        </p>
+                        <div className="mt-2">
+                          <p className="text-[11px] text-muted-foreground">
+                            Not visited yet — the venue confirms this when the creator walks in.
+                          </p>
+                          {typeof visit.days_left === "number" && (
+                            <p className={`text-[11px] mt-0.5 ${visit.days_left <= 2 ? "text-amber-600" : "text-muted-foreground"}`}>
+                              {visit.days_left <= 0
+                                ? "Last day — the spot is released after today"
+                                : `${visit.days_left} day${visit.days_left === 1 ? "" : "s"} left to visit`}
+                              {visit.due_at ? ` · by ${new Date(visit.due_at).toLocaleDateString()}` : ""}
+                            </p>
+                          )}
+                        </div>
                       )
                     )}
                   </Section>
