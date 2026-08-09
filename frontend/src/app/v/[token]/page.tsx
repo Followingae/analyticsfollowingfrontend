@@ -28,7 +28,7 @@ interface VisitData {
   creator: { instagram_username: string | null; full_name: string | null; avatar_url: string | null }
   campaign: { name: string | null; brand_name: string | null; brand_logo_url: string | null }
   venue: { name: string | null; logo_url: string | null; address: string | null }
-  entitlement: { label: string | null; cap_aed: number | null; guests_allowed: number | null }
+  entitlement: { label: string | null; cap_aed: number | null }
   code: string | null
   confirmed_at: string | null
   party_size: number | null
@@ -167,17 +167,13 @@ export default function VenueConfirmPage() {
         </section>
 
         {/* What the host is actually authorising. Without this they're guessing. */}
-        {(entitlement.label || entitlement.cap_aed || entitlement.guests_allowed) && (
+        {(entitlement.label || entitlement.cap_aed) && (
           <section className="mt-6 rounded-2xl border bg-muted/40 p-4">
             <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
               <UtensilsCrossed className="h-3.5 w-3.5" />This visit covers
             </div>
             <p className="mt-1.5 text-base font-medium">
-              {entitlement.label
-                || [
-                  entitlement.guests_allowed ? `${entitlement.guests_allowed} guests` : null,
-                  entitlement.cap_aed ? `up to AED ${entitlement.cap_aed}` : null,
-                ].filter(Boolean).join(' · ')}
+              {entitlement.label || `Up to AED ${entitlement.cap_aed}`}
             </p>
           </section>
         )}

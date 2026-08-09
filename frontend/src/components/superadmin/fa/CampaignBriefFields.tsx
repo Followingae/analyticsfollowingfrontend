@@ -69,7 +69,6 @@ export interface BriefState {
   fulfilment_mode: "delivery" | "dine_in"
   entitlement_label: string
   entitlement_cap_aed: string
-  guests_allowed: string
 }
 
 export const emptyBrief: BriefState = {
@@ -81,10 +80,33 @@ export const emptyBrief: BriefState = {
   mandatory_tags: [], mandatory_hashtags: [],
   visit_required: false, visit_location: "",
   coupon_enabled: false, coupon_discount_label: "", redemption_url: "", ordering_instructions: "",
-  fulfilment_mode: "delivery", entitlement_label: "", entitlement_cap_aed: "", guests_allowed: "",
+  fulfilment_mode: "delivery", entitlement_label: "", entitlement_cap_aed: "",
 }
 
 const csv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean)
+
+/** Validate the fulfilment block. Returns an error message, or null when it's fine.
+ *
+ * Lives here rather than in each create page so the three of them can't drift: the
+ * rule depends on fulfilment_mode, and a dine-in campaign has no redemption URL by
+ * definition — the creator goes to the venue, there is nothing to order from. */
+export function validateBriefFulfilment(b: BriefState): string | null {
+  if (!b.coupon_enabled) return null
+  if (b.fulfilment_mode === "delivery" && !b.redemption_url.trim()) {
+    return "Add a redemption URL for the coupon, or turn coupons off"
+  }
+  if (b.fulfilment_mode === "dine_in") {
+    // The venue screen shows this right before staff confirm a walk-in, falling
+    // back to composing it from the cap and guest count. Any ONE of the three is
+    // enough; all three empty means staff authorise an unknown amount, which is
+    // how arguments at the table start.
+    const hasEntitlement = !!(b.entitlement_label.trim() || b.entitlement_cap_aed.trim())
+    if (!hasEntitlement) {
+      return "Say what the dine-in visit covers — venue staff see this before confirming"
+    }
+  }
+  return null
+}
 
 /** Map the flat UI state into the backend brief payload (omitting empties). */
 export function buildBriefPayload(b: BriefState): Record<string, any> {
@@ -126,7 +148,6 @@ export function buildBriefPayload(b: BriefState): Record<string, any> {
       // Dine-in: what the host is authorising when they confirm the walk-in.
       if (b.entitlement_label.trim()) p.entitlement_label = b.entitlement_label.trim()
       if (b.entitlement_cap_aed.trim()) p.entitlement_cap_aed = Number(b.entitlement_cap_aed)
-      if (b.guests_allowed.trim()) p.guests_allowed = Number(b.guests_allowed)
     }
   }
   return p
@@ -397,10 +418,7 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
                     <Input value={value.entitlement_label} onChange={(e) => set({ entitlement_label: e.target.value })} placeholder="2 guests · up to AED 300 food & beverage" />
                     <p className="text-[11px] text-muted-foreground">Shown to venue staff before they confirm, so nobody has to guess what&apos;s included.</p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Spend cap (AED)</Label><Input type="number" min={0} value={value.entitlement_cap_aed} onChange={(e) => set({ entitlement_cap_aed: e.target.value })} placeholder="300" /></div>
-                    <div className="space-y-2"><Label>Guests allowed</Label><Input type="number" min={1} value={value.guests_allowed} onChange={(e) => set({ guests_allowed: e.target.value })} placeholder="2" /></div>
-                  </div>
+                  <div className="space-y-2"><Label>Spend cap (AED)</Label><Input type="number" min={0} value={value.entitlement_cap_aed} onChange={(e) => set({ entitlement_cap_aed: e.target.value })} placeholder="300" /></div>
                   <p className="text-xs text-muted-foreground rounded-md bg-muted/50 p-3">
                     Generate the codes after creating the campaign. The venue confirms each
                     walk-in by scanning the creator&apos;s QR and typing their venue code —

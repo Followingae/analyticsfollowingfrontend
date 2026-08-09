@@ -17,6 +17,7 @@ import { toast } from "sonner"
 import { faCampaignApi, faMerchantApi } from "@/services/faAdminApi"
 import {
   CampaignBriefSection, DeliverablePicker, emptyBrief, buildBriefPayload, buildDeliverablePayload,
+  validateBriefFulfilment,
   type BriefState, type DeliverableSpec, DELIVERABLE_OPTIONS,
 } from "@/components/superadmin/fa/CampaignBriefFields"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
@@ -83,7 +84,8 @@ export default function CreatePaidDealPage() {
     if (startDate && endDate && new Date(endDate) <= new Date(startDate)) return toast.error("End date must be after start date")
     if (payoutAed <= 0) return toast.error("Payout amount must be greater than 0")
     if (deliverables.length === 0) return toast.error("Pick at least one deliverable")
-    if (brief.coupon_enabled && !brief.redemption_url.trim()) return toast.error("Add a redemption URL for the coupon, or turn coupons off")
+    const fulfilmentError = validateBriefFulfilment(brief)
+    if (fulfilmentError) return toast.error(fulfilmentError)
 
     setSubmitting(true)
     try {

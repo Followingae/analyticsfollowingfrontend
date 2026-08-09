@@ -51,6 +51,7 @@ import { SelfManagedBranding } from "@/components/superadmin/fa/SelfManagedBrand
 import { toast } from "sonner"
 import {
   CampaignBriefSection, DeliverablePicker, emptyBrief, buildBriefPayload, buildDeliverablePayload,
+  validateBriefFulfilment,
   type BriefState, type DeliverableSpec, DELIVERABLE_OPTIONS,
 } from "@/components/superadmin/fa/CampaignBriefFields"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
@@ -175,7 +176,8 @@ export default function CreateCashbackCampaignPage() {
       if (Object.keys(tiersPayload).length === 0) tiersPayload = undefined
     }
     if (deliverables.length === 0) return toast.error("Pick at least one deliverable")
-    if (brief.coupon_enabled && !brief.redemption_url.trim()) return toast.error("Add a redemption URL for the coupon, or turn coupons off")
+    const fulfilmentError = validateBriefFulfilment(brief)
+    if (fulfilmentError) return toast.error(fulfilmentError)
 
     setSubmitting(true)
     try {
