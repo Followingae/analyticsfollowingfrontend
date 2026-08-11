@@ -10,7 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Upload, Send, CheckCircle2, XCircle, Receipt, FileText, Plus, ExternalLink } from 'lucide-react'
+import { Upload, Send, CheckCircle2, XCircle, Receipt, FileText, Plus, ExternalLink, Trash2, X } from 'lucide-react'
 import { clientCommercialApi, type ClientDocument, type CampaignInvoice } from '@/services/clientCommercialApi'
 
 const agreementBadge = (s: string | null) => {
@@ -169,7 +169,21 @@ export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId
                   <TableCell>{inv.receipt_count || 0}</TableCell>
                   <TableCell className="space-x-2">
                     {inv.payment_link_url && <a href={inv.payment_link_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">link</a>}
-                    {inv.invoice_file_url && <a href={inv.invoice_file_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">PDF</a>}
+                    {inv.invoice_file_url && (
+                      <span className="inline-flex items-center gap-1">
+                        <a href={inv.invoice_file_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">PDF</a>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          title="Remove uploaded PDF"
+                          className="text-muted-foreground hover:text-destructive disabled:opacity-50"
+                          onClick={() => {
+                            if (!window.confirm('Remove the uploaded invoice PDF? The invoice itself stays — you can upload a replacement.')) return
+                            run(() => clientCommercialApi.deleteInvoiceFile(teamId, inv.id))
+                          }}
+                        ><X className="h-3 w-3" /></button>
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-wrap justify-end gap-1">
@@ -181,6 +195,14 @@ export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId
                           <Button size="sm" variant="ghost" disabled={busy} title="Mark paid" onClick={() => { const ref = window.prompt('Payment reference (optional):') || undefined; run(() => clientCommercialApi.markInvoice(teamId, inv.id, { status: 'paid', amount_paid: inv.amount_aed || undefined, payment_reference: ref })) }}><CheckCircle2 className="h-4 w-4 text-emerald-600" /></Button>
                         </>
                       )}
+                      <Button size="sm" variant="ghost" disabled={busy} title="Delete invoice" onClick={() => {
+                        const settled = inv.status === 'paid' || inv.status === 'partial'
+                        const msg = settled
+                          ? `This invoice is marked ${inv.status}. Deleting it removes the payment record${(inv.receipt_count || 0) > 0 ? ` and its ${inv.receipt_count} receipt(s)` : ''}, and re-closes the client's commercial gate if this was the paid advance. Delete anyway?`
+                          : `Delete this ${inv.invoice_type} invoice${inv.amount_aed ? ` (${aed(inv.amount_aed)})` : ''}? This cannot be undone.`
+                        if (!window.confirm(msg)) return
+                        run(() => clientCommercialApi.deleteInvoice(teamId, inv.id, settled))
+                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>

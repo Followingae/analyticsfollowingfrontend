@@ -85,6 +85,10 @@ export const clientCommercialApi = {
     jfetch(`${BASE}/${teamId}/invoices`, { method: 'POST', body: JSON.stringify(payload) }),
   uploadInvoiceFile: (teamId: string, invoiceId: string, file: File) =>
     upload(`${BASE}/${teamId}/invoices/${invoiceId}/file`, file),
+  deleteInvoiceFile: (teamId: string, invoiceId: string) =>
+    jfetch(`${BASE}/${teamId}/invoices/${invoiceId}/file`, { method: 'DELETE' }),
+  deleteInvoice: (teamId: string, invoiceId: string, confirmPaid?: boolean) =>
+    jfetch(`${BASE}/${teamId}/invoices/${invoiceId}${confirmPaid ? '?confirm_paid=true' : ''}`, { method: 'DELETE' }),
   markInvoice: (teamId: string, invoiceId: string, payload: { status: string; amount_paid?: number; payment_reference?: string }) =>
     jfetch(`${BASE}/${teamId}/invoices/${invoiceId}/mark`, { method: 'POST', body: JSON.stringify(payload) }),
   addReceipt: (teamId: string, invoiceId: string, file: File, amount?: number) =>
