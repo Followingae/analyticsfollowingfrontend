@@ -479,6 +479,17 @@ const sections: GuideSection[] = [
         ],
       },
       {
+        title: 'Fixing a wrong agreement or invoice',
+        description:
+          'The commercial block on the approval page is editable after the fact. A wrong invoice PDF can be detached and replaced without touching the invoice itself, and an invoice raised by mistake can be deleted outright — its receipts go with it and the file is removed from storage. Deleting an invoice already marked paid or partial asks a second time, because it destroys the payment record and re-closes the client’s gate if it was the advance that opened it. Agreements are never deleted: a new upload supersedes the old version, and Void kills one that should not have gone out.',
+        steps: [
+          { text: 'Wrong PDF on the right invoice: click the × next to the PDF link, then upload the replacement.' },
+          { text: 'Invoice raised by mistake: use the bin icon on its row. Unpaid ones delete on one confirm.' },
+          { text: 'A paid/partial invoice warns you first — deleting it removes the payment record and the receipts attached to it.' },
+          { text: 'Wrong agreement: upload the corrected file (it supersedes v1), or Void it if nothing should replace it.' },
+        ],
+      },
+      {
         title: 'Charging more for an add-on (e.g. "With MEFCC visit")',
         description:
           'A quotation can carry one priced add-on: you set the label the client reads and the percentage it adds, then mark which individual deliverables may offer it. The client then chooses per deliverable — so one quote can carry a reel WITH the event visit and a story without, each priced accordingly, with both prices shown side by side on every eligible line. Leave it switched off (the default) and the client never sees the option at all. The add-on is sell-side only: it does not change cost, so margin shows the uplift as pure upside — say so if the add-on actually costs us something.',
