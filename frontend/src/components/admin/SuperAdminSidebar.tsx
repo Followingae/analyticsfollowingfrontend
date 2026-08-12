@@ -76,6 +76,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
 
   // Each group is gated by an admin module; super_admin sees everything.
   const overviewItems = [
+    { title: "Today", url: "/superadmin/today", icon: ListChecks },
     { title: "Dashboard", url: "/superadmin", icon: BarChart3 },
     ...(can("operations") ? [{ title: "Operations", url: "/superadmin/operations", icon: ListChecks }] : []),
   ]
