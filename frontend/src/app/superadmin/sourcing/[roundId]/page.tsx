@@ -26,6 +26,7 @@ import {
   sourcingApi, STATUS_LABEL, type RoundItem, type RoundSummary, type RoundStatus,
 } from '@/services/sourcingApi'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
+import { ConfidentialWatermark } from '@/components/shared/ConfidentialWatermark'
 
 const compact = (n: number | null) =>
   n == null ? '—' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : `${n}`
@@ -105,6 +106,8 @@ export default function RoundDetailPage() {
 
   return (
     <SuperadminLayout>
+      {/* Cost and sell are on this page — stamp it so a screenshot is attributable. */}
+      <ConfidentialWatermark label="Confidential pricing" />
       <div className="space-y-8">
         <div>
           <Button variant="ghost" size="sm" className="mb-3 -ml-2"

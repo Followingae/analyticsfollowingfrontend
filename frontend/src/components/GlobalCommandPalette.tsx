@@ -12,6 +12,8 @@ import {
   LayoutDashboard, Users, Compass, List, Share2, Target, FileText,
   CreditCard, Settings, Bell, BookOpen, Building2, ListChecks, Megaphone,
   Database, Wrench, Banknote, UserPlus, Plus, Receipt, Activity,
+  ShieldCheck, ClipboardCheck, Wallet, Store, Image as ImageIcon, MailCheck,
+  MessageCircle,
 } from "lucide-react"
 import {
   CommandDialog,
@@ -58,12 +60,48 @@ const OPERATOR_NAV: (CmdEntry & { module?: string })[] = [
   { title: "Receipt Claims", href: "/superadmin/fa/receipt-claims", icon: Receipt, module: "fa" },
   { title: "Billing", href: "/superadmin/billing", icon: Banknote, module: "billing" },
   { title: "System", href: "/superadmin/system", icon: Wrench, module: "system" },
+
+  // The sidebar now shows six surfaces rather than thirty entries. Everything that moved
+  // under a parent is registered here, so consolidating the nav never makes a screen
+  // unreachable — ⌘K stays the complete index of the platform.
+  { title: "Today", href: "/superadmin/today", icon: ListChecks },
+  { title: "Waiting room", href: "/superadmin/influencers/review", icon: Users,
+    module: "influencers", keywords: "pending price approve creators" },
+  { title: "Sourcing rounds", href: "/superadmin/sourcing", icon: Target,
+    module: "influencers", keywords: "shortlist samples client round" },
+  { title: "Creator lists", href: "/superadmin/influencers/lists", icon: List, module: "influencers" },
+  { title: "Add / import creators", href: "/superadmin/influencers/add", icon: Plus, module: "influencers" },
+  { title: "Brand heartbeat", href: "/superadmin/brands", icon: Activity,
+    module: "clients", keywords: "silent quiet last contact whose move" },
+  { title: "Creator team console", href: "/superadmin/team-console", icon: Users,
+    keywords: "approvals alerts people cofounder" },
+  { title: "Goals", href: "/superadmin/goals", icon: Target, keywords: "targets pace monthly rules" },
+  { title: "Report campaigns", href: "/superadmin/report-campaigns", icon: FileText, module: "campaigns" },
+  { title: "Operations queues", href: "/superadmin/operations", icon: ListChecks, module: "operations" },
+  { title: "Staff access", href: "/superadmin/staff", icon: ShieldCheck, module: "users" },
+  { title: "Content review", href: "/superadmin/fa/deliverables", icon: ClipboardCheck, module: "fa" },
+  { title: "Withdrawals", href: "/superadmin/fa/withdrawals", icon: Banknote, module: "fa" },
+  { title: "Creator wallets", href: "/superadmin/fa/wallets", icon: Wallet, module: "fa" },
+  { title: "Creator reliability", href: "/superadmin/fa/reliability", icon: ShieldCheck, module: "fa" },
+  { title: "Merchants", href: "/superadmin/fa/merchants", icon: Store, module: "fa" },
+  { title: "Ad banners", href: "/superadmin/fa/ad-banners", icon: ImageIcon, module: "fa" },
+  { title: "App notifications", href: "/superadmin/fa/notifications", icon: Bell, module: "fa" },
+  { title: "Email alerts", href: "/superadmin/notifications", icon: MailCheck, module: "system" },
+  { title: "WhatsApp", href: "/superadmin/whatsapp", icon: MessageCircle, module: "system" },
+  { title: "Job queue", href: "/superadmin/system/jobs", icon: Wrench, module: "system" },
+  { title: "Analyzed creators", href: "/superadmin/influencers/analyzed", icon: Database, module: "influencers" },
+  { title: "Guide", href: "/superadmin/guide", icon: BookOpen },
 ]
 
 const OPERATOR_ACTIONS: (CmdEntry & { module?: string })[] = [
   { title: "Create User", href: "/superadmin/users/create", icon: UserPlus, module: "users" },
   { title: "Create Campaign", href: "/superadmin/campaigns/create", icon: Plus, module: "campaigns" },
   { title: "Create FA Campaign", href: "/superadmin/fa/campaigns/new", icon: Plus, module: "fa" },
+  { title: "Create cashback campaign", href: "/superadmin/fa/campaigns/create", icon: Plus, module: "fa" },
+  { title: "Create barter campaign", href: "/superadmin/fa/campaigns/create-barter", icon: Plus, module: "fa" },
+  { title: "Create paid deal campaign", href: "/superadmin/fa/campaigns/create-paid-deal", icon: Plus, module: "fa" },
+  { title: "Add creators", href: "/superadmin/influencers/add", icon: Plus, module: "influencers" },
+  { title: "New sourcing round", href: "/superadmin/sourcing", icon: Plus, module: "influencers" },
   { title: "Create Proposal", href: "/superadmin/proposals/create", icon: Plus, module: "proposals" },
 ]
 

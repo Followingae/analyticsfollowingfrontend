@@ -74,77 +74,97 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     }
   }, [user])
 
-  // Each group is gated by an admin module; super_admin sees everything.
+  // Six working surfaces plus Settings.
+  //
+  // Nothing was deleted to get here: every screen that existed before is still reachable,
+  // it just hangs off the surface it belongs to instead of competing for attention in a
+  // thirty-item list. Anything not surfaced directly stays one keystroke away in ⌘K.
+  // Each group is still gated by an admin module; super_admin sees everything.
   const overviewItems = [
     { title: "Today", url: "/superadmin/today", icon: ListChecks },
-    { title: "Dashboard", url: "/superadmin", icon: BarChart3 },
-    ...(can("operations") ? [{ title: "Operations", url: "/superadmin/operations", icon: ListChecks }] : []),
   ]
 
   const managementItems = [
-    ...(can("clients") ? [{ title: "Clients", url: "/superadmin/clients", icon: Building2 }] : []),
-    ...(can("clients") ? [{ title: "Brands", url: "/superadmin/brands", icon: Activity }] : []),
-    ...(can("users") ? [{ title: "Users", url: "/superadmin/users", icon: Users }] : []),
-    ...(can("users") ? [{ title: "Staff", url: "/superadmin/staff", icon: ShieldCheck }] : []),
+    ...(can("campaigns") || can("proposals") ? [{
+      title: "Pipeline",
+      url: "/superadmin/proposals",
+      icon: Megaphone,
+      items: [
+        ...(can("proposals") ? [{ title: "Proposals", url: "/superadmin/proposals" }] : []),
+        ...(can("proposals") ? [{ title: "Create proposal", url: "/superadmin/proposals/create" }] : []),
+        ...(can("campaigns") ? [{ title: "Campaigns", url: "/superadmin/campaigns" }] : []),
+        ...(can("campaigns") ? [{ title: "Create campaign", url: "/superadmin/campaigns/create" }] : []),
+        ...(can("campaigns") ? [{ title: "Reports", url: "/superadmin/report-campaigns" }] : []),
+        ...(can("fa") ? [{ title: "App campaigns", url: "/superadmin/fa/campaigns" }] : []),
+      ],
+    }] : []),
+    ...(can("clients") ? [{
+      title: "Clients",
+      url: "/superadmin/clients",
+      icon: Building2,
+      items: [
+        { title: "All clients", url: "/superadmin/clients" },
+        { title: "Brand heartbeat", url: "/superadmin/brands" },
+      ],
+    }] : []),
+    ...(can("influencers") ? [{
+      title: "Creators",
+      url: "/superadmin/influencers",
+      icon: Database,
+      items: [
+        { title: "Master database", url: "/superadmin/influencers" },
+        { title: "Waiting room", url: "/superadmin/influencers/review" },
+        { title: "Sourcing rounds", url: "/superadmin/sourcing" },
+        { title: "Lists", url: "/superadmin/influencers/lists" },
+        { title: "Analyzed creators", url: "/superadmin/influencers/analyzed" },
+        { title: "Add / import", url: "/superadmin/influencers/add" },
+        ...(can("fa") ? [{ title: "App members", url: "/superadmin/fa/members" }] : []),
+        ...(can("fa") ? [{ title: "Reliability", url: "/superadmin/fa/reliability" }] : []),
+      ],
+    }] : []),
+    // Everything awaiting a human decision, in one place. These queues previously existed in
+    // three: Operations, the FA section, and the ops shell.
+    {
+      title: "Queues",
+      url: "/superadmin/operations",
+      icon: ClipboardCheck,
+      items: [
+        ...(can("operations") ? [{ title: "All queues", url: "/superadmin/operations" }] : []),
+        ...(can("fa") ? [{ title: "Content review", url: "/superadmin/fa/deliverables" }] : []),
+        ...(can("fa") ? [{ title: "Receipt claims", url: "/superadmin/fa/receipt-claims" }] : []),
+        ...(can("fa") ? [{ title: "Withdrawals", url: "/superadmin/fa/withdrawals" }] : []),
+        ...(can("influencers") ? [{ title: "Creator approvals", url: "/superadmin/influencers/review" }] : []),
+      ],
+    },
+    ...(can("billing") ? [{
+      title: "Money",
+      url: "/superadmin/billing",
+      icon: Banknote,
+      items: [
+        { title: "Billing & revenue", url: "/superadmin/billing" },
+        ...(can("fa") ? [{ title: "Creator wallets", url: "/superadmin/fa/wallets" }] : []),
+      ],
+    }] : []),
     { title: "Creator team", url: "/superadmin/team-console", icon: Users },
     { title: "Goals", url: "/superadmin/goals", icon: BarChart3 },
   ]
 
-  const campaignItems = [
-    ...(can("campaigns") ? [{
-      title: "Campaigns",
-      url: "/superadmin/campaigns",
-      icon: Megaphone,
-      items: [
-        { title: "All Campaigns", url: "/superadmin/campaigns" },
-        { title: "Create Campaign", url: "/superadmin/campaigns/create" },
-        { title: "Report Campaigns", url: "/superadmin/report-campaigns" },
-      ],
-    }] : []),
-    ...(can("proposals") ? [{
-      title: "Proposals",
-      url: "/superadmin/proposals",
-      icon: FileText,
-      items: [
-        { title: "All Proposals", url: "/superadmin/proposals" },
-        { title: "Create Proposal", url: "/superadmin/proposals/create" },
-      ],
-    }] : []),
-    ...(can("influencers") ? [{
-      title: "Influencer Database",
-      url: "/superadmin/influencers",
-      icon: Database,
-      items: [
-        { title: "Master Database", url: "/superadmin/influencers" },
-        { title: "Waiting room", url: "/superadmin/influencers/review" },
-        { title: "Sourcing rounds", url: "/superadmin/sourcing" },
-        { title: "Lists", url: "/superadmin/influencers/lists" },
-        { title: "Analyzed Creators", url: "/superadmin/influencers/analyzed" },
-        { title: "Add / Import", url: "/superadmin/influencers/add" },
-      ],
-    }] : []),
-  ]
+  const campaignItems: never[] = []
+  const followingAppItems: never[] = []
 
-  const followingAppItems = can("fa") ? [
-    { title: "Overview", url: "/superadmin/fa", icon: LayoutDashboard },
-    { title: "Activity", url: "/superadmin/fa/activity", icon: Activity },
-    { title: "Members", url: "/superadmin/fa/members", icon: Users },
-    { title: "Merchants", url: "/superadmin/fa/merchants", icon: Store },
-    { title: "FA Campaigns", url: "/superadmin/fa/campaigns", icon: Megaphone },
-    { title: "Deliverables", url: "/superadmin/fa/deliverables", icon: ClipboardCheck },
-    { title: "Reliability", url: "/superadmin/fa/reliability", icon: ShieldCheck },
-    { title: "Withdrawals", url: "/superadmin/fa/withdrawals", icon: Banknote },
-    { title: "Creator Wallets", url: "/superadmin/fa/wallets", icon: Wallet },
-    { title: "Receipt Claims", url: "/superadmin/fa/receipt-claims", icon: Receipt },
-    { title: "Ad Banners", url: "/superadmin/fa/ad-banners", icon: ImageIcon },
-    { title: "Notifications", url: "/superadmin/fa/notifications", icon: Bell },
-  ] : []
-
+  // Settings: the plumbing. Real screens, just not competing with daily work.
   const systemItems = [
-    ...(can("billing") ? [{ title: "Billing", url: "/superadmin/billing", icon: Banknote }] : []),
-    ...(can("system") ? [{ title: "Email Alerts", url: "/superadmin/notifications", icon: MailCheck }] : []),
+    ...(can("users") ? [{ title: "Users", url: "/superadmin/users", icon: Users }] : []),
+    ...(can("users") ? [{ title: "Staff", url: "/superadmin/staff", icon: ShieldCheck }] : []),
+    ...(can("fa") ? [{ title: "Merchants", url: "/superadmin/fa/merchants", icon: Store }] : []),
+    ...(can("fa") ? [{ title: "App activity", url: "/superadmin/fa/activity", icon: Activity }] : []),
+    ...(can("fa") ? [{ title: "Ad banners", url: "/superadmin/fa/ad-banners", icon: ImageIcon }] : []),
+    ...(can("fa") ? [{ title: "App notifications", url: "/superadmin/fa/notifications", icon: Bell }] : []),
+    ...(can("system") ? [{ title: "Email alerts", url: "/superadmin/notifications", icon: MailCheck }] : []),
     ...(can("system") ? [{ title: "WhatsApp", url: "/superadmin/whatsapp", icon: MessageCircle }] : []),
     ...(can("system") ? [{ title: "System", url: "/superadmin/system", icon: Wrench }] : []),
+    { title: "Dashboard", url: "/superadmin", icon: BarChart3 },
+    { title: "Guide", url: "/superadmin/guide", icon: LayoutDashboard },
   ]
 
   // Content pages not yet built; dead links removed.
@@ -201,10 +221,10 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           </SidebarGroup>
         )}
 
-        {/* Management Section */}
+        {/* The working surfaces */}
         {managementItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Management</SidebarGroupLabel>
+            <SidebarGroupLabel>Work</SidebarGroupLabel>
             <SidebarGroupContent>
               <NavMain items={managementItems} activeUrl={activeUrl} />
             </SidebarGroupContent>
@@ -231,9 +251,10 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           </SidebarGroup>
         )}
 
-        {/* System Section */}
+        {/* Settings — the plumbing, kept out of the daily path */}
         {systemItems.length > 0 && (
           <SidebarGroup>
+            <SidebarGroupLabel>Settings</SidebarGroupLabel>
             <SidebarGroupContent>
               <NavMain items={systemItems} activeUrl={activeUrl} />
             </SidebarGroupContent>

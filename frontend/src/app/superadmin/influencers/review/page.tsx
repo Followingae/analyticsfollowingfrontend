@@ -23,6 +23,7 @@ import { Clock, Check, X, UserPlus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { creatorIntakeApi, type PendingCreator } from '@/services/creatorIntakeApi'
 import { AddCreatorsDialog } from '@/components/superadmin/influencer-database/AddCreatorsDialog'
+import { ConfidentialWatermark } from '@/components/shared/ConfidentialWatermark'
 
 const aed = (c: number | null) => (c == null ? null : `د.إ ${(c / 100).toLocaleString('en-AE')}`)
 const compact = (n: number | null) =>
@@ -89,6 +90,8 @@ export default function ReviewQueuePage() {
 
   return (
     <SuperadminLayout>
+      {/* Pricing on screen: stamped so a leaked screenshot is attributable. */}
+      <ConfidentialWatermark label="Confidential pricing" />
       <div className="space-y-8">
         <div className="flex flex-wrap items-start gap-4">
           <div>
