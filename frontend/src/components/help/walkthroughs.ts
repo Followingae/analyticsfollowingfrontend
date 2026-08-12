@@ -493,6 +493,7 @@ export function tourFor(role: string | null, staffRole: string | null): Walkthro
     : staffRole === 'ceo' || staffRole === 'cofounder' ? 'leadership'
     : staffRole === 'talent_manager' ? 'talent'
     : staffRole === 'account_manager' ? 'account'
+    : staffRole === 'business_development' ? 'bd'
     : 'all'
   return WALKTHROUGHS.filter(w => w.audience.includes('all') || w.audience.includes(audience))
 }

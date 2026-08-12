@@ -10,7 +10,8 @@ import { staffAdminApi, type StaffMember } from "@/services/staffApi";
 import { StaffAccessDialog } from "@/components/superadmin/StaffAccessDialog";
 
 const ROLE_LABEL: Record<string, string> = {
-  talent_manager: "Talent Manager", account_manager: "Account Manager", cofounder: "Cofounder", ceo: "CEO",
+  talent_manager: "Talent Manager", account_manager: "Account Manager",
+  business_development: "Business Development", cofounder: "Cofounder", ceo: "CEO",
 };
 
 export default function SuperadminStaffPage() {

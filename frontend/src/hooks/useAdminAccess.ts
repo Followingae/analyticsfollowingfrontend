@@ -38,6 +38,7 @@ export const ADMIN_MODULES: { key: AdminModule; label: string }[] = [
 const STAFF_ROLE_DEFAULTS: Record<string, AdminModule[] | null> = {
   talent_manager: ["proposals", "influencers"],
   account_manager: ["clients", "campaigns", "proposals"],
+  business_development: ["clients", "proposals"],
   cofounder: null, // null = full-access
   ceo: null,
 }
@@ -97,7 +98,7 @@ export function useAdminAccess() {
   // the server refuses regardless, this only stops us showing a button that always 403s.
   const canExport = isSuperAdmin || role === "admin" || isFullAccessStaff
   // Talent negotiates cost, so they see it; they must never see sell or margin.
-  const canSeeSell = canExport || staffRole === "account_manager"
+  const canSeeSell = canExport || staffRole === "account_manager" || staffRole === "business_development"
   const canSeeCost = canExport || staffRole === "talent_manager"
   const canSeeMargin = canExport
 

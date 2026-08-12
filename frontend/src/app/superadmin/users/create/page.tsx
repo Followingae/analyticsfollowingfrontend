@@ -47,7 +47,7 @@ export default function CreateBrandAccountPage() {
   // Brand user vs module-scoped Admin
   const [accountType, setAccountType] = useState<'brand' | 'admin' | 'staff'>('brand')
   const [adminModules, setAdminModules] = useState<string[]>([])
-  const [staffRole, setStaffRole] = useState<'talent_manager' | 'account_manager' | 'cofounder' | 'ceo'>('talent_manager')
+  const [staffRole, setStaffRole] = useState<'talent_manager' | 'account_manager' | 'business_development' | 'cofounder' | 'ceo'>('talent_manager')
 
   // Form state with comprehensive fields
   const [formData, setFormData] = useState({
@@ -513,6 +513,7 @@ export default function CreateBrandAccountPage() {
               <SelectContent>
                 <SelectItem value="talent_manager">Talent Manager</SelectItem>
                 <SelectItem value="account_manager">Account Manager</SelectItem>
+                <SelectItem value="business_development">Business Development</SelectItem>
                 <SelectItem value="cofounder">Cofounder</SelectItem>
                 <SelectItem value="ceo">CEO</SelectItem>
               </SelectContent>

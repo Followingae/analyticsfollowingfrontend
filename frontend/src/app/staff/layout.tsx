@@ -12,6 +12,7 @@ import { staffApi, type StaffMe } from "@/services/staffApi";
 const ROLE_LABEL: Record<string, string> = {
   talent_manager: "Talent Manager",
   account_manager: "Account Manager",
+  business_development: "Business Development",
   cofounder: "Cofounder",
   ceo: "CEO",
 };
