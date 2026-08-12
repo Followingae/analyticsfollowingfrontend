@@ -84,6 +84,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     ...(can("clients") ? [{ title: "Clients", url: "/superadmin/clients", icon: Building2 }] : []),
     ...(can("users") ? [{ title: "Users", url: "/superadmin/users", icon: Users }] : []),
     ...(can("users") ? [{ title: "Staff", url: "/superadmin/staff", icon: ShieldCheck }] : []),
+    { title: "Goals", url: "/superadmin/goals", icon: BarChart3 },
   ]
 
   const campaignItems = [
