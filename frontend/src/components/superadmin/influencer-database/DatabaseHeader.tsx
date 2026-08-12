@@ -48,7 +48,7 @@ export function DatabaseHeader({
             <Upload className="size-4" />
             Import Excel
           </Button>
-          <Button onClick={onAddClick} size="sm">
+          <Button onClick={onAddClick} size="sm" data-tour="add-creators">
             <Plus className="size-4" />
             Add Influencer
           </Button>

@@ -110,7 +110,7 @@ export default function SourcingBoardPage() {
               <Input className="h-9 w-56 pl-8" placeholder="Search rounds…"
                      value={q} onChange={e => setQ(e.target.value)} />
             </div>
-            <Button size="sm" onClick={() => setOpen(true)}>
+            <Button size="sm" data-tour="new-round" onClick={() => setOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" />New round
             </Button>
           </div>
