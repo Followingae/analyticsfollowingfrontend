@@ -479,6 +479,46 @@ const sections: GuideSection[] = [
         ],
       },
       {
+        title: 'The creator waiting room',
+        description:
+          'Anyone on the team can add a creator the moment they find one — handle and a note, no pricing fields anywhere on that screen. They land in the waiting room, analytics start immediately, and they are invisible to every client and unusable in a proposal until you price and approve them. Approving is refused without a sell price, because an unpriced creator cannot be quoted. Turning someone down keeps the row and every rate researched on it: a creator wrong for one brand is regularly right for the next.',
+        steps: [
+          { text: 'Creators → Waiting room shows everything the team has found, oldest first, with who found it and what it costs us so far.' },
+          { text: 'Price and approve in one dialog — set at least one sell price and they become sellable.' },
+          { text: 'Bulk exports and client share links are leadership-only; the buttons are simply absent for the team.' },
+        ],
+      },
+      {
+        title: 'Sourcing rounds',
+        description:
+          'Every client request for sample creators is a round with an owner, a due date and a state: sourcing → internal review → sent to client → feedback, then more requested, locked or dropped. Pressing "More requested" opens the next round and carries every rejection forward, so a creator the client already turned down can never be proposed to them twice. Striking a creator requires a reason, and that reason is kept on the creator.',
+        steps: [
+          { text: 'Creators → Sourcing rounds. Open rounds first, soonest due at the top.' },
+          { text: 'Adding someone already rejected for that client is refused, and tells you who and why.' },
+          { text: 'Lock the round when the client has picked; the roster feeds the proposal.' },
+        ],
+      },
+      {
+        title: 'Today, Brands, Goals and the Creator team console',
+        description:
+          'Four screens that answer "what needs me" without anybody asking. Today lists decisions with your name on them and what is in flight. Brands shows how long each client has been silent and whose turn it is — silence is the alarm. Goals lets you set two numbers a month, and every daily target derives from how many rounds are open. The Creator team console gives the co-founder a queue instead of an inbox, with alerts that fire on patterns rather than single events.',
+        steps: [
+          { text: 'Goals: set "per open round, per day" and a baseline; targets recompute themselves.' },
+          { text: 'A creator only counts toward a target with cost, category and market recorded.' },
+          { text: 'Alerts are private to you and the co-founder — never shown to the team.' },
+        ],
+      },
+      {
+        title: 'Approving from your inbox, and the office wall',
+        description:
+          'Certain approvals arrive as an email with Approve and Reject in it. The link works once, without a login, expires after seven days, and updates the platform immediately — the audit record is identical whether the answer came from the email or a button here. Separately, the office wall runs on a screen with no login: create a display in Settings, put the link on the TV. A team display never receives money at all, so deal values and margins cannot appear on it.',
+        steps: [
+          { text: 'Displays are labelled per screen and can be revoked; a dead screen shows in "last seen".' },
+          { text: 'Choose the leadership scope only for a screen nobody else can see.' },
+          { text: 'The wall carries delivery only: live campaigns, what is due, sourcing, creators, growth.' },
+        ],
+      },
+      {
         title: 'Fixing a wrong agreement or invoice',
         description:
           'The commercial block on the approval page is editable after the fact. A wrong invoice PDF can be detached and replaced without touching the invoice itself, and an invoice raised by mistake can be deleted outright — its receipts go with it and the file is removed from storage. Deleting an invoice already marked paid or partial asks a second time, because it destroys the payment record and re-closes the client’s gate if it was the advance that opened it. Agreements are never deleted: a new upload supersedes the old version, and Void kills one that should not have gone out.',
