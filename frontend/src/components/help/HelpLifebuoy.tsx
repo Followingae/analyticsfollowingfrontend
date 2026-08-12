@@ -14,15 +14,20 @@ import { Button } from '@/components/ui/button'
 import { LifeBuoy, Play, Check, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
-import { tracksFor, tourFor, completed, type Walkthrough } from './walkthroughs'
-import { WalkthroughRunner } from './WalkthroughRunner'
+import { tracksFor, tourFor, completed, WALKTHROUGHS, type Walkthrough } from './walkthroughs'
+import { WalkthroughRunner, useTourResume } from './WalkthroughRunner'
+import './intro-theme.css'
 
 export function HelpLifebuoy() {
   const { role, staffRole } = useAdminAccess()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [running, setRunning] = useState<Walkthrough | null>(null)
+  const [leg, setLeg] = useState(0)
   const [done, setDone] = useState<string[]>([])
+
+  // A tour that crossed a page boundary picks itself back up on arrival.
+  useTourResume(WALKTHROUGHS, (t, l) => { setRunning(t); setLeg(l) })
 
   const tours = tourFor(role, staffRole)
   const groups = tracksFor(role, staffRole)
@@ -30,7 +35,8 @@ export function HelpLifebuoy() {
 
   const start = (t: Walkthrough) => {
     setOpen(false)
-    // Let the popover close before the spotlight measures anything.
+    setLeg(0)
+    // Let the popover close before intro.js measures anything.
     setTimeout(() => setRunning(t), 120)
   }
 
@@ -109,7 +115,9 @@ export function HelpLifebuoy() {
         </PopoverContent>
       </Popover>
 
-      {running && <WalkthroughRunner tour={running} onClose={() => setRunning(null)} />}
+      {running && (
+        <WalkthroughRunner tour={running} startLeg={leg} onClose={() => { setRunning(null); setLeg(0) }} />
+      )}
     </>
   )
 }
