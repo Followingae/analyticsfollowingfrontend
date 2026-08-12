@@ -91,6 +91,16 @@ export function useAdminAccess() {
   const isFullAccessStaff = staffRole === "ceo" || staffRole === "cofounder"
   const canDestroy = isSuperAdmin || role === "admin" || isFullAccessStaff
   const can = (m: AdminModule) => isSuperAdmin || modules === null || modules.includes(m)
+  // Bulk extraction — spreadsheets, CSV, client share links — is leadership-only. A file
+  // cannot enforce field visibility once it has been emailed, so the team works on screen
+  // and shares with clients through a proposal instead. Mirrors app/core/field_policy.py;
+  // the server refuses regardless, this only stops us showing a button that always 403s.
+  const canExport = isSuperAdmin || role === "admin" || isFullAccessStaff
+  // Talent negotiates cost, so they see it; they must never see sell or margin.
+  const canSeeSell = canExport || staffRole === "account_manager"
+  const canSeeCost = canExport || staffRole === "talent_manager"
+  const canSeeMargin = canExport
 
-  return { role, staffRole, modules, isSuperAdmin, isStaff, isFullAccessStaff, canDestroy, can, loading }
+  return { role, staffRole, modules, isSuperAdmin, isStaff, isFullAccessStaff, canDestroy,
+           canExport, canSeeSell, canSeeCost, canSeeMargin, can, loading }
 }
