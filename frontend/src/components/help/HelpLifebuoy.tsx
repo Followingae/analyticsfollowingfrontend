@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { LifeBuoy, Play, Check, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
-import { tourFor, completed, type Walkthrough } from './walkthroughs'
+import { tracksFor, tourFor, completed, type Walkthrough } from './walkthroughs'
 import { WalkthroughRunner } from './WalkthroughRunner'
 
 export function HelpLifebuoy() {
@@ -25,6 +25,8 @@ export function HelpLifebuoy() {
   const [done, setDone] = useState<string[]>([])
 
   const tours = tourFor(role, staffRole)
+  const groups = tracksFor(role, staffRole)
+  const doneCount = tours.filter(t => done.includes(t.id)).length
 
   const start = (t: Walkthrough) => {
     setOpen(false)
@@ -49,35 +51,53 @@ export function HelpLifebuoy() {
 
         <PopoverContent align="end" className="w-80 p-0">
           <div className="border-b px-4 py-3">
-            <h4 className="text-sm font-semibold">Show me how</h4>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Short guided walkthroughs. Re-run any of them, any time.
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-semibold">Show me how</h4>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Work through your track and you will know the platform end to end.
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums">
+                {doneCount}/{tours.length}
+              </span>
+            </div>
+            <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-primary transition-all"
+                   style={{ width: `${tours.length ? (doneCount / tours.length) * 100 : 0}%` }} />
+            </div>
           </div>
 
-          <div className="max-h-[320px] overflow-y-auto p-1.5">
-            {tours.map((t) => {
-              const finished = done.includes(t.id)
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => start(t)}
-                  className="flex w-full items-start gap-3 rounded-lg p-2.5 text-left transition hover:bg-muted"
-                >
-                  <span className={`mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full ${
-                    finished ? 'bg-emerald-500/12 text-emerald-600' : 'bg-primary/10 text-primary'}`}>
-                    {finished ? <Check className="h-3.5 w-3.5" /> : <Play className="h-3 w-3" />}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[13.5px] font-medium leading-snug">{t.title}</span>
-                    <span className="block text-xs leading-snug text-muted-foreground">{t.blurb}</span>
-                    <span className="mt-1 block text-[11px] text-muted-foreground/80">
-                      {t.minutes} min · {t.steps.length} steps{finished ? ' · done' : ''}
-                    </span>
-                  </span>
-                </button>
-              )
-            })}
+          <div className="max-h-[380px] overflow-y-auto p-1.5">
+            {groups.map(({ track, tours: list }) => (
+              <div key={track} className="mb-1">
+                <p className="px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {track}
+                </p>
+                {list.map((t) => {
+                  const finished = done.includes(t.id)
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => start(t)}
+                      className="flex w-full items-start gap-3 rounded-lg p-2.5 text-left transition hover:bg-muted"
+                    >
+                      <span className={`mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full ${
+                        finished ? 'bg-emerald-500/12 text-emerald-600' : 'bg-primary/10 text-primary'}`}>
+                        {finished ? <Check className="h-3.5 w-3.5" /> : <Play className="h-3 w-3" />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13.5px] font-medium leading-snug">{t.title}</span>
+                        <span className="block text-xs leading-snug text-muted-foreground">{t.blurb}</span>
+                        <span className="mt-1 block text-[11px] text-muted-foreground/80">
+                          {t.minutes} min · {t.steps.length} steps{finished ? ' · done' : ''}
+                        </span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
           </div>
 
           <div className="border-t p-1.5">
