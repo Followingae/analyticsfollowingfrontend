@@ -96,6 +96,9 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         ...(can("campaigns") ? [{ title: "Create campaign", url: "/superadmin/campaigns/create" }] : []),
         ...(can("campaigns") ? [{ title: "Reports", url: "/superadmin/report-campaigns" }] : []),
         ...(can("fa") ? [{ title: "App campaigns", url: "/superadmin/fa/campaigns" }] : []),
+        // Production already renders inside this shell; it was simply never in the nav,
+        // which is what made it feel like a separate system.
+        ...(can("operations") ? [{ title: "Production", url: "/ops/campaigns" }] : []),
       ],
     }] : []),
     ...(can("clients") ? [{
@@ -115,6 +118,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         { title: "Master database", url: "/superadmin/influencers" },
         { title: "Waiting room", url: "/superadmin/influencers/review" },
         { title: "Sourcing rounds", url: "/superadmin/sourcing" },
+        { title: "Coverage", url: "/superadmin/coverage" },
         { title: "Lists", url: "/superadmin/influencers/lists" },
         { title: "Analyzed creators", url: "/superadmin/influencers/analyzed" },
         { title: "Add / import", url: "/superadmin/influencers/add" },
@@ -142,6 +146,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       icon: Banknote,
       items: [
         { title: "Billing & revenue", url: "/superadmin/billing" },
+        { title: "Creator payments", url: "/superadmin/payables" },
         ...(can("fa") ? [{ title: "Creator wallets", url: "/superadmin/fa/wallets" }] : []),
       ],
     }] : []),

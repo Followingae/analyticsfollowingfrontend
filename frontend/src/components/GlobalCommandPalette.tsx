@@ -90,6 +90,12 @@ const OPERATOR_NAV: (CmdEntry & { module?: string })[] = [
   { title: "WhatsApp", href: "/superadmin/whatsapp", icon: MessageCircle, module: "system" },
   { title: "Job queue", href: "/superadmin/system/jobs", icon: Wrench, module: "system" },
   { title: "Analyzed creators", href: "/superadmin/influencers/analyzed", icon: Database, module: "influencers" },
+  { title: "Coverage", href: "/superadmin/coverage", icon: Database,
+    module: "influencers", keywords: "gaps research backlog category market" },
+  { title: "Creator payments", href: "/superadmin/payables", icon: Banknote,
+    keywords: "payables owed paid creators money book" },
+  { title: "Production", href: "/ops/campaigns", icon: ClipboardCheck,
+    module: "operations", keywords: "workstreams deliverables concepts ops" },
   { title: "Guide", href: "/superadmin/guide", icon: BookOpen },
 ]
 
