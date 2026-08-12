@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner"
 import { imdListsApi, creatorShareApi, type ImdListCreator } from "@/services/imdListsApi"
 import { proposalApprovalApi } from "@/services/proposalApprovalApi"
+import { useAdminAccess } from "@/hooks/useAdminAccess"
 
 const ANY_COUNTRY = "__any__"
 const PAGE_SIZE = 40
@@ -34,6 +35,7 @@ function fmt(n?: number | null) {
 
 export default function ImdListDetailPage() {
   const listId = useParams().listId as string
+  const { canExport } = useAdminAccess()
   const [list, setList] = useState<{ name: string; description?: string | null; items: ImdListCreator[] } | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -195,9 +197,14 @@ export default function ImdListDetailPage() {
                   </Badge>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" className="gap-2" onClick={exportCsv} disabled={list.items.length === 0}>
-                    <Download className="h-4 w-4" />Export CSV
-                  </Button>
+                  {/* A list CSV carries sell pricing and public share links and is built to be
+                      forwarded, so only leadership may produce one. The team shares creators
+                      with a client through a proposal instead. */}
+                  {canExport && (
+                    <Button variant="outline" className="gap-2" onClick={exportCsv} disabled={list.items.length === 0}>
+                      <Download className="h-4 w-4" />Export CSV
+                    </Button>
+                  )}
                   <Button className="gap-2" onClick={() => setOpen(true)}><Plus className="h-4 w-4" />Add creators</Button>
                 </div>
               </div>

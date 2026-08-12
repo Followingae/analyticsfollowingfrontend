@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Balloons } from "@/components/ui/balloons"
+import { HelpLifebuoy } from "@/components/help/HelpLifebuoy"
 import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import React, { useMemo, useState, useEffect, useRef } from "react"
@@ -220,9 +221,12 @@ export function SiteHeader() {
 
         {/* Right side: badges + actions */}
         <div className="ml-auto flex items-center gap-2">
+          {/* Guided walkthroughs — re-runnable, role-aware. */}
+          <HelpLifebuoy />
           {/* Command-palette entry point — visible affordance for the ⌘K palette */}
           <button
             type="button"
+            data-tour="search"
             onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
             className="inline-flex h-8 items-center gap-2 rounded-md border border-input bg-background px-2.5 text-sm text-muted-foreground transition-colors duration-150 hover:bg-muted/50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             aria-label="Open command palette"

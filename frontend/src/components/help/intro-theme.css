@@ -1,0 +1,140 @@
+/**
+ * intro.js, wearing our theme.
+ *
+ * Stock intro.js looks like a 2014 jQuery plugin — blue gradients, hard shadows, its own
+ * fonts. Everything here maps it onto the app's own tokens so a walkthrough looks like part
+ * of the product, and follows light and dark automatically.
+ */
+
+.introjs-tooltip.following-intro {
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius, 0.65rem);
+  box-shadow: 0 12px 32px -8px rgb(0 0 0 / 0.28);
+  font-family: inherit;
+  min-width: 320px;
+  max-width: 360px;
+  padding: 2px;
+}
+
+.following-intro .introjs-tooltip-header {
+  padding: 14px 16px 0;
+}
+
+.following-intro .introjs-tooltip-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+}
+
+.following-intro .introjs-tooltiptext {
+  padding: 6px 16px 12px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: hsl(var(--muted-foreground));
+}
+.following-intro .introjs-tooltiptext p { margin: 0; }
+
+/* Close button — quiet, top right */
+.following-intro .introjs-skipbutton {
+  color: hsl(var(--muted-foreground));
+  font-size: 20px;
+  font-weight: 400;
+  height: 34px;
+  width: 34px;
+  line-height: 32px;
+  padding: 0;
+  top: 6px;
+  right: 6px;
+  border-radius: 6px;
+}
+.following-intro .introjs-skipbutton:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
+}
+
+/* Footer: progress on the left, buttons on the right */
+.following-intro .introjs-tooltipbuttons {
+  border-top: 1px solid hsl(var(--border));
+  padding: 10px 12px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.following-intro .introjs-button {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-shadow: none;
+  border-radius: 7px;
+  padding: 6px 13px;
+  transition: background-color .15s, color .15s, opacity .15s;
+}
+
+.following-intro .introjs-prevbutton {
+  background: transparent;
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+.following-intro .introjs-prevbutton:hover { background: hsl(var(--muted)); }
+
+.following-intro .introjs-nextbutton {
+  background: hsl(var(--primary));
+  border: 1px solid hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.following-intro .introjs-nextbutton:hover { opacity: .9; }
+
+.following-intro .introjs-button:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.following-intro .introjs-disabled,
+.following-intro .introjs-disabled:hover {
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border-color: hsl(var(--border));
+  opacity: .5;
+}
+
+/* Progress bar sits under the text, thin and unobtrusive */
+.following-intro .introjs-progress {
+  background: hsl(var(--muted));
+  height: 3px;
+  margin: 0 16px 10px;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.following-intro .introjs-progressbar {
+  background: hsl(var(--primary));
+  height: 3px;
+}
+
+/* The spotlight: a soft ring rather than a hard yellow box */
+.introjs-helperLayer.following-intro-highlight {
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 2px hsl(var(--primary)),
+    0 0 0 6px hsl(var(--primary) / 0.16),
+    0 0 0 9999px rgb(0 0 0 / 0.55) !important;
+  transition: all .25s ease;
+}
+
+.introjs-overlay { background: transparent; }
+
+/* Arrows follow the popover surface, including in dark mode */
+.following-intro .introjs-arrow.top { border-bottom-color: hsl(var(--popover)); }
+.following-intro .introjs-arrow.bottom { border-top-color: hsl(var(--popover)); }
+.following-intro .introjs-arrow.left { border-right-color: hsl(var(--popover)); }
+.following-intro .introjs-arrow.right { border-left-color: hsl(var(--popover)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .introjs-helperLayer.following-intro-highlight { transition: none; }
+}
