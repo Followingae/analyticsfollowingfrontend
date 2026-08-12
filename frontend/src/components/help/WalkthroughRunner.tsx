@@ -25,6 +25,19 @@ const RESUME_KEY = 'following.tour.resume'
 
 interface Leg { goto?: string; steps: TourStep[] }
 
+/**
+ * Arm a tour from anywhere — the "Show me how" page, a link, a button on an empty state.
+ *
+ * The runner itself lives in the header, because it has to survive the route changes a tour
+ * makes. So starting a tour is not a function call into the runner; it is parking the same
+ * resume record the runner already knows how to pick up, then navigating. Returns the path
+ * the caller should push, or null when the tour starts on whatever page you are already on.
+ */
+export function armTour(tour: Walkthrough): string | null {
+  sessionStorage.setItem(RESUME_KEY, JSON.stringify({ id: tour.id, leg: 0 }))
+  return legsOf(tour)[0]?.goto ?? null
+}
+
 /** Split at every `goto`, so each leg lives entirely on one page. */
 function legsOf(tour: Walkthrough): Leg[] {
   const legs: Leg[] = []

@@ -6,20 +6,34 @@
  * A cell counts a creator as covered only when we hold a usable cost for them, because a
  * category full of names with no rate is not coverage, it just looks like it. On a day with
  * no open round, the palest cell is the answer to "what should I be doing".
+ *
+ * The bar chart and the grid answer different questions and both are needed: the chart ranks
+ * categories against each other, the grid says which market inside a category is thin. One
+ * without the other sends someone researching the wrong gap.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Bar, BarChart, CartesianGrid, Cell as RCell, XAxis, YAxis } from 'recharts'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
-import { Loader2, ArrowRight } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ArrowRight, Coins, Database, MapPin, TimerReset } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { Empty, PageHead, Panel, Row, Stat, StatGrid } from '@/components/console/primitives'
 
 interface Cell { category: string; market: string; held: number; costed: number
                  sellable: number; stale: number }
+
+const CHART: ChartConfig = {
+  costed: { label: 'Quotable', color: 'var(--primary)' },
+  // The weakest categories are the point of the screen, so they are greyed rather than
+  // left to blend in with the strong ones.
+  thin: { label: 'Thin', color: 'color-mix(in oklab, var(--muted-foreground) 35%, transparent)' },
+}
 
 export default function CoveragePage() {
   const router = useRouter()
@@ -39,181 +53,208 @@ export default function CoveragePage() {
     })()
   }, [])
 
+  const cells: Cell[] = useMemo(() => data?.cells || [], [data])
+  const categories: string[] = useMemo(
+    () => (data?.categories || []).filter((c: string) => c !== 'uncategorised'), [data])
+  const markets: string[] = useMemo(
+    () => (data?.markets || []).filter((m: string) => m !== 'unknown'), [data])
+
+  // Ranked, so the chart reads as a league table rather than an alphabet.
+  const byCategory = useMemo(() => categories.map(cat => {
+    const mine = cells.filter(c => c.category === cat)
+    return {
+      category: cat,
+      costed: mine.reduce((a, c) => a + c.costed, 0),
+      held: mine.reduce((a, c) => a + c.held, 0),
+    }
+  }).sort((a, b) => b.costed - a.costed), [categories, cells])
+
   if (loading) {
-    return <SuperadminLayout><div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <Loader2 className="h-4 w-4 animate-spin" />Loading…</div></SuperadminLayout>
+    return (
+      <SuperadminLayout>
+        <div className="space-y-8">
+          <Skeleton className="h-9 w-48" />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-[116px]" />)}
+          </div>
+          <Skeleton className="h-[320px]" />
+        </div>
+      </SuperadminLayout>
+    )
   }
-  if (!data) return <SuperadminLayout><p className="text-sm">Nothing to show.</p></SuperadminLayout>
+  if (!data) {
+    return <SuperadminLayout><p className="text-sm text-muted-foreground">Nothing to show.</p></SuperadminLayout>
+  }
 
-  const cells: Cell[] = data.cells || []
-  const categories: string[] = (data.categories || []).filter((c: string) => c !== 'uncategorised')
-  const markets: string[] = (data.markets || []).filter((m: string) => m !== 'unknown')
   const at = (c: string, m: string) => cells.find(x => x.category === c && x.market === m)
-
   // Shade on costed, not held — coverage means "could actually be quoted".
   const max = Math.max(1, ...cells.filter(c => c.market !== 'unknown').map(c => c.costed))
-  const shade = (n: number) => n === 0 ? 0 : Math.min(0.12 + (n / max) * 0.88, 1)
+  const shade = (n: number) => n === 0 ? 0 : Math.min(0.14 + (n / max) * 0.86, 1)
 
-  const uncategorised = cells.filter(c => c.category === 'uncategorised')
-    .reduce((a, c) => a + c.held, 0)
+  const uncategorised = cells.filter(c => c.category === 'uncategorised').reduce((a, c) => a + c.held, 0)
   const noMarket = cells.filter(c => c.market === 'unknown').reduce((a, c) => a + c.held, 0)
+  const held = data.totals?.held ?? 0
+  const costed = data.totals?.costed ?? 0
+  const stale = data.totals?.stale ?? 0
+  const quotablePct = held ? Math.round((costed / held) * 100) : 0
 
   return (
     <SuperadminLayout>
       <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Coverage</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Where we are strong, and where to research next. A creator counts only once we hold
-            a cost for them.
-          </p>
-        </div>
+        <PageHead
+          title="Coverage"
+          sub="Where we are strong, and where to research next. A creator counts only once we hold a cost for them — a name with no rate cannot be quoted, so it is not coverage."
+          action={
+            <Button onClick={() => router.push('/superadmin/influencers/add')}>
+              Add creators
+            </Button>
+          }
+        />
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            ['In the database', data.totals?.held, ''],
-            ['With a usable cost', data.totals?.costed, 'text-emerald-600'],
-            ['Rates over 6 months old', data.totals?.stale, 'text-amber-600'],
-            ['No category set', uncategorised, 'text-amber-600'],
-          ].map(([l, v, c]) => (
-            <Card key={l as string}><CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">{l as string}</p>
-              <p className={`mt-1 text-2xl font-semibold tabular-nums ${c as string}`}>{(v as number) ?? 0}</p>
-            </CardContent></Card>
-          ))}
-        </div>
+        <StatGrid>
+          <Stat label="In the database" value={held} icon={Database}
+                hint={`${categories.length} categories · ${markets.length} markets`} />
+          <Stat label="Quotable today" value={costed} tone="good" icon={Coins}
+                hint={`${quotablePct}% of the database has a usable cost`} />
+          <Stat label="Rates over six months old" value={stale} tone={stale ? 'warn' : 'neutral'}
+                icon={TimerReset} hint="Worth re-checking before they go in a proposal" />
+          <Stat label="Missing a market" value={noMarket} tone={noMarket ? 'warn' : 'neutral'}
+                icon={MapPin} hint="Market is the first thing a client asks about" />
+        </StatGrid>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Category against market</CardTitle>
-            <CardDescription>
-              Darker is stronger. Hover a cell for the detail; pale cells are the backlog.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="border-separate" style={{ borderSpacing: '4px' }}>
-                <thead>
-                  <tr>
-                    <th className="w-32" />
-                    {markets.map(m => (
-                      <th key={m} className="px-2 pb-1 text-xs font-medium text-muted-foreground">
-                        {m}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {categories.map(cat => (
-                    <tr key={cat}>
-                      <td className="pr-3 text-sm capitalize">{cat}</td>
-                      {markets.map(m => {
-                        const c = at(cat, m)
-                        const n = c?.costed ?? 0
-                        const a = shade(n)
-                        return (
-                          <td key={m}>
-                            <div
-                              onMouseEnter={() => c && setHover(c)}
-                              onMouseLeave={() => setHover(null)}
-                              className="flex h-12 w-24 items-center justify-center rounded-lg text-sm font-semibold transition"
-                              style={{
-                                backgroundColor: n === 0
-                                  ? 'hsl(var(--muted))'
-                                  : `color-mix(in srgb, hsl(var(--primary)) ${a * 100}%, transparent)`,
-                                color: a > 0.55 ? 'hsl(var(--primary-foreground))' : undefined,
-                              }}
-                              title={`${cat} · ${m}`}
-                            >
-                              {n || '—'}
-                            </div>
-                          </td>
-                        )
-                      })}
-                    </tr>
+        <Panel
+          title="Strength by category"
+          description="Creators we could quote today, strongest first"
+        >
+          <ChartContainer config={CHART} className="h-[260px] w-full">
+            <BarChart data={byCategory} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/60" />
+              <XAxis dataKey="category" tickLine={false} axisLine={false} tickMargin={10}
+                     className="text-xs capitalize" />
+              <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false}
+                     className="text-xs" />
+              <ChartTooltip content={<ChartTooltipContent labelClassName="capitalize" />} />
+              <Bar dataKey="costed" radius={[4, 4, 0, 0]} maxBarSize={54}>
+                {byCategory.map(c => (
+                  // The weakest categories are the point of the screen, so they are the ones
+                  // that get flagged rather than blending into the rest of the bars.
+                  <RCell key={c.category}
+                         fill={c.costed <= Math.max(1, max * 0.25)
+                           ? 'var(--color-thin)'
+                           : 'var(--color-costed)'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </Panel>
+
+        <Panel
+          title="Category against market"
+          description="Darker is stronger. Hover a cell for the detail; the pale ones are the backlog."
+        >
+          <div className="overflow-x-auto pb-1">
+            <table className="border-separate" style={{ borderSpacing: '6px' }}>
+              <thead>
+                <tr>
+                  <th className="w-36" />
+                  {markets.map(m => (
+                    <th key={m} className="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {m}
+                    </th>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map(cat => (
+                  <tr key={cat}>
+                    <td className="pr-4 text-sm font-medium capitalize">{cat}</td>
+                    {markets.map(m => {
+                      const c = at(cat, m)
+                      const n = c?.costed ?? 0
+                      const a = shade(n)
+                      const on = hover?.category === cat && hover?.market === m
+                      return (
+                        <td key={m}>
+                          <div
+                            onMouseEnter={() => c && setHover(c)}
+                            onMouseLeave={() => setHover(null)}
+                            className={`flex h-14 w-28 flex-col items-center justify-center rounded-xl text-sm font-semibold tabular-nums transition-all ${
+                              on ? 'ring-2 ring-ring ring-offset-2 ring-offset-background' : ''}`}
+                            style={{
+                              backgroundColor: n === 0
+                                ? 'var(--muted)'
+                                : `color-mix(in srgb, var(--primary) ${a * 100}%, transparent)`,
+                              color: a > 0.55 ? 'var(--primary-foreground)' : undefined,
+                            }}
+                            title={`${cat} · ${m}`}
+                          >
+                            {n || '—'}
+                            {!!c?.stale && (
+                              <span className={`text-[10px] font-medium ${a > 0.55 ? 'opacity-80' : 'text-amber-600'}`}>
+                                {c.stale} stale
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-            <div className="mt-4 flex min-h-[1.25rem] items-center gap-3 text-xs text-muted-foreground">
-              {hover ? (
-                <span>
-                  <span className="capitalize text-foreground">{hover.category} · {hover.market}</span>
-                  {' — '}{hover.costed} with a cost, {hover.held} held
-                  {hover.stale > 0 && `, ${hover.stale} rates going stale`}
-                </span>
-              ) : (
-                <span>Shaded by creators we could actually quote.</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          <div className="mt-4 flex min-h-[1.25rem] items-center gap-3 border-t pt-4 text-xs text-muted-foreground">
+            {hover ? (
+              <span>
+                <span className="font-medium capitalize text-foreground">{hover.category} · {hover.market}</span>
+                {' — '}{hover.costed} quotable of {hover.held} held
+                {hover.stale > 0 && `, ${hover.stale} rates going stale`}
+              </span>
+            ) : (
+              <span>Shaded by creators we could actually quote, not by how many names we hold.</span>
+            )}
+          </div>
+        </Panel>
 
-        <div className="grid gap-6 lg:grid-cols-2 items-start">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Research next</CardTitle>
-              <CardDescription>The thinnest cells, weakest first</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-0 px-0">
-              {(data.gaps || []).map((g: any, i: number) => (
-                <div key={i} className="flex items-center gap-3 border-t px-6 py-3 first:border-t-0">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium capitalize">{g.category} · {g.market}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {g.costed} with a cost, {g.held} held
-                    </p>
-                  </div>
-                  <Button size="sm" variant="ghost"
-                          onClick={() => router.push('/superadmin/influencers')}>
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              {(data.gaps || []).length === 0 && (
-                <p className="px-6 py-8 text-center text-sm text-muted-foreground">
-                  No thin cells — coverage is even.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+        <div className="grid items-start gap-6 lg:grid-cols-2">
+          <Panel title="Research next" description="The thinnest cells, weakest first" flush>
+            {(data.gaps || []).map((g: any, i: number) => (
+              <Row
+                key={i}
+                tone={g.costed === 0 ? 'bad' : 'warn'}
+                title={<span className="capitalize">{g.category} · {g.market}</span>}
+                meta={`${g.costed} quotable of ${g.held} held`}
+                right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
+                onClick={() => router.push('/superadmin/influencers')}
+              />
+            ))}
+            {(data.gaps || []).length === 0 && <Empty>No thin cells — coverage is even.</Empty>}
+          </Panel>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Data to tidy</CardTitle>
-              <CardDescription>Cheap wins that make everything else sharper</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium">{uncategorised} creators have no category</p>
-                  <p className="text-xs text-muted-foreground">
-                    They cannot appear in any coverage cell, or in a category filter.
-                  </p>
-                </div>
-                <Badge variant="outline" className="text-amber-600">Fix</Badge>
-              </div>
-              <div className="flex items-center justify-between gap-4 border-t pt-3">
-                <div>
-                  <p className="text-sm font-medium">{noMarket} creators have no market</p>
-                  <p className="text-xs text-muted-foreground">
-                    Market is the first thing a client asks about.
-                  </p>
-                </div>
-                <Badge variant="outline" className="text-amber-600">Fix</Badge>
-              </div>
-              <div className="flex items-center justify-between gap-4 border-t pt-3">
-                <div>
-                  <p className="text-sm font-medium">
-                    {data.totals?.stale ?? 0} rates are over six months old
-                  </p>
-                  <p className="text-xs text-muted-foreground">Worth re-checking before quoting.</p>
-                </div>
-                <Badge variant="outline">Refresh</Badge>
-              </div>
-            </CardContent>
-          </Card>
+          <Panel title="Data to tidy" description="Cheap wins that make everything else sharper" flush>
+            <Row
+              tone={uncategorised ? 'warn' : 'good'}
+              title={`${uncategorised} creators have no category`}
+              meta="They cannot appear in any coverage cell, or in a category filter"
+              right={<Badge variant="outline">{uncategorised ? 'Fix' : 'Clear'}</Badge>}
+              onClick={() => router.push('/superadmin/influencers')}
+            />
+            <Row
+              tone={noMarket ? 'warn' : 'good'}
+              title={`${noMarket} creators have no market`}
+              meta="Market is the first thing a client asks about"
+              right={<Badge variant="outline">{noMarket ? 'Fix' : 'Clear'}</Badge>}
+              onClick={() => router.push('/superadmin/influencers')}
+            />
+            <Row
+              tone={stale ? 'warn' : 'good'}
+              title={`${stale} rates are over six months old`}
+              meta="Worth re-checking before quoting"
+              right={<Badge variant="outline">{stale ? 'Refresh' : 'Clear'}</Badge>}
+              onClick={() => router.push('/superadmin/influencers')}
+            />
+          </Panel>
         </div>
       </div>
     </SuperadminLayout>

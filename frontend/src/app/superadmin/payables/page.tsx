@@ -10,6 +10,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { BadgeCheck, CircleDollarSign, Wallet } from 'lucide-react'
+import { PageHead, Stat, StatGrid } from '@/components/console/primitives'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -126,44 +129,37 @@ export default function PayablesPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-8">
-        <div className="flex flex-wrap items-start gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Creator payments</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Book what we owe, and track it to paid. Anyone can record; the founders mark paid.
-            </p>
-          </div>
-          <div className="ml-auto flex gap-2">
-            <Button size="sm" variant="outline" onClick={exportCsv} disabled={!items.length}>
-              <Download className="mr-1.5 h-4 w-4" />Export
-            </Button>
-            <Button size="sm" onClick={() => setOpen(true)}>
-              <Plus className="mr-1.5 h-4 w-4" />Record a payment
-            </Button>
-          </div>
-        </div>
+        <PageHead
+          title="Creator payments"
+          sub="Book what we owe and track it to paid. Anyone internal can record a payment — recording is not paying, and only a founder marks it paid."
+          action={
+            <>
+              <Button variant="outline" onClick={exportCsv} disabled={!items.length}>
+                <Download className="mr-1.5 h-4 w-4" />Export
+              </Button>
+              <Button onClick={() => setOpen(true)}>
+                <Plus className="mr-1.5 h-4 w-4" />Record a payment
+              </Button>
+            </>
+          }
+        />
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          {[['Owed', owed, 'text-amber-600'], ['Approved', approved, 'text-blue-600'],
-            ['Paid', paid, 'text-emerald-600']].map(([l, v, c]) => (
-            <Card key={l as string}><CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">{l as string}</p>
-              <p className={`mt-1 text-2xl font-semibold tabular-nums ${c as string}`}>
-                {aed(v)}
-              </p>
-            </CardContent></Card>
-          ))}
-        </div>
+        <StatGrid cols={3}>
+          <Stat label="Owed" value={aed(owed)} tone={owed ? 'warn' : 'good'} icon={CircleDollarSign}
+                hint="Recorded, not yet approved" onClick={() => setTab('owed')} />
+          <Stat label="Approved" value={aed(approved)} tone="info" icon={BadgeCheck}
+                hint="Cleared, waiting to be paid" onClick={() => setTab('approved')} />
+          <Stat label="Paid" value={aed(paid)} tone="good" icon={Wallet}
+                hint="Money that has left the company" onClick={() => setTab('paid')} />
+        </StatGrid>
 
-        <div className="inline-flex gap-1 rounded-lg bg-muted p-1">
-          {TABS.map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition ${
-                tab === t ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-              {t}
-            </button>
-          ))}
-        </div>
+        <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
+          <TabsList>
+            {TABS.map(t => (
+              <TabsTrigger key={t} value={t} className="capitalize">{t}</TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         <Card>
           <CardHeader>

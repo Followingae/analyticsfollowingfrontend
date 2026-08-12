@@ -41,7 +41,7 @@ const BRAND_NAV: CmdEntry[] = [
   { title: "Cashback Pool", href: "/billing?tab=cashback-pool", icon: Banknote, keywords: "pool topup" },
   { title: "Notifications", href: "/notifications", icon: Bell },
   { title: "Settings", href: "/settings", icon: Settings },
-  { title: "Guide", href: "/guide", icon: BookOpen, keywords: "help support" },
+  { title: "Show me how", href: "/how", icon: BookOpen, keywords: "help support guide walkthrough tour" },
 ]
 
 const OPERATOR_NAV: (CmdEntry & { module?: string })[] = [
@@ -96,7 +96,7 @@ const OPERATOR_NAV: (CmdEntry & { module?: string })[] = [
     keywords: "payables owed paid creators money book" },
   { title: "Production", href: "/ops/campaigns", icon: ClipboardCheck,
     module: "operations", keywords: "workstreams deliverables concepts ops" },
-  { title: "Guide", href: "/superadmin/guide", icon: BookOpen },
+  { title: "Show me how", href: "/how", icon: BookOpen },
 ]
 
 const OPERATOR_ACTIONS: (CmdEntry & { module?: string })[] = [

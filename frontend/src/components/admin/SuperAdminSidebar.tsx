@@ -169,7 +169,6 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     ...(can("system") ? [{ title: "WhatsApp", url: "/superadmin/whatsapp", icon: MessageCircle }] : []),
     ...(can("system") ? [{ title: "System", url: "/superadmin/system", icon: Wrench }] : []),
     { title: "Dashboard", url: "/superadmin", icon: BarChart3 },
-    { title: "Guide", url: "/superadmin/guide", icon: LayoutDashboard },
   ]
 
   // Content pages not yet built; dead links removed.

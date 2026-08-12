@@ -3,8 +3,8 @@
  *
  * These are not tips. Between them they teach the platform end to end, so a new joiner can be
  * handed a login and work their way through their track without anyone sitting beside them.
- * The written guide (/superadmin/guide) is the reference you look things up in; these are the
- * lessons you do once, in the product, with your hands on it.
+ * They replaced a written guide nobody read: a page describing a screen is always one release
+ * behind it, whereas a walkthrough runs on the screen itself and cannot describe what is not there.
  *
  * Rules for writing a step:
  *   - One idea. Two short sentences at most.

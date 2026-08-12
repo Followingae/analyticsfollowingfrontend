@@ -5,24 +5,26 @@
  *
  * Two facts decide everything on this screen: how long a client has been silent, and whose
  * turn it is. Deals rarely die from a decision — they die because it was nobody's turn and
- * nobody noticed.
+ * nobody noticed. So silence is the sort order, and "us" is the state to clear first.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Loader2, ArrowRight } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ArrowRight, Building2, HeartPulse, PhoneOff, TriangleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { Empty, PageHead, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
 
-const HEALTH = {
-  healthy: { label: 'Healthy', cls: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
-  quiet:   { label: 'Going quiet', cls: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
-  at_risk: { label: 'At risk', cls: 'bg-destructive/10 text-destructive border-destructive/20' },
-  unknown: { label: 'No activity', cls: 'bg-muted text-muted-foreground' },
+const HEALTH: Record<string, { label: string; cls: string; tone: Tone }> = {
+  healthy: { label: 'Healthy', cls: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600', tone: 'good' },
+  quiet:   { label: 'Going quiet', cls: 'border-amber-500/20 bg-amber-500/10 text-amber-600', tone: 'warn' },
+  at_risk: { label: 'At risk', cls: 'border-destructive/20 bg-destructive/10 text-destructive', tone: 'bad' },
+  unknown: { label: 'No activity', cls: 'bg-muted text-muted-foreground', tone: 'neutral' },
 }
 
 const quiet = (d: number | null) =>
@@ -32,7 +34,7 @@ export default function BrandsPage() {
   const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'all' | 'attention'>('all')
+  const [tab, setTab] = useState<'all' | 'attention' | 'ours'>('all')
 
   useEffect(() => {
     (async () => {
@@ -46,122 +48,102 @@ export default function BrandsPage() {
     })()
   }, [])
 
+  const brands = useMemo(() => (data?.brands || []).filter((b: any) =>
+    tab === 'all' ? true
+    : tab === 'ours' ? b.whose_move !== 'client'
+    : b.health !== 'healthy'), [data, tab])
+
   if (loading) {
-    return <SuperadminLayout><div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <Loader2 className="h-4 w-4 animate-spin" />Loading…</div></SuperadminLayout>
+    return (
+      <SuperadminLayout>
+        <div className="space-y-8">
+          <Skeleton className="h-9 w-40" />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-[116px]" />)}
+          </div>
+          <Skeleton className="h-[340px]" />
+        </div>
+      </SuperadminLayout>
+    )
   }
-  if (!data) return <SuperadminLayout><p className="text-sm">Nothing to show.</p></SuperadminLayout>
+  if (!data) {
+    return <SuperadminLayout><p className="text-sm text-muted-foreground">Nothing to show.</p></SuperadminLayout>
+  }
 
   const s = data.summary || {}
-  const brands = (data.brands || []).filter((b: any) =>
-    tab === 'all' ? true : b.health !== 'healthy')
+  const ours = (data.brands || []).filter((b: any) => b.whose_move !== 'client').length
 
   return (
     <SuperadminLayout>
       <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Brands</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            How long since anything moved, and who owes the next step.
-          </p>
-        </div>
+        <PageHead
+          title="Brands"
+          sub="How long since anything moved, and who owes the next step. Silence is measured from real activity in the platform, so a conversation you had off-platform has to be logged to count."
+        />
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            ['Active clients', s.total, 'text-foreground'],
-            ['Healthy', s.healthy, 'text-emerald-600'],
-            ['Going quiet', s.quiet, 'text-amber-600'],
-            ['At risk', s.at_risk, 'text-destructive'],
-          ].map(([label, n, cls]) => (
-            <Card key={label as string}><CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">{label as string}</p>
-              <p className={`mt-1 text-2xl font-semibold tabular-nums ${cls as string}`}>
-                {(n as number) ?? 0}
-              </p>
-            </CardContent></Card>
-          ))}
-        </div>
+        <StatGrid>
+          <Stat label="Active clients" value={s.total ?? 0} icon={Building2}
+                hint={`${ours} waiting on us`} onClick={() => setTab('all')} />
+          <Stat label="Healthy" value={s.healthy ?? 0} tone="good" icon={HeartPulse}
+                hint="Something moved in the last week" />
+          <Stat label="Going quiet" value={s.quiet ?? 0} tone={s.quiet ? 'warn' : 'neutral'}
+                icon={PhoneOff} hint="One to two weeks of silence"
+                onClick={() => setTab('attention')} />
+          <Stat label="At risk" value={s.at_risk ?? 0} tone={s.at_risk ? 'bad' : 'neutral'}
+                icon={TriangleAlert} hint="Over a fortnight — call, do not email"
+                onClick={() => setTab('attention')} />
+        </StatGrid>
 
-        <div className="inline-flex gap-1 rounded-lg bg-muted p-1">
-          {(['all', 'attention'] as const).map(k => (
-            <button key={k} onClick={() => setTab(k)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                tab === k ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-              {k === 'all' ? 'All brands' : 'Needs attention'}
-            </button>
-          ))}
-        </div>
+        <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
+          <TabsList>
+            <TabsTrigger value="all">All brands</TabsTrigger>
+            <TabsTrigger value="attention">Needs attention</TabsTrigger>
+            <TabsTrigger value="ours">Waiting on us</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Heartbeat</CardTitle>
-            <CardDescription>Longest silence first</CardDescription>
-          </CardHeader>
-          <CardContent className="px-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-6 pb-2 text-left font-medium">Brand</th>
-                    <th className="px-3 pb-2 text-left font-medium">Owner</th>
-                    <th className="px-3 pb-2 text-left font-medium">Silent</th>
-                    <th className="px-3 pb-2 text-left font-medium">Whose move</th>
-                    <th className="px-3 pb-2 text-left font-medium">Open</th>
-                    <th className="px-6 pb-2 text-left font-medium"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {brands.map((b: any) => {
-                    const h = HEALTH[b.health as keyof typeof HEALTH] || HEALTH.unknown
-                    const open: string[] = []
-                    if (b.live_campaigns) open.push(`${b.live_campaigns} live`)
-                    if (b.open_rounds) open.push(`${b.open_rounds} round${b.open_rounds === 1 ? '' : 's'}`)
-                    if (b.awaiting_client_verdict) open.push(`${b.awaiting_client_verdict} awaiting verdict`)
-                    if (b.agreements_out) open.push('agreement out')
-                    if (b.unpaid_invoices) open.push(`${b.unpaid_invoices} unpaid`)
-                    return (
-                      <tr key={b.id} className="border-b last:border-0 hover:bg-muted/40">
-                        <td className="px-6 py-3">
-                          <p className="font-medium">{b.name}</p>
-                          {b.last_feedback && (
-                            <p className="mt-0.5 max-w-md truncate text-xs italic text-muted-foreground">
-                              “{b.last_feedback}”
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 text-muted-foreground">
-                          {b.account_manager_email || <span className="italic">unassigned</span>}
-                        </td>
-                        <td className="px-3 py-3">
-                          <Badge variant="outline" className={h.cls}>{quiet(b.days_quiet)}</Badge>
-                        </td>
-                        <td className="px-3 py-3">
-                          {b.whose_move === 'client'
-                            ? <Badge variant="outline">Client</Badge>
-                            : <Badge>Us</Badge>}
-                        </td>
-                        <td className="px-3 py-3 text-xs text-muted-foreground">
-                          {open.length ? open.join(' · ') : '—'}
-                        </td>
-                        <td className="px-6 py-3 text-right">
-                          <Button size="sm" variant="ghost"
-                                  onClick={() => router.push(`/superadmin/clients/${b.id}`)}>
-                            <ArrowRight className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                  {brands.length === 0 && (
-                    <tr><td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                      Nothing here.
-                    </td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <Panel title="Heartbeat" description="Longest silence first" flush>
+          {brands.map((b: any) => {
+            const h = HEALTH[b.health as keyof typeof HEALTH] || HEALTH.unknown
+            const open: string[] = []
+            if (b.live_campaigns) open.push(`${b.live_campaigns} live`)
+            if (b.open_rounds) open.push(`${b.open_rounds} round${b.open_rounds === 1 ? '' : 's'}`)
+            if (b.awaiting_client_verdict) open.push(`${b.awaiting_client_verdict} awaiting verdict`)
+            if (b.agreements_out) open.push('agreement out')
+            if (b.unpaid_invoices) open.push(`${b.unpaid_invoices} unpaid`)
+            return (
+              <Row
+                key={b.id}
+                tone={h.tone}
+                title={
+                  <span className="flex items-center gap-2">
+                    {b.name}
+                    <Badge variant="outline" className={h.cls}>{quiet(b.days_quiet)} quiet</Badge>
+                    {b.whose_move === 'client'
+                      ? <Badge variant="outline">Their move</Badge>
+                      : <Badge>Our move</Badge>}
+                  </span>
+                }
+                meta={
+                  <>
+                    {b.account_manager_email || 'unassigned'}
+                    {open.length > 0 && ` · ${open.join(' · ')}`}
+                    {b.last_feedback && ` · “${b.last_feedback}”`}
+                  </>
+                }
+                right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
+                onClick={() => router.push(`/superadmin/clients/${b.id}`)}
+              />
+            )
+          })}
+          {brands.length === 0 && (
+            <Empty>
+              {tab === 'attention' ? 'Nobody needs chasing — every brand is warm.'
+               : tab === 'ours' ? 'Nothing is waiting on us.'
+               : 'No clients yet.'}
+            </Empty>
+          )}
+        </Panel>
       </div>
     </SuperadminLayout>
   )

@@ -11,7 +11,7 @@ import { HelpLifebuoy } from "@/components/help/HelpLifebuoy"
 import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import React, { useMemo, useState, useEffect, useRef } from "react"
-import { Crown, Coins, PartyPopper, LogOut, BookOpen, Search, MoreHorizontal } from "lucide-react"
+import { Crown, Coins, PartyPopper, LogOut, Search, MoreHorizontal } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -289,26 +289,6 @@ export function SiteHeader() {
                 onMarkAsRead={markAsRead}
                 onMarkAllAsRead={markAllAsRead}
               />
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      const isSuperadmin = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'super_admin';
-                      router.push(isSuperadmin ? '/superadmin/guide' : '/guide');
-                    }}
-                    className="transition-colors duration-150"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    <span className="sr-only">User Guide</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>User Guide</p>
-                </TooltipContent>
-              </Tooltip>
 
               <ModeToggle />
 

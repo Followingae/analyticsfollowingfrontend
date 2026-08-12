@@ -19,7 +19,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { Progress } from '@/components/ui/progress'
-import { Plus, Loader2, Search, Clock } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Plus, Loader2, Search, Clock, Layers, TimerOff, Users, CheckCheck } from 'lucide-react'
+import { PageHead, Stat, StatGrid } from '@/components/console/primitives'
 import { toast } from 'sonner'
 import { sourcingApi, STATUS_LABEL, type RoundSummary, type RoundStatus } from '@/services/sourcingApi'
 
@@ -77,6 +80,15 @@ export default function SourcingBoardPage() {
       r.title.toLowerCase().includes(t) || (r.client_name || '').toLowerCase().includes(t))
   }, [rounds, q])
 
+  // Board-level totals: the point of the header is "what is this board asking of us today".
+  const summary = useMemo(() => rounds.reduce((a, r) => {
+    const target = r.target_count || 0
+    a.short += Math.max(0, target - r.proposed)
+    a.approved += r.approved || 0
+    if (r.due_at && new Date(r.due_at).getTime() < Date.now()) a.late += 1
+    return a
+  }, { short: 0, approved: 0, late: 0 }), [rounds])
+
   const create = async () => {
     if (!form.title.trim()) { toast.error('Give the round a title'); return }
     setBusy(true)
@@ -97,38 +109,45 @@ export default function SourcingBoardPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-8">
-        <div className="flex flex-wrap items-start gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Sourcing</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Each client request for sample creators, with an owner and a due date.
-            </p>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input className="h-9 w-56 pl-8" placeholder="Search rounds…"
-                     value={q} onChange={e => setQ(e.target.value)} />
-            </div>
-            <Button size="sm" data-tour="new-round" onClick={() => setOpen(true)}>
-              <Plus className="mr-1.5 h-4 w-4" />New round
-            </Button>
-          </div>
-        </div>
+        <PageHead
+          title="Sourcing"
+          sub="Each client request for sample creators, with an owner, a target and a due date. If a round is open the talent team keeps sourcing; if it is locked they stop."
+          action={
+            <>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input className="h-9 w-56 pl-8" placeholder="Search rounds…"
+                       value={q} onChange={e => setQ(e.target.value)} />
+              </div>
+              <Button data-tour="new-round" onClick={() => setOpen(true)}>
+                <Plus className="mr-1.5 h-4 w-4" />New round
+              </Button>
+            </>
+          }
+        />
 
-        <div className="inline-flex gap-1 rounded-lg bg-muted p-1">
-          {TABS.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                tab === t.key ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <StatGrid>
+          <Stat label="Rounds on this board" value={rounds.length} icon={Layers}
+                hint={tab === 'open' ? 'Open right now' : TABS.find(t => t.key === tab)?.label} />
+          <Stat label="Creators still needed" value={summary.short} icon={Users}
+                tone={summary.short ? 'warn' : 'good'}
+                hint={summary.short ? 'Across every round on this board' : 'Every round is at target'} />
+          <Stat label="Overdue" value={summary.late} icon={TimerOff}
+                tone={summary.late ? 'bad' : 'good'}
+                hint={summary.late ? 'Past the date the client was given' : 'Nothing has slipped'} />
+          <Stat label="Approved so far" value={summary.approved} icon={CheckCheck}
+                hint="Cleared internally and ready for a client" />
+        </StatGrid>
+
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList>
+            {TABS.map(t => <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>)}
+          </TabsList>
+        </Tabs>
 
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />Loading…
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map(i => <Skeleton key={i} className="h-[188px]" />)}
           </div>
         ) : shown.length === 0 ? (
           <Card>
@@ -146,7 +165,9 @@ export default function SourcingBoardPage() {
               const target = r.target_count || 0
               const pct = target ? Math.min(100, Math.round((r.proposed / target) * 100)) : 0
               return (
-                <Card key={r.id} className="cursor-pointer transition hover:shadow-md"
+                <Card key={r.id}
+                      className={`cursor-pointer transition-all hover:border-primary/40 hover:shadow-md ${
+                        d.late ? 'border-destructive/30' : ''}`}
                       onClick={() => router.push(`/superadmin/sourcing/${r.id}`)}>
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-3">

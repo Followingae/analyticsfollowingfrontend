@@ -6,10 +6,25 @@
  * of the product, and follows light and dark automatically.
  */
 
+/*
+ * Above everything, always.
+ *
+ * A walkthrough points at things that live under sticky headers, sidebars and sheets, and
+ * several of those sit in their own stacking context — so the card and the spotlight were
+ * being painted over by the very chrome they were explaining. intro.js ships z-indexes in
+ * the 9999998 range, which loses to anything higher. These layers are the top of the app
+ * while a tour is running, so they take the top of the range and nothing outranks them.
+ */
+.introjs-overlay,
+.introjs-helperLayer,
+.introjs-tooltipReferenceLayer,
+.introjs-disableInteraction { z-index: 2147483000 !important; }
+.introjs-tooltip { z-index: 2147483001 !important; }
+
 .introjs-tooltip.following-intro {
-  background: hsl(var(--popover));
-  color: hsl(var(--popover-foreground));
-  border: 1px solid hsl(var(--border));
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
   border-radius: var(--radius, 0.65rem);
   box-shadow: 0 12px 32px -8px rgb(0 0 0 / 0.28);
   font-family: inherit;
@@ -27,20 +42,20 @@
   font-weight: 600;
   line-height: 1.35;
   letter-spacing: -0.01em;
-  color: hsl(var(--foreground));
+  color: var(--foreground);
 }
 
 .following-intro .introjs-tooltiptext {
   padding: 6px 16px 12px;
   font-size: 13.5px;
   line-height: 1.55;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
 }
 .following-intro .introjs-tooltiptext p { margin: 0; }
 
 /* Close button — quiet, top right */
 .following-intro .introjs-skipbutton {
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
   font-size: 20px;
   font-weight: 400;
   height: 34px;
@@ -52,13 +67,13 @@
   border-radius: 6px;
 }
 .following-intro .introjs-skipbutton:hover {
-  color: hsl(var(--foreground));
-  background: hsl(var(--muted));
+  color: var(--foreground);
+  background: var(--muted);
 }
 
 /* Footer: progress on the left, buttons on the right */
 .following-intro .introjs-tooltipbuttons {
-  border-top: 1px solid hsl(var(--border));
+  border-top: 1px solid var(--border);
   padding: 10px 12px;
   display: flex;
   gap: 8px;
@@ -78,42 +93,42 @@
 
 .following-intro .introjs-prevbutton {
   background: transparent;
-  border: 1px solid hsl(var(--border));
-  color: hsl(var(--foreground));
+  border: 1px solid var(--border);
+  color: var(--foreground);
 }
-.following-intro .introjs-prevbutton:hover { background: hsl(var(--muted)); }
+.following-intro .introjs-prevbutton:hover { background: var(--muted); }
 
 .following-intro .introjs-nextbutton {
-  background: hsl(var(--primary));
-  border: 1px solid hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: var(--primary-foreground);
 }
 .following-intro .introjs-nextbutton:hover { opacity: .9; }
 
 .following-intro .introjs-button:focus-visible {
-  outline: 2px solid hsl(var(--ring));
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
   box-shadow: none;
 }
 
 .following-intro .introjs-disabled,
 .following-intro .introjs-disabled:hover {
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
   background: transparent;
-  border-color: hsl(var(--border));
+  border-color: var(--border);
   opacity: .5;
 }
 
 /* Progress bar sits under the text, thin and unobtrusive */
 .following-intro .introjs-progress {
-  background: hsl(var(--muted));
+  background: var(--muted);
   height: 3px;
   margin: 0 16px 10px;
   border-radius: 99px;
   overflow: hidden;
 }
 .following-intro .introjs-progressbar {
-  background: hsl(var(--primary));
+  background: var(--primary);
   height: 3px;
 }
 
@@ -121,8 +136,8 @@
 .introjs-helperLayer.following-intro-highlight {
   border-radius: 10px;
   box-shadow:
-    0 0 0 2px hsl(var(--primary)),
-    0 0 0 6px hsl(var(--primary) / 0.16),
+    0 0 0 2px var(--primary),
+    0 0 0 6px color-mix(in oklab, var(--primary) 16%, transparent),
     0 0 0 9999px rgb(0 0 0 / 0.55) !important;
   transition: all .25s ease;
 }
@@ -130,10 +145,10 @@
 .introjs-overlay { background: transparent; }
 
 /* Arrows follow the popover surface, including in dark mode */
-.following-intro .introjs-arrow.top { border-bottom-color: hsl(var(--popover)); }
-.following-intro .introjs-arrow.bottom { border-top-color: hsl(var(--popover)); }
-.following-intro .introjs-arrow.left { border-right-color: hsl(var(--popover)); }
-.following-intro .introjs-arrow.right { border-left-color: hsl(var(--popover)); }
+.following-intro .introjs-arrow.top { border-bottom-color: var(--popover); }
+.following-intro .introjs-arrow.bottom { border-top-color: var(--popover); }
+.following-intro .introjs-arrow.left { border-right-color: var(--popover); }
+.following-intro .introjs-arrow.right { border-left-color: var(--popover); }
 
 @media (prefers-reduced-motion: reduce) {
   .introjs-helperLayer.following-intro-highlight { transition: none; }

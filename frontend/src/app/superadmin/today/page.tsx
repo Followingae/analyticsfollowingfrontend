@@ -3,20 +3,22 @@
 /**
  * Today — the landing screen.
  *
- * Not a dashboard of totals. A short list of things with your name on them, then what is in
- * flight. Same shape for everyone; the contents come from your role.
+ * Four numbers that say where the company stands, then a short list of things with your name
+ * on them, then what is in flight. Same shape for everyone; the contents and the numbers come
+ * from your role, and the money figures simply are not sent to a role that may not see them.
  */
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
+import { Empty, PageHead, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
 
 const greeting = () => {
   const h = new Date().getHours()
@@ -24,6 +26,12 @@ const greeting = () => {
 }
 const dayLabel = () =>
   new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+
+/** Big money is read at a glance, so it is shortened; small money is read exactly. */
+const aed = (n: number) =>
+  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}M`
+  : n >= 10_000 ? `${Math.round(n / 1000)}K`
+  : Math.round(n).toLocaleString()
 
 export default function TodayPage() {
   const router = useRouter()
@@ -46,84 +54,94 @@ export default function TodayPage() {
   const first = (user?.full_name || user?.email || '').split(/[\s@]/)[0]
 
   if (loading) {
-    return <SuperadminLayout><div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <Loader2 className="h-4 w-4 animate-spin" />Loading…</div></SuperadminLayout>
+    return (
+      <SuperadminLayout>
+        <div className="space-y-8">
+          <Skeleton className="h-9 w-64" />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-[116px]" />)}
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Skeleton className="h-[280px]" /><Skeleton className="h-[280px]" />
+          </div>
+        </div>
+      </SuperadminLayout>
+    )
   }
 
+  const headline = data?.headline || []
   const needs = data?.needs || []
   const moving = data?.moving || []
 
   return (
     <SuperadminLayout>
       <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {greeting()}{first ? `, ${first}` : ''}
-          </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">{dayLabel()}</p>
-        </div>
+        <PageHead
+          title={`${greeting()}${first ? `, ${first}` : ''}`}
+          sub={`${dayLabel()} · ${needs.length ? `${needs.length} thing${needs.length === 1 ? '' : 's'} waiting on you` : 'nothing is waiting on you'}`}
+          action={
+            <Button variant="outline" onClick={() => router.push('/superadmin/influencers/add')}>
+              Add creators
+            </Button>
+          }
+        />
 
-        <div className="grid gap-6 lg:grid-cols-2 items-start">
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
-              <div>
-                <CardTitle className="text-base">Needs you</CardTitle>
-                <CardDescription>
-                  {needs.length === 0 ? 'Nothing waiting' : 'Decisions and work with your name on them'}
-                </CardDescription>
-              </div>
-              {needs.length > 0 && <Badge>{needs.length}</Badge>}
-            </CardHeader>
-            <CardContent className="space-y-0 px-0">
-              {needs.map((n: any, i: number) => (
-                <button key={i}
-                  onClick={() => n.href && router.push(n.href)}
-                  className="flex w-full items-center gap-3 border-t px-6 py-3.5 text-left first:border-t-0 hover:bg-muted/40">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${
-                    n.urgency === 'high' ? 'bg-destructive' : 'bg-amber-500'}`} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium leading-snug">{n.title}</p>
-                    <p className="text-xs text-muted-foreground">{n.detail}</p>
-                  </div>
-                  {n.href && <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                </button>
-              ))}
-              {needs.length === 0 && (
-                <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-                  <CheckCircle2 className="h-8 w-8 text-emerald-500/60" />
-                  <p className="text-sm font-medium">You are clear</p>
-                  <p className="text-xs text-muted-foreground">
-                    Nothing is waiting on a decision from you.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {headline.length > 0 && (
+          <StatGrid>
+            {headline.map((s: any) => (
+              <Stat
+                key={s.label}
+                label={s.label}
+                value={s.format === 'aed' ? <>د.إ {aed(Number(s.value) || 0)}</> : (s.value ?? 0)}
+                hint={s.hint}
+                tone={(s.tone || 'neutral') as Tone}
+                onClick={s.href ? () => router.push(s.href) : undefined}
+              />
+            ))}
+          </StatGrid>
+        )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Moving</CardTitle>
-              <CardDescription>What is in flight right now</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-0 px-0">
-              {moving.map((m: any, i: number) => (
-                <button key={i}
-                  onClick={() => m.href && router.push(m.href)}
-                  className="flex w-full items-center gap-3 border-t px-6 py-3.5 text-left first:border-t-0 hover:bg-muted/40">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium leading-snug">{m.title}</p>
-                    <p className="text-xs text-muted-foreground">{m.detail}</p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </button>
-              ))}
-              {moving.length === 0 && (
-                <p className="px-6 py-12 text-center text-sm text-muted-foreground">
-                  Nothing in flight.
+        <div className="grid items-start gap-6 lg:grid-cols-2">
+          <Panel
+            title="Needs you"
+            description={needs.length === 0 ? 'Nothing waiting' : 'Decisions and work with your name on them'}
+            action={needs.length > 0 ? <Badge>{needs.length}</Badge> : undefined}
+            flush
+          >
+            {needs.map((n: any, i: number) => (
+              <Row
+                key={i}
+                tone={n.urgency === 'high' ? 'bad' : 'warn'}
+                title={n.title}
+                meta={n.detail}
+                right={n.href ? <ArrowRight className="h-4 w-4 text-muted-foreground" /> : undefined}
+                onClick={n.href ? () => router.push(n.href) : undefined}
+              />
+            ))}
+            {needs.length === 0 && (
+              <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
+                <CheckCircle2 className="h-8 w-8 text-emerald-500/60" />
+                <p className="text-sm font-medium">You are clear</p>
+                <p className="text-xs text-muted-foreground">
+                  Nothing is waiting on a decision from you.
                 </p>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </Panel>
+
+          <Panel title="Moving" description="What is in flight right now" flush>
+            {moving.map((m: any, i: number) => (
+              <Row
+                key={i}
+                tone="info"
+                title={m.title}
+                meta={m.detail}
+                right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
+                onClick={m.href ? () => router.push(m.href) : undefined}
+              />
+            ))}
+            {moving.length === 0 && <Empty>Nothing in flight.</Empty>}
+          </Panel>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -131,6 +149,7 @@ export default function TodayPage() {
             ['Creators', '/superadmin/influencers'],
             ['Sourcing', '/superadmin/sourcing'],
             ['Brands', '/superadmin/brands'],
+            ['Coverage', '/superadmin/coverage'],
             ['Goals', '/superadmin/goals'],
           ].map(([label, href]) => (
             <Button key={href} variant="outline" size="sm" onClick={() => router.push(href)}>

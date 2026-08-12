@@ -21,7 +21,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/cashback-pool/topup": "Top Up Pool",
   "/cashback-pool/transactions": "Pool Transactions",
   "/settings": "Settings",
-  "/guide": "Guide",
+  "/how": "Show me how",
   "/notifications": "Notifications",
   "/pricing": "Pricing",
   "/checkout": "Checkout",
@@ -51,7 +51,6 @@ const ROUTE_TITLES: Record<string, string> = {
   "/superadmin/fa/ad-banners": "Ad Banners",
   "/superadmin/billing": "Billing",
   "/superadmin/system": "System",
-  "/superadmin/guide": "Guide",
   "/ops": "Operations",
 }
 
