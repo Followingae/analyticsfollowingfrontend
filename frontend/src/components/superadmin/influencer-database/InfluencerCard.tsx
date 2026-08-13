@@ -13,27 +13,12 @@ import {
   type MasterInfluencer,
 } from "@/types/influencerDatabase"
 import { BadgeCheck, Pencil } from "lucide-react"
+import { CreatorAvatar } from "./CreatorAvatar"
 
 interface InfluencerCardProps {
   influencer: MasterInfluencer
   onViewDetails: (influencer: MasterInfluencer) => void
   onEditDetails: (influencer: MasterInfluencer) => void
-}
-
-function getAvatarGradient(name: string): string {
-  const gradients = [
-    "from-blue-500 to-purple-600",
-    "from-green-500 to-teal-600",
-    "from-orange-500 to-red-600",
-    "from-pink-500 to-rose-600",
-    "from-indigo-500 to-blue-600",
-    "from-amber-500 to-orange-600",
-  ]
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return gradients[Math.abs(hash) % gradients.length]
 }
 
 export function InfluencerCard({
@@ -53,11 +38,7 @@ export function InfluencerCard({
       <CardContent className="p-4 space-y-3">
         {/* Profile Header */}
         <div className="flex items-center gap-3">
-          <div
-            className={`flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-white ${getAvatarGradient(inf.username)}`}
-          >
-            {inf.username.charAt(0).toUpperCase()}
-          </div>
+          <CreatorAvatar username={inf.username} src={inf.profile_image_url} className="size-10" textClassName="text-sm" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
               <span className="truncate text-sm font-semibold">

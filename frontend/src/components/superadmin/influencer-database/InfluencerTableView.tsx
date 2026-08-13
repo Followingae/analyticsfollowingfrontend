@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { InlineEditCell } from "./InlineEditCell"
+import { CreatorAvatar } from "./CreatorAvatar"
 import { AnalyticsStatusCell } from "./AnalyticsStatusCell"
 import type { AnalyticsStatusMap } from "@/hooks/useAnalyticsStatusPoller"
 import {
@@ -67,22 +68,6 @@ interface InfluencerTableViewProps {
   analyticsStatusMap?: AnalyticsStatusMap
   completedSinceMount?: string[]
   onTriggerAnalytics?: (id: string) => void
-}
-
-function getAvatarGradient(name: string): string {
-  const gradients = [
-    "from-blue-500 to-purple-600",
-    "from-green-500 to-teal-600",
-    "from-orange-500 to-red-600",
-    "from-pink-500 to-rose-600",
-    "from-indigo-500 to-blue-600",
-    "from-amber-500 to-orange-600",
-  ]
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return gradients[Math.abs(hash) % gradients.length]
 }
 
 export function InfluencerTableView({
@@ -164,11 +149,7 @@ export function InfluencerTableView({
       case "profile":
         return (
           <div className="flex items-center gap-3 min-w-[200px]">
-            <div
-              className={`flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-bold text-white ${getAvatarGradient(inf.username)}`}
-            >
-              {inf.username.charAt(0).toUpperCase()}
-            </div>
+            <CreatorAvatar username={inf.username} src={inf.profile_image_url} />
             <div className="min-w-0">
               <div className="flex items-center gap-1">
                 <span className="truncate text-sm font-medium">
