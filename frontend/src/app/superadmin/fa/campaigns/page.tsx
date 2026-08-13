@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
+import { CampaignsHubHeader } from "@/components/console/CampaignsHubHeader"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -202,26 +203,24 @@ export default function FACampaignsPage() {
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold">FA Campaigns</h1>
-              <p className="text-muted-foreground text-sm">Create and manage cashback, paid deal, and barter campaigns</p>
-            </div>
-            {/* One create entry - type is chosen in the wizard's first step */}
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={reanalyzeSuggested} disabled={backfilling}
-                title="Re-run analytics for team-suggested creators stuck on 'Analyzing'">
-                {backfilling ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCcw className="h-4 w-4 mr-1" />}
-                {backfilling ? "Starting…" : "Re-analyze suggested"}
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setCreateMasterOpen(true)}>
-                <Layers className="h-4 w-4 mr-1" />New package
-              </Button>
-              <Link href="/superadmin/fa/campaigns/new">
-                <Button size="sm"><Plus className="h-4 w-4 mr-1" />Create Campaign</Button>
-              </Link>
-            </div>
-          </div>
+          {/* One create entry - type is chosen in the wizard's first step */}
+          <CampaignsHubHeader
+            action={
+              <>
+                <Button size="sm" variant="outline" onClick={reanalyzeSuggested} disabled={backfilling}
+                  title="Re-run analytics for team-suggested creators stuck on 'Analyzing'">
+                  {backfilling ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCcw className="h-4 w-4 mr-1" />}
+                  {backfilling ? "Starting…" : "Re-analyze suggested"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setCreateMasterOpen(true)}>
+                  <Layers className="h-4 w-4 mr-1" />New package
+                </Button>
+                <Link href="/superadmin/fa/campaigns/new">
+                  <Button size="sm"><Plus className="h-4 w-4 mr-1" />Create Campaign</Button>
+                </Link>
+              </>
+            }
+          />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Tabs value={tab} onValueChange={setTab}>

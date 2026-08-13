@@ -24,6 +24,7 @@ import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { Empty, PageHead, Panel, Row, Stat, StatGrid } from '@/components/console/primitives'
+import { CreatorsHubHeader } from '@/components/console/CreatorsHubHeader'
 
 interface Cell { category: string; market: string; held: number; costed: number
                  sellable: number; stale: number }
@@ -100,6 +101,7 @@ export default function CoveragePage() {
 
   return (
     <SuperadminLayout>
+      <CreatorsHubHeader />
       <div className="space-y-8">
         <PageHead
           title="Coverage"

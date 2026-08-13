@@ -114,11 +114,22 @@ export const imdListsApi = {
    * Put a hand-picked selection straight onto a proposal, without making a list first.
    * Only creators with a sell price go on; the rest come back named so we can say why.
    */
-  addSelectionToProposal: (proposalId: string, influencerIds: string[]): Promise<{
-    data: { added: number; already_on_proposal: number; unpriced: string[]; no_cost: string[] }
+  addSelectionToProposal: (
+    proposalId: string, influencerIds: string[],
+    deliverable: { type: string; quantity: number } = { type: 'reel', quantity: 1 },
+  ): Promise<{
+    data: {
+      added: number; already_on_proposal: number; unpriced: string[]; no_cost: string[]
+      deliverable: { type: string; quantity: number }; without_deliverable: string[]
+    }
   }> =>
     jfetch(`${BASE}/imd-lists/selection/add-to-proposal/${proposalId}`, {
-      method: 'POST', body: JSON.stringify({ influencer_ids: influencerIds }),
+      method: 'POST',
+      body: JSON.stringify({
+        influencer_ids: influencerIds,
+        deliverable_type: deliverable.type,
+        quantity: deliverable.quantity,
+      }),
     }),
 
   /** Download the list as CSV. Streams a file, so it does NOT go through jfetch's

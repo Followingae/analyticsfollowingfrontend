@@ -20,6 +20,7 @@ import {
 import { Loader2, Plus, Users, Trash2, ListChecks } from "lucide-react"
 import { toast } from "sonner"
 import { imdListsApi, type ImdListSummary } from "@/services/imdListsApi"
+import { CreatorsHubHeader } from "@/components/console/CreatorsHubHeader"
 
 export default function ImdListsPage() {
   const [lists, setLists] = useState<ImdListSummary[]>([])
@@ -74,6 +75,7 @@ export default function ImdListsPage() {
     <AuthGuard>
       <SuperAdminInterface>
         <div className="mx-auto max-w-6xl space-y-6 p-6">
+          <CreatorsHubHeader className="mb-0" />
           <div className="flex items-end justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-3xl font-bold">Lists</h1>

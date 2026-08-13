@@ -36,6 +36,16 @@ function hasSell(inf: MasterInfluencer): boolean {
 // it behind their back is not an edit — it is a different proposal.
 const OPEN_STATUSES = ["draft", "internal_review", "internally_approved", "more_requested"]
 
+// What we are quoting. A creator added with no deliverable shows no price anywhere and is
+// silently left out of the proposal total — so this is asked for, never assumed away.
+const DELIVERABLES = [
+  { key: "reel", label: "Reel" },
+  { key: "post", label: "Post" },
+  { key: "story", label: "Story" },
+  { key: "carousel", label: "Carousel" },
+  { key: "video", label: "Video" },
+]
+
 export function AddToProposalDialog({
   open, onOpenChange, selected, onDone,
 }: {
@@ -49,6 +59,8 @@ export function AddToProposalDialog({
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [q, setQ] = useState("")
+  const [dType, setDType] = useState("reel")
+  const [qty, setQty] = useState(1)
 
   const sellable = useMemo(() => selected.filter(hasSell), [selected])
   const unpriced = useMemo(() => selected.filter(i => !hasSell(i)), [selected])
@@ -74,10 +86,12 @@ export function AddToProposalDialog({
     setBusy(true)
     try {
       const res = await imdListsApi.addSelectionToProposal(
-        proposalId, sellable.map(i => i.id))
+        proposalId, sellable.map(i => i.id), { type: dType, quantity: qty })
       const d = res.data
-      const bits = [`${d.added} added to ${label}`]
+      const bits = [`${d.added} added to ${label} · ${qty} ${dType}${qty > 1 ? "s" : ""} each`]
       if (d.already_on_proposal) bits.push(`${d.already_on_proposal} already there`)
+      if (d.without_deliverable?.length)
+        bits.push(`${d.without_deliverable.length} have no ${dType} price — set one by hand`)
       if (d.no_cost?.length) bits.push(`${d.no_cost.length} with no cost recorded`)
       toast.success(bits.join(" · "), {
         action: { label: "Open proposal", onClick: () => router.push(`/work/proposals/${proposalId}`) },
@@ -117,6 +131,29 @@ export function AddToProposalDialog({
             </div>
           </div>
         )}
+
+        <div className="rounded-lg border p-3">
+          <p className="text-xs font-medium">What are we quoting for each of them?</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {DELIVERABLES.map(d => (
+              <Button key={d.key} type="button" size="sm"
+                      variant={dType === d.key ? "default" : "outline"}
+                      onClick={() => setDType(d.key)}>
+                {d.label}
+              </Button>
+            ))}
+            <span className="ml-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+              ×
+              <Input type="number" min={1} value={qty} className="h-8 w-16"
+                     onChange={e => setQty(Math.max(1, Number(e.target.value) || 1))} />
+              each
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            A creator added with no deliverable shows no price on the proposal and is left out
+            of the total.
+          </p>
+        </div>
 
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />

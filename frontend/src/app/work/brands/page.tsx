@@ -18,7 +18,8 @@ import { ArrowRight, Building2, HeartPulse, PhoneOff, Plus, TriangleAlert } from
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
-import { Empty, PageHead, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
+import { Empty, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
+import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
 import { NewOpportunityDialog } from '@/components/superadmin/brands/NewOpportunityDialog'
 
 const HEALTH: Record<string, { label: string; cls: string; tone: Tone }> = {
@@ -78,9 +79,8 @@ export default function BrandsPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-8">
-        <PageHead
-          title="Brands"
-          sub="How long since anything moved, and who owes the next step. Silence is measured from real activity in the platform, so a conversation you had off-platform has to be logged to count."
+        <ClientsHubHeader
+          note="How long since anything moved, and who owes the next step. Silence is measured from real activity in the platform, so a conversation you had off-platform has to be logged to count."
           action={
             <Button onClick={() => setNewOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" />New opportunity

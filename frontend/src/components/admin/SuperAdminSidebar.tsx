@@ -36,6 +36,8 @@ import {
   Wrench,
   Receipt,
   ListChecks,
+  Users2,
+  Inbox,
 
   Bell,
   MailCheck,
@@ -47,7 +49,7 @@ import {
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, isLoading } = useEnhancedAuth()
-  const { can, isSuperAdmin, canSeeCost } = useAdminAccess()
+  const { can, isSuperAdmin, canSeeCost, staffRole } = useAdminAccess()
   const pathname = usePathname() || ""
 
   // Dynamic user data
@@ -81,80 +83,45 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   // it just hangs off the surface it belongs to instead of competing for attention in a
   // thirty-item list. Anything not surfaced directly stays one keystroke away in ⌘K.
   // Each group is still gated by an admin module; super_admin sees everything.
+  // ── Six destinations ─────────────────────────────────────────────────────────────────
+  //
+  // This was forty-four entries. Forty-four is not a menu, it is a filing cabinet, and the
+  // people who have to use it every day could not tell what they were looking at. Almost
+  // none of those entries were places: they were jobs done on one of six things. So the nav
+  // is now the six things, and the jobs are tabs inside them.
+  //
+  // Nothing was removed. Every screen still exists at its own URL and is reachable from the
+  // hub it belongs to, from search, or from the object it hangs off. What changed is that a
+  // talent manager opens a sidebar with five items in it instead of twenty.
   const overviewItems = [
     { title: "Today", url: "/work/today", icon: ListChecks },
+    // Everything waiting on a decision from this person, wherever it came from. Ungated on
+    // purpose: the page shows only the queues the viewer's role can act on, and for someone
+    // with none it says so rather than hiding.
+    { title: "Inbox", url: "/work/inbox", icon: Inbox },
   ]
 
   const managementItems = [
-    ...(can("campaigns") || can("proposals") ? [{
-      title: "Pipeline",
-      url: "/work/proposals",
-      icon: Megaphone,
-      items: [
-        ...(can("proposals") ? [{ title: "Proposals", url: "/work/proposals" }] : []),
-        ...(can("proposals") ? [{ title: "Create proposal", url: "/work/proposals/create" }] : []),
-        ...(can("campaigns") ? [{ title: "Campaigns", url: "/work/campaigns" }] : []),
-        ...(can("campaigns") ? [{ title: "Create campaign", url: "/work/campaigns/create" }] : []),
-        ...(can("campaigns") ? [{ title: "Reports", url: "/work/report-campaigns" }] : []),
-        ...(can("fa") ? [{ title: "App campaigns", url: "/work/fa/campaigns" }] : []),
-        // Production already renders inside this shell; it was simply never in the nav,
-        // which is what made it feel like a separate system.
-        ...(can("operations") ? [{ title: "Production", url: "/ops/campaigns" }] : []),
-      ],
-    }] : []),
-    ...(can("clients") ? [{
+    ...(can("clients") || can("proposals") ? [{
       title: "Clients",
       url: "/work/clients",
       icon: Building2,
-      items: [
-        { title: "All clients", url: "/work/clients" },
-        { title: "Brand heartbeat", url: "/work/brands" },
-      ],
     }] : []),
-    ...(can("influencers") ? [{
+    ...(can("campaigns") || can("operations") || can("fa") ? [{
+      title: "Campaigns",
+      url: "/work/campaigns",
+      icon: Megaphone,
+    }] : []),
+    ...(can("influencers") || can("fa") ? [{
       title: "Creators",
-      url: "/work/influencers",
-      icon: Database,
-      items: [
-        { title: "Master database", url: "/work/influencers" },
-        { title: "Waiting room", url: "/work/influencers/review" },
-        { title: "Sourcing rounds", url: "/work/sourcing" },
-        { title: "Coverage", url: "/work/coverage" },
-        { title: "Lists", url: "/work/influencers/lists" },
-        { title: "Analyzed creators", url: "/work/influencers/analyzed" },
-        { title: "Add / import", url: "/work/influencers/add" },
-        ...(can("fa") ? [{ title: "App members", url: "/work/fa/members" }] : []),
-        ...(can("fa") ? [{ title: "Reliability", url: "/work/fa/reliability" }] : []),
-      ],
-    }] : []),
-    // Everything awaiting a human decision, in one place. These queues previously existed in
-    // three: Operations, the FA section, and the ops shell.
-    ...(can("operations") || can("fa") || can("influencers") ? [{
-      title: "Queues",
-      url: "/work/operations",
-      icon: ClipboardCheck,
-      items: [
-        ...(can("operations") ? [{ title: "All queues", url: "/work/operations" }] : []),
-        ...(can("fa") ? [{ title: "Content review", url: "/work/fa/deliverables" }] : []),
-        ...(can("fa") && canSeeCost ? [{ title: "Receipt claims", url: "/work/fa/receipt-claims" }] : []),
-        ...(can("fa") && canSeeCost ? [{ title: "Withdrawals", url: "/work/fa/withdrawals" }] : []),
-      ],
+      url: "/work/creators",
+      icon: Users2,
     }] : []),
     ...(can("billing") || can("influencers") ? [{
       title: "Money",
-      url: "/work/billing",
+      url: "/work/money",
       icon: Banknote,
-      items: [
-        ...(can("billing") ? [{ title: "Billing & revenue", url: "/work/billing" }] : []),
-        // Creator payments are cost. Talent negotiate it and leadership own it; an account
-        // manager who opened this would be refused by the server, so we do not offer it.
-        ...(can("influencers") ? [{ title: "Creator payments", url: "/work/payables" }] : []),
-        ...(can("fa") ? [{ title: "Creator wallets", url: "/work/fa/wallets" }] : []),
-      ],
     }] : []),
-    // A view of how colleagues are doing belongs to whoever manages them.
-    ...(can("users") ? [{ title: "Creator team", url: "/work/team", icon: Users }] : []),
-    ...(can("influencers") ? [{ title: "Goals", url: "/work/goals", icon: BarChart3 }] : []),
   ]
 
   // Settings: the plumbing. Real screens, just not competing with daily work.
@@ -184,7 +151,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     const urls = [
       ...overviewItems,
       ...managementItems,
-      ...managementItems.flatMap((i: { items?: { url: string }[] }) => i.items ?? []),
+      // Hubs have no sub-items now — the jobs live as tabs inside each hub.
       ...systemItems,
     ]
       .map((i) => i.url)
@@ -205,8 +172,12 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
                   <Shield className="h-5 w-5" />
                 </div>
                 <div className="ml-2 flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Superadmin</span>
-                  <span className="text-xs text-muted-foreground">Control Panel</span>
+                  <span className="font-semibold">Following</span>
+                  {/* A talent manager is not a superadmin, and telling her she is every time
+                      she opens the platform is both wrong and slightly alarming. */}
+                  <span className="text-xs capitalize text-muted-foreground">
+                    {staffRole ? String(staffRole).replace(/_/g, " ") : "Control panel"}
+                  </span>
                 </div>
               </a>
             </SidebarMenuButton>

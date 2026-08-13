@@ -13,7 +13,8 @@ import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BadgeCheck, CircleDollarSign, Wallet } from 'lucide-react'
-import { PageHead, Stat, StatGrid } from '@/components/console/primitives'
+import { Stat, StatGrid } from '@/components/console/primitives'
+import { MoneyHubHeader } from '@/components/console/MoneyHubHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -131,7 +132,7 @@ export default function PayablesPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-8">
-        <PageHead
+        <MoneyHubHeader
           title="Creator payments"
           sub="Book what we owe and track it to paid. Anyone internal can record a payment — recording is not paying, and only a founder marks it paid."
           action={

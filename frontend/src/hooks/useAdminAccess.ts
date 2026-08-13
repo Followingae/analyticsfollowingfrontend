@@ -67,18 +67,39 @@ export function useAdminAccess() {
         if (r === "admin") {
           setModules(Array.isArray(u?.admin_modules) ? u.admin_modules : [])
         } else if (u?.staff_role) {
-          // Internal staff — scope by their effective modules from /staff/me.
           setIsStaff(true)
           setStaffRole(u.staff_role)
-          const fallback = u.staff_role in STAFF_ROLE_DEFAULTS ? STAFF_ROLE_DEFAULTS[u.staff_role] : []
+
+          // Answer from what we already have, immediately. /auth/me carries this person's
+          // own admin_modules and their staff_role, so their navigation can be correct
+          // before any further request — and stays correct if that request never returns.
+          //
+          // It did not return. The nav sat empty for every staff member because this hook
+          // awaited /staff/me, that call never reached the network, the promise never
+          // settled, `loading` stayed true forever and `can()` therefore answered no to
+          // everything. An empty sidebar is what a talent manager saw.
+          const fallback: AdminModule[] =
+            (Array.isArray(u?.admin_modules) && u.admin_modules.length ? u.admin_modules
+              : STAFF_ROLE_DEFAULTS[u.staff_role] ?? []) as AdminModule[]
+          setModules(fallback)
+          setLoading(false)
+
+          // Refine in the background. /staff/me is authoritative when it answers — it knows
+          // about per-member overrides — but it is never allowed to hold the nav hostage.
           try {
-            const me = await (await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/staff/me`)).json()
+            const ctrl = new AbortController()
+            const t = setTimeout(() => ctrl.abort(), 6000)
+            const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/staff/me`,
+                                            { signal: ctrl.signal })
+            clearTimeout(t)
+            const me = await res.json()
             const mods = me?.data?.modules
-            // Array => scoped; null => full-access staff; anything else => role fallback.
-            setModules(Array.isArray(mods) ? mods : (mods === null ? null : fallback))
+            if (!active) return
+            // Array => scoped; null => full-access staff; anything else => keep the fallback.
+            if (Array.isArray(mods) && mods.length) setModules(mods)
+            else if (mods === null) setModules(null)
           } catch {
-            // Network hiccup — don't lock them out; use the staff-role default.
-            setModules(fallback)
+            /* keep the fallback — it is already correct for this role */
           }
         } else {
           setModules(null)

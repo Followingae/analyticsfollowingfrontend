@@ -22,7 +22,8 @@ import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, Loader2, Search, Clock, Layers, TimerOff, Users, CheckCheck } from 'lucide-react'
-import { PageHead, Stat, StatGrid } from '@/components/console/primitives'
+import { Stat, StatGrid } from '@/components/console/primitives'
+import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
 import { toast } from 'sonner'
 import { sourcingApi, STATUS_LABEL, type RoundSummary, type RoundStatus } from '@/services/sourcingApi'
 
@@ -119,9 +120,8 @@ export default function SourcingBoardPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-8">
-        <PageHead
-          title="Sourcing"
-          sub="Each client request for sample creators, with an owner, a target and a due date. If a round is open the talent team keeps sourcing; if it is locked they stop."
+        <ClientsHubHeader
+          note="Each client request for sample creators, with an owner, a target and a due date. If a round is open the talent team keeps sourcing; if it is locked they stop."
           action={
             <>
               <div className="relative">

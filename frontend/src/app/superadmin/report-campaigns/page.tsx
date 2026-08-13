@@ -9,6 +9,7 @@ import { toast } from "sonner"
 // resolved. Without it this page mounted immediately, fired its fetch before a token
 // existed, and every call came back 401.
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
+import { CampaignsHubHeader } from "@/components/console/CampaignsHubHeader"
 import {
   reportCampaignApi,
   shareUrlFor,
@@ -21,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -111,23 +112,21 @@ export default function ReportCampaignsPage() {
   return (
     <SuperadminLayout>
     <div className="space-y-6 p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <BarChart3 className="h-6 w-6 text-primary" />
-            Report Campaigns
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Create a campaign, paste the post and reel links it produced, and share a measured
-            performance report with the client. Every figure is counted from the live posts —
-            nothing is estimated.
-          </p>
-        </div>
+      <CampaignsHubHeader
+        action={
+          <Button className="gap-1.5" onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4" /> New report campaign
+          </Button>
+        }
+      />
 
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-1.5"><Plus className="h-4 w-4" /> New report campaign</Button>
-          </DialogTrigger>
+      <p className="max-w-2xl text-sm text-muted-foreground">
+        Create a campaign, paste the post and reel links it produced, and share a measured
+        performance report with the client. Every figure is counted from the live posts —
+        nothing is estimated.
+      </p>
+
+      <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>New report campaign</DialogTitle>
@@ -161,8 +160,7 @@ export default function ReportCampaignsPage() {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
-      </div>
+      </Dialog>
 
       {loading ? (
         <div className="flex justify-center py-20">

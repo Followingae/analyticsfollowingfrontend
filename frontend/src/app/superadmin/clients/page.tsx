@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Search, Building2, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
 import { clientApi, type Client } from '@/services/clientManagementApi';
+import { ClientsHubHeader } from '@/components/console/ClientsHubHeader';
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -69,19 +70,16 @@ export default function ClientsPage() {
   return (
     <SuperadminLayout>
     <div className="flex-1 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
-          <p className="text-muted-foreground">
-            Manage client relationships, campaigns, and deliverables
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={fetchClients}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
+      {/* Header — shared with Prospects, Proposals and Sourcing */}
+      <ClientsHubHeader
+        showStats
+        action={
+          <Button variant="outline" size="sm" onClick={fetchClients}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <div className="flex items-center gap-4">

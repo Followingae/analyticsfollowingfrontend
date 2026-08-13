@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
+import { CampaignsHubHeader } from "@/components/console/CampaignsHubHeader"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -75,15 +76,13 @@ export default function SuperadminCampaignsPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">All Campaigns</h1>
-            <p className="text-muted-foreground text-sm">View and manage campaigns across all brands</p>
-          </div>
-          <Button onClick={() => router.push("/superadmin/campaigns/create")} size="sm">
-            <Plus className="h-4 w-4 mr-1" /> New Campaign
-          </Button>
-        </div>
+        <CampaignsHubHeader
+          action={
+            <Button onClick={() => router.push("/superadmin/campaigns/create")} size="sm">
+              <Plus className="h-4 w-4 mr-1" /> New Campaign
+            </Button>
+          }
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

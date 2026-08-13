@@ -44,6 +44,7 @@ export const dynamic = "force-dynamic"
 import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { ProposalEmailDialog } from "@/components/proposals/ProposalEmailDialog"
+import { ClientsHubHeader } from "@/components/console/ClientsHubHeader"
 
 export default function SuperadminProposalsPage() {
   const { isSuperAdmin } = useAdminAccess()
@@ -97,21 +98,18 @@ export default function SuperadminProposalsPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-6">
-          {/* Header */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold">Proposals</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Create and manage influencer proposals for brands
-              </p>
-            </div>
-            <Link href="/superadmin/proposals/create">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Proposal
-              </Button>
-            </Link>
-          </div>
+          {/* Header — shared with Clients, Prospects and Sourcing */}
+          <ClientsHubHeader
+            note="Every quote we have written for a brand: what is still a draft, what is out with them, and what came back approved."
+            action={
+              <Link href="/superadmin/proposals/create">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Proposal
+                </Button>
+              </Link>
+            }
+          />
 
           {/* KPI Cards */}
           {stats ? (
