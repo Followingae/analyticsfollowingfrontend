@@ -47,7 +47,10 @@ const STAFF_ROLE_DEFAULTS: Record<string, AdminModule[] | null> = {
 export function useAdminAccess() {
   const [role, setRole] = useState<string | null>(null)
   const [staffRole, setStaffRole] = useState<string | null>(null)
-  const [modules, setModules] = useState<string[] | null>(null) // null = unrestricted
+  // NOT null: null means unrestricted, and using it as the initial value handed every staff
+  // member a superadmin's sidebar for the moment before /auth/me answered — which is what
+  // made the nav visibly change under them. Start with no access and widen once we know.
+  const [modules, setModules] = useState<string[] | null>([])
   const [loading, setLoading] = useState(true)
 
   const [isStaff, setIsStaff] = useState(false)
@@ -91,7 +94,9 @@ export function useAdminAccess() {
   // money. Only operators (superadmin/admin) and full-access staff (ceo/cofounder) may.
   const isFullAccessStaff = staffRole === "ceo" || staffRole === "cofounder"
   const canDestroy = isSuperAdmin || role === "admin" || isFullAccessStaff
-  const can = (m: AdminModule) => isSuperAdmin || modules === null || modules.includes(m)
+  // While we do not yet know who this is, the answer to "can they?" is no. Callers that
+  // want to avoid a flash of empty nav should render on `loading` instead of guessing.
+  const can = (m: AdminModule) => !loading && (isSuperAdmin || modules === null || modules.includes(m))
   // Bulk extraction — spreadsheets, CSV, client share links — is leadership-only. A file
   // cannot enforce field visibility once it has been emailed, so the team works on screen
   // and shares with clients through a proposal instead. Mirrors app/core/field_policy.py;

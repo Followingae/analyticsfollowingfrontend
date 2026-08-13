@@ -35,7 +35,10 @@ interface Leg { goto?: string; steps: TourStep[] }
  */
 export function armTour(tour: Walkthrough): string | null {
   sessionStorage.setItem(RESUME_KEY, JSON.stringify({ id: tour.id, leg: 0 }))
-  return legsOf(tour)[0]?.goto ?? null
+  const goto = legsOf(tour)[0]?.goto
+  // Absolute or nothing. A relative value would resolve against whatever page armed the
+  // tour and send someone to a URL that does not exist.
+  return goto && goto.startsWith('/') ? goto : null
 }
 
 /** Split at every `goto`, so each leg lives entirely on one page. */
@@ -69,6 +72,10 @@ export function WalkthroughRunner({
   const pathname = usePathname()
   const legIndex = useRef(startLeg)
   const instance = useRef<IntroInstance | null>(null)
+  // How many times we have tried to reach the current leg's page. A tour can point at a
+  // screen the viewer's role cannot open: the guard sends them back, we push again, and the
+  // two bounce off each other forever. One attempt, then give up quietly.
+  const attempts = useRef<Record<number, number>>({})
 
   const finish = useCallback((completedTour: boolean) => {
     sessionStorage.removeItem(RESUME_KEY)
@@ -128,7 +135,15 @@ export function WalkthroughRunner({
 
     // If this leg belongs to another page, go there first; the effect re-runs on arrival.
     if (leg.goto && leg.goto !== pathname) {
-      sessionStorage.setItem(RESUME_KEY, JSON.stringify({ id: tour.id, leg: legIndex.current }))
+      const i = legIndex.current
+      attempts.current[i] = (attempts.current[i] || 0) + 1
+      if (attempts.current[i] > 1) {
+        // We asked once and did not arrive — almost always because the viewer's role cannot
+        // open that screen. End the tour rather than fight the route guard.
+        finish(false)
+        return
+      }
+      sessionStorage.setItem(RESUME_KEY, JSON.stringify({ id: tour.id, leg: i }))
       router.push(leg.goto)
       return
     }
@@ -145,12 +160,22 @@ export function WalkthroughRunner({
   return null
 }
 
-/** Resume a tour that navigated to another page mid-run. */
+/**
+ * Resume a tour that navigated to another page mid-run.
+ *
+ * The record has to be *consumed*, not merely read. It used to be left in place, so any
+ * re-render that remounted the host — the sidebar settling once permissions loaded was
+ * enough — read it again and restarted the tour, which is why the card appeared to reopen
+ * over and over. Taking it out of storage the moment it is handed to the runner means one
+ * record starts exactly one leg; the runner writes the next one when that leg completes.
+ */
 export function useTourResume(all: Walkthrough[], open: (t: Walkthrough, leg: number) => void) {
   const pathname = usePathname()
+  const consumed = useRef<string | null>(null)
   useEffect(() => {
     const raw = sessionStorage.getItem(RESUME_KEY)
-    if (!raw) return
+    if (!raw || consumed.current === raw) return
+    consumed.current = raw
     try {
       const { id, leg } = JSON.parse(raw)
       const tour = all.find(t => t.id === id)

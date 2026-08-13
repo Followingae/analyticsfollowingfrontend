@@ -10,7 +10,7 @@
  * Starting a tour arms it and navigates; the runner lives in the header and picks it up on
  * arrival, so a walkthrough can cross as many screens as it needs to.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,25 +18,63 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Check, Clock, Play, Sparkles } from 'lucide-react'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
+import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
+import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { tracksFor, tourFor, completed, type Walkthrough } from '@/components/help/walkthroughs'
 import { armTour } from '@/components/help/WalkthroughRunner'
+import { moduleForPath } from '@/lib/routeModules'
+
+/**
+ * This page is one of the few both audiences see, so it wears whichever shell the reader
+ * belongs to. Rendering it bare — which is what it did — dropped whoever opened it out of
+ * the product entirely: no sidebar, no way back except the browser button.
+ */
+function Shell({ internal, children }: { internal: boolean; children: React.ReactNode }) {
+  return internal
+    ? <SuperadminLayout>{children}</SuperadminLayout>
+    : <BrandUserInterface>{children}</BrandUserInterface>
+}
 
 export default function ShowMeHowPage() {
-  const { role, staffRole, loading } = useAdminAccess()
+  const { role, staffRole, loading, isStaff, isSuperAdmin, can } = useAdminAccess()
   const router = useRouter()
   const [done, setDone] = useState<string[]>([])
 
   useEffect(() => { setDone(completed()) }, [])
 
-  const tours = useMemo(() => tourFor(role, staffRole), [role, staffRole])
-  const groups = useMemo(() => tracksFor(role, staffRole), [role, staffRole])
+  /**
+   * A tour is only offered when every screen it visits is one this person can open.
+   *
+   * Audience tags were the only filter, and they are a hand-maintained guess — so people
+   * were being offered walkthroughs of work their role cannot do, and starting one bounced
+   * off the route guard. Asking the same question the guard asks means the list cannot drift
+   * from what the platform will actually let them see.
+   */
+  const permitted = useCallback((t: Walkthrough) => {
+    const paths = t.steps.map(s => s.goto).filter(Boolean) as string[]
+    return paths.every(p => {
+      const m = moduleForPath(p)
+      return !m || can(m)
+    })
+  }, [can])
+
+  const tours = useMemo(
+    () => tourFor(role, staffRole).filter(permitted), [role, staffRole, permitted])
+  const groups = useMemo(
+    () => tracksFor(role, staffRole)
+      .map(g => ({ ...g, tours: g.tours.filter(permitted) }))
+      .filter(g => g.tours.length > 0),
+    [role, staffRole, permitted])
   const doneCount = tours.filter(t => done.includes(t.id)).length
   const minutes = tours.reduce((n, t) => n + t.minutes, 0)
   const pct = tours.length ? Math.round((doneCount / tours.length) * 100) : 0
 
   const start = (t: Walkthrough) => {
-    const to = armTour(t)
-    router.push(to ?? window.location.pathname)
+    const armed = armTour(t)
+    // A tour whose first step has no `goto` was silently starting on this page — the card
+    // looked like it did nothing at all. Fall back to the first screen it mentions.
+    const firstGoto = t.steps.find(s => s.goto)?.goto
+    router.push(armed ?? firstGoto ?? '/work/today')
   }
 
   // The first unfinished one, in learning order — what "continue" should open.
@@ -44,7 +82,10 @@ export default function ShowMeHowPage() {
 
   if (loading) return null
 
+  const internal = isSuperAdmin || isStaff || role === 'admin'
+
   return (
+    <Shell internal={internal}>
     <div className="mx-auto w-full max-w-5xl px-6 py-10 lg:py-14">
       <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-xl space-y-3">
@@ -129,5 +170,6 @@ export default function ShowMeHowPage() {
         ))}
       </div>
     </div>
+    </Shell>
   )
 }

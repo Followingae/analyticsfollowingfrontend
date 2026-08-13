@@ -10,6 +10,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { useAdminAccess, type AdminModule, ADMIN_MODULES } from "@/hooks/useAdminAccess"
+import { MODULE_HOME, moduleForPath } from "@/lib/routeModules"
 import { GlobalCommandPalette } from "@/components/GlobalCommandPalette"
 
 interface SuperadminLayoutProps {
@@ -18,59 +19,13 @@ interface SuperadminLayoutProps {
   requireAuth?: boolean
 }
 
-// Screen → module, matched on the screen itself rather than the prefix, because the same
-// page is reachable at /work/... (what staff see) and /superadmin/... (the physical route).
-// Gating on the prefix alone let the /work URL through ungated.
-const ROUTE_MODULES: { screen: string; module: AdminModule }[] = [
-  { screen: "operations", module: "operations" },
-  { screen: "clients", module: "clients" },
-  { screen: "brands", module: "clients" },
-  { screen: "staff", module: "users" },
-  { screen: "users", module: "users" },
-  { screen: "campaigns", module: "campaigns" },
-  { screen: "proposals", module: "proposals" },
-  { screen: "influencers", module: "influencers" },
-  { screen: "coverage", module: "influencers" },
-  { screen: "sourcing", module: "influencers" },
-  { screen: "fa", module: "fa" },
-  { screen: "notifications", module: "system" },
-  { screen: "whatsapp", module: "system" },
-  { screen: "system", module: "system" },
-  { screen: "billing", module: "billing" },
-  { screen: "report-campaigns", module: "campaigns" },
-  // Creator payments are cost, and the team console is a view of colleagues: the backend
-  // refuses both outside leadership/talent, so the UI must not offer them either. Listing
-  // them here is what stops someone being shown a screen that will 403 on arrival.
-  { screen: "payables", module: "influencers" },
-  { screen: "goals", module: "influencers" },
-  { screen: "team", module: "users" },
-  { screen: "team-console", module: "users" },
-]
-
-/** The screen name, whichever prefix it was reached through. */
-function screenOf(pathname: string): string | null {
-  const m = pathname.match(/^\/(?:work|superadmin)\/([^/?#]+)/)
-  if (m) return m[1]
-  return pathname.startsWith("/ops") ? "operations" : null
-}
-
-// Where to send someone who lands somewhere they cannot go. Always the /work spelling —
-// nobody internal should be handed a URL that says superadmin.
-const MODULE_HOME: Record<string, string> = {
-  operations: "/ops/campaigns", clients: "/work/clients", users: "/work/users",
-  campaigns: "/work/campaigns", proposals: "/work/proposals",
-  influencers: "/work/influencers", fa: "/work/fa", system: "/work/system",
-  billing: "/work/billing",
-}
-
 /** Redirects a module-scoped admin away from a page they can't access. */
 function ModuleRouteGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || ""
   const router = useRouter()
   const { isSuperAdmin, can, loading, modules } = useAdminAccess()
 
-  const screen = screenOf(pathname)
-  const required = ROUTE_MODULES.find(r => r.screen === screen)?.module
+  const required = moduleForPath(pathname)
   const allowed = isSuperAdmin || !required || can(required)
 
   React.useEffect(() => {
