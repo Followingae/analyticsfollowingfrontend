@@ -132,7 +132,7 @@ export default function BrandsPage() {
                   </>
                 }
                 right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                onClick={() => router.push(`/superadmin/clients/${b.id}`)}
+                onClick={() => router.push(`/work/brands/${b.id}`)}
               />
             )
           })}

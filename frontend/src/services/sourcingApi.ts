@@ -58,6 +58,8 @@ export interface RoundSummary {
   owner_email: string | null
   /** Only present on the detail fetch — the list does not need it. */
   owner_user_id?: string | null
+  /** The brand this round belongs to, so the round can link back to it. */
+  team_id?: string | null
   proposed: number
   approved: number
   selected: number

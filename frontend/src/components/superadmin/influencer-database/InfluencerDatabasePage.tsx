@@ -43,6 +43,14 @@ export function InfluencerDatabasePage() {
     if (page) params.page = parseInt(page, 10) || 1
     const pageSize = searchParams.get("page_size")
     if (pageSize) params.page_size = parseInt(pageSize, 10) || 25
+    // Category and market arrive from Coverage, which links straight at the gap it is
+    // asking someone to fill. Comma separated so a link can carry more than one.
+    const categories = searchParams.get("categories")
+    if (categories) params.categories = categories.split(",").filter(Boolean) as never
+    const countries = searchParams.get("countries")
+    if (countries) params.countries = countries.split(",").filter(Boolean)
+    const hasPricing = searchParams.get("has_pricing")
+    if (hasPricing === "true" || hasPricing === "false") params.has_pricing = hasPricing === "true"
     return { ...DEFAULT_FILTERS, ...params }
   })
   const [viewMode, setViewMode] = useState<ViewMode>("table")
@@ -69,6 +77,9 @@ export function InfluencerDatabasePage() {
     if (filters.search) params.set("search", filters.search)
     if (filters.sort_by !== DEFAULT_FILTERS.sort_by) params.set("sort_by", filters.sort_by)
     if (filters.sort_order !== DEFAULT_FILTERS.sort_order) params.set("sort_order", filters.sort_order)
+    if (filters.categories.length) params.set("categories", filters.categories.join(","))
+    if (filters.countries.length) params.set("countries", filters.countries.join(","))
+    if (filters.has_pricing !== null) params.set("has_pricing", String(filters.has_pricing))
     if (filters.page > 1) params.set("page", String(filters.page))
     if (filters.page_size !== DEFAULT_FILTERS.page_size) params.set("page_size", String(filters.page_size))
     const qs = params.toString()

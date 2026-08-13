@@ -91,7 +91,13 @@ export default function CampaignTimelinePage() {
           <div className="flex flex-wrap items-start gap-3">
             <div>
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                {c.client_name && <Badge variant="outline">{c.client_name}</Badge>}
+                {c.client_name && (
+                  c.team_id ? (
+                    <button type="button" onClick={() => router.push(`/work/brands/${c.team_id}`)}>
+                      <Badge variant="outline" className="hover:bg-muted">{c.client_name} →</Badge>
+                    </button>
+                  ) : <Badge variant="outline">{c.client_name}</Badge>
+                )}
                 <Badge variant="secondary" className="capitalize">{c.status}</Badge>
                 {c.campaign_type && (
                   <Badge variant="outline" className="capitalize">{c.campaign_type}</Badge>
@@ -231,7 +237,14 @@ export default function CampaignTimelinePage() {
                     <tbody>
                       {t.roster.map(r => (
                         <tr key={r.id} className="border-b last:border-0 hover:bg-muted/40">
-                          <td className="px-6 py-2.5 font-medium">@{r.username}</td>
+                          <td className="px-6 py-2.5 font-medium">
+                            <button type="button"
+                                    className="underline underline-offset-2 hover:text-primary"
+                                    onClick={() => router.push(
+                                      `/creator-analytics/${String(r.username).replace(/^@/, '')}`)}>
+                              @{r.username}
+                            </button>
+                          </td>
                           <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
                             {r.followers_count?.toLocaleString() ?? '—'}
                           </td>

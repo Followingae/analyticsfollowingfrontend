@@ -178,7 +178,7 @@ export default function CoveragePage() {
                           <div
                             onMouseEnter={() => c && setHover(c)}
                             onMouseLeave={() => setHover(null)}
-                            className={`flex h-14 w-28 flex-col items-center justify-center rounded-xl text-sm font-semibold tabular-nums transition-all ${
+                            className={`flex h-14 w-28 cursor-pointer flex-col items-center justify-center rounded-xl text-sm font-semibold tabular-nums transition-all ${
                               on ? 'ring-2 ring-ring ring-offset-2 ring-offset-background' : ''}`}
                             style={{
                               backgroundColor: n === 0
@@ -186,7 +186,12 @@ export default function CoveragePage() {
                                 : `color-mix(in srgb, var(--primary) ${a * 100}%, transparent)`,
                               color: a > 0.55 ? 'var(--primary-foreground)' : undefined,
                             }}
-                            title={`${cat} · ${m}`}
+                            onClick={() => router.push(
+                              `/superadmin/influencers?categories=${encodeURIComponent(cat)}` +
+                              `&countries=${encodeURIComponent(m)}`)}
+                            role="button"
+                            tabIndex={0}
+                            title={`${cat} · ${m} — open these creators`}
                           >
                             {n || '—'}
                             {!!c?.stale && (
@@ -226,7 +231,9 @@ export default function CoveragePage() {
                 title={<span className="capitalize">{g.category} · {g.market}</span>}
                 meta={`${g.costed} quotable of ${g.held} held`}
                 right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                onClick={() => router.push('/superadmin/influencers')}
+                onClick={() => router.push(
+                  `/superadmin/influencers?categories=${encodeURIComponent(g.category)}` +
+                  `&countries=${encodeURIComponent(g.market)}`)}
               />
             ))}
             {(data.gaps || []).length === 0 && <Empty>No thin cells — coverage is even.</Empty>}
@@ -238,21 +245,21 @@ export default function CoveragePage() {
               title={`${uncategorised} creators have no category`}
               meta="They cannot appear in any coverage cell, or in a category filter"
               right={<Badge variant="outline">{uncategorised ? 'Fix' : 'Clear'}</Badge>}
-              onClick={() => router.push('/superadmin/influencers')}
+              onClick={() => router.push('/superadmin/influencers?categories=uncategorised')}
             />
             <Row
               tone={noMarket ? 'warn' : 'good'}
               title={`${noMarket} creators have no market`}
               meta="Market is the first thing a client asks about"
               right={<Badge variant="outline">{noMarket ? 'Fix' : 'Clear'}</Badge>}
-              onClick={() => router.push('/superadmin/influencers')}
+              onClick={() => router.push('/superadmin/influencers?countries=unknown')}
             />
             <Row
               tone={stale ? 'warn' : 'good'}
               title={`${stale} rates are over six months old`}
               meta="Worth re-checking before quoting"
               right={<Badge variant="outline">{stale ? 'Refresh' : 'Clear'}</Badge>}
-              onClick={() => router.push('/superadmin/influencers')}
+              onClick={() => router.push('/superadmin/influencers?has_pricing=true')}
             />
           </Panel>
         </div>

@@ -8,6 +8,7 @@
  * by campaign — so when the two differ, the screen says so rather than hiding it.
  */
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -51,6 +52,7 @@ const TONE: Record<string, string> = {
 const TABS = ['all', 'owed', 'approved', 'paid'] as const
 
 export default function PayablesPage() {
+  const router = useRouter()
   const { isSuperAdmin, isFullAccessStaff } = useAdminAccess()
   const canPay = isSuperAdmin || isFullAccessStaff
 
@@ -192,11 +194,27 @@ export default function PayablesPage() {
                           <td className="px-6 py-3">
                             <p className="font-medium">{i.title}</p>
                             <p className="text-xs text-muted-foreground">
-                              {[i.what_for, i.campaign_name].filter(Boolean).join(' · ') || '—'}
+                              {i.what_for}
+                              {i.what_for && i.campaign_name ? ' · ' : ''}
+                              {i.campaign_name && (
+                                i.campaign_id ? (
+                                  <button type="button" className="underline underline-offset-2 hover:text-foreground"
+                                          onClick={() => router.push(`/superadmin/campaigns/${i.campaign_id}/timeline`)}>
+                                    {i.campaign_name}
+                                  </button>
+                                ) : i.campaign_name
+                              )}
+                              {!i.what_for && !i.campaign_name ? '—' : ''}
                             </p>
                           </td>
                           <td className="px-3 py-3">
-                            {i.creator_username ? `@${i.creator_username}` : '—'}
+                            {i.creator_username ? (
+                              <button type="button" className="underline underline-offset-2 hover:text-foreground"
+                                      onClick={() => router.push(
+                                        `/creator-analytics/${String(i.creator_username).replace(/^@/, '')}`)}>
+                                @{String(i.creator_username).replace(/^@/, '')}
+                              </button>
+                            ) : '—'}
                           </td>
                           <td className="px-3 py-3">
                             <span className="font-medium tabular-nums">{aed(i.agreed_amount_aed)}</span>

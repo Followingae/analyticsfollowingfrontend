@@ -153,7 +153,16 @@ export default function RoundDetailPage() {
               <div className="mb-2 flex items-center gap-2">
                 <Badge variant="outline">Round {round.round_no}</Badge>
                 <Badge variant="secondary">{STATUS_LABEL[round.status]}</Badge>
-                {round.client_name && <Badge variant="outline">{round.client_name}</Badge>}
+                {round.client_name && (
+                  round.team_id ? (
+                    <button type="button"
+                            onClick={() => router.push(`/work/brands/${round.team_id}`)}>
+                      <Badge variant="outline" className="hover:bg-muted">
+                        {round.client_name} →
+                      </Badge>
+                    </button>
+                  ) : <Badge variant="outline">{round.client_name}</Badge>
+                )}
               </div>
               <h1 className="text-2xl font-semibold tracking-tight">{round.title}</h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
