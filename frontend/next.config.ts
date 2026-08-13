@@ -117,7 +117,19 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return {
       afterFiles: [
-        { source: '/work/:path*', destination: '/superadmin/:path*' },
+        {
+          // Everything under /work that does NOT have a real page of its own falls through
+          // to its /superadmin counterpart.
+          //
+          // The exclusion list is load-bearing. Next matches dynamic routes AFTER afterFiles
+          // rewrites, so a bare `/work/:path*` swallowed /work/brands/{id} and
+          // /work/sourcing/{id} before their own pages were ever tried — the rewrite sent
+          // them to /superadmin/brands/{id}, which does not exist, and the brand page 404'd
+          // while /work/brands (a static route, matched earlier) worked fine. Any new
+          // directory added under src/app/work must be named here too.
+          source: '/work/:path((?!brands|coverage|creators|goals|inbox|money|payables|sourcing|team|today).*)',
+          destination: '/superadmin/:path*',
+        },
       ],
     };
   },
