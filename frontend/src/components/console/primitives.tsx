@@ -41,7 +41,8 @@ export function PageHead({
   title, sub, action,
 }: { title: string; sub?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div data-tour="page-head"
+         className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="space-y-1.5">
         <h1 className="text-2xl font-semibold tracking-tight lg:text-[28px]">{title}</h1>
         {sub && <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{sub}</p>}
@@ -86,13 +87,17 @@ export function Stat({
 
 export function StatGrid({ children, cols = 4 }: { children: React.ReactNode; cols?: 3 | 4 }) {
   return (
-    <div className={cn('grid gap-4 sm:grid-cols-2', cols === 4 ? 'xl:grid-cols-4' : 'xl:grid-cols-3')}>
+    <div data-tour="stats"
+         className={cn('grid gap-4 sm:grid-cols-2', cols === 4 ? 'xl:grid-cols-4' : 'xl:grid-cols-3')}>
       {children}
     </div>
   )
 }
 
 /** A titled card. `flush` drops the body padding so a list can run edge to edge. */
+/** A panel's anchor is its own title, so a tour can name the panel it means. */
+const slug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
 export function Panel({
   title, description, action, children, flush, className,
 }: {
@@ -104,7 +109,7 @@ export function Panel({
   className?: string
 }) {
   return (
-    <Card className={cn('flex flex-col', className)}>
+    <Card data-tour={`panel-${slug(title)}`} className={cn('flex flex-col', className)}>
       <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
         <div className="space-y-1">
           <CardTitle className="text-[15px] font-semibold">{title}</CardTitle>
