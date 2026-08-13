@@ -104,6 +104,24 @@ const nextConfig: NextConfig = {
     ];
   },
   
+  /**
+   * The console lives at /work for everyone internal.
+   *
+   * Only some of its screens have physically moved; the rest still sit under /superadmin,
+   * and sending a talent manager or an account manager to a URL that says "superadmin" is
+   * both wrong and alarming. `afterFiles` means a real /work page always wins, and anything
+   * else under /work is served by its /superadmin counterpart without the URL saying so.
+   * Permissions are unaffected - they are enforced by the module guard and the backend, not
+   * by the path.
+   */
+  async rewrites() {
+    return {
+      afterFiles: [
+        { source: '/work/:path*', destination: '/superadmin/:path*' },
+      ],
+    };
+  },
+
   // Redirects for better SEO
   async redirects() {
     return [

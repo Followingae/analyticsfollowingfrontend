@@ -36,7 +36,7 @@ import {
   Wrench,
   Receipt,
   ListChecks,
-  ListTodo,
+
   Bell,
   MailCheck,
   MessageCircle,
@@ -83,23 +83,20 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   // Each group is still gated by an admin module; super_admin sees everything.
   const overviewItems = [
     { title: "Today", url: "/work/today", icon: ListChecks },
-    // Staff have their own task list (content uploads assigned to them). Founders do not,
-    // so it only appears for the people it belongs to rather than as a dead link.
-    ...(!isSuperAdmin ? [{ title: "My tasks", url: "/staff", icon: ListTodo }] : []),
   ]
 
   const managementItems = [
     ...(can("campaigns") || can("proposals") ? [{
       title: "Pipeline",
-      url: "/superadmin/proposals",
+      url: "/work/proposals",
       icon: Megaphone,
       items: [
-        ...(can("proposals") ? [{ title: "Proposals", url: "/superadmin/proposals" }] : []),
-        ...(can("proposals") ? [{ title: "Create proposal", url: "/superadmin/proposals/create" }] : []),
-        ...(can("campaigns") ? [{ title: "Campaigns", url: "/superadmin/campaigns" }] : []),
-        ...(can("campaigns") ? [{ title: "Create campaign", url: "/superadmin/campaigns/create" }] : []),
-        ...(can("campaigns") ? [{ title: "Reports", url: "/superadmin/report-campaigns" }] : []),
-        ...(can("fa") ? [{ title: "App campaigns", url: "/superadmin/fa/campaigns" }] : []),
+        ...(can("proposals") ? [{ title: "Proposals", url: "/work/proposals" }] : []),
+        ...(can("proposals") ? [{ title: "Create proposal", url: "/work/proposals/create" }] : []),
+        ...(can("campaigns") ? [{ title: "Campaigns", url: "/work/campaigns" }] : []),
+        ...(can("campaigns") ? [{ title: "Create campaign", url: "/work/campaigns/create" }] : []),
+        ...(can("campaigns") ? [{ title: "Reports", url: "/work/report-campaigns" }] : []),
+        ...(can("fa") ? [{ title: "App campaigns", url: "/work/fa/campaigns" }] : []),
         // Production already renders inside this shell; it was simply never in the nav,
         // which is what made it feel like a separate system.
         ...(can("operations") ? [{ title: "Production", url: "/ops/campaigns" }] : []),
@@ -107,51 +104,51 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     }] : []),
     ...(can("clients") ? [{
       title: "Clients",
-      url: "/superadmin/clients",
+      url: "/work/clients",
       icon: Building2,
       items: [
-        { title: "All clients", url: "/superadmin/clients" },
+        { title: "All clients", url: "/work/clients" },
         { title: "Brand heartbeat", url: "/work/brands" },
       ],
     }] : []),
     ...(can("influencers") ? [{
       title: "Creators",
-      url: "/superadmin/influencers",
+      url: "/work/influencers",
       icon: Database,
       items: [
-        { title: "Master database", url: "/superadmin/influencers" },
-        { title: "Waiting room", url: "/superadmin/influencers/review" },
+        { title: "Master database", url: "/work/influencers" },
+        { title: "Waiting room", url: "/work/influencers/review" },
         { title: "Sourcing rounds", url: "/work/sourcing" },
         { title: "Coverage", url: "/work/coverage" },
-        { title: "Lists", url: "/superadmin/influencers/lists" },
-        { title: "Analyzed creators", url: "/superadmin/influencers/analyzed" },
-        { title: "Add / import", url: "/superadmin/influencers/add" },
-        ...(can("fa") ? [{ title: "App members", url: "/superadmin/fa/members" }] : []),
-        ...(can("fa") ? [{ title: "Reliability", url: "/superadmin/fa/reliability" }] : []),
+        { title: "Lists", url: "/work/influencers/lists" },
+        { title: "Analyzed creators", url: "/work/influencers/analyzed" },
+        { title: "Add / import", url: "/work/influencers/add" },
+        ...(can("fa") ? [{ title: "App members", url: "/work/fa/members" }] : []),
+        ...(can("fa") ? [{ title: "Reliability", url: "/work/fa/reliability" }] : []),
       ],
     }] : []),
     // Everything awaiting a human decision, in one place. These queues previously existed in
     // three: Operations, the FA section, and the ops shell.
     {
       title: "Queues",
-      url: "/superadmin/operations",
+      url: "/work/operations",
       icon: ClipboardCheck,
       items: [
-        ...(can("operations") ? [{ title: "All queues", url: "/superadmin/operations" }] : []),
-        ...(can("fa") ? [{ title: "Content review", url: "/superadmin/fa/deliverables" }] : []),
-        ...(can("fa") ? [{ title: "Receipt claims", url: "/superadmin/fa/receipt-claims" }] : []),
-        ...(can("fa") ? [{ title: "Withdrawals", url: "/superadmin/fa/withdrawals" }] : []),
-        ...(can("influencers") ? [{ title: "Creator approvals", url: "/superadmin/influencers/review" }] : []),
+        ...(can("operations") ? [{ title: "All queues", url: "/work/operations" }] : []),
+        ...(can("fa") ? [{ title: "Content review", url: "/work/fa/deliverables" }] : []),
+        ...(can("fa") ? [{ title: "Receipt claims", url: "/work/fa/receipt-claims" }] : []),
+        ...(can("fa") ? [{ title: "Withdrawals", url: "/work/fa/withdrawals" }] : []),
+        ...(can("influencers") ? [{ title: "Creator approvals", url: "/work/influencers/review" }] : []),
       ],
     },
     ...(can("billing") ? [{
       title: "Money",
-      url: "/superadmin/billing",
+      url: "/work/billing",
       icon: Banknote,
       items: [
-        { title: "Billing & revenue", url: "/superadmin/billing" },
+        { title: "Billing & revenue", url: "/work/billing" },
         { title: "Creator payments", url: "/work/payables" },
-        ...(can("fa") ? [{ title: "Creator wallets", url: "/superadmin/fa/wallets" }] : []),
+        ...(can("fa") ? [{ title: "Creator wallets", url: "/work/fa/wallets" }] : []),
       ],
     }] : []),
     { title: "Creator team", url: "/work/team", icon: Users },
@@ -163,16 +160,16 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
 
   // Settings: the plumbing. Real screens, just not competing with daily work.
   const systemItems = [
-    ...(can("users") ? [{ title: "Users", url: "/superadmin/users", icon: Users }] : []),
-    ...(can("users") ? [{ title: "Staff", url: "/superadmin/staff", icon: ShieldCheck }] : []),
-    ...(can("fa") ? [{ title: "Merchants", url: "/superadmin/fa/merchants", icon: Store }] : []),
-    ...(can("fa") ? [{ title: "App activity", url: "/superadmin/fa/activity", icon: Activity }] : []),
-    ...(can("fa") ? [{ title: "Ad banners", url: "/superadmin/fa/ad-banners", icon: ImageIcon }] : []),
-    ...(can("fa") ? [{ title: "App notifications", url: "/superadmin/fa/notifications", icon: Bell }] : []),
-    ...(can("system") ? [{ title: "Email alerts", url: "/superadmin/notifications", icon: MailCheck }] : []),
-    ...(can("system") ? [{ title: "WhatsApp", url: "/superadmin/whatsapp", icon: MessageCircle }] : []),
-    ...(can("system") ? [{ title: "System", url: "/superadmin/system", icon: Wrench }] : []),
-    { title: "Dashboard", url: "/superadmin", icon: BarChart3 },
+    ...(can("users") ? [{ title: "Users", url: "/work/users", icon: Users }] : []),
+    ...(can("users") ? [{ title: "Staff", url: "/work/staff", icon: ShieldCheck }] : []),
+    ...(can("fa") ? [{ title: "Merchants", url: "/work/fa/merchants", icon: Store }] : []),
+    ...(can("fa") ? [{ title: "App activity", url: "/work/fa/activity", icon: Activity }] : []),
+    ...(can("fa") ? [{ title: "Ad banners", url: "/work/fa/ad-banners", icon: ImageIcon }] : []),
+    ...(can("fa") ? [{ title: "App notifications", url: "/work/fa/notifications", icon: Bell }] : []),
+    ...(can("system") ? [{ title: "Email alerts", url: "/work/notifications", icon: MailCheck }] : []),
+    ...(can("system") ? [{ title: "WhatsApp", url: "/work/whatsapp", icon: MessageCircle }] : []),
+    ...(can("system") ? [{ title: "System", url: "/work/system", icon: Wrench }] : []),
+    { title: "Dashboard", url: "/work/today", icon: BarChart3 },
   ]
 
   // Content pages not yet built; dead links removed.
@@ -204,7 +201,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/superadmin" className="flex items-center">
+              <a href="/work/today" className="flex items-center">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Shield className="h-5 w-5" />
                 </div>

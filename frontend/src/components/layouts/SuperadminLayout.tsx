@@ -18,27 +18,41 @@ interface SuperadminLayoutProps {
   requireAuth?: boolean
 }
 
-// Longest-prefix → module mapping for the route guard.
-const ROUTE_MODULES: { prefix: string; module: AdminModule }[] = [
-  { prefix: "/superadmin/operations", module: "operations" },
-  { prefix: "/superadmin/clients", module: "clients" },
-  { prefix: "/superadmin/staff", module: "users" },
-  { prefix: "/superadmin/users", module: "users" },
-  { prefix: "/superadmin/campaigns", module: "campaigns" },
-  { prefix: "/superadmin/proposals", module: "proposals" },
-  { prefix: "/superadmin/influencers", module: "influencers" },
-  { prefix: "/superadmin/fa", module: "fa" },
-  { prefix: "/superadmin/notifications", module: "system" },
-  { prefix: "/superadmin/whatsapp", module: "system" },
-  { prefix: "/superadmin/system", module: "system" },
-  { prefix: "/superadmin/billing", module: "billing" },
-  { prefix: "/ops", module: "operations" },
+// Screen → module, matched on the screen itself rather than the prefix, because the same
+// page is reachable at /work/... (what staff see) and /superadmin/... (the physical route).
+// Gating on the prefix alone let the /work URL through ungated.
+const ROUTE_MODULES: { screen: string; module: AdminModule }[] = [
+  { screen: "operations", module: "operations" },
+  { screen: "clients", module: "clients" },
+  { screen: "brands", module: "clients" },
+  { screen: "staff", module: "users" },
+  { screen: "users", module: "users" },
+  { screen: "campaigns", module: "campaigns" },
+  { screen: "proposals", module: "proposals" },
+  { screen: "influencers", module: "influencers" },
+  { screen: "coverage", module: "influencers" },
+  { screen: "sourcing", module: "influencers" },
+  { screen: "fa", module: "fa" },
+  { screen: "notifications", module: "system" },
+  { screen: "whatsapp", module: "system" },
+  { screen: "system", module: "system" },
+  { screen: "billing", module: "billing" },
 ]
+
+/** The screen name, whichever prefix it was reached through. */
+function screenOf(pathname: string): string | null {
+  const m = pathname.match(/^\/(?:work|superadmin)\/([^/?#]+)/)
+  if (m) return m[1]
+  return pathname.startsWith("/ops") ? "operations" : null
+}
+
+// Where to send someone who lands somewhere they cannot go. Always the /work spelling —
+// nobody internal should be handed a URL that says superadmin.
 const MODULE_HOME: Record<string, string> = {
-  operations: "/superadmin/operations", clients: "/superadmin/clients", users: "/superadmin/users",
-  campaigns: "/superadmin/campaigns", proposals: "/superadmin/proposals",
-  influencers: "/superadmin/influencers", fa: "/superadmin/fa", system: "/superadmin/system",
-  billing: "/superadmin/billing",
+  operations: "/ops/campaigns", clients: "/work/clients", users: "/work/users",
+  campaigns: "/work/campaigns", proposals: "/work/proposals",
+  influencers: "/work/influencers", fa: "/work/fa", system: "/work/system",
+  billing: "/work/billing",
 }
 
 /** Redirects a module-scoped admin away from a page they can't access. */
@@ -47,14 +61,15 @@ function ModuleRouteGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { isSuperAdmin, can, loading, modules } = useAdminAccess()
 
-  const required = ROUTE_MODULES.find(r => pathname.startsWith(r.prefix))?.module
+  const screen = screenOf(pathname)
+  const required = ROUTE_MODULES.find(r => r.screen === screen)?.module
   const allowed = isSuperAdmin || !required || can(required)
 
   React.useEffect(() => {
     if (loading || allowed) return
     // Send the admin to their first allowed module (or the dashboard).
     const first = ADMIN_MODULES.find(m => MODULE_HOME[m.key] && can(m.key as AdminModule))
-    router.replace(first ? MODULE_HOME[first.key] : "/superadmin")
+    router.replace(first ? MODULE_HOME[first.key] : "/work/today")
   }, [loading, allowed, can, router])
 
   if (!loading && !allowed) {
