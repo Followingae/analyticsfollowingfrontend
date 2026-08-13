@@ -43,6 +43,13 @@ export interface PendingCreator {
   cost_reel_aed_cents: number | null
   cost_post_aed_cents: number | null
   cost_story_aed_cents: number | null
+  /** Every deliverable added up, so "has any pricing at all" is one check. */
+  cost_total_cents?: number
+  sell_total_cents?: number
+  /** Why this creator is in the queue, in words. */
+  waiting_for?: string
+  /** Analytics are held until approval — nothing has been spent on them yet. */
+  analytics_waiting_on_approval?: boolean
 }
 
 export const creatorIntakeApi = {
@@ -50,7 +57,7 @@ export const creatorIntakeApi = {
   add: (payload: { usernames: string[]; categories?: string[]; country?: string; note?: string }) =>
     call(`${BASE}/influencers/intake`, { method: 'POST', body: JSON.stringify(payload) }),
 
-  /** Everything waiting on a price and a decision. Superadmin only. */
+  /** Everyone who cannot be quoted yet: new arrivals, and anyone still missing a sell price. */
   reviewQueue: (): Promise<{ data: { items: PendingCreator[]; count: number } }> =>
     call(`${BASE}/influencers/review-queue`),
 

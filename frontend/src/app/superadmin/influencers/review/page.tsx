@@ -97,8 +97,9 @@ export default function ReviewQueuePage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Waiting room</h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Creators the team has found. Invisible to clients and unusable in proposals until
-              you set a sell price and approve.
+              Everyone who cannot be quoted yet — new arrivals, and creators whose cost we
+              researched but never priced. Analytics only start once you approve, so nothing
+              here has cost us anything.
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -122,7 +123,7 @@ export default function ReviewQueuePage() {
             <CardContent className="py-16 text-center">
               <p className="text-sm font-medium">Nothing waiting</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Every creator the team has added has been priced and released.
+                Every creator has a sell price and has been released.
               </p>
             </CardContent>
           </Card>
@@ -144,7 +145,9 @@ export default function ReviewQueuePage() {
                         {c.engagement_rate != null && ` · ${Number(c.engagement_rate).toFixed(1)}%`}
                       </CardDescription>
                     </div>
-                    <Badge variant="secondary" className="shrink-0">{waitingFor(c.submitted_at)}</Badge>
+                    {waitingFor(c.submitted_at) && (
+                      <Badge variant="secondary" className="shrink-0">{waitingFor(c.submitted_at)}</Badge>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -153,14 +156,21 @@ export default function ReviewQueuePage() {
                       <Badge key={cat} variant="outline" className="text-xs">{cat}</Badge>
                     ))}
                     {c.country && <Badge variant="outline" className="text-xs">{c.country}</Badge>}
-                    {c.analytics_status && c.analytics_status !== 'completed' && (
+                    {c.analytics_waiting_on_approval ? (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                        analytics start on approval
+                      </Badge>
+                    ) : c.analytics_status && c.analytics_status !== 'completed' ? (
                       <Badge variant="outline" className="text-xs text-muted-foreground">
                         analytics {c.analytics_status}
                       </Badge>
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="rounded-lg border bg-muted/40 px-3 py-2 text-xs">
+                    {c.waiting_for && (
+                      <div className="mb-1 font-medium">{c.waiting_for}</div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Cost (reel)</span>
                       <span className="font-medium tabular-nums">
@@ -195,7 +205,7 @@ export default function ReviewQueuePage() {
       </div>
 
       {/* price & approve */}
-      <Dialog open={!!pricing} onOpenChange={(o) => { if (!o) { setPricing(null); setSell({}) } }}>
+      <Dialog open={!!pricing} onOpenChange={(o: boolean) => { if (!o) { setPricing(null); setSell({}) } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Price @{pricing?.username}</DialogTitle>
@@ -231,7 +241,7 @@ export default function ReviewQueuePage() {
       </Dialog>
 
       {/* reject */}
-      <Dialog open={!!rejecting} onOpenChange={(o) => { if (!o) { setRejecting(null); setReason('') } }}>
+      <Dialog open={!!rejecting} onOpenChange={(o: boolean) => { if (!o) { setRejecting(null); setReason('') } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Turn down @{rejecting?.username}?</DialogTitle>
