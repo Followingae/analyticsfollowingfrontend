@@ -471,6 +471,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const mergedUserData = { ...dashboardData.user }
         
         if (currentUser) {
+          // Identity fields are never blanked by a refresh. This endpoint returns the
+          // dashboard's view of a user, and anything it happens to omit used to overwrite
+          // what login had already established — which silently demoted internal staff to a
+          // free brand user mid-session, and then locked them out of their own console.
+          // A refresh may update a field; it may not delete one.
+          for (const key of ['staff_role', 'admin_modules', 'role'] as const) {
+            const incoming = (dashboardData.user as Record<string, unknown>)[key]
+            const existing = (currentUser as Record<string, unknown>)[key]
+            if ((incoming === undefined || incoming === null) && existing != null) {
+              (mergedUserData as Record<string, unknown>)[key] = existing
+            }
+          }
+
           // Preserve avatar_config if backend doesn't have it
           if (!dashboardData.user.avatar_config && currentUser.avatar_config) {
             mergedUserData.avatar_config = currentUser.avatar_config
