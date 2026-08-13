@@ -37,6 +37,8 @@ export default function RoundDetailPage() {
   const { roundId } = useParams<{ roundId: string }>()
   const router = useRouter()
   const { canSeeCost, canSeeSell, isSuperAdmin, isFullAccessStaff } = useAdminAccess()
+  // Leadership: puts rounds in front of clients, and closes them.
+  const canRelease = isSuperAdmin || isFullAccessStaff
 
   const [round, setRound] = useState<RoundSummary | null>(null)
   const [items, setItems] = useState<RoundItem[]>([])
@@ -182,14 +184,29 @@ export default function RoundDetailPage() {
                   <Plus className="mr-1.5 h-4 w-4" />Add creators
                 </Button>
               )}
-              {!closed && round.status !== 'sent_to_client' && (
+              {/* The talent step. Filling a round is one job and judging it is another, and
+                  the person who sourced the names is not the person who decides which of
+                  them a client sees. This hands it over and tells whoever reviews. */}
+              {!closed && !canRelease && round.status !== 'internal_review' && (
+                <Button size="sm" disabled={busy || items.length === 0}
+                        onClick={() => run(() => sourcingApi.setStatus(roundId, 'internal_review'),
+                                           'Submitted — leadership have been told')}>
+                  <Send className="mr-1.5 h-4 w-4" />Submit {items.length} for review
+                </Button>
+              )}
+              {!closed && !canRelease && round.status === 'internal_review' && (
+                <Badge variant="secondary" className="h-8 px-3">With leadership for review</Badge>
+              )}
+              {/* Only leadership put a round in front of a client — they are the ones who
+                  can mint the link the client opens. */}
+              {!closed && canRelease && round.status !== 'sent_to_client' && (
                 <Button size="sm" disabled={busy || approved === 0}
                         onClick={() => run(() => sourcingApi.setStatus(roundId, 'sent_to_client'),
                                            'Sent to the client')}>
                   <Send className="mr-1.5 h-4 w-4" />Send {approved} to client
                 </Button>
               )}
-              {!closed && (
+              {!closed && canRelease && (
                 <>
                   <Button size="sm" variant="outline" disabled={busy}
                           onClick={() => run(() => sourcingApi.reopen(roundId),

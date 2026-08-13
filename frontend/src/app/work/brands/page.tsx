@@ -14,11 +14,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowRight, Building2, HeartPulse, PhoneOff, TriangleAlert } from 'lucide-react'
+import { ArrowRight, Building2, HeartPulse, PhoneOff, Plus, TriangleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { Empty, PageHead, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
+import { NewOpportunityDialog } from '@/components/superadmin/brands/NewOpportunityDialog'
 
 const HEALTH: Record<string, { label: string; cls: string; tone: Tone }> = {
   healthy: { label: 'Healthy', cls: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600', tone: 'good' },
@@ -35,18 +36,19 @@ export default function BrandsPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'all' | 'attention' | 'ours'>('all')
+  const [newOpen, setNewOpen] = useState(false)
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/brands/heartbeat`)
-        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed')
-        setData((await res.json()).data)
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Could not load brands')
-      } finally { setLoading(false) }
-    })()
-  }, [])
+  const load = async () => {
+    try {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/brands/heartbeat`)
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed')
+      setData((await res.json()).data)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not load brands')
+    } finally { setLoading(false) }
+  }
+
+  useEffect(() => { load() }, [])
 
   const brands = useMemo(() => (data?.brands || []).filter((b: any) =>
     tab === 'all' ? true
@@ -79,6 +81,11 @@ export default function BrandsPage() {
         <PageHead
           title="Brands"
           sub="How long since anything moved, and who owes the next step. Silence is measured from real activity in the platform, so a conversation you had off-platform has to be logged to count."
+          action={
+            <Button onClick={() => setNewOpen(true)}>
+              <Plus className="mr-1.5 h-4 w-4" />New opportunity
+            </Button>
+          }
         />
 
         <StatGrid>
@@ -145,6 +152,8 @@ export default function BrandsPage() {
           )}
         </Panel>
       </div>
+
+      <NewOpportunityDialog open={newOpen} onOpenChange={setNewOpen} onCreated={load} />
     </SuperadminLayout>
   )
 }
