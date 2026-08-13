@@ -47,7 +47,7 @@ import {
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, isLoading } = useEnhancedAuth()
-  const { can, isSuperAdmin } = useAdminAccess()
+  const { can, isSuperAdmin, canSeeCost } = useAdminAccess()
   const pathname = usePathname() || ""
 
   // Dynamic user data
@@ -136,8 +136,8 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       items: [
         ...(can("operations") ? [{ title: "All queues", url: "/work/operations" }] : []),
         ...(can("fa") ? [{ title: "Content review", url: "/work/fa/deliverables" }] : []),
-        ...(can("fa") ? [{ title: "Receipt claims", url: "/work/fa/receipt-claims" }] : []),
-        ...(can("fa") ? [{ title: "Withdrawals", url: "/work/fa/withdrawals" }] : []),
+        ...(can("fa") && canSeeCost ? [{ title: "Receipt claims", url: "/work/fa/receipt-claims" }] : []),
+        ...(can("fa") && canSeeCost ? [{ title: "Withdrawals", url: "/work/fa/withdrawals" }] : []),
         ...(can("influencers") ? [{ title: "Creator approvals", url: "/work/influencers/review" }] : []),
       ],
     },

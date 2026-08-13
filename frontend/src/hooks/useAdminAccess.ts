@@ -36,8 +36,8 @@ export const ADMIN_MODULES: { key: AdminModule; label: string }[] = [
 // Client-side fallback mirroring backend STAFF_ROLE_DEFAULT_MODULES — used only when
 // the /staff/me fetch fails, so a hiccup never locks a staff member out of their console.
 const STAFF_ROLE_DEFAULTS: Record<string, AdminModule[] | null> = {
-  talent_manager: ["proposals", "influencers"],
-  account_manager: ["clients", "campaigns", "proposals"],
+  talent_manager: ["proposals", "influencers", "campaigns", "fa"],
+  account_manager: ["clients", "campaigns", "proposals", "fa"],
   business_development: ["clients", "proposals"],
   cofounder: null, // null = full-access
   ceo: null,
