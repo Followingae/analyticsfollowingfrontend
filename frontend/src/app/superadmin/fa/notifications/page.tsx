@@ -394,7 +394,7 @@ export default function FANotificationsPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
-    <AuthGuard requiredRole="admin">
+    <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <div className="space-y-6">
           {/* ─── Header ─── */}

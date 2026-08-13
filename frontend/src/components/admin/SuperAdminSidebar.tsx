@@ -129,7 +129,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     }] : []),
     // Everything awaiting a human decision, in one place. These queues previously existed in
     // three: Operations, the FA section, and the ops shell.
-    {
+    ...(can("operations") || can("fa") || can("influencers") ? [{
       title: "Queues",
       url: "/work/operations",
       icon: ClipboardCheck,
@@ -138,15 +138,14 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         ...(can("fa") ? [{ title: "Content review", url: "/work/fa/deliverables" }] : []),
         ...(can("fa") && canSeeCost ? [{ title: "Receipt claims", url: "/work/fa/receipt-claims" }] : []),
         ...(can("fa") && canSeeCost ? [{ title: "Withdrawals", url: "/work/fa/withdrawals" }] : []),
-        ...(can("influencers") ? [{ title: "Creator approvals", url: "/work/influencers/review" }] : []),
       ],
-    },
-    ...(can("billing") ? [{
+    }] : []),
+    ...(can("billing") || can("influencers") ? [{
       title: "Money",
       url: "/work/billing",
       icon: Banknote,
       items: [
-        { title: "Billing & revenue", url: "/work/billing" },
+        ...(can("billing") ? [{ title: "Billing & revenue", url: "/work/billing" }] : []),
         // Creator payments are cost. Talent negotiate it and leadership own it; an account
         // manager who opened this would be refused by the server, so we do not offer it.
         ...(can("influencers") ? [{ title: "Creator payments", url: "/work/payables" }] : []),
@@ -157,9 +156,6 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     ...(can("users") ? [{ title: "Creator team", url: "/work/team", icon: Users }] : []),
     ...(can("influencers") ? [{ title: "Goals", url: "/work/goals", icon: BarChart3 }] : []),
   ]
-
-  const campaignItems: never[] = []
-  const followingAppItems: never[] = []
 
   // Settings: the plumbing. Real screens, just not competing with daily work.
   const systemItems = [
@@ -172,7 +168,6 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     ...(can("system") ? [{ title: "Email alerts", url: "/work/notifications", icon: MailCheck }] : []),
     ...(can("system") ? [{ title: "WhatsApp", url: "/work/whatsapp", icon: MessageCircle }] : []),
     ...(can("system") ? [{ title: "System", url: "/work/system", icon: Wrench }] : []),
-    { title: "Dashboard", url: "/work/today", icon: BarChart3 },
   ]
 
   // Content pages not yet built; dead links removed.
@@ -183,12 +178,13 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   // path (across every group + sub-item). Without this, section roots like
   // /superadmin and /superadmin/fa prefix-match and light up on every nested page.
   const activeUrl = React.useMemo(() => {
+    // Sub-items came from campaignItems, which is permanently empty — so a nested page like
+    // /work/proposals/create highlighted its parent instead of itself. Collect them from the
+    // group that actually has children.
     const urls = [
       ...overviewItems,
       ...managementItems,
-      ...campaignItems,
-      ...campaignItems.flatMap((i) => i.items ?? []),
-      ...followingAppItems,
+      ...managementItems.flatMap((i: { items?: { url: string }[] }) => i.items ?? []),
       ...systemItems,
     ]
       .map((i) => i.url)
@@ -196,7 +192,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     return urls
       .filter((url) => pathname === url || pathname.startsWith(url + "/"))
       .sort((a, b) => b.length - a.length)[0]
-  }, [pathname, overviewItems, managementItems, campaignItems, followingAppItems, systemItems])
+  }, [pathname, overviewItems, managementItems, systemItems])
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -240,24 +236,8 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         )}
 
         {/* Campaigns & Proposals */}
-        {campaignItems.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Campaigns</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <NavMain items={campaignItems} activeUrl={activeUrl} />
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
 
         {/* Following App Section */}
-        {followingAppItems.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Following App</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <NavMain items={followingAppItems} activeUrl={activeUrl} />
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
 
         {/* Settings — the plumbing, kept out of the daily path */}
         {systemItems.length > 0 && (

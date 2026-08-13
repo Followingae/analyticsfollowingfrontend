@@ -128,7 +128,7 @@ export default function CreatePaidDealPage() {
   }
 
   return (
-    <AuthGuard requiredRole="admin">
+    <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <div className="max-w-4xl mx-auto space-y-8 pb-16">
           <div>

@@ -224,7 +224,7 @@ export default function CreateCashbackCampaignPage() {
   }
 
   return (
-    <AuthGuard requiredRole="admin">
+    <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <TooltipProvider>
           <div className="max-w-4xl mx-auto space-y-8 pb-16">

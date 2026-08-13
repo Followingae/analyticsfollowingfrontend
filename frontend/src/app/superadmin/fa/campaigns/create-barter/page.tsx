@@ -132,7 +132,7 @@ export default function CreateBarterPage() {
   const totalBarterValue = barterItems.reduce((sum, item) => sum + (item.value_aed || 0), 0)
 
   return (
-    <AuthGuard requiredRole="admin">
+    <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <div className="max-w-4xl mx-auto space-y-8 pb-16">
           <div>

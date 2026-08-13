@@ -65,10 +65,14 @@ export default function GoalsPage() {
 
   const load = async () => {
     try {
-      const [t, tm, r] = await Promise.all([api('/today'), api('/team'), api('/rules')])
-      setToday(t.data)
-      setTeam(tm.data?.people || [])
-      setRule((r.data?.rules || []).find((x: any) => x.role_key === 'talent_manager') || null)
+      // allSettled, not all: /team is leadership-only, so for a talent manager the 403
+      // rejected the whole batch and the screen that tells them their daily target rendered
+      // completely empty. One forbidden panel must not take the page with it.
+      const [t, tm, r] = await Promise.allSettled([api('/today'), api('/team'), api('/rules')])
+        .then(rs => rs.map(x => x.status === 'fulfilled' ? x.value : null))
+      setToday(t?.data ?? null)
+      setTeam(tm?.data?.people || [])
+      setRule((r?.data?.rules || []).find((x: any) => x.role_key === 'talent_manager') || null)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not load goals')
     } finally { setLoading(false) }

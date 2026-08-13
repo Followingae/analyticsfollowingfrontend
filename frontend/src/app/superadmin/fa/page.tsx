@@ -121,7 +121,7 @@ export default function FADashboardPage() {
   ]
 
   return (
-    <AuthGuard requiredRole="admin">
+    <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <div className="space-y-8">
           <div>

@@ -175,7 +175,7 @@ export default function FAActivityPage() {
   ]
 
   return (
-    <AuthGuard requiredRole="admin">
+    <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <div className="space-y-6">
           <div className="flex items-start justify-between gap-4">

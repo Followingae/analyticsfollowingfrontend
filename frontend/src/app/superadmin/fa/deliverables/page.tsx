@@ -153,7 +153,7 @@ export default function FADeliverablesPage() {
     act(d.id + "rj", () => faDeliverableApi.reject(d.id), "Deliverable rejected")
 
   return (
-    <AuthGuard requiredRole="admin">
+    <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <div className="space-y-6">
           <div>

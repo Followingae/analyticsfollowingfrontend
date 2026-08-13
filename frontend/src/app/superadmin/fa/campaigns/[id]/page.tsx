@@ -93,7 +93,7 @@ export default function FACampaignFunnelPage() {
   )
 
   return (
-    <AuthGuard requiredRole="admin">
+    <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">

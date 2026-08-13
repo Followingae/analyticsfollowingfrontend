@@ -163,18 +163,29 @@ function CreateProposalContent() {
     async function loadUsers() {
       setUsersLoading(true)
       try {
+        // The clients list, not the users list. /admin/users is mounted behind the `users`
+        // module, which no staff role has — so this returned 403, the `if (res.ok)` swallowed
+        // it without a word, and the brand dropdown was empty for every account manager and
+        // business developer. Submit is blocked on that dropdown, so nobody outside an
+        // operator could create a proposal at all.
         const res = await fetchWithAuth(
-          `${API_CONFIG.BASE_URL}/api/v1/admin/users?page_size=100`,
+          `${API_CONFIG.BASE_URL}/api/v1/admin/clients?page_size=200`,
           { headers: getAuthHeaders() }
         )
         if (res.ok) {
           const json = await res.json()
-          const allUsers: BrandUser[] = json.users ?? json.data?.users ?? json.data ?? []
-          // Filter to brand/user roles only (exclude admins/superadmins)
-          const brandOnly = allUsers.filter(
-            (u) => !u.role || !["super_admin", "admin", "superadmin"].includes(u.role)
-          )
-          setBrandUsers(brandOnly)
+          const rows = json.data?.clients ?? json.clients ?? json.data ?? []
+          setBrandUsers(rows
+            .filter((c: any) => c.brand_user_id)
+            .map((c: any) => ({
+              id: c.brand_user_id,
+              email: c.owner_email,
+              full_name: c.name || c.company_name || c.owner_name,
+              company: c.company_name || c.name,
+            })) as BrandUser[])
+        } else {
+          const detail = (await res.json().catch(() => ({}))).detail
+          toast.error(detail || "Could not load the client list")
         }
       } catch {
         toast.error("Failed to load brand users")

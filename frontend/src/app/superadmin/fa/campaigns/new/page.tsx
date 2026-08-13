@@ -45,7 +45,7 @@ const TYPES = [
 
 export default function FaCampaignTypePickerPage() {
   return (
-    <AuthGuard requiredRole="admin">
+    <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <div className="space-y-6 max-w-5xl">
           <div>

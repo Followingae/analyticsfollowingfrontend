@@ -84,7 +84,7 @@ export default function FAReliabilityPage() {
   const shown = tab === "at_risk" ? creators.filter((c) => c.is_low) : creators
 
   return (
-    <AuthGuard requiredRole="admin">
+    <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <div className="mx-auto w-full max-w-5xl px-4 py-6">
           {/* header */}
