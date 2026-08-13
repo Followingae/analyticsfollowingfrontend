@@ -33,6 +33,9 @@ const compact = (n: number | null) =>
   n == null ? '—' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : `${n}`
 const aed = (c: number | null) => (c == null ? null : `AED ${(c / 100).toLocaleString('en-AE')}`)
 
+const csvList = (v: string) => v.split(',').map(x => x.trim()).filter(Boolean)
+const toNum = (v: string) => (v.trim() ? Number(v) : undefined)
+
 export default function RoundDetailPage() {
   const { roundId } = useParams<{ roundId: string }>()
   const router = useRouter()
@@ -52,14 +55,27 @@ export default function RoundDetailPage() {
   // Stepping in: a founder can re-own, re-date or re-target a round that is already running.
   const [stepIn, setStepIn] = useState(false)
   const [staff, setStaff] = useState<StaffUser[]>([])
-  const [amend, setAmend] = useState<{ owner: string; due: string; target: string }>(
-    { owner: '', due: '', target: '' })
+  const [amend, setAmend] = useState({
+    owner: '', due: '', target: '',
+    categories: '', market: '', followersMin: '', followersMax: '',
+    deliverables: '', budgetMin: '', budgetMax: '', notes: '',
+  })
 
   const openStepIn = async () => {
+    const c = (round?.criteria || {}) as Record<string, any>
+    const csv = (v: any) => (Array.isArray(v) ? v.join(', ') : v ? String(v) : '')
     setAmend({
       owner: round?.owner_user_id || '',
       due: round?.due_at ? round.due_at.slice(0, 10) : '',
       target: round?.target_count != null ? String(round.target_count) : '',
+      categories: csv(c.categories),
+      market: c.market ? String(c.market) : '',
+      followersMin: c.followers_min != null ? String(c.followers_min) : '',
+      followersMax: c.followers_max != null ? String(c.followers_max) : '',
+      deliverables: csv(c.deliverables),
+      budgetMin: c.budget_per_creator_min != null ? String(c.budget_per_creator_min) : '',
+      budgetMax: c.budget_per_creator_max != null ? String(c.budget_per_creator_max) : '',
+      notes: c.notes ? String(c.notes) : '',
     })
     setStepIn(true)
     if (!staff.length) {
@@ -74,6 +90,18 @@ export default function RoundDetailPage() {
         owner_user_id: amend.owner || null,
         due_at: amend.due || null,
         target_count: amend.target === '' ? null : Number(amend.target),
+        // Sent whole: criteria is one jsonb column, so a partial object would drop the
+        // fields it left out rather than leaving them alone.
+        criteria: {
+          categories: csvList(amend.categories),
+          market: amend.market.trim() || undefined,
+          followers_min: toNum(amend.followersMin),
+          followers_max: toNum(amend.followersMax),
+          deliverables: csvList(amend.deliverables),
+          budget_per_creator_min: toNum(amend.budgetMin),
+          budget_per_creator_max: toNum(amend.budgetMax),
+          notes: amend.notes.trim() || undefined,
+        },
       })
       const what = (res.data?.changed || []).join(', ')
       toast.success(what ? `Updated — ${what}` : 'Nothing changed')
@@ -139,7 +167,29 @@ export default function RoundDetailPage() {
   const approved = items.filter(i => i.internal_verdict === 'approved').length
   const struck = items.filter(i => i.internal_verdict === 'struck')
   const closed = round.status === 'locked' || round.status === 'dropped'
-  const crit = (round.criteria || {}) as Record<string, string | number>
+  // The brief leadership wrote when they opened the round. Rendered field by field rather
+  // than as raw key/value pairs, because "categories: food,family" is not a brief and the
+  // ranges only mean anything as ranges.
+  const crit = (round.criteria || {}) as Record<string, any>
+  const arr = (v: any) => (Array.isArray(v) ? v.filter(Boolean) : [])
+  const kfmt = (n: any) => (Number(n) >= 1000 ? `${Math.round(Number(n) / 1000)}k` : String(n))
+  const range = (lo: any, hi: any, f: (x: any) => string) =>
+    lo && hi ? `${f(lo)} - ${f(hi)}` : lo ? `${f(lo)}+` : hi ? `up to ${f(hi)}` : null
+  const aed = (n: any) => `AED ${Number(n).toLocaleString()}`
+  const briefFields: { label: string; value: string }[] = [
+    arr(crit.categories).length ? { label: 'Kind of creator', value: arr(crit.categories).join(', ') } : null,
+    crit.market ? { label: 'Market', value: String(crit.market) } : null,
+    range(crit.followers_min, crit.followers_max, kfmt)
+      ? { label: 'Followers', value: range(crit.followers_min, crit.followers_max, kfmt)! } : null,
+    arr(crit.deliverables).length ? { label: 'Deliverables', value: arr(crit.deliverables).join(' + ') } : null,
+    range(crit.budget_per_creator_min, crit.budget_per_creator_max, aed)
+      ? { label: 'Budget per creator', value: range(crit.budget_per_creator_min, crit.budget_per_creator_max, aed)! } : null,
+  ].filter(Boolean) as { label: string; value: string }[]
+  // Anything a older round stored under its own keys still shows, so nothing is hidden.
+  const KNOWN = ['categories', 'market', 'followers_min', 'followers_max', 'deliverables',
+                 'budget_per_creator_min', 'budget_per_creator_max', 'notes']
+  const otherCrit = Object.entries(crit).filter(([k, v]) =>
+    !KNOWN.includes(k) && v != null && String(v) !== '')
 
   return (
     <SuperadminLayout>
@@ -223,23 +273,51 @@ export default function RoundDetailPage() {
           </div>
         </div>
 
-        {(Object.keys(crit).length > 0 || excluded.length > 0) && (
+        {(briefFields.length > 0 || otherCrit.length > 0 || crit.notes || excluded.length > 0) ? (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">What the client asked for</CardTitle>
+              <CardTitle className="text-base">The brief</CardTitle>
+              <CardDescription>What to look for. Written when this round was opened.</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
-              {Object.entries(crit).map(([k, v]) => (
-                <div key={k}>
-                  <div className="text-xs capitalize text-muted-foreground">{k.replace(/_/g, ' ')}</div>
-                  <div className="font-medium">{String(v)}</div>
-                </div>
-              ))}
-              {excluded.length > 0 && (
-                <div className="ml-auto">
-                  <div className="text-xs text-muted-foreground">Already excluded</div>
-                  <div className="font-medium">{excluded.length} creators from earlier rounds</div>
-                </div>
+            <CardContent className="space-y-4 text-sm">
+              <div className="flex flex-wrap gap-x-8 gap-y-3">
+                {briefFields.map(f => (
+                  <div key={f.label}>
+                    <div className="text-xs text-muted-foreground">{f.label}</div>
+                    <div className="font-medium">{f.value}</div>
+                  </div>
+                ))}
+                {otherCrit.map(([k, v]) => (
+                  <div key={k}>
+                    <div className="text-xs capitalize text-muted-foreground">{k.replace(/_/g, ' ')}</div>
+                    <div className="font-medium">{Array.isArray(v) ? v.join(', ') : String(v)}</div>
+                  </div>
+                ))}
+                {excluded.length > 0 && (
+                  <div className="ml-auto">
+                    <div className="text-xs text-muted-foreground">Already excluded</div>
+                    <div className="font-medium">{excluded.length} creators from earlier rounds</div>
+                  </div>
+                )}
+              </div>
+              {crit.notes && (
+                <p className="border-t pt-3 text-muted-foreground">{String(crit.notes)}</p>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          /* A round with no brief is a round nobody can work. Say so, and let whoever may
+             edit it fix it on the spot rather than guessing. */
+          <Card className="border-dashed">
+            <CardContent className="flex flex-wrap items-center gap-3 py-5 text-sm">
+              <span className="font-medium">No brief on this round yet.</span>
+              <span className="text-muted-foreground">
+                Nobody can tell what to look for — kind of creator, market, deliverables, budget.
+              </span>
+              {(isSuperAdmin || isFullAccessStaff) && (
+                <Button size="sm" variant="outline" className="ml-auto" onClick={openStepIn}>
+                  <UserCog className="mr-1.5 h-4 w-4" />Write it
+                </Button>
               )}
             </CardContent>
           </Card>
@@ -369,9 +447,9 @@ export default function RoundDetailPage() {
           <DialogHeader>
             <DialogTitle>Step into this round</DialogTitle>
             <DialogDescription>
-              Change who owns it, when it is due, or how many creators it needs. The creators
-              already proposed and the reasons already written are kept. Both the old and the
-              new owner are told.
+              Change who owns it, when it is due, how many creators it needs, or what they
+              should be looking for. The creators already proposed and the reasons already
+              written are kept. Both the old and the new owner are told.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -402,6 +480,54 @@ export default function RoundDetailPage() {
                 <Input className="mt-1.5" type="number" value={amend.target} placeholder="12"
                        onChange={e => setAmend(a => ({ ...a, target: e.target.value }))} />
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-t pt-4">
+              <div>
+                <Label className="text-xs">What kind of creators</Label>
+                <Input className="mt-1.5" value={amend.categories} placeholder="food, family"
+                       onChange={e => setAmend(a => ({ ...a, categories: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Market</Label>
+                <Input className="mt-1.5" value={amend.market} placeholder="UAE"
+                       onChange={e => setAmend(a => ({ ...a, market: e.target.value }))} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Followers</Label>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <Input type="number" value={amend.followersMin} placeholder="min"
+                         onChange={e => setAmend(a => ({ ...a, followersMin: e.target.value }))} />
+                  <span className="text-xs text-muted-foreground">to</span>
+                  <Input type="number" value={amend.followersMax} placeholder="max"
+                         onChange={e => setAmend(a => ({ ...a, followersMax: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Budget per creator (AED)</Label>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <Input type="number" value={amend.budgetMin} placeholder="min"
+                         onChange={e => setAmend(a => ({ ...a, budgetMin: e.target.value }))} />
+                  <span className="text-xs text-muted-foreground">to</span>
+                  <Input type="number" value={amend.budgetMax} placeholder="max"
+                         onChange={e => setAmend(a => ({ ...a, budgetMax: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Deliverables</Label>
+              <Input className="mt-1.5" value={amend.deliverables} placeholder="reel, story"
+                     onChange={e => setAmend(a => ({ ...a, deliverables: e.target.value }))} />
+            </div>
+
+            <div>
+              <Label className="text-xs">Anything else they should know</Label>
+              <Textarea className="mt-1.5" rows={2} value={amend.notes}
+                        onChange={e => setAmend(a => ({ ...a, notes: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>

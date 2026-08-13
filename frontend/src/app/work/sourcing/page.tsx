@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -25,6 +26,7 @@ import { Plus, Loader2, Search, Clock, Layers, TimerOff, Users, CheckCheck } fro
 import { Stat, StatGrid } from '@/components/console/primitives'
 import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
 import { toast } from 'sonner'
+import { staffAdminApi, type StaffMember } from '@/services/staffApi'
 import { sourcingApi, STATUS_LABEL, type RoundSummary, type RoundStatus } from '@/services/sourcingApi'
 
 const TABS: { key: string; label: string }[] = [
@@ -52,6 +54,15 @@ function due(iso: string | null) {
   return { text: `Due in ${days} days`, late: false, soon: days <= 3 }
 }
 
+const BLANK = {
+  title: '', target: '', dueAt: '', owner: '',
+  categories: '', market: '', followersMin: '', followersMax: '',
+  deliverables: '', budgetMin: '', budgetMax: '', notes: '',
+}
+
+const list = (v: string) => v.split(',').map(x => x.trim()).filter(Boolean)
+const num = (v: string) => (v.trim() ? Number(v) : undefined)
+
 export default function SourcingBoardPage() {
   const router = useRouter()
   // Arriving from a brand ("Start sourcing") opens the new-round dialog against it, so the
@@ -68,7 +79,10 @@ export default function SourcingBoardPage() {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [form, setForm] = useState({ title: '', target: '', dueAt: '' })
+  // The brief. A round carrying only a title and a number tells whoever works it nothing
+  // about what to look for, which is how you get twelve creators the client cannot use.
+  const [form, setForm] = useState(BLANK)
+  const [talent, setTalent] = useState<StaffMember[]>([])
 
   const load = async () => {
     setLoading(true)
@@ -99,6 +113,15 @@ export default function SourcingBoardPage() {
     return a
   }, { short: 0, approved: 0, late: 0 }), [rounds])
 
+  // Names for the "who is sourcing this" picker. Failing quietly is fine — the round can
+  // still be opened unassigned and handed over later.
+  useEffect(() => {
+    if (!open || talent.length) return
+    staffAdminApi.list()
+      .then(rows => setTalent(rows.filter(r => r.staff_role === 'talent_manager')))
+      .catch(() => undefined)
+  }, [open, talent.length])
+
   const create = async () => {
     if (!form.title.trim()) { toast.error('Give the round a title'); return }
     setBusy(true)
@@ -108,9 +131,20 @@ export default function SourcingBoardPage() {
         team_id: teamId,
         target_count: form.target ? Number(form.target) : undefined,
         due_at: form.dueAt || undefined,
+        owner_user_id: form.owner || undefined,
+        criteria: {
+          categories: list(form.categories),
+          market: form.market.trim() || undefined,
+          followers_min: num(form.followersMin),
+          followers_max: num(form.followersMax),
+          deliverables: list(form.deliverables),
+          budget_per_creator_min: num(form.budgetMin),
+          budget_per_creator_max: num(form.budgetMax),
+          notes: form.notes.trim() || undefined,
+        },
       })
       toast.success('Round opened')
-      setOpen(false); setForm({ title: '', target: '', dueAt: '' })
+      setOpen(false); setForm(BLANK)
       router.push(`/work/sourcing/${res.data.id}`)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not open the round')
@@ -248,6 +282,73 @@ export default function SourcingBoardPage() {
                 <Input className="mt-1.5" type="date" value={form.dueAt}
                        onChange={e => setForm(p => ({ ...p, dueAt: e.target.value }))} />
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">What kind of creators</Label>
+                <Input className="mt-1.5" value={form.categories} placeholder="food, family"
+                       onChange={e => setForm(p => ({ ...p, categories: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Market</Label>
+                <Input className="mt-1.5" value={form.market} placeholder="UAE"
+                       onChange={e => setForm(p => ({ ...p, market: e.target.value }))} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Followers</Label>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <Input type="number" value={form.followersMin} placeholder="min"
+                         onChange={e => setForm(p => ({ ...p, followersMin: e.target.value }))} />
+                  <span className="text-xs text-muted-foreground">to</span>
+                  <Input type="number" value={form.followersMax} placeholder="max"
+                         onChange={e => setForm(p => ({ ...p, followersMax: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Budget per creator (AED)</Label>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <Input type="number" value={form.budgetMin} placeholder="min"
+                         onChange={e => setForm(p => ({ ...p, budgetMin: e.target.value }))} />
+                  <span className="text-xs text-muted-foreground">to</span>
+                  <Input type="number" value={form.budgetMax} placeholder="max"
+                         onChange={e => setForm(p => ({ ...p, budgetMax: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Deliverables</Label>
+                <Input className="mt-1.5" value={form.deliverables} placeholder="reel, story"
+                       onChange={e => setForm(p => ({ ...p, deliverables: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Who is sourcing this</Label>
+                <select
+                  className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={form.owner}
+                  onChange={e => setForm(p => ({ ...p, owner: e.target.value }))}
+                >
+                  <option value="">Assign later</option>
+                  {talent.map(m => (
+                    <option key={m.id} value={m.id}>{m.full_name || m.email}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Anything else they should know</Label>
+              <Textarea className="mt-1.5" rows={2} value={form.notes}
+                        placeholder="Mums who actually cook. No one who has posted for a competitor this quarter."
+                        onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
+              <p className="mt-2 text-xs text-muted-foreground">
+                Whoever you assign is told the moment you open the round, and this brief goes with it.
+              </p>
             </div>
           </div>
           <DialogFooter>

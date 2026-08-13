@@ -107,6 +107,7 @@ export const sourcingApi = {
   createRound: (payload: {
     title: string; team_id?: string; proposal_id?: string
     due_at?: string; target_count?: number; criteria?: Record<string, unknown>
+    owner_user_id?: string
   }) => call(`${BASE}/rounds`, { method: 'POST', body: JSON.stringify(payload) }),
 
   getRound: (id: string) => call(`${BASE}/rounds/${id}`) as Promise<{

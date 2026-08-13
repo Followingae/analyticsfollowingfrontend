@@ -32,6 +32,8 @@ import { ArrowRight, ArrowUpDown, CheckCircle2, Clock, Layers, TimerOff } from '
 import { Hub, type HubTab } from '@/components/console/Hub'
 import { Empty, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
+import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { API_CONFIG } from '@/config/api'
 import {
   faDeliverableApi, faMemberApi, faReceiptClaimApi, faWithdrawalApi,
 } from '@/services/faAdminApi'
@@ -108,6 +110,7 @@ export default function InboxPage() {
   const [newMembers, setNewMembers] = useState<any[]>([])
   const [unpriced, setUnpriced] = useState<any[]>([])
   const [rounds, setRounds] = useState<any[]>([])
+  const [toSource, setToSource] = useState<any[]>([])
   const [proposals, setProposals] = useState<any[]>([])
 
   // Which queues this person may open at all. Mirrors the endpoint guards:
@@ -128,7 +131,9 @@ export default function InboxPage() {
     setLoading(true)
 
     // One settled batch: a refused or broken queue must cost only itself.
-    const [d, r, w, m, p, s, pir, pcr] = await Promise.allSettled([
+    const todayReq = fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/today`)
+      .then(r => r.json())
+    const [d, r, w, m, p, s, pir, pcr, td] = await Promise.allSettled([
       mayFa ? faDeliverableApi.listPending() : Promise.resolve(null),
       mayMoney ? faReceiptClaimApi.list('pending_review') : Promise.resolve(null),
       mayMoney ? faWithdrawalApi.listPending() : Promise.resolve(null),
@@ -139,6 +144,7 @@ export default function InboxPage() {
                    : Promise.resolve(null),
       mayProposals ? adminProposalApi.listProposals({ status: 'internal_changes_requested', limit: 50 })
                    : Promise.resolve(null),
+      todayReq,
     ])
 
     setDeliverables(d.status === 'fulfilled' && d.value ? unwrap(d.value, 'deliverables') : [])
@@ -147,6 +153,12 @@ export default function InboxPage() {
     setNewMembers(m.status === 'fulfilled' && m.value ? unwrap(m.value, 'members') : [])
     setUnpriced(p.status === 'fulfilled' && p.value ? unwrap(p.value, 'items') : [])
     setRounds(s.status === 'fulfilled' && s.value ? unwrap(s.value, 'items') : [])
+    // Today already works out, per role, which brands are still waiting on a brief. Only
+    // leadership get these back, so no extra gate is needed here.
+    setToSource(td.status === 'fulfilled' && td.value
+      ? ((td.value as any)?.data?.needs || []).filter((n: any) =>
+          typeof n.title === 'string' && n.title.startsWith('Write the sourcing brief for'))
+      : [])
     setProposals([
       ...(pir.status === 'fulfilled' && pir.value ? (pir.value as any).proposals || [] : []),
       ...(pcr.status === 'fulfilled' && pcr.value ? (pcr.value as any).proposals || [] : []),
@@ -165,6 +177,23 @@ export default function InboxPage() {
   // ── the queues, in one shape ───────────────────────────────────────────────────────
   const groups: InboxGroup[] = useMemo(() => {
     const g: InboxGroup[] = []
+
+    // A brand somebody logged that has no sourcing brief yet. It is the first link in the
+    // chain and it was invisible: the alert was the only place it ever existed, and nobody
+    // can start sourcing until someone says what to look for.
+    if (toSource.length) g.push({
+      key: 'to-source',
+      label: 'Briefs to write',
+      description: 'A client is logged but nobody can source for them yet. Open a round and say what to look for.',
+      href: '/work/sourcing',
+      items: toSource.map((n: any, i: number) => ({
+        id: `to-source-${i}`,
+        title: String(n.title || '').replace(/^Write the sourcing brief for /, ''),
+        waitingFor: n.detail || 'no brief yet',
+        since: undefined,
+        href: n.href || '/work/sourcing',
+      })),
+    })
 
     if (mayFa) g.push({
       key: 'deliverables',
