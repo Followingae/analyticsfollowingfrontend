@@ -53,6 +53,14 @@ function due(iso: string | null) {
 
 export default function SourcingBoardPage() {
   const router = useRouter()
+  // Arriving from a brand ("Start sourcing") opens the new-round dialog against it, so the
+  // step after logging an opportunity is one click rather than a hunt. Read from the URL
+  // rather than useSearchParams, which would force this page out of prerendering.
+  const [teamId, setTeamId] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('team')
+    if (t) setTeamId(t)
+  }, [])
   const [rounds, setRounds] = useState<RoundSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('open')
@@ -72,6 +80,7 @@ export default function SourcingBoardPage() {
     } finally { setLoading(false) }
   }
   useEffect(() => { load() }, [tab])
+  useEffect(() => { if (teamId) setOpen(true) }, [teamId])
 
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase()
@@ -95,6 +104,7 @@ export default function SourcingBoardPage() {
     try {
       const res = await sourcingApi.createRound({
         title: form.title.trim(),
+        team_id: teamId,
         target_count: form.target ? Number(form.target) : undefined,
         due_at: form.dueAt || undefined,
       })

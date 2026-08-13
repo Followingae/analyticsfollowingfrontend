@@ -85,9 +85,16 @@ export default function BrandBrowsePage() {
               ? `Looked after by ${brand.account_manager_email}. Everything below opens where it lives.`
               : 'No account manager assigned. Everything below opens where it lives.'}
             action={
-              <Button variant="outline" onClick={() => router.push(`/work/clients/${teamId}`)}>
-                Open client record
-              </Button>
+              <>
+                {/* The next step after logging a brand is asking for creators, so it is a
+                    button rather than something to go and find. */}
+                <Button onClick={() => router.push(`/work/sourcing?team=${teamId}`)}>
+                  <Layers className="mr-1.5 h-4 w-4" />Start sourcing
+                </Button>
+                <Button variant="outline" onClick={() => router.push(`/work/clients/${teamId}`)}>
+                  Open client record
+                </Button>
+              </>
             }
           />
         </div>
