@@ -147,12 +147,15 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       icon: Banknote,
       items: [
         { title: "Billing & revenue", url: "/work/billing" },
-        { title: "Creator payments", url: "/work/payables" },
+        // Creator payments are cost. Talent negotiate it and leadership own it; an account
+        // manager who opened this would be refused by the server, so we do not offer it.
+        ...(can("influencers") ? [{ title: "Creator payments", url: "/work/payables" }] : []),
         ...(can("fa") ? [{ title: "Creator wallets", url: "/work/fa/wallets" }] : []),
       ],
     }] : []),
-    { title: "Creator team", url: "/work/team", icon: Users },
-    { title: "Goals", url: "/work/goals", icon: BarChart3 },
+    // A view of how colleagues are doing belongs to whoever manages them.
+    ...(can("users") ? [{ title: "Creator team", url: "/work/team", icon: Users }] : []),
+    ...(can("influencers") ? [{ title: "Goals", url: "/work/goals", icon: BarChart3 }] : []),
   ]
 
   const campaignItems: never[] = []

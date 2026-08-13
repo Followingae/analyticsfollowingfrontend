@@ -80,7 +80,7 @@ export default function TeamConsolePage() {
           <Stat label="Waiting on you" value={data.waiting.count} icon={Inbox}
                 tone={data.waiting.count ? 'warn' : 'good'}
                 hint={data.waiting.oldest ? `Oldest ${ago(data.waiting.oldest)}` : 'Nothing waiting'}
-                onClick={() => router.push('/superadmin/influencers/review')} />
+                onClick={() => router.push('/work/influencers/review')} />
           <Stat label="Rounds open" value={data.rounds.length} icon={LayersIcon}
                 tone={overdue ? 'bad' : 'neutral'}
                 hint={overdue ? `${overdue} overdue` : 'All on time'}

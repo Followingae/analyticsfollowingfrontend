@@ -105,7 +105,7 @@ export default function CoveragePage() {
           title="Coverage"
           sub="Where we are strong, and where to research next. A creator counts only once we hold a cost for them — a name with no rate cannot be quoted, so it is not coverage."
           action={
-            <Button onClick={() => router.push('/superadmin/influencers/add')}>
+            <Button onClick={() => router.push('/work/influencers/add')}>
               Add creators
             </Button>
           }
@@ -113,13 +113,17 @@ export default function CoveragePage() {
 
         <StatGrid>
           <Stat label="In the database" value={held} icon={Database}
-                hint={`${categories.length} categories · ${markets.length} markets`} />
+                hint={`${categories.length} categories · ${markets.length} markets`}
+                onClick={() => router.push('/work/influencers')} />
           <Stat label="Quotable today" value={costed} tone="good" icon={Coins}
-                hint={`${quotablePct}% of the database has a usable cost`} />
+                hint={`${quotablePct}% of the database has a usable cost`}
+                onClick={() => router.push('/work/influencers?has_pricing=true')} />
           <Stat label="Rates over six months old" value={stale} tone={stale ? 'warn' : 'neutral'}
-                icon={TimerReset} hint="Worth re-checking before they go in a proposal" />
+                icon={TimerReset} hint="Worth re-checking before they go in a proposal"
+                onClick={() => router.push('/work/influencers?has_pricing=true')} />
           <Stat label="Missing a market" value={noMarket} tone={noMarket ? 'warn' : 'neutral'}
-                icon={MapPin} hint="Market is the first thing a client asks about" />
+                icon={MapPin} hint="Market is the first thing a client asks about"
+                onClick={() => router.push('/work/influencers?countries=unknown')} />
         </StatGrid>
 
         <Panel
@@ -187,7 +191,7 @@ export default function CoveragePage() {
                               color: a > 0.55 ? 'var(--primary-foreground)' : undefined,
                             }}
                             onClick={() => router.push(
-                              `/superadmin/influencers?categories=${encodeURIComponent(cat)}` +
+                              `/work/influencers?categories=${encodeURIComponent(cat)}` +
                               `&countries=${encodeURIComponent(m)}`)}
                             role="button"
                             tabIndex={0}
@@ -232,7 +236,7 @@ export default function CoveragePage() {
                 meta={`${g.costed} quotable of ${g.held} held`}
                 right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
                 onClick={() => router.push(
-                  `/superadmin/influencers?categories=${encodeURIComponent(g.category)}` +
+                  `/work/influencers?categories=${encodeURIComponent(g.category)}` +
                   `&countries=${encodeURIComponent(g.market)}`)}
               />
             ))}
@@ -245,21 +249,21 @@ export default function CoveragePage() {
               title={`${uncategorised} creators have no category`}
               meta="They cannot appear in any coverage cell, or in a category filter"
               right={<Badge variant="outline">{uncategorised ? 'Fix' : 'Clear'}</Badge>}
-              onClick={() => router.push('/superadmin/influencers?categories=uncategorised')}
+              onClick={() => router.push('/work/influencers?categories=uncategorised')}
             />
             <Row
               tone={noMarket ? 'warn' : 'good'}
               title={`${noMarket} creators have no market`}
               meta="Market is the first thing a client asks about"
               right={<Badge variant="outline">{noMarket ? 'Fix' : 'Clear'}</Badge>}
-              onClick={() => router.push('/superadmin/influencers?countries=unknown')}
+              onClick={() => router.push('/work/influencers?countries=unknown')}
             />
             <Row
               tone={stale ? 'warn' : 'good'}
               title={`${stale} rates are over six months old`}
               meta="Worth re-checking before quoting"
               right={<Badge variant="outline">{stale ? 'Refresh' : 'Clear'}</Badge>}
-              onClick={() => router.push('/superadmin/influencers?has_pricing=true')}
+              onClick={() => router.push('/work/influencers?has_pricing=true')}
             />
           </Panel>
         </div>

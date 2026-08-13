@@ -199,7 +199,7 @@ export default function PayablesPage() {
                               {i.campaign_name && (
                                 i.campaign_id ? (
                                   <button type="button" className="underline underline-offset-2 hover:text-foreground"
-                                          onClick={() => router.push(`/superadmin/campaigns/${i.campaign_id}/timeline`)}>
+                                          onClick={() => router.push(`/work/campaigns/${i.campaign_id}/timeline`)}>
                                     {i.campaign_name}
                                   </button>
                                 ) : i.campaign_name

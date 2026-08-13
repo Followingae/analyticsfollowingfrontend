@@ -37,6 +37,14 @@ const ROUTE_MODULES: { screen: string; module: AdminModule }[] = [
   { screen: "whatsapp", module: "system" },
   { screen: "system", module: "system" },
   { screen: "billing", module: "billing" },
+  { screen: "report-campaigns", module: "campaigns" },
+  // Creator payments are cost, and the team console is a view of colleagues: the backend
+  // refuses both outside leadership/talent, so the UI must not offer them either. Listing
+  // them here is what stops someone being shown a screen that will 403 on arrival.
+  { screen: "payables", module: "influencers" },
+  { screen: "goals", module: "influencers" },
+  { screen: "team", module: "users" },
+  { screen: "team-console", module: "users" },
 ]
 
 /** The screen name, whichever prefix it was reached through. */

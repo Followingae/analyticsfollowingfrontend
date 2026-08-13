@@ -85,7 +85,7 @@ export default function BrandBrowsePage() {
               ? `Looked after by ${brand.account_manager_email}. Everything below opens where it lives.`
               : 'No account manager assigned. Everything below opens where it lives.'}
             action={
-              <Button variant="outline" onClick={() => router.push(`/superadmin/clients/${teamId}`)}>
+              <Button variant="outline" onClick={() => router.push(`/work/clients/${teamId}`)}>
                 Open client record
               </Button>
             }
@@ -94,12 +94,15 @@ export default function BrandBrowsePage() {
 
         <StatGrid>
           <Stat label="Campaigns" value={campaigns.length} icon={Megaphone}
-                hint={`${live.length} live right now`} />
+                hint={`${live.length} live right now`}
+                onClick={campaigns[0] ? () => router.push(`/work/campaigns/${campaigns[0].id}/timeline`) : undefined} />
           <Stat label="Sourcing rounds" value={rounds.length} icon={Layers}
                 tone={openRounds.length ? 'info' : 'neutral'}
-                hint={openRounds.length ? `${openRounds.length} still open` : 'None open'} />
+                hint={openRounds.length ? `${openRounds.length} still open` : 'None open'}
+                onClick={() => router.push('/work/sourcing')} />
           <Stat label="Proposals" value={proposals.length} icon={FileText}
-                hint={out.length ? `${out.length} with the client` : 'None waiting on them'} />
+                hint={out.length ? `${out.length} with the client` : 'None waiting on them'}
+                onClick={() => router.push('/work/proposals')} />
           <Stat label="Invoices" value={invoices.length} icon={Receipt}
                 tone={unpaid.length ? 'warn' : 'good'}
                 hint={invoices.length === 0 ? 'Not visible to your role, or none raised'
@@ -122,7 +125,7 @@ export default function BrandBrowsePage() {
                   </>
                 }
                 right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                onClick={() => router.push(`/superadmin/campaigns/${c.id}/timeline`)}
+                onClick={() => router.push(`/work/campaigns/${c.id}/timeline`)}
               />
             ))}
             {campaigns.length === 0 && <Empty>No campaigns yet.</Empty>}
@@ -169,7 +172,7 @@ export default function BrandBrowsePage() {
                   </>
                 }
                 right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                onClick={() => router.push(`/superadmin/proposals/${p.id}`)}
+                onClick={() => router.push(`/work/proposals/${p.id}`)}
               />
             ))}
             {proposals.length === 0 && <Empty>Nothing sent to this brand yet.</Empty>}
@@ -192,7 +195,7 @@ export default function BrandBrowsePage() {
                     </>
                   }
                   right={<Badge variant="outline">{i.status === 'paid' ? 'Paid' : 'Open'}</Badge>}
-                  onClick={() => router.push(`/superadmin/clients/${teamId}`)}
+                  onClick={() => router.push(`/work/clients/${teamId}`)}
                 />
               )
             })}

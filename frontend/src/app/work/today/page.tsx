@@ -80,7 +80,7 @@ export default function TodayPage() {
           title={`${greeting()}${first ? `, ${first}` : ''}`}
           sub={`${dayLabel()} · ${needs.length ? `${needs.length} thing${needs.length === 1 ? '' : 's'} waiting on you` : 'nothing is waiting on you'}`}
           action={
-            <Button variant="outline" onClick={() => router.push('/superadmin/influencers/add')}>
+            <Button variant="outline" onClick={() => router.push('/work/influencers/add')}>
               Add creators
             </Button>
           }
@@ -146,7 +146,7 @@ export default function TodayPage() {
 
         <div className="flex flex-wrap gap-2">
           {[
-            ['Creators', '/superadmin/influencers'],
+            ['Creators', '/work/influencers'],
             ['Sourcing', '/work/sourcing'],
             ['Brands', '/work/brands'],
             ['Coverage', '/work/coverage'],
