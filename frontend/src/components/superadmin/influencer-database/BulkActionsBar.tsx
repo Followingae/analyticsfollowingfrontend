@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Download, Tag, Coins, ListPlus } from "lucide-react"
+import { Download, Tag, Coins, ListPlus , FileText} from "lucide-react"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 
 interface BulkActionsBarProps {
@@ -10,6 +10,7 @@ interface BulkActionsBarProps {
   onTag: () => void
   onPricing: () => void
   onAddToList?: () => void
+  onAddToProposal?: () => void
 }
 
 export function BulkActionsBar({
@@ -18,6 +19,7 @@ export function BulkActionsBar({
   onTag,
   onPricing,
   onAddToList,
+  onAddToProposal,
 }: BulkActionsBarProps) {
   // Bulk extraction is leadership-only — the server refuses regardless, this stops us
   // showing the team a button that always fails. See app/core/field_policy.py.
@@ -28,6 +30,12 @@ export function BulkActionsBar({
         {selectedCount} selected
       </span>
       <div className="h-4 w-px bg-border" />
+      {onAddToProposal && (
+        <Button variant="ghost" size="sm" onClick={onAddToProposal}>
+          <FileText className="size-4" />
+          Add to proposal
+        </Button>
+      )}
       {onAddToList && (
         <Button variant="ghost" size="sm" onClick={onAddToList}>
           <ListPlus className="size-4" />

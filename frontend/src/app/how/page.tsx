@@ -19,20 +19,16 @@ import { Progress } from '@/components/ui/progress'
 import { Check, Clock, Play, Sparkles } from 'lucide-react'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { tracksFor, tourFor, completed, type Walkthrough } from '@/components/help/walkthroughs'
 import { armTour } from '@/components/help/WalkthroughRunner'
 import { moduleForPath } from '@/lib/routeModules'
 
 /**
- * This page is one of the few both audiences see, so it wears whichever shell the reader
- * belongs to. Rendering it bare — which is what it did — dropped whoever opened it out of
- * the product entirely: no sidebar, no way back except the browser button.
+ * Rendering this bare — which is what it did — dropped whoever opened it out of the product
+ * entirely: no sidebar, no way back except the browser button.
  */
-function Shell({ internal, children }: { internal: boolean; children: React.ReactNode }) {
-  return internal
-    ? <SuperadminLayout>{children}</SuperadminLayout>
-    : <BrandUserInterface>{children}</BrandUserInterface>
+function Shell({ children }: { children: React.ReactNode }) {
+  return <SuperadminLayout>{children}</SuperadminLayout>
 }
 
 export default function ShowMeHowPage() {
@@ -82,10 +78,16 @@ export default function ShowMeHowPage() {
 
   if (loading) return null
 
+  // These walkthroughs teach our own operation. A client who follows a link here gets sent
+  // back to their dashboard rather than a page explaining how we price them.
   const internal = isSuperAdmin || isStaff || role === 'admin'
+  if (!internal) {
+    if (typeof window !== 'undefined') router.replace('/dashboard')
+    return null
+  }
 
   return (
-    <Shell internal={internal}>
+    <Shell>
     <div className="mx-auto w-full max-w-5xl px-6 py-10 lg:py-14">
       <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-xl space-y-3">

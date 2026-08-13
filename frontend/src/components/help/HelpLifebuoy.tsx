@@ -15,15 +15,23 @@ import { useRouter } from 'next/navigation'
 import { LifeBuoy } from 'lucide-react'
 import { WALKTHROUGHS, type Walkthrough } from './walkthroughs'
 import { WalkthroughRunner, useTourResume } from './WalkthroughRunner'
+import { useAdminAccess } from '@/hooks/useAdminAccess'
 import './intro-theme.css'
 
 export function HelpLifebuoy() {
   const router = useRouter()
+  // The walkthroughs teach our own operation — pricing, sourcing, what a strike reason is
+  // for. None of that is a client's business, and offering it to them invites questions we
+  // do not want to answer. Internal roles only.
+  const { isSuperAdmin, isStaff, role, loading } = useAdminAccess()
   const [running, setRunning] = useState<Walkthrough | null>(null)
   const [leg, setLeg] = useState(0)
 
   // A tour that crossed a page boundary — or was armed from /how — picks itself up on arrival.
   useTourResume(WALKTHROUGHS, (t, l) => { setRunning(t); setLeg(l) })
+
+  const internal = isSuperAdmin || isStaff || role === 'admin'
+  if (loading || !internal) return null
 
   return (
     <>

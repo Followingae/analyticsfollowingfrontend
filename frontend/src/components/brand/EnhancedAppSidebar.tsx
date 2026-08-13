@@ -151,8 +151,9 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         icon: IconSettings,
       },
       {
-        title: "Show me how",
-        url: "/how",
+        // Clients get support, not our internal walkthroughs.
+        title: "Help & Support",
+        url: "mailto:partners@following.ae",
         icon: IconHelp,
       },
       // Include upgrade for free users only — point at the plan comparison, not

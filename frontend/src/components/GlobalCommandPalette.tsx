@@ -41,7 +41,6 @@ const BRAND_NAV: CmdEntry[] = [
   { title: "Cashback Pool", href: "/billing?tab=cashback-pool", icon: Banknote, keywords: "pool topup" },
   { title: "Notifications", href: "/notifications", icon: Bell },
   { title: "Settings", href: "/settings", icon: Settings },
-  { title: "Show me how", href: "/how", icon: BookOpen, keywords: "help support guide walkthrough tour" },
 ]
 
 const OPERATOR_NAV: (CmdEntry & { module?: string })[] = [

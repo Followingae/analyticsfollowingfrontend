@@ -25,6 +25,7 @@ import { ExportInfluencersDialog } from "./ExportInfluencersDialog"
 import { BulkPricingDialog } from "./BulkPricingDialog"
 import { BulkTagDialog } from "./BulkTagDialog"
 import { AddToListDialog } from "./AddToListDialog"
+import { AddToProposalDialog } from "./AddToProposalDialog"
 
 export function InfluencerDatabasePage() {
   const router = useRouter()
@@ -56,6 +57,7 @@ export function InfluencerDatabasePage() {
   const [viewMode, setViewMode] = useState<ViewMode>("table")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [addToListOpen, setAddToListOpen] = useState(false)
+  const [addToProposalOpen, setAddToProposalOpen] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>(
     COLUMN_DEFINITIONS.filter((c) => c.defaultVisible).map((c) => c.key)
   )
@@ -290,6 +292,7 @@ export function InfluencerDatabasePage() {
         onBulkPricingClick={onBulkPricingClick}
         onBulkTagClick={onBulkTagClick}
         onAddToListClick={() => setAddToListOpen(true)}
+        onAddToProposalClick={() => setAddToProposalOpen(true)}
       />
 
       {viewMode === "table" ? (
@@ -365,6 +368,15 @@ export function InfluencerDatabasePage() {
         open={addToListOpen}
         onOpenChange={setAddToListOpen}
         influencerIds={selectedIdsArray}
+        onDone={() => setSelectedIds(new Set())}
+      />
+
+      {/* The whole row is passed, not just the id: the dialog has to say which of the
+          selected creators cannot be quoted, and that needs their pricing. */}
+      <AddToProposalDialog
+        open={addToProposalOpen}
+        onOpenChange={setAddToProposalOpen}
+        selected={influencers.filter(i => selectedIds.has(i.id))}
         onDone={() => setSelectedIds(new Set())}
       />
     </div>
