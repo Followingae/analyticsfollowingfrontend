@@ -28,6 +28,7 @@ import {
   Eye,
   Coins,
 } from "lucide-react"
+import { cdnAvatar } from "@/lib/avatar"
 
 interface SharedInfluencer {
   id: string
@@ -184,7 +185,7 @@ function SharedInfluencersContent() {
                         {/* Profile header */}
                         <div className="flex items-start gap-3 mb-3">
                           <ProfileAvatar
-                            src={inf.profile_image_url}
+                            src={cdnAvatar(inf.profile_image_url)}
                             alt={inf.username}
                             fallbackText={inf.username}
                             size="lg"

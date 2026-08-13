@@ -22,6 +22,7 @@ import { StandardMetricCard } from "@/components/ui/standard-metric-card"
 import { Search, Users, BadgeCheck, TrendingUp, BarChart3, ArrowUpRight } from "lucide-react"
 import { API_CONFIG } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
+import { cdnAvatar } from "@/lib/avatar"
 
 export const dynamic = "force-dynamic"
 
@@ -126,7 +127,7 @@ export default function AnalyzedCreatorsPage() {
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <Avatar className="h-11 w-11">
-                          <AvatarImage src={c.profile_pic_url || undefined} alt={c.username} />
+                          <AvatarImage src={cdnAvatar(c.profile_pic_url)} alt={c.username} />
                           <AvatarFallback>{(c.username || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div className="min-w-0 flex-1">

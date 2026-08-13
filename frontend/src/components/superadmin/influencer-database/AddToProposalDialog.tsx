@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input"
 import { Loader2, Search, FileText, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { imdListsApi } from "@/services/imdListsApi"
-import { adminProposalMasterApi } from "@/services/adminProposalMasterApi"
+import { adminProposalApi } from "@/services/adminProposalMasterApi"
 import type { MasterInfluencer } from "@/types/influencerDatabase"
 
 /** Sell pricing lives in several per-deliverable fields; any one of them makes them sellable. */
@@ -56,7 +56,7 @@ export function AddToProposalDialog({
   useEffect(() => {
     if (!open) return
     setLoading(true)
-    adminProposalMasterApi.listProposals({ limit: 100 })
+    adminProposalApi.listProposals({ limit: 100 })
       .then(r => setProposals((r.proposals || []).filter(p => OPEN_STATUSES.includes(p.status))))
       .catch(() => toast.error("Could not load proposals"))
       .finally(() => setLoading(false))

@@ -11,6 +11,7 @@ import {
   ShieldCheck, Sparkles, Wallet, CalendarClock,
 } from 'lucide-react'
 import { QuoteView } from './QuoteView'
+import { cdnAvatar } from "@/lib/avatar"
 
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/proposals`
 
@@ -414,7 +415,7 @@ export default function PublicProposalPage() {
                   <div className="rounded-2xl border border-border bg-card p-5 h-full transition-all hover:border-foreground/20 hover:shadow-sm">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={inf.profile_image_url || undefined} alt={inf.username || ''} />
+                        <AvatarImage src={cdnAvatar(inf.profile_image_url)} alt={inf.username || ''} />
                         <AvatarFallback className={`bg-gradient-to-br ${grad} text-white text-sm font-bold`}>{initials}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">

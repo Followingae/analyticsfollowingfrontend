@@ -76,6 +76,7 @@ import { motion, AnimatePresence } from "motion/react"
 import NumberFlow from "@number-flow/react"
 
 // dnd-kit
+import { cdnAvatar } from "@/lib/avatar"
 import {
   DndContext,
   closestCenter,
@@ -910,7 +911,7 @@ function BrandProposalViewPageContent() {
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <Avatar className="h-10 w-10">
-                                  <AvatarImage src={inf.profile_image_url || DEFAULT_AVATAR} />
+                                  <AvatarImage src={cdnAvatar(inf.profile_image_url) || DEFAULT_AVATAR} />
                                   <AvatarFallback>
                                     {(inf.username ?? "?").slice(0, 2).toUpperCase()}
                                   </AvatarFallback>
@@ -1030,7 +1031,7 @@ function BrandProposalViewPageContent() {
             {activeDragInfluencer && (
               <div className="bg-card rounded-xl shadow-2xl border p-3 flex items-center gap-3 w-64 opacity-90">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={activeDragInfluencer.profile_image_url || DEFAULT_AVATAR} />
+                  <AvatarImage src={cdnAvatar(activeDragInfluencer.profile_image_url) || DEFAULT_AVATAR} />
                   <AvatarFallback>
                     {(activeDragInfluencer.username ?? "?").slice(0, 2).toUpperCase()}
                   </AvatarFallback>

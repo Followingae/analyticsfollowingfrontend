@@ -55,6 +55,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
+import { cdnAvatar } from "@/lib/avatar"
 
 interface ListItem {
   id: string
@@ -627,7 +628,7 @@ export default function ListDetailPage() {
                                     <div className="w-40 h-40 rounded-xl overflow-hidden bg-muted relative transition-all duration-200 hover:scale-105 border-4 border-transparent">
                                       {creator.profile_pic_url ? (
                                         <img
-                                          src={creator.profile_pic_url}
+                                          src={cdnAvatar(creator.profile_pic_url)}
                                           alt={creator.full_name || username}
                                           className="w-full h-full object-cover"
                                         />

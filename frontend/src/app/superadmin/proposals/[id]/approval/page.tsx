@@ -24,6 +24,7 @@ import { clientApi } from '@/services/clientManagementApi'
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab'
 import { TmAddCreatorsDialog } from '@/components/proposals/TmAddCreatorsDialog'
 import { PriceModifierCard } from '@/components/superadmin/proposals/PriceModifierCard'
+import { GateOverrideCard } from '@/components/superadmin/proposals/GateOverrideCard'
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   draft: { label: 'Draft', cls: 'bg-muted text-foreground' },
@@ -507,8 +508,16 @@ export default function ProposalApprovalPage() {
                 the full influencer list unlocks only once the agreement is <strong>signed</strong> and the advance invoice is <strong>paid</strong>.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
               <ClientCommercialTab teamId={ws.team_id} proposalId={proposalId} />
+              {/* The way out for a client who is onboarded but slow to sign. */}
+              <GateOverrideCard
+                proposalId={proposalId}
+                override={!!ws.gate_override}
+                overrideBy={ws.gate_override_by_email}
+                overrideReason={ws.gate_override_reason}
+                onChanged={() => load()}
+              />
             </CardContent>
           </Card>
         )}

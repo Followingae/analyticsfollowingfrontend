@@ -75,6 +75,7 @@ import { PostCard } from "@/components/campaigns/PostCard";
 import { FaCampaignProgressPanel } from "@/components/campaigns/fa/FaCampaignProgressPanel";
 import { CampaignShareCard } from "@/components/campaigns/fa/CampaignShareCard";
 import { MasterCampaignPanel } from "@/components/campaigns/MasterCampaignPanel";
+import { cdnAvatar } from "@/lib/avatar"
 
 // Backend response interfaces (UPDATED with collaboration support)
 interface BackendCampaignPost {
@@ -2232,7 +2233,7 @@ export default function CampaignDetailsPage() {
                       <div className="flex items-start gap-4">
                         {/* Profile pic */}
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src={creator.profile_pic_url || ""} />
+                          <AvatarImage src={cdnAvatar(creator.profile_pic_url)} />
                           <AvatarFallback>
                             {creator.username?.substring(0, 2).toUpperCase() || "CR"}
                           </AvatarFallback>

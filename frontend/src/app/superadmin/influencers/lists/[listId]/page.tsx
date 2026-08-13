@@ -22,6 +22,7 @@ import { toast } from "sonner"
 import { imdListsApi, creatorShareApi, type ImdListCreator } from "@/services/imdListsApi"
 import { proposalApprovalApi } from "@/services/proposalApprovalApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
+import { cdnAvatar } from "@/lib/avatar"
 
 const ANY_COUNTRY = "__any__"
 const PAGE_SIZE = 40
@@ -221,7 +222,7 @@ export default function ImdListDetailPage() {
                   {list.items.map((c) => (
                     <div key={c.item_id} className="group flex items-center gap-3 rounded-xl border p-3">
                       <Avatar className="h-9 w-9">
-                        <AvatarImage src={c.profile_image_url || undefined} />
+                        <AvatarImage src={cdnAvatar(c.profile_image_url)} />
                         <AvatarFallback>{(c.username || "?")[0]?.toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
@@ -336,7 +337,7 @@ export default function ImdListDetailPage() {
                           {on && <Check className="h-3.5 w-3.5" />}
                         </span>
                         <Avatar className="h-9 w-9">
-                          <AvatarImage src={c.profile_image_url || c.profile_pic_url} />
+                          <AvatarImage src={cdnAvatar(c.profile_image_url || c.profile_pic_url)} />
                           <AvatarFallback>{(c.username || "?")[0]?.toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <span className="min-w-0 flex-1">

@@ -27,6 +27,7 @@ import {
 import {
   Check, Users, Loader2, Sparkles, Lock, ArrowRight, Info,
 } from 'lucide-react'
+import { cdnAvatar } from "@/lib/avatar"
 
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/proposals`
 
@@ -455,7 +456,7 @@ function CreatorQuoteCard({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Avatar className="h-12 w-12">
-            <AvatarImage src={inf.profile_image_url || undefined} alt={inf.username || ''} />
+            <AvatarImage src={cdnAvatar(inf.profile_image_url)} alt={inf.username || ''} />
             <AvatarFallback className={`bg-gradient-to-br ${grad} text-white text-sm font-bold`}>
               {initials}
             </AvatarFallback>
