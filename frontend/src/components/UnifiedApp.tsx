@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { roleHome } from '@/lib/roleHome'
 import { useRouter } from 'next/navigation'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { LoadingScreen } from '@/components/LoadingScreen'
@@ -58,14 +59,10 @@ export function UnifiedApp() {
   useEffect(() => {
     if (!user || !isAuthenticated) return
 
-    // SUPERADMIN BYPASS: Redirect superadmins to dedicated /superadmin page
-    if (user.email === 'zain@following.ae' || user.role === 'super_admin') {
-      router.replace('/superadmin')
-      return
-    }
-    // INTERNAL STAFF: never the brand UI — send to their own /staff workspace
-    if (user.staff_role) {
-      router.replace('/staff')
+    // Anyone internal — founder or staff — goes to the console. Same screen, different
+    // contents; see roleHome for why the URL is no longer /superadmin.
+    if (user.email === 'zain@following.ae' || user.role === 'super_admin' || user.staff_role) {
+      router.replace(roleHome(user.role, user.email, user.staff_role))
       return
     }
   }, [user, isAuthenticated, router])

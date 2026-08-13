@@ -36,6 +36,7 @@ import {
   Wrench,
   Receipt,
   ListChecks,
+  ListTodo,
   Bell,
   MailCheck,
   MessageCircle,
@@ -46,7 +47,7 @@ import {
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, isLoading } = useEnhancedAuth()
-  const { can } = useAdminAccess()
+  const { can, isSuperAdmin } = useAdminAccess()
   const pathname = usePathname() || ""
 
   // Dynamic user data
@@ -81,7 +82,10 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   // thirty-item list. Anything not surfaced directly stays one keystroke away in ⌘K.
   // Each group is still gated by an admin module; super_admin sees everything.
   const overviewItems = [
-    { title: "Today", url: "/superadmin/today", icon: ListChecks },
+    { title: "Today", url: "/work/today", icon: ListChecks },
+    // Staff have their own task list (content uploads assigned to them). Founders do not,
+    // so it only appears for the people it belongs to rather than as a dead link.
+    ...(!isSuperAdmin ? [{ title: "My tasks", url: "/staff", icon: ListTodo }] : []),
   ]
 
   const managementItems = [
@@ -107,7 +111,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       icon: Building2,
       items: [
         { title: "All clients", url: "/superadmin/clients" },
-        { title: "Brand heartbeat", url: "/superadmin/brands" },
+        { title: "Brand heartbeat", url: "/work/brands" },
       ],
     }] : []),
     ...(can("influencers") ? [{
@@ -117,8 +121,8 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       items: [
         { title: "Master database", url: "/superadmin/influencers" },
         { title: "Waiting room", url: "/superadmin/influencers/review" },
-        { title: "Sourcing rounds", url: "/superadmin/sourcing" },
-        { title: "Coverage", url: "/superadmin/coverage" },
+        { title: "Sourcing rounds", url: "/work/sourcing" },
+        { title: "Coverage", url: "/work/coverage" },
         { title: "Lists", url: "/superadmin/influencers/lists" },
         { title: "Analyzed creators", url: "/superadmin/influencers/analyzed" },
         { title: "Add / import", url: "/superadmin/influencers/add" },
@@ -146,12 +150,12 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       icon: Banknote,
       items: [
         { title: "Billing & revenue", url: "/superadmin/billing" },
-        { title: "Creator payments", url: "/superadmin/payables" },
+        { title: "Creator payments", url: "/work/payables" },
         ...(can("fa") ? [{ title: "Creator wallets", url: "/superadmin/fa/wallets" }] : []),
       ],
     }] : []),
-    { title: "Creator team", url: "/superadmin/team-console", icon: Users },
-    { title: "Goals", url: "/superadmin/goals", icon: BarChart3 },
+    { title: "Creator team", url: "/work/team", icon: Users },
+    { title: "Goals", url: "/work/goals", icon: BarChart3 },
   ]
 
   const campaignItems: never[] = []

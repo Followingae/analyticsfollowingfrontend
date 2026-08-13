@@ -26,6 +26,15 @@ const ROUTE_TITLES: Record<string, string> = {
   "/pricing": "Pricing",
   "/checkout": "Checkout",
   "/teams": "Teams",
+  // The operating console — everyone internal, not just the founders.
+  "/work/today": "Today",
+  "/work/sourcing": "Sourcing",
+  "/work/brands": "Brands",
+  "/work/coverage": "Coverage",
+  "/work/goals": "Goals",
+  "/work/payables": "Creator payments",
+  "/work/team": "Creator team",
+
   // Operator
   "/superadmin": "Dashboard",
   "/superadmin/operations": "Operations",

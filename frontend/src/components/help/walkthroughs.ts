@@ -139,7 +139,7 @@ export const WALKTHROUGHS: Walkthrough[] = [
     title: 'Decide what to research next',
     blurb: 'Coverage turns “keep looking” into a finite list.',
     steps: [
-      { goto: '/superadmin/coverage', title: 'Coverage',
+      { goto: '/work/coverage', title: 'Coverage',
         body: 'Category down the side, market across the top. Darker means stronger.' },
       { title: 'It counts rates, not names',
         body: 'A cell only counts creators we hold a usable cost for. A category full of names with no rate is not coverage.' },
@@ -180,7 +180,7 @@ export const WALKTHROUGHS: Walkthrough[] = [
     title: 'Work a sourcing round',
     blurb: 'When a client asks to see creators. This replaces the email loop.',
     steps: [
-      { goto: '/superadmin/sourcing', title: 'Rounds',
+      { goto: '/work/sourcing', title: 'Rounds',
         body: 'One round is one client request. It has an owner, a due date and a state.' },
       { target: '[data-tour="new-round"]', place: 'left',
         title: 'Open a round', body: 'Give it a title, how many creators are wanted, and when they are due.' },
@@ -208,7 +208,7 @@ export const WALKTHROUGHS: Walkthrough[] = [
     title: 'Review a shortlist before it goes out',
     blurb: 'Your judgement is the last gate before a client sees anyone.',
     steps: [
-      { goto: '/superadmin/sourcing', title: 'Open the round',
+      { goto: '/work/sourcing', title: 'Open the round',
         body: 'Anything in internal review is waiting on you.' },
       { title: 'The criteria sit above the creators',
         body: 'Including what the client rejected last round, so you are judging against the real brief.' },
@@ -230,7 +230,7 @@ export const WALKTHROUGHS: Walkthrough[] = [
     title: 'Keep your brands warm',
     blurb: 'Silence is the thing that kills deals, so it is the headline.',
     steps: [
-      { goto: '/superadmin/brands', title: 'Brand heartbeat',
+      { goto: '/work/brands', title: 'Brand heartbeat',
         body: 'Every client, sorted by how long since anything moved.' },
       { title: 'Silent',
         body: 'Green under a week, amber to a fortnight, red beyond. Act on the colour, not on memory.' },
@@ -284,7 +284,7 @@ export const WALKTHROUGHS: Walkthrough[] = [
     title: 'Log a new brand on day one',
     blurb: 'Thirty seconds that buys the talent team three months.',
     steps: [
-      { goto: '/superadmin/brands', title: 'Why day one',
+      { goto: '/work/brands', title: 'Why day one',
         body: 'A new client takes two to four months to close. Logged early, the talent team can research the whole time.' },
       { title: 'What to enter',
         body: 'Name, category, market, and roughly what they might want. No budget needed.' },
@@ -350,7 +350,7 @@ export const WALKTHROUGHS: Walkthrough[] = [
     title: 'Record and track creator payments',
     blurb: 'The book that replaces the monthly spreadsheet.',
     steps: [
-      { goto: '/superadmin/payables', title: 'Creator payments',
+      { goto: '/work/payables', title: 'Creator payments',
         body: 'What we owe, what is approved, what is paid. Anyone internal can record one.' },
       { title: 'Record a payment',
         body: 'Title, creator, what for, and the amount agreed. That is all it takes.' },
@@ -391,11 +391,11 @@ export const WALKTHROUGHS: Walkthrough[] = [
     steps: [
       { title: 'You see the whole company',
         body: 'Every client, campaign, creator, price, margin and person. No screen is hidden from you.' },
-      { goto: '/superadmin/today', title: 'Today',
+      { goto: '/work/today', title: 'Today',
         body: 'Your landing screen: decisions with your name on them, then everything in flight.' },
-      { goto: '/superadmin/team-console', title: 'The creator team console',
+      { goto: '/work/team', title: 'The creator team console',
         body: 'Approvals waiting on you, each person’s month, and alerts that fire on patterns rather than single events.' },
-      { goto: '/superadmin/goals', title: 'Goals',
+      { goto: '/work/goals', title: 'Goals',
         body: 'Set two numbers a month. Daily targets compute themselves from how many rounds are open.' },
       { title: 'Pricing creators is yours alone',
         body: 'Nobody else can set a sell price or release a creator into the master database.' },
@@ -435,7 +435,7 @@ export const WALKTHROUGHS: Walkthrough[] = [
     title: 'Read the team, and the alerts',
     blurb: 'Who is moving, who is stuck, and what to do about it.',
     steps: [
-      { goto: '/superadmin/team-console', title: 'Your people',
+      { goto: '/work/team', title: 'Your people',
         body: 'A card each: this month, what is in their queue, and what is late.' },
       { title: 'Pace is measured against time, not raw percentage',
         body: '40% on the 12th is on track. Behind only appears after several days off the curve.' },

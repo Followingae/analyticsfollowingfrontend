@@ -15,7 +15,7 @@ export function UnauthorizedAccess() {
       try { staffRole = JSON.parse(localStorage.getItem('user_data') || '{}')?.staff_role } catch { /* ignore */ }
     }
     if (staffRole) {
-      window.location.href = '/staff'
+      window.location.href = '/work/today'
     } else if (user?.role?.startsWith('brand_')) {
       window.location.href = '/dashboard'
     } else {

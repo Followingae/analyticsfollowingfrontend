@@ -188,7 +188,7 @@ export default function CampaignTimelinePage() {
                 <CardContent className="space-y-0">
                   {t.rounds.map(r => (
                     <button key={r.id}
-                      onClick={() => router.push(`/superadmin/sourcing/${r.id}`)}
+                      onClick={() => router.push(`/work/sourcing/${r.id}`)}
                       className="flex w-full items-center gap-3 border-t py-3 text-left first:border-t-0 hover:bg-muted/40">
                       <Badge variant="outline">Round {r.round_no}</Badge>
                       <span className="min-w-0 flex-1 truncate text-sm">{r.title}</span>

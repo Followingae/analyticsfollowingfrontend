@@ -56,6 +56,8 @@ export interface RoundSummary {
   criteria: Record<string, unknown>
   client_name: string | null
   owner_email: string | null
+  /** Only present on the detail fetch — the list does not need it. */
+  owner_user_id?: string | null
   proposed: number
   approved: number
   selected: number
@@ -90,6 +92,15 @@ export const sourcingApi = {
     const s = q.toString()
     return call(`${BASE}/rounds${s ? `?${s}` : ''}`) as Promise<{ data: { items: RoundSummary[] } }>
   },
+
+  /**
+   * Step into a round that is already running — change owner, date, target, title or
+   * criteria. Founders only; the server enforces that, this is just the call.
+   */
+  amendRound: (roundId: string, payload: {
+    title?: string; owner_user_id?: string | null; due_at?: string | null
+    target_count?: number | null; criteria?: Record<string, unknown>
+  }) => call(`${BASE}/rounds/${roundId}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
   createRound: (payload: {
     title: string; team_id?: string; proposal_id?: string
