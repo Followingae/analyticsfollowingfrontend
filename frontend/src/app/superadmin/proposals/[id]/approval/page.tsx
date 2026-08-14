@@ -17,8 +17,7 @@ import {
 } from '@/components/ui/table'
 import {
   ArrowLeft, Send, UserPlus, CheckCircle2, RotateCcw, Flag, ArrowUp, ArrowDown, Plus, Trash2,
-  Construction,
-} from 'lucide-react'
+  Construction, Instagram } from 'lucide-react'
 import { proposalApprovalApi, type ApprovalStep } from '@/services/proposalApprovalApi'
 import { clientApi } from '@/services/clientManagementApi'
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab'
@@ -186,7 +185,23 @@ export default function ProposalApprovalPage() {
                       const rate = inf.sell_price_snapshot?.reel ?? inf.estimated_cost ?? '-'
                       return (
                         <TableRow key={inf.id}>
-                          <TableCell className="font-medium">@{inf.username || '-'}<div className="text-xs text-muted-foreground">{inf.full_name}</div></TableCell>
+                          <TableCell className="font-medium">
+                            {/* Deciding whether to keep someone usually means looking at the
+                                account. Opens in a new tab so the review is not lost. */}
+                            {inf.username ? (
+                              <a
+                                href={`https://www.instagram.com/${inf.username}/`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={`Open @${inf.username} on Instagram`}
+                                className="inline-flex items-center gap-1.5 hover:underline"
+                              >
+                                @{inf.username}
+                                <Instagram className="h-3.5 w-3.5 text-muted-foreground" />
+                              </a>
+                            ) : '-'}
+                            <div className="text-xs text-muted-foreground">{inf.full_name}</div>
+                          </TableCell>
                           <TableCell>{inf.followers_count ? Number(inf.followers_count).toLocaleString() : '-'}</TableCell>
                           <TableCell>{rate === '-' ? '-' : `AED ${Number(rate).toLocaleString('en-AE')}`}</TableCell>
                           {viewer.is_operator && (
@@ -428,7 +443,7 @@ export default function ProposalApprovalPage() {
                     {steps.map((s, i) => (
                       <div key={i} className="flex items-center gap-2 rounded-md border p-2">
                         <span className="w-5 text-xs text-muted-foreground">{i + 1}</span>
-                        <Select value={s.approver_role || ''} onValueChange={(v) => setSteps((p) => p.map((x, j) => j === i ? { ...x, approver_role: v } : x))}>
+                        <Select value={s.approver_role || ''} onValueChange={(v: string) => setSteps((p) => p.map((x, j) => j === i ? { ...x, approver_role: v } : x))}>
                           <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Role" /></SelectTrigger>
                           <SelectContent>{APPROVER_ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
                         </Select>
