@@ -18,6 +18,7 @@ import {
   type NotificationEvent,
   type RecipientCandidate,
   type RuleUpdatePayload,
+  type DigestPreview,
 } from "@/services/notificationSettingsApi"
 
 // -----------------------------------------------------------------------------
@@ -33,6 +34,7 @@ function EventRow({
   onSaved: (e: NotificationEvent) => void
 }) {
   const [emailEnabled, setEmailEnabled] = useState(event.email_enabled)
+  const [mode, setMode] = useState<'immediate' | 'digest' | 'off'>(event.delivery_mode || 'immediate')
   const [sendToPrimary, setSendToPrimary] = useState(event.send_to_primary)
   const [notifyAllSuperadmins, setNotifyAllSuperadmins] = useState(event.notify_all_superadmins)
   const [userIds, setUserIds] = useState<string[]>(event.recipient_user_ids || [])
@@ -57,13 +59,14 @@ function EventRow({
     const emails = parseEmails(emailsText)
     return (
       emailEnabled !== base.email_enabled ||
+      mode !== (base.delivery_mode || 'immediate') ||
       sendToPrimary !== base.send_to_primary ||
       notifyAllSuperadmins !== base.notify_all_superadmins ||
       JSON.stringify([...userIds].sort()) !== JSON.stringify([...(base.recipient_user_ids || [])].sort()) ||
       JSON.stringify(emails) !== JSON.stringify(base.recipient_emails || []) ||
       (subjectOverride || "") !== (base.subject_override || "")
     )
-  }, [event, emailEnabled, sendToPrimary, notifyAllSuperadmins, userIds, emailsText, subjectOverride])
+  }, [event, emailEnabled, mode, sendToPrimary, notifyAllSuperadmins, userIds, emailsText, subjectOverride])
 
   const toggleUser = (id: string) =>
     setUserIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -73,6 +76,7 @@ function EventRow({
     try {
       const payload: RuleUpdatePayload = {
         email_enabled: emailEnabled,
+        delivery_mode: emailEnabled ? mode : 'off',
         send_to_primary: sendToPrimary,
         notify_all_superadmins: notifyAllSuperadmins,
         recipient_user_ids: userIds,
@@ -115,9 +119,13 @@ function EventRow({
               {event.audience === "brand" ? "Brand" : event.audience === "team" ? "Team" : "All"}
             </Badge>
             {emailEnabled ? (
-              <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 text-[10px]">Email on</Badge>
+              <Badge className={mode === 'immediate'
+                ? "bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 text-[10px]"
+                : "bg-blue-500/15 text-blue-600 hover:bg-blue-500/15 text-[10px]"}>
+                {mode === 'immediate' ? 'Sends straight away' : 'In the digest'}
+              </Badge>
             ) : (
-              <Badge variant="secondary" className="text-[10px]">Off</Badge>
+              <Badge variant="secondary" className="text-[10px]">In-app only</Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
@@ -132,6 +140,27 @@ function EventRow({
       {emailEnabled && (
         <div className="mt-4 space-y-4">
           <Separator />
+          {/* Whether to email is half the question. The other half is whether it is worth
+              interrupting someone for, and getting that wrong is what makes people mute a
+              channel entirely. */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button type="button" onClick={() => setMode('immediate')}
+                    className={`rounded-md border p-3 text-left transition-colors ${
+                      mode === 'immediate' ? 'border-foreground/40 bg-muted/50' : 'hover:bg-muted/30'}`}>
+              <span className="text-sm font-medium">Send straight away</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Someone is blocked, or money or a client is waiting
+              </span>
+            </button>
+            <button type="button" onClick={() => setMode('digest')}
+                    className={`rounded-md border p-3 text-left transition-colors ${
+                      mode === 'digest' ? 'border-foreground/40 bg-muted/50' : 'hover:bg-muted/30'}`}>
+              <span className="text-sm font-medium">Put it in the digest</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                One line at 08:30 and 17:30, with everything else
+              </span>
+            </button>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex items-center justify-between gap-3 rounded-md border p-3 cursor-pointer">
               <span className="text-sm">
@@ -230,6 +259,52 @@ function EventRow({
 // -----------------------------------------------------------------------------
 // Page
 // -----------------------------------------------------------------------------
+
+/** The digest, in one place: what is queued, and a way to look at a real one. */
+function DigestPanel() {
+  const [preview, setPreview] = useState<DigestPreview | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    notificationSettingsApi.previewDigest(12).then(setPreview).catch(() => undefined)
+  }, [])
+
+  const sendToMe = async () => {
+    setBusy(true)
+    try {
+      const r = await notificationSettingsApi.sendDigestNow({ hours: 12, only_email: "zain@following.ae" })
+      toast.success(r.recipients ? "Digest sent to zain@following.ae" : "Nothing to send right now")
+    } catch (e: any) {
+      toast.error(e?.message || "Could not send")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="flex flex-wrap items-center gap-4 p-4">
+        <div className="min-w-0">
+          <div className="text-sm font-medium">Digest — 08:30 and 17:30, Dubai</div>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {preview === null
+              ? "Checking what is queued…"
+              : preview.recipients === 0
+                ? "Nothing queued. An empty digest is not sent."
+                : `${preview.people.reduce((n: number, p: DigestPreview['people'][number]) => n + p.count, 0)} updates queued for ` +
+                  `${preview.recipients} ${preview.recipients === 1 ? "person" : "people"} ` +
+                  `(${preview.people.slice(0, 3).map((p: DigestPreview['people'][number]) => p.email.split("@")[0]).join(", ")}` +
+                  `${preview.recipients > 3 ? "…" : ""})`}
+          </p>
+        </div>
+        <Button size="sm" variant="outline" className="ml-auto" onClick={sendToMe} disabled={busy}>
+          {busy ? "Sending…" : "Send me one now"}
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function SuperadminNotificationsPage() {
   const [events, setEvents] = useState<NotificationEvent[]>([])
   const [domains, setDomains] = useState<string[]>([])
@@ -275,6 +350,7 @@ export default function SuperadminNotificationsPage() {
   }, [events, search])
 
   const enabledCount = events.filter((e) => e.email_enabled).length
+  const digestCount = events.filter((e) => e.email_enabled && e.delivery_mode === "digest").length
 
   const grouped = useMemo(() => {
     const orderedDomains = domains.length ? domains : Array.from(new Set(events.map((e) => e.domain)))
@@ -293,15 +369,18 @@ export default function SuperadminNotificationsPage() {
               <Bell className="h-6 w-6" /> Email Alerts
             </h1>
             <p className="text-muted-foreground mt-1 max-w-2xl">
-              Control which platform events send email, and who receives them. Every event is{" "}
-              <span className="font-medium text-foreground">off by default</span> — enable an event and choose its
-              recipients below.
+              Control which platform events send email, how it arrives, and who receives it. An
+              event either interrupts someone straight away, or waits and arrives as one line in
+              the twice-daily digest. {digestCount} of the {enabledCount} live events are in the
+              digest, which is what stops a busy day turning into thirty emails.
             </p>
           </div>
           <Badge variant="outline" className="gap-1.5 py-1.5 px-3">
             <MailCheck className="h-4 w-4" /> {enabledCount} event{enabledCount === 1 ? "" : "s"} enabled
           </Badge>
         </div>
+
+        <DigestPanel />
 
         {/* Intro / how it works */}
         <Card className="bg-muted/30">

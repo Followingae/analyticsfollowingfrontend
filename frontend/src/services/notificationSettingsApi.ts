@@ -11,6 +11,8 @@ export interface NotificationEvent {
   domain: string
   audience: string
   email_enabled: boolean
+  /** How it arrives: 'immediate' one email each, 'digest' one line in the next digest, 'off'. */
+  delivery_mode: 'immediate' | 'digest' | 'off'
   send_to_primary: boolean
   notify_all_superadmins: boolean
   recipient_user_ids: string[]
@@ -35,11 +37,18 @@ export interface RecipientCandidate {
 
 export interface RuleUpdatePayload {
   email_enabled?: boolean
+  delivery_mode?: 'immediate' | 'digest' | 'off'
   send_to_primary?: boolean
   notify_all_superadmins?: boolean
   recipient_user_ids?: string[]
   recipient_emails?: string[]
   subject_override?: string | null
+}
+
+export interface DigestPreview {
+  window_hours: number
+  recipients: number
+  people: { email: string; subject: string; count: number; domains: Record<string, number> }[]
 }
 
 export interface EmailLogEntry {
@@ -58,6 +67,27 @@ export interface EmailLogEntry {
 // Service
 // =============================================================================
 class NotificationSettingsApiService {
+  /** What the next digest would contain, per person. Sends nothing. */
+  async previewDigest(hours = 24): Promise<DigestPreview> {
+    const res = await fetchWithAuth(
+      `${API_CONFIG.BASE_URL}/api/v1/admin/notification-settings/digest/preview?hours=${hours}`,
+      { headers: getAuthHeaders() },
+    )
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Preview failed')
+    return (await res.json()).data
+  }
+
+  /** Send the digest now instead of waiting for 08:30 or 17:30. */
+  async sendDigestNow(body: { hours?: number; only_email?: string } = {}) {
+    const res = await fetchWithAuth(
+      `${API_CONFIG.BASE_URL}/api/v1/admin/notification-settings/digest/send`,
+      { method: 'POST', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body) },
+    )
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Send failed')
+    return (await res.json()).data
+  }
+
   private baseUrl = `${API_CONFIG.BASE_URL}/api/v1/admin/notification-settings`
 
   async listEvents(): Promise<EventsResponse> {
