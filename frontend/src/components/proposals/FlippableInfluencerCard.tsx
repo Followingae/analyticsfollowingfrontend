@@ -3,7 +3,7 @@
 import { BrandInfluencer } from "@/services/adminProposalMasterApi"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, BarChart3, X, ArrowLeft } from "lucide-react"
+import { CheckCircle, BarChart3, X, ArrowLeft, Instagram } from "lucide-react"
 import { getTierConfig, formatCount, formatCurrency, DEFAULT_AVATAR } from "./proposal-utils"
 import { motion, AnimatePresence } from "motion/react"
 import { FreelancerProfileCard } from "@/components/ui/freelancer-profile-card"
@@ -253,6 +253,26 @@ export function FlippableInfluencerCard({
             bookmarkAriaLabel={isSelected ? "Deselect creator" : "Select creator"}
             className="max-w-none card-transparent-banner relative z-[1] [&_h2]:truncate [&_h2]:max-w-[200px]"
             buttonLabel="View details"
+            secondaryAction={
+              inf.username ? (
+                <a
+                  href={`https://www.instagram.com/${inf.username}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Open @${inf.username} on Instagram`}
+                  title={`@${inf.username} on Instagram`}
+                  // The card toggles selection on click, and an anchor is not a button, so the
+                  // guard above does not catch it. Without this, opening Instagram would also
+                  // select or deselect the creator behind it.
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border
+                             text-muted-foreground transition-colors hover:bg-muted hover:text-foreground
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Instagram className="h-5 w-5" />
+                </a>
+              ) : null
+            }
             statLabels={{ rating: "engagement", duration: "followers", rate: showPricing ? "price" : "posts" }}
             toolsLabel=""
           />

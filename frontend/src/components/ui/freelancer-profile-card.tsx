@@ -21,6 +21,8 @@ interface FreelancerProfileCardProps extends React.HTMLAttributes<HTMLDivElement
   onBookmark?: () => void
   className?: string
   buttonLabel?: string
+  /** Rendered beside the main button — a second, smaller action. */
+  secondaryAction?: React.ReactNode
   statLabels?: { rating?: string; duration?: string; rate?: string }
   toolsLabel?: string
   /** Accessible name for the corner icon button. Defaults to "Bookmark profile", but
@@ -74,6 +76,7 @@ const FreelancerProfileCard = React.forwardRef<
       onGetInTouch,
       onBookmark,
       buttonLabel,
+      secondaryAction,
       statLabels,
       toolsLabel,
       bookmarkAriaLabel,
@@ -156,10 +159,11 @@ const FreelancerProfileCard = React.forwardRef<
             <StatItem value={rate} label={statLabels?.rate ?? "rate"} />
           </motion.div>
 
-          <motion.div variants={itemVariants}>
-            <Button className="w-full" size="lg" onClick={onGetInTouch}>
+          <motion.div variants={itemVariants} className="flex items-center gap-2">
+            <Button className="flex-1" size="lg" onClick={onGetInTouch}>
               {buttonLabel ?? "Get in touch"}
             </Button>
+            {secondaryAction}
           </motion.div>
         </motion.div>
       </motion.div>
