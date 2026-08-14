@@ -95,12 +95,11 @@ export default function ShowMeHowPage() {
             <Sparkles className="h-3 w-3" />Show me how
           </Badge>
           <h1 className="text-3xl font-semibold tracking-tight lg:text-4xl">
-            Learn the platform by using it
+            Learn by doing it
           </h1>
           <p className="text-muted-foreground">
-            Each walkthrough opens the real screen and talks you through it, one step at a time.
-            Work down the list and you will know your part of the platform end to end. Re-run any
-            of them whenever you like.
+            Each one opens the real screen and shows you what to do, step by step. Start at the
+            top. You can stop any time, and watch any of them again.
           </p>
         </div>
 
