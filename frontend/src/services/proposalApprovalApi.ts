@@ -77,6 +77,14 @@ export const proposalApprovalApi = {
   removeInfluencer: (proposalId: string, influencerId: string) =>
     jfetch(`${BASE}/${proposalId}/influencers/${influencerId}`, { method: 'DELETE' }),
 
+  // Founders: take a percentage off every sell price on the proposal. 0 restores standard
+  // rates. Never touches the master database — the frozen snapshot is what it restores to.
+  applyDiscount: (proposalId: string, percent: number) =>
+    jfetch(`${BASE}/${proposalId}/discount`, {
+      method: 'POST',
+      body: JSON.stringify({ percent }),
+    }),
+
   // Per-influencer checker review.
   reviewInfluencer: (proposalId: string, influencerId: string, internalStatus: 'approved' | 'flagged' | 'pending', note?: string) =>
     jfetch(`${BASE}/${proposalId}/influencers/${influencerId}/review`, {

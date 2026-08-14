@@ -56,6 +56,7 @@ export default function ProposalApprovalPage() {
   const [assignTM, setAssignTM] = useState('')
   const [steps, setSteps] = useState<Partial<ApprovalStep>[]>([])
   const [showPicker, setShowPicker] = useState(false)
+  const [discountPct, setDiscountPct] = useState('')
   const [approveNotes, setApproveNotes] = useState('')
   const [sendBackNotes, setSendBackNotes] = useState('')
   const [shareUrl, setShareUrl] = useState<string | null>(null)
@@ -121,6 +122,10 @@ export default function ProposalApprovalPage() {
   const wip: boolean = !!ws.proposal?.work_in_progress
   // Role-based visibility - only show each actor the cards they can act on.
   const viewer = ws.viewer || {}
+  // A custom price only ever gets written by the discount, so its presence is what tells us
+  // this proposal is off standard rates — and whether to offer the way back.
+  const anyDiscounted: boolean = (ws.influencers || []).some(
+    (i: any) => i.custom_sell_pricing && Object.keys(i.custom_sell_pricing).length > 0)
   const chainEditable = ['draft', 'building', 'internal_changes_requested'].includes(status)
   const canEditChain = viewer.is_operator && chainEditable
 
@@ -164,9 +169,42 @@ export default function ProposalApprovalPage() {
                   <CardDescription>{(ws.influencers || []).length} added{budgetVisible ? '' : ' · per-influencer pricing only'}</CardDescription>
                 </div>
                 {viewer.is_operator && (
-                  <Button size="sm" variant="outline" disabled={busy} onClick={() => setShowPicker(true)}>
-                    <UserPlus className="mr-1.5 h-4 w-4" />Add creators
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {/* A client asks for a better rate on the whole package. The alternative is
+                        editing every creator by hand, or editing the master database, which
+                        would change what every other client is quoted. */}
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        type="number" min={0} max={99} value={discountPct}
+                        onChange={(e) => setDiscountPct(e.target.value)}
+                        className="h-8 w-16" placeholder="10"
+                      />
+                      <span className="text-sm text-muted-foreground">% off</span>
+                      <Button size="sm" variant="outline" disabled={busy || !discountPct}
+                              onClick={() => {
+                                const pct = Number(discountPct)
+                                if (!Number.isFinite(pct) || pct <= 0 || pct >= 100) {
+                                  window.alert('Enter a percentage between 1 and 99'); return
+                                }
+                                if (window.confirm(`Take ${pct}% off every sell price on this proposal? Cost prices and the master database are untouched.`))
+                                  run(() => proposalApprovalApi.applyDiscount(proposalId, pct))
+                              }}>
+                        Apply
+                      </Button>
+                    </div>
+                    {anyDiscounted && (
+                      <Button size="sm" variant="ghost" disabled={busy}
+                              onClick={() => {
+                                if (window.confirm('Put every creator back to their standard rate?'))
+                                  run(() => proposalApprovalApi.applyDiscount(proposalId, 0))
+                              }}>
+                        <RotateCcw className="mr-1.5 h-4 w-4" />Standard rates
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" disabled={busy} onClick={() => setShowPicker(true)}>
+                      <UserPlus className="mr-1.5 h-4 w-4" />Add creators
+                    </Button>
+                  </div>
                 )}
               </CardHeader>
               <CardContent>
@@ -182,7 +220,10 @@ export default function ProposalApprovalPage() {
                   </TableHeader>
                   <TableBody>
                     {(ws.influencers || []).map((inf: any) => {
-                      const rate = inf.sell_price_snapshot?.reel ?? inf.estimated_cost ?? '-'
+                      const standard = inf.sell_price_snapshot?.reel ?? inf.estimated_cost ?? null
+                      const rate = inf.custom_sell_pricing?.reel ?? standard ?? '-'
+                      const discounted = inf.custom_sell_pricing?.reel != null
+                        && standard != null && Number(inf.custom_sell_pricing.reel) < Number(standard)
                       return (
                         <TableRow key={inf.id}>
                           <TableCell className="font-medium">
@@ -203,7 +244,14 @@ export default function ProposalApprovalPage() {
                             <div className="text-xs text-muted-foreground">{inf.full_name}</div>
                           </TableCell>
                           <TableCell>{inf.followers_count ? Number(inf.followers_count).toLocaleString() : '-'}</TableCell>
-                          <TableCell>{rate === '-' ? '-' : `AED ${Number(rate).toLocaleString('en-AE')}`}</TableCell>
+                          <TableCell>
+                            {rate === '-' ? '-' : `AED ${Number(rate).toLocaleString('en-AE')}`}
+                            {discounted && (
+                              <span className="ml-2 text-xs text-muted-foreground line-through">
+                                {Number(standard).toLocaleString('en-AE')}
+                              </span>
+                            )}
+                          </TableCell>
                           {viewer.is_operator && (
                             <TableCell>
                               {inf.internal_status === 'approved' && <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Approved</Badge>}
