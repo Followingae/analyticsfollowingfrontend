@@ -13,6 +13,10 @@ import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -21,7 +25,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Check, X, Plus, Loader2, Send, RotateCcw, Lock, UserCog } from 'lucide-react'
+import { ArrowLeft, Trash2, Check, X, Plus, Loader2, Send, RotateCcw, Lock, UserCog } from 'lucide-react'
 import { clientApi, type StaffUser } from '@/services/clientManagementApi'
 import { toast } from 'sonner'
 import {
@@ -54,6 +58,7 @@ export default function RoundDetailPage() {
   const [reason, setReason] = useState('')
   // Stepping in: a founder can re-own, re-date or re-target a round that is already running.
   const [stepIn, setStepIn] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [staff, setStaff] = useState<StaffUser[]>([])
   const [amend, setAmend] = useState({
     owner: '', due: '', target: '',
@@ -81,6 +86,17 @@ export default function RoundDetailPage() {
     if (!staff.length) {
       try { setStaff((await clientApi.listStaff()).data || []) } catch { /* names only */ }
     }
+  }
+
+  const removeRound = async () => {
+    setBusy(true)
+    try {
+      const res = await sourcingApi.deleteRound(roundId)
+      toast.success(res.data?.message || 'Round deleted')
+      router.push('/work/sourcing')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not delete the round')
+    } finally { setBusy(false); setConfirmDelete(false) }
   }
 
   const saveStepIn = async () => {
@@ -227,6 +243,13 @@ export default function RoundDetailPage() {
               {!closed && (isSuperAdmin || isFullAccessStaff) && (
                 <Button size="sm" variant="outline" onClick={openStepIn}>
                   <UserCog className="mr-1.5 h-4 w-4" />Step in
+                </Button>
+              )}
+              {isSuperAdmin && (
+                <Button size="sm" variant="ghost"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => setConfirmDelete(true)}>
+                  <Trash2 className="mr-1.5 h-4 w-4" />Delete
                 </Button>
               )}
               {!closed && (
@@ -442,6 +465,25 @@ export default function RoundDetailPage() {
 
       {/* Stepping in: re-own, re-date or re-target a round that is already running, so a
           founder never has to abandon one and start again when someone is away or behind. */}
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this round?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The round, the creators listed on it, and its alerts go. The creators themselves
+              stay in the database with everything researched on them. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Keep it</AlertDialogCancel>
+            <AlertDialogAction disabled={busy} onClick={removeRound}
+                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Delete the round
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={stepIn} onOpenChange={setStepIn}>
         <DialogContent>
           <DialogHeader>

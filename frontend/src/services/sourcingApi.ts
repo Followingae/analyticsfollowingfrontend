@@ -99,6 +99,13 @@ export const sourcingApi = {
    * Step into a round that is already running — change owner, date, target, title or
    * criteria. Founders only; the server enforces that, this is just the call.
    */
+  /**
+   * Delete a round. Founders only. The creators on it are not touched — the server refuses
+   * if a later round hangs off this one, or if money has been recorded against it.
+   */
+  deleteRound: (roundId: string) =>
+    call(`${BASE}/rounds/${roundId}`, { method: 'DELETE' }),
+
   amendRound: (roundId: string, payload: {
     title?: string; owner_user_id?: string | null; due_at?: string | null
     target_count?: number | null; criteria?: Record<string, unknown>
