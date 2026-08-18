@@ -99,6 +99,19 @@ export const imdListsApi = {
 
   remove: (id: string) => jfetch(`${BASE}/imd-lists/${id}`, { method: 'DELETE' }),
 
+  /**
+   * Share the whole list with someone who has no login. The link carries an expiry and can
+   * be revoked; minting again while one is live returns the same token rather than issuing
+   * a second, so revoking really does close the list.
+   */
+  share: (id: string, payload: { expires_in_days?: number; reveal?: 'with_prices' | 'no_prices' } = {}) =>
+    jfetch(`${BASE}/imd-lists/${id}/share`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  shareStatus: (id: string) => jfetch(`${BASE}/imd-lists/${id}/share`),
+
+  revokeShare: (id: string) =>
+    jfetch(`${BASE}/imd-lists/${id}/share`, { method: 'DELETE' }),
+
   /** Returns { added, skipped } — skipped are those already in the list. */
   addItems: (id: string, influencer_ids: string[]): Promise<{ data: { added: number; skipped: number } }> =>
     jfetch(`${BASE}/imd-lists/${id}/items`, { method: 'POST', body: JSON.stringify({ influencer_ids }) }),

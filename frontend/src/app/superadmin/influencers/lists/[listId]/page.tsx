@@ -7,6 +7,7 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -16,8 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import {
   ArrowLeft, Loader2, Plus, Search, Users, X, Globe, Check,
-  Download, Link2, Copy, BarChart3,
-} from "lucide-react"
+  Download, Link2, Copy, BarChart3, Link as LinkIcon } from "lucide-react"
 import { toast } from "sonner"
 import { imdListsApi, creatorShareApi, type ImdListCreator } from "@/services/imdListsApi"
 import { proposalApprovalApi } from "@/services/proposalApprovalApi"
@@ -126,6 +126,55 @@ export default function ImdListDetailPage() {
   // online the moment a list is created.
   const [sharing, setSharing] = useState<string | null>(null)
 
+  // Sharing the WHOLE list is a separate thing from sharing one creator: it carries an
+  // expiry the operator picks, and revoking it closes the list rather than one row.
+  const [listLink, setListLink] = useState<{ path: string; expires_at: string | null } | null>(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [shareDays, setShareDays] = useState('30')
+  const [shareReveal, setShareReveal] = useState<'with_prices' | 'no_prices'>('with_prices')
+  const [shareBusy, setShareBusy] = useState(false)
+
+  useEffect(() => {
+    if (!listId) return
+    imdListsApi.shareStatus(listId)
+      .then((r: any) => setListLink(r.data?.live ? { path: r.data.live.path, expires_at: r.data.live.expires_at } : null))
+      .catch(() => undefined)
+  }, [listId])
+
+  const mintListLink = async () => {
+    const days = Number(shareDays)
+    if (!Number.isFinite(days) || days < 1 || days > 365) {
+      toast.error('Pick between 1 and 365 days')
+      return
+    }
+    setShareBusy(true)
+    try {
+      const res: any = await imdListsApi.share(listId, { expires_in_days: days, reveal: shareReveal })
+      setListLink({ path: res.data.path, expires_at: res.data.expires_at })
+      await copy(res.data.path)
+      toast.success(res.data.reused ? 'This list already had a live link — copied' : `Link copied. Open for ${days} days.`)
+      setShareOpen(false)
+    } catch (e) {
+      toast.error((e as Error).message || 'Could not create the link')
+    } finally {
+      setShareBusy(false)
+    }
+  }
+
+  const revokeListLink = async () => {
+    if (!window.confirm('Turn off the link? Anyone holding it stops seeing the list.')) return
+    setShareBusy(true)
+    try {
+      await imdListsApi.revokeShare(listId)
+      setListLink(null)
+      toast.success('Link turned off')
+    } catch (e) {
+      toast.error((e as Error).message || 'Could not turn it off')
+    } finally {
+      setShareBusy(false)
+    }
+  }
+
   const copy = async (path: string) => {
     await navigator.clipboard.writeText(`${window.location.origin}${path}`)
     toast.success("Link copied")
@@ -196,6 +245,12 @@ export default function ImdListDetailPage() {
                   <Badge variant="secondary" className="mt-3 gap-1">
                     <Users className="h-3 w-3" />{list.items.length} creator{list.items.length === 1 ? "" : "s"}
                   </Badge>
+                  {listLink?.expires_at && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Link open until {new Date(listLink.expires_at).toLocaleDateString('en-GB',
+                        { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* A list CSV carries sell pricing and public share links and is built to be
@@ -204,6 +259,24 @@ export default function ImdListDetailPage() {
                   {canExport && (
                     <Button variant="outline" className="gap-2" onClick={exportCsv} disabled={list.items.length === 0}>
                       <Download className="h-4 w-4" />Export CSV
+                    </Button>
+                  )}
+                  {/* One live link per list. While one exists the button copies it rather
+                      than minting a second, so "turn it off" really does close the list. */}
+                  {listLink ? (
+                    <>
+                      <Button variant="outline" className="gap-2" onClick={() => copy(listLink.path)}>
+                        <LinkIcon className="h-4 w-4" />Copy list link
+                      </Button>
+                      <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-destructive"
+                              disabled={shareBusy} onClick={revokeListLink}>
+                        Turn off
+                      </Button>
+                    </>
+                  ) : (
+                    <Button variant="outline" className="gap-2" disabled={list.items.length === 0}
+                            onClick={() => setShareOpen(true)}>
+                      <LinkIcon className="h-4 w-4" />Share list
                     </Button>
                   )}
                   <Button className="gap-2" onClick={() => setOpen(true)}><Plus className="h-4 w-4" />Add creators</Button>
@@ -369,6 +442,50 @@ export default function ImdListDetailPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share this list</DialogTitle>
+            <DialogDescription>
+              Anyone with the link sees the creators. No login. Cost prices are never sent.
+              Creators with no sell price are left off a link that shows prices.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs">Open for</Label>
+              <div className="mt-1.5 flex items-center gap-2">
+                <Input type="number" min={1} max={365} value={shareDays}
+                       onChange={(e) => setShareDays(e.target.value)} className="w-24" />
+                <span className="text-sm text-muted-foreground">days</span>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">What they see</Label>
+              <div className="mt-1.5 grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setShareReveal('with_prices')}
+                        className={`rounded-md border p-3 text-left transition-colors ${
+                          shareReveal === 'with_prices' ? 'border-foreground/40 bg-muted/50' : 'hover:bg-muted/30'}`}>
+                  <span className="text-sm font-medium">Creators and prices</span>
+                </button>
+                <button type="button" onClick={() => setShareReveal('no_prices')}
+                        className={`rounded-md border p-3 text-left transition-colors ${
+                          shareReveal === 'no_prices' ? 'border-foreground/40 bg-muted/50' : 'hover:bg-muted/30'}`}>
+                  <span className="text-sm font-medium">Creators only</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShareOpen(false)} disabled={shareBusy}>Cancel</Button>
+            <Button onClick={mintListLink} disabled={shareBusy}>Create link and copy</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </SuperAdminInterface>
     </AuthGuard>
   )
