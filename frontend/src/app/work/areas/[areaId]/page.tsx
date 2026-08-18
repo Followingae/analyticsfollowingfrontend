@@ -54,8 +54,9 @@ function fmt(n?: number | null) {
 }
 
 export default function ImdListDetailPage() {
-  const listId = useParams().listId as string
-  const { canExport, canDestroy } = useAdminAccess()
+  const listId = useParams().areaId as string
+  const { canExport, canDestroy, can } = useAdminAccess()
+  const canStock = can("influencers")
   const [list, setList] = useState<(ImdListSummary & { items: ImdListCreator[] }) | null>(null)
   // Which rows are ticked for a bulk clear or strike. Kept separate from the add-creators
   // picker, which is a different selection with a different meaning.
@@ -287,7 +288,7 @@ export default function ImdListDetailPage() {
     <AuthGuard>
       <SuperAdminInterface>
         <div className="mx-auto max-w-5xl space-y-6 p-6">
-          <Link href="/superadmin/influencers/lists" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <Link href="/work/areas" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-3.5 w-3.5" />All areas
           </Link>
 
@@ -354,30 +355,39 @@ export default function ImdListDetailPage() {
                       <Button variant="outline" className="gap-2" onClick={() => copy(listLink.path)}>
                         <LinkIcon className="h-4 w-4" />Copy list link
                       </Button>
-                      <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-destructive"
-                              disabled={shareBusy} onClick={revokeListLink}>
-                        Turn off
-                      </Button>
+                      {canDestroy && (
+                        <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-destructive"
+                                disabled={shareBusy} onClick={revokeListLink}>
+                          Turn off
+                        </Button>
+                      )}
                     </>
                   ) : (
-                    <Button variant="outline" className="gap-2" disabled={list.items.length === 0}
-                            onClick={() => setShareOpen(true)}>
-                      <LinkIcon className="h-4 w-4" />Share list
-                    </Button>
+                    canDestroy && (
+                      <Button variant="outline" className="gap-2" disabled={clearedCount === 0}
+                              title={clearedCount === 0 ? "Clear someone for sharing first" : undefined}
+                              onClick={() => setShareOpen(true)}>
+                        <LinkIcon className="h-4 w-4" />Share area
+                      </Button>
+                    )
                   )}
-                  <Button variant="outline" className="gap-2" onClick={() => setSoftAddOpen(true)}>
-                    <Plus className="h-4 w-4" />Source new
-                  </Button>
-                  <Button className="gap-2" onClick={() => setOpen(true)}>
-                    <Plus className="h-4 w-4" />Add from database
-                  </Button>
+                  {canStock && (
+                    <>
+                      <Button variant="outline" className="gap-2" onClick={() => setSoftAddOpen(true)}>
+                        <Plus className="h-4 w-4" />Source new
+                      </Button>
+                      <Button className="gap-2" onClick={() => setOpen(true)}>
+                        <Plus className="h-4 w-4" />Add from database
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* The gate. Anyone may stock an area; only a founder decides which of them a
                   client sees, which is what lets the talent team keep adding all week
                   behind a link that is already open. */}
-              {canDestroy && markedIds.length > 0 && (
+              {canDestroy && canStock && markedIds.length > 0 && (
                 <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur">
                   <span className="text-sm font-medium">{markedIds.length} selected</span>
                   <span className="text-xs text-muted-foreground">
@@ -412,7 +422,7 @@ export default function ImdListDetailPage() {
                          className={`group flex items-center gap-3 rounded-xl border p-3 ${
                            c.struck_at ? "opacity-55" : ""
                          } ${marked[c.id] ? "border-foreground/40 bg-muted/40" : ""}`}>
-                      {canDestroy && (
+                      {canDestroy && canStock && (
                         <Checkbox
                           checked={!!marked[c.id]}
                           onCheckedChange={(v: boolean | string) => setMarked(prev => {

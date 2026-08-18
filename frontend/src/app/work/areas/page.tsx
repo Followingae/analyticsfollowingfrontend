@@ -63,7 +63,11 @@ function briefLine(b?: AreaBrief | null): string {
 }
 
 export default function AreasPage() {
-  const { canDestroy } = useAdminAccess()
+  const { canDestroy, can } = useAdminAccess()
+  // Business development lives on the sending side of an area: they send the link and
+  // answer the client. Stocking it is the talent team's job, so the buttons that change
+  // what is in an area are not theirs.
+  const canStock = can("influencers")
   const [areas, setAreas] = useState<ImdListSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [kind, setKind] = useState<Kind>("client")
@@ -163,7 +167,7 @@ export default function AreasPage() {
     <AuthGuard>
       <SuperAdminInterface>
         <div className="mx-auto max-w-6xl space-y-6 p-6">
-          <CreatorsHubHeader className="mb-0" />
+          {canStock && <CreatorsHubHeader className="mb-0" />}
 
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -175,9 +179,11 @@ export default function AreasPage() {
             </div>
             <div className="flex gap-2">
               <Dialog open={openPack} onOpenChange={setOpenPack}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="gap-2"><Plus className="h-4 w-4" />New sample pack</Button>
-                </DialogTrigger>
+                {canStock && (
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="gap-2"><Plus className="h-4 w-4" />New sample pack</Button>
+                  </DialogTrigger>
+                )}
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>New sample pack</DialogTitle>
@@ -208,7 +214,7 @@ export default function AreasPage() {
               {canDestroy && (
                 <Dialog open={openStart} onOpenChange={setOpenStart}>
                   <DialogTrigger asChild>
-                    <Button className="gap-2"><Rocket className="h-4 w-4" />Start sourcing</Button>
+                    <Button className="gap-2" data-tour="start-sourcing"><Rocket className="h-4 w-4" />Start sourcing</Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-lg">
                     <DialogHeader>
@@ -363,9 +369,9 @@ export default function AreasPage() {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
                         <CardTitle className="text-base">
-                          <Link href={`/superadmin/influencers/lists/${a.id}`} className="hover:underline">{a.name}</Link>
+                          <Link href={`/work/areas/${a.id}`} className="hover:underline">{a.name}</Link>
                         </CardTitle>
-                        {canDestroy && (
+                        {canDestroy && canStock && (
                           <Button size="icon" variant="ghost"
                                   className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
                                   onClick={() => setToDelete(a)}>
@@ -383,7 +389,7 @@ export default function AreasPage() {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {line && <p className="line-clamp-2 text-xs text-muted-foreground">{line}</p>}
-                      <Link href={`/superadmin/influencers/lists/${a.id}`} className="flex flex-wrap items-center gap-1.5">
+                      <Link href={`/work/areas/${a.id}`} className="flex flex-wrap items-center gap-1.5">
                         <Badge variant="secondary" className="gap-1">
                           <Users className="h-3 w-3" />{a.items_count} found
                         </Badge>

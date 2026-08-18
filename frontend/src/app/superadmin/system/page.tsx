@@ -12,6 +12,7 @@ import {
   Bell,
   Settings,
   Workflow,
+  Monitor,
 } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
@@ -26,6 +27,14 @@ const systemSections = [
     icon: Workflow,
     color: "text-cyan-600 dark:text-cyan-400",
     bg: "bg-cyan-100 dark:bg-cyan-900/40",
+  },
+  {
+    title: "Office screens",
+    description: "The TV wall and any other screen we hang — what it shows, how often it refreshes",
+    href: "/superadmin/system/displays",
+    icon: Monitor,
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-100 dark:bg-emerald-900/40",
   },
 ]
 

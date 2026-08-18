@@ -108,6 +108,11 @@ export default function CampaignTimelinePage() {
                 {c.brand_name}{c.start_date ? ` · from ${when(c.start_date)}` : ''}
               </p>
             </div>
+            {/* Where the campaign is actually worked: rate, agreement, guide, content, paid. */}
+            <Button className="ml-auto gap-2"
+                    onClick={() => router.push(`/work/campaigns/${campaignId}/ladder`)}>
+              Delivery board
+            </Button>
           </div>
         </div>
 

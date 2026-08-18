@@ -56,7 +56,7 @@ export function CreatorsHubHeader({ className }: { className?: string }) {
   const tabs: HubTab[] = [
     { label: 'Database', href: '/work/influencers', module: 'influencers' },
     { label: 'Waiting room', href: '/work/influencers/review', module: 'influencers', count: waiting },
-    { label: 'Areas', href: '/work/influencers/lists', module: 'influencers' },
+    { label: 'Areas', href: '/work/areas', module: 'influencers' },
     { label: 'Coverage', href: '/work/coverage', module: 'influencers' },
     { label: 'On the app', href: '/work/fa/members', module: 'fa' },
     { label: 'Reliability', href: '/work/fa/reliability', module: 'fa' },

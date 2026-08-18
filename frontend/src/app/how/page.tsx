@@ -21,7 +21,7 @@ import { useAdminAccess } from '@/hooks/useAdminAccess'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { tracksFor, tourFor, completed, type Walkthrough } from '@/components/help/walkthroughs'
 import { armTour } from '@/components/help/WalkthroughRunner'
-import { moduleForPath } from '@/lib/routeModules'
+import { modulesForPath } from '@/lib/routeModules'
 
 /**
  * Rendering this bare — which is what it did — dropped whoever opened it out of the product
@@ -49,8 +49,8 @@ export default function ShowMeHowPage() {
   const permitted = useCallback((t: Walkthrough) => {
     const paths = t.steps.map(s => s.goto).filter(Boolean) as string[]
     return paths.every(p => {
-      const m = moduleForPath(p)
-      return !m || can(m)
+      const mods = modulesForPath(p)
+      return mods.length === 0 || mods.some(m => can(m))
     })
   }, [can])
 

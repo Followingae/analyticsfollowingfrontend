@@ -10,7 +10,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { useAdminAccess, type AdminModule, ADMIN_MODULES } from "@/hooks/useAdminAccess"
-import { MODULE_HOME, moduleForPath } from "@/lib/routeModules"
+import { MODULE_HOME, modulesForPath } from "@/lib/routeModules"
 import { GlobalCommandPalette } from "@/components/GlobalCommandPalette"
 
 interface SuperadminLayoutProps {
@@ -25,8 +25,8 @@ function ModuleRouteGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { isSuperAdmin, can, loading, modules } = useAdminAccess()
 
-  const required = moduleForPath(pathname)
-  const allowed = isSuperAdmin || !required || can(required)
+  const required = modulesForPath(pathname)
+  const allowed = isSuperAdmin || required.length === 0 || required.some(m => can(m))
 
   React.useEffect(() => {
     if (loading || allowed) return

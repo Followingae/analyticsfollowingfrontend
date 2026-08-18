@@ -127,7 +127,7 @@ const nextConfig: NextConfig = {
           // them to /superadmin/brands/{id}, which does not exist, and the brand page 404'd
           // while /work/brands (a static route, matched earlier) worked fine. Any new
           // directory added under src/app/work must be named here too.
-          source: '/work/:path((?!brands|coverage|creators|goals|inbox|money|payables|sourcing|team|today).*)',
+          source: '/work/:path((?!areas|brands|coverage|creators|goals|inbox|money|payables|sourcing|team|today).*)',
           destination: '/superadmin/:path*',
         },
       ],

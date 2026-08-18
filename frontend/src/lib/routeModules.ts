@@ -12,7 +12,10 @@ import type { AdminModule } from "@/hooks/useAdminAccess"
  * Matched on the screen name rather than the prefix, because every screen is reachable both
  * at /work/... (what people are given) and /superadmin/... (where the file physically is).
  */
-export const ROUTE_MODULES: { screen: string; module: AdminModule }[] = [
+export const ROUTE_MODULES: { screen: string; module: AdminModule | AdminModule[] }[] = [
+  // Areas are shared ground: the talent team stocks them, and business development sends
+  // the client links off them. Either module opens the screen — no cost pricing is on it.
+  { screen: "areas", module: ["influencers", "clients"] },
   { screen: "operations", module: "operations" },
   { screen: "clients", module: "clients" },
   { screen: "brands", module: "clients" },
@@ -32,6 +35,8 @@ export const ROUTE_MODULES: { screen: string; module: AdminModule }[] = [
   { screen: "notifications", module: "system" },
   { screen: "whatsapp", module: "system" },
   { screen: "system", module: "system" },
+  // Asked of a founder, answered by email — leadership's own queue.
+  { screen: "approvals", module: "campaigns" },
   { screen: "billing", module: "billing" },
 ]
 
@@ -42,10 +47,18 @@ export function screenOf(pathname: string): string | null {
   return pathname.startsWith("/ops") ? "operations" : null
 }
 
-/** The module a path needs, or null when the path is open to everyone internal. */
-export function moduleForPath(pathname: string): AdminModule | null {
+/** The modules that open a path — any one of them is enough. Empty when open to all internal. */
+export function modulesForPath(pathname: string): AdminModule[] {
   const screen = screenOf(pathname)
-  return ROUTE_MODULES.find(r => r.screen === screen)?.module ?? null
+  const found = ROUTE_MODULES.find(r => r.screen === screen)?.module
+  if (!found) return []
+  return Array.isArray(found) ? found : [found]
+}
+
+/** The module a path needs, or null when the path is open to everyone internal.
+ *  Where a screen is opened by more than one module, this reports the first. */
+export function moduleForPath(pathname: string): AdminModule | null {
+  return modulesForPath(pathname)[0] ?? null
 }
 
 // Where to send someone who lands somewhere they cannot go. Always the /work spelling —
@@ -54,5 +67,6 @@ export const MODULE_HOME: Record<string, string> = {
   operations: "/ops/campaigns", clients: "/work/clients", users: "/work/users",
   campaigns: "/work/campaigns", proposals: "/work/proposals",
   influencers: "/work/influencers", fa: "/work/fa", system: "/work/system",
+  areas: "/work/areas",
   billing: "/work/billing",
 }
