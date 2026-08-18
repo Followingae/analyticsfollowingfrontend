@@ -48,13 +48,25 @@ export interface PendingCreator {
   sell_total_cents?: number
   /** Why this creator is in the queue, in words. */
   waiting_for?: string
+  /** Which area they were sourced for, and the brand behind it. */
+  sourced_for_list_id?: string | null
+  sourced_for?: string | null
+  sourced_for_brand?: string | null
+  sourced_brief?: Record<string, any> | null
   /** Analytics are held until approval — nothing has been spent on them yet. */
   analytics_waiting_on_approval?: boolean
 }
 
 export const creatorIntakeApi = {
-  /** Add creators by handle alone. No pricing fields exist on this path, by design. */
-  add: (payload: { usernames: string[]; categories?: string[]; country?: string; note?: string }) =>
+  /**
+   * Add creators by handle alone. No pricing fields exist on this path, by design.
+   *
+   * `list_id` is which area they were found for. Carrying it is what lets approval put them
+   * back into that area in the same motion, instead of the approver having to remember which
+   * brand the handle was researched for.
+   */
+  add: (payload: { usernames: string[]; categories?: string[]; country?: string; note?: string
+                   list_id?: string }) =>
     call(`${BASE}/influencers/intake`, { method: 'POST', body: JSON.stringify(payload) }),
 
   /** Everyone who cannot be quoted yet: new arrivals, and anyone still missing a sell price. */

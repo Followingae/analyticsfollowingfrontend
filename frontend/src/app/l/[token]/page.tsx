@@ -10,6 +10,10 @@
  * Where a creator already has their own share link, their row opens it — the recipient can
  * go from the roster into the real analytics page for the ones we have measured.
  *
+ * The recipient can answer here, per creator. Until now they replied in WhatsApp and someone
+ * re-typed it, which is where picks got lost between "they liked six" and building the
+ * proposal; an answer given here lands straight on the row we researched.
+ *
  * No AuthGuard and no app chrome: the viewer has no session, and a sidebar full of links
  * they cannot open is worse than none.
  */
@@ -30,6 +34,8 @@ interface Creator {
   tier: string | null
   analytics_path: string | null
   prices_aed?: { post: number | null; reel: number | null; story: number | null }
+  verdict?: 'selected' | 'rejected' | null
+  verdict_reason?: string | null
 }
 
 interface ListPayload {
@@ -63,6 +69,33 @@ export default function PublicListPage() {
   const token = useParams().token as string
   const [data, setData] = useState<ListPayload | null>(null)
   const [state, setState] = useState<'loading' | 'ok' | 'gone'>('loading')
+  const [saving, setSaving] = useState<string | null>(null)
+
+  /** Their answer on one creator. Changing it later is normal, so this overwrites. */
+  const answer = async (username: string, verdict: 'selected' | 'rejected') => {
+    setSaving(username)
+    const previous = data
+    // Answer on the card immediately — the recipient is deciding, not waiting on us.
+    setData(d => d && {
+      ...d,
+      creators: d.creators.map(c => c.username === username
+        ? { ...c, verdict: c.verdict === verdict ? null : verdict } : c),
+    })
+    try {
+      const target = previous?.creators.find(c => c.username === username)
+      if (target?.verdict === verdict) { setSaving(null); return }
+      const r = await fetch(`${API_CONFIG.BASE_URL}/api/v1/public/lists/${token}/verdict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, verdict }),
+      })
+      if (!r.ok) throw new Error('failed')
+    } catch {
+      setData(previous)
+    } finally {
+      setSaving(null)
+    }
+  }
 
   useEffect(() => {
     if (!token) return
@@ -97,6 +130,8 @@ export default function PublicListPage() {
     )
   }
 
+  const picked = data.creators.filter(c => c.verdict === 'selected').length
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -113,6 +148,7 @@ export default function PublicListPage() {
         )}
         <p className="mt-4 text-sm text-muted-foreground">
           {data.count} creator{data.count === 1 ? '' : 's'}
+          {picked > 0 && ` · ${picked} picked`}
           {data.expires_at && ` · link open until ${new Date(data.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`}
         </p>
 
@@ -169,18 +205,46 @@ export default function PublicListPage() {
                 )}
 
                 {c.analytics_path && (
-                  <div className="mt-4 text-sm font-medium text-primary">See full numbers →</div>
+                  <a href={c.analytics_path} target="_blank" rel="noopener noreferrer"
+                     className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
+                    See full numbers →
+                  </a>
                 )}
+
+                {/* Their answer. Tapping the same button again clears it — people change
+                    their minds, and a locked-in first tap is worse than no answer. */}
+                <div className="mt-4 flex gap-2 border-t pt-3">
+                  <button
+                    type="button"
+                    disabled={saving === c.username}
+                    onClick={() => answer(c.username, 'selected')}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                      c.verdict === 'selected'
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    {c.verdict === 'selected' ? 'Picked' : 'Pick'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={saving === c.username}
+                    onClick={() => answer(c.username, 'rejected')}
+                    className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                      c.verdict === 'rejected'
+                        ? 'border-foreground/30 bg-muted text-muted-foreground'
+                        : 'text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {c.verdict === 'rejected' ? 'Passed' : 'Pass'}
+                  </button>
+                </div>
               </div>
             )
 
-            return c.analytics_path ? (
-              <a key={c.username} href={c.analytics_path} target="_blank" rel="noopener noreferrer">
-                {row}
-              </a>
-            ) : (
-              <div key={c.username}>{row}</div>
-            )
+            // The card is no longer a link: it now carries buttons, and a card-wide link
+            // would swallow every tap meant for them.
+            return <div key={c.username}>{row}</div>
           })}
         </div>
       </main>

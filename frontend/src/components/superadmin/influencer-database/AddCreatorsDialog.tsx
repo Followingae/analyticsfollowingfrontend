@@ -4,8 +4,12 @@
  * The talent team's fastest path: paste handles, tag them, done.
  *
  * There are deliberately NO pricing fields here. A creator added this way lands in the
- * waiting room, analytics start immediately, and a superadmin prices and releases them
- * later. The research is saved from the first keystroke, whether or not any deal happens.
+ * waiting room, and a superadmin prices and releases them later. The research is saved from
+ * the first keystroke, whether or not any deal happens.
+ *
+ * Opened from inside an area, it remembers which one: the creator is placed back there the
+ * moment they are approved, so nobody has to hold "these three were for Bateel" in their
+ * head between adding and approval.
  */
 import { useState } from 'react'
 import {
@@ -28,8 +32,13 @@ const MARKETS = ['UAE', 'KSA', 'Kuwait', 'Qatar', 'Bahrain', 'Oman']
 const clean = (s: string) => s.trim().replace(/^@/, '').replace(/\/+$/, '').toLowerCase()
 
 export function AddCreatorsDialog({
-  open, onOpenChange, onAdded,
-}: { open: boolean; onOpenChange: (o: boolean) => void; onAdded?: () => void }) {
+  open, onOpenChange, onAdded, areaId, areaName,
+}: {
+  open: boolean; onOpenChange: (o: boolean) => void; onAdded?: () => void
+  /** The area they were sourced for, when opened from one. */
+  areaId?: string
+  areaName?: string
+}) {
   const [raw, setRaw] = useState('')
   const [handles, setHandles] = useState<string[]>([])
   const [cats, setCats] = useState<string[]>([])
@@ -57,6 +66,7 @@ export function AddCreatorsDialog({
         categories: cats.length ? cats : undefined,
         country: country || undefined,
         note: note.trim() || undefined,
+        list_id: areaId,
       })
       toast.success(res.data?.message || `${all.length} added to the waiting room`)
       reset(); onOpenChange(false); onAdded?.()
@@ -68,13 +78,15 @@ export function AddCreatorsDialog({
   const total = handles.length + raw.split(/[\s,]+/).map(clean).filter(Boolean).length
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o) }}>
+    <Dialog open={open} onOpenChange={(o: boolean) => { if (!o) reset(); onOpenChange(o) }}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add creators</DialogTitle>
           <DialogDescription>
-            Paste handles — one per line, or comma separated. Analytics start immediately.
-            Pricing happens later, in the waiting room.
+            Paste handles — one per line, or comma separated.
+            {areaName
+              ? ` They come back into ${areaName} once they are priced and approved.`
+              : ' Pricing and approval happen in the waiting room.'}
           </DialogDescription>
         </DialogHeader>
 

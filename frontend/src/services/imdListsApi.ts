@@ -24,6 +24,19 @@ async function jfetch(url: string, options: RequestInit = {}) {
   return res.json()
 }
 
+/** The brief, structured so the next round can filter by the same terms. */
+export interface AreaBrief {
+  categories?: string[]
+  market?: string
+  followers_min?: number
+  followers_max?: number
+  deliverables?: string[]
+  budget_per_creator?: number
+  /** How many we are looking for. Mirrored onto the area itself as target_count. */
+  target_count?: number
+  notes?: string
+}
+
 export interface ImdListSummary {
   id: string
   name: string
@@ -32,6 +45,21 @@ export interface ImdListSummary {
   created_at: string
   updated_at: string
   created_by_email?: string | null
+  /** 'client' — one brand's roster · 'sample' — a standing pack anyone can send. */
+  kind?: 'client' | 'sample'
+  team_id?: string | null
+  team_name?: string | null
+  owner_user_id?: string | null
+  owner_email?: string | null
+  brief?: AreaBrief | null
+  due_at?: string | null
+  target_count?: number | null
+  archived_at?: string | null
+  /** How much we have found, how much the client may see, how much they picked. */
+  cleared_count?: number
+  picked_count?: number
+  live_links?: number
+  client_note?: string | null
 }
 
 export interface ImdListCreator {
@@ -51,6 +79,15 @@ export interface ImdListCreator {
   /** 'complete' | 'partial' | null — null means we hold no analytics row at all. */
   analytics_status?: string | null
   analytics_collected_at?: string | null
+  /** Cleared to leave the building. A share link shows only these. */
+  cleared_at?: string | null
+  cleared_by_email?: string | null
+  struck_at?: string | null
+  struck_reason?: string | null
+  /** What the client said, straight onto the row we researched. */
+  client_verdict?: 'selected' | 'rejected' | null
+  client_reason?: string | null
+  client_decided_at?: string | null
   /** The live public link, when one has been minted. Null until an operator shares. */
   share_token?: string | null
   share_path?: string | null
@@ -86,16 +123,52 @@ export const creatorShareApi = {
 }
 
 export const imdListsApi = {
-  list: (): Promise<{ data: { lists: ImdListSummary[] } }> => jfetch(`${BASE}/imd-lists`),
+  list: (params: { kind?: 'client' | 'sample'; team_id?: string; mine?: boolean } = {}):
+    Promise<{ data: { lists: ImdListSummary[] } }> => {
+    const q = new URLSearchParams()
+    if (params.kind) q.set('kind', params.kind)
+    if (params.team_id) q.set('team_id', params.team_id)
+    if (params.mine) q.set('mine', 'true')
+    const qs = q.toString()
+    return jfetch(`${BASE}/imd-lists${qs ? `?${qs}` : ''}`)
+  },
 
   get: (id: string): Promise<{ data: ImdListSummary & { items: ImdListCreator[] } }> =>
     jfetch(`${BASE}/imd-lists/${id}`),
 
-  create: (payload: { name: string; description?: string; influencer_ids?: string[] }) =>
-    jfetch(`${BASE}/imd-lists`, { method: 'POST', body: JSON.stringify(payload) }),
+  create: (payload: {
+    name: string; description?: string; influencer_ids?: string[]
+    kind?: 'client' | 'sample'; team_id?: string | null; brief?: AreaBrief
+    owner_user_id?: string | null; due_at?: string | null; target_count?: number | null
+  }) => jfetch(`${BASE}/imd-lists`, { method: 'POST', body: JSON.stringify(payload) }),
 
-  update: (id: string, payload: { name?: string; description?: string }) =>
-    jfetch(`${BASE}/imd-lists/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  update: (id: string, payload: {
+    name?: string; description?: string; kind?: 'client' | 'sample'
+    team_id?: string | null; brief?: AreaBrief; owner_user_id?: string | null
+    due_at?: string | null; target_count?: number | null; archived?: boolean
+  }) => jfetch(`${BASE}/imd-lists/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  /**
+   * Release a brand to the talent team with the brief. Founders only — this is the gate
+   * between business development logging interest and anyone researching creators.
+   */
+  startSourcing: (payload: {
+    team_id: string; name?: string; brief?: AreaBrief
+    owner_user_id?: string | null; due_at?: string | null; target_count?: number | null
+  }): Promise<{ data: { id: string; name: string; brand: string } }> =>
+    jfetch(`${BASE}/imd-lists/start-sourcing`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  /** Clear creators to be shown to the client. Founders only; refuses anyone unpriced. */
+  clear: (id: string, influencer_ids: string[]): Promise<{ data: { cleared: number } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/clear`, {
+      method: 'POST', body: JSON.stringify({ influencer_ids }),
+    }),
+
+  /** Take creators back off the table. The row and the research stay; the reason is kept. */
+  strike: (id: string, influencer_ids: string[], reason: string): Promise<{ data: { struck: number } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/strike`, {
+      method: 'POST', body: JSON.stringify({ influencer_ids, reason }),
+    }),
 
   remove: (id: string) => jfetch(`${BASE}/imd-lists/${id}`, { method: 'DELETE' }),
 

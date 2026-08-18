@@ -183,6 +183,16 @@ export default function ReviewQueuePage() {
                         <span className="truncate pl-2">{c.submitted_by_email}</span>
                       </div>
                     )}
+                    {/* Who they were found for. Pricing a creator is a different decision
+                        when a brand is waiting on them than when nobody is. */}
+                    {c.sourced_for && (
+                      <div className="mt-1 flex justify-between">
+                        <span className="text-muted-foreground">Sourced for</span>
+                        <span className="truncate pl-2">
+                          {c.sourced_for_brand || c.sourced_for}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {c.submitted_note && (

@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -17,15 +19,32 @@ import {
 } from "@/components/ui/dialog"
 import {
   ArrowLeft, Loader2, Plus, Search, Users, X, Globe, Check,
-  Download, Link2, Copy, BarChart3, Link as LinkIcon } from "lucide-react"
+  Download, Link2, Copy, BarChart3, Link as LinkIcon , CheckCircle2, ShieldCheck, Ban} from "lucide-react"
 import { toast } from "sonner"
-import { imdListsApi, creatorShareApi, type ImdListCreator } from "@/services/imdListsApi"
+import { imdListsApi, creatorShareApi, type ImdListCreator, type ImdListSummary } from "@/services/imdListsApi"
 import { proposalApprovalApi } from "@/services/proposalApprovalApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
+import { AddCreatorsDialog } from "@/components/superadmin/influencer-database/AddCreatorsDialog"
 import { cdnAvatar } from "@/lib/avatar"
 
 const ANY_COUNTRY = "__any__"
 const PAGE_SIZE = 40
+
+/** The brief in one line — the same sentence the alert carried when this was released. */
+function briefLine(b?: any): string {
+  if (!b) return ""
+  const bits: string[] = []
+  if (b.target_count) bits.push(String(b.target_count))
+  if (b.categories?.length) bits.push(`${b.categories.join(", ")} creators`)
+  if (b.market) bits.push(`in ${b.market}`)
+  const k = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n))
+  if (b.followers_min && b.followers_max) bits.push(`${k(b.followers_min)}-${k(b.followers_max)}`)
+  else if (b.followers_min) bits.push(`${k(b.followers_min)}+`)
+  else if (b.followers_max) bits.push(`up to ${k(b.followers_max)}`)
+  if (b.deliverables?.length) bits.push(b.deliverables.join(", "))
+  if (b.budget_per_creator) bits.push(`up to AED ${Number(b.budget_per_creator).toLocaleString()} each`)
+  return bits.join(" · ")
+}
 
 function fmt(n?: number | null) {
   if (!n) return "0"
@@ -36,8 +55,16 @@ function fmt(n?: number | null) {
 
 export default function ImdListDetailPage() {
   const listId = useParams().listId as string
-  const { canExport } = useAdminAccess()
-  const [list, setList] = useState<{ name: string; description?: string | null; items: ImdListCreator[] } | null>(null)
+  const { canExport, canDestroy } = useAdminAccess()
+  const [list, setList] = useState<(ImdListSummary & { items: ImdListCreator[] }) | null>(null)
+  // Which rows are ticked for a bulk clear or strike. Kept separate from the add-creators
+  // picker, which is a different selection with a different meaning.
+  const [marked, setMarked] = useState<Record<string, true>>({})
+  const [gateBusy, setGateBusy] = useState(false)
+  const [strikeOpen, setStrikeOpen] = useState(false)
+  // Sourcing someone who is not in the database yet, without losing which brand they were for.
+  const [softAddOpen, setSoftAddOpen] = useState(false)
+  const [strikeWhy, setStrikeWhy] = useState("")
   const [loading, setLoading] = useState(true)
 
   // add-creators picker
@@ -221,6 +248,38 @@ export default function ImdListDetailPage() {
     }
   }
 
+  const markedIds = Object.keys(marked)
+
+  const clearMarked = async () => {
+    if (!markedIds.length) return
+    setGateBusy(true)
+    try {
+      const res = await imdListsApi.clear(listId, markedIds)
+      toast.success(`${res.data.cleared} cleared to share`)
+      setMarked({}); load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not clear")
+    } finally {
+      setGateBusy(false)
+    }
+  }
+
+  const strikeMarked = async () => {
+    if (!markedIds.length || !strikeWhy.trim()) return
+    setGateBusy(true)
+    try {
+      const res = await imdListsApi.strike(listId, markedIds, strikeWhy.trim())
+      toast.success(`${res.data.struck} taken off the table`)
+      setMarked({}); setStrikeOpen(false); setStrikeWhy(""); load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not strike")
+    } finally {
+      setGateBusy(false)
+    }
+  }
+
+  const clearedCount = (list?.items ?? []).filter(c => c.cleared_at && !c.struck_at).length
+  const pickedByClient = (list?.items ?? []).filter(c => c.client_verdict === "selected").length
   const pickedCount = Object.keys(picked).length
   const hasMore = results.length < total
 
@@ -229,22 +288,49 @@ export default function ImdListDetailPage() {
       <SuperAdminInterface>
         <div className="mx-auto max-w-5xl space-y-6 p-6">
           <Link href="/superadmin/influencers/lists" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-3.5 w-3.5" />All lists
+            <ArrowLeft className="h-3.5 w-3.5" />All areas
           </Link>
 
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : !list ? (
-            <p className="py-20 text-center text-muted-foreground">List not found.</p>
+            <p className="py-20 text-center text-muted-foreground">Area not found.</p>
           ) : (
             <>
               <div className="flex items-end justify-between gap-4 flex-wrap">
                 <div>
                   <h1 className="text-3xl font-bold">{list.name}</h1>
+                  {list.team_name && (
+                    <p className="mt-1 text-sm text-muted-foreground">{list.team_name}</p>
+                  )}
                   {list.description && <p className="mt-1 text-muted-foreground">{list.description}</p>}
-                  <Badge variant="secondary" className="mt-3 gap-1">
-                    <Users className="h-3 w-3" />{list.items.length} creator{list.items.length === 1 ? "" : "s"}
-                  </Badge>
+                  {/* The brief travels with the area, so whoever opens it knows what to look
+                      for without asking the person who released it. */}
+                  {briefLine(list.brief) && (
+                    <p className="mt-2 max-w-xl rounded-md bg-muted px-3 py-2 text-sm">
+                      {briefLine(list.brief)}
+                      {list.due_at && (
+                        <span className="text-muted-foreground">
+                          {" · wanted by "}
+                          {new Date(list.due_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    <Badge variant="secondary" className="gap-1">
+                      <Users className="h-3 w-3" />{list.items.length} found
+                    </Badge>
+                    <Badge variant="outline" className="gap-1">
+                      <CheckCircle2 className="h-3 w-3" />{clearedCount} cleared to share
+                    </Badge>
+                    {pickedByClient > 0 && <Badge className="gap-1">{pickedByClient} picked by the client</Badge>}
+                    {list.owner_email && (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        {list.owner_email.split("@")[0]}
+                      </Badge>
+                    )}
+                  </div>
                   {listLink?.expires_at && (
                     <p className="mt-2 text-sm text-muted-foreground">
                       Link open until {new Date(listLink.expires_at).toLocaleDateString('en-GB',
@@ -279,21 +365,65 @@ export default function ImdListDetailPage() {
                       <LinkIcon className="h-4 w-4" />Share list
                     </Button>
                   )}
-                  <Button className="gap-2" onClick={() => setOpen(true)}><Plus className="h-4 w-4" />Add creators</Button>
+                  <Button variant="outline" className="gap-2" onClick={() => setSoftAddOpen(true)}>
+                    <Plus className="h-4 w-4" />Source new
+                  </Button>
+                  <Button className="gap-2" onClick={() => setOpen(true)}>
+                    <Plus className="h-4 w-4" />Add from database
+                  </Button>
                 </div>
               </div>
+
+              {/* The gate. Anyone may stock an area; only a founder decides which of them a
+                  client sees, which is what lets the talent team keep adding all week
+                  behind a link that is already open. */}
+              {canDestroy && markedIds.length > 0 && (
+                <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur">
+                  <span className="text-sm font-medium">{markedIds.length} selected</span>
+                  <span className="text-xs text-muted-foreground">
+                    Cleared creators are the only ones a share link shows.
+                  </span>
+                  <div className="ml-auto flex gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => setMarked({})}>Cancel</Button>
+                    <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
+                            onClick={() => setStrikeOpen(true)}>
+                      <Ban className="h-3.5 w-3.5" />Take off the table
+                    </Button>
+                    <Button size="sm" className="gap-1.5" disabled={gateBusy} onClick={clearMarked}>
+                      {gateBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                : <ShieldCheck className="h-3.5 w-3.5" />}
+                      Clear to share
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {list.items.length === 0 ? (
                 <Card className="border-dashed">
                   <CardContent className="p-12 text-center">
-                    <p className="font-medium">This list is empty</p>
-                    <p className="mt-1 text-sm text-muted-foreground">Add creators from the master database to build it up.</p>
+                    <p className="font-medium">Nobody in this area yet</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Add creators from the master database, or source new ones by handle.</p>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="space-y-1.5">
                   {list.items.map((c) => (
-                    <div key={c.item_id} className="group flex items-center gap-3 rounded-xl border p-3">
+                    <div key={c.item_id}
+                         className={`group flex items-center gap-3 rounded-xl border p-3 ${
+                           c.struck_at ? "opacity-55" : ""
+                         } ${marked[c.id] ? "border-foreground/40 bg-muted/40" : ""}`}>
+                      {canDestroy && (
+                        <Checkbox
+                          checked={!!marked[c.id]}
+                          onCheckedChange={(v: boolean | string) => setMarked(prev => {
+                            const next = { ...prev }
+                            if (v) next[c.id] = true
+                            else delete next[c.id]
+                            return next
+                          })}
+                          aria-label={`Select @${c.username}`}
+                        />
+                      )}
                       <Avatar className="h-9 w-9">
                         <AvatarImage src={cdnAvatar(c.profile_image_url)} />
                         <AvatarFallback>{(c.username || "?")[0]?.toUpperCase()}</AvatarFallback>
@@ -315,6 +445,29 @@ export default function ImdListDetailPage() {
                       )}
                       {c.country && <Badge variant="secondary" className="shrink-0">{c.country}</Badge>}
                       {c.tier && <Badge variant="outline" className="shrink-0 capitalize">{c.tier}</Badge>}
+
+                      {/* Our verdict, then theirs. A struck creator keeps their reason on the
+                          row: it is what stops the same person going back in front of the
+                          same brand next month. */}
+                      {c.struck_at ? (
+                        <Badge variant="outline" className="shrink-0 gap-1 text-muted-foreground"
+                               title={c.struck_reason || undefined}>
+                          <Ban className="h-3 w-3" />Struck
+                        </Badge>
+                      ) : c.cleared_at ? (
+                        <Badge variant="outline" className="shrink-0 gap-1 text-emerald-600 dark:text-emerald-400">
+                          <ShieldCheck className="h-3 w-3" />Cleared
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="shrink-0 text-muted-foreground">Internal</Badge>
+                      )}
+                      {c.client_verdict === "selected" && (
+                        <Badge className="shrink-0">Client picked</Badge>
+                      )}
+                      {c.client_verdict === "rejected" && (
+                        <Badge variant="outline" className="shrink-0 text-muted-foreground"
+                               title={c.client_reason || undefined}>Client passed</Badge>
+                      )}
 
                       <Button
                         size="sm"
@@ -345,6 +498,39 @@ export default function ImdListDetailPage() {
             </>
           )}
         </div>
+
+        {/* Not in the master database yet. They go to the waiting room for pricing and come
+            back into this area on approval. */}
+        <AddCreatorsDialog
+          open={softAddOpen}
+          onOpenChange={setSoftAddOpen}
+          areaId={listId}
+          areaName={list?.name}
+          onAdded={load}
+        />
+
+        <Dialog open={strikeOpen} onOpenChange={setStrikeOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Take {markedIds.length} off the table</DialogTitle>
+              <DialogDescription>
+                They stay in the area and keep their research — this only stops them being shown
+                to this brand. The reason is what stops them coming back next round.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <Label>Why</Label>
+              <Textarea value={strikeWhy} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setStrikeWhy(e.target.value)} rows={3}
+                        placeholder="e.g. competitor conflict, rate above budget, client passed last time" />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStrikeOpen(false)} disabled={gateBusy}>Cancel</Button>
+              <Button onClick={strikeMarked} disabled={gateBusy || !strikeWhy.trim()}>
+                {gateBusy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Take off the table
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[92vh] overflow-hidden p-0">
