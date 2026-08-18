@@ -26,6 +26,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
+import { PolarAngleAxis, RadialBar, RadialBarChart } from 'recharts'
 import {
   AlertTriangle, CalendarClock, CheckCircle2, Clapperboard, Clock, Film,
   Gauge, Inbox, Search, Sparkles, Users,
@@ -36,6 +38,8 @@ const SLIDE_MS = 20_000
 
 /** Brand lime. Pinned, not inherited: the product's dark `--primary` is lavender. */
 const LIME = '#D3FF02'
+
+const ringConfig = { v: { label: 'Done', color: LIME } } satisfies ChartConfig
 
 const dayLabel = (iso: string | null) => {
   if (!iso) return ''
@@ -141,30 +145,40 @@ function BrandMark({ src, name, size = '2.7vw' }: { src?: string | null; name?: 
   )
 }
 
-/** Completion, drawn as a thin ring. Hand-drawn in SVG rather than charted: it is one
- *  number, and a chart library's radial bar rounds the cap badly at this stroke width. */
+/** Completion, as shadcn's radial chart: a rounded bar sweeping its own full-circle track,
+ *  with the reading in the hole. */
 function Ring({ pct, caption }: { pct: number | null; caption: string }) {
-  const r = 46
-  const c = 2 * Math.PI * r
   const value = Math.max(0, Math.min(100, pct ?? 0))
+  const data = [{ name: 'v', v: value }]
   return (
-    <div className="relative flex flex-1 items-center justify-center">
-      <svg viewBox="0 0 120 120" className="h-[13.5vw] w-[13.5vw] -rotate-90">
-        <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="7" />
-        {value > 0 && (
-          <circle
-            cx="60" cy="60" r={r} fill="none" stroke={LIME} strokeWidth="7" strokeLinecap="round"
-            strokeDasharray={`${(value / 100) * c} ${c}`}
-            style={{ transition: 'stroke-dasharray 1.2s ease' }}
-          />
-        )}
-      </svg>
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[3.5vw] font-semibold leading-none tracking-tight tabular-nums text-white">
-          {pct == null ? '—' : `${pct}%`}
-        </span>
-        <span className="mt-[0.6vw] max-w-[9vw] text-center text-[0.8vw] leading-snug text-white/65">{caption}</span>
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[0.9vw]">
+      <div className="relative aspect-square h-[13vw] max-h-full">
+        <ChartContainer
+          config={ringConfig}
+          className="h-full w-full [&_.recharts-radial-bar-background-sector]:fill-white/10"
+        >
+          <RadialBarChart data={data} innerRadius="74%" outerRadius="100%" startAngle={90} endAngle={-270}>
+            {/* The value axis is what makes this a gauge rather than a bar: the track is the
+                whole circle and the bar is the share of it that is done. */}
+            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
+            <RadialBar
+              dataKey="v"
+              cornerRadius={999}
+              fill={LIME}
+              background={{ fill: 'rgba(255,255,255,0.10)' }}
+              isAnimationActive={false}
+            />
+          </RadialBarChart>
+        </ChartContainer>
+        {/* The reading sits in the hole and is sized to the hole, not to the panel, so it
+            cannot grow into the arc on a narrower screen. */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="text-[2.9vw] font-semibold leading-none tracking-tight tabular-nums text-white">
+            {pct == null ? '—' : `${pct}%`}
+          </span>
+        </div>
       </div>
+      <span className="max-w-[13vw] text-center text-[0.82vw] leading-snug text-white/65">{caption}</span>
     </div>
   )
 }
@@ -418,12 +432,12 @@ function UgcSlide({ slide }: { slide: Slide }) {
       <div className="col-span-8 min-h-0">
         <Glass>
           <GlassTitle icon={Clapperboard}>Concept through to video</GlassTitle>
-          <div className="flex min-h-0 flex-1 flex-col justify-between gap-[1.1vw] py-[0.5vw]">
+          <div className="flex min-h-0 flex-1 flex-col justify-center gap-[1.6vw] py-[0.5vw]">
             {funnel.map((f, i) => {
               const top = Math.max(1, funnel[0].v)
               const last = i === funnel.length - 1
               return (
-                <div key={f.stage} className="flex min-h-0 flex-1 items-center gap-[1.1vw]">
+                <div key={f.stage} className="flex min-h-0 max-h-[3.4vw] flex-1 items-center gap-[1.1vw]">
                   <span className="w-[9vw] shrink-0 text-[0.95vw] text-white/70">{f.stage}</span>
                   <div className="h-[2.6vw] flex-1 overflow-hidden rounded-full bg-white/[0.07]">
                     <div
