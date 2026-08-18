@@ -81,9 +81,12 @@ function Glass({ className = '', children }: { className?: string; children: Rea
   const radius = '1.5vw'
   return (
     <Card className={`relative h-full overflow-hidden border-0 bg-transparent shadow-none ${className}`} style={{ borderRadius: radius }}>
+      {/* The bend layer is deliberately larger than the panel. A displacement map pushes
+          pixels sideways, so the layer's own edge comes out rippled — grow it past the panel
+          and let the card's rounded clip cut a clean edge out of the middle of it. */}
       <div
-        className="absolute inset-0 z-0 backdrop-blur-xl"
-        style={{ borderRadius: radius, filter: 'url(#wall-glass)', background: 'rgba(9,14,12,0.72)' }}
+        className="absolute -inset-[3vw] z-0 backdrop-blur-xl"
+        style={{ filter: 'url(#wall-glass)', background: 'rgba(9,14,12,0.72)' }}
       />
       <div
         className="absolute inset-0 z-10"
@@ -93,7 +96,7 @@ function Glass({ className = '', children }: { className?: string; children: Rea
         className="absolute inset-0 z-20"
         style={{ borderRadius: radius, boxShadow: 'inset 2px 2px 2px 0 rgba(255,255,255,0.18), inset -2px -2px 2px 0 rgba(255,255,255,0.12)' }}
       />
-      <CardContent className="relative z-30 flex h-full flex-col p-[1.35vw]">{children}</CardContent>
+      <CardContent className="relative z-30 flex h-full flex-col p-[2vw]">{children}</CardContent>
     </Card>
   )
 }
@@ -104,7 +107,7 @@ function GlassTitle({ icon: Icon, children, right }: {
   right?: React.ReactNode
 }) {
   return (
-    <div className="mb-[1.1vw] flex items-center gap-[0.55vw]">
+    <div className="mb-[1.6vw] flex items-center gap-[0.6vw]">
       <Icon className="h-[1.05vw] w-[1.05vw]" style={{ color: LIME }} />
       <span className="text-[1.05vw] font-semibold leading-none tracking-tight text-white">{children}</span>
       <div className="ml-auto">{right}</div>
@@ -122,7 +125,7 @@ function Stat({ caption, value, unit, tone = 'plain', size = 'md' }: {
 }) {
   const ink = tone === 'warn' ? 'text-[#FF8A7A]' : 'text-white'
   return (
-    <div className="flex flex-1 flex-col justify-center rounded-[1vw] bg-white/[0.055] px-[1.05vw] py-[0.95vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
+    <div className="flex flex-1 flex-col justify-center rounded-[1.1vw] bg-white/[0.055] px-[1.3vw] py-[1.25vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
       <span className={`${size === 'xl' ? 'text-[0.95vw]' : 'text-[0.72vw]'} font-medium leading-none text-white/60`}>{caption}</span>
       <div className="mt-[0.6vw] flex items-baseline gap-[0.3vw]">
         <span className={`${size === 'xl' ? 'text-[4.4vw]' : 'text-[2.3vw]'} font-semibold leading-none tracking-tight tabular-nums ${ink}`}
@@ -279,8 +282,8 @@ function AppSlide({ slide, paid }: { slide: Slide; paid: boolean }) {
   const rows = slide.rows ?? []
   const measurable = (t.total_work ?? 0) > 0
   return (
-    <div className="grid h-full grid-cols-12 gap-[1.2vw]">
-      <div className="col-span-4 flex min-h-0 flex-col gap-[1.2vw]">
+    <div className="grid h-full grid-cols-12 gap-[1.6vw]">
+      <div className="col-span-4 flex min-h-0 flex-col gap-[1.6vw]">
         <Headline
           eyebrow={<><Pill>Live now</Pill><Pill tone="quiet">{paid ? 'Paid' : 'Barter'}</Pill></>}
           title="Mobile app"
@@ -295,7 +298,7 @@ function AppSlide({ slide, paid }: { slide: Slide; paid: boolean }) {
           </Glass>
         </div>
         <Glass className="!h-auto">
-            <div className="grid grid-cols-2 gap-[0.7vw]">
+            <div className="grid grid-cols-2 gap-[1vw]">
               <Stat caption="Brand to decide" value={t.awaiting_brand ?? 0} tone={t.awaiting_brand ? 'accent' : 'plain'} />
               <Stat caption="Applications" value={t.applications_pending ?? 0} />
               <Stat caption="Content to check" value={t.to_check ?? 0} />
@@ -316,9 +319,9 @@ function AppSlide({ slide, paid }: { slide: Slide; paid: boolean }) {
           >
             {paid ? 'Paid campaigns' : 'Barter campaigns'}
           </GlassTitle>
-          <div className="flex min-h-0 flex-1 flex-col content-start gap-[0.7vw] overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col content-start gap-[1vw] overflow-hidden">
             {rows.map((c: any) => (
-              <div key={c.id} className="flex min-h-0 max-h-[11vw] flex-1 flex-col justify-center rounded-[1.1vw] bg-white/[0.05] px-[1.1vw] py-[0.95vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
+              <div key={c.id} className="flex min-h-0 max-h-[11vw] flex-1 flex-col justify-center rounded-[1.2vw] bg-white/[0.05] px-[1.4vw] py-[1.25vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
                 <div className="flex items-center gap-[0.9vw]">
                   <BrandMark src={c.brand_logo_url} name={c.brand_name} />
                   <div className="min-w-0 flex-1">
@@ -354,8 +357,8 @@ function ManagedSlide({ slide }: { slide: Slide }) {
   const t = slide.totals ?? {}
   const rows = slide.rows ?? []
   return (
-    <div className="grid h-full grid-cols-12 gap-[1.2vw]">
-      <div className="col-span-4 flex min-h-0 flex-col gap-[1.2vw]">
+    <div className="grid h-full grid-cols-12 gap-[1.6vw]">
+      <div className="col-span-4 flex min-h-0 flex-col gap-[1.6vw]">
         <Headline
           eyebrow={<><Pill>Live now</Pill><Pill tone="quiet">Proposals</Pill></>}
           title="Managed"
@@ -368,7 +371,7 @@ function ManagedSlide({ slide }: { slide: Slide }) {
           </Glass>
         </div>
         <Glass className="!h-auto">
-          <div className="grid grid-cols-2 gap-[0.7vw]">
+          <div className="grid grid-cols-2 gap-[1vw]">
             <Stat caption="Creators booked" value={t.booked ?? 0} tone="accent" />
             <Stat caption="Posts live" value={t.posts ?? 0} />
           </div>
@@ -377,9 +380,9 @@ function ManagedSlide({ slide }: { slide: Slide }) {
       <div className="col-span-8 min-h-0">
         <Glass>
           <GlassTitle icon={CheckCircle2}>Campaigns</GlassTitle>
-          <div className="flex min-h-0 flex-1 flex-col content-start gap-[0.7vw] overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col content-start gap-[1vw] overflow-hidden">
             {rows.map((c: any) => (
-              <div key={c.id} className="flex min-h-0 max-h-[11vw] flex-1 flex-col justify-center rounded-[1.1vw] bg-white/[0.05] px-[1.1vw] py-[1vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
+              <div key={c.id} className="flex min-h-0 max-h-[11vw] flex-1 flex-col justify-center rounded-[1.2vw] bg-white/[0.05] px-[1.4vw] py-[1.25vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
                 <div className="flex items-center gap-[0.9vw]">
                   <BrandMark src={c.brand_logo_url} name={c.brand_name} />
                   <div className="min-w-0 flex-1">
@@ -420,8 +423,8 @@ function UgcSlide({ slide }: { slide: Slide }) {
     { stage: 'Delivered', v: t.delivered ?? 0 },
   ]
   return (
-    <div className="grid h-full grid-cols-12 gap-[1.2vw]">
-      <div className="col-span-4 flex min-h-0 flex-col gap-[1.2vw]">
+    <div className="grid h-full grid-cols-12 gap-[1.6vw]">
+      <div className="col-span-4 flex min-h-0 flex-col gap-[1.6vw]">
         <Headline
           eyebrow={<><Pill>Live now</Pill><Pill tone="quiet">Studio</Pill></>}
           title="UGC"
@@ -434,7 +437,7 @@ function UgcSlide({ slide }: { slide: Slide }) {
           </Glass>
         </div>
         <Glass className="!h-auto">
-          <div className="grid grid-cols-2 gap-[0.7vw]">
+          <div className="grid grid-cols-2 gap-[1vw]">
             <Stat caption="In production" value={t.in_production ?? 0} tone="accent" />
             <Stat caption="Videos delivered" value={t.delivered ?? 0} />
           </div>
@@ -479,8 +482,8 @@ function WaitingSlide({ slide }: { slide: Slide }) {
   const t = slide.totals ?? {}
   const rows = slide.rows ?? []
   return (
-    <div className="grid h-full grid-cols-12 gap-[1.2vw]">
-      <div className="col-span-6 flex min-h-0 flex-col gap-[1.2vw]">
+    <div className="grid h-full grid-cols-12 gap-[1.6vw]">
+      <div className="col-span-6 flex min-h-0 flex-col gap-[1.6vw]">
         <Headline
           eyebrow={<><Pill>Right now</Pill><Pill tone="quiet">Everyone</Pill></>}
           title="Waiting on us"
@@ -489,7 +492,7 @@ function WaitingSlide({ slide }: { slide: Slide }) {
         <div className="min-h-0 flex-1">
           <Glass>
             <GlassTitle icon={Inbox}>The queue</GlassTitle>
-            <div className="grid flex-1 grid-cols-3 gap-[0.8vw]">
+            <div className="grid flex-1 grid-cols-3 gap-[1.1vw]">
               <Stat size="xl" caption="Applications to review" value={t.applications ?? 0} tone={t.applications ? 'accent' : 'plain'} />
               <Stat size="xl" caption="Waiting on the brand" value={t.brand_approvals ?? 0} />
               <Stat size="xl" caption="Content to check" value={t.content_to_check ?? 0} />
@@ -515,9 +518,9 @@ function WaitingSlide({ slide }: { slide: Slide }) {
               <span className="text-[0.9vw] text-white/60">Nothing due today or tomorrow</span>
             </div>
           ) : (
-            <div className="flex min-h-0 flex-1 flex-col gap-[0.6vw] overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col gap-[0.9vw] overflow-hidden">
               {rows.map((d: any) => (
-                <div key={d.id} className="flex min-h-0 max-h-[8vw] flex-1 items-center gap-[0.85vw] rounded-[1vw] bg-white/[0.05] px-[1vw] py-[0.8vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
+                <div key={d.id} className="flex min-h-0 max-h-[8vw] flex-1 items-center gap-[0.85vw] rounded-[1.1vw] bg-white/[0.05] px-[1.2vw] py-[1vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
                   <BrandMark src={d.brand_logo_url} name={d.campaign_name} size="2.2vw" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[1.02vw] font-semibold leading-tight text-white">
@@ -545,7 +548,7 @@ function WaitingSlide({ slide }: { slide: Slide }) {
 function SourcingSlide({ slide }: { slide: Slide }) {
   const rows = slide.rows ?? []
   return (
-    <div className="grid h-full grid-cols-12 gap-[1.2vw]">
+    <div className="grid h-full grid-cols-12 gap-[1.6vw]">
       <div className="col-span-4 flex min-h-0 flex-col justify-start gap-[1.2vw]">
         <Headline
           eyebrow={<><Pill>Right now</Pill><Pill tone="quiet">Talent</Pill></>}
@@ -557,11 +560,11 @@ function SourcingSlide({ slide }: { slide: Slide }) {
         <Glass>
           <GlassTitle icon={Search}>Rounds open</GlassTitle>
           {rows.length === 0 ? <Empty>No rounds open</Empty> : (
-            <div className="grid flex-1 grid-cols-2 content-start gap-[0.8vw]">
+            <div className="grid flex-1 grid-cols-2 content-start gap-[1.1vw]">
               {rows.map((r: any) => {
                 const pct = r.target > 0 ? Math.min(100, Math.round((r.found / r.target) * 100)) : null
                 return (
-                  <div key={r.id} className="flex min-h-0 max-h-[11vw] flex-1 flex-col justify-center rounded-[1.1vw] bg-white/[0.05] px-[1.1vw] py-[1vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
+                  <div key={r.id} className="flex min-h-0 max-h-[11vw] flex-1 flex-col justify-center rounded-[1.2vw] bg-white/[0.05] px-[1.4vw] py-[1.25vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
                     <div className="flex items-baseline gap-[0.6vw]">
                       <span className="truncate text-[1.15vw] font-semibold leading-tight tracking-tight text-white">{r.title}</span>
                       <span className="ml-auto shrink-0 text-[0.9vw] tabular-nums text-white/70">
@@ -596,10 +599,6 @@ function renderSlide(s: Slide) {
 }
 
 const KNOWN = new Set(['app_barter', 'app_paid', 'managed', 'ugc', 'waiting', 'sourcing'])
-
-/** The photograph behind a slide: the hero image of the campaign it is about. */
-const heroOf = (s: Slide | null) =>
-  s?.rows?.map((r: any) => r.hero_image_url).find(Boolean) ?? null
 
 /* ── the wall ──────────────────────────────────────────────────────────────────────── */
 
@@ -674,38 +673,30 @@ export default function WallPage() {
   }
 
   const current = slides.length ? slides[index % slides.length] : null
-  const hero = heroOf(current)
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#070A09] text-white">
       <GlassFilter />
-      {/* The ground. A campaign's own hero photograph where the slide has one, our brand loop
-          where it does not — and always a heavy scrim, because the picture is atmosphere and
-          the numbers on top of it are the point. */}
+      {/* The ground: our own loop, the one on the sign-in screen. It sits under a fallback
+          gradient so a browser that will not decode the file still lands on brand colour
+          rather than black. */}
       <div
         className="absolute inset-0"
         style={{ background: 'radial-gradient(80% 60% at 15% 0%, rgba(150,190,45,0.40) 0%, rgba(7,10,9,0) 60%), radial-gradient(70% 70% at 90% 100%, rgba(60,120,85,0.38) 0%, rgba(7,10,9,0) 55%), #070A09' }}
       />
-      {hero ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img key={hero} src={hero} alt="" className="absolute inset-0 h-full w-full object-cover animate-in fade-in duration-[2000ms]" />
-      ) : (
-        <video
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-          src="/abstract-green-gradient-glass-background-following-influencers-platform.mp4"
-          autoPlay muted loop playsInline
-        />
-      )}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ background: 'linear-gradient(105deg, rgba(4,8,6,0.94) 0%, rgba(4,8,6,0.86) 42%, rgba(4,8,6,0.62) 100%)' }}
+      <video
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        src="/abstract-green-gradient-glass-background-following-influencers-platform.mp4"
+        autoPlay muted loop playsInline
       />
+      {/* Dark on the left, where the headline sits on the picture; open on the right, where
+          the panels carry their own ground. */}
       <div
         className="pointer-events-none absolute inset-0"
-        style={{ background: 'radial-gradient(120% 80% at 50% 100%, rgba(4,8,6,0.75) 0%, rgba(4,8,6,0) 60%)' }}
+        style={{ background: 'linear-gradient(100deg, rgba(4,8,6,0.92) 0%, rgba(4,8,6,0.72) 38%, rgba(4,8,6,0.30) 100%)' }}
       />
 
-      <div className="relative flex h-full flex-col gap-[1.3vw] p-[1.6vw]">
+      <div className="relative flex h-full flex-col gap-[1.6vw] p-[2.2vw]">
         <header className="flex items-center gap-[1vw]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/Following Logo Dark Mode.svg" alt="Following" className="h-[1.5vw] w-auto" />
