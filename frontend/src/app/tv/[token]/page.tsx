@@ -150,6 +150,11 @@ function BrandMark({ src, name, size = '2.7vw' }: { src?: string | null; name?: 
 function Ring({ pct, caption }: { pct: number | null; caption: string }) {
   const value = Math.max(0, Math.min(100, pct ?? 0))
   const data = [{ name: 'v', v: value }]
+  const label = pct == null ? '—' : `${pct}%`
+  // The hole is 79 units wide in the chart's 100-unit box. The widest line that fits inside
+  // a circle is its inscribed square, and 42 of those units leaves air on both sides of the
+  // longest reading we can show.
+  const fontSize = Math.min(28, 42 / (0.6 * Math.max(2, label.length)))
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[0.9vw]">
       <div className="relative aspect-square h-[13vw] max-h-full">
@@ -157,7 +162,7 @@ function Ring({ pct, caption }: { pct: number | null; caption: string }) {
           config={ringConfig}
           className="h-full w-full [&_.recharts-radial-bar-background-sector]:fill-white/10"
         >
-          <RadialBarChart data={data} innerRadius="74%" outerRadius="100%" startAngle={90} endAngle={-270}>
+          <RadialBarChart data={data} innerRadius="79%" outerRadius="100%" startAngle={90} endAngle={-270}>
             {/* The value axis is what makes this a gauge rather than a bar: the track is the
                 whole circle and the bar is the share of it that is done. */}
             <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
@@ -170,13 +175,19 @@ function Ring({ pct, caption }: { pct: number | null; caption: string }) {
             />
           </RadialBarChart>
         </ChartContainer>
-        {/* The reading sits in the hole and is sized to the hole, not to the panel, so it
-            cannot grow into the arc on a narrower screen. */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="text-[2.9vw] font-semibold leading-none tracking-tight tabular-nums text-white">
-            {pct == null ? '—' : `${pct}%`}
-          </span>
-        </div>
+        {/* The reading is drawn in the chart's own coordinates, and its size is derived from
+            how many characters it has against the width of the hole. A CSS size cannot do
+            this: "100%" is a third wider than "35%", so a size that clears the arc for one
+            touches it for the other. */}
+        <svg viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 h-full w-full">
+          <text
+            x="50" y="50" textAnchor="middle" dominantBaseline="central"
+            fill="#fff" fontSize={fontSize} fontWeight={600} letterSpacing="-0.5"
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
+            {label}
+          </text>
+        </svg>
       </div>
       <span className="max-w-[13vw] text-center text-[0.82vw] leading-snug text-white/65">{caption}</span>
     </div>
@@ -353,7 +364,7 @@ function ManagedSlide({ slide }: { slide: Slide }) {
         <div className="min-h-0 flex-1">
           <Glass>
             <GlassTitle icon={Users}>Roster booked</GlassTitle>
-            <Ring pct={t.pct ?? null} caption={`${t.booked_against_target ?? 0} of ${t.target ?? 0} creators booked`} />
+            <Ring pct={t.pct ?? null} caption={`${t.booked_against_target ?? 0} of ${t.target ?? 0} booked on the campaigns that set a target`} />
           </Glass>
         </div>
         <Glass className="!h-auto">
