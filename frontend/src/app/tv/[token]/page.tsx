@@ -19,7 +19,7 @@
  *
  * shadcn/ui only: Card, Badge, Progress, Avatar, Separator, and the shadcn chart wrapper.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { API_CONFIG } from '@/config/api'
 import { Card, CardContent } from '@/components/ui/card'
@@ -51,6 +51,37 @@ const dayLabel = (iso: string | null) => {
 }
 
 type Slide = { key: string; title: string; rows?: any[]; totals?: Record<string, any> }
+
+/**
+ * Eases a number towards its target, from wherever it currently is.
+ *
+ * Everything that carries a value on this screen goes through here, so a slide arriving and
+ * a refresh landing under a slide that is already up both read as the same slow settle
+ * rather than a jump. Ease-out, over about a second: on a wall in peripheral vision, motion
+ * that decelerates is calm and motion that snaps is a distraction.
+ */
+function useEased(target: number, ms = 1100) {
+  const [value, setValue] = useState(0)
+  const from = useRef(0)
+  useEffect(() => {
+    const start = from.current
+    const delta = target - start
+    if (delta === 0) return
+    let raf = 0
+    const t0 = performance.now()
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / ms)
+      const eased = 1 - Math.pow(1 - p, 3)
+      const next = start + delta * eased
+      from.current = next
+      setValue(next)
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, ms])
+  return value
+}
 
 /* ── the parts everything is built from ────────────────────────────────────────────── */
 
@@ -124,12 +155,17 @@ function Stat({ caption, value, unit, tone = 'plain', size = 'md' }: {
   size?: 'md' | 'xl'
 }) {
   const ink = tone === 'warn' ? 'text-[#FF8A7A]' : 'text-white'
+  // A count that lands on its number is the difference between a screen that is alive and a
+  // screen somebody printed. Only real numbers count; anything else is shown as it is.
+  const numeric = typeof value === 'number' ? value : null
+  const eased = useEased(numeric ?? 0)
+  const shown = numeric == null ? value : Math.round(eased)
   return (
     <div className="flex flex-1 flex-col justify-center rounded-[1.1vw] bg-white/[0.055] px-[1.3vw] py-[1.25vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
       <span className={`${size === 'xl' ? 'text-[0.95vw]' : 'text-[0.72vw]'} font-medium leading-none text-white/60`}>{caption}</span>
       <div className="mt-[0.6vw] flex items-baseline gap-[0.3vw]">
         <span className={`${size === 'xl' ? 'text-[4.4vw]' : 'text-[2.3vw]'} font-semibold leading-none tracking-tight tabular-nums ${ink}`}
-              style={tone === 'accent' ? { color: LIME } : undefined}>{value}</span>
+              style={tone === 'accent' ? { color: LIME } : undefined}>{shown}</span>
         {unit && <span className="text-[0.8vw] text-white/55">{unit}</span>}
       </div>
     </div>
@@ -151,9 +187,9 @@ function BrandMark({ src, name, size = '2.7vw' }: { src?: string | null; name?: 
 /** Completion, as shadcn's radial chart: a rounded bar sweeping its own full-circle track,
  *  with the reading in the hole. */
 function Ring({ pct, caption }: { pct: number | null; caption: string }) {
-  const value = Math.max(0, Math.min(100, pct ?? 0))
+  const value = useEased(Math.max(0, Math.min(100, pct ?? 0)))
   const data = [{ name: 'v', v: value }]
-  const label = pct == null ? '—' : `${pct}%`
+  const label = pct == null ? '—' : `${Math.round(value)}%`
   // The hole is 79 units wide in the chart's 100-unit box. The widest line that fits inside
   // a circle is its inscribed square, and 42 of those units leaves air on both sides of the
   // longest reading we can show.
@@ -192,7 +228,7 @@ function Ring({ pct, caption }: { pct: number | null; caption: string }) {
           </text>
         </svg>
       </div>
-      <span className="max-w-[13vw] text-center text-[0.82vw] leading-snug text-white/65">{caption}</span>
+      <span className="whitespace-nowrap text-center text-[0.85vw] text-white/65">{caption}</span>
     </div>
   )
 }
@@ -200,10 +236,11 @@ function Ring({ pct, caption }: { pct: number | null; caption: string }) {
 /** The stand-in for a ring on work that has not started: the stage it is actually stuck at,
  *  as one number the room can read. */
 function BigWait({ value, caption }: { value: number; caption: string }) {
+  const eased = useEased(value)
   return (
     <div className="flex flex-1 flex-col items-center justify-center">
       <span className="text-[6vw] font-semibold leading-none tracking-tight tabular-nums" style={{ color: LIME }}>
-        {value}
+        {Math.round(eased)}
       </span>
       <span className="mt-[0.9vw] max-w-[13vw] text-center text-[0.95vw] leading-snug text-white/70">{caption}</span>
     </div>
@@ -213,15 +250,21 @@ function BigWait({ value, caption }: { value: number; caption: string }) {
 /** Where one campaign's content has got to: verified, being checked, still owed. */
 function WorkBar({ done, checking, owed }: { done: number; checking: number; owed: number }) {
   const total = Math.max(1, done + checking + owed)
-  const seg = (n: number, cls: string) =>
-    n > 0 ? <div className={cls} style={{ width: `${(n / total) * 100}%` }} /> : null
+  const grown = useEased(1)
+  const seg = (n: number, cls: string, style?: React.CSSProperties) =>
+    n > 0 ? <div className={cls} style={{ width: `${(n / total) * 100 * grown}%`, ...style }} /> : null
   return (
     <div className="flex h-[0.5vw] w-full overflow-hidden rounded-full bg-white/[0.10]">
-      {done > 0 ? <div style={{ width: `${(done / total) * 100}%`, background: LIME }} /> : null}
+      {seg(done, '', { background: LIME })}
       {seg(checking, 'bg-[#F5C451]')}
       {seg(owed, 'bg-white/22')}
     </div>
   )
+}
+
+/** shadcn's Progress, filling rather than appearing. */
+function EasedProgress({ value, className }: { value: number; className?: string }) {
+  return <Progress value={useEased(value)} className={className} />
 }
 
 /** Dot legend with the count under each label, the way the reference labels its bars. */
@@ -367,7 +410,7 @@ function ManagedSlide({ slide }: { slide: Slide }) {
         <div className="min-h-0 flex-1">
           <Glass>
             <GlassTitle icon={Users}>Roster booked</GlassTitle>
-            <Ring pct={t.pct ?? null} caption={`${t.booked_against_target ?? 0} of ${t.target ?? 0} booked on the campaigns that set a target`} />
+            <Ring pct={t.pct ?? null} caption={`${t.booked_against_target ?? 0} of ${t.target ?? 0} against target`} />
           </Glass>
         </div>
         <Glass className="!h-auto">
@@ -399,7 +442,7 @@ function ManagedSlide({ slide }: { slide: Slide }) {
                 {c.pct == null ? (
                   <div className="mt-[0.8vw] text-[0.78vw] text-white/50">No roster target set</div>
                 ) : (
-                  <Progress
+                  <EasedProgress
                     value={c.pct}
                     className="mt-[0.8vw] h-[0.5vw] bg-white/[0.10] [&>div]:bg-[#D3FF02]"
                   />
@@ -422,6 +465,7 @@ function UgcSlide({ slide }: { slide: Slide }) {
     { stage: 'In production', v: t.in_production ?? 0 },
     { stage: 'Delivered', v: t.delivered ?? 0 },
   ]
+  const grown = useEased(1)
   return (
     <div className="grid h-full grid-cols-12 gap-[1.6vw]">
       <div className="col-span-4 flex min-h-0 flex-col gap-[1.6vw]">
@@ -455,10 +499,11 @@ function UgcSlide({ slide }: { slide: Slide }) {
                   <span className="w-[9vw] shrink-0 text-[0.95vw] text-white/70">{f.stage}</span>
                   <div className="h-[2.6vw] flex-1 overflow-hidden rounded-full bg-white/[0.07]">
                     <div
-                      className="h-full rounded-full transition-[width] duration-1000"
+                      className="h-full rounded-full"
                       style={{
-                        width: `${Math.max(2, (f.v / top) * 100)}%`,
+                        width: `${Math.max(2, (f.v / top) * 100) * grown}%`,
                         background: last ? LIME : `rgba(255,255,255,${0.14 + i * 0.06})`,
+                        transition: 'background 600ms ease',
                       }}
                     />
                   </div>
@@ -574,7 +619,7 @@ function SourcingSlide({ slide }: { slide: Slide }) {
                     <div className="mt-[0.4vw] truncate text-[0.76vw] text-white/60">
                       {r.client_name ?? '—'} · Round {r.round_no}
                     </div>
-                    <Progress value={pct ?? 0} className="mt-[0.8vw] h-[0.45vw] bg-white/[0.10] [&>div]:bg-[#D3FF02]" />
+                    <EasedProgress value={pct ?? 0} className="mt-[0.8vw] h-[0.45vw] bg-white/[0.10] [&>div]:bg-[#D3FF02]" />
                   </div>
                 )
               })}
