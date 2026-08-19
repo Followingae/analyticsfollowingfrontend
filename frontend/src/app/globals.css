@@ -6,6 +6,30 @@
    Modern OKLCH color space with light/dark mode support
    ============================================================================ */
 
+/* The new UAE Dirham sign (U+20C3).
+ *
+ * No system font carries this codepoint yet, so it has to be served — and the package's own
+ * stylesheet did not survive the production build, which is why the mark rendered as an empty
+ * box on the live site while looking fine locally. The face is ours now, declared here and
+ * loaded from /public, scoped by unicode-range so it affects nothing else on the page. */
+@font-face {
+  font-family: "Dirham-Sans";
+  src: url("/fonts/dirham-sans.woff2") format("woff2"),
+       url("/fonts/dirham-sans.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+20C3;
+}
+@font-face {
+  font-family: "Dirham";
+  src: url("/fonts/dirham.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+20C3;
+}
+
 /* AED Custom Font for Currency Display */
 .aed-currency {
   font-family: var(--font-aed), "Dirham-Sans", -apple-system, BlinkMacSystemFont, sans-serif;
