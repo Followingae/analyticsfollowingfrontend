@@ -49,7 +49,8 @@ import {
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, isLoading } = useEnhancedAuth()
-  const { can, isSuperAdmin, canSeeCost, staffRole } = useAdminAccess()
+  const { can, isSuperAdmin, canSeeCost, staffRole, isFullAccessStaff, loading: accessLoading } =
+    useAdminAccess()
   const pathname = usePathname() || ""
 
   // Dynamic user data
@@ -113,11 +114,15 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
    * screens themselves, and search reaches everything — which it could not do for staff until
    * the palette stopped mistaking them for brand customers.
    */
+  // Permissions arrive a beat after the first paint. Until they do, show the two entries
+  // everyone has rather than a menu that is briefly wrong for whoever is looking at it —
+  // an ungated item rendered during that beat is an item shown to the wrong person.
   const talentOnly = !isSuperAdmin && staffRole === "talent_manager"
   const bizdevOnly = !isSuperAdmin && staffRole === "business_development"
   const accountOnly = !isSuperAdmin && staffRole === "account_manager"
+  const leadership = isSuperAdmin || isFullAccessStaff
 
-  const managementItems = talentOnly
+  const managementItems = accessLoading ? [] : talentOnly
     ? [
         { title: "Creators & rates", url: "/work/influencers", icon: Users2 },
         { title: "Creators needing a price", url: "/work/influencers/review", icon: Coins },
@@ -157,12 +162,14 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         ...(can("billing") || can("influencers") ? [{
           title: "Money", url: "/work/money", icon: Banknote,
         }] : []),
-        { title: "Sign-offs", url: "/work/approvals", icon: ClipboardCheck },
+        ...(leadership
+          ? [{ title: "Sign-offs", url: "/work/approvals", icon: ClipboardCheck }]
+          : []),
       ]
 
   // Running the company: set once a month, read every week, and until now reachable only by
   // typing the address.
-  const companyItems = talentOnly || bizdevOnly || accountOnly
+  const companyItems = accessLoading || !leadership
     ? []
     : [
         { title: "Daily targets", url: "/work/goals", icon: BarChart3 },
