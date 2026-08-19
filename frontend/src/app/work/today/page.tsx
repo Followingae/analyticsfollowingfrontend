@@ -70,17 +70,49 @@ const FLOWS: { match: RegExp; label: string; steps: string[]; at: number }[] = [
 
 const flowFor = (href?: string) => (href ? FLOWS.find(f => f.match.test(href)) : undefined)
 
-/** The places people go ten times a day. */
-const SHORTCUTS: { key: string; label: string; href: string; icon: any; module?: AdminModule }[] = [
-  { key: 'areas', label: 'Areas', href: '/work/areas', icon: Layers, module: 'influencers' },
-  { key: 'waiting-room', label: 'Waiting room', href: '/work/influencers/review', icon: Users, module: 'influencers' },
+/**
+ * What the one big button does, per role.
+ *
+ * It said "Add creators" to everybody, including the two people whose job never touches the
+ * creator database — and pointed at a screen their role cannot open.
+ */
+const PRIMARY: Record<string, { label: string; href: string }> = {
+  leadership: { label: 'Add creators', href: '/work/influencers/add' },
+  talent: { label: 'Add creators', href: '/work/influencers/add' },
+  business_development: { label: 'Log a brand', href: '/work/brands' },
+  account: { label: 'Open my clients', href: '/work/clients' },
+}
+
+/**
+ * The places people go ten times a day.
+ *
+ * `module` is what their account may open; `scopes` is whose job it is. Both are needed:
+ * the talent team hold the campaigns module, which was putting the founders' approvals desk
+ * on their strip — a chip that 403s the moment it is pressed.
+ */
+const SHORTCUTS: {
+  key: string; label: string; href: string; icon: any
+  module?: AdminModule; scopes?: string[]
+}[] = [
+  // Areas carry the sample packs business development send to a prospect, so this one is
+  // reached through the client side of the house as well as the creator side.
+  { key: 'areas', label: 'Areas', href: '/work/areas', icon: Layers,
+    scopes: ['leadership', 'talent', 'business_development'] },
+  { key: 'waiting-room', label: 'Waiting room', href: '/work/influencers/review', icon: Users,
+    module: 'influencers', scopes: ['leadership', 'talent'] },
   { key: 'proposals', label: 'Proposals', href: '/work/proposals', icon: FileText, module: 'proposals' },
   { key: 'campaigns', label: 'Campaigns', href: '/work/campaigns', icon: Sparkles, module: 'campaigns' },
   { key: 'brands', label: 'Brands', href: '/work/brands', icon: Building2, module: 'clients' },
-  { key: 'approvals', label: 'Approvals', href: '/work/approvals', icon: ClipboardCheck, module: 'campaigns' },
-  { key: 'payables', label: 'Payables', href: '/work/payables', icon: Banknote, module: 'influencers' },
-  { key: 'coverage', label: 'Coverage', href: '/work/coverage', icon: Compass, module: 'influencers' },
-  { key: 'screens', label: 'Office screens', href: '/work/system/displays', icon: Monitor, module: 'system' },
+  // The founders' desk: raising and reading approvals is leadership scope on the server.
+  { key: 'approvals', label: 'Approvals', href: '/work/approvals', icon: ClipboardCheck,
+    scopes: ['leadership'] },
+  // Payables are cost, which the talent team negotiate and therefore may see.
+  { key: 'payables', label: 'Payables', href: '/work/payables', icon: Banknote,
+    module: 'influencers', scopes: ['leadership', 'talent'] },
+  { key: 'coverage', label: 'Coverage', href: '/work/coverage', icon: Compass,
+    module: 'influencers', scopes: ['leadership', 'talent'] },
+  { key: 'screens', label: 'Office screens', href: '/work/system/displays', icon: Monitor,
+    module: 'system', scopes: ['leadership'] },
 ]
 
 
@@ -151,7 +183,12 @@ export default function OperationsCentre() {
   const queue = tab === 'you' ? needs : moving
   const active = queue[Math.min(sel, Math.max(0, queue.length - 1))]
   const flow = flowFor(active?.href)
-  const shortcuts = SHORTCUTS.filter(s => !s.module || can(s.module))
+  // The endpoint says which job this person does; business development are their own role
+  // even though they share the account money scope.
+  const role: string = data?.role || data?.scope || 'leadership'
+  const primary = PRIMARY[role] ?? PRIMARY.leadership
+  const shortcuts = SHORTCUTS.filter(
+    s => (!s.module || can(s.module)) && (!s.scopes || s.scopes.includes(role)))
 
   if (loading) {
     return (
@@ -194,12 +231,12 @@ export default function OperationsCentre() {
             <button
               type="button"
               data-tour="today-add"
-              onClick={() => router.push('/work/influencers/add')}
+              onClick={() => router.push(primary.href)}
               className="rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white
                          transition-colors hover:bg-neutral-800
                          dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
             >
-              Add creators
+              {primary.label}
             </button>
           </div>
         </div>
@@ -225,6 +262,19 @@ export default function OperationsCentre() {
                   <p className="mt-3 text-[34px] font-semibold leading-none tracking-[-0.02em] tabular-nums">
                     {s.format === 'aed' ? <Aed>{aed(Number(s.value) || 0)}</Aed> : (s.value ?? 0)}
                   </p>
+                  {/* A target that exists gets a bar under it. One that does not gets
+                      nothing — a full bar under an unmeasured number is a lie. */}
+                  {typeof s.progress === 'number' && (
+                    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/[0.12]">
+                      <div
+                        className="h-full rounded-full bg-neutral-900 dark:bg-white"
+                        style={{
+                          width: `${Math.max(3, Math.round(s.progress * 100))}%`,
+                          transition: 'width 900ms cubic-bezier(0.22,1,0.36,1)',
+                        }}
+                      />
+                    </div>
+                  )}
                   {s.hint && <p className="mt-2.5 text-xs text-muted-foreground">{s.hint}</p>}
                 </button>
               )
@@ -417,16 +467,27 @@ export default function OperationsCentre() {
                     )}
                   </div>
 
+                  {/* How far this piece of work has come, not how far you have scrolled.
+                      The ring used to read "3 of 7" — your position in a list, drawn as a
+                      completion figure, which measured nothing anybody could act on. */}
                   <div className="md:col-span-2">
                     <div className="rounded-2xl bg-black/[0.03] p-4 dark:bg-white/[0.05]">
                       <p className="text-center text-[11.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                        Your queue
+                        {flow ? 'How far along' : 'Waiting on you'}
                       </p>
                       <div className="mt-3 flex justify-center">
                         <Ring
-                          pct={queue.length ? Math.round(((sel + 1) / queue.length) * 100) : 100}
+                          pct={flow
+                            ? Math.round((flow.at / (flow.steps.length - 1)) * 100)
+                            : needs.length
+                              ? Math.round((needs.filter(n => n.urgency !== 'high').length / needs.length) * 100)
+                              : 100}
                           size={116}
-                          caption={queue.length ? `${sel + 1} of ${queue.length}` : 'clear'}
+                          caption={flow
+                            ? `${flow.steps[flow.at]} · step ${flow.at + 1} of ${flow.steps.length}`
+                            : needs.filter(n => n.urgency === 'high').length
+                              ? `${needs.filter(n => n.urgency === 'high').length} need you now`
+                              : 'nothing urgent'}
                         />
                       </div>
                     </div>
