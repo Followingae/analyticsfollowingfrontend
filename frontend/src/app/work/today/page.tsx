@@ -100,20 +100,20 @@ const SHORTCUTS: {
 }[] = [
   // Areas carry the sample packs business development send to a prospect, so this one is
   // reached through the client side of the house as well as the creator side.
-  { key: 'areas', label: 'Areas', href: '/work/areas', icon: Layers,
+  { key: 'areas', label: 'Brand rosters', href: '/work/areas', icon: Layers,
     scopes: ['leadership', 'talent', 'business_development'] },
-  { key: 'waiting-room', label: 'Waiting room', href: '/work/influencers/review', icon: Users,
+  { key: 'waiting-room', label: 'Needs a price', href: '/work/influencers/review', icon: Users,
     module: 'influencers', scopes: ['leadership', 'talent'] },
   { key: 'proposals', label: 'Proposals', href: '/work/proposals', icon: FileText, module: 'proposals' },
   { key: 'campaigns', label: 'Campaigns', href: '/work/campaigns', icon: Sparkles, module: 'campaigns' },
   { key: 'brands', label: 'Brands', href: '/work/brands', icon: Building2, module: 'clients' },
   // The founders' desk: raising and reading approvals is leadership scope on the server.
-  { key: 'approvals', label: 'Approvals', href: '/work/approvals', icon: ClipboardCheck,
+  { key: 'approvals', label: 'Sign-offs', href: '/work/approvals', icon: ClipboardCheck,
     scopes: ['leadership'] },
   // Payables are cost, which the talent team negotiate and therefore may see.
-  { key: 'payables', label: 'Payables', href: '/work/payables', icon: Banknote,
+  { key: 'payables', label: 'Creator payments', href: '/work/payables', icon: Banknote,
     module: 'influencers', scopes: ['leadership', 'talent'] },
-  { key: 'coverage', label: 'Coverage', href: '/work/coverage', icon: Compass,
+  { key: 'coverage', label: "Where we're thin", href: '/work/coverage', icon: Compass,
     module: 'influencers', scopes: ['leadership', 'talent'] },
   { key: 'screens', label: 'Office screens', href: '/work/system/displays', icon: Monitor,
     module: 'system', scopes: ['leadership'] },
