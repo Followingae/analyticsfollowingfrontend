@@ -1707,7 +1707,7 @@ export default function CampaignDetailsPage() {
         <div className="flex flex-wrap gap-2">
           {campaign.budget != null && (
             <Badge variant="secondary" className="text-xs">
-              Budget: AED {Number(campaign.budget).toLocaleString()}
+              Budget: ⃃ {Number(campaign.budget).toLocaleString()}
             </Badge>
           )}
           {campaign.payment_status && (

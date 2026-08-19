@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  ArrowRight, ArrowUpRight, CheckCircle2, Clock, RefreshCw, Search, Sparkles,
+  ArrowRight, ArrowUpRight, CheckCircle2, RefreshCw, Search, Sparkles,
   Users, Layers, FileText, Banknote, Monitor, ClipboardCheck, Building2, Compass,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -30,7 +30,7 @@ import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { useAdminAccess, type AdminModule } from '@/hooks/useAdminAccess'
-import { Aed, CARD, Ring } from '@/components/console/primitives'
+import { Aed, CARD, GroupLabel, Ring, RoundButton, ScoreDot, type Tone } from '@/components/console/primitives'
 import { cn } from '@/lib/utils'
 
 const greeting = () => {
@@ -82,6 +82,32 @@ const SHORTCUTS: { label: string; href: string; icon: any; module?: AdminModule 
   { label: 'Coverage', href: '/work/coverage', icon: Compass, module: 'influencers' },
   { label: 'Office screens', href: '/work/system/displays', icon: Monitor, module: 'system' },
 ]
+
+
+/**
+ * How long this has been sitting, pulled from the line the endpoint already writes
+ * ("oldest waiting 4 days", "nothing has moved in two weeks"). It is a score in the
+ * reference's sense: the number you scan down the column to find what is rotting.
+ */
+function age(item: Item): { value: string; suffix?: string; tone: Tone; label: string } {
+  if (item.urgency === 'high') return { value: '!', tone: 'bad', label: 'Needs attention now' }
+
+  const d = (item.detail || '').toLowerCase()
+  const WORDS: Record<string, number> = {
+    a: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+    eight: 8, nine: 9, ten: 10,
+  }
+  // "4 days", "two weeks", "a month" — the endpoint writes all three shapes.
+  const m = /(\d+|a|one|two|three|four|five|six|seven|eight|nine|ten)\s+(day|week|month)/.exec(d)
+  if (!m) return { value: '·', tone: 'neutral', label: 'No age recorded' }
+
+  const count = /^\d+$/.test(m[1]) ? Number(m[1]) : (WORDS[m[1]] ?? 1)
+  const days = m[2] === 'week' ? count * 7 : m[2] === 'month' ? count * 30 : count
+
+  if (days === 0) return { value: 'new', tone: 'good', label: 'Arrived today' }
+  const tone: Tone = days >= 7 ? 'bad' : days >= 3 ? 'warn' : 'good'
+  return { value: String(days), suffix: 'd', tone, label: `Waiting ${days} day${days === 1 ? '' : 's'}` }
+}
 
 /** A soft circular icon button — the quiet action, as the reference uses it. */
 function IconButton({ icon: Icon, label, onClick }: { icon: any; label: string; onClick?: () => void }) {
@@ -204,6 +230,30 @@ export default function OperationsCentre() {
           </div>
         )}
 
+        {/* ── the shortcuts, above the fold ───────────────────────────────────────
+            They were under the desk, which meant scrolling past your own work to reach the
+            places you go ten times a day. As a strip they cost one row and are always there. */}
+        <div className="flex flex-wrap gap-2">
+          {shortcuts.map(s => (
+            <button
+              key={s.href}
+              type="button"
+              onClick={() => router.push(s.href)}
+              className={cn(
+                'group inline-flex items-center gap-2 rounded-full border border-black/[0.06] bg-white',
+                'py-2 pl-2 pr-4 text-[13px] font-medium transition-all hover:-translate-y-0.5',
+                'dark:border-white/[0.08] dark:bg-neutral-900/70',
+              )}
+            >
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-black/[0.05] transition-colors
+                               group-hover:bg-[#EAF3C8] dark:bg-white/[0.08] dark:group-hover:bg-lime-950/50">
+                <s.icon className="h-3.5 w-3.5 text-muted-foreground" />
+              </span>
+              {s.label}
+            </button>
+          ))}
+        </div>
+
         {/* ── the desk: queue on the left, canvas on the right ────────────────────── */}
         <div className="grid items-start gap-5 lg:grid-cols-12">
           <section className={cn(CARD, 'bg-white lg:col-span-5 dark:bg-neutral-900/70')}>
@@ -233,34 +283,50 @@ export default function OperationsCentre() {
             <div className="max-h-[520px] space-y-1.5 overflow-y-auto px-3 pb-4">
               {queue.map((n, i) => {
                 const on = i === sel
-                const urgent = n.urgency === 'high'
+                const a = age(n)
+                const previous = i > 0 ? age(queue[i - 1]) : null
+                // The reference breaks its list into "Today" and "3 weeks ago". Ours breaks
+                // on the same idea: what arrived today, and what has been sitting.
+                const band = a.value === 'new' ? 'Came in today' : a.value === '!' ? 'Needs you now' : 'Waiting'
+                const prevBand = previous
+                  ? (previous.value === 'new' ? 'Came in today' : previous.value === '!' ? 'Needs you now' : 'Waiting')
+                  : null
                 return (
-                  <button
-                    key={`${n.title}-${i}`}
-                    type="button"
-                    onClick={() => setSel(i)}
-                    className={cn(
-                      'flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition-all',
-                      on
-                        ? 'border-[#C7DE55] bg-[#F4FADF] dark:border-lime-500/40 dark:bg-lime-950/30'
-                        : 'border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.05]',
-                    )}
-                  >
-                    <span className={cn(
-                      'grid h-9 w-9 shrink-0 place-items-center rounded-full text-[13px] font-semibold',
-                      urgent ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
-                             : 'bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]',
-                    )}>
-                      {urgent ? '!' : <Clock className="h-4 w-4" />}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[14px] font-medium leading-snug">{n.title}</span>
-                      {n.detail && (
-                        <span className="block truncate text-[12.5px] text-muted-foreground">{n.detail}</span>
+                  <div key={`${n.title}-${i}`}>
+                    {band !== prevBand && <GroupLabel>{band}</GroupLabel>}
+                    {/* The row is a div carrying its own button, because the open control is
+                        a button too and a button inside a button is invalid HTML — it breaks
+                        hydration, which is what the dev overlay was reporting. */}
+                    <div
+                      className={cn(
+                        'flex items-center gap-2 rounded-2xl border pr-2.5 transition-all',
+                        on
+                          ? 'border-[#C7DE55] bg-[#F4FADF] dark:border-lime-500/40 dark:bg-lime-950/30'
+                          : 'border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.05]',
                       )}
-                    </span>
-                    {on && <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                  </button>
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setSel(i)}
+                        className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-2.5 text-left"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[14px] font-medium leading-snug">{n.title}</span>
+                          {n.detail && (
+                            <span className="block truncate text-[12.5px] text-muted-foreground">{n.detail}</span>
+                          )}
+                        </span>
+                        <ScoreDot value={a.value} suffix={a.suffix} tone={a.tone} title={a.label} />
+                      </button>
+                      {n.href && (
+                        <RoundButton
+                          icon={ArrowUpRight}
+                          label={`Open ${n.title}`}
+                          onClick={() => router.push(n.href!)}
+                        />
+                      )}
+                    </div>
+                  </div>
                 )
               })}
 
@@ -376,28 +442,6 @@ export default function OperationsCentre() {
           </section>
         </div>
 
-        {/* ── the shortcuts ───────────────────────────────────────────────────────── */}
-        <div>
-          <p className="mb-3 text-[11.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Shortcuts
-          </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {shortcuts.map(s => (
-              <button
-                key={s.href}
-                type="button"
-                onClick={() => router.push(s.href)}
-                className={cn(CARD, 'flex items-center gap-3 bg-white p-3.5 text-left transition-all',
-                              'hover:-translate-y-0.5 dark:bg-neutral-900/70')}
-              >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.05] dark:bg-white/[0.08]">
-                  <s.icon className="h-4 w-4 text-muted-foreground" />
-                </span>
-                <span className="truncate text-[13.5px] font-medium">{s.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </SuperadminLayout>
   )

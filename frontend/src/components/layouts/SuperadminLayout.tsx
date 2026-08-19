@@ -55,6 +55,7 @@ export function SuperadminLayout({
   return (
     <AuthGuard requireAuth={requireAuth} requireAdmin={true} requireSuperAdmin={false}>
       <SidebarProvider
+      className="console-shell"
         style={
           {
             "--sidebar-width": "calc(var(--spacing) * 66)",

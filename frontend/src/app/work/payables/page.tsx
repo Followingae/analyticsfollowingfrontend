@@ -41,7 +41,7 @@ async function api(path = '', init?: RequestInit) {
 }
 
 const aed = (n: any) => n == null ? '—'
-  : `AED ${Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
+  : `⃃ ${Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
 
 const TONE: Record<string, string> = {
   owed: 'bg-amber-500/10 text-amber-600 border-amber-500/20',

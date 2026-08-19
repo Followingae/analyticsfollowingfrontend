@@ -119,7 +119,9 @@ export function NavMain({
               asChild
               className={cn(
                 "transition-colors duration-150",
-                isActive && "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                "rounded-xl",
+                isActive && "bg-sidebar-primary text-sidebar-primary-foreground font-medium " +
+                            "hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
               )}
             >
               <Link href={item.url}>

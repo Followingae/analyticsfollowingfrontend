@@ -24,7 +24,7 @@ const PRIMARY = "reel" as const
 const SECONDARY = ["post", "story", "carousel", "video", "bundle", "monthly"] as const
 
 const fmtAed = (n: number | null | undefined) =>
-  n == null ? "—" : `AED ${Number(n).toLocaleString("en-AE", { maximumFractionDigits: 2 })}`
+  n == null ? "—" : `⃃ ${Number(n).toLocaleString("en-AE", { maximumFractionDigits: 2 })}`
 
 const fmtNum = (n: number | null | undefined) =>
   n == null ? "—" : Number(n).toLocaleString("en-AE")

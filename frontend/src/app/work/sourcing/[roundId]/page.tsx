@@ -35,7 +35,7 @@ import { useAdminAccess } from '@/hooks/useAdminAccess'
 
 const compact = (n: number | null) =>
   n == null ? '—' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : `${n}`
-const aed = (c: number | null) => (c == null ? null : `AED ${(c / 100).toLocaleString('en-AE')}`)
+const aed = (c: number | null) => (c == null ? null : `⃃ ${(c / 100).toLocaleString('en-AE')}`)
 
 const csvList = (v: string) => v.split(',').map(x => x.trim()).filter(Boolean)
 const toNum = (v: string) => (v.trim() ? Number(v) : undefined)
@@ -191,7 +191,7 @@ export default function RoundDetailPage() {
   const kfmt = (n: any) => (Number(n) >= 1000 ? `${Math.round(Number(n) / 1000)}k` : String(n))
   const range = (lo: any, hi: any, f: (x: any) => string) =>
     lo && hi ? `${f(lo)} - ${f(hi)}` : lo ? `${f(lo)}+` : hi ? `up to ${f(hi)}` : null
-  const aed = (n: any) => `AED ${Number(n).toLocaleString()}`
+  const aed = (n: any) => `⃃ ${Number(n).toLocaleString()}`
   const briefFields: { label: string; value: string }[] = [
     arr(crit.categories).length ? { label: 'Kind of creator', value: arr(crit.categories).join(', ') } : null,
     crit.market ? { label: 'Market', value: String(crit.market) } : null,

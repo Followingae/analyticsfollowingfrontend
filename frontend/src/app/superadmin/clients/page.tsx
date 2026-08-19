@@ -55,7 +55,7 @@ export default function ClientsPage() {
 
   const formatAED = (amount: number) => {
     if (!amount) return 'AED 0';
-    return `AED ${Number(amount).toLocaleString('en-AE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    return `⃃ ${Number(amount).toLocaleString('en-AE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   const getInitials = (name: string) => {

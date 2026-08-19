@@ -56,7 +56,7 @@ function WithdrawalCard({
                 )}
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-                <span className="font-mono font-semibold text-foreground">AED {formatCurrencyAED(Number(w.amount) || 0)}</span>
+                <span className="font-mono font-semibold text-foreground">⃃ {formatCurrencyAED(Number(w.amount) || 0)}</span>
                 <span>|</span>
                 <span className="font-mono text-xs">{w.iban}</span>
                 {w.bank_name && <><span>|</span><span>{w.bank_name}</span></>}

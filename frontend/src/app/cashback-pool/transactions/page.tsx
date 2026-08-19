@@ -46,7 +46,7 @@ export default function PoolTransactionsPage() {
     load()
   }, [offset])
 
-  const fmt = (cents: number) => `AED ${(Math.abs(cents) / 100).toLocaleString("en-AE", { minimumFractionDigits: 2 })}`
+  const fmt = (cents: number) => `⃃ ${(Math.abs(cents) / 100).toLocaleString("en-AE", { minimumFractionDigits: 2 })}`
 
   return (
     <AuthGuard requireAuth={true}>

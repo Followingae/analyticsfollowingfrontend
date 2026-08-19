@@ -409,13 +409,13 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
               {value.fulfilment_mode === "delivery" ? (
                 <>
                   <div className="space-y-2"><Label className="flex items-center gap-1.5"><Link2 className="h-3.5 w-3.5" />Redemption URL</Label><Input value={value.redemption_url} onChange={(e) => set({ redemption_url: e.target.value })} placeholder="https://order.mandarinoak.com" /></div>
-                  <div className="space-y-2"><Label>Ordering instructions</Label><Textarea rows={5} value={value.ordering_instructions} onChange={(e) => set({ ordering_instructions: e.target.value })} placeholder={"1. Go to order.mandarinoak.com\n2. Add items from the Thai Fire Edit collection\n3. Apply your code for AED 200 off\n4. Place the order, capture & publish"} /></div>
+                  <div className="space-y-2"><Label>Ordering instructions</Label><Textarea rows={5} value={value.ordering_instructions} onChange={(e) => set({ ordering_instructions: e.target.value })} placeholder={"1. Go to order.mandarinoak.com\n2. Add items from the Thai Fire Edit collection\n3. Apply your code for ⃃ 200 off\n4. Place the order, capture & publish"} /></div>
                 </>
               ) : (
                 <>
                   <div className="space-y-2">
                     <Label>What the visit covers</Label>
-                    <Input value={value.entitlement_label} onChange={(e) => set({ entitlement_label: e.target.value })} placeholder="2 guests · up to AED 300 food & beverage" />
+                    <Input value={value.entitlement_label} onChange={(e) => set({ entitlement_label: e.target.value })} placeholder="2 guests · up to ⃃ 300 food & beverage" />
                     <p className="text-[11px] text-muted-foreground">Shown to venue staff before they confirm, so nobody has to guess what&apos;s included.</p>
                   </div>
                   <div className="space-y-2"><Label>Spend cap (AED)</Label><Input type="number" min={0} value={value.entitlement_cap_aed} onChange={(e) => set({ entitlement_cap_aed: e.target.value })} placeholder="300" /></div>

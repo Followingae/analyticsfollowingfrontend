@@ -212,7 +212,7 @@ export function BrandDashboardContent() {
             <div className="flex items-center gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
               <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-red-800 dark:text-red-300">Cashback pool critically low — AED {poolBalance.available_aed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</p>
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">Cashback pool critically low — ⃃ {poolBalance.available_aed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</p>
                 <p className="text-xs text-red-600 dark:text-red-400">Your campaigns may stop processing cashbacks soon.</p>
               </div>
               <Link href="/cashback-pool/topup" className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
@@ -224,7 +224,7 @@ export function BrandDashboardContent() {
             <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800">
               <Wallet className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Cashback pool running low — AED {poolBalance.available_aed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} remaining</p>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Cashback pool running low — ⃃ {poolBalance.available_aed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} remaining</p>
               </div>
               <Link href="/cashback-pool/topup" className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900">
                 Top Up <ArrowRight className="h-3 w-3" />

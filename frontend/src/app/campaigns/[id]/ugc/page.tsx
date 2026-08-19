@@ -1520,14 +1520,14 @@ export default function UGCCampaignPage() {
                   Budget Summary
                 </h4>
                 <p className="text-sm text-zinc-400 mt-1">
-                  AED {budgetSummary.total_consumed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} consumed across {budgetSummary.video_count} video{budgetSummary.video_count !== 1 ? "s" : ""}
+                  ⃃ {budgetSummary.total_consumed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} consumed across {budgetSummary.video_count} video{budgetSummary.video_count !== 1 ? "s" : ""}
                 </p>
               </div>
               {budgetSummary.total_budget > 0 && (
                 <div className="text-right">
                   <p className="text-xs text-zinc-500">Remaining</p>
                   <p className={`text-lg font-bold ${budgetSummary.remaining >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                    AED {budgetSummary.remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ⃃ {budgetSummary.remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
               )}
@@ -1535,8 +1535,8 @@ export default function UGCCampaignPage() {
             {budgetSummary.total_budget > 0 && (
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs text-zinc-500">
-                  <span>AED {budgetSummary.total_consumed.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                  <span>AED {budgetSummary.total_budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  <span>⃃ {budgetSummary.total_consumed.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  <span>⃃ {budgetSummary.total_budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                 </div>
                 <div className="relative h-2.5 rounded-full overflow-hidden bg-zinc-800">
                   <div
@@ -1655,7 +1655,7 @@ export default function UGCCampaignPage() {
                   )}
                   {video.budget_consumed != null && video.budget_consumed > 0 && (
                     <span className="flex items-center gap-1 text-emerald-400">
-                      AED {Number(video.budget_consumed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ⃃ {Number(video.budget_consumed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   )}
                 </div>

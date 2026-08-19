@@ -71,12 +71,12 @@ export default function TopupPage() {
       if (useCustom) {
         const amount = parseFloat(customAmount)
         if (!amount || amount < 100) {
-          toast.error("Minimum custom amount is AED 100")
+          toast.error("Minimum custom amount is ⃃ 100")
           setLoading(false)
           return
         }
         if (amount > 100000) {
-          toast.error("Maximum custom amount is AED 100,000")
+          toast.error("Maximum custom amount is ⃃ 100,000")
           setLoading(false)
           return
         }
@@ -144,7 +144,7 @@ export default function TopupPage() {
                       <Badge variant={isSelected ? "default" : "secondary"}>{pkg.name}</Badge>
                       {isSelected && <Check className="h-5 w-5 text-primary" />}
                     </div>
-                    <p className="text-3xl font-bold">AED {pkg.amount_aed.toLocaleString()}</p>
+                    <p className="text-3xl font-bold">⃃ {pkg.amount_aed.toLocaleString()}</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       {isUnavailable ? "Currently unavailable" : "One-time pool topup"}
                     </p>
@@ -181,7 +181,7 @@ export default function TopupPage() {
                       autoFocus
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">Min AED 100 — Max AED 100,000</p>
+                  <p className="text-xs text-muted-foreground">Min ⃃ 100 — Max ⃃ 100,000</p>
                 </div>
               </CardContent>
             </Card>
@@ -200,7 +200,7 @@ export default function TopupPage() {
                   </Badge>
                 </div>
                 <p className="text-lg font-semibold">Enter your own amount</p>
-                <p className="text-sm text-muted-foreground mt-1">AED 100 – 100,000</p>
+                <p className="text-sm text-muted-foreground mt-1">⃃ 100 – 100,000</p>
               </div>
             </button>
           )}
@@ -216,14 +216,14 @@ export default function TopupPage() {
                     </p>
                     <p className="text-lg font-semibold">
                       {!useCustom && packages.find((p) => p.id === selected)?.name}
-                      {useCustom ? "Custom" : ""} — AED {displayAmount.toLocaleString()}
+                      {useCustom ? "Custom" : ""} — ⃃ {displayAmount.toLocaleString()}
                     </p>
                   </div>
                   <Zap className="h-5 w-5 text-amber-500" />
                 </div>
                 <Button onClick={() => setConfirmOpen(true)} disabled={loading} className="w-full" size="lg">
                   <CreditCard className="h-4 w-4 mr-2" />
-                  {loading ? "Redirecting to Stripe..." : `Pay AED ${displayAmount.toLocaleString()} with Stripe`}
+                  {loading ? "Redirecting to Stripe..." : `Pay ⃃ ${displayAmount.toLocaleString()} with Stripe`}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center mt-3">
                   You&apos;ll be redirected to Stripe for secure payment. Pool is credited instantly.
@@ -240,7 +240,7 @@ export default function TopupPage() {
                 <AlertDialogTitle>Confirm top-up</AlertDialogTitle>
                 <AlertDialogDescription>
                   You&apos;re about to fund your cashback pool with{" "}
-                  <span className="font-semibold text-foreground">AED {displayAmount.toLocaleString()}</span>.
+                  <span className="font-semibold text-foreground">⃃ {displayAmount.toLocaleString()}</span>.
                   You&apos;ll be taken to Stripe to complete the payment securely.
                 </AlertDialogDescription>
               </AlertDialogHeader>

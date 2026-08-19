@@ -12,6 +12,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { CARD, FieldStrip, StageBar } from '@/components/console/primitives'
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { ArrowLeft, Loader2, FileText, Users, Search, ScrollText,
@@ -41,7 +43,7 @@ const ICON: Record<string, typeof FileText> = {
 }
 
 const aed = (n: number | null | undefined) =>
-  n == null ? '—' : `AED ${Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
+  n == null ? '—' : `⃃ ${Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 
@@ -88,31 +90,68 @@ export default function CampaignTimelinePage() {
                   onClick={() => router.push('/superadmin/campaigns')}>
             <ArrowLeft className="mr-1.5 h-4 w-4" />All campaigns
           </Button>
-          <div className="flex flex-wrap items-start gap-3">
-            <div>
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                {c.client_name && (
-                  c.team_id ? (
-                    <button type="button" onClick={() => router.push(`/work/brands/${c.team_id}`)}>
-                      <Badge variant="outline" className="hover:bg-muted">{c.client_name} →</Badge>
-                    </button>
-                  ) : <Badge variant="outline">{c.client_name}</Badge>
-                )}
-                <Badge variant="secondary" className="capitalize">{c.status}</Badge>
-                {c.campaign_type && (
-                  <Badge variant="outline" className="capitalize">{c.campaign_type}</Badge>
-                )}
+          <div className={cn(CARD, 'relative overflow-hidden bg-white dark:bg-neutral-900/70')}>
+            {/* A pane of glass over a soft wash, the way the reference opens a record. */}
+            <div className="relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#F1F7DC] via-[#FAFBF4] to-[#EFF4FA]
+                              dark:from-lime-950/40 dark:via-neutral-900 dark:to-sky-950/30" />
+              <div className="absolute inset-0 backdrop-blur-2xl" />
+              <div className="relative flex flex-wrap items-start justify-between gap-4 px-6 py-5">
+                <div className="min-w-0">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    {c.client_name && (
+                      c.team_id ? (
+                        <button type="button" onClick={() => router.push(`/work/brands/${c.team_id}`)}>
+                          <Badge variant="outline" className="rounded-full hover:bg-muted">{c.client_name} →</Badge>
+                        </button>
+                      ) : <Badge variant="outline" className="rounded-full">{c.client_name}</Badge>
+                    )}
+                    <Badge variant="secondary" className="rounded-full capitalize">{c.status}</Badge>
+                    {c.campaign_type && (
+                      <Badge variant="outline" className="rounded-full capitalize">{c.campaign_type}</Badge>
+                    )}
+                  </div>
+                  <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{c.name}</h1>
+                </div>
+                <Button
+                  className="rounded-full bg-neutral-900 px-5 text-white hover:bg-neutral-800
+                             dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                  onClick={() => router.push(`/work/campaigns/${campaignId}/ladder`)}
+                >
+                  Delivery board
+                </Button>
               </div>
-              <h1 className="text-2xl font-semibold tracking-tight">{c.name}</h1>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                {c.brand_name}{c.start_date ? ` · from ${when(c.start_date)}` : ''}
-              </p>
             </div>
-            {/* Where the campaign is actually worked: rate, agreement, guide, content, paid. */}
-            <Button className="ml-auto gap-2"
-                    onClick={() => router.push(`/work/campaigns/${campaignId}/ladder`)}>
-              Delivery board
-            </Button>
+
+            {/* The facts strip — a record that opens with a title and nothing else makes you
+                go looking for what you already came to check. */}
+            <div className="border-t border-black/[0.05] px-6 py-4 dark:border-white/[0.07]">
+              <FieldStrip fields={[
+                { label: 'Brand', value: c.brand_name || '—' },
+                { label: 'Starts', value: c.start_date ? when(c.start_date) : '—' },
+                { label: 'Ends', value: c.end_date ? when(c.end_date) : '—' },
+                { label: 'Creators', value: `${confirmed} of ${target}` },
+                { label: 'Posts', value: t.content?.posts ?? 0 },
+              ]} />
+            </div>
+
+            {/* Where the campaign sits, as one pill bar. */}
+            <div className="border-t border-black/[0.05] px-6 py-4 dark:border-white/[0.07]">
+              <StageBar
+                stages={[
+                  { key: 'booked', label: 'Roster booked' },
+                  { key: 'briefed', label: 'Briefed' },
+                  { key: 'content', label: 'Content in' },
+                  { key: 'live', label: 'Live' },
+                  { key: 'reported', label: 'Reported' },
+                ]}
+                current={
+                  (t.content?.posts ?? 0) > 0 ? 'live'
+                  : confirmed >= target && target > 0 ? 'briefed'
+                  : 'booked'
+                }
+              />
+            </div>
           </div>
         </div>
 

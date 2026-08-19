@@ -217,7 +217,7 @@ export default function FADeliverablesPage() {
                               <span>{d.type} x{d.quantity}</span>
                               <span>·</span>
                               <span>Due {fmtDate(d.deadline)}</span>
-                              {d.cashback_linked > 0 && <><span>·</span><span className="font-medium">AED {d.cashback_linked} linked</span></>}
+                              {d.cashback_linked > 0 && <><span>·</span><span className="font-medium">⃃ {d.cashback_linked} linked</span></>}
                             </div>
                             <div className="flex flex-wrap items-center gap-2 mt-2">
                               <Badge variant="outline" className={`text-[10px] ${meta.cls}`}>{meta.label}</Badge>

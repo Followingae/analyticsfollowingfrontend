@@ -12,6 +12,7 @@ interface SuperAdminInterfaceProps {
 export function SuperAdminInterface({ children }: SuperAdminInterfaceProps) {
   return (
     <SidebarProvider
+      className="console-shell"
       style={
         {
           "--sidebar-width": "calc(var(--spacing) * 66)",

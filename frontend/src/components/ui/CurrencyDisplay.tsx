@@ -13,7 +13,7 @@ export const CurrencyDisplay: React.FC<CurrencyDisplayProps> = ({
 }) => {
   // Simple static formatting - convert cents to AED
   const amount = amountCents / 100;
-  const formattedAmount = `AED ${amount.toFixed(2)}`;
+  const formattedAmount = `⃃ ${amount.toFixed(2)}`;
 
   return (
     <span className={className}>

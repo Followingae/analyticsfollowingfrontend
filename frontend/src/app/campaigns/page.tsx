@@ -268,7 +268,7 @@ function getStatusBadge(status: string) {
 // Format AED currency
 function formatAED(amount: number | null | undefined): string {
   if (amount == null) return "-";
-  return `AED ${Number(amount).toLocaleString()}`;
+  return `⃃ ${Number(amount).toLocaleString()}`;
 }
 
 // Small metric cell used inside the grid cards

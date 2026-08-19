@@ -42,7 +42,7 @@ import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab';
 
 const formatAED = (amount: number | null) => {
   if (!amount) return 'AED 0';
-  return `AED ${Number(amount).toLocaleString('en-AE', { minimumFractionDigits: 0 })}`;
+  return `⃃ ${Number(amount).toLocaleString('en-AE', { minimumFractionDigits: 0 })}`;
 };
 
 const statusBadge = (status: string) => {

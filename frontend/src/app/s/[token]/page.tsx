@@ -26,7 +26,7 @@ const BASE = `${API_CONFIG.BASE_URL}/api/v1/s`
 const compact = (n: number | null) =>
   n == null ? '—' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : `${n}`
 const aed = (c: number | null) =>
-  c == null ? null : `AED ${(c / 100).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
+  c == null ? null : `⃃ ${(c / 100).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
 
 export default function ClientShortlistPage() {
   const { token } = useParams<{ token: string }>()

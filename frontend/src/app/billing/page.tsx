@@ -965,7 +965,7 @@ function CashbackPoolTab() {
     load()
   }, [isFreeTier])
 
-  const fmt = (cents: number) => `AED ${(cents / 100).toLocaleString('en-AE', { minimumFractionDigits: 2 })}`
+  const fmt = (cents: number) => `⃃ ${(cents / 100).toLocaleString('en-AE', { minimumFractionDigits: 2 })}`
 
   if (isFreeTier) {
     return (

@@ -17,7 +17,7 @@ const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/proposals`
 
 // ---------- formatting ----------
 const money = (n: number | null | undefined) =>
-  n == null ? null : `AED ${Number(n).toLocaleString('en-AE')}`
+  n == null ? null : `⃃ ${Number(n).toLocaleString('en-AE')}`
 const compact = (n: number | null | undefined) =>
   n == null ? null : new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n))
 

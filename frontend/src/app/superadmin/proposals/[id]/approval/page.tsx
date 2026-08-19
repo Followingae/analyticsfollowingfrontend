@@ -152,7 +152,7 @@ export default function ProposalApprovalPage() {
           {budgetVisible && ws.proposal?.total_budget != null && (
             <div className="ml-auto text-right">
               <div className="text-xs text-muted-foreground">Total budget</div>
-              <div className="text-lg font-semibold">AED {Number(ws.proposal.total_budget).toLocaleString('en-AE')}</div>
+              <div className="text-lg font-semibold">⃃ {Number(ws.proposal.total_budget).toLocaleString('en-AE')}</div>
             </div>
           )}
         </div>
@@ -245,7 +245,7 @@ export default function ProposalApprovalPage() {
                           </TableCell>
                           <TableCell>{inf.followers_count ? Number(inf.followers_count).toLocaleString() : '-'}</TableCell>
                           <TableCell>
-                            {rate === '-' ? '-' : `AED ${Number(rate).toLocaleString('en-AE')}`}
+                            {rate === '-' ? '-' : `⃃ ${Number(rate).toLocaleString('en-AE')}`}
                             {discounted && (
                               <span className="ml-2 text-xs text-muted-foreground line-through">
                                 {Number(standard).toLocaleString('en-AE')}

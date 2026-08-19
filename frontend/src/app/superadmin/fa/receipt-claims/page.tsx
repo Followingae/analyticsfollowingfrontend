@@ -58,7 +58,7 @@ export default function FAReceiptClaimsPage() {
     try {
       const res = await faReceiptClaimApi.approve(id)
       if (res.success) {
-        toast.success(`Approved - ${res.data?.deliverables_created || 0} deliverables created, AED ${res.data?.cashback_amount || 0} cashback pending`)
+        toast.success(`Approved - ${res.data?.deliverables_created || 0} deliverables created, ⃃ ${res.data?.cashback_amount || 0} cashback pending`)
         load()
       }
     } catch (e: any) {
@@ -191,7 +191,7 @@ export default function FAReceiptClaimsPage() {
 
                         <div className="text-right">
                           <p className="text-lg font-bold">
-                            AED {claim.ai_extracted_amount?.toFixed(2) || "-"}
+                            ⃃ {claim.ai_extracted_amount?.toFixed(2) || "-"}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {claim.ai_extracted_date || "No date"}
@@ -229,7 +229,7 @@ export default function FAReceiptClaimsPage() {
                           <>
                             <span className="text-muted-foreground">|</span>
                             <span className="font-medium text-emerald-500">
-                              AED {claim.cashback_amount?.toFixed(2)} cashback
+                              ⃃ {claim.cashback_amount?.toFixed(2)} cashback
                             </span>
                           </>
                         )}

@@ -49,7 +49,7 @@ const unwrap = (res: any, ...keys: string[]) => {
 const fmtDate = (v?: string) =>
   v ? new Date(v).toLocaleDateString("en-AE", { month: "short", day: "numeric" }) : "-"
 const fmtAED = (v: any) =>
-  `AED ${parseFloat(v || 0).toLocaleString("en-AE", { minimumFractionDigits: 0 })}`
+  `⃃ ${parseFloat(v || 0).toLocaleString("en-AE", { minimumFractionDigits: 0 })}`
 
 type QueueKind = "deliverable" | "receipt" | "withdrawal" | "member"
 

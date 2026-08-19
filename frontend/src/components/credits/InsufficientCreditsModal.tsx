@@ -127,7 +127,7 @@ export function InsufficientCreditsModal({
                   <div className="text-xs text-muted-foreground">Basic package</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-sm">AED 180</div>
+                  <div className="font-medium text-sm">⃃ 180</div>
                   <div className="text-xs text-green-600">Covers this action</div>
                 </div>
               </div>
@@ -138,7 +138,7 @@ export function InsufficientCreditsModal({
                   <div className="text-xs text-muted-foreground">Popular choice</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-sm">AED 730</div>
+                  <div className="font-medium text-sm">⃃ 730</div>
                   <div className="text-xs text-blue-600">Best value</div>
                 </div>
               </div>

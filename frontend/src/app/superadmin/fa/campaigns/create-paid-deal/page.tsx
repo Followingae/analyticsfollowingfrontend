@@ -168,7 +168,7 @@ export default function CreatePaidDealPage() {
                     <SelectTrigger><SelectValue placeholder="Select pool..." /></SelectTrigger>
                     <SelectContent>
                       {merchantPools.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.name || p.id} - AED {((p.available_cents || 0) / 100).toLocaleString()}</SelectItem>
+                        <SelectItem key={p.id} value={p.id}>{p.name || p.id} - ⃃ {((p.available_cents || 0) / 100).toLocaleString()}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -226,7 +226,7 @@ export default function CreatePaidDealPage() {
                 <Label>Payout Amount (AED) *</Label>
                 <Input type="number" min={1} value={payoutAed || ""} onChange={(e) => setPayoutAed(parseFloat(e.target.value) || 0)} placeholder="e.g., 500" />
                 {payoutAed > 0 && (
-                  <p className="text-sm text-muted-foreground">Each participant receives AED {payoutAed.toLocaleString()} upon completion</p>
+                  <p className="text-sm text-muted-foreground">Each participant receives ⃃ {payoutAed.toLocaleString()} upon completion</p>
                 )}
               </div>
             </CardContent>

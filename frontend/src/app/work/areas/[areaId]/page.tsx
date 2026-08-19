@@ -42,7 +42,7 @@ function briefLine(b?: any): string {
   else if (b.followers_min) bits.push(`${k(b.followers_min)}+`)
   else if (b.followers_max) bits.push(`up to ${k(b.followers_max)}`)
   if (b.deliverables?.length) bits.push(b.deliverables.join(", "))
-  if (b.budget_per_creator) bits.push(`up to AED ${Number(b.budget_per_creator).toLocaleString()} each`)
+  if (b.budget_per_creator) bits.push(`up to ⃃ ${Number(b.budget_per_creator).toLocaleString()} each`)
   return bits.join(" · ")
 }
 

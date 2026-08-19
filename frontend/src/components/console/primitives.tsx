@@ -285,3 +285,112 @@ export function StageBar({
     </div>
   )
 }
+
+/**
+ * A score circle, the way the reference marks every row.
+ *
+ * The number is the point — how long something has waited, how far along it is — and the
+ * ring around it turns that into something you can scan without reading. Colour is earned:
+ * green while it is fine, amber once it is old, rose once somebody is chasing it.
+ */
+export function ScoreDot({
+  value, suffix, tone = 'neutral', title,
+}: { value: number | string; suffix?: string; tone?: Tone; title?: string }) {
+  const skin: Record<Tone, string> = {
+    neutral: 'bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]',
+    good: 'bg-[#E9F5E5] text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300',
+    warn: 'bg-[#FCEFDC] text-amber-800 dark:bg-amber-950/50 dark:text-amber-300',
+    bad: 'bg-[#FBE3E0] text-rose-700 dark:bg-rose-950/50 dark:text-rose-300',
+    info: 'bg-[#EFF7D4] text-[#5C7211] dark:bg-lime-950/40 dark:text-lime-300',
+  }
+  return (
+    <span
+      title={title}
+      className={cn(
+        'grid h-10 w-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold tabular-nums',
+        skin[tone],
+      )}
+    >
+      {value}{suffix && <span className="text-[9px] font-medium opacity-70">{suffix}</span>}
+    </span>
+  )
+}
+
+/** A quiet round button — the reference puts one on every row and card header. */
+export function RoundButton({
+  icon: Icon, label, onClick, className,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  onClick?: () => void
+  className?: string
+}) {
+  return (
+    <button
+      type="button" onClick={onClick} title={label} aria-label={label}
+      className={cn(
+        'grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/[0.06] bg-white',
+        'text-muted-foreground transition-colors hover:text-foreground',
+        'dark:border-white/[0.08] dark:bg-neutral-900/70', className,
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </button>
+  )
+}
+
+/** The little grey heading a list uses to break itself into "Today" and "Earlier". */
+export function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-3 pb-1.5 pt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground first:pt-1">
+      {children}
+    </p>
+  )
+}
+
+/**
+ * The record header strip the reference puts under a record's name: four or five short
+ * facts, labelled, in a row. It is what stops a detail page opening with a title and
+ * nothing else.
+ */
+export function FieldStrip({
+  fields,
+}: { fields: { label: string; value: React.ReactNode }[] }) {
+  return (
+    <div className="flex flex-wrap gap-x-8 gap-y-3">
+      {fields.map(f => (
+        <div key={f.label} className="min-w-[92px]">
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            {f.label}
+          </p>
+          <p className="mt-1 text-[14px] font-medium">{f.value ?? '—'}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Record tabs — Summary · Details · Related, as the reference lays them out. */
+export function RecordTabs({
+  tabs, value, onChange,
+}: { tabs: { key: string; label: string }[]; value: string; onChange: (k: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {tabs.map(t => (
+        <button
+          key={t.key}
+          type="button"
+          onClick={() => onChange(t.key)}
+          className={cn(
+            'rounded-full px-4 py-2 text-[13px] font-medium transition-colors',
+            value === t.key
+              ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
+              : 'text-muted-foreground hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]',
+          )}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}

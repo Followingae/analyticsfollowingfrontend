@@ -682,7 +682,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                             <p className="text-[11px] text-muted-foreground mt-0.5">
                               {visit.party_size ? `${visit.party_size} guests` : ""}
                               {visit.party_size && visit.bill_amount_aed != null ? " · " : ""}
-                              {visit.bill_amount_aed != null ? `AED ${visit.bill_amount_aed.toFixed(2)}` : ""}
+                              {visit.bill_amount_aed != null ? `⃃ ${visit.bill_amount_aed.toFixed(2)}` : ""}
                             </p>
                           )}
                         </div>
