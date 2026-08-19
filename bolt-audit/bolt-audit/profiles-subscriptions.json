@@ -1,0 +1,197 @@
+{
+  "url": "https://www.bolt.com/subscriptions",
+  "title": "Bolt | Subscriptions",
+  "metaDesc": "Recurring revenue shouldn’t come with recurring fees. Bolt Subscriptions makes it free to offer, manage, and scale subscriptions — without giving up a cut of your profits.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1764022517/meta_subscriptions_39c8d2b2ff.webp?1780414002746",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "pricing dark resizeTransitionStopper",
+  "h1": "Power up subscriptions without paying a premium",
+  "headings": [
+    "H2: Supercharge revenue with a subscription model built to grow with you",
+    "H2: Build how you want, for who you want",
+    "H2: Secured by robust data privacy and compliance",
+    "H2: Built for better retention",
+    "H2: Powered by millions of Bolt Accounts",
+    "H2: Lifetime customers start with Bolt Subscriptions",
+    "H2: Your subscription stack, simplified",
+    "H2: See how Bolt can power your business"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Developer quick-start",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 27,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 83
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 553,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Power up subscriptions without paying a premium",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            hasCTAs\n  "
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 475,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Supercharge revenue with a subscription model built to grow with you",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--tintedW"
+    },
+    {
+      "i": 2,
+      "tag": "div",
+      "h": 2445,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Build how you want, for who you want",
+      "cls": "ZLayoutContent  marginBottom--custom marginTop--custom paddingBottom paddingTop-"
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 550,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Lifetime customers start with Bolt Subscriptions",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--tintedW"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 790,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "MediaSlider  marginBottom--custom marginTop--custom paddingBottom--custom paddin"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 378,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Your subscription stack, simplified",
+      "cls": "Heading card-grid-heading textAlign--center responsiveTextAlign--center  backgro"
+    },
+    {
+      "i": 6,
+      "tag": "div",
+      "h": 706,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "CardGrid  backgroundColor--deepBlack marginBottom--none marginTop--custom paddin"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 572,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": "url(\"https://www.bolt.com/assets/images/components/FooterCallout/callout-rebrand",
+      "heading": "See how Bolt can power your business",
+      "cls": "FooterCallout lightning backgroundColor--tintedWhite marginBottom--none marginTo"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(211, 215, 237)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x417",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x115",
+    "rgb(4, 9, 26) x83",
+    "rgb(142, 146, 175) x44",
+    "rgb(211, 215, 237) x7",
+    "rgb(255, 255, 255) x7",
+    "rgb(69, 74, 102) x6",
+    "rgb(38, 42, 66) x5",
+    "rgb(75, 79, 94) x4",
+    "rgb(0, 108, 255) x3"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x31",
+    "rgb(248, 246, 254) x25",
+    "rgb(255, 255, 255) x19",
+    "rgb(4, 9, 26) x7",
+    "rgb(38, 42, 66) x5",
+    "rgb(228, 230, 247) x4",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(211, 215, 237) x1",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12",
+    "slideInFromLeft 0.2s ease-out x2"
+  ],
+  "transitions": [
+    "all 0.2s ease x64",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x59",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x5",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3",
+    "background-color 0.2s ease x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 8106
+}

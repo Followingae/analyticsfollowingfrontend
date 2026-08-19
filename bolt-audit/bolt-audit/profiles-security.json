@@ -1,0 +1,178 @@
+{
+  "url": "https://www.bolt.com/security",
+  "title": "Bolt | Security",
+  "metaDesc": "Shockingly fast. Refreshingly simple. That’s Bolt. Your favorite retailers have teamed up with Bolt to provide the best checkout experience possible.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765387393/meta_security_76b89551ab.webp?1780413967540",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "securityPage light resizeTransitionStopper",
+  "h1": "A faster checkout, built on trust",
+  "headings": [
+    "H2: The safest way to shop at your favorite stores",
+    "H2: One account to rule them all",
+    "H3: Create your account with one tap",
+    "H3: Lightning fast checkout",
+    "H3: No passwords to remember",
+    "H2: Your security comes first",
+    "H2: A faster, safer checkout is one step away"
+  ],
+  "ctas": [
+    "Download",
+    "Contact our security team",
+    "Get started"
+  ],
+  "media": {
+    "images": 27,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 8
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 494,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "A faster checkout, built on trust",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            \n         "
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 1265,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "The safest way to shop at your favorite stores",
+      "cls": "ZLayoutContent  marginBottom--none marginTop paddingBottom--none paddingTop--cus"
+    },
+    {
+      "i": 2,
+      "tag": "section",
+      "h": 195,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Create your account with one tap",
+      "cls": "ThreeColumnSection\n          \n          contentAlign-left\n          marginBottom"
+    },
+    {
+      "i": 3,
+      "tag": "section",
+      "h": 1235,
+      "bg": "rgb(255, 255, 255)",
+      "bgImage": null,
+      "heading": "Your security comes first",
+      "cls": "TwoColumnComplexSection  marginBottom--none marginTop--custom paddingBottom--non"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 292,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "A faster, safer checkout is one step away",
+      "cls": "FooterCallout  marginBottom marginTop--lg paddingBottom--custom paddingTop--cust"
+    },
+    {
+      "i": 5,
+      "tag": "section",
+      "h": 192,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "FeaturedIn-Brands  marginBottom--custom marginTop--custom paddingBottom--custom "
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h2": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "700",
+      "ls": "-0.64px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h3": {
+      "size": "16px",
+      "lh": "20.8px",
+      "w": "600",
+      "ls": "-0.32px",
+      "fam": "Inter",
+      "color": "rgb(24, 26, 32)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(69, 74, 102)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x200",
+    "rgb(4, 9, 26) x44",
+    "rgb(248, 246, 254) x40",
+    "rgb(0, 0, 238) x12",
+    "rgb(69, 74, 102) x10",
+    "rgb(38, 42, 66) x8",
+    "rgb(68, 70, 56) x6",
+    "rgb(0, 108, 255) x4",
+    "rgb(24, 26, 32) x3"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x9",
+    "rgb(4, 9, 26) x6",
+    "rgb(248, 246, 254) x4",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(255, 255, 255) x3",
+    "rgb(228, 230, 247) x2",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "slideInFromRight 0.2s ease-out x2",
+    "slideInFromLeft 0.2s ease-out x2"
+  ],
+  "transitions": [
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "color 0.2s ease x18",
+    "all 0.2s ease x14",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "opacity 0.2s ease-out x4",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x3",
+    "background-color, opacity, top, transform, visibility 0.3s, 0.3s, 0.3s, 0.3s, 0.3s ease, ease, ease, ease, ease x3",
+    "transform, opacity 0.3s, 0.3s cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1) x2",
+    "opacity 0.25s ease x2",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x1",
+    "width 0.3s cubic-bezier(0.23, 1, 0.32, 1) x1",
+    "opacity 0.2s ease x1"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(0, 108, 255)",
+    "color": "rgb(248, 246, 254)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 4704
+}

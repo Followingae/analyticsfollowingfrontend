@@ -1,0 +1,305 @@
+{
+  "url": "https://www.bolt.com/careers",
+  "title": "Bolt | View Open Roles",
+  "metaDesc": "Ready to join Bolt on our mission to perfect the checkout experience? We're hiring! Browse available roles on our career page.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1742926628/meta_Careers_1_c9baee5f7d.webp?1780414090178",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "careers-new dark resizeTransitionStopper",
+  "h1": "Building the future of commerce",
+  "headings": [
+    "H3: Agile Innovators: The Ideal Bolter Profile",
+    "H2: Building and Prioritizing Conscious Culture",
+    "H2: What does it mean to be a Conscious Culture company?",
+    "H3: Diversity, Equity, Inclusion, and Belonging (DEIB) at Bolt",
+    "H2: Bolt Women’s Internal Networking (WIN) Group",
+    "H2: Browse open roles across our departments",
+    "H2: See how you can start making customers for life today."
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "See open opportunities",
+    "Download the Ideal Bolter Profile PDF",
+    "Read our story",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 34,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 92
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "section",
+      "h": 740,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Building the future of commerce",
+      "cls": "HeroCustomerReport  "
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 419,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Agile Innovators: The Ideal Bolter Profile",
+      "cls": "Heading productPage textAlign--center responsiveTextAlign--center  backgroundCol"
+    },
+    {
+      "i": 2,
+      "tag": "div",
+      "h": 817,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Building and Prioritizing Conscious Culture",
+      "cls": "ZLayoutContent mobileMarginBottom marginBottom--none marginTop--none paddingBott"
+    },
+    {
+      "i": 3,
+      "tag": "section",
+      "h": 667,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "What does it mean to be a Conscious Culture company?",
+      "cls": "TwoColumnChecklistSection   marginBottom--none marginTop--none paddingBottom--sm"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 736,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "QuoteBlockComp  marginBottom--custom marginTop--custom paddingBottom--custom pad"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 209,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Heading productPage textAlign--center responsiveTextAlign--center  backgroundCol"
+    },
+    {
+      "i": 6,
+      "tag": "div",
+      "h": 671,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "MediaSlider  marginBottom--custom marginTop--custom paddingBottom--custom paddin"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 762,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "CenteredMedia  marginBottom--custom marginTop--custom paddingBottom--lg paddingT"
+    },
+    {
+      "i": 8,
+      "tag": "section",
+      "h": 1060,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "TwoColumnComplexSection  marginBottom--custom marginTop--custom paddingBottom--c"
+    },
+    {
+      "i": 9,
+      "tag": "div",
+      "h": 226,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Diversity, Equity, Inclusion, and Belonging (DEIB) at Bolt",
+      "cls": "Heading productPage textAlign--left responsiveTextAlign--center withoutHeadingBo"
+    },
+    {
+      "i": 10,
+      "tag": "div",
+      "h": 587,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "CenteredMedia  marginBottom--custom marginTop--custom paddingBottom--sm paddingT"
+    },
+    {
+      "i": 11,
+      "tag": "div",
+      "h": 348,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Wysiwyg  marginBottom--custom marginTop--custom paddingBottom--lg paddingTop--cu"
+    },
+    {
+      "i": 12,
+      "tag": "div",
+      "h": 727,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Bolt Women’s Internal Networking (WIN) Group",
+      "cls": "ZLayoutContent adjustTop mobileMarginBottom marginBottom--custom marginTop--cust"
+    },
+    {
+      "i": 13,
+      "tag": "section",
+      "h": 525,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "TwoColumnSection adjustTop marginBottom--none marginTop--none paddingBottom--sm "
+    },
+    {
+      "i": 14,
+      "tag": "div",
+      "h": 779,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "\n      ImageMaxWidth\n      backgroundColor--tintedWhite\n      marginBottom--cust"
+    },
+    {
+      "i": 15,
+      "tag": "section",
+      "h": 985,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Browse open roles across our departments",
+      "cls": "CareersJobList backgroundColor--tintedWhite adjustTop marginBottom--custom margi"
+    },
+    {
+      "i": 16,
+      "tag": "div",
+      "h": 472,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "See how you can start making customers for life today.",
+      "cls": "FooterCallout backgroundColor--tintedWhite adjustTop marginBottom--custom margin"
+    },
+    {
+      "i": 17,
+      "tag": "section",
+      "h": 191,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "FeaturedIn-Brands featuredIn backgroundColor--tintedWhite adjustTop marginBottom"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(255, 255, 255)"
+    },
+    "h2": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "700",
+      "ls": "-0.64px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(255, 255, 255)"
+    },
+    "h3": {
+      "size": "46px",
+      "lh": "50.6px",
+      "w": "700",
+      "ls": "-0.92px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(255, 255, 255)"
+    },
+    "h4": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "700",
+      "ls": "-0.64px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(255, 255, 255)"
+    },
+    "p": {
+      "size": "12px",
+      "lh": "15.6px",
+      "w": "700",
+      "ls": "-0.24px",
+      "fam": "Inter",
+      "color": "rgb(0, 108, 255)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x476",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x109",
+    "rgb(4, 9, 26) x89",
+    "rgb(255, 255, 255) x81",
+    "rgb(142, 146, 175) x41",
+    "rgb(38, 42, 66) x18",
+    "rgb(0, 108, 255) x8",
+    "rgb(211, 215, 237) x4",
+    "rgba(16, 16, 16, 0.3) x3",
+    "rgb(69, 74, 102) x2"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x29",
+    "rgb(248, 246, 254) x28",
+    "rgb(255, 255, 255) x20",
+    "rgb(4, 9, 26) x8",
+    "rgb(185, 190, 219) x6",
+    "rgb(38, 42, 66) x5",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(228, 230, 247) x2",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12",
+    "slideInFromRight 0.2s ease-out x9",
+    "slideInFromLeft 0.2s ease-out x5"
+  ],
+  "transitions": [
+    "all 0.2s ease x66",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x58",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "background-color 0.2s ease x10",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform 0.35s ease x4",
+    "opacity 0.35s ease x4"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 12387
+}

@@ -71,16 +71,16 @@ const FLOWS: { match: RegExp; label: string; steps: string[]; at: number }[] = [
 const flowFor = (href?: string) => (href ? FLOWS.find(f => f.match.test(href)) : undefined)
 
 /** The places people go ten times a day. */
-const SHORTCUTS: { label: string; href: string; icon: any; module?: AdminModule }[] = [
-  { label: 'Areas', href: '/work/areas', icon: Layers, module: 'influencers' },
-  { label: 'Waiting room', href: '/work/influencers/review', icon: Users, module: 'influencers' },
-  { label: 'Proposals', href: '/work/proposals', icon: FileText, module: 'proposals' },
-  { label: 'Campaigns', href: '/work/campaigns', icon: Sparkles, module: 'campaigns' },
-  { label: 'Brands', href: '/work/brands', icon: Building2, module: 'clients' },
-  { label: 'Approvals', href: '/work/approvals', icon: ClipboardCheck, module: 'campaigns' },
-  { label: 'Payables', href: '/work/payables', icon: Banknote, module: 'influencers' },
-  { label: 'Coverage', href: '/work/coverage', icon: Compass, module: 'influencers' },
-  { label: 'Office screens', href: '/work/system/displays', icon: Monitor, module: 'system' },
+const SHORTCUTS: { key: string; label: string; href: string; icon: any; module?: AdminModule }[] = [
+  { key: 'areas', label: 'Areas', href: '/work/areas', icon: Layers, module: 'influencers' },
+  { key: 'waiting-room', label: 'Waiting room', href: '/work/influencers/review', icon: Users, module: 'influencers' },
+  { key: 'proposals', label: 'Proposals', href: '/work/proposals', icon: FileText, module: 'proposals' },
+  { key: 'campaigns', label: 'Campaigns', href: '/work/campaigns', icon: Sparkles, module: 'campaigns' },
+  { key: 'brands', label: 'Brands', href: '/work/brands', icon: Building2, module: 'clients' },
+  { key: 'approvals', label: 'Approvals', href: '/work/approvals', icon: ClipboardCheck, module: 'campaigns' },
+  { key: 'payables', label: 'Payables', href: '/work/payables', icon: Banknote, module: 'influencers' },
+  { key: 'coverage', label: 'Coverage', href: '/work/coverage', icon: Compass, module: 'influencers' },
+  { key: 'screens', label: 'Office screens', href: '/work/system/displays', icon: Monitor, module: 'system' },
 ]
 
 
@@ -176,7 +176,8 @@ export default function OperationsCentre() {
         {/* ── who, when, and the one thing you came to do ─────────────────────────── */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1.5">
-            <h1 className="text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] lg:text-[38px]">
+            <h1 data-tour="today-greeting"
+                className="text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] lg:text-[38px]">
               {greeting()}{first ? `, ${first}` : ''}
             </h1>
             <p className="text-[15px] text-muted-foreground">
@@ -192,6 +193,7 @@ export default function OperationsCentre() {
             <IconButton icon={RefreshCw} label="Refresh" onClick={() => load(true)} />
             <button
               type="button"
+              data-tour="today-add"
               onClick={() => router.push('/work/influencers/add')}
               className="rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white
                          transition-colors hover:bg-neutral-800
@@ -204,7 +206,7 @@ export default function OperationsCentre() {
 
         {/* ── the company in four numbers ─────────────────────────────────────────── */}
         {headline.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div data-tour="today-numbers" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {headline.map((s: any) => {
               const wash =
                 s.tone === 'good' ? 'from-[#EEF7EA] to-[#F8FBF5] dark:from-emerald-950/50 dark:to-emerald-950/15'
@@ -233,10 +235,11 @@ export default function OperationsCentre() {
         {/* ── the shortcuts, above the fold ───────────────────────────────────────
             They were under the desk, which meant scrolling past your own work to reach the
             places you go ten times a day. As a strip they cost one row and are always there. */}
-        <div className="flex flex-wrap gap-2">
+        <div data-tour="today-shortcuts" className="flex flex-wrap gap-2">
           {shortcuts.map(s => (
             <button
               key={s.href}
+              data-tour={`shortcut-${s.key}`}
               type="button"
               onClick={() => router.push(s.href)}
               className={cn(
@@ -256,7 +259,7 @@ export default function OperationsCentre() {
 
         {/* ── the desk: queue on the left, canvas on the right ────────────────────── */}
         <div className="grid items-start gap-5 lg:grid-cols-12">
-          <section className={cn(CARD, 'bg-white lg:col-span-5 dark:bg-neutral-900/70')}>
+          <section data-tour="today-queue" className={cn(CARD, 'bg-white lg:col-span-5 dark:bg-neutral-900/70')}>
             <header className="flex items-center justify-between gap-3 px-5 pb-3 pt-5">
               <h2 className="text-[15.5px] font-semibold tracking-[-0.01em]">My work</h2>
               <div className="flex rounded-full bg-black/[0.05] p-0.5 dark:bg-white/[0.07]">

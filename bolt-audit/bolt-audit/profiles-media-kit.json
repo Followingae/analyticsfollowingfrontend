@@ -1,0 +1,192 @@
+{
+  "url": "https://www.bolt.com/media-kit",
+  "title": "Bolt | Media Kit",
+  "metaDesc": "Thank you for your interest in sharing news and content about Bolt! We've created some guidelines to help you use our brand assets including our logo, illustrations, product screenshots and more.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1768247009/meta_Media_Kit_1_93c51ee1f6.webp?1780414228698",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "media-kit light resizeTransitionStopper",
+  "h1": "Bolt media kit & usage guidelines",
+  "headings": [
+    "H3: Logo usage",
+    "H3: Brand guidelines",
+    "H2: Checkout that lasts a second. Loyalty that lasts a lifetime."
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Download",
+    "Download Brand Guidelines",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 17,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 85
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 339,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Bolt media kit & usage guidelines",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            \n            \n                ma"
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 341,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Logo usage",
+      "cls": "mediaBlock   responsiveTextAlign--center marginBottom--custom marginTop--custom "
+    },
+    {
+      "i": 2,
+      "tag": "div",
+      "h": 628,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "MediaSlider slantedBackgroundTop marginBottom--custom marginTop--custom paddingB"
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 243,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Brand guidelines",
+      "cls": "Heading  textAlign--center   backgroundColor--boltBlack\n        \n        marginB"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 932,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "CardGrid  backgroundColor--boltBlack marginBottom--custom marginTop--custom padd"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 292,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Checkout that lasts a second. Loyalty that lasts a lifetime.",
+      "cls": "FooterCallout  marginBottom marginTop--lg paddingBottom--custom paddingTop--cust"
+    },
+    {
+      "i": 6,
+      "tag": "section",
+      "h": 191,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "FeaturedIn-Brands media-kit-featured-in marginBottom--none marginTop--none paddi"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h3": {
+      "size": "46px",
+      "lh": "50.6px",
+      "w": "700",
+      "ls": "-0.92px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(17, 20, 38)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(69, 74, 102)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x363",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x98",
+    "rgb(4, 9, 26) x88",
+    "rgb(142, 146, 175) x41",
+    "rgb(38, 42, 66) x10",
+    "rgb(255, 255, 255) x9",
+    "rgb(69, 74, 102) x7",
+    "rgb(0, 108, 255) x6",
+    "rgba(16, 16, 16, 0.3) x3",
+    "rgb(17, 20, 38) x1"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x29",
+    "rgb(255, 255, 255) x19",
+    "rgb(248, 246, 254) x16",
+    "rgb(4, 9, 26) x7",
+    "rgb(106, 111, 140) x6",
+    "rgb(228, 230, 247) x5",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(38, 42, 66) x3",
+    "rgb(104, 216, 252) x1",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12"
+  ],
+  "transitions": [
+    "all 0.2s ease x66",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x58",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "background-color 0.2s ease x8",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(4, 9, 26)",
+    "color": "rgb(248, 246, 254)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 4723
+}

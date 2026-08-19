@@ -1,0 +1,318 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "main menu" [ref=e3]:
+      - generic [ref=e8]:
+        - button "close main menu" [ref=e9] [cursor=pointer]
+        - button "Pay" [ref=e13]:
+          - link "Pay" [ref=e14] [cursor=pointer]:
+            - /url: /pay
+        - button "Rewards" [ref=e16]:
+          - link "Rewards" [ref=e17] [cursor=pointer]:
+            - /url: /pay/rewards
+        - button "Shop" [ref=e19]:
+          - link "Shop" [ref=e20] [cursor=pointer]:
+            - /url: /shopper
+        - button "Shopper login" [ref=e22]:
+          - link "Shopper login" [ref=e23] [cursor=pointer]:
+            - /url: https://account.bolt.com/
+        - button "Download" [ref=e25]:
+          - link "Download" [ref=e26] [cursor=pointer]:
+            - /url: https://onelink.to/bolt-super-app
+    - banner [ref=e27]:
+      - generic [ref=e31]:
+        - list [ref=e32]:
+          - listitem [ref=e33]:
+            - link "For Users" [ref=e34] [cursor=pointer]:
+              - /url: /pay
+          - listitem [ref=e35]:
+            - link "For Businesses" [ref=e36] [cursor=pointer]:
+              - /url: /
+        - list [ref=e37]:
+          - listitem [ref=e38]:
+            - generic [ref=e39]:
+              - button "Soundtrack" [ref=e40] [cursor=pointer]:
+                - img [ref=e42]
+                - text: Soundtrack
+              - generic:
+                - list:
+                  - listitem:
+                    - generic: "Listen on:"
+                    - link "Spotify":
+                      - /url: https://open.spotify.com/playlist/6JMxlb6bLHf3UOuV7NlOcO
+                      - generic:
+                        - img
+                      - text: Spotify
+                  - listitem:
+                    - link "Apple Music":
+                      - /url: https://music.apple.com/us/playlist/bolt-soundtrack/pl.u-e98lGLjCeDqeAL
+                      - generic:
+                        - img
+                      - text: Apple Music
+                  - listitem:
+                    - link "YouTube":
+                      - /url: https://youtube.com/playlist?list=PL2810cUuit64I8fWCwqdwy7k9Zt5VgTsN&si=XHPlUauQmOsi7D9W
+                      - generic:
+                        - img
+                      - text: YouTube
+      - navigation [ref=e45]:
+        - generic [ref=e46]:
+          - link [ref=e49] [cursor=pointer]:
+            - /url: /
+            - img [ref=e50]
+          - list [ref=e53]:
+            - listitem [ref=e54]:
+              - link "Pay" [ref=e56] [cursor=pointer]:
+                - /url: /pay
+            - listitem [ref=e57]:
+              - link "Rewards" [ref=e59] [cursor=pointer]:
+                - /url: /pay/rewards
+            - listitem [ref=e60]:
+              - link "Shop" [ref=e62] [cursor=pointer]:
+                - /url: /shopper
+          - list [ref=e64]:
+            - listitem [ref=e65]:
+              - link "Shopper login" [ref=e66] [cursor=pointer]:
+                - /url: https://account.bolt.com/
+            - listitem [ref=e67]:
+              - link "Download" [ref=e68] [cursor=pointer]:
+                - /url: https://onelink.to/bolt-super-app
+                - generic [ref=e69]: Download
+    - main [ref=e70]:
+      - img "Bolt Background Graphic" [ref=e71]
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - heading "One SuperApp to rule them all" [level=1] [ref=e77]
+          - paragraph [ref=e79]: Send money, earn rewards, trade crypto and more, all in one SuperApp.
+          - generic [ref=e81]:
+            - link "Apple App Store button." [ref=e82] [cursor=pointer]:
+              - /url: https://onelink.to/bolt-super-app
+              - img "Apple App Store button." [ref=e83]
+            - link "Google Play Store button." [ref=e84] [cursor=pointer]:
+              - /url: https://onelink.to/bolt-super-app
+              - img "Google Play Store button." [ref=e85]
+        - img "Hand of a person with painted nails in silver color holding a smartphone showcasing the Bolt SuperApp home screen." [ref=e87]
+      - list [ref=e90]:
+        - listitem [ref=e91]
+        - listitem [ref=e92]
+        - listitem [ref=e93]
+        - listitem [ref=e94]
+        - listitem [ref=e95]
+        - listitem [ref=e96]
+        - listitem [ref=e97]
+        - listitem [ref=e98]
+        - listitem [ref=e99]
+        - listitem [ref=e100]
+        - listitem [ref=e101]
+        - listitem [ref=e102]
+        - listitem [ref=e103]
+        - listitem [ref=e104]
+      - generic [ref=e108]:
+        - heading "Finance and crypto apps, assemble!" [level=2] [ref=e110]
+        - paragraph [ref=e111]: From crypto to payments, the Bolt SuperApp puts everything in one place — simple, secure, and always in your control.
+      - generic [ref=e113]:
+        - generic [ref=e114]:
+          - generic [ref=e119]:
+            - paragraph [ref=e120]:
+              - img "transfer-top.svg" [ref=e121]
+            - heading "Move money in a flash" [level=4] [ref=e122]:
+              - generic [ref=e123]: Move money in a flash
+            - paragraph [ref=e124]:
+              - generic [ref=e125]: Send and receive money between friends, family, or anyone in your network with speed and clarity — and no hidden fees.*
+          - img "Bolt Debit Card." [ref=e128]
+        - generic [ref=e129]:
+          - generic [ref=e134]:
+            - paragraph [ref=e135]:
+              - img "rewards-top.svg" [ref=e136]
+            - heading "Turn everyday spending into everyday rewards" [level=4] [ref=e137]:
+              - generic [ref=e138]: Turn everyday spending into everyday rewards
+            - paragraph [ref=e139]:
+              - generic [ref=e140]: Earn cash back, build store credits, and make every purchase work harder for you.
+          - img "Rewards graphic depicting there's available rewards to be redeemed in an user's wallet." [ref=e143]
+        - generic [ref=e144]:
+          - generic [ref=e149]:
+            - paragraph [ref=e150]:
+              - img "track.svg" [ref=e151]
+            - heading "Order tracking, simplified" [level=4] [ref=e152]:
+              - generic [ref=e153]: Order tracking, simplified
+            - paragraph [ref=e154]:
+              - generic [ref=e155]: Track purchases, manage spending, and follow orders, all in one simplified view.
+          - img "Order tracking graphic." [ref=e158]
+        - generic [ref=e159]:
+          - generic [ref=e164]:
+            - paragraph [ref=e165]:
+              - img "crypto-top.svg" [ref=e166]
+            - heading "Crypto, one click away" [level=4] [ref=e167]:
+              - generic [ref=e168]: Crypto, one click away
+            - paragraph [ref=e169]:
+              - generic [ref=e170]: Buy, send, sell, and receive BTC, ETH, and more with a clear, intuitive flow and built-in fiat on/off ramps.**
+          - img "Crypto pictogram with an UI depicting the user's Bitcoin holdings." [ref=e173]
+      - generic [ref=e175]:
+        - paragraph [ref=e176]:
+          - generic [ref=e177]:
+            - strong [ref=e178]: "**"
+            - text: "Cryptocurrency services are not provided by a bank and are:"
+        - paragraph [ref=e179]:
+          - text: • Not FDIC insured
+          - text: • Not a deposit or obligation of, or guaranteed by, any bank
+          - text: • Subject to investment risks, including possible loss of the principal amount invested
+      - figure [ref=e182] [cursor=pointer]:
+        - img [ref=e184]
+        - img [ref=e187]
+      - generic [ref=e194]:
+        - paragraph [ref=e196]: Whether you’re splitting a check, buying crypto, earning rewards, or tracking spending, the Bolt SuperApp keeps your money moving — and keeps you in control.
+        - link "Download SuperApp" [ref=e199] [cursor=pointer]:
+          - /url: /app
+      - generic [ref=e200]:
+        - img "Bolt Background Graphic"
+        - generic [ref=e203]:
+          - heading "Control is the ultimate superpower" [level=2] [ref=e205]
+          - generic [ref=e210]:
+            - link [ref=e211] [cursor=pointer]:
+              - /url: https://onelink.to/bolt-super-app
+            - link [ref=e212] [cursor=pointer]:
+              - /url: https://onelink.to/bolt-super-app
+      - generic [ref=e214]:
+        - paragraph [ref=e215]:
+          - generic [ref=e216]: "*Bolt is a financial technology company, not an FDIC-insured bank. Banking services are provided by Midland States Bank, Member FDIC. FDIC insurance covers the failure of insured financial institutions. Your account may be eligible for pass-through insurance coverage if certain conditions are satisfied."
+        - paragraph [ref=e217]:
+          - generic [ref=e218]: "**Cryptocurrency services provided by Zero Hash. Any cryptocurrency or investment products are not insured by the FDIC; not deposits or obligations of the bank or its affiliates; not guaranteed by the bank or its affiliates; and are subject to investment risk, including possible loss of principal."
+    - contentinfo [ref=e219]:
+      - generic [ref=e220]:
+        - generic [ref=e225]:
+          - generic [ref=e227]:
+            - link [ref=e228] [cursor=pointer]:
+              - /url: https://twitter.com/bolt
+              - img [ref=e229]
+            - link [ref=e231] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/bolt-com/
+              - img [ref=e232]
+          - generic [ref=e236]:
+            - generic [ref=e237]:
+              - img [ref=e239]
+              - paragraph [ref=e242]: "Get updates on Bolt:"
+            - generic [ref=e245]:
+              - textbox "Email*" [ref=e248]:
+                - /placeholder: Email Address
+              - button "Submit" [ref=e249] [cursor=pointer]
+        - navigation [ref=e250]:
+          - generic [ref=e251]:
+            - generic [ref=e252]:
+              - paragraph [ref=e253]: Company
+              - list [ref=e254]:
+                - listitem [ref=e255]:
+                  - link "Our story" [ref=e256] [cursor=pointer]:
+                    - /url: /our-story
+                    - img [ref=e257]
+                    - generic [ref=e259]: Our story
+                - listitem [ref=e260]:
+                  - link "News and press" [ref=e261] [cursor=pointer]:
+                    - /url: /news
+                    - img [ref=e262]
+                    - generic [ref=e264]: News and press
+                - listitem [ref=e265]:
+                  - link "Careers We're hiring" [ref=e266] [cursor=pointer]:
+                    - /url: /careers
+                    - img [ref=e267]
+                    - generic [ref=e269]: Careers
+                    - generic [ref=e271]: We're hiring
+                - listitem [ref=e275]:
+                  - link "Security" [ref=e276] [cursor=pointer]:
+                    - /url: /security
+                    - img [ref=e277]
+                    - generic [ref=e279]: Security
+            - generic [ref=e280]:
+              - paragraph [ref=e281]: Resources
+              - list [ref=e282]:
+                - listitem [ref=e283]:
+                  - link "Case studies" [ref=e284] [cursor=pointer]:
+                    - /url: /case-studies
+                    - img [ref=e285]
+                    - generic [ref=e287]: Case studies
+                - listitem [ref=e288]:
+                  - link "Ebooks and reports" [ref=e289] [cursor=pointer]:
+                    - /url: /resources
+                    - img [ref=e290]
+                    - generic [ref=e292]: Ebooks and reports
+                - listitem [ref=e293]:
+                  - link "Blog" [ref=e294] [cursor=pointer]:
+                    - /url: /blog
+                    - img [ref=e295]
+                    - generic [ref=e297]: Blog
+                - listitem [ref=e298]:
+                  - link "FAQ" [ref=e299] [cursor=pointer]:
+                    - /url: /faq
+                    - img [ref=e300]
+                    - generic [ref=e302]: FAQ
+                - listitem [ref=e303]:
+                  - link "Shopper trust toolkit" [ref=e304] [cursor=pointer]:
+                    - /url: /shopper-trust-toolkit
+                    - img [ref=e305]
+                    - generic [ref=e307]: Shopper trust toolkit
+                - listitem [ref=e308]:
+                  - link "Media kit" [ref=e309] [cursor=pointer]:
+                    - /url: /media-kit
+                    - img [ref=e310]
+                    - generic [ref=e312]: Media kit
+                - listitem [ref=e313]:
+                  - link "Referral program" [ref=e314] [cursor=pointer]:
+                    - /url: /refer
+                    - img [ref=e315]
+                    - generic [ref=e317]: Referral program
+                - listitem [ref=e318]:
+                  - link "Shop the Bolt Network" [ref=e319] [cursor=pointer]:
+                    - /url: /shop
+                    - img [ref=e320]
+                    - generic [ref=e322]: Shop the Bolt Network
+            - generic [ref=e323]:
+              - paragraph [ref=e324]: Support
+              - list [ref=e325]:
+                - listitem [ref=e326]:
+                  - link "Contact us" [ref=e327] [cursor=pointer]:
+                    - /url: /contact-us
+                    - img [ref=e328]
+                    - generic [ref=e330]: Contact us
+                - listitem [ref=e331]:
+                  - link "Documentation" [ref=e332] [cursor=pointer]:
+                    - /url: https://help.bolt.com/
+                    - img [ref=e333]
+                    - generic [ref=e335]: Documentation
+                - listitem [ref=e336]:
+                  - link "Getting started" [ref=e337] [cursor=pointer]:
+                    - /url: /install
+                    - img [ref=e338]
+                    - generic [ref=e340]: Getting started
+                - listitem [ref=e341]:
+                  - link "Operational status" [ref=e342] [cursor=pointer]:
+                    - /url: https://status.bolt.com/
+                    - img [ref=e343]
+                    - generic [ref=e345]: Operational status
+            - generic [ref=e346]:
+              - paragraph [ref=e347]: Custom Solutions
+              - list [ref=e348]:
+                - listitem [ref=e349]:
+                  - link "Bolt for Enterprise" [ref=e350] [cursor=pointer]:
+                    - /url: /enterprise
+                    - img [ref=e351]
+                    - generic [ref=e353]: Bolt for Enterprise
+                - listitem [ref=e354]:
+                  - link "Custom payments" [ref=e355] [cursor=pointer]:
+                    - /url: /payments
+                    - img [ref=e356]
+                    - generic [ref=e358]: Custom payments
+        - link [ref=e361] [cursor=pointer]:
+          - /url: /
+          - img [ref=e362]
+        - generic [ref=e365]:
+          - generic [ref=e367]:
+            - img [ref=e368]
+            - paragraph [ref=e370]: © 2026 Bolt Financial, Inc.
+          - generic [ref=e372]:
+            - link "Legal" [ref=e373] [cursor=pointer]:
+              - /url: /terms-of-use
+            - link "Privacy Policy" [ref=e374] [cursor=pointer]:
+              - /url: /privacy
+            - link "Privacy Center" [ref=e375] [cursor=pointer]:
+              - /url: /privacy-center
+            - link "Terms" [ref=e376] [cursor=pointer]:
+              - /url: /end-user-terms
+  - alert [ref=e377]

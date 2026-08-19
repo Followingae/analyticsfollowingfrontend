@@ -1,0 +1,216 @@
+{
+  "url": "https://www.bolt.com/digital-goods",
+  "title": "Bolt for Digital Goods",
+  "metaDesc": "Bolt CheckoutOS is built to help you convert browsers into buyers—whether you’re selling software, virtual goods, or subscriptions.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1764788605/meta_digital_goods_976b5ac8a7.webp?1780414013694",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "digital-goods dark backgroundColor--boltBlack resizeTransitionStopper",
+  "h1": "An instant checkout for the instant economy",
+  "headings": [
+    "H2: Built for digital commerce. Powered by the Bolt Network.",
+    "H3: World-class checkout experience",
+    "H3: Proven impact on every surface",
+    "H3: Unmatched reach and scale",
+    "H2: Where social scrolling meets instant sales",
+    "H3: With Bolt",
+    "H3: Without Bolt",
+    "H2: Native checkout.Perfect attribution.Instant conversion.",
+    "H3: Native social checkout",
+    "H3: Perfect attribution",
+    "H3: 2x faster conversions",
+    "H2: Turn every digital moment into a sale"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 21,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 81
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 699,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "An instant checkout for the instant economy",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            hasCTAs\n  "
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 344,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": "Built for digital commerce. Powered by the Bolt Network.",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--gray_80"
+    },
+    {
+      "i": 2,
+      "tag": "section",
+      "h": 448,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": "World-class checkout experience",
+      "cls": "ThreeColumnSection\n          \n          contentAlign-center\n          marginBott"
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 552,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Where social scrolling meets instant sales",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--boltBla"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 571,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "With Bolt",
+      "cls": "featureCards backgroundColor--boltBlack  marginBottom--custom marginTop--custom "
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 466,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Native checkout.Perfect attribution.Instant conversion.",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--boltBla"
+    },
+    {
+      "i": 6,
+      "tag": "section",
+      "h": 431,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Native social checkout",
+      "cls": "ThreeColumnSection\n          \n          contentAlign-center\n          marginBott"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 147,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "DoubleButtonRow  marginBottom--custom marginTop--custom paddingBottom paddingTop"
+    },
+    {
+      "i": 8,
+      "tag": "div",
+      "h": 522,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Turn every digital moment into a sale",
+      "cls": "FooterCallout backgroundColor--tintedWhite marginBottom--custom marginTop--custo"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(255, 255, 255)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h3": {
+      "size": "22px",
+      "lh": "24.2px",
+      "w": "600",
+      "ls": "-0.44px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 10, 25)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(255, 255, 255)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x365",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x117",
+    "rgb(4, 9, 26) x95",
+    "rgb(142, 146, 175) x44",
+    "rgb(255, 255, 255) x11",
+    "rgb(38, 42, 66) x10",
+    "rgb(185, 190, 219) x9",
+    "rgb(69, 74, 102) x6",
+    "rgb(211, 215, 237) x4",
+    "rgb(0, 108, 255) x3",
+    "rgb(4, 10, 25) x3"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x30",
+    "rgb(255, 255, 255) x21",
+    "rgb(248, 246, 254) x20",
+    "rgb(4, 9, 26) x10",
+    "rgb(38, 42, 66) x5",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(228, 230, 247) x3",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12"
+  ],
+  "transitions": [
+    "all 0.2s ease x66",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x59",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x4",
+    "all 0.2s ease-out x3",
+    "background-color, opacity, top, transform, visibility 0.3s, 0.3s, 0.3s, 0.3s, 0.3s ease, ease, ease, ease, ease x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 5717
+}

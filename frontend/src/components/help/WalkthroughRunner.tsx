@@ -88,7 +88,22 @@ export function WalkthroughRunner({
     const leg = legs[i]
     if (!leg) return finish(true)
 
-    const steps = leg.steps.map(toIntroStep)
+    // Steps marked `onlyIfPresent` are dropped when their target is not on this screen.
+    // That is how one lesson fits every role: the shortcut strip shows a different set of
+    // buttons to each person, and nobody is told about a button they do not have.
+    const steps = leg.steps
+      .filter(s => !s.onlyIfPresent || (s.target && document.querySelector(s.target)))
+      .map(toIntroStep)
+    if (!steps.length) {
+      // Everything on this leg belonged to someone else. Move on rather than showing nothing.
+      if (i === legs.length - 1) return finish(true)
+      legIndex.current = i + 1
+      sessionStorage.setItem(RESUME_KEY, JSON.stringify({ id: tour.id, leg: i + 1 }))
+      const nxt = legs[i + 1]
+      if (nxt.goto && nxt.goto !== pathname) router.push(nxt.goto)
+      else runLeg(i + 1)
+      return
+    }
     const isLast = i === legs.length - 1
 
     const mod = await import('intro.js')

@@ -1,0 +1,145 @@
+{
+  "url": "https://www.bolt.com/contact-sales",
+  "title": "Bolt | Contact Sales",
+  "metaDesc": "Ready to boost sales with Bolt? Tell us a bit about yourself and an ecommerce expert will be in touch to answer any questions you may have.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765305197/meta_Contact_Sales_1_65735a0dfc.webp?1780414167088",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "contact-sales light resizeTransitionStopper",
+  "h1": "",
+  "headings": [
+    "H2: Grow your revenue with a smarter checkout"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 21,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 81
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 695,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Grow your revenue with a smarter checkout",
+      "cls": "grid    HeroGatedContent  marginBottom--custom marginTop--custom paddingBottom--"
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 770,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "QuoteCallout  marginBottom--custom marginTop--custom paddingBottom paddingTop--l"
+    },
+    {
+      "i": 2,
+      "tag": "div",
+      "h": 221,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Wysiwyg  marginBottom--custom marginTop--custom paddingBottom paddingTop--custom"
+    }
+  ],
+  "type": {
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h4": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "469",
+      "ls": "-0.64px",
+      "fam": "agrandir-variable",
+      "color": "rgb(4, 9, 26)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(69, 74, 102)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x433",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x95",
+    "rgb(4, 9, 26) x88",
+    "rgb(142, 146, 175) x49",
+    "rgb(255, 79, 80) x32",
+    "rgb(153, 153, 153) x21",
+    "rgb(38, 42, 66) x20",
+    "rgb(255, 255, 255) x7",
+    "rgb(69, 74, 102) x6",
+    "rgb(0, 108, 255) x3",
+    "rgb(61, 60, 56) x3"
+  ],
+  "colorsBg": [
+    "rgb(255, 255, 255) x28",
+    "rgb(0, 108, 255) x28",
+    "rgb(248, 246, 254) x16",
+    "rgb(4, 9, 26) x5",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(38, 42, 66) x3",
+    "rgb(228, 230, 247) x2",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom",
+    "logoScroller"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12",
+    "logoScroller 30s linear x1"
+  ],
+  "transitions": [
+    "all 0.2s ease x81",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x58",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3",
+    "background-color, opacity, top, transform, visibility 0.3s, 0.3s, 0.3s, 0.3s, 0.3s ease, ease, ease, ease, ease x3",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x2"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(4, 9, 26)",
+    "color": "rgb(248, 246, 254)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 3100
+}

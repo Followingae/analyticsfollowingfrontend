@@ -1,0 +1,193 @@
+{
+  "url": "https://www.bolt.com/check-in",
+  "title": "Bolt | Check In",
+  "metaDesc": "Lengthy forms and sign-ins are out. A passwordless, one-click experience is in.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765307783/meta_generic_2_93dba0c3eb.webp?1780414248506",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "check-in light resizeTransitionStopper",
+  "h1": "The futureof checkout is check-in",
+  "headings": [
+    "H2: Check-in with one-click",
+    "H2: Turn your entire site passwordless",
+    "H2: Stop losing shoppers to registration forms",
+    "H2: Shoppers keep everything they love",
+    "H2: Accounts that build themselves",
+    "H2: Security that feels invisible",
+    "H3: Turn your entire site passwordless",
+    "H3: Lean on Bolt authentication and security",
+    "H3: The easiest way to check in and log in",
+    "H2: Now entirely free.",
+    "H3: See it live",
+    "H2: Bring SSO Commerce to your site"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "See how it works",
+    "See pricing",
+    "See in action",
+    "See it in action",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 23,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 88
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 516,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "The futureof checkout is check-in",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            hasCTAs\n  "
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 3898,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Turn your entire site passwordless",
+      "cls": "ZLayoutContent  marginBottom--custom marginTop--custom paddingBottom--custom pad"
+    },
+    {
+      "i": 2,
+      "tag": "section",
+      "h": 591,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Turn your entire site passwordless",
+      "cls": "FeatureCards2 check-in-page  marginBottom--xl marginTop paddingBottom--xs paddin"
+    },
+    {
+      "i": 3,
+      "tag": "section",
+      "h": 280,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Now entirely free.",
+      "cls": "OffBleedImageBanner  marginBottom--custom marginTop--custom paddingBottom paddin"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 741,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "See it live",
+      "cls": "postSlider   marginBottom--custom marginTop--custom paddingBottom--xl paddingTop"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 301,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Bring SSO Commerce to your site",
+      "cls": "FooterCallout  marginBottom--custom marginTop--custom paddingBottom--lg paddingT"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h3": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "700",
+      "ls": "-0.64px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(69, 74, 102)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x447",
+    "rgb(0, 0, 238) x265",
+    "rgb(248, 246, 254) x98",
+    "rgb(4, 9, 26) x94",
+    "rgb(142, 146, 175) x41",
+    "rgb(69, 74, 102) x12",
+    "rgb(38, 42, 66) x8",
+    "rgb(0, 108, 255) x7",
+    "rgb(255, 255, 255) x7"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x29",
+    "rgb(255, 255, 255) x21",
+    "rgb(248, 246, 254) x17",
+    "rgb(4, 9, 26) x6",
+    "rgb(185, 190, 219) x5",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(38, 42, 66) x3",
+    "rgb(228, 230, 247) x2",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12",
+    "slideInFromRight 0.2s ease-out x6",
+    "slideInFromLeft 0.2s ease-out x4"
+  ],
+  "transitions": [
+    "all 0.2s ease x71",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x58",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "background-color 0.2s ease x4",
+    "all 0.2s ease-out x3",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(4, 9, 26)",
+    "color": "rgb(248, 246, 254)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 8236
+}

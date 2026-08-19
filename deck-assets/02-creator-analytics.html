@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Following — Creator Analytics</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .back{display:flex;align-items:center;gap:14px}
+  .back .bk{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted-fg);border:1px solid var(--border-strong);background:#fff;border-radius:9px;padding:7px 12px}
+  .back .bk svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+
+  .profile{overflow:hidden;padding:0}
+  .accent{height:6px;background:linear-gradient(90deg,var(--primary),#9333ea 55%,#06b6d4)}
+  .phead{padding:26px 28px;display:flex;gap:24px;align-items:flex-start}
+  .phead .av{width:104px;height:104px;font-size:36px;border:3px solid #fff;box-shadow:0 10px 30px -10px rgba(81,0,243,.4)}
+  .pid{flex:1;min-width:0}
+  .pname{display:flex;align-items:center;gap:9px}
+  .pname h1{font-size:27px;font-weight:800;letter-spacing:-0.02em}
+  .pname .vf{width:22px;height:22px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center}
+  .pname .vf svg{width:12px;height:12px;stroke:#fff;fill:none;stroke-width:3}
+  .pmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px}
+  .pbio{font-size:13.5px;color:var(--fg-soft);margin-top:13px;max-width:560px;line-height:1.5}
+  .pills{display:flex;flex-direction:column;align-items:flex-end;gap:9px;flex-shrink:0}
+  .pill{display:flex;align-items:center;gap:9px;border-radius:999px;padding:8px 16px;font-size:13px}
+  .pill .lab{color:var(--muted-fg)}.pill .v{font-weight:800}
+  .pill.q{background:var(--primary-08);color:var(--primary)}
+  .pill.i{background:var(--muted)}.pill.i .v{color:var(--primary)}
+  .pill svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+  .updated{font-size:11px;color:var(--muted-fg);display:flex;align-items:center;gap:5px}
+  .updated svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2}
+
+  .stats6{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+  .sc{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:16px 17px;box-shadow:var(--shadow-sm)}
+  .sc .top{display:flex;align-items:flex-start;justify-content:space-between}
+  .sc .lab{font-size:12.5px;color:var(--muted-fg);font-weight:500}
+  .sc .v{font-size:23px;font-weight:800;color:var(--primary);margin-top:5px;letter-spacing:-0.02em}
+  .sc .ico{width:32px;height:32px;border-radius:9px;background:var(--muted);display:flex;align-items:center;justify-content:center}
+  .sc .ico svg{width:16px;height:16px;stroke:var(--primary);fill:none;stroke-width:2}
+  .sc .delta{font-size:11.5px;font-weight:600;color:var(--green);margin-top:4px}
+
+  .tabs{display:flex;gap:4px;background:var(--muted);padding:4px;border-radius:11px;width:fit-content}
+  .tab{font-size:13px;font-weight:600;color:var(--muted-fg);padding:8px 22px;border-radius:8px}
+  .tab.active{background:#fff;color:var(--fg);box-shadow:var(--shadow-sm)}
+
+  .sec-title{display:flex;align-items:center;gap:9px}
+  .sec-title .ic{width:30px;height:30px;border-radius:9px;background:var(--primary-08);display:flex;align-items:center;justify-content:center}
+  .sec-title .ic svg{width:16px;height:16px;stroke:var(--primary);fill:none;stroke-width:2}
+  .sec-title h3{font-size:16px;font-weight:800;letter-spacing:-0.01em}
+  .sec-title p{font-size:12.5px;color:var(--muted-fg);margin-top:1px}
+  .chip-50{margin-left:auto;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-08);border:1px solid var(--primary-18);padding:6px 13px;border-radius:999px}
+
+  .models{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .model{border:1px solid var(--border);border-radius:12px;padding:14px 15px;background:var(--muted-2)}
+  .model .mh{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .model .mn{font-size:12.5px;font-weight:600;color:var(--fg-soft);line-height:1.25}
+  .model .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .model .mv{font-size:22px;font-weight:800;margin:9px 0 8px;letter-spacing:-0.02em}
+  .model .mv small{font-size:12px;font-weight:600;color:var(--muted-fg)}
+  .model .ml{font-size:11px;font-weight:600;margin-top:7px}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .gauge-wrap{display:flex;gap:22px;align-items:center}
+  .gauge{position:relative;width:150px;height:150px;flex-shrink:0}
+  .gauge .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .gauge .num b{font-size:36px;font-weight:800;color:var(--green);letter-spacing:-0.02em}
+  .gauge .num span{font-size:11px;color:var(--muted-fg);font-weight:600}
+  .qmetrics{flex:1;display:flex;flex-direction:column;gap:15px}
+  .qm .qr{display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .qm .qr .qn{font-weight:700}
+  .qlab{color:var(--muted-fg)}
+
+  .demo-row{display:flex;gap:26px}
+  .donut-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .legend{display:flex;flex-direction:column;gap:7px;font-size:12.5px}
+  .legend .li{display:flex;align-items:center;gap:8px}
+  .legend .sw{width:11px;height:11px;border-radius:3px}
+  .bars{flex:1;display:flex;flex-direction:column;gap:11px}
+  .bar-row{display:grid;grid-template-columns:64px 1fr 42px;align-items:center;gap:11px;font-size:12.5px}
+  .bar-row .bl{color:var(--fg-soft);font-weight:500}
+  .bar-row .bt{height:9px;border-radius:999px;background:var(--muted)}
+  .bar-row .bt span{display:block;height:100%;border-radius:999px;background:var(--primary)}
+  .bar-row .bv{text-align:right;font-weight:700;color:var(--fg-soft)}
+  .country-row{display:grid;grid-template-columns:24px 1fr 44px;align-items:center;gap:11px;font-size:12.5px}
+  .country-row .cc{font-size:10px;font-weight:700;color:var(--fg-soft);background:var(--muted);border:1px solid var(--border-strong);border-radius:5px;padding:3px 0;text-align:center}
+  .subhead{font-size:12.5px;font-weight:700;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;margin-bottom:14px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo-wrap"><img src="following-logo.svg" alt="Following"></div>
+    <nav>
+      <div class="nav-group">
+        <div class="nav-label">Search &amp; Analytics</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>Discovery</div>
+        <div class="nav-item active"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Creators</div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Management</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Campaigns</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>Influencer Campaigns</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>Cashback Pool</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>Proposals</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Lists</div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">More</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Billing</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Settings</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help &amp; Support</div>
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="user-chip">
+        <div class="av av-g1" style="width:34px;height:34px;font-size:13px">ZA</div>
+        <div class="meta"><div class="name">Zain Ali</div><div class="mail">zain@following.ae</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb">Creators&nbsp; / &nbsp;<b>@layla.styles</b></div>
+      <div class="topbar-right">
+        <div class="credit-pill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5h4.5a1.5 1.5 0 0 1 0 3H9"/></svg>1,840 credits</div>
+        <div class="icon-btn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></div>
+        <div class="icon-btn"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <div class="av av-g1" style="width:34px;height:34px;font-size:13px">ZA</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="back">
+        <div class="bk"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</div>
+        <div><div class="page-h1" style="font-size:21px">@layla.styles</div><div class="page-sub" style="margin-top:2px">Creator Analytics &amp; AI Vetting Report</div></div>
+      </div>
+
+      <!-- Profile header -->
+      <div class="card profile">
+        <div class="accent"></div>
+        <div class="phead">
+          <div class="av av-g1">LH<span class="verified" style="width:22px;height:22px;bottom:2px;right:2px"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+          <div class="pid">
+            <div class="pname"><h1>Layla Hassan</h1><span class="vf"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+            <div class="pmeta">
+              <span class="muted" style="font-size:14px">@layla.styles</span>
+              <span class="badge b-outline"><span style="font-size:9px;font-weight:700">AE</span>&nbsp;United Arab Emirates</span>
+              <span class="badge b-muted">Business</span>
+              <span class="badge b-outline">Fashion &amp; Beauty</span>
+            </div>
+            <div class="pbio">Dubai-based fashion &amp; beauty creator ✦ Modest style edits, GRWM &amp; brand collabs. Founder @atelier.layla — Featured in Vogue Arabia.</div>
+          </div>
+          <div class="pills">
+            <div class="pill q"><svg viewBox="0 0 24 24"><path d="m12 3-1.6 5.1a2 2 0 0 1-1.3 1.3L4 11l5.1 1.6a2 2 0 0 1 1.3 1.3L12 19l1.6-5.1a2 2 0 0 1 1.3-1.3L20 11l-5.1-1.6a2 2 0 0 1-1.3-1.3Z"/></svg><span class="lab">Quality</span><span class="v">87</span></div>
+            <div class="pill i"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span class="lab">Influence</span><span class="v">73</span></div>
+            <span class="badge b-outline">Primary: Fashion</span>
+            <div class="updated"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Updated May 28, 2026</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="card-pad">
+          <div class="stats6">
+            <div class="sc"><div class="top"><div><div class="lab">Followers</div><div class="v">842K</div><div class="delta">+3.2% growth</div></div><div class="ico"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div></div>
+            <div class="sc"><div class="top"><div><div class="lab">Following</div><div class="v">512</div></div><div class="ico"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div></div>
+            <div class="sc"><div class="top"><div><div class="lab">Posts</div><div class="v">1,284</div></div><div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div></div></div>
+            <div class="sc"><div class="top"><div><div class="lab">Engagement</div><div class="v">4.82%</div></div><div class="ico"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div></div></div>
+            <div class="sc"><div class="top"><div><div class="lab">Avg Likes</div><div class="v">38.2K</div></div><div class="ico"><svg viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></div></div></div>
+            <div class="sc"><div class="top"><div><div class="lab">Avg Comments</div><div class="v">612</div></div><div class="ico"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs"><div class="tab active">Overview</div><div class="tab">Content</div><div class="tab">Audience</div><div class="tab">Posts (24)</div></div>
+
+      <!-- 12-model AI vetting -->
+      <div class="card card-pad">
+        <div class="sec-title" style="margin-bottom:20px">
+          <div class="ic"><svg viewBox="0 0 24 24"><path d="m12 3-1.6 5.1a2 2 0 0 1-1.3 1.3L4 11l5.1 1.6a2 2 0 0 1 1.3 1.3L12 19l1.6-5.1a2 2 0 0 1 1.3-1.3L20 11l-5.1-1.6a2 2 0 0 1-1.3-1.3Z"/></svg></div>
+          <div><h3>12-Model AI Vetting Engine</h3><p>50+ data points analyzed across 12 specialised models</p></div>
+          <span class="chip-50">All models passed</span>
+        </div>
+        <div class="models" id="models"></div>
+      </div>
+
+      <!-- Audience quality + demographics -->
+      <div class="two">
+        <div class="card card-pad">
+          <div class="sec-title" style="margin-bottom:22px">
+            <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><polyline points="9 12 11 14 15 10"/></svg></div>
+            <div><h3>Audience Quality</h3><p>Authenticity &amp; fraud detection</p></div>
+          </div>
+          <div class="gauge-wrap">
+            <div class="gauge">
+              <svg viewBox="0 0 120 120" width="150" height="150">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--muted)" stroke-width="12"/>
+                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--green)" stroke-width="12" stroke-linecap="round"
+                  stroke-dasharray="326.7" stroke-dashoffset="26.1" transform="rotate(-90 60 60)"/>
+              </svg>
+              <div class="num"><b>92</b><span>Authenticity</span></div>
+            </div>
+            <div class="qmetrics">
+              <div class="qm"><div class="qr"><span class="qlab">Real followers</span><span class="qn" style="color:var(--green)">95.7%</span></div><div class="progress"><span style="width:95.7%;background:var(--green)"></span></div></div>
+              <div class="qm"><div class="qr"><span class="qlab">Engagement authenticity</span><span class="qn" style="color:var(--green)">94%</span></div><div class="progress"><span style="width:94%;background:var(--green)"></span></div></div>
+              <div class="qm"><div class="qr"><span class="qlab">Suspicious / bot accounts</span><span class="qn" style="color:var(--amber)">4.3%</span></div><div class="progress"><span style="width:4.3%;background:var(--amber)"></span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="sec-title" style="margin-bottom:22px">
+            <div class="ic"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+            <div><h3>Audience Demographics</h3><p>Gender &amp; age distribution</p></div>
+          </div>
+          <div class="demo-row">
+            <div class="donut-wrap">
+              <svg viewBox="0 0 120 120" width="130" height="130">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="var(--primary)" stroke-width="16" stroke-dasharray="245.0 314.2" transform="rotate(-90 60 60)"/>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#c4b5fd" stroke-width="16" stroke-dasharray="69.1 314.2" stroke-dashoffset="-245.0" transform="rotate(-90 60 60)"/>
+                <text x="60" y="56" text-anchor="middle" font-size="13" font-weight="800" fill="var(--fg)">78%</text>
+                <text x="60" y="71" text-anchor="middle" font-size="9" fill="var(--muted-fg)">Female</text>
+              </svg>
+              <div class="legend">
+                <div class="li"><span class="sw" style="background:var(--primary)"></span>Female 78%</div>
+                <div class="li"><span class="sw" style="background:#c4b5fd"></span>Male 22%</div>
+              </div>
+            </div>
+            <div class="bars" id="ages"></div>
+          </div>
+          <div class="divider" style="margin:18px 0"></div>
+          <div class="subhead">Top Locations</div>
+          <div class="bars" id="countries"></div>
+        </div>
+      </div>
+
+      <!-- Content categories + sentiment -->
+      <div class="two">
+        <div class="card card-pad">
+          <div class="sec-title" style="margin-bottom:22px">
+            <div class="ic"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div>
+            <div><h3>Content Categories</h3><p>AI-classified topic mix</p></div>
+          </div>
+          <div class="bars" id="cats"></div>
+        </div>
+        <div class="card card-pad">
+          <div class="sec-title" style="margin-bottom:22px">
+            <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+            <div><h3>Sentiment &amp; Signals</h3><p>Comment &amp; caption analysis</p></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div class="model" style="background:var(--green-bg);border-color:var(--green-bd)"><div class="mn">Comment Sentiment</div><div class="mv" style="color:var(--green);margin-bottom:2px">89% <small>Positive</small></div><div class="ml muted">Predominantly supportive</div></div>
+            <div class="model"><div class="mn">Brand Safety</div><div class="mv" style="color:var(--green);margin-bottom:2px">96<small>/100</small></div><div class="ml" style="color:var(--green)">Safe for all advertisers</div></div>
+            <div class="model"><div class="mn">Primary Language</div><div class="mv" style="margin-bottom:2px;font-size:18px">EN / AR</div><div class="ml muted">62% English · 34% Arabic</div></div>
+            <div class="model"><div class="mn">Posting Cadence</div><div class="mv" style="margin-bottom:2px;font-size:18px">5.4<small>/wk</small></div><div class="ml muted">Consistent, peak Thu–Fri</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const models=[
+ {n:'Content Quality',v:87,s:'/100'},
+ {n:'Audience Authenticity',v:92,s:'/100'},
+ {n:'Engagement Quality',v:84,s:'/100'},
+ {n:'Brand Safety',v:96,s:'/100'},
+ {n:'Fake-Follower Detection',v:96,s:'/100'},
+ {n:'Sentiment Analysis',v:89,s:'/100'},
+ {n:'Bot Detection',v:93,s:'/100'},
+ {n:'Niche Relevance',v:94,s:'/100'},
+ {n:'Content Consistency',v:88,s:'/100'},
+ {n:'Influence Score',v:73,s:'/100'},
+ {n:'Audience Overlap',v:71,s:'/100'},
+ {n:'Growth Trajectory',v:81,s:'/100'},
+];
+const tone=v=>v>=85?['var(--green)','Excellent']:v>=70?['var(--primary)','Strong']:['var(--amber)','Moderate'];
+document.getElementById('models').innerHTML=models.map(m=>{
+ const [c,l]=tone(m.v);
+ return `<div class="model">
+   <div class="mh"><div class="mn">${m.n}</div><span class="dot" style="background:${c}"></span></div>
+   <div class="mv" style="color:${c}">${m.v}<small>${m.s}</small></div>
+   <div class="progress"><span style="width:${m.v}%;background:${c}"></span></div>
+   <div class="ml" style="color:${c}">${l}</div>
+ </div>`;
+}).join('');
+
+const bar=(label,v,max)=>`<div class="bar-row"><span class="bl">${label}</span><div class="bt"><span style="width:${(v/max*100).toFixed(0)}%"></span></div><span class="bv">${v}%</span></div>`;
+document.getElementById('ages').innerHTML=[['13–17',8],['18–24',34],['25–34',41],['35–44',13],['45+',4]].map(([l,v])=>bar(l,v,41)).join('');
+document.getElementById('cats').innerHTML=[['Fashion',42],['Beauty',28],['Lifestyle',16],['Travel',9],['Other',5]].map(([l,v])=>bar(l,v,42)).join('');
+
+const cbar=(cc,name,v,max)=>`<div class="country-row"><span class="cc">${cc}</span><div class="bt" style="height:9px;border-radius:999px;background:var(--muted)"><span style="display:block;height:100%;border-radius:999px;background:var(--primary);width:${(v/max*100).toFixed(0)}%"></span></div><span class="bv" style="text-align:right;font-weight:700;color:var(--fg-soft)">${v}%</span></div>`;
+document.getElementById('countries').innerHTML=[['AE','UAE',46],['SA','Saudi Arabia',18],['EG','Egypt',9],['GB','United Kingdom',7],['US','United States',5]].map(([cc,n,v])=>cbar(cc,n,v,46)).join('');
+</script>
+</body>
+</html>

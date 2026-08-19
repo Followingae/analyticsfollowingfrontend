@@ -1,0 +1,16 @@
+const { chromium } = require('playwright')
+;(async () => {
+  const b = await chromium.launch({ channel: 'chrome' })
+  const p = await b.newPage({ viewport: { width: 1400, height: 900 } })
+  await p.goto('https://platform.following.ae/demo/auth/login', { waitUntil: 'load' })
+  await p.waitForTimeout(9000)   // let hydration finish before touching anything
+  console.log('BUTTONS:', JSON.stringify(await p.locator('button').allTextContents()))
+  console.log('LINKS  :', JSON.stringify((await p.locator('a').evaluateAll(a => a.map(x => x.getAttribute('href')))).slice(0, 10)))
+  console.log('TEXT   :', (await p.locator('body').innerText()).replace(/\n+/g, ' | ').slice(0, 300))
+  await p.fill('input[type="email"]', 'client@analyticsfollowing.com')
+  await p.fill('input[type="password"]', 'demo')
+  await p.click('button:has-text("Sign In")')
+  await p.waitForTimeout(6000)
+  console.log('after  :', p.url(), '| storage:', JSON.stringify(await p.evaluate(() => Object.keys(localStorage))))
+  await b.close()
+})()

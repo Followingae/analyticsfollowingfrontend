@@ -1,0 +1,223 @@
+{
+  "url": "https://www.bolt.com/intelligentcheckout",
+  "title": "Checkout 2.0 | AI-Powered Commerce",
+  "metaDesc": "Experience Bolt Checkout 2.0, the world's most intelligent checkout. Our AI-driven orchestration engine personalizes every transaction to boost conversion, speed, and trust for merchants and shoppers.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1763672607/meta_bolt_intelligent_checkout_57518c80f7.webp?1780413857243",
+  "nextPage": "/checkout-two/[[...id]]",
+  "htmlClass": "CheckoutTwo new page dark resizeTransitionStopper",
+  "h1": "The world’s most intelligent checkout",
+  "headings": [
+    "H2: Built on self-learning user profiles.",
+    "H2: Benefits for shoppers",
+    "H2: Benefits for merchants",
+    "H2: AI that powers every purchase.",
+    "H3: Adapts instantly and improves over time",
+    "H3: Optimizes every transaction behind the scenes",
+    "H3: Power any payment, anywhere",
+    "H2: Performance trusted by the world’s biggest brands.",
+    "H2: The smartest way to turn browsers into buyers"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Get started today",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 28,
+    "videos": 4,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 82
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 787,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "The world’s most intelligent checkout",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            hasCTAs\n  "
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 759,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Built on self-learning user profiles.",
+      "cls": "mediaBlock  self-learning responsiveTextAlign--center marginBottom--none marginT"
+    },
+    {
+      "i": 2,
+      "tag": "section",
+      "h": 709,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Benefits for shoppers",
+      "cls": "TwoColumnChecklistSection doubleHeading  marginBottom--custom marginTop--custom "
+    },
+    {
+      "i": 3,
+      "tag": "section",
+      "h": 1070,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "AI that powers every purchase.",
+      "cls": "aiFadeIn backgroundColor--tintBlack"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 654,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Adapts instantly and improves over time",
+      "cls": "mediaBlock  adapts responsiveTextAlign--left marginBottom--none marginTop--none "
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 650,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Optimizes every transaction behind the scenes",
+      "cls": "mediaBlock  optimizes responsiveTextAlign--left marginBottom--none marginTop--no"
+    },
+    {
+      "i": 6,
+      "tag": "div",
+      "h": 754,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Power any payment, anywhere",
+      "cls": "mediaBlock  power responsiveTextAlign--left marginBottom--none marginTop--none p"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 279,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Performance trusted by the world’s biggest brands.",
+      "cls": "\n      ImageBanner\n      \n      marginBottom--custom marginTop--custom paddingBo"
+    },
+    {
+      "i": 8,
+      "tag": "div",
+      "h": 705,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "The smartest way to turn browsers into buyers",
+      "cls": "Heading calloutHeading textAlign--center responsiveTextAlign--center  background"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(255, 255, 255)"
+    },
+    "h2": {
+      "size": "46px",
+      "lh": "50.6px",
+      "w": "700",
+      "ls": "-0.92px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(17, 20, 38)"
+    },
+    "h3": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "700",
+      "ls": "-0.64px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "normal",
+      "fam": "Inter",
+      "color": "rgb(185, 190, 219)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x405",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x112",
+    "rgb(4, 9, 26) x78",
+    "rgb(142, 146, 175) x41",
+    "rgb(38, 42, 66) x17",
+    "rgb(185, 190, 219) x14",
+    "rgb(255, 255, 255) x12",
+    "rgb(24, 26, 32) x12",
+    "rgb(0, 108, 255) x6",
+    "rgb(211, 215, 237) x4",
+    "rgb(17, 20, 38) x1",
+    "rgb(69, 74, 102) x1"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x29",
+    "rgb(248, 246, 254) x25",
+    "rgb(255, 255, 255) x21",
+    "rgb(4, 9, 26) x8",
+    "rgb(38, 42, 66) x5",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom",
+    "slideInFromLeftCol",
+    "slideInFromRightCol",
+    "Typewriter-cursor"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12",
+    "slideInFromLeft 0.2s ease-out x10",
+    "slideInFromRight 0.2s ease-out x8",
+    "zoomInFromLeft 0.6s ease-out x1",
+    "zoomInFromRight 0.6s ease-out x1",
+    "swipe 2.3s linear x1",
+    "Typewriter-cursor 1s ease x1"
+  ],
+  "transitions": [
+    "all 0.2s ease x65",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x58",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x3",
+    "background-color, opacity, top, transform, visibility 0.3s, 0.3s, 0.3s, 0.3s, 0.3s ease, ease, ease, ease, ease x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 7904
+}

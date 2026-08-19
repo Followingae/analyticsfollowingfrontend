@@ -1,0 +1,22 @@
+[     102ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://www.bolt.com/terms:0
+[     234ms] [ERROR] Error in componentSpacing: invalid spacingObject.
+
+spacingObject: undefined @ https://www.bolt.com/_next/static/chunks/pages/404-ac039c77641f9b2d.js:0
+[     263ms] [ERROR] Error in componentSpacing: invalid spacingObject.
+
+spacingObject: undefined @ https://www.bolt.com/_next/static/chunks/pages/404-ac039c77641f9b2d.js:0
+[     280ms] [ERROR] Error in componentSpacing: invalid spacingObject.
+
+spacingObject: undefined @ https://www.bolt.com/_next/static/chunks/pages/404-ac039c77641f9b2d.js:0
+[    1214ms] [ERROR] Access to fetch at 'https://insights.bolt.com/getting-more-from-your-fraud-scoring-software' (redirected from 'https://www.bolt.com/_next/data/Y6xhotdJiNlUyUhKDGkwt/en-US/getting-more-from-your-fraud-scoring-software.json') from origin 'https://www.bolt.com' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ https://www.bolt.com/terms:0
+[    1214ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://insights.bolt.com/getting-more-from-your-fraud-scoring-software:0
+[    1217ms] [ERROR] Access to fetch at 'https://insights.bolt.com/why-no-buy' (redirected from 'https://www.bolt.com/_next/data/Y6xhotdJiNlUyUhKDGkwt/en-US/landing/ebook-why-no-buy.json') from origin 'https://www.bolt.com' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ https://www.bolt.com/terms:0
+[    1217ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://insights.bolt.com/why-no-buy:0
+[    1688ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://www.bolt.com/terms:0
+[    1801ms] [ERROR] Error in componentSpacing: invalid spacingObject.
+
+spacingObject: undefined @ https://www.bolt.com/_next/static/chunks/pages/404-ac039c77641f9b2d.js:0
+[    8294ms] [WARNING] The resource https://www.bolt.com/fonts/agrandir-bolt/agrandir-bolt.otf was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://www.bolt.com/terms:0
+[  636985ms] [ERROR] Access to fetch at 'https://insights.bolt.com/getting-more-from-your-fraud-scoring-software' (redirected from 'https://www.bolt.com/_next/data/Y6xhotdJiNlUyUhKDGkwt/en-US/getting-more-from-your-fraud-scoring-software.json') from origin 'https://www.bolt.com' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ https://www.bolt.com/terms:0
+[  636985ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://insights.bolt.com/getting-more-from-your-fraud-scoring-software:0
+[  639998ms] [WARNING] The resource https://www.bolt.com/fonts/agrandir-bolt/agrandir-bolt.otf was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ https://www.bolt.com/terms:0

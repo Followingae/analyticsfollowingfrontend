@@ -1,0 +1,167 @@
+{
+  "url": "https://www.bolt.com/shop",
+  "title": "Bolt | Browse Our Marketplace",
+  "metaDesc": "Bolt is trusted by the world's best brands to power their business. Shop retailers in fashion, beauty, automotive, and more.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1742915390/meta_Shop_The_Bolt_Network_1_33725ad5ff.webp?1780414239007",
+  "nextPage": "/shop-lander/[[...id]]",
+  "htmlClass": "ShopLander dark backgroundColor--white resizeTransitionStopper",
+  "h1": "Shop the Bolt Network",
+  "headings": [
+    "H2: Clothing & Accessories",
+    "H2: Kendra Scott",
+    "H2: Automotive",
+    "H2: Jewelry & Watches",
+    "H2: Households",
+    "H2: Food and Beverage",
+    "H2: Trending in Bolt Network",
+    "H3: Clothing & Accessories",
+    "H3: Automotive",
+    "H3: Jewelry & Watches",
+    "H3: Household",
+    "H3: Food & Beverage",
+    "H3: Other"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "View All",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 79,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 125
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "section",
+      "h": 300,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Shop the Bolt Network",
+      "cls": "ShopPage--hero "
+    },
+    {
+      "i": 1,
+      "tag": "section",
+      "h": 429,
+      "bg": "rgb(255, 255, 255)",
+      "bgImage": null,
+      "heading": "Clothing & Accessories",
+      "cls": "ShopFeaturedSlider--wrap "
+    },
+    {
+      "i": 2,
+      "tag": "section",
+      "h": 353,
+      "bg": "rgb(255, 255, 255)",
+      "bgImage": null,
+      "heading": "Trending in Bolt Network",
+      "cls": "shopPage__trendingSec"
+    },
+    {
+      "i": 3,
+      "tag": "section",
+      "h": 2044,
+      "bg": "rgb(255, 255, 255)",
+      "bgImage": null,
+      "heading": "Clothing & Accessories",
+      "cls": "ShopPage__CatSliderSec-wrap"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "h2": {
+      "size": "39px",
+      "lh": "42.9px",
+      "w": "700",
+      "ls": "-0.78px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(255, 255, 255)"
+    },
+    "h3": {
+      "size": "26px",
+      "lh": "28.6px",
+      "w": "700",
+      "ls": "-0.52px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "p": {
+      "size": "16px",
+      "lh": "20.8px",
+      "w": "500",
+      "ls": "-0.32px",
+      "fam": "Inter",
+      "color": "rgb(255, 255, 255)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x453",
+    "rgb(0, 0, 238) x451",
+    "rgb(4, 9, 26) x163",
+    "rgb(248, 246, 254) x114",
+    "rgb(255, 255, 255) x47",
+    "rgb(142, 146, 175) x41",
+    "rgb(0, 108, 255) x36",
+    "rgb(106, 111, 140) x12",
+    "rgb(211, 215, 237) x4",
+    "rgb(185, 190, 219) x1",
+    "rgb(38, 42, 66) x1"
+  ],
+  "colorsBg": [
+    "rgb(255, 255, 255) x52",
+    "rgb(0, 108, 255) x28",
+    "rgb(0, 0, 0) x22",
+    "rgb(248, 246, 254) x19",
+    "rgb(4, 9, 26) x14",
+    "rgb(38, 42, 66) x5",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12"
+  ],
+  "transitions": [
+    "all 0.2s ease x122",
+    "all 0.35s ease x74",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x58",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "all 0.4s ease x14",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 4459
+}

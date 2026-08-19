@@ -1,0 +1,204 @@
+{
+  "url": "https://www.bolt.com/activate",
+  "title": "Bolt | Activate",
+  "metaDesc": "Bolt Activate backs startup founders who want to launch faster and scale smarter.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765218824/meta_activate_992d113045.webp?1780414194151",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "activate dark backgroundColor--boltBlack resizeTransitionStopper",
+  "h1": "️Welcome to Bolt Activate",
+  "headings": [
+    "H2: The future of commerce will be built by founders, not platforms",
+    "H2: Everything you need to build, sell, and scale — faster",
+    "H2: $10,000 in Bolt Credits",
+    "H2: Access to 80M+ shoppers",
+    "H2: Private founder network",
+    "H2: Shining the spotlight on founders",
+    "H2: Who should apply?",
+    "H2: This isn’t an accelerator. It’s a fast lane."
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Apply here",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 23,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 81
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 708,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "️Welcome to Bolt Activate",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            hasCTAs\n  "
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 256,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "The future of commerce will be built by founders, not platforms",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--boltBla"
+    },
+    {
+      "i": 2,
+      "tag": "div",
+      "h": 742,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "CenteredMedia  marginBottom--custom marginTop--custom paddingBottom paddingTop--"
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 291,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Everything you need to build, sell, and scale — faster",
+      "cls": "Heading  textAlign--center  withoutHeadingBody backgroundColor--tintedWhite\n    "
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 1584,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "$10,000 in Bolt Credits",
+      "cls": "ZLayoutContent  marginBottom--custom marginTop--custom paddingBottom--custom pad"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 150,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Divider  marginBottom--custom marginTop--custom paddingBottom--custom paddingTop"
+    },
+    {
+      "i": 6,
+      "tag": "div",
+      "h": 476,
+      "bg": "rgb(211, 215, 237)",
+      "bgImage": null,
+      "heading": "Shining the spotlight on founders",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--gray_70"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 552,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Who should apply?",
+      "cls": "ZLayoutContent  marginBottom--custom marginTop--custom paddingBottom--custom pad"
+    },
+    {
+      "i": 8,
+      "tag": "div",
+      "h": 698,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "This isn’t an accelerator. It’s a fast lane.",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center withoutHeadingBody backgr"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "h2": {
+      "size": "46px",
+      "lh": "50.6px",
+      "w": "700",
+      "ls": "-0.92px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(185, 190, 219)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x386",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x113",
+    "rgb(4, 9, 26) x83",
+    "rgb(142, 146, 175) x44",
+    "rgb(69, 74, 102) x18",
+    "rgb(255, 255, 255) x7",
+    "rgb(0, 108, 255) x4",
+    "rgb(211, 215, 237) x4",
+    "rgb(185, 190, 219) x4",
+    "rgb(38, 42, 66) x1"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x30",
+    "rgb(248, 246, 254) x24",
+    "rgb(255, 255, 255) x19",
+    "rgb(38, 42, 66) x5",
+    "rgb(4, 9, 26) x4",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(211, 215, 237) x2",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12"
+  ],
+  "transitions": [
+    "all 0.2s ease x64",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x59",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "transform, opacity 0.3s, 0.3s cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1) x11",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x4",
+    "all 0.2s ease-out x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 6893
+}

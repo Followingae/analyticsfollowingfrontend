@@ -1,0 +1,220 @@
+{
+  "url": "https://www.bolt.com/refer",
+  "title": "Bolt | Referral Program",
+  "metaDesc": "Refer a company to Bolt and earn commissions when they become a customer.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765307783/meta_generic_2_93dba0c3eb.webp?1780414218482",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "refer dark backgroundColor--boltBlack resizeTransitionStopper",
+  "h1": "Bolt referral program",
+  "headings": [
+    "H2: Earn cash for every merchant that joins Bolt",
+    "H2: How it works",
+    "H3: Merchant referral reward",
+    "H3: Large merchant referral reward",
+    "H3: Milestone bonus",
+    "H2: Bring the next generation of commerce into the Bolt Network — and get paid for it."
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 16,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 84
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 631,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Bolt referral program",
+      "cls": "grid    HeroGatedContent  marginBottom--custom marginTop--custom paddingBottom--"
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 651,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Earn cash for every merchant that joins Bolt",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  \n        \n        margin"
+    },
+    {
+      "i": 2,
+      "tag": "section",
+      "h": 404,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "ThreeColumnSection\n          \n          contentAlign-center\n          marginBott"
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 150,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Divider  marginBottom--custom marginTop--custom paddingBottom--custom paddingTop"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 170,
+      "bg": "rgb(211, 215, 237)",
+      "bgImage": null,
+      "heading": "How it works",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center withoutHeadingBody backgr"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 780,
+      "bg": "rgb(211, 215, 237)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "CardGrid .gridCards__cardIcon padding--none  backgroundColor--gray_700 marginBot"
+    },
+    {
+      "i": 6,
+      "tag": "div",
+      "h": 285,
+      "bg": "rgb(211, 215, 237)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--gray_70"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 328,
+      "bg": "rgb(211, 215, 237)",
+      "bgImage": null,
+      "heading": "Merchant referral reward",
+      "cls": "faq__main center  marginBottom--custom marginTop--custom paddingBottom--xs paddi"
+    },
+    {
+      "i": 8,
+      "tag": "div",
+      "h": 812,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": "url(\"https://www.bolt.com/assets/images/components/FooterCallout/callout-rebrand",
+      "heading": "Bring the next generation of commerce into the Bolt Network — and get paid for it.",
+      "cls": "FooterCallout lightning backgroundColor--tintedWhite marginBottom--custom margin"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "h3": {
+      "size": "22px",
+      "lh": "24.2px",
+      "w": "700",
+      "ls": "-0.66px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(17, 20, 38)"
+    },
+    "h4": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "700",
+      "ls": "-0.64px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(185, 190, 219)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x478",
+    "rgb(0, 0, 238) x238",
+    "rgb(248, 246, 254) x113",
+    "rgb(4, 9, 26) x80",
+    "rgb(142, 146, 175) x44",
+    "rgb(255, 79, 80) x32",
+    "rgb(38, 42, 66) x22",
+    "rgb(17, 20, 38) x20",
+    "rgb(185, 190, 219) x8",
+    "rgb(255, 255, 255) x7",
+    "rgb(0, 108, 255) x4",
+    "rgb(211, 215, 237) x4",
+    "rgb(69, 74, 102) x1"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x28",
+    "rgb(255, 255, 255) x26",
+    "rgb(248, 246, 254) x20",
+    "rgb(38, 42, 66) x5",
+    "rgb(4, 9, 26) x5",
+    "rgb(211, 215, 237) x5",
+    "rgb(228, 230, 247) x4",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12"
+  ],
+  "transitions": [
+    "all 0.2s ease x69",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x59",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x3",
+    "background-color, opacity, top, transform, visibility 0.3s, 0.3s, 0.3s, 0.3s, 0.3s ease, ease, ease, ease, ease x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 5551
+}

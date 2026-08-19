@@ -1,0 +1,256 @@
+{
+  "url": "https://www.bolt.com/app-devs",
+  "title": "Bolt | For App Developers",
+  "metaDesc": "Set up a web-based checkout in days, not weeks. Keep your margins, your data, and your control.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1764775943/meta_app_devs_00d9e05479.webp?1780414046670",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "enterprise darkTheme ignite appDevs light resizeTransitionStopper",
+  "h1": "The future of app monetization runs on the web",
+  "headings": [
+    "H2: The best pricing for app developers.",
+    "H3: Supported verticals",
+    "H2: Checkout built by devs, for devs",
+    "H2: Keep your revenue, not someone else’s",
+    "H2: Reach 80M+ ready-to-buy users",
+    "H2: A checkout that feels native to your app",
+    "H2: Start fast with self-serve checkout",
+    "H2: Monetize your app subscriptions with one-click ease",
+    "H2: Turn casual browsers into lifetime customers"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "See pricing",
+    "Get started today",
+    "Developer quick-start",
+    "Learn more about Bolt Subscriptions",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 30,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 86
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 642,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "The future of app monetization runs on the web",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            hasCTAs\n  "
+    },
+    {
+      "i": 1,
+      "tag": "section",
+      "h": 506,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "The best pricing for app developers.",
+      "cls": "Ticker pricing marginBottom--none marginTop--none paddingBottom--none paddingTop"
+    },
+    {
+      "i": 2,
+      "tag": "div",
+      "h": 900,
+      "bg": "rgba(4, 9, 26, 0.65)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "modal modal__video Ticker__content--modal hidden"
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 201,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Supported verticals",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center withoutHeadingBody \n     "
+    },
+    {
+      "i": 4,
+      "tag": "section",
+      "h": 583,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "PartnersGrid  marginBottom--custom marginTop--custom paddingBottom--lg paddingTo"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 400,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Divider  marginBottom--none marginTop--custom paddingBottom--none paddingTop--cu"
+    },
+    {
+      "i": 6,
+      "tag": "div",
+      "h": 396,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Checkout built by devs, for devs",
+      "cls": "Heading productPage textAlign--center responsiveTextAlign--center  backgroundCol"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 1816,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Keep your revenue, not someone else’s",
+      "cls": "ZLayoutContent darkTheme marginBottom--xs marginTop--none paddingBottom--xs padd"
+    },
+    {
+      "i": 8,
+      "tag": "div",
+      "h": 450,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Divider  marginBottom--xs marginTop--none paddingBottom--none paddingTop--none\n "
+    },
+    {
+      "i": 9,
+      "tag": "div",
+      "h": 178,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Start fast with self-serve checkout",
+      "cls": "\n      ImageBanner\n      \n      marginBottom--custom marginTop--custom paddingBo"
+    },
+    {
+      "i": 10,
+      "tag": "div",
+      "h": 523,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Monetize your app subscriptions with one-click ease",
+      "cls": "Heading  textAlign--center  withoutHeadingBody \n        \n        marginBottom--c"
+    },
+    {
+      "i": 11,
+      "tag": "div",
+      "h": 938,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "MediaSlider  marginBottom--custom marginTop--custom paddingBottom--none paddingT"
+    },
+    {
+      "i": 12,
+      "tag": "div",
+      "h": 698,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Turn casual browsers into lifetime customers",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center withoutHeadingBody \n     "
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h2": {
+      "size": "50px",
+      "lh": "50px",
+      "w": "700",
+      "ls": "-1px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h3": {
+      "size": "46px",
+      "lh": "50.6px",
+      "w": "700",
+      "ls": "-0.92px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(69, 74, 102)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x460",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x105",
+    "rgb(4, 9, 26) x93",
+    "rgb(142, 146, 175) x41",
+    "rgb(0, 108, 255) x11",
+    "rgb(255, 255, 255) x9",
+    "rgb(69, 74, 102) x8",
+    "rgb(211, 215, 237) x3",
+    "rgb(75, 79, 94) x1",
+    "rgb(185, 190, 219) x1",
+    "rgb(38, 42, 66) x1"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x31",
+    "rgb(255, 255, 255) x29",
+    "rgb(248, 246, 254) x17",
+    "rgb(4, 9, 26) x9",
+    "rgba(4, 9, 26, 0.65) x6",
+    "rgb(38, 42, 66) x3",
+    "rgb(228, 230, 247) x2",
+    "rgb(248, 247, 255) x1",
+    "rgb(211, 215, 237) x1",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12",
+    "slideInFromLeft 0.2s ease-out x2"
+  ],
+  "transitions": [
+    "all 0.2s ease x66",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x58",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "outline-color 0.2s ease-in-out x16",
+    "opacity 0.2s ease-out x7",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x5",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(4, 9, 26)",
+    "color": "rgb(248, 246, 254)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 8420
+}

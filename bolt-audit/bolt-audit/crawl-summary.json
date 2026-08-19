@@ -1,0 +1,331 @@
+[
+  {
+    "path": "/pay/rewards",
+    "slug": "pay-rewards",
+    "status": 200,
+    "finalUrl": "https://www.bolt.com/pay/rewards",
+    "profile": {
+      "url": "https://www.bolt.com/pay/rewards",
+      "title": "Bolt | Bolt Card Rewards Program",
+      "metaDesc": "No hoops. No catches. Just more value, every time you tap to pay. Here’s how it works.",
+      "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765307896/meta_generic_c7673a0721.png?1780414997477",
+      "nextPage": "/default-lander/[[...id]]",
+      "htmlClass": "pay-rewards light resizeTransitionStopper",
+      "h1": "Introducing the Bolt Card Rewards Program",
+      "headings": [
+        "H3: Why Choose the Bolt Card?",
+        "H3: How to Maximize Your Rewards",
+        "H3: How to Track",
+        "H2: Ready to Start Earning?"
+      ],
+      "ctas": [
+        "Download",
+        "Ebooks and reports",
+        "Contact us",
+        "Getting started"
+      ],
+      "media": {
+        "images": 25,
+        "videos": 0,
+        "wistia": 1,
+        "lottie": 0,
+        "canvas": 0,
+        "svg": 53
+      },
+      "sections": [
+        {
+          "i": 0,
+          "tag": "div",
+          "h": 557,
+          "bg": "rgba(0, 0, 0, 0)",
+          "bgImage": null,
+          "heading": "Introducing the Bolt Card Rewards Program",
+          "cls": "Hero  scrolling-anim--staggerTextUp\n            \n            \n                ma"
+        },
+        {
+          "i": 1,
+          "tag": "div",
+          "h": 234,
+          "bg": "rgba(0, 0, 0, 0)",
+          "bgImage": null,
+          "heading": null,
+          "cls": "Wysiwyg  marginBottom--custom marginTop--custom paddingBottom paddingTop--custom"
+        },
+        {
+          "i": 2,
+          "tag": "div",
+          "h": 1754,
+          "bg": "rgba(0, 0, 0, 0)",
+          "bgImage": null,
+          "heading": null,
+          "cls": "rewards-card-container  marginBottom--custom marginTop--custom paddingBottom--sm"
+        },
+        {
+          "i": 3,
+          "tag": "div",
+          "h": 378,
+          "bg": "rgba(0, 0, 0, 0)",
+          "bgImage": null,
+          "heading": null,
+          "cls": "Wysiwyg  marginBottom--custom marginTop--custom paddingBottom--sm paddingTop--cu"
+        },
+        {
+          "i": 4,
+          "tag": "div",
+          "h": 428,
+          "bg": "rgb(211, 215, 237)",
+          "bgImage": null,
+          "heading": "Why Choose the Bolt Card?",
+          "cls": "faq__main center  marginBottom--custom marginTop--custom paddingBottom--sm paddi"
+        },
+        {
+          "i": 5,
+          "tag": "div",
+          "h": 954,
+          "bg": "rgba(0, 0, 0, 0)",
+          "bgImage": null,
+          "heading": "Ready to Start Earning?",
+          "cls": "Heading  textAlign--center   \n        hasBackgroundImage\n        marginBottom--c"
+        }
+      ],
+      "type": {
+        "h1": {
+          "size": "70px",
+          "lh": "70px",
+          "w": "700",
+          "ls": "-1.4px",
+          "fam": "agrandir-bolt",
+          "color": "rgb(0, 108, 255)"
+        },
+        "h2": {
+          "size": "64px",
+          "lh": "70.4px",
+          "w": "700",
+          "ls": "-1.28px",
+          "fam": "agrandir-bolt",
+          "color": "rgb(4, 9, 26)"
+        },
+        "h3": {
+          "size": "22px",
+          "lh": "24.2px",
+          "w": "700",
+          "ls": "-0.66px",
+          "fam": "agrandir-bolt",
+          "color": "rgb(17, 20, 38)"
+        },
+        "h4": {
+          "size": "32px",
+          "lh": "35.2px",
+          "w": "700",
+          "ls": "-0.64px",
+          "fam": "agrandir-bolt",
+          "color": "rgb(0, 0, 0)"
+        },
+        "p": {
+          "size": "20px",
+          "lh": "24px",
+          "w": "500",
+          "ls": "-0.4px",
+          "fam": "Inter",
+          "color": "rgb(4, 9, 26)"
+        }
+      },
+      "colorsText": [
+        "rgb(0, 0, 0) x331",
+        "rgb(0, 0, 238) x152",
+        "rgb(248, 246, 254) x54",
+        "rgb(38, 42, 66) x44",
+        "rgb(142, 146, 175) x44",
+        "rgb(4, 9, 26) x31",
+        "rgb(69, 74, 102) x12",
+        "rgb(17, 20, 38) x11",
+        "rgb(17, 85, 204) x10",
+        "rgb(0, 108, 255) x9",
+        "rgb(255, 255, 255) x7"
+      ],
+      "colorsBg": [
+        "rgb(0, 108, 255) x11",
+        "rgb(255, 255, 255) x10",
+        "rgb(248, 246, 254) x6",
+        "rgb(4, 9, 26) x5",
+        "rgba(4, 9, 26, 0.65) x4",
+        "rgb(228, 230, 247) x3",
+        "rgb(38, 42, 66) x3",
+        "rgb(211, 215, 237) x2",
+        "rgba(0, 0, 0, 0.1) x1"
+      ],
+      "keyframes": [
+        "swipe",
+        "slideInFromLeft",
+        "slideInFromRight",
+        "zoomInFromLeft",
+        "zoomInFromRight",
+        "zoomInFromBottom"
+      ],
+      "animations": [
+        "swipe 2.7s linear x2"
+      ],
+      "transitions": [
+        "color 0.2s ease x55",
+        "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x36",
+        "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x36",
+        "all 0.2s ease x32",
+        "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+        "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+        "opacity 0.2s ease-out x4",
+        "background-color, opacity, top, transform, visibility 0.3s, 0.3s, 0.3s, 0.3s, 0.3s ease, ease, ease, ease, ease x3",
+        "transform, opacity 0.3s, 0.3s cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1) x2",
+        "scale 0.2s ease-in-out x2",
+        "opacity 0.25s ease x2",
+        "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x1"
+      ],
+      "scrollHeight": 5848
+    }
+  },
+  {
+    "path": "/shopper",
+    "slug": "shopper",
+    "status": 200,
+    "finalUrl": "https://www.bolt.com/shopper",
+    "profile": {
+      "url": "https://www.bolt.com/shopper",
+      "title": "Bolt | For Shoppers",
+      "metaDesc": "Lightning-fast checkout: Shop faster than you can say ‘one click’.",
+      "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1761597884/meta_Home_shoppers_1_8bd44f47db.webp?1780415007885",
+      "nextPage": "/for-shoppers-lander/[[...id]]",
+      "htmlClass": "forShoppers shopper dark resizeTransitionStopper",
+      "h1": "One-click checkout, everywhere",
+      "headings": [
+        "H2: Checkout made for real life",
+        "H3: Browse. Click. Buy.",
+        "H3: Password hint: Forget it",
+        "H3: Safe by default",
+        "H3: Track your orders easily",
+        "H3: Our fashion shops",
+        "H2: Get started with Bolt now"
+      ],
+      "ctas": [
+        "Download",
+        "Explore the Bolt Network"
+      ],
+      "media": {
+        "images": 26,
+        "videos": 0,
+        "wistia": 1,
+        "lottie": 0,
+        "canvas": 0,
+        "svg": 8
+      },
+      "sections": [
+        {
+          "i": 0,
+          "tag": "section",
+          "h": 2035,
+          "bg": "rgba(0, 0, 0, 0)",
+          "bgImage": "linear-gradient(rgb(4, 9, 26), rgb(4, 9, 26) 65%, rgb(154, 78, 255) 83%, rgb(0, ",
+          "heading": "Checkout made for real life",
+          "cls": "forShoppers__dynamicZone--top"
+        },
+        {
+          "i": 1,
+          "tag": "section",
+          "h": 760,
+          "bg": "rgba(0, 0, 0, 0)",
+          "bgImage": "linear-gradient(rgb(0, 108, 255), rgb(0, 108, 255) 26%, rgb(4, 9, 26) 65%, rgb(4",
+          "heading": null,
+          "cls": "animation-section withImage"
+        },
+        {
+          "i": 2,
+          "tag": "section",
+          "h": 1761,
+          "bg": "rgb(4, 9, 26)",
+          "bgImage": null,
+          "heading": "Our fashion shops",
+          "cls": "forShoppers__dynamicZone--bottom"
+        }
+      ],
+      "type": {
+        "h1": {
+          "size": "88px",
+          "lh": "88px",
+          "w": "700",
+          "ls": "-1.76px",
+          "fam": "agrandir-bolt",
+          "color": "rgb(255, 255, 255)"
+        },
+        "h2": {
+          "size": "64px",
+          "lh": "70.4px",
+          "w": "700",
+          "ls": "-1.28px",
+          "fam": "agrandir-bolt",
+          "color": "rgb(255, 255, 255)"
+        },
+        "h3": {
+          "size": "32px",
+          "lh": "35.2px",
+          "w": "700",
+          "ls": "-0.64px",
+          "fam": "agrandir-bolt",
+          "color": "rgb(255, 255, 255)"
+        },
+        "p": {
+          "size": "20px",
+          "lh": "24px",
+          "w": "500",
+          "ls": "-0.4px",
+          "fam": "Inter",
+          "color": "rgb(211, 215, 237)"
+        }
+      },
+      "colorsText": [
+        "rgb(0, 0, 0) x211",
+        "rgb(248, 246, 254) x49",
+        "rgb(4, 9, 26) x30",
+        "rgb(0, 0, 238) x26",
+        "rgb(255, 255, 255) x19",
+        "rgb(211, 215, 237) x6",
+        "rgb(104, 216, 252) x1",
+        "rgb(38, 42, 66) x1"
+      ],
+      "colorsBg": [
+        "rgb(0, 108, 255) x10",
+        "rgb(248, 246, 254) x9",
+        "rgb(4, 9, 26) x5",
+        "rgba(4, 9, 26, 0.65) x4",
+        "rgb(38, 42, 66) x2",
+        "rgb(182, 136, 255) x2",
+        "rgb(142, 146, 175) x2",
+        "rgb(255, 255, 255) x1",
+        "rgb(104, 216, 252) x1",
+        "rgb(178, 236, 255) x1",
+        "rgba(0, 0, 0, 0.1) x1"
+      ],
+      "keyframes": [
+        "swipe",
+        "slideInFromLeft",
+        "slideInFromRight",
+        "zoomInFromLeft",
+        "zoomInFromRight",
+        "zoomInFromBottom"
+      ],
+      "animations": [],
+      "transitions": [
+        "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+        "color 0.2s ease x18",
+        "all 0.2s ease x15",
+        "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x5",
+        "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+        "opacity 0.2s ease-out x4",
+        "background-color 0.2s ease x4",
+        "background-color, opacity, top, transform, visibility 0.3s, 0.3s, 0.3s, 0.3s, 0.3s ease, ease, ease, ease, ease x3",
+        "transform, opacity 0.3s, 0.3s cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1) x3",
+        "scale 0.2s ease-in-out x2",
+        "opacity 0.25s ease x2",
+        "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x1"
+      ],
+      "scrollHeight": 5662
+    }
+  }
+]

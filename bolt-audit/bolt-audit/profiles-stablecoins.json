@@ -1,0 +1,194 @@
+{
+  "url": "https://www.bolt.com/stablecoins",
+  "title": "Bolt | Stablecoins",
+  "metaDesc": "Unlock new customers, reduce payment overhead, and stay ahead with a modern payment experience designed to move your business forward.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1764076076/meta_stablecoins_f51747edae.webp?1780414023894",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "stablecoins dark backgroundColor--boltBlack resizeTransitionStopper",
+  "h1": "Stablecoin payments built for real-world speed",
+  "headings": [
+    "H2: One-click stablecoin infrastructure for modern commerce",
+    "H2: Loyalty that moves faster than points",
+    "H2: A new generation of shoppers, unlocked",
+    "H2: Instant settlement, lasting impact",
+    "H2: The next evolution of checkout is already here",
+    "H2: Your checkout, supercharged for stablecoins"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 18,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 81
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 726,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Stablecoin payments built for real-world speed",
+      "cls": "Hero backgroundColor--boltBlack scrolling-anim--staggerTextUp\n            withIm"
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 427,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "One-click stablecoin infrastructure for modern commerce",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--boltBla"
+    },
+    {
+      "i": 2,
+      "tag": "div",
+      "h": 763,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "CenteredMedia  marginBottom--custom marginTop--custom paddingBottom paddingTop--"
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 1821,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Loyalty that moves faster than points",
+      "cls": "ZLayoutContent  marginBottom--custom marginTop--custom paddingBottom--custom pad"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 150,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Divider  marginBottom--custom marginTop--custom paddingBottom--custom paddingTop"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 296,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "The next evolution of checkout is already here",
+      "cls": "Heading  textAlign--center   \n        \n        marginBottom--custom marginTop--c"
+    },
+    {
+      "i": 6,
+      "tag": "div",
+      "h": 707,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "CardGrid   marginBottom--custom marginTop--custom paddingBottom--custom paddingT"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 804,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": "url(\"https://www.bolt.com/assets/images/components/FooterCallout/callout-rebrand",
+      "heading": "Your checkout, supercharged for stablecoins",
+      "cls": "FooterCallout lightning backgroundColor--tintedWhite marginBottom--custom margin"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(211, 215, 237)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x371",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x111",
+    "rgb(4, 9, 26) x79",
+    "rgb(142, 146, 175) x44",
+    "rgb(255, 255, 255) x8",
+    "rgb(211, 215, 237) x7",
+    "rgb(38, 42, 66) x7",
+    "rgb(0, 108, 255) x3",
+    "rgb(69, 74, 102) x3",
+    "rgb(185, 190, 219) x2",
+    "rgb(209, 216, 250) x1"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x29",
+    "rgb(248, 246, 254) x22",
+    "rgb(255, 255, 255) x19",
+    "rgb(4, 9, 26) x6",
+    "rgb(38, 42, 66) x5",
+    "rgb(228, 230, 247) x4",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12",
+    "slideInFromLeft 0.2s ease-out x4"
+  ],
+  "transitions": [
+    "all 0.2s ease x64",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x59",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x3",
+    "background-color, opacity, top, transform, visibility 0.3s, 0.3s, 0.3s, 0.3s, 0.3s ease, ease, ease, ease, ease x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 7231
+}

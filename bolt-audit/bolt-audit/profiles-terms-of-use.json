@@ -1,0 +1,134 @@
+{
+  "url": "https://www.bolt.com/terms-of-use",
+  "title": "",
+  "metaDesc": null,
+  "ogImage": "/assets/images/meta/default-meta-image.webp?1780414279141",
+  "nextPage": "/legal-lander/[[...id]]",
+  "htmlClass": "templateLegal light resizeTransitionStopper",
+  "h1": "Merchant Terms of Use",
+  "headings": [
+    "H2: 1. DEFINITIONS",
+    "H2: 2. BOLT SERVICES",
+    "H2: 3. MERCHANT OBLIGATIONS",
+    "H2: 4. FEES; PAYMENT; TAXES",
+    "H2: 5. PROPRIETARY RIGHTS",
+    "H2: 6. CONFIDENTIALITY",
+    "H2: 7. REPRESENTATIONS AND WARRANTIES",
+    "H2: 8. TERM AND TERMINATION",
+    "H2: 9. INDEMNIFICATION",
+    "H2: 10. LIMITATION OF LIABILITY",
+    "H2: 11. DISPUTE RESOLUTION; BINDING ARBITRATION",
+    "H2: 12. GOVERNING LAW",
+    "H2: 13. GENERAL"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started"
+  ],
+  "media": {
+    "images": 2,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 39
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 404,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "grid    templateLegal__hero"
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 18634,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Merchant Terms of Use",
+      "cls": "grid    templateLegal__main"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "700",
+      "ls": "-0.64px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(17, 20, 38)"
+    },
+    "h2": {
+      "size": "22px",
+      "lh": "24.2px",
+      "w": "700",
+      "ls": "-0.44px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(17, 20, 38)"
+    },
+    "p": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x244",
+    "rgb(17, 20, 38) x201",
+    "rgb(0, 0, 238) x110",
+    "rgb(4, 9, 26) x88",
+    "rgb(248, 246, 254) x76",
+    "rgb(38, 42, 66) x28",
+    "rgb(106, 111, 140) x21",
+    "rgb(0, 108, 255) x20",
+    "rgb(69, 74, 102) x5"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x23",
+    "rgb(255, 255, 255) x21",
+    "rgb(248, 246, 254) x14",
+    "rgb(4, 9, 26) x4",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(228, 230, 247) x2",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe"
+  ],
+  "animations": [
+    "swipe 2.7s linear x10"
+  ],
+  "transitions": [
+    "all 0.2s ease x80",
+    "color 0.2s ease-in-out x37",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x25",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "background 0.2s ease-in-out x21",
+    "color 0.2s ease x17",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(4, 9, 26)",
+    "color": "rgb(248, 246, 254)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 19164
+}

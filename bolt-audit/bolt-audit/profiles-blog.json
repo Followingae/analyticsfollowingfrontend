@@ -1,0 +1,161 @@
+{
+  "url": "https://www.bolt.com/blog",
+  "title": "Bolt | Company News",
+  "metaDesc": "The Bolt Blog. Ecommerce news, tips, and resources to help online retailers better optimize the checkout experience on their site.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765307783/meta_generic_2_93dba0c3eb.webp?1780414131550",
+  "nextPage": "/blog-lander/[[...id]]",
+  "htmlClass": "case-study blog light resizeTransitionStopper",
+  "h1": "Bolt | Company News",
+  "headings": [
+    "H2: Checkout that lasts a second. Loyalty that lasts a lifetime."
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "View All",
+    "Industry",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 37,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 84
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 345,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Bolt | Company News",
+      "cls": "blog__hero"
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 12126,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "blog__contentWrapper"
+    },
+    {
+      "i": 2,
+      "tag": "div",
+      "h": 222,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Checkout that lasts a second. Loyalty that lasts a lifetime.",
+      "cls": "FooterCallout  marginBottom marginTop--lg paddingBottom--custom paddingTop--cust"
+    },
+    {
+      "i": 3,
+      "tag": "section",
+      "h": 192,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "FeaturedIn-Brands  marginBottom--custom marginTop--custom paddingBottom--custom "
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h4": {
+      "size": "16px",
+      "lh": "20.8px",
+      "w": "600",
+      "ls": "-0.32px",
+      "fam": "Inter",
+      "color": "rgb(4, 9, 26)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(69, 74, 102)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x365",
+    "rgb(0, 0, 238) x353",
+    "rgb(4, 9, 26) x147",
+    "rgb(248, 246, 254) x102",
+    "rgb(38, 42, 66) x68",
+    "rgb(69, 74, 102) x64",
+    "rgb(138, 143, 153) x41",
+    "rgb(142, 146, 175) x41",
+    "rgb(0, 108, 255) x17",
+    "rgb(134, 140, 155) x17",
+    "rgb(255, 255, 255) x8",
+    "rgb(30, 30, 28) x3",
+    "rgb(91, 90, 84) x3"
+  ],
+  "colorsBg": [
+    "rgb(211, 215, 237) x38",
+    "rgb(255, 255, 255) x36",
+    "rgb(248, 246, 254) x30",
+    "rgb(0, 108, 255) x29",
+    "rgb(4, 9, 26) x8",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(230, 231, 243) x3",
+    "rgb(193, 192, 186) x3",
+    "rgb(38, 42, 66) x3",
+    "rgb(228, 230, 247) x2",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12"
+  ],
+  "transitions": [
+    "all 0.2s ease x136",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x58",
+    "all 0.25s ease x41",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3",
+    "background-color, opacity, top, transform, visibility 0.3s, 0.3s, 0.3s, 0.3s, 0.3s ease, ease, ease, ease, ease x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(4, 9, 26)",
+    "color": "rgb(248, 246, 254)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 14656
+}

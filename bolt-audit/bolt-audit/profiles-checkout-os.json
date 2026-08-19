@@ -1,0 +1,168 @@
+{
+  "url": "https://www.bolt.com/checkout-os",
+  "title": "Bolt | Integrate Easily",
+  "metaDesc": "Plug in and poof, you're ready to launch. Bolt plays well with existing tech and can be integrated in as little as three weeks.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1763736426/integrations_meta_image_1_bd83fb3331.webp?1780413844971",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "checkout-os light resizeTransitionStopper",
+  "h1": "A checkout that fits right in",
+  "headings": [
+    "H3: Real case studies",
+    "H2: Start building customer loyalty at the checkout."
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Get Started",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 150,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 81
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 578,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "A checkout that fits right in",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            hasCTAs\n  "
+    },
+    {
+      "i": 1,
+      "tag": "section",
+      "h": 7627,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Integrations integrations marginBottom--lg marginTop paddingBottom--xs paddingTo"
+    },
+    {
+      "i": 2,
+      "tag": "div",
+      "h": 441,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Real case studies",
+      "cls": "postSlider   marginBottom marginTop--lg paddingBottom--none paddingTop--custom"
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 628,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Start building customer loyalty at the checkout.",
+      "cls": "Heading  textAlign--center  withoutHeadingBody \n        hasBackgroundImage\n     "
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h3": {
+      "size": "46px",
+      "lh": "50.6px",
+      "w": "700",
+      "ls": "-0.92px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(0, 0, 0)"
+    },
+    "h4": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "700",
+      "ls": "-0.64px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(0, 0, 0)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(69, 74, 102)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 238) x592",
+    "rgb(0, 0, 0) x424",
+    "rgb(248, 246, 254) x98",
+    "rgb(4, 9, 26) x90",
+    "rgb(142, 146, 175) x53",
+    "rgb(38, 42, 66) x10",
+    "rgb(69, 74, 102) x7",
+    "rgb(255, 255, 255) x7",
+    "rgb(0, 108, 255) x3"
+  ],
+  "colorsBg": [
+    "rgb(255, 255, 255) x88",
+    "rgb(0, 108, 255) x29",
+    "rgb(248, 246, 254) x16",
+    "rgb(4, 9, 26) x6",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(38, 42, 66) x3",
+    "rgb(228, 230, 247) x2",
+    "rgb(185, 190, 219) x2",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12"
+  ],
+  "transitions": [
+    "outline-color 0.2s ease-in-out x138",
+    "all 0.2s ease x77",
+    "opacity, transform 0.2s, 0.2s ease-in-out, ease-in-out x69",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x58",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "background-color 0.2s ease x4"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(4, 9, 26)",
+    "color": "rgb(248, 246, 254)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 11062
+}

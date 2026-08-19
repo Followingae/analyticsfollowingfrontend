@@ -1,0 +1,272 @@
+{
+  "url": "https://www.bolt.com/get-started",
+  "title": "Bolt | Self-Serve Checkout",
+  "metaDesc": "Plug in, power up, and start selling faster with Bolt Checkout. Instant setup, no friction—just the best-performing checkout out of the box.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765298999/meta_get_started_997ba8f9e3.webp?1780414183009",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "enterprise darkTheme ignite getStarted light resizeTransitionStopper",
+  "h1": "Start faster. Sell smarter. Go live with Bolt in a flash.",
+  "headings": [
+    "H2: Fair pricing, no matter your size",
+    "H3: What you get",
+    "H2: Launch fast. Convert faster.",
+    "H2: Grow across the entire commerce lifecycle for no extra cost",
+    "H2: Transparent pricing. No surprises.",
+    "H2: A smarter checkout for stronger performance",
+    "H2: All power, zero complexity",
+    "H3: Check out our self-serve checkout.",
+    "H3: What the numbers say*",
+    "H3: Click to see Bolt in action",
+    "H2: See how Bolt can power your business"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Get started now",
+    "See pricing",
+    "Learn more",
+    "Get started today",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 49,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 86
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 716,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Start faster. Sell smarter. Go live with Bolt in a flash.",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            hasCTAs\n  "
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 200,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "LogoScroller scroller marginBottom--xs marginTop--xs paddingBottom--xs paddingTo"
+    },
+    {
+      "i": 2,
+      "tag": "section",
+      "h": 382,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Fair pricing, no matter your size",
+      "cls": "ThreeColumnSection\n          \n          contentAlign-left\n          marginBottom"
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 611,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "\n      ImageMaxWidth\n      \n      marginBottom--custom marginTop--custom padding"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 459,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "What you get",
+      "cls": "grid    Cards  marginBottom--custom marginTop--custom paddingBottom--custom padd"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 175,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Divider  marginBottom--custom marginTop--xs paddingBottom--custom paddingTop--sm"
+    },
+    {
+      "i": 6,
+      "tag": "div",
+      "h": 216,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Launch fast. Convert faster.",
+      "cls": "Heading productPage textAlign--center responsiveTextAlign--center withoutHeading"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 2607,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Grow across the entire commerce lifecycle for no extra cost",
+      "cls": "ZLayoutContent darkTheme marginBottom--xs marginTop--custom paddingBottom--xs pa"
+    },
+    {
+      "i": 8,
+      "tag": "div",
+      "h": 450,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Divider  marginBottom--custom marginTop--none paddingBottom--none paddingTop--no"
+    },
+    {
+      "i": 9,
+      "tag": "div",
+      "h": 253,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Check out our self-serve checkout.",
+      "cls": "\n      ImageBanner\n      \n      marginBottom--custom marginTop--custom paddingBo"
+    },
+    {
+      "i": 10,
+      "tag": "div",
+      "h": 201,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "What the numbers say*",
+      "cls": "Heading  textAlign--center  withoutHeadingBody \n        \n        marginBottom--c"
+    },
+    {
+      "i": 11,
+      "tag": "section",
+      "h": 365,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "50%",
+      "cls": "FeatureCards2   marginBottom--none marginTop--custom paddingBottom--none padding"
+    },
+    {
+      "i": 12,
+      "tag": "div",
+      "h": 621,
+      "bg": "rgb(248, 247, 255)",
+      "bgImage": null,
+      "heading": "Click to see Bolt in action",
+      "cls": "postSlider noSlide  marginBottom--custom marginTop--custom paddingBottom--custom"
+    },
+    {
+      "i": 13,
+      "tag": "div",
+      "h": 628,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "See how Bolt can power your business",
+      "cls": "Heading  textAlign--center  withoutHeadingBody \n        hasBackgroundImage\n     "
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "60px",
+      "lh": "60px",
+      "w": "700",
+      "ls": "-1.2px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "600",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(24, 26, 32)"
+    },
+    "h3": {
+      "size": "46px",
+      "lh": "50.6px",
+      "w": "700",
+      "ls": "-0.92px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(69, 74, 102)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x503",
+    "rgb(0, 0, 238) x284",
+    "rgb(248, 246, 254) x107",
+    "rgb(4, 9, 26) x90",
+    "rgb(142, 146, 175) x41",
+    "rgb(69, 74, 102) x15",
+    "rgb(0, 108, 255) x13",
+    "rgb(255, 255, 255) x10",
+    "rgb(211, 215, 237) x9",
+    "rgb(38, 42, 66) x6",
+    "rgb(214, 214, 225) x3",
+    "rgb(68, 70, 56) x2",
+    "rgb(185, 190, 219) x2",
+    "rgb(24, 26, 32) x1"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x30",
+    "rgb(255, 255, 255) x20",
+    "rgb(248, 246, 254) x17",
+    "rgb(4, 9, 26) x14",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(38, 42, 66) x3",
+    "rgb(228, 230, 247) x2",
+    "rgb(248, 247, 255) x2",
+    "rgb(185, 190, 219) x2",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom",
+    "logoScroller"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12",
+    "slideInFromRight 0.2s ease-out x2",
+    "slideInFromLeft 0.2s ease-out x2",
+    "logoScroller 30s linear x1"
+  ],
+  "transitions": [
+    "all 0.2s ease x105",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x58",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x4",
+    "background-color 0.2s ease x4",
+    "all 0.35s ease x4"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(4, 9, 26)",
+    "color": "rgb(248, 246, 254)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 9453
+}

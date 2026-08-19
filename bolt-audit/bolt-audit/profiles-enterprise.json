@@ -1,0 +1,264 @@
+{
+  "url": "https://www.bolt.com/enterprise",
+  "title": "Bolt | Enterprise",
+  "metaDesc": "Recurring revenue shouldn’t come with recurring fees. We’ve made subscriptions free, so you can scale your business—without giving up a cut.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765559354/meta_payments_2x_cf0694c2c7.webp?1780413887006",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "dark resizeTransitionStopper",
+  "h1": "Enterprise-grade flexibility with instant impact",
+  "headings": [
+    "H2: See it in action",
+    "H2: Bolt for Enterprise",
+    "H3: Fully Managed",
+    "H3: One-click ease",
+    "H3: 100% self Service",
+    "H2: Available for digital goods, subscriptions, marketplaces, and more.",
+    "H2: Power your brand with 80M+ shoppers",
+    "H2: The network advantage",
+    "H2: More accounts, richer data",
+    "H2: No p@ssword$ required",
+    "H2: Flexible, frictionless, fully integrated",
+    "H3: Trusted by enterprise retailers",
+    "H2: See how Bolt can power your business"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Launch Demo",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 48,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 152
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 683,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Enterprise-grade flexibility with instant impact",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            hasCTAs\n  "
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 170,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "See it in action",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center withoutHeadingBody backgr"
+    },
+    {
+      "i": 2,
+      "tag": "div",
+      "h": 594,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Bolt for Enterprise",
+      "cls": "CheckoutDemo component-version  marginBottom--custom marginTop--custom paddingBo"
+    },
+    {
+      "i": 3,
+      "tag": "section",
+      "h": 516,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Fully Managed",
+      "cls": "ThreeColumnSection\n          \n          contentAlign-center\n          marginBott"
+    },
+    {
+      "i": 4,
+      "tag": "section",
+      "h": 580,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Available for digital goods, subscriptions, marketplaces, and more.",
+      "cls": "OffBleedImageBanner  marginBottom--custom marginTop--custom paddingBottom--xl pa"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 371,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": "Power your brand with 80M+ shoppers",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--gray_80"
+    },
+    {
+      "i": 6,
+      "tag": "div",
+      "h": 2188,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": "The network advantage",
+      "cls": "ZLayoutContent  marginBottom--none marginTop--custom paddingBottom paddingTop--c"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 313,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Flexible, frictionless, fully integrated",
+      "cls": "Heading card-grid-heading textAlign--center responsiveTextAlign--center withoutH"
+    },
+    {
+      "i": 8,
+      "tag": "div",
+      "h": 1261,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "featureCards  backgroundColor--tintedWhite marginBottom--custom marginTop--custo"
+    },
+    {
+      "i": 9,
+      "tag": "div",
+      "h": 441,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Trusted by enterprise retailers",
+      "cls": "postSlider  backgroundColor--tintedWhite marginBottom--custom marginTop--custom "
+    },
+    {
+      "i": 10,
+      "tag": "div",
+      "h": 572,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": "url(\"https://www.bolt.com/assets/images/components/FooterCallout/callout-rebrand",
+      "heading": "See how Bolt can power your business",
+      "cls": "FooterCallout lightning backgroundColor--tintedWhite marginBottom--none marginTo"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h3": {
+      "size": "46px",
+      "lh": "50.6px",
+      "w": "600",
+      "ls": "-0.92px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(24, 26, 32)"
+    },
+    "h4": {
+      "size": "18px",
+      "lh": "22px",
+      "w": "700",
+      "ls": "-0.36px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(211, 215, 237)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x793",
+    "rgb(0, 0, 238) x247",
+    "rgb(112, 112, 112) x162",
+    "rgb(4, 9, 26) x135",
+    "rgb(248, 246, 254) x119",
+    "rgb(0, 108, 255) x80",
+    "rgb(142, 146, 175) x52",
+    "rgb(255, 255, 255) x25",
+    "rgb(24, 24, 24) x20",
+    "rgb(106, 114, 130) x18",
+    "rgb(34, 40, 53) x16",
+    "rgb(68, 70, 56) x14",
+    "rgb(38, 42, 66) x10",
+    "rgb(17, 20, 38) x10",
+    "rgb(243, 241, 238) x8"
+  ],
+  "colorsBg": [
+    "rgb(255, 255, 255) x41",
+    "rgb(0, 108, 255) x32",
+    "rgb(244, 244, 244) x31",
+    "rgb(248, 246, 254) x28",
+    "rgb(4, 9, 26) x23",
+    "rgb(38, 42, 66) x17",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(228, 230, 247) x3",
+    "rgba(0, 0, 0, 0.84) x2",
+    "rgb(249, 249, 249) x2",
+    "rgb(106, 111, 140) x2",
+    "rgb(154, 78, 255) x2",
+    "rgb(0, 196, 46) x2",
+    "rgb(237, 239, 252) x2",
+    "rgb(69, 74, 102) x2"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom",
+    "fadeIn",
+    "showMessage",
+    "showFetch",
+    "showAuthFetch",
+    "scrollDown",
+    "pressButtonRipple",
+    "spinner"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12",
+    "slideInFromRight 0.2s ease-out x4",
+    "spinner 1.5s ease x2",
+    "slideInFromLeft 0.2s ease-out x2"
+  ],
+  "transitions": [
+    "all 0.35s ease x122",
+    "all 0.2s ease x81",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x59",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "box-shadow, background-color 0.35s, 0.35s ease, ease x19",
+    "transform 0.5s ease x19",
+    "opacity, transform 0.35s, 0.5s ease, ease x16",
+    "opacity, transform 0.25s, 0.5s ease, ease x13",
+    "opacity 0.2s ease-out x7"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 9326
+}

@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Following — Campaign Management</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .chead{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+  .chead-l{display:flex;gap:16px;align-items:center}
+  .brandlogo{width:60px;height:60px;border-radius:15px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;
+    background:linear-gradient(135deg,#5100f3,#9333ea);box-shadow:0 8px 22px -8px rgba(81,0,243,.5);flex-shrink:0}
+  .chead h1{font-size:24px;font-weight:800;letter-spacing:-0.02em}
+  .chead .crow{display:flex;align-items:center;gap:9px;margin-top:6px}
+  .chead .crow .bn{font-size:13.5px;color:var(--muted-fg)}
+  .chead-actions{display:flex;gap:10px}
+
+  .ov{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:18px}
+  .ov .blk .ol{font-size:12px;color:var(--muted-fg);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:9px}
+  .ov .blk .ov-amt{font-size:20px;font-weight:800;letter-spacing:-0.01em}
+  .ov .blk .ov-amt small{font-size:13px;font-weight:600;color:var(--muted-fg)}
+  .ov .timeline{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:600;color:var(--fg-soft)}
+  .ov .timeline svg{width:15px;height:15px;stroke:var(--primary);fill:none;stroke-width:2}
+
+  .tabs{display:flex;gap:4px;background:var(--muted);padding:4px;border-radius:11px;width:fit-content}
+  .tab{font-size:13px;font-weight:600;color:var(--muted-fg);padding:8px 22px;border-radius:8px}
+  .tab.active{background:#fff;color:var(--fg);box-shadow:var(--shadow-sm)}
+  .period{display:flex;gap:2px;border:1px solid var(--border-strong);border-radius:10px;padding:3px}
+  .period .p{font-size:12.5px;font-weight:600;color:var(--muted-fg);padding:6px 13px;border-radius:7px}
+  .period .p.active{background:var(--primary);color:#fff}
+
+  .stats5{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+  .sc{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:18px;box-shadow:var(--shadow-sm)}
+  .sc .top{display:flex;align-items:center;justify-content:space-between}
+  .sc .lab{font-size:12.5px;color:var(--muted-fg);font-weight:600}
+  .sc .ico svg{width:16px;height:16px;stroke:var(--muted-fg);fill:none;stroke-width:2}
+  .sc .v{font-size:26px;font-weight:800;margin-top:11px;letter-spacing:-0.02em}
+  .sc .sub{font-size:11.5px;color:var(--muted-fg);margin-top:3px}
+  .sc.hl{background:var(--primary-08);border-color:var(--primary-18)}
+  .sc.hl .v{color:var(--primary)} .sc.hl .ico svg{stroke:var(--primary)}
+
+  table{width:100%;border-collapse:collapse}
+  thead th{font-size:11px;font-weight:700;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:0 14px 12px}
+  tbody td{padding:14px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle}
+  .cre{display:flex;align-items:center;gap:11px}
+  .cre .av{width:40px;height:40px;font-size:14px}
+  .cre .nm{font-weight:700;line-height:1.2}
+  .cre .hd{font-size:11.5px;color:var(--muted-fg)}
+  td .num{font-weight:700}
+  .th-r,.td-r{text-align:right}
+  .deliver{font-size:12.5px;color:var(--fg-soft)}
+  .erpill{display:inline-flex;align-items:center;gap:4px;font-weight:700;color:var(--green)}
+  .fee{font-weight:800}
+  .stdot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo-wrap"><img src="following-logo.svg" alt="Following"></div>
+    <nav>
+      <div class="nav-group">
+        <div class="nav-label">Search &amp; Analytics</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>Discovery</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Creators</div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Management</div>
+        <div class="nav-item active"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Campaigns</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>Influencer Campaigns</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>Cashback Pool</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>Proposals</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Lists</div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">More</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Billing</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Settings</div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help &amp; Support</div>
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="user-chip">
+        <div class="av av-g1" style="width:34px;height:34px;font-size:13px">ZA</div>
+        <div class="meta"><div class="name">Zain Ali</div><div class="mail">zain@following.ae</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb">Campaigns&nbsp; / &nbsp;<b>Summer Glow 2026</b></div>
+      <div class="topbar-right">
+        <div class="credit-pill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5h4.5a1.5 1.5 0 0 1 0 3H9"/></svg>1,840 credits</div>
+        <div class="icon-btn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></div>
+        <div class="icon-btn"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <div class="av av-g1" style="width:34px;height:34px;font-size:13px">ZA</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Campaign header -->
+      <div class="chead">
+        <div class="chead-l">
+          <div class="brandlogo">LS</div>
+          <div>
+            <h1>Summer Glow 2026</h1>
+            <div class="crow">
+              <span class="bn">Lumière Skincare</span>
+              <span class="badge b-outline">Influencer Marketing</span>
+              <span class="badge b-green"><span class="stdot" style="background:var(--green);margin:0"></span>Active</span>
+            </div>
+          </div>
+        </div>
+        <div class="chead-actions">
+          <div class="btn btn-outline"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</div>
+          <div class="btn btn-primary"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Posts</div>
+        </div>
+      </div>
+
+      <!-- Budget / overview strip -->
+      <div class="card card-pad">
+        <div class="ov">
+          <div class="blk">
+            <div class="ol">Budget Utilisation</div>
+            <div class="ov-amt">AED 186,500 <small>of AED 240,000</small></div>
+            <div class="progress" style="margin-top:12px"><span style="width:77.7%"></span></div>
+            <div class="sub" style="font-size:11.5px;color:var(--muted-fg);margin-top:8px">77.7% allocated · AED 53,500 remaining</div>
+          </div>
+          <div class="blk">
+            <div class="ol">Timeline</div>
+            <div class="timeline"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>May 1 – Jun 30, 2026</div>
+            <div class="sub" style="font-size:11.5px;color:var(--muted-fg);margin-top:10px">Day 31 of 60 · on track</div>
+            <div class="progress" style="margin-top:8px"><span style="width:51%"></span></div>
+          </div>
+          <div class="blk">
+            <div class="ol">Deliverable Progress</div>
+            <div class="ov-amt">18 <small>of 24 posts live</small></div>
+            <div class="progress" style="margin-top:12px"><span style="width:75%;background:var(--green)"></span></div>
+            <div class="sub" style="font-size:11.5px;color:var(--muted-fg);margin-top:8px">6 in content review · 75% complete</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="tabs"><div class="tab">Analytics</div><div class="tab">Audience</div><div class="tab active">Creators</div><div class="tab">Posts</div></div>
+        <div class="period"><span class="p">7 Days</span><span class="p active">30 Days</span><span class="p">90 Days</span><span class="p">All Time</span></div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stats5">
+        <div class="sc"><div class="top"><span class="lab">Total Creators</span><span class="ico"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span></div><div class="v">8</div><div class="sub">Booked &amp; contracted</div></div>
+        <div class="sc"><div class="top"><span class="lab">Total Posts</span><span class="ico"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/></svg></span></div><div class="v">24</div><div class="sub">18 live · 6 in review</div></div>
+        <div class="sc"><div class="top"><span class="lab">Total Followers</span><span class="ico"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span></div><div class="v">3.6M</div><div class="sub">Combined audience</div></div>
+        <div class="sc hl"><div class="top"><span class="lab">Estimated Reach</span><span class="ico"><svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span></div><div class="v">4.8M</div><div class="sub">Industry-standard est.</div></div>
+        <div class="sc"><div class="top"><span class="lab">Engagement Rate</span><span class="ico"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span></div><div class="v">5.12%</div><div class="sub">Campaign average</div></div>
+      </div>
+
+      <!-- Creators roster -->
+      <div class="card">
+        <div class="card-head" style="display:flex;align-items:center;justify-content:space-between">
+          <div class="card-title">Booked Creators</div>
+          <span class="badge b-muted">8 creators · AED 160,500 committed</span>
+        </div>
+        <div class="card-pad" style="padding:6px 14px 14px">
+          <table>
+            <thead><tr>
+              <th style="padding-left:14px">Creator</th><th>Followers</th><th>Deliverables</th><th>Status</th>
+              <th class="th-r">Posts</th><th class="th-r">Reach</th><th class="th-r">Engagement</th><th class="th-r" style="padding-right:14px">Fee</th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const CK='<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+const initials=n=>n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const st={
+ live:{l:'Live',c:'b-green',d:'var(--green)'},
+ posted:{l:'Posted',c:'b-blue',d:'var(--blue)'},
+ approved:{l:'Approved',c:'b-primary',d:'var(--primary)'},
+ review:{l:'Content Review',c:'b-amber',d:'var(--amber)'},
+ invited:{l:'Invited',c:'b-muted',d:'#a1a1aa'},
+};
+const rows=[
+ {n:'Sara Mansour',h:'sara.travels',g:4,f:'1.2M',d:'1× Reel · 1× Carousel',s:'live',p:3,r:'884K',e:'4.1%',fee:'45,000',v:1},
+ {n:'Layla Hassan',h:'layla.styles',g:1,f:'842K',d:'2× Reel · 3× Story',s:'live',p:5,r:'612K',e:'5.4%',fee:'32,000',v:1},
+ {n:'Aisha Karim',h:'aisha.modest',g:9,f:'533K',d:'2× Post · 1× Story',s:'posted',p:3,r:'421K',e:'5.6%',fee:'24,000',v:1},
+ {n:'Mariam Saeed',h:'mariam.home',g:11,f:'421K',d:'1× Reel · 2× Story',s:'approved',p:2,r:'312K',e:'5.0%',fee:'16,000',v:1},
+ {n:'Leen Abbas',h:'leen.skincare',g:7,f:'245K',d:'3× Reel',s:'live',p:4,r:'198K',e:'6.8%',fee:'18,000',v:1},
+ {n:'Yousef Ali',h:'yousef.fit',g:5,f:'156K',d:'2× Reel',s:'live',p:3,r:'141K',e:'5.4%',fee:'11,000',v:0},
+ {n:'Nadia Rahman',h:'nadiabeauty',g:2,f:'67K',d:'2× Reel',s:'review',p:1,r:'52K',e:'7.2%',fee:'9,000',v:0},
+ {n:'Zaid Omar',h:'zaid.adventures',g:10,f:'38K',d:'1× Reel',s:'invited',p:0,r:'—',e:'—',fee:'5,500',v:0},
+];
+document.getElementById('rows').innerHTML=rows.map(c=>{
+ const s=st[c.s];
+ const er=c.e==='—'?'<span class="muted">—</span>':`<span class="erpill">${c.e}</span>`;
+ return `<tr>
+   <td style="padding-left:14px"><div class="cre"><div class="av av-g${c.g}">${initials(c.n)}${c.v?`<span class="verified" style="width:14px;height:14px;bottom:-1px;right:-1px"><svg viewBox="0 0 24 24" style="width:8px;height:8px;stroke:#fff;fill:none;stroke-width:3"><polyline points="20 6 9 17 4 12"/></svg></span>`:''}</div><div><div class="nm">${c.n}</div><div class="hd">@${c.h}</div></div></div></td>
+   <td><span class="num">${c.f}</span></td>
+   <td><span class="deliver">${c.d}</span></td>
+   <td><span class="badge ${s.c}"><span class="stdot" style="background:${s.d};margin:0"></span>${s.l}</span></td>
+   <td class="td-r"><span class="num">${c.p}</span></td>
+   <td class="td-r"><span class="num">${c.r}</span></td>
+   <td class="td-r">${er}</td>
+   <td class="td-r" style="padding-right:14px"><span class="fee">AED ${c.fee}</span></td>
+ </tr>`;
+}).join('');
+</script>
+</body>
+</html>

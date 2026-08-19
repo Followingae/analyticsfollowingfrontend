@@ -1,0 +1,173 @@
+{
+  "url": "https://www.bolt.com/faq",
+  "title": "Bolt | Frequently Asked Questions",
+  "metaDesc": "If you're new to Bolt or looking to improve the checkout experience on your site, this guide will help you learn more about our platform and its features.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765566332/meta_faq_104b439cbd.webp?1780414156330",
+  "nextPage": "/faq/[[...id]]",
+  "htmlClass": "faq light backgroundColor--white resizeTransitionStopper",
+  "h1": "Frequently Asked Questions",
+  "headings": [
+    "H2: Bolt",
+    "H3: What is Bolt Checkout?",
+    "H3: Why use Bolt Checkout?",
+    "H3: Where is Bolt Checkout based?",
+    "H2: The Bolt difference",
+    "H3: How can Bolt’s checkout generate over 74% lift in conversion?",
+    "H3: Does Bolt add another button or a second checkout to my store?",
+    "H3: What is frictionless checkout?",
+    "H3: How much faster is the Bolt CheckoutOSTM ?",
+    "H2: The Bolt Network and Bolt One-Click Checkout",
+    "H3: What is the Bolt Network and how does it work?",
+    "H3: How can Bolt offer one click checkout to shoppers who have never purchased from my site before?",
+    "H3: What’s the experience for our return customers?",
+    "H2: Integrations and Forms of Payment",
+    "H3: How does Bolt ‘future-proof’ checkout?",
+    "H3: How does Bolt handle payments?",
+    "H3: Which payment methods are supported on Bolt’s CheckoutOSTM?",
+    "H3: What ecommerce platforms does Bolt work with?",
+    "H2: White-Glove Customer Service",
+    "H3: Does Bolt offer professional services to help us integrate and deploy?",
+    "H3: Our customer support team sometimes has to help customers checkout if there are problems. How does this work with Bolt?",
+    "H2: Product Questions",
+    "H3: Does Bolt offer a virtual terminal?",
+    "H3: Is Bolt localized for international shoppers?",
+    "H3: Can we customize the Bolt checkout experience?",
+    "H3: Is Bolt optimized for mobile devices?",
+    "H3: What does Bolt cost?",
+    "H3: What is the Fraud Chargeback Guarantee?",
+    "H3: How do I get in touch with sales?",
+    "H3: Does Bolt replace my existing fraud solution provider?"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Learn more about the Bolt Network",
+    "See supported payment processors.",
+    "See supported APMs.",
+    "Contact sales",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 2,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 105
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 299,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Frequently Asked Questions",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            \n            \n            overfl"
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 3374,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Bolt",
+      "cls": "faq__main center"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h2": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "700",
+      "ls": "-0.64px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h3": {
+      "size": "22px",
+      "lh": "24.2px",
+      "w": "700",
+      "ls": "-0.66px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(17, 20, 38)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(69, 74, 102)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x495",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x94",
+    "rgb(4, 9, 26) x93",
+    "rgb(17, 20, 38) x69",
+    "rgb(142, 146, 175) x41",
+    "rgb(0, 108, 255) x10",
+    "rgb(69, 74, 102) x7",
+    "rgb(255, 255, 255) x7",
+    "rgb(38, 42, 66) x1"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x27",
+    "rgb(255, 255, 255) x25",
+    "rgb(248, 246, 254) x16",
+    "rgb(4, 9, 26) x5",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(38, 42, 66) x3",
+    "rgb(228, 230, 247) x2",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12"
+  ],
+  "transitions": [
+    "all 0.2s ease x95",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x58",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3",
+    "background-color, opacity, top, transform, visibility 0.3s, 0.3s, 0.3s, 0.3s, 0.3s ease, ease, ease, ease, ease x3",
+    "transform, opacity 0.3s, 0.3s cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1) x2"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(4, 9, 26)",
+    "color": "rgb(248, 246, 254)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 4962
+}

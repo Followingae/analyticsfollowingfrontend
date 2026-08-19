@@ -1,0 +1,221 @@
+{
+  "url": "https://www.bolt.com/saas",
+  "title": "Bolt | SaaS",
+  "metaDesc": "Bolt Checkout OS lets you access modular APIs to integrate identity, payments, and subscriptions.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765203272/meta_saas_ae63c32592.webp?1780413990977",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "saas dark resizeTransitionStopper",
+  "h1": "Faster payments. Fewer rebuilds. More revenue.",
+  "headings": [
+    "H2: Your subscription revenue shouldn’t stall",
+    "H2: CheckoutOS — built for every software business",
+    "H2: Easy to implement. Powerful out of the box.",
+    "H2: Explore Checkout OS"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Explore Checkout OS",
+    "See the difference",
+    "See Bolt in action",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 32,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 81
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 658,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "Faster payments. Fewer rebuilds. More revenue.",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            hasCTAs\n  "
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 411,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": "Your subscription revenue shouldn’t stall",
+      "cls": "Heading  textAlign--center   backgroundColor--gray_800\n        \n        marginBo"
+    },
+    {
+      "i": 2,
+      "tag": "div",
+      "h": 783,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "CenteredMedia  marginBottom--custom marginTop--custom paddingBottom paddingTop "
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 218,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": "CheckoutOS — built for every software business",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--gray_80"
+    },
+    {
+      "i": 4,
+      "tag": "section",
+      "h": 324,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "ThreeColumnSection\n          \n          contentAlign-center\n          marginBott"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 149,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Divider  marginBottom--custom marginTop--custom paddingBottom--custom paddingTop"
+    },
+    {
+      "i": 6,
+      "tag": "section",
+      "h": 725,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "TwoColumnComplexSection  marginBottom--custom marginTop--custom paddingBottom--c"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 191,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Easy to implement. Powerful out of the box.",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center withoutHeadingBody backgr"
+    },
+    {
+      "i": 8,
+      "tag": "div",
+      "h": 708,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "featureCards backgroundColor--tintBlack  marginBottom--custom marginTop--custom "
+    },
+    {
+      "i": 9,
+      "tag": "div",
+      "h": 492,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Explore Checkout OS",
+      "cls": "FooterCallout backgroundColor--tintedWhite marginBottom--custom marginTop--none "
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h4": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "700",
+      "ls": "-0.64px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(211, 215, 237)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x374",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x111",
+    "rgb(4, 9, 26) x103",
+    "rgb(142, 146, 175) x44",
+    "rgb(38, 42, 66) x35",
+    "rgb(68, 70, 56) x11",
+    "rgb(255, 255, 255) x7",
+    "rgb(211, 215, 237) x6",
+    "rgb(0, 108, 255) x3",
+    "rgb(24, 26, 32) x3",
+    "rgb(185, 190, 219) x1",
+    "rgb(69, 74, 102) x1"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x29",
+    "rgb(248, 246, 254) x22",
+    "rgb(255, 255, 255) x21",
+    "rgb(4, 9, 26) x7",
+    "rgb(38, 42, 66) x5",
+    "rgb(228, 230, 247) x5",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12"
+  ],
+  "transitions": [
+    "all 0.2s ease x68",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x59",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform 0.2s ease x4",
+    "all 0.2s ease-out x3",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 6303
+}

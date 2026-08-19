@@ -1,0 +1,206 @@
+{
+  "url": "https://www.bolt.com/startups",
+  "title": "Bolt for Startups",
+  "metaDesc": "Bolt Checkout delivers speed, scale, and sophistication from day one—with pricing and simplicity designed for early-stage teams.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1765211647/meta_startups_2578bf697f.webp?1780414035438",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "Startups dark backgroundColor--boltBlack resizeTransitionStopper",
+  "h1": "A checkout that adapts as fast as you do",
+  "headings": [
+    "H2: From setup to scale in three simple steps",
+    "H3: Plug and play",
+    "H3: Launch fully loaded",
+    "H3: Iterate and grow",
+    "H2: Big-league tech, startup-friendly feel",
+    "H2: Fast where it counts. Flexible where it matters.",
+    "H3: Fast, code-light setup",
+    "H3: Startup-friendly pricing",
+    "H3: Enterprise-grade power",
+    "H2: Bolt is your launchpad for growth."
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Get Started",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 21,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 81
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 698,
+      "bg": "rgba(0, 0, 0, 0)",
+      "bgImage": null,
+      "heading": "A checkout that adapts as fast as you do",
+      "cls": "Hero  scrolling-anim--staggerTextUp\n            withImage\n            hasCTAs\n  "
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 216,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": "From setup to scale in three simple steps",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center withoutHeadingBody backgr"
+    },
+    {
+      "i": 2,
+      "tag": "section",
+      "h": 468,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": "Plug and play",
+      "cls": "ThreeColumnSection\n          \n          contentAlign-center\n          marginBott"
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 1069,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": "Big-league tech, startup-friendly feel",
+      "cls": "ZLayoutContent  marginBottom--custom marginTop--custom paddingBottom paddingTop-"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 615,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "CenteredMedia  marginBottom--custom marginTop--custom paddingBottom--xs paddingT"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 256,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Fast where it counts. Flexible where it matters.",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center withoutHeadingBody backgr"
+    },
+    {
+      "i": 6,
+      "tag": "section",
+      "h": 428,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Fast, code-light setup",
+      "cls": "ThreeColumnSection\n          \n          contentAlign-center\n          marginBott"
+    },
+    {
+      "i": 7,
+      "tag": "div",
+      "h": 512,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Bolt is your launchpad for growth.",
+      "cls": "FooterCallout backgroundColor--tintedWhite marginBottom--custom marginTop--custo"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(255, 255, 255)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h3": {
+      "size": "22px",
+      "lh": "24.2px",
+      "w": "600",
+      "ls": "-0.44px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(0, 0, 0)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(185, 190, 219)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x364",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x114",
+    "rgb(4, 9, 26) x79",
+    "rgb(142, 146, 175) x44",
+    "rgb(255, 255, 255) x9",
+    "rgb(185, 190, 219) x8",
+    "rgb(69, 74, 102) x7",
+    "rgb(0, 108, 255) x4",
+    "rgb(211, 215, 237) x4",
+    "rgb(38, 42, 66) x2"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x30",
+    "rgb(248, 246, 254) x22",
+    "rgb(255, 255, 255) x19",
+    "rgb(4, 9, 26) x6",
+    "rgb(38, 42, 66) x5",
+    "rgb(228, 230, 247) x4",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12",
+    "slideInFromLeft 0.2s ease-out x2"
+  ],
+  "transitions": [
+    "all 0.2s ease x64",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x59",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x4",
+    "all 0.2s ease-out x3",
+    "background-color, opacity, top, transform, visibility 0.3s, 0.3s, 0.3s, 0.3s, 0.3s ease, ease, ease, ease, ease x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 5904
+}

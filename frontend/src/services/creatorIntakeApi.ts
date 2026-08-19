@@ -45,9 +45,21 @@ export interface PendingCreator {
   cost_reel_aed_cents: number | null
   cost_post_aed_cents: number | null
   cost_story_aed_cents: number | null
+  cost_carousel_aed_cents?: number | null
+  cost_video_aed_cents?: number | null
+  cost_bundle_aed_cents?: number | null
+  cost_monthly_aed_cents?: number | null
+  /** Who researched the rate, when, and anything they wanted to say about it. */
+  cost_captured_by_email?: string | null
+  cost_captured_at?: string | null
+  cost_note?: string | null
   /** Every deliverable added up, so "has any pricing at all" is one check. */
   cost_total_cents?: number
   sell_total_cents?: number
+  /** Whose job this row is: the talent team researches the cost, leadership sets the sell. */
+  lane?: 'needs_cost' | 'needs_sell'
+  /** Where the row came from — submitted by a colleague, bulk imported, or older than both. */
+  origin?: 'submitted' | 'imported' | 'legacy'
   /** Why this creator is in the queue, in words. */
   waiting_for?: string
   /** Which area they were sourced for, and the brand behind it. */
@@ -72,8 +84,18 @@ export const creatorIntakeApi = {
     call(`${BASE}/influencers/intake`, { method: 'POST', body: JSON.stringify(payload) }),
 
   /** Everyone who cannot be quoted yet: new arrivals, and anyone still missing a sell price. */
-  reviewQueue: (): Promise<{ data: { items: PendingCreator[]; count: number } }> =>
-    call(`${BASE}/influencers/review-queue`),
+  reviewQueue: (): Promise<{ data: {
+    items: PendingCreator[]; count: number
+    needs_cost: number; needs_sell: number
+    scope: 'leadership' | 'talent' | 'account' | 'none'
+  } }> => call(`${BASE}/influencers/review-queue`),
+
+  /**
+   * Record what a creator charges us. Open to the talent team on purpose — the person who
+   * negotiated the rate is the person who should type it in.
+   */
+  captureCost: (id: string, payload: { cost_pricing: Record<string, number>; note?: string }) =>
+    call(`${BASE}/influencers/${id}/cost`, { method: 'POST', body: JSON.stringify(payload) }),
 
   /** Price and release into the master database. Refused without a sell price. */
   approve: (id: string, payload: { sell_pricing?: Record<string, number>; tier?: string }) =>

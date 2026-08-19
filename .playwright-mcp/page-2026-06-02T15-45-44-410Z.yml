@@ -1,0 +1,523 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - img "blue and purple gradient background image" [ref=e4]
+      - navigation "main menu" [ref=e5]:
+        - generic [ref=e10]:
+          - button "close main menu" [ref=e11] [cursor=pointer]
+          - generic [ref=e14]:
+            - button "Product Suite" [ref=e15]:
+              - generic [ref=e16]: Product Suite
+              - img [ref=e18]
+            - list [ref=e20]:
+              - button "close main menu" [ref=e21] [cursor=pointer]
+              - button "Product Suite" [ref=e24]:
+                - img [ref=e26]
+                - generic [ref=e28]: Product Suite
+              - listitem [ref=e29]:
+                - link "Bolt ID New" [ref=e30] [cursor=pointer]:
+                  - /url: /bolt-id
+                  - generic [ref=e31]: Bolt ID
+                  - generic [ref=e32]: New
+              - listitem [ref=e36]:
+                - link "Check-In" [ref=e37] [cursor=pointer]:
+                  - /url: /check-in
+              - listitem [ref=e38]:
+                - link "Checkout" [ref=e39] [cursor=pointer]:
+                  - /url: /checkout
+              - listitem [ref=e40]:
+                - link "Checkout 2.0 New" [ref=e41] [cursor=pointer]:
+                  - /url: /intelligentcheckout
+                  - generic [ref=e42]: Checkout 2.0
+                  - generic [ref=e43]: New
+              - listitem [ref=e47]:
+                - link "Checkout OS" [ref=e48] [cursor=pointer]:
+                  - /url: /checkout-os
+              - listitem [ref=e49]:
+                - link "Checkout Everywhere" [ref=e50] [cursor=pointer]:
+                  - /url: /checkout-everywhere
+              - listitem [ref=e51]:
+                - link "Connect New" [ref=e52] [cursor=pointer]:
+                  - /url: /connect
+                  - generic [ref=e53]: Connect
+                  - generic [ref=e54]: New
+              - listitem [ref=e58]:
+                - link "Fully Managed Fraud" [ref=e59] [cursor=pointer]:
+                  - /url: /fraud
+              - listitem [ref=e60]:
+                - link "Subscriptions" [ref=e61] [cursor=pointer]:
+                  - /url: /subscriptions
+              - listitem [ref=e62]:
+                - link "Stablecoins New" [ref=e63] [cursor=pointer]:
+                  - /url: /stablecoins
+                  - generic [ref=e64]: Stablecoins
+                  - generic [ref=e65]: New
+              - listitem [ref=e69]:
+                - link "User Network" [ref=e70] [cursor=pointer]:
+                  - /url: /network
+          - generic [ref=e71]:
+            - button "Use Cases" [ref=e72]:
+              - generic [ref=e73]: Use Cases
+              - img [ref=e75]
+            - list [ref=e77]:
+              - button "close main menu" [ref=e78] [cursor=pointer]
+              - button "Use Cases" [ref=e81]:
+                - img [ref=e83]
+                - generic [ref=e85]: Use Cases
+              - listitem [ref=e86]:
+                - link "Bolt for App Developers" [ref=e87] [cursor=pointer]:
+                  - /url: /app-devs
+              - listitem [ref=e88]:
+                - link "Bolt for Digital Goods" [ref=e89] [cursor=pointer]:
+                  - /url: /digital-goods
+              - listitem [ref=e90]:
+                - link "Bolt for High Risk" [ref=e91] [cursor=pointer]:
+                  - /url: /high-risk
+              - listitem [ref=e92]:
+                - link "Bolt for Ecommerce" [ref=e93] [cursor=pointer]:
+                  - /url: /ecommerce
+              - listitem [ref=e94]:
+                - link "Bolt for SaaS" [ref=e95] [cursor=pointer]:
+                  - /url: /saas
+              - listitem [ref=e96]:
+                - link "Bolt for Startups" [ref=e97] [cursor=pointer]:
+                  - /url: /startups
+              - listitem [ref=e98]:
+                - link "Bolt Activate New" [ref=e99] [cursor=pointer]:
+                  - /url: /activate
+                  - generic [ref=e100]: Bolt Activate
+                  - generic [ref=e101]: New
+          - generic [ref=e105]:
+            - button "Developers" [ref=e106]:
+              - generic [ref=e107]: Developers
+              - img [ref=e109]
+            - list [ref=e111]:
+              - button "close main menu" [ref=e112] [cursor=pointer]
+              - button "Developers" [ref=e115]:
+                - img [ref=e117]
+                - generic [ref=e119]: Developers
+              - listitem [ref=e120]:
+                - link "Build with Bolt" [ref=e121] [cursor=pointer]:
+                  - /url: https://help.bolt.com/
+              - listitem [ref=e122]:
+                - link "Installation Guides" [ref=e123] [cursor=pointer]:
+                  - /url: /install
+              - listitem [ref=e124]:
+                - link "Documentation" [ref=e125] [cursor=pointer]:
+                  - /url: https://help.bolt.com/developers/
+              - listitem [ref=e126]:
+                - link "How to Migrate" [ref=e127] [cursor=pointer]:
+                  - /url: https://help.bolt.com/get-started/quickstart/
+              - listitem [ref=e128]:
+                - link "Platform Plugins" [ref=e129] [cursor=pointer]:
+                  - /url: https://help.bolt.com/platforms/
+              - listitem [ref=e130]:
+                - link "API Reference" [ref=e131] [cursor=pointer]:
+                  - /url: https://help.bolt.com/api-bolt/
+              - listitem [ref=e132]:
+                - link "Status" [ref=e133] [cursor=pointer]:
+                  - /url: https://status.bolt.com/
+          - button "Pricing" [ref=e135]:
+            - link "Pricing" [ref=e136] [cursor=pointer]:
+              - /url: /pricing
+          - button "News" [ref=e138]:
+            - link "News" [ref=e139] [cursor=pointer]:
+              - /url: /news
+          - button "Merchant login" [ref=e141]:
+            - link "Merchant login" [ref=e142] [cursor=pointer]:
+              - /url: https://merchant.bolt.com/
+          - button "Contact Sales" [ref=e144]:
+            - link "Contact Sales" [ref=e145] [cursor=pointer]:
+              - /url: /contact-sales
+          - button "Get started" [ref=e147]:
+            - link "Get started" [ref=e148] [cursor=pointer]:
+              - /url: https://merchant.bolt.com/onboarding
+      - banner [ref=e149]:
+        - generic [ref=e153]:
+          - list [ref=e154]:
+            - listitem [ref=e155]:
+              - link "For Users" [ref=e156] [cursor=pointer]:
+                - /url: /pay
+            - listitem [ref=e157]:
+              - link "For Businesses" [ref=e158] [cursor=pointer]:
+                - /url: /
+          - list [ref=e159]:
+            - listitem [ref=e160]:
+              - generic [ref=e161]:
+                - button "Soundtrack" [ref=e162] [cursor=pointer]:
+                  - img [ref=e164]
+                  - text: Soundtrack
+                - generic:
+                  - list:
+                    - listitem:
+                      - generic: "Listen on:"
+                      - link "Spotify":
+                        - /url: https://open.spotify.com/playlist/6JMxlb6bLHf3UOuV7NlOcO
+                        - generic:
+                          - img
+                        - text: Spotify
+                    - listitem:
+                      - link "Apple Music":
+                        - /url: https://music.apple.com/us/playlist/bolt-soundtrack/pl.u-e98lGLjCeDqeAL
+                        - generic:
+                          - img
+                        - text: Apple Music
+                    - listitem:
+                      - link "YouTube":
+                        - /url: https://youtube.com/playlist?list=PL2810cUuit64I8fWCwqdwy7k9Zt5VgTsN&si=XHPlUauQmOsi7D9W
+                        - generic:
+                          - img
+                        - text: YouTube
+        - navigation [ref=e167]:
+          - generic [ref=e168]:
+            - link [ref=e171] [cursor=pointer]:
+              - /url: /
+              - img [ref=e172]
+            - list [ref=e175]:
+              - listitem [ref=e176]:
+                - link "Product Suite" [ref=e178] [cursor=pointer]:
+                  - /url: /checkout
+              - listitem [ref=e179]:
+                - generic [ref=e180]: Use Cases
+              - listitem [ref=e181]:
+                - link "Developers" [ref=e183] [cursor=pointer]:
+                  - /url: https://help.bolt.com/
+              - listitem [ref=e184]:
+                - link "Pricing" [ref=e186] [cursor=pointer]:
+                  - /url: /pricing
+              - listitem [ref=e187]:
+                - link "News" [ref=e189] [cursor=pointer]:
+                  - /url: /news
+            - list [ref=e191]:
+              - listitem [ref=e192]:
+                - link "Merchant login" [ref=e193] [cursor=pointer]:
+                  - /url: https://merchant.bolt.com/
+              - listitem [ref=e194]:
+                - link "Contact Sales" [ref=e195] [cursor=pointer]:
+                  - /url: /contact-sales
+              - listitem [ref=e196]:
+                - link "Get started" [ref=e197] [cursor=pointer]:
+                  - /url: https://merchant.bolt.com/onboarding
+                  - generic [ref=e198]: Get started
+      - generic [ref=e202]:
+        - generic [ref=e203]:
+          - heading "Building trust with every tap" [level=1] [ref=e205]
+          - paragraph [ref=e207]: Meet the next generation of checkout — intelligent, adaptive, and always one step ahead of your customers.
+          - generic [ref=e209]:
+            - link "Get started now" [ref=e210] [cursor=pointer]:
+              - /url: /get-started
+              - generic [ref=e211]: Get started now
+            - link "Explore Checkout 2.0" [ref=e212] [cursor=pointer]:
+              - /url: /intelligentcheckout
+              - generic [ref=e213]: Explore Checkout 2.0
+        - img "Man smiling while holding a smartphone, wearing purple and black outfit, sitting cross-legged with a Bolt checkout screen floating beside him that says “Welcome back, Skyler!”" [ref=e215]
+    - main [ref=e216]:
+      - list [ref=e220]:
+        - listitem [ref=e221]:
+          - link "hidden" [ref=e222] [cursor=pointer]:
+            - /url: https://revolve.com
+        - listitem [ref=e223]:
+          - link "hidden" [ref=e224] [cursor=pointer]:
+            - /url: https://luisaviaroma.com
+        - listitem [ref=e225]:
+          - link "hidden" [ref=e226] [cursor=pointer]:
+            - /url: https://luckybrand.com
+        - listitem [ref=e227]:
+          - link "hidden" [ref=e228] [cursor=pointer]:
+            - /url: https://badgleymischka.com
+          - img "Badgley Mischka" [ref=e229]
+        - listitem [ref=e230]:
+          - link "hidden" [ref=e231] [cursor=pointer]:
+            - /url: https://fwrd.com
+          - img "FWRD Logo" [ref=e232]
+        - listitem [ref=e233]:
+          - link "hidden" [ref=e234] [cursor=pointer]:
+            - /url: https://kendrascott.com
+        - listitem [ref=e235]:
+          - link "hidden" [ref=e236] [cursor=pointer]:
+            - /url: https://love.com
+        - listitem [ref=e237]:
+          - link "hidden" [ref=e238] [cursor=pointer]:
+            - /url: https://www.frette.com/en_US/homepage
+        - listitem [ref=e239]:
+          - link "hidden" [ref=e240] [cursor=pointer]:
+            - /url: https://lafayette148ny.com
+        - listitem [ref=e241]:
+          - link "hidden" [ref=e242] [cursor=pointer]:
+            - /url: https://www.naturepedic.com/
+        - listitem [ref=e243]:
+          - link "hidden" [ref=e244] [cursor=pointer]:
+            - /url: https://revolve.com
+        - listitem [ref=e245]:
+          - link "hidden" [ref=e246] [cursor=pointer]:
+            - /url: https://luisaviaroma.com
+        - listitem [ref=e247]:
+          - link "hidden" [ref=e248] [cursor=pointer]:
+            - /url: https://luckybrand.com
+        - listitem [ref=e249]:
+          - link "hidden" [ref=e250] [cursor=pointer]:
+            - /url: https://badgleymischka.com
+          - img "Badgley Mischka" [ref=e251]
+        - listitem [ref=e252]:
+          - link "hidden" [ref=e253] [cursor=pointer]:
+            - /url: https://fwrd.com
+          - img "FWRD Logo" [ref=e254]
+      - generic [ref=e256]:
+        - generic [ref=e260]:
+          - heading "The checkout that learns from every click" [level=3] [ref=e263]
+          - paragraph [ref=e264]: Built on Bolt’s intelligent network, Checkout 2.0 adapts in real time using dynamic shopper profiles — preferences, behaviors, and purchase history — to make every transaction faster, safer, and more personal.
+          - link "Explore Checkout 2.0" [ref=e267] [cursor=pointer]:
+            - /url: /intelligentcheckout
+            - generic [ref=e268]: Explore Checkout 2.0
+        - heading "Supercharge your business" [level=2] [ref=e275]
+        - generic [ref=e278]:
+          - link "The Bolt Network Connect to over 80 million shoppers Recognize over 40% of your shoppers instantly, even if they’ve never been to your site. Learn more about the Bolt Network" [ref=e280] [cursor=pointer]:
+            - /url: /network
+            - paragraph [ref=e282]: The Bolt Network
+            - generic [ref=e284]:
+              - heading "Connect to over 80 million shoppers" [level=4] [ref=e285]
+              - paragraph [ref=e286]: Recognize over 40% of your shoppers instantly, even if they’ve never been to your site.
+              - link "Learn more about the Bolt Network" [ref=e287]:
+                - /url: /network
+                - generic [ref=e288]: Learn more about the Bolt Network
+          - link "Checkout Everywhere Let shoppers buy where they browse Boost your marketing by creating a “buy now” experience at any shopper touchpoint. Learn more about Checkout Everywhere" [ref=e291] [cursor=pointer]:
+            - /url: /checkout-everywhere
+            - paragraph [ref=e293]: Checkout Everywhere
+            - generic [ref=e295]:
+              - heading "Let shoppers buy where they browse" [level=4] [ref=e296]:
+                - text: Let shoppers buy
+                - text: where they browse
+              - paragraph [ref=e297]: Boost your marketing by creating a “buy now” experience at any shopper touchpoint.
+              - link "Learn more about Checkout Everywhere" [ref=e298]:
+                - /url: /checkout-everywhere
+                - generic [ref=e299]: Learn more about Checkout Everywhere
+        - heading "Turn first-time buyers into lifelong customers" [level=4] [ref=e306]
+        - generic [ref=e309]:
+          - generic [ref=e314]:
+            - heading "Bolt Checkout" [level=3] [ref=e316]
+            - paragraph [ref=e317]: The only solution that recognizes shoppers across sites, powers passwordless login, and converts with one click — all within your existing tech stack.
+            - link "Learn more about Bolt Checkout" [ref=e320] [cursor=pointer]:
+              - /url: /checkout
+              - generic [ref=e321]: Learn more about Bolt Checkout
+          - img [ref=e327]
+      - generic [ref=e344]:
+        - generic [ref=e347] [cursor=pointer]:
+          - generic [ref=e348]:
+            - generic:
+              - generic [ref=e351]:
+                - figure [ref=e354]
+                - generic [ref=e355]:
+                  - heading "Integrating Bolt was a remarkably smooth and swift endeavor, requiring minimal effort and allowing us to prioritize our other ongoing initiatives without skipping a beat." [level=4] [ref=e357]
+                  - paragraph [ref=e358]:
+                    - text: Jon Tam
+                    - text: VP of Operations at REVOLVE
+                  - list [ref=e359]:
+                    - listitem [ref=e360]
+                    - listitem [ref=e361]
+                    - listitem [ref=e362]
+              - generic [ref=e365]:
+                - figure [ref=e368]
+                - generic [ref=e369]:
+                  - heading [level=4] [ref=e371]: Tyler’s has been looking for a way to streamline account creation and checkout in order to increase our number of repeat shoppers, and we love that Bolt consistently innovates ahead of the market to help us stay competitive.
+                  - paragraph [ref=e372]: Justin Dermit Director of E-commerce and Marketing, Tyler’s
+                  - list [ref=e373]:
+                    - listitem [ref=e374]
+                    - listitem [ref=e375]
+                    - listitem [ref=e376]
+              - generic [ref=e379]:
+                - figure [ref=e382]
+                - generic [ref=e383]:
+                  - heading [level=4] [ref=e385]: We were having a huge drop-off at checkout. Bolt’s checkout is designed to fix that—fewer forms, no redirects, more payment options, and a one-click checkout for existing shoppers. “Since [implementing] Bolt, we’ve definitely rebounded.
+                  - paragraph [ref=e386]: Katie Ouaknine Owner of Badgley Mischka Web
+                  - list [ref=e387]:
+                    - listitem [ref=e388]
+                    - listitem [ref=e389]
+                    - listitem [ref=e390]
+          - button "Previous" [disabled] [ref=e391]
+          - button "Next" [ref=e392]
+        - generic [ref=e395]:
+          - img [ref=e396]
+          - generic [ref=e398]:
+            - generic [ref=e399]:
+              - generic [ref=e403]:
+                - heading "77% of carts are abandoned. Bolt brings them back." [level=2] [ref=e405]
+                - paragraph [ref=e406]: Bolt’s intelligent identity network helps you recover lost revenue and rebuild loyalty by making the checkout the easiest part of the shopping experience.
+              - link "Launch demo" [ref=e407] [cursor=pointer]:
+                - /url: /checkout-demo
+                - img [ref=e408]
+                - generic [ref=e411]: Launch demo
+            - generic [ref=e412]:
+              - img [ref=e413]
+              - paragraph [ref=e414]: In revenue lost
+        - heading "Bolt in the News" [level=2] [ref=e420]
+        - generic [ref=e425]:
+          - generic [ref=e426]:
+            - link "Finextra Bolt introduces network identity system Dec 1, 2025" [ref=e427] [cursor=pointer]:
+              - /url: https://www.finextra.com/pressarticle/108131/bolt-introduces-network-identity-system
+              - generic [ref=e430]:
+                - generic [ref=e431]: Finextra
+                - heading "Bolt introduces network identity system" [level=3] [ref=e432]
+              - generic [ref=e433]: Dec 1, 2025
+            - link "PYMNTS Bolt Launches Super App for Managing Crypto, Fiat, Rewards and Shopping Sep 25, 2025" [ref=e434] [cursor=pointer]:
+              - /url: https://www.pymnts.com/mobile-applications/2025/bolt-launches-super-app-managing-cryptocurrency-fiat-rewards-shopping/
+              - generic [ref=e437]:
+                - generic [ref=e438]: PYMNTS
+                - heading "Bolt Launches Super App for Managing Crypto, Fiat, Rewards and Shopping" [level=3] [ref=e439]
+              - generic [ref=e440]: Sep 25, 2025
+            - link "TechCrunch Fintech Bolt progresses its turnaround by landing Klarna as a partner Jun 30, 2025" [ref=e441] [cursor=pointer]:
+              - /url: https://techcrunch.com/2025/06/30/fintech-bolt-progresses-its-turnaround-by-landing-klarna-as-a-partner/
+              - generic [ref=e444]:
+                - generic [ref=e445]: TechCrunch
+                - heading "Fintech Bolt progresses its turnaround by landing Klarna as a partner" [level=3] [ref=e446]
+              - generic [ref=e447]: Jun 30, 2025
+          - link "View more" [ref=e450] [cursor=pointer]:
+            - /url: /news
+            - generic [ref=e451]: View more
+        - generic [ref=e455]:
+          - heading "Your brand. Your checkout. Powered by Bolt." [level=3] [ref=e458]
+          - paragraph [ref=e459]: Bolt adapts to your business, whether you want to enhance your existing checkout or power the full experience end-to-end. It’s simple to integrate, effortless to scale, and trusted by the world’s leading brands.
+          - link "Get started" [ref=e462] [cursor=pointer]:
+            - /url: /get-started
+            - generic [ref=e463]: Get started
+        - generic [ref=e466]:
+          - generic [ref=e467]:
+            - img "Vogue" [ref=e469]
+            - img "Reuters" [ref=e471]
+          - generic [ref=e472]:
+            - img "CNBC" [ref=e474]
+            - img "Wall Street Journal" [ref=e476]
+    - contentinfo [ref=e477]:
+      - generic [ref=e478]:
+        - generic [ref=e483]:
+          - generic [ref=e485]:
+            - link [ref=e486] [cursor=pointer]:
+              - /url: https://twitter.com/bolt
+              - img [ref=e487]
+            - link [ref=e489] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/bolt-com/
+              - img [ref=e490]
+          - generic [ref=e495]:
+            - img [ref=e497]
+            - paragraph [ref=e500]: "Get updates on Bolt:"
+        - navigation [ref=e501]:
+          - generic [ref=e502]:
+            - generic [ref=e503]:
+              - paragraph [ref=e504]: Company
+              - list [ref=e505]:
+                - listitem [ref=e506]:
+                  - link "Our story" [ref=e507] [cursor=pointer]:
+                    - /url: /our-story
+                    - img [ref=e508]
+                    - generic [ref=e510]: Our story
+                - listitem [ref=e511]:
+                  - link "News and press" [ref=e512] [cursor=pointer]:
+                    - /url: /news
+                    - img [ref=e513]
+                    - generic [ref=e515]: News and press
+                - listitem [ref=e516]:
+                  - link "Careers We're hiring" [ref=e517] [cursor=pointer]:
+                    - /url: /careers
+                    - img [ref=e518]
+                    - generic [ref=e520]: Careers
+                    - generic [ref=e522]: We're hiring
+                - listitem [ref=e526]:
+                  - link "Security" [ref=e527] [cursor=pointer]:
+                    - /url: /security
+                    - img [ref=e528]
+                    - generic [ref=e530]: Security
+            - generic [ref=e531]:
+              - paragraph [ref=e532]: Resources
+              - list [ref=e533]:
+                - listitem [ref=e534]:
+                  - link "Case studies" [ref=e535] [cursor=pointer]:
+                    - /url: /case-studies
+                    - img [ref=e536]
+                    - generic [ref=e538]: Case studies
+                - listitem [ref=e539]:
+                  - link "Ebooks and reports" [ref=e540] [cursor=pointer]:
+                    - /url: /resources
+                    - img [ref=e541]
+                    - generic [ref=e543]: Ebooks and reports
+                - listitem [ref=e544]:
+                  - link "Blog" [ref=e545] [cursor=pointer]:
+                    - /url: /blog
+                    - img [ref=e546]
+                    - generic [ref=e548]: Blog
+                - listitem [ref=e549]:
+                  - link "FAQ" [ref=e550] [cursor=pointer]:
+                    - /url: /faq
+                    - img [ref=e551]
+                    - generic [ref=e553]: FAQ
+                - listitem [ref=e554]:
+                  - link "Shopper trust toolkit" [ref=e555] [cursor=pointer]:
+                    - /url: /shopper-trust-toolkit
+                    - img [ref=e556]
+                    - generic [ref=e558]: Shopper trust toolkit
+                - listitem [ref=e559]:
+                  - link "Media kit" [ref=e560] [cursor=pointer]:
+                    - /url: /media-kit
+                    - img [ref=e561]
+                    - generic [ref=e563]: Media kit
+                - listitem [ref=e564]:
+                  - link "Referral program" [ref=e565] [cursor=pointer]:
+                    - /url: /refer
+                    - img [ref=e566]
+                    - generic [ref=e568]: Referral program
+                - listitem [ref=e569]:
+                  - link "Shop the Bolt Network" [ref=e570] [cursor=pointer]:
+                    - /url: /shop
+                    - img [ref=e571]
+                    - generic [ref=e573]: Shop the Bolt Network
+            - generic [ref=e574]:
+              - paragraph [ref=e575]: Support
+              - list [ref=e576]:
+                - listitem [ref=e577]:
+                  - link "Contact us" [ref=e578] [cursor=pointer]:
+                    - /url: /contact-us
+                    - img [ref=e579]
+                    - generic [ref=e581]: Contact us
+                - listitem [ref=e582]:
+                  - link "Documentation" [ref=e583] [cursor=pointer]:
+                    - /url: https://help.bolt.com/
+                    - img [ref=e584]
+                    - generic [ref=e586]: Documentation
+                - listitem [ref=e587]:
+                  - link "Getting started" [ref=e588] [cursor=pointer]:
+                    - /url: /install
+                    - img [ref=e589]
+                    - generic [ref=e591]: Getting started
+                - listitem [ref=e592]:
+                  - link "Operational status" [ref=e593] [cursor=pointer]:
+                    - /url: https://status.bolt.com/
+                    - img [ref=e594]
+                    - generic [ref=e596]: Operational status
+            - generic [ref=e597]:
+              - paragraph [ref=e598]: Custom Solutions
+              - list [ref=e599]:
+                - listitem [ref=e600]:
+                  - link "Bolt for Enterprise" [ref=e601] [cursor=pointer]:
+                    - /url: /enterprise
+                    - img [ref=e602]
+                    - generic [ref=e604]: Bolt for Enterprise
+                - listitem [ref=e605]:
+                  - link "Custom payments" [ref=e606] [cursor=pointer]:
+                    - /url: /payments
+                    - img [ref=e607]
+                    - generic [ref=e609]: Custom payments
+        - link [ref=e612] [cursor=pointer]:
+          - /url: /
+          - img [ref=e613]
+        - generic [ref=e616]:
+          - generic [ref=e618]:
+            - img [ref=e619]
+            - paragraph [ref=e621]: © 2026 Bolt Financial, Inc.
+          - generic [ref=e623]:
+            - link "Legal" [ref=e624] [cursor=pointer]:
+              - /url: /terms-of-use
+            - link "Privacy Policy" [ref=e625] [cursor=pointer]:
+              - /url: /privacy
+            - link "Privacy Center" [ref=e626] [cursor=pointer]:
+              - /url: /privacy-center
+            - link "Terms" [ref=e627] [cursor=pointer]:
+              - /url: /end-user-terms
+  - alert [ref=e628]

@@ -1,0 +1,235 @@
+{
+  "url": "https://www.bolt.com/bolt-id",
+  "title": "Bolt | ID",
+  "metaDesc": "Bolt ID is a checkout-native identity layer that combines identity, authentication, and checkout to boost trust, increase conversion, and protect revenue—while giving shoppers a faster, safer buying experience.",
+  "ogImage": "https://res.cloudinary.com/dugcmkito/image/upload/v1764188290/meta_bolt_id_4196a2d5a1.webp?1780413945236",
+  "nextPage": "/default-lander/[[...id]]",
+  "htmlClass": "bolt-id dark backgroundColor--boltBlack resizeTransitionStopper",
+  "h1": "The identity layer for commerce",
+  "headings": [
+    "H2: Identity intelligence + authentication + checkout",
+    "H2: Identity intelligence",
+    "H2: Real-time authentication",
+    "H2: Checkout integration",
+    "H2: A new standard for identity in checkout",
+    "H2: Identity designed for checkout",
+    "H2: Conversion-first authentication",
+    "H2: Infrastructure built for merchants",
+    "H2: Protection at the point of transaction",
+    "H2: A better alternative to 3DS",
+    "H2: Why Bolt ID leads?",
+    "H2: Build trust where it matters most"
+  ],
+  "ctas": [
+    "Bolt for Startups",
+    "Contact Sales",
+    "Get started",
+    "Ebooks and reports",
+    "Contact us",
+    "Getting started"
+  ],
+  "media": {
+    "images": 32,
+    "videos": 0,
+    "wistia": 1,
+    "lottie": 0,
+    "canvas": 0,
+    "svg": 81
+  },
+  "sections": [
+    {
+      "i": 0,
+      "tag": "div",
+      "h": 622,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "The identity layer for commerce",
+      "cls": "Hero backgroundColor--deepBlack scrolling-anim--staggerTextUp\n            withIm"
+    },
+    {
+      "i": 1,
+      "tag": "div",
+      "h": 403,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Identity intelligence + authentication + checkout",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center  backgroundColor--tintedW"
+    },
+    {
+      "i": 2,
+      "tag": "section",
+      "h": 328,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Identity intelligence",
+      "cls": "ThreeColumnSection\n          \n          contentAlign-center\n          marginBott"
+    },
+    {
+      "i": 3,
+      "tag": "div",
+      "h": 643,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "A new standard for identity in checkout",
+      "cls": "ZLayoutContent  marginBottom--custom marginTop--custom paddingBottom--custom pad"
+    },
+    {
+      "i": 4,
+      "tag": "div",
+      "h": 216,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Identity designed for checkout",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center withoutHeadingBody backgr"
+    },
+    {
+      "i": 5,
+      "tag": "div",
+      "h": 1870,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": "Conversion-first authentication",
+      "cls": "ZLayoutContent  marginBottom--custom marginTop--custom paddingBottom--custom pad"
+    },
+    {
+      "i": 6,
+      "tag": "div",
+      "h": 150,
+      "bg": "rgb(4, 9, 26)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "Divider  marginBottom--custom marginTop--custom paddingBottom--custom paddingTop"
+    },
+    {
+      "i": 7,
+      "tag": "section",
+      "h": 800,
+      "bg": "rgb(228, 230, 247)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "TwoColumnComplexSection  marginBottom--custom marginTop--custom paddingBottom--x"
+    },
+    {
+      "i": 8,
+      "tag": "div",
+      "h": 170,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Why Bolt ID leads?",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center withoutHeadingBody backgr"
+    },
+    {
+      "i": 9,
+      "tag": "div",
+      "h": 461,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": null,
+      "cls": "CenteredMedia hide-component--mobile marginBottom--custom marginTop--custom padd"
+    },
+    {
+      "i": 10,
+      "tag": "div",
+      "h": 628,
+      "bg": "rgb(248, 246, 254)",
+      "bgImage": null,
+      "heading": "Build trust where it matters most",
+      "cls": "Heading  textAlign--center responsiveTextAlign--center withoutHeadingBody backgr"
+    }
+  ],
+  "type": {
+    "h1": {
+      "size": "70px",
+      "lh": "70px",
+      "w": "700",
+      "ls": "-1.4px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(248, 246, 254)"
+    },
+    "h2": {
+      "size": "64px",
+      "lh": "70.4px",
+      "w": "700",
+      "ls": "-1.28px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "h4": {
+      "size": "32px",
+      "lh": "35.2px",
+      "w": "700",
+      "ls": "-0.64px",
+      "fam": "agrandir-bolt",
+      "color": "rgb(4, 9, 26)"
+    },
+    "p": {
+      "size": "20px",
+      "lh": "24px",
+      "w": "500",
+      "ls": "-0.4px",
+      "fam": "Inter",
+      "color": "rgb(211, 215, 237)"
+    }
+  },
+  "colorsText": [
+    "rgb(0, 0, 0) x441",
+    "rgb(0, 0, 238) x235",
+    "rgb(248, 246, 254) x115",
+    "rgb(4, 9, 26) x85",
+    "rgb(142, 146, 175) x44",
+    "rgb(211, 215, 237) x14",
+    "rgb(255, 255, 255) x7",
+    "rgb(24, 26, 32) x6",
+    "rgb(68, 70, 56) x6",
+    "rgb(38, 42, 66) x6",
+    "rgb(0, 108, 255) x3",
+    "rgb(69, 74, 102) x2",
+    "rgb(209, 216, 250) x1"
+  ],
+  "colorsBg": [
+    "rgb(0, 108, 255) x29",
+    "rgb(248, 246, 254) x27",
+    "rgb(255, 255, 255) x19",
+    "rgb(4, 9, 26) x7",
+    "rgb(38, 42, 66) x5",
+    "rgba(4, 9, 26, 0.65) x4",
+    "rgb(228, 230, 247) x2",
+    "rgba(0, 0, 0, 0.1) x1"
+  ],
+  "keyframes": [
+    "swipe",
+    "slideInFromLeft",
+    "slideInFromRight",
+    "zoomInFromLeft",
+    "zoomInFromRight",
+    "zoomInFromBottom"
+  ],
+  "animations": [
+    "swipe 2.7s linear x12"
+  ],
+  "transitions": [
+    "all 0.2s ease x64",
+    "translate 0.35s cubic-bezier(0.23, 1, 0.32, 1) x63",
+    "opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1) x61",
+    "color 0.2s ease x59",
+    "color 0.35s cubic-bezier(0.23, 1, 0.32, 1) x27",
+    "fill 0.2s cubic-bezier(0.23, 1, 0.32, 1) x21",
+    "transform, opacity 0.3s, 0.3s cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1) x11",
+    "opacity 0.2s ease-out x7",
+    "translate 0.3s cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "transform, opacity 0.3s, 0.2s ease, cubic-bezier(0.23, 1, 0.32, 1) x4",
+    "all 0.2s ease-out x3",
+    "background-color, border-color, color, fill, transform 0.2s, 0.2s, 0.2s, 0.2s, 0.2s ease, ease, ease, ease, ease-in-out x3"
+  ],
+  "primaryButton": {
+    "text": "Get started",
+    "bg": "rgb(248, 246, 254)",
+    "color": "rgb(4, 9, 26)",
+    "radius": "1280px",
+    "padding": "13px 22px",
+    "fontWeight": "600",
+    "shadow": "none",
+    "fontSize": "16px"
+  },
+  "scrollHeight": 7829
+}
