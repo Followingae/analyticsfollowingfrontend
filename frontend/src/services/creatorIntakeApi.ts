@@ -40,6 +40,8 @@ export interface PendingCreator {
   submitted_at: string | null
   submitted_by_email: string | null
   analytics_status: string | null
+  /** Already held for most of them from the import; served from our CDN, never hotlinked. */
+  profile_image_url?: string | null
   cost_reel_aed_cents: number | null
   cost_post_aed_cents: number | null
   cost_story_aed_cents: number | null

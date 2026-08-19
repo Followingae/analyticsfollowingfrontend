@@ -18,7 +18,8 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { cdnAvatar } from '@/lib/avatar'
 import { Clock, Check, X, UserPlus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { creatorIntakeApi, type PendingCreator } from '@/services/creatorIntakeApi'
@@ -134,6 +135,9 @@ export default function ReviewQueuePage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-3">
                     <Avatar className="h-11 w-11">
+                      {/* Instagram blocks hotlinks, so this always goes through our own CDN;
+                          a creator we have not photographed yet falls back to initials. */}
+                      <AvatarImage src={cdnAvatar(c.profile_image_url || undefined)} alt={c.username} />
                       <AvatarFallback className="text-xs font-semibold">
                         {c.username.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
