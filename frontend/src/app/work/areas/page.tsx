@@ -41,6 +41,7 @@ import { clientApi } from "@/services/clientManagementApi"
 import { staffAdminApi } from "@/services/staffApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { CreatorsHubHeader } from "@/components/console/CreatorsHubHeader"
+import { CARD } from "@/components/console/primitives"
 
 type Kind = "client" | "sample"
 
@@ -167,11 +168,11 @@ export default function AreasPage() {
     <AuthGuard>
       <SuperAdminInterface>
         <div className="mx-auto max-w-6xl space-y-6 p-6">
-          {canStock && <CreatorsHubHeader className="mb-0" />}
+          {canStock && <CreatorsHubHeader className="mb-0" bare />}
 
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Areas</h1>
+              <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">Areas</h1>
               <p className="mt-1 max-w-2xl text-muted-foreground">
                 One roster per brand, from the day we decide to chase them to the proposal.
                 Sample packs sit alongside, ready to send a prospect on the spot.
@@ -181,7 +182,7 @@ export default function AreasPage() {
               <Dialog open={openPack} onOpenChange={setOpenPack}>
                 {canStock && (
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="gap-2"><Plus className="h-4 w-4" />New sample pack</Button>
+                    <Button variant="outline" className="gap-2 rounded-full px-5"><Plus className="h-4 w-4" />New sample pack</Button>
                   </DialogTrigger>
                 )}
                 <DialogContent>
@@ -214,7 +215,9 @@ export default function AreasPage() {
               {canDestroy && (
                 <Dialog open={openStart} onOpenChange={setOpenStart}>
                   <DialogTrigger asChild>
-                    <Button className="gap-2" data-tour="start-sourcing"><Rocket className="h-4 w-4" />Start sourcing</Button>
+                    <Button data-tour="start-sourcing"
+                            className="gap-2 rounded-full bg-neutral-900 px-5 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200">
+                      <Rocket className="h-4 w-4" />Start sourcing</Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-lg">
                     <DialogHeader>
@@ -345,7 +348,7 @@ export default function AreasPage() {
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : shown.length === 0 ? (
-            <Card className="border-dashed">
+            <Card className={`${CARD} border-dashed bg-white/60 dark:bg-neutral-900/40`}>
               <CardContent className="p-12 text-center">
                 <div className="mx-auto grid h-12 w-12 place-items-center rounded-full border">
                   <ListChecks className="h-5 w-5 text-muted-foreground" />
@@ -365,7 +368,8 @@ export default function AreasPage() {
               {shown.map((a) => {
                 const line = briefLine(a.brief)
                 return (
-                  <Card key={a.id} className="group transition-colors hover:border-foreground/20">
+                  <Card key={a.id}
+                        className={`${CARD} group bg-white transition-all hover:-translate-y-0.5 dark:bg-neutral-900/70`}>
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
                         <CardTitle className="text-base">

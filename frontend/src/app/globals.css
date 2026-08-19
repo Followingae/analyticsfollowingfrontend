@@ -529,3 +529,21 @@
     transform: translateY(-6px);
   }
 }
+/* ── The console ground ───────────────────────────────────────────────────────────────
+   Internal screens only. The panels on them are white with a hairline edge, so the page
+   behind has to be a shade off-white or the cards have no edge at all. Two very faint
+   tints — one lime, one cool — stop it reading as flat grey, and they are weak enough
+   that a status wash on a card still reads as the only colour on the screen. */
+.console-ground {
+  background:
+    radial-gradient(90% 60% at 8% 0%, rgba(166, 197, 32, 0.055) 0%, rgba(166, 197, 32, 0) 60%),
+    radial-gradient(70% 50% at 100% 0%, rgba(90, 140, 190, 0.05) 0%, rgba(90, 140, 190, 0) 55%),
+    #F3F5F0;
+}
+
+.dark .console-ground {
+  background:
+    radial-gradient(90% 60% at 8% 0%, rgba(166, 197, 32, 0.07) 0%, rgba(166, 197, 32, 0) 60%),
+    radial-gradient(70% 50% at 100% 0%, rgba(90, 140, 190, 0.06) 0%, rgba(90, 140, 190, 0) 55%),
+    oklch(var(--background));
+}

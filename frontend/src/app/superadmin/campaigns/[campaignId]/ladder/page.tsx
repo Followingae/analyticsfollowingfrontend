@@ -34,6 +34,7 @@ import { toast } from "sonner"
 import { ladderApi, STAGES, type LadderCreator, type Stage } from "@/services/ladderApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { cdnAvatar } from "@/lib/avatar"
+import { CARD } from "@/components/console/primitives"
 
 const aed = (cents?: number | null) =>
   cents == null ? null : `AED ${(cents / 100).toLocaleString("en-AE")}`
@@ -128,7 +129,7 @@ export default function LadderPage() {
                     className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-3.5 w-3.5" />Back to the campaign
               </Link>
-              <h1 className="mt-2 text-3xl font-bold">Delivery</h1>
+              <h1 className="mt-2 text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">Delivery</h1>
               <p className="mt-1 text-muted-foreground">
                 Every booked creator and where they have got to. Click anyone to do the next thing.
               </p>
@@ -171,14 +172,14 @@ export default function LadderPage() {
                         <span className="text-xs tabular-nums text-muted-foreground">{list.length}</span>
                       </div>
                       <p className="mb-2 px-1 text-[11px] uppercase tracking-wide text-muted-foreground">{s.who}</p>
-                      <div className="min-h-[120px] space-y-2 rounded-2xl bg-muted/40 p-2">
+                      <div className="min-h-[140px] space-y-2 rounded-[22px] bg-black/[0.035] p-2.5 dark:bg-white/[0.04]">
                         {list.map((c) => {
                           const d = dueState(c)
                           return (
                             <button
                               key={c.id}
                               onClick={() => setOpen(c)}
-                              className="w-full rounded-xl border bg-card p-3 text-left transition-colors hover:border-foreground/25"
+                              className={`${CARD} w-full bg-white p-3.5 text-left transition-all hover:-translate-y-0.5 dark:bg-neutral-900/80`}
                             >
                               <div className="flex items-center gap-2.5">
                                 <Avatar className="h-8 w-8">
@@ -228,9 +229,9 @@ export default function LadderPage() {
                       <span className="text-sm font-semibold">Dropped</span>
                       <span className="text-xs tabular-nums text-muted-foreground">{byStage.dropped.length}</span>
                     </div>
-                    <div className="space-y-2 rounded-2xl bg-muted/40 p-2">
+                    <div className="space-y-2 rounded-[22px] bg-black/[0.035] p-2.5 dark:bg-white/[0.04]">
                       {byStage.dropped.map(c => (
-                        <div key={c.id} className="rounded-xl border bg-card p-3">
+                        <div key={c.id} className={`${CARD} bg-white p-3.5 dark:bg-neutral-900/80`}>
                           <div className="truncate text-sm font-medium">@{c.username}</div>
                           {c.stage_note && (
                             <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{c.stage_note}</p>

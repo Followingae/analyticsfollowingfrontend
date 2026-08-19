@@ -36,13 +36,15 @@ export interface HubTab {
 }
 
 export function Hub({
-  title, sub, tabs, action, children,
+  title, sub, tabs, action, children, bare,
 }: {
   title: string
   sub?: string
   tabs: HubTab[]
   action?: React.ReactNode
   children: React.ReactNode
+  /** Drop the hub's own title — for a screen that already has one of its own. */
+  bare?: boolean
 }) {
   const router = useRouter()
   const pathname = usePathname() || ''
@@ -57,7 +59,7 @@ export function Hub({
 
   return (
     <div className="space-y-6">
-      <PageHead title={title} sub={sub} action={action} />
+      {!bare && <PageHead title={title} sub={sub} action={action} />}
 
       {!loading && visible.length > 1 && (
         <div className="flex flex-wrap items-center gap-1 border-b">

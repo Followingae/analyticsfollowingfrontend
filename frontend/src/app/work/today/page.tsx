@@ -18,7 +18,7 @@ import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
-import { Empty, PageHead, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
+import { Aed, Empty, PageHead, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
 
 const greeting = () => {
   const h = new Date().getHours()
@@ -80,7 +80,10 @@ export default function TodayPage() {
           title={`${greeting()}${first ? `, ${first}` : ''}`}
           sub={`${dayLabel()} · ${needs.length ? `${needs.length} thing${needs.length === 1 ? '' : 's'} waiting on you` : 'nothing is waiting on you'}`}
           action={
-            <Button variant="outline" onClick={() => router.push('/work/influencers/add')}>
+            <Button
+              onClick={() => router.push('/work/influencers/add')}
+              className="rounded-full bg-neutral-900 px-5 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            >
               Add creators
             </Button>
           }
@@ -92,7 +95,7 @@ export default function TodayPage() {
               <Stat
                 key={s.label}
                 label={s.label}
-                value={s.format === 'aed' ? <>د.إ {aed(Number(s.value) || 0)}</> : (s.value ?? 0)}
+                value={s.format === 'aed' ? <Aed>{aed(Number(s.value) || 0)}</Aed> : (s.value ?? 0)}
                 hint={s.hint}
                 tone={(s.tone || 'neutral') as Tone}
                 onClick={s.href ? () => router.push(s.href) : undefined}
@@ -152,9 +155,16 @@ export default function TodayPage() {
             ['Coverage', '/work/coverage'],
             ['Goals', '/work/goals'],
           ].map(([label, href]) => (
-            <Button key={href} variant="outline" size="sm" onClick={() => router.push(href)}>
+            <button
+              key={href}
+              type="button"
+              onClick={() => router.push(href)}
+              className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-[13px] font-medium
+                         text-muted-foreground transition-colors hover:text-foreground
+                         dark:border-white/[0.07] dark:bg-neutral-900/70"
+            >
               {label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>

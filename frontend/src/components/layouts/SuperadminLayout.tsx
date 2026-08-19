@@ -66,8 +66,11 @@ export function SuperadminLayout({
         <GlobalCommandPalette />
         <SidebarInset>
           <SiteHeader />
-          <div className="flex flex-1 flex-col">
-            <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+          {/* The ground the cards sit on. Soft rather than white: the panels are white, and
+              a white page under white cards leaves them with no edge at all. Two faint tints
+              keep it from reading as flat grey. */}
+          <div className="console-ground flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-7 p-4 md:p-7">
               <ModuleRouteGuard>{children}</ModuleRouteGuard>
             </div>
           </div>

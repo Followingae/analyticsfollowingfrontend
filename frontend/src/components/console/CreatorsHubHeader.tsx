@@ -31,7 +31,7 @@ const MORE: { label: string; href: string; module: 'influencers' }[] = [
   { label: 'Add or import creators', href: '/work/influencers/add', module: 'influencers' },
 ]
 
-export function CreatorsHubHeader({ className }: { className?: string }) {
+export function CreatorsHubHeader({ className, bare }: { className?: string; bare?: boolean }) {
   const { can, loading } = useAdminAccess()
   // How many creators are sitting unpriced. Superadmin-only endpoint: for everyone else it
   // refuses, and a tab simply carries no number rather than the page failing.
@@ -70,6 +70,7 @@ export function CreatorsHubHeader({ className }: { className?: string }) {
         title="Creators"
         sub="Everyone we can book — who we hold rates for, who is still waiting on a price, where we are thin, and who has been reliable on the app."
         tabs={tabs}
+        bare={bare}
       >
         {!loading && more.length > 0 && (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">

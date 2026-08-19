@@ -22,7 +22,10 @@ export function SuperAdminInterface({ children }: SuperAdminInterfaceProps) {
       <SuperAdminSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <main className="flex-1 min-h-0">
+        {/* The same ground as the rest of the console: white cards need a shade behind them
+            or they have no edge. Screens on this shell were the only ones still on plain
+            white, which made their soft trays read as washed out. */}
+        <main className="console-ground flex-1 min-h-0">
           {children || <SuperadminDashboard />}
         </main>
       </SidebarInset>
