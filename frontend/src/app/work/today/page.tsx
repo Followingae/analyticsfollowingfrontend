@@ -490,7 +490,9 @@ export default function OperationsCentre() {
                       <div className="mt-3 flex justify-center">
                         <Ring
                           pct={flow
-                            ? Math.round((flow.at / (flow.steps.length - 1)) * 100)
+                            /* Counting rungs reached, not gaps crossed — sitting on the
+                               first of four is a quarter of the way, not nothing. */
+                            ? Math.round(((flow.at + 1) / flow.steps.length) * 100)
                             : needs.length
                               ? Math.round((needs.filter(n => n.urgency !== 'high').length / needs.length) * 100)
                               : 100}

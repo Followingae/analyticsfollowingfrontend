@@ -143,6 +143,8 @@ export const WALKTHROUGHS: Walkthrough[] = [
         body: 'Open this first. It lists what needs you, most urgent at the top.' },
       { title: 'Every line is a link',
         body: 'Click it and you land on the screen that does the job. No hunting.' },
+      { title: 'It is your day, not the company’s',
+        body: 'The numbers and the list are yours alone. A colleague opening this sees their own work.' },
       { goto: '/work/inbox', title: 'Inbox',
         body: 'Everything waiting on a decision from you, from every part of the platform.' },
       { title: 'Empty is good',
@@ -245,9 +247,11 @@ export const WALKTHROUGHS: Walkthrough[] = [
     ],
   },
   {
-    id: 'price-approve', track: 'Creators', minutes: 3, audience: ['superadmin'],
+    // A co-founder can price and release too — the guard used to read the account role
+    // alone, which refused her, so this was written as if it were the founder's alone.
+    id: 'price-approve', track: 'Creators', minutes: 3, audience: ['superadmin', 'leadership'],
     title: 'Price and approve a creator',
-    blurb: 'Only you can do this.',
+    blurb: 'A founder decision. Nobody else can do it.',
     steps: [
       { goto: '/work/influencers/review', title: 'The Waiting room',
         body: 'Everyone we cannot quote yet, split into the two jobs that get them out of here.' },
