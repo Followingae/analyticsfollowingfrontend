@@ -303,15 +303,22 @@ export function ScoreDot({
     bad: 'bg-[#FBE3E0] text-rose-700 dark:bg-rose-950/50 dark:text-rose-300',
     info: 'bg-[#EFF7D4] text-[#5C7211] dark:bg-lime-950/40 dark:text-lime-300',
   }
+  const text = `${value}${suffix ?? ''}`
+  // A circle only holds a character or two. "14d" in a fixed circle wrapped onto a second
+  // line, so anything longer grows sideways into a pill instead — same shape language, and
+  // the label stays on one line whatever it says.
+  const round = text.length <= 2
   return (
     <span
       title={title}
       className={cn(
-        'grid h-10 w-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold tabular-nums',
+        'inline-flex h-7 shrink-0 items-center justify-center whitespace-nowrap rounded-full',
+        'text-[12px] font-semibold leading-none tabular-nums',
+        round ? 'w-7' : 'px-2.5',
         skin[tone],
       )}
     >
-      {value}{suffix && <span className="text-[9px] font-medium opacity-70">{suffix}</span>}
+      {text}
     </span>
   )
 }
