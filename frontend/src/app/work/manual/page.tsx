@@ -4,11 +4,16 @@
  * How work moves — the deck you walk the team through.
  *
  * One brand, end to end, one stop per screen: who, what they do, where they do it, what the
- * platform will not let happen, and what lands on somebody else's desk next. It is a deck
- * rather than a page because it is presented, not read — a long scroll is a document, and
- * nobody has ever narrated a scrollbar.
+ * platform carries for them, and whose desk it lands on next. It is a deck rather than a
+ * page because it is presented, not read — a long scroll is a document, and nobody has ever
+ * narrated a scrollbar.
  *
- * Arrow keys move it. Everything on it is the process as the platform actually enforces it.
+ * A note on tone, because it was wrong the first time. This is shown to the people who do
+ * the work, so it says what the platform does FOR them. It does not list what each role may
+ * not see or may not press: those rules exist, they are enforced in the code, and reading
+ * them aloud to your own team makes an argument out of a floor plan.
+ *
+ * Arrow keys move it.
  */
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -16,7 +21,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { AuthGuard } from '@/components/AuthGuard'
 import { cn } from '@/lib/utils'
 import {
-  ArrowLeft, ArrowRight, ArrowUpRight, Ban, Building2, CheckCircle2, ClipboardCheck,
+  ArrowLeft, ArrowRight, ArrowUpRight, Building2, CheckCircle2, ClipboardCheck,
   FileText, HandCoins, Layers, Send, ShieldCheck, Sparkles, Tag, Users, X,
 } from 'lucide-react'
 
@@ -68,7 +73,7 @@ type Slide = {
   lede?: string
   does?: string[]
   where?: { label: string; href: string }[]
-  refuses?: string[]
+  helps?: string[]
   handover?: string
   icon?: any
 }
@@ -89,12 +94,12 @@ const DESKS = [
 ]
 
 const RULES = [
-  'Talent never see a sell price. Business development and account managers never see cost. Nobody outside the founders sees margin.',
-  'Nothing reaches a client until a founder has cleared it, however many links are already open.',
-  'Adding and researching creators is free. We spend money the moment a founder approves one.',
-  'A price on a proposal is frozen when it is built, so it cannot move under a client.',
-  'What we pay a creator is the rate a founder confirmed — written from the board, never typed twice.',
-  'Nothing is deleted. A creator turned down keeps every rate we researched.',
+  'Nothing you research is ever lost. A creator turned down keeps every rate you found.',
+  'Adding and researching creators costs us nothing — we only spend once one is approved.',
+  'Prices freeze when a proposal is built, so no client conversation is undercut by a later change.',
+  'What a creator is paid is the rate that was agreed, written straight from the board.',
+  'The platform does the chasing — creators, deadlines, dates — so you can spend the day on the work.',
+  'Every screen shows you your own day. Nobody has to read around somebody else\u2019s.',
 ]
 
 const SLIDES: Slide[] = [
@@ -111,7 +116,10 @@ const SLIDES: Slide[] = [
       'Send a sample pack while they are deciding: a ready-made list of creators in their world.',
     ],
     where: [{ label: 'Brands', href: '/work/brands' }, { label: 'Sample packs', href: '/work/areas' }],
-    refuses: ['You cannot start sourcing yourself. Logging the brand is what asks a founder to.'],
+    helps: [
+      'Logging the brand is what asks a founder to open the area — you do not have to chase anyone for it.',
+      'A brand nobody has touched in two weeks resurfaces on your Today, so none of your work goes cold quietly.',
+    ],
     handover: 'It lands on the founders’ Today as “Start sourcing for {brand}”, and turns urgent after three days.',
   },
   {
@@ -124,7 +132,10 @@ const SLIDES: Slide[] = [
       'One area per brand. It grows over months instead of being rebuilt per campaign.',
     ],
     where: [{ label: 'Areas', href: '/work/areas' }],
-    refuses: ['A second area for the same brand is refused — that is how a roster gets split in half.'],
+    helps: [
+      'One area per brand keeps the whole roster in one place, so nothing is researched twice.',
+      'The brief travels with the alert, so whoever picks it up knows what to look for before opening anything.',
+    ],
     handover: 'The talent team are told, with the brief in the message, and it appears on their Today.',
   },
   {
@@ -141,9 +152,9 @@ const SLIDES: Slide[] = [
       { label: 'Add creators', href: '/work/influencers/add' },
       { label: 'Coverage', href: '/work/coverage' },
     ],
-    refuses: [
-      'You never see what we charge a client. Cost is yours; sell is not.',
-      'Nothing you add reaches a client until a founder has priced and cleared it.',
+    helps: [
+      'Adding is free — analytics only run once a creator is approved, so nothing you research costs us.',
+      'A rate you record is kept forever, even if this brand goes quiet. Next time it is a week you do not repeat.',
     ],
     handover: 'Saving a cost moves that creator into the founders’ lane and tells them a price is waiting.',
   },
@@ -157,9 +168,9 @@ const SLIDES: Slide[] = [
       'Approve, and they are in the master database, ready for a proposal.',
     ],
     where: [{ label: 'Waiting room', href: '/work/influencers/review' }],
-    refuses: [
-      'Approving without a price is refused: an unpriced creator cannot be quoted.',
-      'Turning someone down keeps the row and every rate on it.',
+    helps: [
+      'The margin appears as you type, so the decision is made with the number in front of you.',
+      'Turning someone down keeps the row and every rate on it — right for the next brand, often.',
     ],
     handover: 'Approving starts their analytics — the first money we spend on them — and drops them back into the brand’s area.',
   },
@@ -173,7 +184,10 @@ const SLIDES: Slide[] = [
       'Talent keep stocking underneath; the client only ever sees what is cleared.',
     ],
     where: [{ label: 'Areas', href: '/work/areas' }],
-    refuses: ['A creator with no sell price cannot be cleared — the client would be looking at something we cannot quote.'],
+    helps: [
+      'The link updates itself, so the team can keep stocking while the client is still reading.',
+      'A reason on a strike means the same person is not put in front of the same brand next quarter.',
+    ],
     handover: 'The share link updates itself. Nothing uncleared appears in it, even while it is open.',
   },
   {
@@ -198,7 +212,10 @@ const SLIDES: Slide[] = [
       'If they ask for more, that comes back as a job on your Today.',
     ],
     where: [{ label: 'Proposals', href: '/work/proposals' }],
-    refuses: ['Only a founder sends a proposal to a client.'],
+    helps: [
+      'Prices freeze when the proposal is built, so nobody is caught out by a rate that moved afterwards.',
+      'The client\u2019s answer comes back as a job on your Today rather than an email you have to spot.',
+    ],
     handover: 'Yes, no, or “show me more” — all three arrive on the account manager’s Today.',
   },
   {
@@ -223,9 +240,9 @@ const SLIDES: Slide[] = [
       'Someone who never delivers is marked missed, and it counts against their reliability score.',
     ],
     where: [{ label: 'Campaigns', href: '/work/campaigns' }],
-    refuses: [
-      'The guide cannot go out before the rate is confirmed — a founder confirms what we owe.',
-      'A confirmed rate cannot quietly change.',
+    helps: [
+      'The chasing is automatic: four days out, two, one, on the day, then overdue.',
+      'The payable is written from the confirmed rate, so nobody has to reconcile it later.',
     ],
     handover: 'Posting writes the payable from the confirmed rate, so what we pay is what was agreed.',
   },
@@ -244,8 +261,8 @@ const SLIDES: Slide[] = [
 
   { id: 'desks', kind: 'desks', title: 'Where each of you starts the day',
     lede: 'Everyone opens the same screen and sees a different day. Today is your work, not the company’s.' },
-  { id: 'rules', kind: 'rules', title: 'Six rules you do not have to remember',
-    lede: 'The platform keeps these whether anybody remembers them or not.' },
+  { id: 'rules', kind: 'rules', title: 'Six things you can count on',
+    lede: 'These hold on their own, so they are never something you have to keep track of.' },
 ]
 
 export default function ManualDeck() {
@@ -356,15 +373,15 @@ export default function ManualDeck() {
                           ))}
                         </ul>
 
-                        {s.refuses && (
+                        {s.helps && (
                           <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-5 lg:col-span-2">
                             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/45">
-                              What the platform will not let you do
+                              What the platform does for you here
                             </p>
                             <ul className="mt-3 space-y-3">
-                              {s.refuses.map(r => (
+                              {s.helps.map(r => (
                                 <li key={r} className="flex gap-2.5 text-[14px] leading-relaxed text-white/75">
-                                  <Ban className="mt-[3px] h-[15px] w-[15px] shrink-0 text-white/40" />
+                                  <Sparkles className="mt-[3px] h-[15px] w-[15px] shrink-0 text-white/40" />
                                   <span>{r}</span>
                                 </li>
                               ))}
@@ -426,7 +443,7 @@ export default function ManualDeck() {
                   {s.kind === 'rules' && (
                     <>
                       <p className="text-[12px] font-semibold uppercase tracking-[0.22em]" style={{ color: LIME }}>
-                        What holds, always
+                        What the platform carries for you
                       </p>
                       <h2 className="mt-4 text-[clamp(28px,3.6vw,46px)] font-semibold leading-[1.05] tracking-[-0.025em]">
                         {s.title}

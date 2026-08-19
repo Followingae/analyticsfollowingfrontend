@@ -54,6 +54,23 @@ function legsOf(tour: Walkthrough): Leg[] {
   return legs
 }
 
+/**
+ * Wait for the leg's first target to exist before intro.js measures anything.
+ *
+ * Screens here fetch their contents, so for the first second they are skeletons and none of
+ * the `data-tour` elements exist yet. intro.js was starting into that: every step found no
+ * element, so the whole tour played as centred cards with nothing highlighted, and any step
+ * marked `onlyIfPresent` was dropped as "not for this role" when it was merely not painted.
+ */
+async function waitForTarget(selector: string | undefined, ms = 8000): Promise<void> {
+  if (!selector) return
+  const until = Date.now() + ms
+  while (Date.now() < until) {
+    if (document.querySelector(selector)) return
+    await new Promise(r => setTimeout(r, 120))
+  }
+}
+
 /** A step whose target is missing renders centred rather than breaking the run. */
 function toIntroStep(s: TourStep) {
   const el = s.target ? document.querySelector(s.target) : null
@@ -87,6 +104,10 @@ export function WalkthroughRunner({
     const legs = legsOf(tour)
     const leg = legs[i]
     if (!leg) return finish(true)
+
+    // The page paints its skeleton first; wait for the real thing before measuring.
+    await waitForTarget(leg.steps.find(s => s.target)?.target)
+    await new Promise(r => setTimeout(r, 120))   // one frame for layout to settle
 
     // Steps marked `onlyIfPresent` are dropped when their target is not on this screen.
     // That is how one lesson fits every role: the shortcut strip shows a different set of
