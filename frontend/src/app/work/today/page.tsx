@@ -46,7 +46,11 @@ const aed = (n: number) =>
   : n >= 10_000 ? `${Math.round(n / 1000)}K`
   : Math.round(n).toLocaleString()
 
-type Item = { urgency?: string; title: string; detail?: string; href?: string }
+type Item = {
+  urgency?: string; title: string; detail?: string; href?: string
+  /** Which rung of its flow this sits on, sent by the server, which knows. */
+  at?: number | null
+}
 
 /**
  * The flow a queue item belongs to, so the canvas can show where it sits rather than only
@@ -182,7 +186,15 @@ export default function OperationsCentre() {
   const moving: Item[] = useMemo(() => data?.moving || [], [data])
   const queue = tab === 'you' ? needs : moving
   const active = queue[Math.min(sel, Math.max(0, queue.length - 1))]
-  const flow = flowFor(active?.href)
+  const baseFlow = flowFor(active?.href)
+  // Where this item sits in that flow. The screen it points at says which flow it is, but
+  // not how far along — every creator waiting on a rate was drawn as already priced.
+  const flow = baseFlow && {
+    ...baseFlow,
+    at: typeof active?.at === 'number'
+      ? Math.max(0, Math.min(active.at, baseFlow.steps.length - 1))
+      : baseFlow.at,
+  }
   // The endpoint says which job this person does; business development are their own role
   // even though they share the account money scope.
   const role: string = data?.role || data?.scope || 'leadership'
@@ -269,7 +281,7 @@ export default function OperationsCentre() {
                       <div
                         className="h-full rounded-full bg-neutral-900 dark:bg-white"
                         style={{
-                          width: `${Math.max(3, Math.round(s.progress * 100))}%`,
+                          width: `${s.progress > 0 ? Math.max(4, Math.round(s.progress * 100)) : 0}%`,
                           transition: 'width 900ms cubic-bezier(0.22,1,0.36,1)',
                         }}
                       />
