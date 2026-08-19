@@ -16,7 +16,6 @@ import { useRouter } from 'next/navigation'
 import { Bar, BarChart, CartesianGrid, Cell as RCell, XAxis, YAxis } from 'recharts'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowRight, Coins, Database, MapPin, TimerReset } from 'lucide-react'
@@ -49,7 +48,7 @@ export default function CoveragePage() {
         if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed')
         setData((await res.json()).data)
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Could not load coverage')
+        toast.error(e instanceof Error ? e.message : 'Could not load this page')
       } finally { setLoading(false) }
     })()
   }, [])
@@ -104,13 +103,10 @@ export default function CoveragePage() {
       <CreatorsHubHeader />
       <div className="space-y-8">
         <PageHead
-          title="Coverage"
-          sub="Where we are strong, and where to research next. A creator counts only once we hold a cost for them — a name with no rate cannot be quoted, so it is not coverage."
-          action={
-            <Button onClick={() => router.push('/work/influencers/add')}>
-              Add creators
-            </Button>
-          }
+          title="Where we're thin"
+          sub="Where we are strong, and where to research next. A creator counts only once we hold a cost for them — a name with no rate cannot be quoted."
+          /* The hub header directly above now carries "Add or import creators" as its primary
+             button, so the same button here would be the second one on the screen. */
         />
 
         <StatGrid>

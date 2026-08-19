@@ -3,10 +3,12 @@
 /**
  * The client hub header.
  *
- * Four screens were built at four different times and so read as four different places:
- * the clients we bill, the ones who have gone quiet, the quotes we have out, and the
- * sourcing rounds those quotes come from. They are one job — who we sell to, and what we
- * have quoted them — so they get one header and four tabs.
+ * Screens built at different times read as different places: the clients we bill, the ones
+ * who have gone quiet, and the quotes we have out. They are one job — who we sell to, and
+ * what we have quoted them — so they get one header and one tab row.
+ *
+ * A fourth tab, sourcing rounds, has been retired. Brand rosters (under Creators) replaced
+ * it and the table behind it is empty in production, so it was a tab that led to nothing.
  *
  * This component owns nothing but the header. Each page keeps its own body exactly as it
  * was, which is why adopting it is a two-line edit rather than a rewrite.
@@ -21,9 +23,8 @@ import { Stat, StatGrid } from './primitives'
 
 const TABS: HubTab[] = [
   { label: 'Clients', href: '/work/clients', module: 'clients' },
-  { label: 'Prospects', href: '/work/brands', module: 'clients' },
+  { label: 'Brands', href: '/work/brands', module: 'clients' },
   { label: 'Proposals', href: '/work/proposals', module: 'proposals' },
-  { label: 'Sourcing', href: '/work/sourcing', module: 'influencers' },
 ]
 
 interface Headline {
@@ -102,7 +103,7 @@ export function ClientsHubHeader({
   return (
     <Hub
       title="Clients"
-      sub="Who we sell to, and what we have quoted them. Clients are on the books, prospects are conversations, proposals are the quotes out with them, and sourcing is where the creators in those quotes come from."
+      sub="Who we sell to, and what we have quoted them. Clients are on the books, brands are the earlier conversations, and proposals are the quotes sitting with them."
       tabs={TABS}
       action={action}
     >

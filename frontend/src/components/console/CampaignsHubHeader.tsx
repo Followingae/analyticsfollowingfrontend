@@ -59,8 +59,8 @@ type Stage = {
 }
 
 const STAGES: Stage[] = [
-  { key: 'opportunity', label: 'Opportunity', hint: 'Talking, nothing started', href: '/work/brands', module: 'clients' },
-  { key: 'sourcing',    label: 'Sourcing',    hint: 'Finding the creators',    href: '/work/sourcing', module: 'influencers' },
+  { key: 'opportunity', label: 'Brand',       hint: 'Talking, nothing started', href: '/work/brands', module: 'clients' },
+  { key: 'sourcing',    label: 'Sourcing',    hint: 'Finding the creators',    href: '/work/areas', module: 'influencers' },
   { key: 'proposal',    label: 'Proposal',    hint: 'With the client',         href: '/work/proposals', module: 'proposals' },
   { key: 'paperwork',   label: 'Paperwork',   hint: 'Agreement and advance',   href: '/work/brands', module: 'clients' },
   { key: 'live',        label: 'Live',        hint: 'Being delivered now',     href: '/ops/campaigns', module: 'operations' },

@@ -15,11 +15,13 @@ import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, ArrowRight, Building2, FileText, Layers, Megaphone, Receipt } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Building2, FileText, Layers, Megaphone, PhoneCall, Receipt } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { Empty, PageHead, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
+import { useAdminAccess } from '@/hooks/useAdminAccess'
+import { LogTouchDialog } from '@/components/superadmin/brands/LogTouchDialog'
 
 const aed = (n: number | null | undefined) =>
   n == null ? '—' : `⃃ ${Number(n) >= 10000 ? `${Math.round(Number(n) / 1000)}K` : Math.round(Number(n)).toLocaleString()}`
@@ -32,8 +34,22 @@ const LIVE = ['active', 'in_progress', 'live']
 export default function BrandBrowsePage() {
   const { teamId } = useParams<{ teamId: string }>()
   const router = useRouter()
+  const { canDestroy, can } = useAdminAccess()
+  const canSource = can('influencers')
+  const canCampaigns = can('campaigns')
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [touchOpen, setTouchOpen] = useState(false)
+  const [touches, setTouches] = useState<any[]>([])
+
+  const loadTouches = async () => {
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/admin/brands/${teamId}/touches`)
+      if (res.ok) setTouches((await res.json()).data?.items || [])
+    } catch { /* the record still reads without its conversations */ }
+  }
+  useEffect(() => { loadTouches() }, [teamId])
 
   useEffect(() => {
     (async () => {
@@ -81,16 +97,37 @@ export default function BrandBrowsePage() {
           </Button>
           <PageHead
             title={brand.name}
-            sub={brand.account_manager_email
-              ? `Looked after by ${brand.account_manager_email}. Everything below opens where it lives.`
-              : 'No account manager assigned. Everything below opens where it lives.'}
+            sub={`${brand.account_manager_email
+              ? `Looked after by ${brand.account_manager_email}.`
+              : 'No account manager assigned.'} Everything below opens where it lives.${
+              canDestroy ? '' : ' A founder releases a brand to the talent team; the roster is open to you either way.'}`}
             action={
               <>
-                {/* The next step after logging a brand is asking for creators, so it is a
-                    button rather than something to go and find. */}
-                <Button onClick={() => router.push(`/work/sourcing?team=${teamId}`)}>
-                  <Layers className="mr-1.5 h-4 w-4" />Start sourcing
+                {/* Recording that you spoke to them. The screen has always asked people to
+                    do this and never had anywhere to do it. */}
+                <Button onClick={() => setTouchOpen(true)}>
+                  <PhoneCall className="mr-1.5 h-4 w-4" />I spoke to them
                 </Button>
+                {/* The next step after logging a brand is asking for creators, so it is a
+                    button rather than something to go and find.
+                    It used to send everybody to /work/sourcing, which only the influencers
+                    module opens — business development, who log most of these brands, were
+                    bounced straight back off it. Sourcing rounds are retired anyway; the
+                    roster (Areas) is where this now happens, and Areas is opened by the
+                    clients module as well, so nobody is thrown out of it.
+                    Releasing a brand to the talent team is still a founder's call — that is
+                    what the dialog on Areas is gated on — so the button that promises it is
+                    only shown to a founder. Everyone else gets the roster itself, which is
+                    a real destination rather than a promise the screen cannot keep. */}
+                {canDestroy ? (
+                  <Button variant="outline" onClick={() => router.push('/work/areas')}>
+                    <Layers className="mr-1.5 h-4 w-4" />Start sourcing
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => router.push('/work/areas')}>
+                    <Layers className="mr-1.5 h-4 w-4" />Open the brand roster
+                  </Button>
+                )}
                 <Button variant="outline" onClick={() => router.push(`/work/clients/${teamId}`)}>
                   Open client record
                 </Button>
@@ -102,14 +139,20 @@ export default function BrandBrowsePage() {
         <StatGrid>
           <Stat label="Campaigns" value={campaigns.length} icon={Megaphone}
                 hint={`${live.length} live right now`}
-                onClick={campaigns[0] ? () => router.push(`/work/campaigns/${campaigns[0].id}/timeline`) : undefined} />
+                // Same reason as the tile below: the campaign timeline is the campaigns
+                // module, which business development do not hold.
+                onClick={canCampaigns && campaigns[0]
+                  ? () => router.push(`/work/campaigns/${campaigns[0].id}/timeline`) : undefined} />
           <Stat label="Sourcing rounds" value={rounds.length} icon={Layers}
                 tone={openRounds.length ? 'info' : 'neutral'}
                 hint={openRounds.length ? `${openRounds.length} still open` : 'None open'}
-                onClick={() => router.push('/work/sourcing')} />
+                // /work/sourcing is opened by the influencers module only, so for business
+                // development this tile was a click into a bounce. No link is better than one
+                // that throws you out.
+                onClick={canSource ? () => router.push('/work/sourcing') : undefined} />
           <Stat label="Proposals" value={proposals.length} icon={FileText}
                 hint={out.length ? `${out.length} with the client` : 'None waiting on them'}
-                onClick={() => router.push('/work/proposals')} />
+                onClick={can('proposals') ? () => router.push('/work/proposals') : undefined} />
           <Stat label="Invoices" value={invoices.length} icon={Receipt}
                 tone={unpaid.length ? 'warn' : 'good'}
                 hint={invoices.length === 0 ? 'Not visible to your role, or none raised'
@@ -117,6 +160,33 @@ export default function BrandBrowsePage() {
         </StatGrid>
 
         <div className="grid items-start gap-6 lg:grid-cols-2">
+          {/* Conversations first: on most brands, most days, the last thing that happened
+              was somebody talking to them — and until now that was the one thing the record
+              could not show. Absent when there are none, like every other section here. */}
+          {touches.length > 0 && (
+            <Panel title="Conversations" description="What was said, and what we owe them next" flush>
+              {touches.slice(0, 8).map((t: any) => (
+                <Row
+                  key={t.id}
+                  tone={t.next_step_at && new Date(t.next_step_at).getTime() < Date.now() ? 'warn' : 'neutral'}
+                  title={
+                    <span className="flex items-center gap-2">
+                      {String(t.channel || 'call').replace('whatsapp', 'WhatsApp')}
+                      <span className="text-muted-foreground">· {when(t.happened_at)}</span>
+                    </span>
+                  }
+                  meta={
+                    <>
+                      {t.by_email ? `${String(t.by_email).split('@')[0]}` : 'someone'}
+                      {t.note ? ` · “${t.note}”` : ''}
+                      {t.next_step ? ` · next: ${t.next_step}${t.next_step_at ? ` by ${when(t.next_step_at)}` : ''}` : ''}
+                    </>
+                  }
+                />
+              ))}
+            </Panel>
+          )}
+
           <Panel title="Campaigns" description="Newest first — opens the campaign's whole story" flush>
             {campaigns.map((c: any) => (
               <Row
@@ -132,7 +202,7 @@ export default function BrandBrowsePage() {
                   </>
                 }
                 right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                onClick={() => router.push(`/work/campaigns/${c.id}/timeline`)}
+                onClick={canCampaigns ? () => router.push(`/work/campaigns/${c.id}/timeline`) : undefined}
               />
             ))}
             {campaigns.length === 0 && <Empty>No campaigns yet.</Empty>}
@@ -156,7 +226,7 @@ export default function BrandBrowsePage() {
                     </>
                   }
                   right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                  onClick={() => router.push(`/work/sourcing/${r.id}`)}
+                  onClick={canSource ? () => router.push(`/work/sourcing/${r.id}`) : undefined}
                 />
               )
             })}
@@ -179,7 +249,7 @@ export default function BrandBrowsePage() {
                   </>
                 }
                 right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                onClick={() => router.push(`/work/proposals/${p.id}`)}
+                onClick={can('proposals') ? () => router.push(`/work/proposals/${p.id}`) : undefined}
               />
             ))}
             {proposals.length === 0 && <Empty>Nothing sent to this brand yet.</Empty>}
@@ -212,6 +282,14 @@ export default function BrandBrowsePage() {
           </Panel>
         </div>
       </div>
+
+      <LogTouchDialog
+        teamId={String(teamId)}
+        brandName={brand.name}
+        open={touchOpen}
+        onOpenChange={setTouchOpen}
+        onLogged={loadTouches}
+      />
     </SuperadminLayout>
   )
 }

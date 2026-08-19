@@ -23,10 +23,10 @@ import { useAdminAccess } from '@/hooks/useAdminAccess'
 export function useMoneyTabs(): HubTab[] {
   const { can, canSeeCost, loading } = useAdminAccess()
   const all: HubTab[] = [
-    { label: 'Revenue', href: '/work/billing', module: 'billing' },
+    { label: 'Client invoices', href: '/work/billing', module: 'billing' },
     // Cost, not just creators — see the note above.
     { label: 'Creator payments', href: '/work/payables', module: 'influencers', when: canSeeCost },
-    { label: 'Wallets', href: '/work/fa/wallets', module: 'fa', when: canSeeCost },
+    { label: 'Creator app balances', href: '/work/fa/wallets', module: 'fa', when: canSeeCost },
   ]
   if (loading) return []
   return all.filter(t => (t.module ? can(t.module) : true) && t.when !== false)

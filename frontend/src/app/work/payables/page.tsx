@@ -74,7 +74,7 @@ export default function PayablesPage() {
       setItems(res.data?.items || [])
       setTotals(res.data?.totals || {})
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not load payables')
+      toast.error(e instanceof Error ? e.message : 'Could not load creator payments')
     } finally { setLoading(false) }
   }
   useEffect(() => { load() }, [tab])
@@ -89,7 +89,7 @@ export default function PayablesPage() {
         agreed_amount_aed: Number(form.agreed_amount_aed),
         due_date: form.due_date || undefined,
       }) })
-      toast.success('Payment booked')
+      toast.success('Payment recorded')
       setOpen(false)
       setForm({ title: '', creator_username: '', what_for: '', agreed_amount_aed: '', due_date: '', notes: '' })
       load()
@@ -111,7 +111,7 @@ export default function PayablesPage() {
 
   /** A plain CSV of what is on screen — the thing that replaces the monthly sheet. */
   const exportCsv = () => {
-    const head = ['Title', 'Creator', 'For', 'Campaign', 'Agreed AED', 'Catalogue AED', 'Status', 'Due', 'Paid']
+    const head = ['Title', 'Creator', 'For', 'Campaign', 'Agreed AED', 'Rate we hold AED', 'Status', 'Due', 'Paid']
     const rows = items.map(i => [
       i.title, i.creator_username || '', i.what_for || '', i.campaign_name || '',
       i.agreed_amount_aed, i.catalogue_cost_aed ?? '', i.status, i.due_date || '',
@@ -134,7 +134,7 @@ export default function PayablesPage() {
       <div className="space-y-8">
         <MoneyHubHeader
           title="Creator payments"
-          sub="Book what we owe and track it to paid. Anyone internal can record a payment — recording is not paying, and only a founder marks it paid."
+          sub="Record what we owe a creator and follow it through to paid. Recording is not paying — a founder marks a payment paid."
           action={
             <>
               <Button variant="outline" onClick={exportCsv} disabled={!items.length}>
@@ -166,9 +166,9 @@ export default function PayablesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">The book</CardTitle>
+            <CardTitle className="text-base">All payments</CardTitle>
             <CardDescription>
-              Where an agreed amount differs from the cost we hold, both are shown.
+              Where an agreed amount differs from the rate we hold, both are shown.
             </CardDescription>
           </CardHeader>
           <CardContent className="px-0">
@@ -221,7 +221,7 @@ export default function PayablesPage() {
                             <span className="font-medium tabular-nums">{aed(i.agreed_amount_aed)}</span>
                             {diff && (
                               <p className="text-xs text-muted-foreground">
-                                catalogue {aed(cat)}
+                                rate we hold {aed(cat)}
                               </p>
                             )}
                           </td>
@@ -239,7 +239,7 @@ export default function PayablesPage() {
                               </Button>
                             )}
                             {i.status === 'approved' && !canPay && (
-                              <span className="text-xs text-muted-foreground">awaiting payment</span>
+                              <span className="text-xs text-muted-foreground">waiting to be paid</span>
                             )}
                           </td>
                         </tr>
@@ -247,7 +247,7 @@ export default function PayablesPage() {
                     })}
                     {items.length === 0 && (
                       <tr><td colSpan={5} className="px-6 py-10 text-center text-muted-foreground">
-                        Nothing booked here yet.
+                        Nothing recorded here yet.
                       </td></tr>
                     )}
                   </tbody>
@@ -307,7 +307,7 @@ export default function PayablesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
             <Button onClick={record} disabled={busy}>
-              {busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Book it
+              {busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Save it
             </Button>
           </DialogFooter>
         </DialogContent>

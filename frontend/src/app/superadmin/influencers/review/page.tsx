@@ -87,7 +87,7 @@ export default function ReviewQueuePage() {
         setLane(res.data?.scope === 'leadership' && res.data?.needs_sell ? 'needs_sell' : 'needs_cost')
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not load the waiting room')
+      toast.error(e instanceof Error ? e.message : 'Could not load these creators')
     } finally {
       setLoading(false)
     }
@@ -226,11 +226,11 @@ export default function ReviewQueuePage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-start gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Waiting room</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Creators needing a price</h1>
             <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-              Creators we cannot quote yet. The talent team adds what a creator charges us;
-              a founder then sets our price and releases them. Analytics only start on
-              release, so nothing here has cost us anything.
+              We cannot quote these creators yet. First someone adds what the creator charges
+              us, then a founder sets our price and adds them to the database. Analytics only
+              start at that point, so nothing here has cost us anything.
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -264,7 +264,7 @@ export default function ReviewQueuePage() {
         <p className="-mt-2 text-sm text-muted-foreground">
           {lane === 'needs_cost'
             ? 'Nobody has recorded what these creators charge us. Ring them, then put the rate in here.'
-            : 'The cost is in. Set what we charge the client and release them into the database.'}
+            : 'The cost is in. Set what we charge the client and add them to the database.'}
         </p>
 
         {loading ? (
@@ -277,8 +277,8 @@ export default function ReviewQueuePage() {
               <p className="text-sm font-medium">Nothing waiting here</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {lane === 'needs_cost'
-                  ? 'Every creator in the room has a cost against them.'
-                  : 'Every creator with a cost has been priced and released.'}
+                  ? 'Every creator here has a cost recorded.'
+                  : 'Every creator with a cost has been priced and added to the database.'}
               </p>
             </CardContent>
           </Card>
@@ -452,7 +452,7 @@ export default function ReviewQueuePage() {
             <DialogTitle>What does @{costing?.username} charge us?</DialogTitle>
             <DialogDescription>
               The rate they quoted you, in AED. Fill in what you have — you can add the rest
-              later. This does not release them; a founder sets our price after this.
+              later. This does not add them to the database — a founder sets our price next.
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
@@ -486,8 +486,8 @@ export default function ReviewQueuePage() {
           <DialogHeader>
             <DialogTitle>Price @{pricing?.username}</DialogTitle>
             <DialogDescription>
-              What we charge a client. Approving releases this creator into the master
-              database — from that moment they can go on a proposal.
+              What we charge a client. Approving adds this creator to the master database —
+              from that moment they can go on a proposal.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">

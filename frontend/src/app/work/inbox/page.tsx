@@ -185,13 +185,13 @@ export default function InboxPage() {
       key: 'to-source',
       label: 'Briefs to write',
       description: 'A client is logged but nobody can source for them yet. Open a round and say what to look for.',
-      href: '/work/sourcing',
+      href: '/work/areas',
       items: toSource.map((n: any, i: number) => ({
         id: `to-source-${i}`,
         title: String(n.title || '').replace(/^Write the sourcing brief for /, ''),
         waitingFor: n.detail || 'no brief yet',
         since: undefined,
-        href: n.href || '/work/sourcing',
+        href: n.href || '/work/areas',
       })),
     })
 
@@ -225,8 +225,8 @@ export default function InboxPage() {
 
     if (mayMoney) g.push({
       key: 'withdrawals',
-      label: 'What we owe creators',
-      description: 'Money already earned, sitting in a wallet until someone releases the transfer.',
+      label: 'Creator app payouts',
+      description: 'Money already earned, sitting in their app balance until someone sends the transfer.',
       href: '/work/fa/withdrawals',
       items: withdrawals.map((x: any) => ({
         id: String(x.id),
@@ -255,7 +255,7 @@ export default function InboxPage() {
 
     if (mayCreators) g.push({
       key: 'price',
-      label: 'Creators waiting on a price',
+      label: 'Creators needing a price',
       description: 'Found by the team. Invisible to clients and unusable in a proposal until priced.',
       href: '/work/influencers/review',
       items: unpriced.map((x: any) => ({
@@ -272,9 +272,14 @@ export default function InboxPage() {
 
     if (mayCreators) g.push({
       key: 'rounds',
-      label: 'Sourcing waiting on a verdict',
+      label: 'Sourcing waiting on a yes or no',
       description: 'A list of creators is built and cannot go to the client until it is cleared.',
-      href: '/work/sourcing',
+      // Sourcing rounds are retired — brand rosters replaced them, and the round table is
+      // empty in production, so this group normally has nothing in it. The group heading
+      // therefore opens the roster screen, which is where this work happens now. A row, if
+      // legacy data ever produces one, still opens its own round, because that is the only
+      // screen where that particular verdict can be taken.
+      href: '/work/areas',
       items: rounds.map((x: any) => ({
         id: String(x.id),
         title: `${x.title}${x.round_no ? ` · round ${x.round_no}` : ''}`,
@@ -287,7 +292,7 @@ export default function InboxPage() {
 
     if (mayProposals) g.push({
       key: 'proposals',
-      label: 'Proposals waiting on sign-off',
+      label: 'Proposals waiting on approval',
       description: 'Built internally and stopped: nothing reaches the client until it is approved.',
       href: '/work/proposals',
       items: proposals.map((x: any) => ({
@@ -335,26 +340,26 @@ export default function InboxPage() {
   // Tabs are the screens that own these decisions — the inbox tells you where to go, they are
   // still where the work happens, and each stays reachable whether or not it has anything in it.
   const tabs: HubTab[] = [
-    { label: 'Waiting on you', href: '/work/inbox' },
-    { label: 'Content', href: '/work/fa/deliverables', module: 'fa',
+    { label: 'Waiting on me', href: '/work/inbox' },
+    { label: 'Content to check', href: '/work/fa/deliverables', module: 'fa',
       count: deliverables.length },
-    { label: 'Receipts', href: '/work/fa/receipt-claims', module: 'fa', when: mayMoney,
+    { label: 'Cashback receipts', href: '/work/fa/receipt-claims', module: 'fa', when: mayMoney,
       count: receipts.length },
-    { label: 'Payouts', href: '/work/fa/withdrawals', module: 'fa', when: mayMoney,
+    { label: 'Creator app payouts', href: '/work/fa/withdrawals', module: 'fa', when: mayMoney,
       count: withdrawals.length },
-    { label: 'New app creators', href: '/work/fa/members', module: 'fa', when: mayMoney,
+    { label: 'New creators on the app', href: '/work/fa/members', module: 'fa', when: mayMoney,
       count: newMembers.length },
-    { label: 'Waiting room', href: '/work/influencers/review', module: 'influencers',
+    { label: 'Creators needing a price', href: '/work/influencers/review', module: 'influencers',
       count: unpriced.length },
-    { label: 'Sourcing', href: '/work/sourcing', module: 'influencers', count: rounds.length },
+    { label: 'Brand rosters', href: '/work/areas', module: 'influencers' },
     { label: 'Proposals', href: '/work/proposals', module: 'proposals', count: proposals.length },
     { label: 'Everything in flight', href: '/work/operations', module: 'operations' },
   ]
 
   const head = (
     <Hub
-      title="Inbox"
-      sub="Everything waiting on a decision from you, wherever it came from. Longest stopped first — each row opens the screen where the decision is actually made."
+      title="Waiting on me"
+      sub="Everything waiting on a decision from you, wherever it came from. Longest wait first — each row opens the screen where the decision is made."
       tabs={tabs}
       action={
         <>
@@ -391,12 +396,11 @@ export default function InboxPage() {
       <SuperadminLayout>
         <div className="space-y-8">
           {head}
-          <Panel title="Nothing stops on you" flush>
+          <Panel title="Nothing is waiting on you" flush>
             <div className="space-y-3 px-6 py-12 text-center">
-              <p className="text-sm font-medium">No decisions are routed to your role.</p>
+              <p className="text-sm font-medium">Nothing here needs a decision from you.</p>
               <p className="mx-auto max-w-md text-sm text-muted-foreground">
-                Approvals for content, payouts, creator pricing and proposals sit with other
-                roles. Your work is on Today and with your brands.
+                Your work starts on Today and with your brands.
               </p>
               <div className="flex justify-center gap-2 pt-1">
                 <Button variant="outline" size="sm" onClick={() => router.push('/work/today')}>
@@ -420,13 +424,13 @@ export default function InboxPage() {
 
         <StatGrid cols={3}>
           <Stat
-            label="Waiting on you"
+            label="Waiting on me"
             value={total}
             icon={Layers}
             tone={total ? 'warn' : 'good'}
             hint={total
-              ? `across ${liveGroups.length} of your ${groups.length} queues`
-              : `all ${groups.length} of your queues are clear`}
+              ? `across ${liveGroups.length} of your ${groups.length} lists`
+              : `all ${groups.length} of your lists are clear`}
           />
           <Stat
             label="Longest wait"
@@ -450,7 +454,7 @@ export default function InboxPage() {
               <CheckCircle2 className="h-8 w-8 text-emerald-500/60" />
               <p className="text-sm font-medium">Nothing is waiting on a decision from you.</p>
               <p className="max-w-md text-xs text-muted-foreground">
-                Your queues are listed above — open any of them to see what has already been
+                Your lists are shown above — open any of them to see what has already been
                 decided, or what is moving.
               </p>
             </div>

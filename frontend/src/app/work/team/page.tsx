@@ -84,7 +84,7 @@ export default function TeamConsolePage() {
           <Stat label="Rounds open" value={data.rounds.length} icon={LayersIcon}
                 tone={overdue ? 'bad' : 'neutral'}
                 hint={overdue ? `${overdue} overdue` : 'All on time'}
-                onClick={() => router.push('/work/sourcing')} />
+                onClick={() => router.push('/work/areas')} />
           <Stat label="Added this week" value={data.people.reduce((a: number, p: any) => a + (p.added_week || 0), 0)}
                 icon={UserRound} hint="Across the whole team" />
           <Stat label="Alerts" value={data.alerts.length} icon={Bell}

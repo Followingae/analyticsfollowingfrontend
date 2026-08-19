@@ -164,9 +164,17 @@ export default function SuperadminCampaignsPage() {
                       </Button>
                       <Button
                         size="sm" variant="ghost" className="rounded-full"
-                        onClick={(e) => { e.stopPropagation(); router.push(`/campaigns/${c.id}/posts`) }}
+                        /* A UGC campaign has no posts screen — its content lives on /ugc, and
+                           /posts renders empty for it. Sending someone to the right one of the
+                           two is the difference between "there is nothing here" and the work. */
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(c.campaign_type === 'ugc'
+                            ? `/campaigns/${c.id}/ugc`
+                            : `/campaigns/${c.id}/posts`)
+                        }}
                       >
-                        Posts
+                        {c.campaign_type === 'ugc' ? 'Videos' : 'Posts'}
                       </Button>
                     </div>
                   </div>

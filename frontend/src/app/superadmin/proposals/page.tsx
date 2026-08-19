@@ -77,7 +77,7 @@ export default function SuperadminProposalsPage() {
   const handleSend = async (id: string) => {
     try {
       await adminProposalApi.sendToBrand(id)
-      toast.success("Proposal sent to brand")
+      toast.success("Proposal sent to the client")
       loadData()
     } catch (err) {
       toast.error("Failed to send proposal")
@@ -85,7 +85,7 @@ export default function SuperadminProposalsPage() {
   }
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete proposal "${title}"? This removes its influencers, approvals and share links. Any campaign created from it is kept (just unlinked). This cannot be undone.`)) return
+    if (!confirm(`Delete proposal "${title}"? This removes its creators, approvals and share links. Any campaign created from it is kept (just unlinked). This cannot be undone.`)) return
     try {
       await adminProposalApi.deleteProposal(id)
       toast.success("Proposal deleted")
@@ -105,7 +105,7 @@ export default function SuperadminProposalsPage() {
               <Link href="/superadmin/proposals/create">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Proposal
+                  Create a proposal
                 </Button>
               </Link>
             }
@@ -123,7 +123,7 @@ export default function SuperadminProposalsPage() {
                 <StandardMetricCard icon={FileText} label="Total" value={stats.total_proposals} subtitle="proposals" />
               </motion.div>
               <motion.div variants={proposalMotion.staggerItem}>
-                <StandardMetricCard icon={Clock} label="Active" value={stats.active_proposals} subtitle="awaiting response" />
+                <StandardMetricCard icon={Clock} label="Active" value={stats.active_proposals} subtitle="waiting on the client" />
               </motion.div>
               <motion.div variants={proposalMotion.staggerItem}>
                 <StandardMetricCard icon={CheckCircle} label="Approved" value={stats.approved_proposals} subtitle={`${stats.approval_rate}% rate`} />
@@ -157,15 +157,15 @@ export default function SuperadminProposalsPage() {
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="building">Building</SelectItem>
-                <SelectItem value="pending_internal_review">Internal Review</SelectItem>
-                <SelectItem value="internal_changes_requested">Changes Requested</SelectItem>
-                <SelectItem value="internally_approved">Internally Approved</SelectItem>
+                <SelectItem value="pending_internal_review">Internal review</SelectItem>
+                <SelectItem value="internal_changes_requested">Changes requested</SelectItem>
+                <SelectItem value="internally_approved">Internally approved</SelectItem>
                 <SelectItem value="sent">Sent</SelectItem>
-                <SelectItem value="in_review">In Review</SelectItem>
-                <SelectItem value="more_requested">More Requested</SelectItem>
+                <SelectItem value="in_review">In review</SelectItem>
+                <SelectItem value="more_requested">More requested</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
@@ -182,7 +182,7 @@ export default function SuperadminProposalsPage() {
                     <TableHead className="min-w-[200px]">Title</TableHead>
                     <TableHead>Brand</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Influencers</TableHead>
+                    <TableHead className="text-right">Creators</TableHead>
                     <TableHead className="text-right">Sell</TableHead>
                     <TableHead className="text-right">Margin</TableHead>
                     <TableHead>Deadline</TableHead>
@@ -217,7 +217,7 @@ export default function SuperadminProposalsPage() {
                         <Link href="/superadmin/proposals/create">
                           <Button variant="outline" size="sm">
                             <Plus className="mr-2 h-4 w-4" />
-                            Create Proposal
+                            Create a proposal
                           </Button>
                         </Link>
                       </TableCell>
@@ -276,13 +276,13 @@ export default function SuperadminProposalsPage() {
                               <DropdownMenuItem asChild>
                                 <Link href={`/superadmin/proposals/${p.id}`}>
                                   <Eye className="mr-2 h-3.5 w-3.5" />
-                                  View Details
+                                  View details
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
                                 <Link href={`/superadmin/proposals/${p.id}/approval`}>
                                   <ArrowRight className="mr-2 h-3.5 w-3.5" />
-                                  Approval workflow
+                                  Approval steps
                                 </Link>
                               </DropdownMenuItem>
                               {(p.status === "internally_approved" || p.status === "more_requested") && (

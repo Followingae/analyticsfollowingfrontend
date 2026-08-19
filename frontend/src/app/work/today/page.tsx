@@ -199,6 +199,12 @@ export default function OperationsCentre() {
   // even though they share the account money scope.
   const role: string = data?.role || data?.scope || 'leadership'
   const primary = PRIMARY[role] ?? PRIMARY.leadership
+  // The named buttons, sent by the server because it knows which brands are short.
+  const actions: { label: string; hint?: string; href: string; tone?: string }[] =
+    data?.actions || []
+  // "Daily goal: 8 of 25" — the card that carries a target says what the target is.
+  const goalCard = headline.find((s: any) => typeof s?.of === 'number' && s.of > 0)
+  const target = goalCard ? { value: goalCard.value as number, of: goalCard.of as number } : null
   const shortcuts = SHORTCUTS.filter(
     s => (!s.module || can(s.module)) && (!s.scopes || s.scopes.includes(role)))
 
@@ -234,6 +240,20 @@ export default function OperationsCentre() {
               {needs.length
                 ? <span className="text-foreground">{needs.length} waiting on you</span>
                 : 'nothing is waiting on you'}
+              {/* The target, said out loud where you land. It has existed for months and
+                  lived on a screen with no way in. */}
+              {target && (
+                <>
+                  {' · '}
+                  <button
+                    type="button"
+                    onClick={() => router.push('/work/goals')}
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                  >
+                    Daily goal: {target.value} of {target.of}
+                  </button>
+                </>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -291,6 +311,40 @@ export default function OperationsCentre() {
                 </button>
               )
             })}
+          </div>
+        )}
+
+        {/* ── the jobs, named after what they act on ──────────────────────────────
+            "Add creators" made you go and find the brand yourself, and that was the step
+            people skipped. These say the brand. */}
+        {actions.length > 0 && (
+          <div className="flex flex-wrap gap-3">
+            {actions.map(a => (
+              <button
+                key={a.href + a.label}
+                type="button"
+                onClick={() => router.push(a.href)}
+                className={cn(
+                  CARD, 'group flex min-w-[15rem] flex-1 items-center gap-3 bg-white px-5 py-4 text-left',
+                  'transition-all hover:-translate-y-0.5 dark:bg-neutral-900/70',
+                )}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] font-medium leading-snug">{a.label}</span>
+                  {a.hint && (
+                    <span className="mt-0.5 block truncate text-[12.5px] text-muted-foreground">{a.hint}</span>
+                  )}
+                </span>
+                <span className={cn(
+                  'grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors',
+                  a.tone === 'warn'
+                    ? 'bg-[#EAF3C8] dark:bg-lime-950/50'
+                    : 'bg-black/[0.05] group-hover:bg-[#EAF3C8] dark:bg-white/[0.08] dark:group-hover:bg-lime-950/50',
+                )}>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </span>
+              </button>
+            ))}
           </div>
         )}
 

@@ -190,7 +190,7 @@ export default function GoalsPage() {
               <div className="space-y-5">
                 {([
                   ['per_open_campaign', 'Per open round, per day', 'Until that roster locks'],
-                  ['baseline_daily', 'When nothing is open', 'Baseline into the database'],
+                  ['baseline_daily', 'When nothing is open', 'Creators to add to the database each day'],
                 ] as const).map(([k, title, sub]) => (
                   <div key={k} className="flex items-center justify-between gap-4">
                     <div>

@@ -338,13 +338,13 @@ function ClientDetailPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={loadTabData}>
         <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-8">
-          <TabsTrigger value="scope"><FileText className="mr-1.5 h-3.5 w-3.5" />Scope</TabsTrigger>
+          <TabsTrigger value="scope"><FileText className="mr-1.5 h-3.5 w-3.5" />What we agreed</TabsTrigger>
           <TabsTrigger value="campaigns"><Building2 className="mr-1.5 h-3.5 w-3.5" />Campaigns</TabsTrigger>
           <TabsTrigger value="proposals"><Users className="mr-1.5 h-3.5 w-3.5" />Proposals</TabsTrigger>
           <TabsTrigger value="barter"><Calendar className="mr-1.5 h-3.5 w-3.5" />Barter & Events</TabsTrigger>
           <TabsTrigger value="ugc"><Video className="mr-1.5 h-3.5 w-3.5" />UGC</TabsTrigger>
-          <TabsTrigger value="commercial"><Coins className="mr-1.5 h-3.5 w-3.5" />Commercial</TabsTrigger>
-          <TabsTrigger value="finance"><TrendingUp className="mr-1.5 h-3.5 w-3.5" />Finance</TabsTrigger>
+          <TabsTrigger value="commercial"><Coins className="mr-1.5 h-3.5 w-3.5" />Agreement &amp; invoices</TabsTrigger>
+          <TabsTrigger value="finance"><TrendingUp className="mr-1.5 h-3.5 w-3.5" />Money in</TabsTrigger>
           <TabsTrigger value="activity"><Activity className="mr-1.5 h-3.5 w-3.5" />Activity</TabsTrigger>
         </TabsList>
 
