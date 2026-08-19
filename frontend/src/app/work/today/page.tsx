@@ -30,8 +30,6 @@ import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Bar, BarChart, XAxis, YAxis } from 'recharts'
 import {
   ArrowUpRight, CheckCircle2, ChevronDown, RefreshCw, Search, Sparkles,
   Users, Layers, FileText, Banknote, Monitor, ClipboardCheck, Building2, Compass,
@@ -68,6 +66,7 @@ type FocusRow = {
   id: string; label: string; href: string
   stage_label?: string; tone?: Tone; flow?: string | null; at?: number | null
   value?: number | null; of?: number | null; meta?: string
+  wants_more?: boolean
   actions?: { label: string; href: string }[]
 }
 
@@ -222,19 +221,10 @@ export default function Today() {
   const shortcuts = SHORTCUTS.filter(
     s => (!s.module || can(s.module)) && (!s.scopes || s.scopes.includes(role)))
 
-  /**
-   * The shape of the work. A row with a target is drawn against it; a row without one is
-   * drawn on its own, because "how many we hold for this brand" is still worth comparing —
-   * and a chart that waits for targets nobody has set is a chart nobody ever sees.
-   */
-  const chart = useMemo(() => {
-    const withCounts = rows.filter(r => typeof r.value === 'number')
-    return withCounts.map(r => ({
-      name: r.label,
-      done: r.value ?? 0,
-      left: typeof r.of === 'number' && r.of > 0 ? Math.max(r.of - (r.value ?? 0), 0) : 0,
-    }))
-  }, [rows])
+  // The biggest roster sets the scale, so the bars compare with each other rather than each
+  // filling its own row to the brim and saying nothing.
+  const widest = useMemo(
+    () => Math.max(1, ...rows.map(r => Math.max(r.value ?? 0, r.of ?? 0))), [rows])
 
   const shown = showAll ? needs : needs.slice(0, 7)
   const money = headline.filter((h: any) => h.format === 'aed')
@@ -316,44 +306,37 @@ export default function Today() {
                 )}
               </header>
 
-              {chart.length >= 2 && (
-                <div className="px-4 pb-1">
-                  <ChartContainer
-                    config={{ done: { label: 'Found', color: '#A6C520' },
-                              left: { label: 'Still to find', color: 'rgba(0,0,0,0.08)' } }}
-                    className="w-full"
-                    style={{ height: `${Math.min(chart.length, 6) * 32 + 20}px` }}
-                  >
-                    <BarChart data={chart.slice(0, 6)} layout="vertical"
-                              margin={{ left: 4, right: 10, top: 4, bottom: 4 }} barSize={13}>
-                      <XAxis type="number" hide />
-                      <YAxis type="category" dataKey="name" width={124} axisLine={false}
-                             tickLine={false} tick={{ fontSize: 12 }} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="done" stackId="a" fill="var(--color-done)" radius={[6, 0, 0, 6]} />
-                      <Bar dataKey="left" stackId="a" fill="var(--color-left)" radius={[0, 6, 6, 0]} />
-                    </BarChart>
-                  </ChartContainer>
-                </div>
-              )}
-
               <Accordion type="single" collapsible className="px-3 pb-3">
                 {rows.map(r => (
                   <AccordionItem key={r.id} value={r.id} className="border-b-0">
                     <AccordionTrigger className="rounded-2xl px-3 py-3 hover:bg-black/[0.03] hover:no-underline dark:hover:bg-white/[0.05]">
-                      <div className="flex min-w-0 flex-1 items-center gap-3 pr-3">
-                        <span className="min-w-0 flex-1 truncate text-left text-[14.5px] font-medium">
-                          {r.label}
-                        </span>
-                        {typeof r.of === 'number' && r.of > 0 && (
-                          <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">
-                            {r.value} of {r.of}
+                      <div className="min-w-0 flex-1 pr-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="min-w-0 flex-1 truncate text-left text-[14.5px] font-medium">
+                            {r.label}
                           </span>
-                        )}
-                        {r.stage_label && (
-                          <Badge className={cn('shrink-0 whitespace-nowrap', TONE_BADGE[r.tone || 'neutral'])}>
-                            {r.stage_label}
-                          </Badge>
+                          <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">
+                            {typeof r.of === 'number' && r.of > 0
+                              ? `${r.value} of ${r.of}`
+                              : typeof r.value === 'number' ? `${r.value}` : ''}
+                          </span>
+                          {r.stage_label && (
+                            <Badge className={cn('shrink-0 whitespace-nowrap', TONE_BADGE[r.tone || 'neutral'])}>
+                              {r.stage_label}
+                            </Badge>
+                          )}
+                        </div>
+                        {/* The row is its own bar. Filled to what we hold, with the gap to
+                            target behind it — so five brands read as five lengths, and the
+                            chart that used to repeat these same five names is gone. */}
+                        {typeof r.value === 'number' && (
+                          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.10]">
+                            <div
+                              className={cn('h-full rounded-full transition-all duration-700',
+                                            r.wants_more ? 'bg-[#A6C520]' : 'bg-neutral-800 dark:bg-neutral-200')}
+                              style={{ width: `${Math.max(3, ((r.value ?? 0) / widest) * 100)}%` }}
+                            />
+                          </div>
                         )}
                       </div>
                     </AccordionTrigger>
