@@ -269,7 +269,7 @@ export default function SuperadminUserManagement() {
                 <div>
                   <p className="text-sm text-muted-foreground">Monthly Revenue</p>
                   <p className="text-2xl font-semibold mt-1">
-                    د.إ{(dashboardStats.total_revenue_this_month / 100).toLocaleString()}
+                    ⃃{(dashboardStats.total_revenue_this_month / 100).toLocaleString()}
                   </p>
                 </div>
                 <Users className="h-8 w-8 text-muted-foreground" />

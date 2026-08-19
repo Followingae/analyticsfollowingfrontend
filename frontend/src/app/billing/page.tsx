@@ -410,7 +410,7 @@ function BillingContent() {
                       </span>
                       {!isAdminManaged && (
                         <span className="text-muted-foreground">
-                          . After your trial, you will be charged د.إ199/month for the Standard plan. You can cancel anytime.
+                          . After your trial, you will be charged ⃃199/month for the Standard plan. You can cancel anytime.
                         </span>
                       )}
                     </p>

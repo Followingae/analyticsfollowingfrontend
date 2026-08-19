@@ -480,7 +480,7 @@ export const DURATION_OPTIONS: { label: string; value: ShareDuration }[] = [
 /** Format AED cents (fils) to dirham string */
 export function formatCents(cents: number | null): string {
   if (cents === null || cents === undefined) return '—'
-  return `د.إ${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  return `⃃${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
 /** Parse currency string to cents (fils) */

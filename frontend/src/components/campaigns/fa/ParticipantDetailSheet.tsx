@@ -134,7 +134,7 @@ interface Deliverable {
 
 const fmtCount = (n?: number | null) =>
   n == null ? "—" : n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : String(n)
-const fmtAED = (a: number) => `د.إ ${a.toLocaleString("en-AE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+const fmtAED = (a: number) => `⃃ ${a.toLocaleString("en-AE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "—")
 
 const DTYPE: Record<string, { icon: typeof Film; label: string }> = {

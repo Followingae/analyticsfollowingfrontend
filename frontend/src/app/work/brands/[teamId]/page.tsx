@@ -22,7 +22,7 @@ import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { Empty, PageHead, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
 
 const aed = (n: number | null | undefined) =>
-  n == null ? '—' : `د.إ ${Number(n) >= 10000 ? `${Math.round(Number(n) / 1000)}K` : Math.round(Number(n)).toLocaleString()}`
+  n == null ? '—' : `⃃ ${Number(n) >= 10000 ? `${Math.round(Number(n) / 1000)}K` : Math.round(Number(n)).toLocaleString()}`
 
 const when = (iso: string | null) =>
   !iso ? '—' : new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })

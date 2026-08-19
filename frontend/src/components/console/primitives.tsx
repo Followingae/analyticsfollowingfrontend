@@ -51,16 +51,23 @@ const TEXT: Record<Tone, string> = {
 }
 
 /**
- * Money, with the dirham mark fenced off.
+ * Money, in the new Dirham sign.
  *
- * د.إ is a right-to-left glyph: sitting next to Latin digits it drags them into its own run,
- * so "د.إ 1.68M" renders as "1.68 د.إM". An isolate keeps each script in its own direction.
+ * The old mark was Arabic text — right-to-left, so beside Latin digits it dragged them into
+ * its own run and "1.68M" came out reversed. U+20C3 is a currency sign with no direction of
+ * its own, which removes the problem rather than working around it. No system font carries
+ * it yet, so the face that does is loaded scoped to that single codepoint.
  */
 export function Aed({ children }: { children: React.ReactNode }) {
   return (
     <span className="inline-flex items-baseline gap-1.5" dir="ltr">
-      <bdi className="text-[0.62em] font-medium text-muted-foreground">د.إ</bdi>
-      <bdi>{children}</bdi>
+      {/* The face is named on the element itself. Leaving it to the cascade means one
+          screen with its own font stack silently loses the glyph and shows a box. */}
+      <span
+        className="text-[0.74em] font-medium text-muted-foreground"
+        style={{ fontFamily: '"Dirham-Sans", "Dirham", sans-serif' }}
+      >⃃</span>
+      <span>{children}</span>
     </span>
   )
 }

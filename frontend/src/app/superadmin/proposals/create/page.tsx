@@ -1340,7 +1340,7 @@ function CreateProposalContent() {
                                   >
                                     {dt.label}
                                     <span className="text-[10px] opacity-70">
-                                      د.إ{price}
+                                      ⃃{price}
                                     </span>
                                   </button>
                                   {isActive && (
@@ -1382,7 +1382,7 @@ function CreateProposalContent() {
                           </div>
                           {getInfluencerDeliverableTotal(inf) > 0 && (
                             <p className="text-xs text-foreground font-medium mt-2">
-                              Subtotal: د.إ{getInfluencerDeliverableTotal(inf).toLocaleString()}
+                              Subtotal: ⃃{getInfluencerDeliverableTotal(inf).toLocaleString()}
                             </p>
                           )}
                         </div>
@@ -1396,7 +1396,7 @@ function CreateProposalContent() {
                           Total across {addedInfluencers.length} creator{addedInfluencers.length !== 1 ? "s" : ""}
                         </p>
                         <p className="text-lg font-semibold tabular-nums mt-0.5">
-                          د.إ{proposalDeliverableTotal.toLocaleString()}
+                          ⃃{proposalDeliverableTotal.toLocaleString()}
                         </p>
                       </div>
                     </div>

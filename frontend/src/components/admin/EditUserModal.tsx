@@ -529,8 +529,8 @@ export default function EditUserModal({ userId, user: initialUser, onClose, onSu
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="free">Free Plan</SelectItem>
-                          <SelectItem value="standard">Standard (د.إ199/mo)</SelectItem>
-                          <SelectItem value="premium">Premium (د.إ499/mo)</SelectItem>
+                          <SelectItem value="standard">Standard (⃃199/mo)</SelectItem>
+                          <SelectItem value="premium">Premium (⃃499/mo)</SelectItem>
                           <SelectItem value="enterprise">Enterprise (Custom)</SelectItem>
                         </SelectContent>
                       </Select>

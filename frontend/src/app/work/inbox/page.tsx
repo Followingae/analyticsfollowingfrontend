@@ -66,7 +66,7 @@ const toneFor = (days: number | null): Tone =>
   days == null ? 'neutral' : days >= 7 ? 'bad' : days >= 3 ? 'warn' : 'info'
 
 const aed = (v: any) =>
-  `د.إ ${Math.round(parseFloat(v || 0)).toLocaleString('en-AE')}`
+  `⃃ ${Math.round(parseFloat(v || 0)).toLocaleString('en-AE')}`
 
 const compact = (n: any) => {
   const v = Number(n || 0)

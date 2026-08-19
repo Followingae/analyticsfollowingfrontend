@@ -25,7 +25,7 @@ import { creatorIntakeApi, type PendingCreator } from '@/services/creatorIntakeA
 import { AddCreatorsDialog } from '@/components/superadmin/influencer-database/AddCreatorsDialog'
 import { CreatorsHubHeader } from '@/components/console/CreatorsHubHeader'
 
-const aed = (c: number | null) => (c == null ? null : `د.إ ${(c / 100).toLocaleString('en-AE')}`)
+const aed = (c: number | null) => (c == null ? null : `⃃ ${(c / 100).toLocaleString('en-AE')}`)
 const compact = (n: number | null) =>
   n == null ? '—' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : `${n}`
 

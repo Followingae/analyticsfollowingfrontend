@@ -14,7 +14,7 @@ interface InlineEditCellProps {
 export function InlineEditCell({
   value,
   onSave,
-  prefix = "د.إ",
+  prefix = "⃃",
   placeholder = "Set price",
 }: InlineEditCellProps) {
   const [editing, setEditing] = useState(false)

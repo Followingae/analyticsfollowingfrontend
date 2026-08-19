@@ -239,7 +239,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              د.إ{dashboardData?.revenue_metrics?.monthly_revenue ? formatNumber(dashboardData.revenue_metrics.monthly_revenue) : '0'}
+              ⃃{dashboardData?.revenue_metrics?.monthly_revenue ? formatNumber(dashboardData.revenue_metrics.monthly_revenue) : '0'}
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
               <ArrowUpRight className="h-3 w-3 text-emerald-500" />

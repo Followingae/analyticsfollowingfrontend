@@ -33,7 +33,7 @@ export function CampaignQuickStats({ campaign, stages }: CampaignQuickStatsProps
   const stats: QuickStat[] = [
     {
       label: "Campaign Budget",
-      value: "د.إ25,000",
+      value: "⃃25,000",
       change: 0,
       icon: Coins,
       color: "text-green-600 bg-green-50",

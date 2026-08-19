@@ -173,7 +173,7 @@ function fmtCount(n?: number | null): string {
   return String(n)
 }
 function fmtAED(amount: number): string {
-  return `د.إ ${amount.toLocaleString("en-AE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+  return `⃃ ${amount.toLocaleString("en-AE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 }
 function hoursUntil(iso?: string | null): number | null {
   if (!iso) return null
