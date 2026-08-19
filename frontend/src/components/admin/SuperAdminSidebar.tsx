@@ -98,40 +98,94 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     // Everything waiting on a decision from this person, wherever it came from. Ungated on
     // purpose: the page shows only the queues the viewer's role can act on, and for someone
     // with none it says so rather than hiding.
-    { title: "Inbox", url: "/work/inbox", icon: Inbox },
+    { title: "Waiting on me", url: "/work/inbox", icon: Inbox },
   ]
 
-  const managementItems = [
-    ...(can("clients") || can("proposals") ? [{
-      title: "Clients",
-      url: "/work/clients",
-      icon: Building2,
-    }] : []),
-    ...(can("campaigns") || can("operations") || can("fa") ? [{
-      title: "Campaigns",
-      url: "/work/campaigns",
-      icon: Megaphone,
-    }] : []),
-    ...(can("influencers") || can("fa") ? [{
-      title: "Creators",
-      url: "/work/creators",
-      icon: Users2,
-    }] : []),
-    ...(can("billing") || can("influencers") ? [{
-      title: "Money",
-      url: "/work/money",
-      icon: Banknote,
-    }] : []),
-  ]
+  /**
+   * The menu is the job, not the filing cabinet.
+   *
+   * Six nouns was fewer entries than the forty-four before them, but it still asked people to
+   * know which noun their work lived under and then to find it behind two tab rows. So each
+   * role now gets the handful of screens their day is actually made of, named after the job:
+   * a talent manager opens "Creators needing a price", not Creators → Waiting room.
+   *
+   * Nothing is lost. Every screen keeps its address, the hub tabs still sit on top of the
+   * screens themselves, and search reaches everything — which it could not do for staff until
+   * the palette stopped mistaking them for brand customers.
+   */
+  const talentOnly = !isSuperAdmin && staffRole === "talent_manager"
+  const bizdevOnly = !isSuperAdmin && staffRole === "business_development"
+  const accountOnly = !isSuperAdmin && staffRole === "account_manager"
 
-  // Settings: the plumbing. Real screens, just not competing with daily work.
+  const managementItems = talentOnly
+    ? [
+        { title: "Creators & rates", url: "/work/influencers", icon: Users2 },
+        { title: "Creators needing a price", url: "/work/influencers/review", icon: Coins },
+        { title: "Brand rosters", url: "/work/areas", icon: Database },
+        { title: "Campaigns", url: "/work/campaigns", icon: Megaphone },
+        { title: "Creators to chase", url: "/work/chasing", icon: ClipboardCheck },
+        { title: "Creator payments", url: "/work/payables", icon: Banknote },
+        { title: "My target", url: "/work/goals", icon: BarChart3 },
+      ]
+    : bizdevOnly
+    ? [
+        { title: "Brands", url: "/work/brands", icon: Building2 },
+        { title: "Quotes", url: "/work/proposals", icon: FileText },
+        { title: "Sample packs", url: "/work/areas?kind=sample", icon: Database },
+      ]
+    : accountOnly
+    ? [
+        { title: "My clients", url: "/work/clients", icon: Building2 },
+        { title: "Quotes", url: "/work/proposals", icon: FileText },
+        { title: "Campaigns", url: "/work/campaigns", icon: Megaphone },
+        { title: "Late & chasing", url: "/work/chasing", icon: ClipboardCheck },
+        { title: "Brand rosters", url: "/work/areas", icon: Database },
+        { title: "App creators", url: "/work/fa/members", icon: Users2 },
+      ]
+    : [
+        // Leadership: the six surfaces, plus the two decisions that are theirs alone and had
+        // no entry anywhere — sign-offs, and the targets they set for everybody else.
+        ...(can("clients") || can("proposals") ? [{
+          title: "Clients", url: "/work/clients", icon: Building2,
+        }] : []),
+        ...(can("campaigns") || can("operations") || can("fa") ? [{
+          title: "Campaigns", url: "/work/campaigns", icon: Megaphone,
+        }] : []),
+        ...(can("influencers") || can("fa") ? [{
+          title: "Creators", url: "/work/creators", icon: Users2,
+        }] : []),
+        ...(can("billing") || can("influencers") ? [{
+          title: "Money", url: "/work/money", icon: Banknote,
+        }] : []),
+        { title: "Sign-offs", url: "/work/approvals", icon: ClipboardCheck },
+      ]
+
+  // Running the company: set once a month, read every week, and until now reachable only by
+  // typing the address.
+  const companyItems = talentOnly || bizdevOnly || accountOnly
+    ? []
+    : [
+        { title: "Daily targets", url: "/work/goals", icon: BarChart3 },
+        { title: "My team", url: "/work/team", icon: Users },
+        { title: "Office screens", url: "/work/system/displays", icon: Activity },
+      ]
+
+  // Settings: the plumbing. Real screens, just not competing with daily work. The four
+  // Following-App entries are set-once screens, so they sit behind the app's own hub rather
+  // than taking four rows off a client manager's menu.
   const systemItems = [
     ...(can("users") ? [{ title: "Users", url: "/work/users", icon: Users }] : []),
     ...(can("users") ? [{ title: "Staff", url: "/work/staff", icon: ShieldCheck }] : []),
-    ...(can("fa") ? [{ title: "Merchants", url: "/work/fa/merchants", icon: Store }] : []),
-    ...(can("fa") ? [{ title: "App activity", url: "/work/fa/activity", icon: Activity }] : []),
-    ...(can("fa") ? [{ title: "Ad banners", url: "/work/fa/ad-banners", icon: ImageIcon }] : []),
-    ...(can("fa") ? [{ title: "App notifications", url: "/work/fa/notifications", icon: Bell }] : []),
+    // A client manager's job is clients; the app's plumbing cost her four menu rows. It keeps
+    // every address and stays in search — a founder still sees them listed out.
+    ...(can("fa") && (isSuperAdmin || !accountOnly)
+      ? [
+          { title: "Merchants", url: "/work/fa/merchants", icon: Store },
+          { title: "App activity", url: "/work/fa/activity", icon: Activity },
+          { title: "Ad banners", url: "/work/fa/ad-banners", icon: ImageIcon },
+          { title: "App notifications", url: "/work/fa/notifications", icon: Bell },
+        ]
+      : []),
     ...(can("system") ? [{ title: "Email alerts", url: "/work/notifications", icon: MailCheck }] : []),
     ...(can("system") ? [{ title: "WhatsApp", url: "/work/whatsapp", icon: MessageCircle }] : []),
     ...(can("system") ? [{ title: "System", url: "/work/system", icon: Wrench }] : []),
@@ -151,15 +205,17 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     const urls = [
       ...overviewItems,
       ...managementItems,
+      ...companyItems,
       // Hubs have no sub-items now — the jobs live as tabs inside each hub.
       ...systemItems,
     ]
-      .map((i) => i.url)
+      // An entry may carry a query (sample packs), which is not part of the path it matches.
+      .map((i) => i.url?.split("?")[0])
       .filter(Boolean) as string[]
     return urls
       .filter((url) => pathname === url || pathname.startsWith(url + "/"))
       .sort((a, b) => b.length - a.length)[0]
-  }, [pathname, overviewItems, managementItems, systemItems])
+  }, [pathname, overviewItems, managementItems, companyItems, systemItems])
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -206,9 +262,15 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           </SidebarGroup>
         )}
 
-        {/* Campaigns & Proposals */}
-
-        {/* Following App Section */}
+        {/* Running the company — leadership's own screens, which had no entry at all */}
+        {companyItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Running the company</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <NavMain items={companyItems} activeUrl={activeUrl} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Settings — the plumbing, kept out of the daily path */}
         {systemItems.length > 0 && (

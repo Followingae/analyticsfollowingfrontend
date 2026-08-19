@@ -1,8 +1,8 @@
 'use client'
 import { tokenManager } from '@/utils/tokenManager';
 
-import { useEffect, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -88,7 +88,12 @@ const typeBadge = (type: string) => {
   return <Badge className={colors[type] || ''}>{type.replace('_', ' ')}</Badge>;
 };
 
-export default function ClientDetailPage() {
+/** Reading the query needs a boundary in Next 15; the record itself is unchanged. */
+export default function ClientDetailPageWrapper() {
+  return <Suspense fallback={null}><ClientDetailPage /></Suspense>
+}
+
+function ClientDetailPage() {
   const params = useParams();
   const router = useRouter();
   const teamId = params.teamId as string;
@@ -103,7 +108,12 @@ export default function ClientDetailPage() {
   const [activity, setActivity] = useState<any[]>([]);
   const [commercialCampaign, setCommercialCampaign] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('scope');
+  // Every deep link into a client — chase the agreement, chase the invoice — landed on
+  // Scope, because the record ignored where it was asked to open.
+  const search = useSearchParams();
+  const TABS = ['scope','campaigns','proposals','barter','ugc','commercial','finance','activity'];
+  const asked = search?.get('tab') || '';
+  const [activeTab, setActiveTab] = useState(TABS.includes(asked) ? asked : 'scope');
   const [scopeYear, setScopeYear] = useState<string>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);

@@ -13,8 +13,9 @@
  * on the spot instead of queuing a request.
  */
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -63,7 +64,12 @@ function briefLine(b?: AreaBrief | null): string {
   return bits.join(" · ")
 }
 
-export default function AreasPage() {
+/** Reading the query needs a boundary in Next 15; the page itself is unchanged. */
+export default function AreasPageWrapper() {
+  return <Suspense fallback={null}><AreasPage /></Suspense>
+}
+
+function AreasPage() {
   const { canDestroy, can } = useAdminAccess()
   // Business development lives on the sending side of an area: they send the link and
   // answer the client. Stocking it is the talent team's job, so the buttons that change
@@ -71,7 +77,10 @@ export default function AreasPage() {
   const canStock = can("influencers")
   const [areas, setAreas] = useState<ImdListSummary[]>([])
   const [loading, setLoading] = useState(true)
-  const [kind, setKind] = useState<Kind>("client")
+  // Which half of the screen to open on. Business development are sent here for sample packs
+  // and landed on client rosters every time, because the link asked for a tab nobody read.
+  const params = useSearchParams()
+  const [kind, setKind] = useState<Kind>(params?.get("kind") === "sample" ? "sample" : "client")
   const [toDelete, setToDelete] = useState<ImdListSummary | null>(null)
 
   // start sourcing (client area)

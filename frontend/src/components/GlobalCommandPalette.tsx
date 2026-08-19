@@ -76,7 +76,11 @@ const OPERATOR_NAV: (CmdEntry & { module?: string })[] = [
     module: "clients", keywords: "silent quiet last contact whose move" },
   { title: "Creator team console", href: "/work/team", icon: Users,
     keywords: "approvals alerts people cofounder" },
-  { title: "Goals", href: "/work/goals", icon: Target, keywords: "targets pace monthly rules" },
+  { title: "Goals", href: "/work/goals", icon: Target, keywords: "targets pace monthly rules daily" },
+  { title: "Creators to chase", href: "/work/chasing", icon: List,
+    keywords: "late content rate guide chasing overdue" },
+  { title: "The team manual", href: "/work/manual", icon: List,
+    keywords: "how work moves guide deck induction" },
   { title: "Report campaigns", href: "/work/report-campaigns", icon: FileText, module: "campaigns" },
   { title: "Operations queues", href: "/work/operations", icon: ListChecks, module: "operations" },
   { title: "Staff access", href: "/work/staff", icon: ShieldCheck, module: "users" },
@@ -116,10 +120,18 @@ export function GlobalCommandPalette() {
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const { user } = useEnhancedAuth()
-  const { can, isSuperAdmin, role } = useAdminAccess()
+  const { can, isSuperAdmin, role, isStaff } = useAdminAccess()
 
+  // Everyone who works here, not only the founders.
+  //
+  // This asked the account role alone, and every member of staff — talent, business
+  // development, account management, and the co-founder — is role='user' with a staff role.
+  // So four of the five people in the company pressed ⌘K and got the *brand customer* menu:
+  // Discover Creators, My Creators, Billing. Meanwhile the sidebar's own promise is that
+  // anything not surfaced directly stays one keystroke away in here, which made every screen
+  // trimmed from a menu genuinely unreachable for them.
   const isOperator =
-    isSuperAdmin || role === "admin" ||
+    isSuperAdmin || isStaff || role === "admin" ||
     ["admin", "super_admin", "superadmin"].includes((user?.role || "").toLowerCase())
 
   useEffect(() => {

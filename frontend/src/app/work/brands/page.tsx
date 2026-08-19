@@ -7,8 +7,8 @@
  * turn it is. Deals rarely die from a decision — they die because it was nobody's turn and
  * nobody noticed. So silence is the sort order, and "us" is the state to clear first.
  */
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -32,12 +32,20 @@ const HEALTH: Record<string, { label: string; cls: string; tone: Tone }> = {
 const quiet = (d: number | null) =>
   d === null ? 'never' : d === 0 ? 'today' : d === 1 ? '1 day' : `${d} days`
 
-export default function BrandsPage() {
+/** Reading the query needs a boundary in Next 15; the page itself is unchanged. */
+export default function BrandsPageWrapper() {
+  return <Suspense fallback={null}><BrandsPage /></Suspense>
+}
+
+function BrandsPage() {
   const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'all' | 'attention' | 'ours'>('all')
-  const [newOpen, setNewOpen] = useState(false)
+  // "Log a brand" on Today used to land here and stop — the actual form was a second button
+  // called something else. Arriving with ?new=1 opens it.
+  const params = useSearchParams()
+  const [newOpen, setNewOpen] = useState(params?.get('new') === '1')
 
   const load = async () => {
     try {
@@ -83,7 +91,7 @@ export default function BrandsPage() {
           note="How long since anything moved, and who owes the next step. Silence is measured from real activity in the platform, so a conversation you had off-platform has to be logged to count."
           action={
             <Button onClick={() => setNewOpen(true)}>
-              <Plus className="mr-1.5 h-4 w-4" />New opportunity
+              <Plus className="mr-1.5 h-4 w-4" />Log a new brand
             </Button>
           }
         />

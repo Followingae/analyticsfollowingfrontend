@@ -33,8 +33,11 @@ export const ROUTE_MODULES: { screen: string; module: AdminModule | AdminModule[
   { screen: "sourcing", module: "influencers" },
   { screen: "payables", module: "influencers" },
   { screen: "goals", module: "influencers" },
-  { screen: "team", module: "users" },
-  { screen: "team-console", module: "users" },
+  // The team screens say so themselves: "these screens are the whole team's, not the
+  // founders'". They were gated to the users module, which only a founder holds, so the
+  // people they were written for were redirected off them.
+  { screen: "team", module: [] },
+  { screen: "team-console", module: [] },
   { screen: "fa", module: "fa" },
   { screen: "notifications", module: "system" },
   { screen: "whatsapp", module: "system" },
