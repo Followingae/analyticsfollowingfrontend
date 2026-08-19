@@ -22,6 +22,10 @@ export const ROUTE_MODULES: { screen: string; module: AdminModule | AdminModule[
   { screen: "staff", module: "users" },
   { screen: "users", module: "users" },
   { screen: "campaigns", module: "campaigns" },
+  // The people waiting on us across every campaign — the talent team's chase list.
+  { screen: "chasing", module: ["campaigns", "influencers"] },
+  // The team manual is deliberately absent: a screen with no entry here is open to everyone
+  // internal, and the manual is the one thing the whole company is walked through.
   { screen: "report-campaigns", module: "campaigns" },
   { screen: "proposals", module: "proposals" },
   { screen: "influencers", module: "influencers" },

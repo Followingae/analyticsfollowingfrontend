@@ -111,7 +111,30 @@ export default function ShowMeHowPage() {
         )}
       </header>
 
-      <Card className="mt-8">
+      {/* The whole picture, before the individual lessons — this is the one we present. */}
+      <Card className="mt-8 overflow-hidden border-0 bg-gradient-to-br from-[#0F1A12] to-[#16241A] text-white">
+        <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="max-w-xl">
+            <p className="text-[11.5px] font-semibold uppercase tracking-[0.2em] text-[#D3FF02]">
+              The team manual
+            </p>
+            <p className="mt-2 text-lg font-semibold">How work moves at Following</p>
+            <p className="mt-1 text-sm text-white/70">
+              One brand end to end, stop by stop — who does what, and what happens next. Built
+              to be walked through together.
+            </p>
+          </div>
+          <Button
+            size="lg"
+            onClick={() => router.push('/work/manual')}
+            className="shrink-0 bg-white text-neutral-900 hover:bg-white/90"
+          >
+            <Play className="mr-2 h-4 w-4" />Open the manual
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
         <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-semibold tabular-nums">{doneCount}</span>
