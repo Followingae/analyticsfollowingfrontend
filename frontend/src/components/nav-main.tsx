@@ -37,6 +37,8 @@ export function NavMain({
     title: string
     url: string
     icon?: LucideIcon
+    /** How many things are waiting behind this entry. Drawn as a bubble; 0 draws nothing. */
+    badge?: number
     items?: {
       title: string
       url: string
@@ -127,6 +129,21 @@ export function NavMain({
               <Link href={item.url}>
                 {item.icon && <item.icon className="size-4" />}
                 <span>{item.title}</span>
+                {/* What is waiting behind this entry, so nobody has to open a screen to find
+                    out whether it wants them. Nothing renders at zero. */}
+                {!!item.badge && item.badge > 0 && (
+                  <span
+                    className={cn(
+                      "ml-auto grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5",
+                      "text-[11px] font-semibold leading-none tabular-nums",
+                      isActive
+                        ? "bg-white/85 text-neutral-900"
+                        : "bg-[#EAF3C8] text-neutral-800 dark:bg-lime-950/60 dark:text-lime-200",
+                    )}
+                  >
+                    {item.badge > 99 ? "99+" : item.badge}
+                  </span>
+                )}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -6,6 +6,8 @@ import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
+import { API_CONFIG } from "@/config/api"
+import { fetchWithAuth } from "@/utils/apiInterceptor"
 import {
   Sidebar,
   SidebarContent,
@@ -52,6 +54,19 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   const { can, isSuperAdmin, canSeeCost, staffRole, isFullAccessStaff, loading: accessLoading } =
     useAdminAccess()
   const pathname = usePathname() || ""
+
+  // What is waiting behind each entry. One call, keyed by the menu's own keys, so a bubble
+  // never depends on a URL that might be renamed. Zeros never come back, so the menu is
+  // quiet when the work is done.
+  const [badges, setBadges] = React.useState<Record<string, number>>({})
+  React.useEffect(() => {
+    let alive = true
+    fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/today/badges`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => { if (alive && j?.data) setBadges(j.data) })
+      .catch(() => { /* the menu works without its numbers */ })
+    return () => { alive = false }
+  }, [pathname])
 
   // Dynamic user data
   const dynamicUser = React.useMemo(() => {
@@ -125,17 +140,20 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   const managementItems = accessLoading ? [] : talentOnly
     ? [
         { title: "Creators & rates", url: "/work/influencers", icon: Users2 },
-        { title: "Creators needing a price", url: "/work/influencers/review", icon: Coins },
+        { title: "Creators needing a price", url: "/work/influencers/review", icon: Coins,
+          badge: badges["needs-price"] },
         { title: "Brand rosters", url: "/work/areas", icon: Database },
         { title: "Campaigns", url: "/work/campaigns", icon: Megaphone },
-        { title: "Creators to chase", url: "/work/chasing", icon: ClipboardCheck },
-        { title: "Creator payments", url: "/work/payables", icon: Banknote },
+        { title: "Creators to chase", url: "/work/chasing", icon: ClipboardCheck,
+          badge: badges["chasing"] },
+        { title: "Creator payments", url: "/work/payables", icon: Banknote,
+          badge: badges["payables"] },
         { title: "My target", url: "/work/goals", icon: BarChart3 },
       ]
     : bizdevOnly
     ? [
-        { title: "Brands", url: "/work/brands", icon: Building2 },
-        { title: "Quotes", url: "/work/proposals", icon: FileText },
+        { title: "Brands", url: "/work/brands", icon: Building2, badge: badges["brands"] },
+        { title: "Quotes", url: "/work/proposals", icon: FileText, badge: badges["proposals"] },
         { title: "Sample packs", url: "/work/areas?kind=sample", icon: Database },
       ]
     : accountOnly
@@ -143,7 +161,8 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         { title: "My clients", url: "/work/clients", icon: Building2 },
         { title: "Quotes", url: "/work/proposals", icon: FileText },
         { title: "Campaigns", url: "/work/campaigns", icon: Megaphone },
-        { title: "Late & chasing", url: "/work/chasing", icon: ClipboardCheck },
+        { title: "Late & chasing", url: "/work/chasing", icon: ClipboardCheck,
+          badge: badges["chasing"] },
         { title: "Brand rosters", url: "/work/areas", icon: Database },
         { title: "App creators", url: "/work/fa/members", icon: Users2 },
       ]
@@ -163,7 +182,8 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           title: "Money", url: "/work/money", icon: Banknote,
         }] : []),
         ...(leadership
-          ? [{ title: "Sign-offs", url: "/work/approvals", icon: ClipboardCheck }]
+          ? [{ title: "Sign-offs", url: "/work/approvals", icon: ClipboardCheck,
+              badge: badges["signoffs"] }]
           : []),
       ]
 
