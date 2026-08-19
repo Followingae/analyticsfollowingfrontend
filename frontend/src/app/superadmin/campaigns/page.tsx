@@ -129,7 +129,11 @@ export default function SuperadminCampaignsPage() {
         ) : (
           <div className="space-y-2">
             {filtered.map((c: any) => (
-              <Card key={c.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push(`/campaigns/${c.id}/posts`)}>
+              /* Opening a campaign means opening the campaign, not its posts. The record is
+                 where the dates, the brand and the roster are; the delivery board and the
+                 posts both hang off it — and until now neither had a route in from here,
+                 which is why the board looked like a screen nobody could reach. */
+              <Card key={c.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push(`/work/campaigns/${c.id}/timeline`)}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     {c.brand_logo_url ? (
@@ -150,6 +154,20 @@ export default function SuperadminCampaignsPage() {
                     <div className="text-right text-xs text-muted-foreground ml-4">
                       <div>{c.creator_count || c.creators_count || 0} creators</div>
                       <div>{c.post_count || c.posts_count || 0} posts</div>
+                    </div>
+                    <div className="ml-2 flex items-center gap-1.5">
+                      <Button
+                        size="sm" variant="outline" className="rounded-full"
+                        onClick={(e) => { e.stopPropagation(); router.push(`/work/campaigns/${c.id}/ladder`) }}
+                      >
+                        Delivery board
+                      </Button>
+                      <Button
+                        size="sm" variant="ghost" className="rounded-full"
+                        onClick={(e) => { e.stopPropagation(); router.push(`/campaigns/${c.id}/posts`) }}
+                      >
+                        Posts
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
