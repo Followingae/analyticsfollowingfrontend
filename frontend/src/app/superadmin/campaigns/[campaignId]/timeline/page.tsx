@@ -75,6 +75,10 @@ export default function CampaignTimelinePage() {
   const [invoiceFor, setInvoiceFor] = useState<Instalment | null>(null)
   const [invNumber, setInvNumber] = useState('')
   const [invUrl, setInvUrl] = useState('')
+  const [addingPayment, setAddingPayment] = useState(false)
+  const [payLabel, setPayLabel] = useState('')
+  const [payAmount, setPayAmount] = useState('')
+  const [payDue, setPayDue] = useState('')
 
   const load = async () => {
     try {
@@ -394,18 +398,27 @@ export default function CampaignTimelinePage() {
                 The plan was written on the proposal, but by the time the second invoice
                 is due nobody goes back there — the deal is a campaign now. Same controls,
                 where the work is. */}
-            {showMoney && instalments.length > 0 && (
+            {showMoney && (
               <Card>
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div>
                     <CardTitle className="text-base">Payments</CardTitle>
                     <CardDescription>
-                      {nextDue
-                        ? `Next: ${nextDue.period_label || nextDue.label} · ${aed(nextDue.amount_aed)}`
-                        : 'Everything on this plan is paid.'}
+                      {instalments.length === 0
+                        ? 'No payment plan on this deal — add the invoices as they go out.'
+                        : nextDue
+                          ? `Next: ${nextDue.period_label || nextDue.label} · ${aed(nextDue.amount_aed)}`
+                          : 'Everything on this plan is paid.'}
                     </CardDescription>
                   </div>
-                  <Receipt className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs"
+                            disabled={!t.roster_note?.proposal_id}
+                            onClick={() => { setPayLabel(''); setPayAmount(''); setPayDue('')
+                                             setAddingPayment(true) }}>
+                      <Receipt className="h-3 w-3" />Add a payment
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="px-0">
                   <div className="overflow-x-auto">
@@ -420,6 +433,12 @@ export default function CampaignTimelinePage() {
                         </tr>
                       </thead>
                       <tbody>
+                        {instalments.length === 0 && (
+                          <tr><td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                            Nothing invoiced yet. Add a payment when the invoice goes out, then
+                            file the QuickBooks copy against it and mark it paid when it lands.
+                          </td></tr>
+                        )}
                         {instalments.map(i => (
                           <tr key={i.id} className="border-b last:border-0 hover:bg-muted/40">
                             <td className="px-6 py-2.5">
@@ -593,6 +612,57 @@ export default function CampaignTimelinePage() {
           </div>
         </div>
       </div>
+
+      {/* A payment that was never in the plan: an extra month, a re-shoot, boosting bought
+          afterwards — or a deal that never had a plan written at all. */}
+      <Dialog open={addingPayment} onOpenChange={setAddingPayment}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add a payment</DialogTitle>
+            <DialogDescription>
+              It joins this deal&apos;s plan, so the invoice can be filed against it and marked
+              paid like any other.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">What is it for</Label>
+              <Input value={payLabel} onChange={e => setPayLabel(e.target.value)}
+                     placeholder="Second instalment" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Amount (AED)</Label>
+                <Input inputMode="decimal" value={payAmount}
+                       onChange={e => setPayAmount(e.target.value.replace(/[^\d.]/g, ''))}
+                       className="text-right tabular-nums" placeholder="0" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Due</Label>
+                <Input type="date" value={payDue} onChange={e => setPayDue(e.target.value)} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddingPayment(false)}>Cancel</Button>
+            <Button disabled={busy || !payAmount}
+                    onClick={() => {
+                      const pid = t.roster_note?.proposal_id
+                      setAddingPayment(false)
+                      act(() => api(`/proposals/${pid}/instalments`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          label: payLabel.trim() || undefined,
+                          amount_aed: Number(payAmount),
+                          due_date: payDue || undefined,
+                        }),
+                      }), 'Payment added')
+                    }}>
+              Add it
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Filing the QuickBooks copy against the payment it settles. We do not raise
           invoices; we hold the copy so "where is October's" has an answer. */}
