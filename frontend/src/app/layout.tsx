@@ -18,7 +18,10 @@ import { WhatsNewModal } from "@/components/notifications/WhatsNewModal";
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans",
+  // Inter gets its own name. --font-sans is composed in globals.css so it can carry the
+  // Dirham face after it; when next/font owned --font-sans directly it redefined the
+  // variable on <body> and the Dirham fallback never applied.
+  variable: "--font-inter",
   display: "swap",
   adjustFontFallback: false, // Reduce retry attempts
   preload: true,

@@ -85,7 +85,7 @@
   --sidebar-accent-foreground: oklch(0.2435 0 0);
   --sidebar-border: oklch(0.9037 0 0);
   --sidebar-ring: oklch(0.5500 0.2000 302.8047);
-  --font-sans: Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
+  --font-sans: var(--font-inter), Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
   --font-serif: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-mono: monospace;
   --radius: 0.65rem;
@@ -149,7 +149,7 @@
   --sidebar-accent-foreground: oklch(0.9851 0 0);
   --sidebar-border: oklch(0.2809 0 0);
   --sidebar-ring: oklch(0.9575 0.1596 117.3156);
-  --font-sans: Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
+  --font-sans: var(--font-inter), Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
   --font-serif: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-mono: monospace;
   --radius: 0.65rem;
@@ -283,22 +283,6 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
-  }
-
-  /* The Dirham mark has to be in the family that actually applies.
-   *
-   * The :root stack names "Dirham-Sans", but next/font redefines --font-sans on <body>, so
-   * that stack never took effect and every amount not written with the <Aed> component — which
-   * pins the family by hand — came out as an empty box. Appending the face here, after the
-   * variable is resolved, makes U+20C3 work anywhere: tables, inputs, buttons, the lot. It is
-   * scoped by unicode-range, so no other character is affected. */
-  body,
-  input,
-  textarea,
-  select,
-  button,
-  table {
-    font-family: var(--font-sans), "Dirham-Sans", ui-sans-serif, system-ui, sans-serif;
   }
 
   /* Improved focus styles */
