@@ -80,6 +80,7 @@ type Journey = {
   dine_in: boolean
   creators: Creator[]
   timeline: { at: string; text: string; username?: string; avatar?: string | null }[]
+  agreements?: { id: string; name: string; url: string; status?: string; signed_at?: string | null }[]
 }
 
 // ── the vocabulary, kept in one place ─────────────────────────────────────────────────────
@@ -450,6 +451,7 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
   }
 
   const { campaign, overall, counts, creators, timeline } = data
+  const agreements = data.agreements || []
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 p-4 pb-16 md:p-8">
@@ -594,6 +596,30 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
                   </div>
                 )}
               </dl>
+              {/* Their paperwork. The commercial conversation belongs on a signed
+                  document, which is why no budget appears anywhere on this page. */}
+              {agreements.length > 0 && (
+                <div className="mt-4 border-t pt-4">
+                  <div className="text-[11.5px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Your agreement{agreements.length > 1 ? 's' : ''}
+                  </div>
+                  <ul className="mt-2 space-y-1.5">
+                    {agreements.map(a => (
+                      <li key={a.id}>
+                        <a href={a.url} target="_blank" rel="noreferrer"
+                           className="flex items-center gap-2 text-[13.5px] text-primary hover:underline">
+                          <FileText className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{a.name}</span>
+                          {a.signed_at && (
+                            <span className="shrink-0 text-[12px] text-muted-foreground">signed</span>
+                          )}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <Button asChild variant="outline" className="mt-4 w-full rounded-xl">
                 <Link href={`/campaigns/${campaign.id}/posts`}>
                   <BarChart3 className="mr-2 h-4 w-4" /> Full analytics

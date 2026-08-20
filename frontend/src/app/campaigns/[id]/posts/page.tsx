@@ -1694,9 +1694,13 @@ export default function CampaignDetailsPage() {
   // Past-campaign scope/results summary — renders whatever the campaign has on record
   const prettyLabel = (s?: string | null) =>
     s ? s.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()) : null;
+  // Budget and payment status are deliberately absent. The commercial conversation lives on
+  // the proposal and the agreement, where the figure is the one they actually signed. A
+  // running budget on the campaign is our allocation, not their bill, and putting it here
+  // invites "what has this cost me so far" in the middle of the work.
   const hasOverview = Boolean(
-    campaign.description || campaign.budget != null || campaign.payment_status ||
-    campaign.report_status || campaign.client_feedback || campaign.closure_date
+    campaign.description || campaign.report_status ||
+    campaign.client_feedback || campaign.closure_date
   );
   const campaignOverview = hasOverview ? (
     <Card>
@@ -1705,14 +1709,6 @@ export default function CampaignDetailsPage() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
-          {campaign.budget != null && (
-            <Badge variant="secondary" className="text-xs">
-              Budget: ⃃ {Number(campaign.budget).toLocaleString()}
-            </Badge>
-          )}
-          {campaign.payment_status && (
-            <Badge variant="outline" className="text-xs">Payment: {prettyLabel(campaign.payment_status)}</Badge>
-          )}
           {campaign.report_status && (
             <Badge variant="outline" className="text-xs">Report: {prettyLabel(campaign.report_status)}</Badge>
           )}
