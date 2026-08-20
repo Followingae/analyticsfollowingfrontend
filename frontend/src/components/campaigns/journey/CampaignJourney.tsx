@@ -601,7 +601,7 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
               {agreements.length > 0 && (
                 <div className="mt-4 border-t pt-4">
                   <div className="text-[11.5px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Your agreement{agreements.length > 1 ? 's' : ''}
+                    Your agreement
                   </div>
                   <ul className="mt-2 space-y-1.5">
                     {agreements.map(a => (
@@ -611,7 +611,10 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
                           <FileText className="h-3.5 w-3.5 shrink-0" />
                           <span className="truncate">{a.name}</span>
                           {a.signed_at && (
-                            <span className="shrink-0 text-[12px] text-muted-foreground">signed</span>
+                            <span className="shrink-0 text-[12px] text-muted-foreground">
+                              signed {new Date(a.signed_at).toLocaleDateString('en-GB',
+                                { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
                           )}
                         </a>
                       </li>

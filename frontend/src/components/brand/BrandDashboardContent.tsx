@@ -9,6 +9,7 @@ import { useNotifications } from "@/contexts/NotificationContext"
 import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
 import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
 import { BrandQuotaWidget } from "@/components/brand/BrandQuotaWidget"
+import { CampaignSpotlight } from "@/components/brand/CampaignSpotlight"
 import { MetricCard } from "@/components/analytics-cards"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -319,6 +320,20 @@ export function BrandDashboardContent() {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Their campaigns, before anything of ours.
+            A brand with work in flight opens this page to find out what is happening to it,
+            and until now the answer was a notification list. The spotlight renders nothing
+            at all when they have no campaign running, so a discovery-only client sees the
+            page they had. */}
+        <div
+          className={`transition-all duration-500 ease-out ${
+            showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+          }`}
+          style={{ transitionDelay: '40ms' }}
+        >
+          <CampaignSpotlight />
         </div>
 
         {/* Row 2: Discovery (primary action) + Usage this cycle */}
