@@ -40,6 +40,7 @@ import { adminProposalApi, type AdminProposalDetail, type AdminProposalInfluence
 import { API_CONFIG } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { cdnAvatar } from "@/lib/avatar"
+import { sellFor, costFor } from "@/components/proposals/proposal-utils"
 import { Aed } from "@/components/console/primitives"
 import { cn } from "@/lib/utils"
 
@@ -66,10 +67,10 @@ type TierPayload = {
   items?: TierItem[]
 }
 
-const sellOf = (i: AdminProposalInfluencer) =>
-  i.custom_sell_pricing?.post ?? i.sell_price_snapshot?.post ?? 0
-
-const costOf = (i: AdminProposalInfluencer) => i.cost_price_snapshot?.post ?? 0
+// Priced the way the proposal itself is priced — see sellFor/costFor. Reading a single
+// deliverable key showed a reel-priced roster as zero.
+const sellOf = (i: AdminProposalInfluencer) => sellFor(i)
+const costOf = (i: AdminProposalInfluencer) => costFor(i)
 
 const compact = (n?: number | null) =>
   n == null ? "—" : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : `${n}`

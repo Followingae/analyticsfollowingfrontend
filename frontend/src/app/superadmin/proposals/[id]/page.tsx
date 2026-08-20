@@ -35,7 +35,7 @@ import { Separator } from "@/components/ui/separator"
 import { StandardMetricCard } from "@/components/ui/standard-metric-card"
 import { Progress } from "@/components/ui/progress"
 import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
-import { formatCurrency, formatCount, formatDate, proposalMotion, chartColorVar } from "@/components/proposals/proposal-utils"
+import { formatCurrency, formatCount, formatDate, proposalMotion, chartColorVar, sellFor, costFor } from "@/components/proposals/proposal-utils"
 import { motion, useInView } from "motion/react"
 import {
   ArrowLeft,
@@ -71,16 +71,11 @@ const TIMELINE_ICONS: Record<string, React.ElementType> = {
   rejected: XCircle,
 }
 
-function getSellPrice(inf: AdminProposalInfluencer): number {
-  if (inf.custom_sell_pricing?.post != null) return inf.custom_sell_pricing.post
-  if (inf.sell_price_snapshot?.post != null) return inf.sell_price_snapshot.post
-  return 0
-}
-
-function getCostPrice(inf: AdminProposalInfluencer): number {
-  if (inf.cost_price_snapshot?.post != null) return inf.cost_price_snapshot.post
-  return 0
-}
+// Both of these used to read only the `post` price. A roster priced in reels — most of
+// them — has nothing under `post`, so the table showed AED 0 and a 0% margin on a proposal
+// worth hundreds of thousands. They now price the way the backend totals the proposal.
+const getSellPrice = (inf: AdminProposalInfluencer): number => sellFor(inf)
+const getCostPrice = (inf: AdminProposalInfluencer): number => costFor(inf)
 
 // =============================================================================
 // PAGE COMPONENT

@@ -326,3 +326,56 @@ export function relativeTime(dateString?: string | null): string {
   const months = Math.floor(days / 30)
   return `${months}mo ago`
 }
+
+// ---------------------------------------------------------------------------
+// What a creator costs and what we charge for them, on one proposal
+//
+// Not "the post price". A roster priced entirely in reels — which is most of
+// them — has a null under `post`, and reading that one key showed the whole
+// board at AED 0 with a 0% margin on real money.
+//
+// This mirrors the backend's own totalling exactly (_recalculate_financials):
+// quantity-based over the deliverables the operator assigned, and where none
+// were assigned, the first price the creator actually carries.
+// ---------------------------------------------------------------------------
+
+const PRICE_KEYS = ['post', 'reel', 'story', 'carousel', 'video', 'bundle', 'monthly'] as const
+
+type Priced = {
+  sell_price_snapshot?: Record<string, number | null> | null
+  cost_price_snapshot?: Record<string, number | null> | null
+  custom_sell_pricing?: Record<string, number | null> | null
+  assigned_deliverables?: Array<{ type: string; quantity?: number | string }> | null
+}
+
+function priceFrom(
+  snap: Record<string, number | null> | null | undefined,
+  assigned: Priced['assigned_deliverables'],
+): number {
+  const m = snap || {}
+  if (assigned?.length) {
+    let total = 0
+    for (const d of assigned) {
+      const v = m[d.type]
+      if (v == null) continue
+      const qty = Number(d.quantity ?? 1)
+      total += Number(v) * (Number.isFinite(qty) && qty > 0 ? qty : 1)
+    }
+    return total
+  }
+  for (const k of PRICE_KEYS) {
+    const v = m[k]
+    if (v != null) return Number(v)
+  }
+  return 0
+}
+
+/** What the client is charged for this creator. Custom pricing wins over the snapshot. */
+export function sellFor(i: Priced): number {
+  return priceFrom(i.custom_sell_pricing || i.sell_price_snapshot, i.assigned_deliverables)
+}
+
+/** What this creator was quoted to us. Never shown to a brand. */
+export function costFor(i: Priced): number {
+  return priceFrom(i.cost_price_snapshot, i.assigned_deliverables)
+}
