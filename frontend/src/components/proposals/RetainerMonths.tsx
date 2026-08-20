@@ -13,9 +13,8 @@
  * and it says what is still missing rather than just being grey.
  */
 
-import { Check, ChevronRight, Lock, Loader2 } from "lucide-react"
+import { Check, Lock } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export interface RetainerMonth {
@@ -39,15 +38,15 @@ export function RetainerMonths({
   months,
   active,
   onSelect,
-  onConfirm,
-  confirming,
+  liveTiers,
   className,
 }: {
   months: RetainerMonth[]
   active: string | null
   onSelect: (period: string) => void
-  onConfirm: (period: string) => void
-  confirming?: boolean
+  /** Live counts for the month being filled, so this reads what is on screen rather than
+   *  what was last saved. */
+  liveTiers?: { tier: string; label: string; allowed: number; picked: number }[]
   className?: string
 }) {
   if (!months.length) return null
@@ -104,7 +103,9 @@ export function RetainerMonths({
               <div className="mt-1 truncate text-[15px] font-semibold">{m.label}</div>
 
               <div className="mt-2.5 flex items-center gap-1.5">
-                {m.tiers.map((t) => (
+                {(isActive && liveTiers?.length ? liveTiers.map((t) => ({
+                  ...t, full: t.picked >= t.allowed,
+                })) : m.tiers).map((t) => (
                   <span
                     key={t.tier}
                     title={`${t.label}: ${t.picked} of ${t.allowed}`}
@@ -132,39 +133,16 @@ export function RetainerMonths({
                   ? `Confirmed · ${m.total_allowed} creators`
                   : m.status === "upcoming"
                     ? m.note
-                    : `${m.total_picked} of ${m.total_allowed} chosen`}
+                    : `${
+                        isActive && liveTiers?.length
+                          ? liveTiers.reduce((n, t) => n + Math.min(t.picked, t.allowed), 0)
+                          : m.total_picked
+                      } of ${m.total_allowed} chosen`}
               </div>
             </button>
           )
         })}
       </div>
-
-      {/* Confirming the month you are on. All of it, or none of it. */}
-      {current && !current.is_locked && current.is_open && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
-          <p className="text-[13px] text-muted-foreground">
-            {current.complete
-              ? `All ${current.total_allowed} places filled for ${current.label}.`
-              : `Choose all ${current.total_allowed} to confirm ${current.label}. ` +
-                current.tiers
-                  .filter((t) => t.picked < t.allowed)
-                  .map((t) => `${t.label} ${t.picked} of ${t.allowed}`)
-                  .join(", ")}
-          </p>
-          <Button
-            size="sm"
-            className="rounded-xl"
-            disabled={!current.complete || confirming}
-            onClick={() => onConfirm(current.period)}
-          >
-            {confirming ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
-            Confirm {current.label}
-            {!confirming && <ChevronRight className="ml-1.5 h-4 w-4" />}
-          </Button>
-        </div>
-      )}
 
       {current?.is_locked && (
         <p className="mt-4 border-t border-border/60 pt-4 text-[13px] text-muted-foreground">

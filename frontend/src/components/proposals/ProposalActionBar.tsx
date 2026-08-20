@@ -15,9 +15,19 @@ interface ProposalActionBarProps {
   showPricing?: boolean
   onRequestMore: () => void
   onApprove: () => void
-  /** A retainer is confirmed a month at a time, up on the page. One Approve button here
-   *  would confirm the whole deal, which is not a thing this client is being offered. */
+  /** A retainer is confirmed a month at a time. One Approve button here would confirm the
+   *  whole deal, which is not a thing this client is being offered, so the month takes its
+   *  place: same spot, same weight, next to Reject where a decision belongs. */
   hideApprove?: boolean
+  retainer?: {
+    label: string
+    complete: boolean
+    picked: number
+    allowed: number
+    missing: string
+    confirming?: boolean
+    onConfirm: () => void
+  } | null
   onReject?: () => void
   onSaveSelection?: () => void
   savingSelection?: boolean
@@ -33,6 +43,7 @@ export function ProposalActionBar({
   onRequestMore,
   onApprove,
   hideApprove = false,
+  retainer = null,
   onReject,
   onSaveSelection,
   savingSelection = false,
@@ -180,7 +191,27 @@ export function ProposalActionBar({
             </Tooltip>
           )}
 
-          {!hideApprove && (
+          {retainer ? (
+            <div className="ml-3 flex items-center gap-3">
+              <span className="hidden text-[13px] text-muted-foreground sm:block">
+                {retainer.complete
+                  ? `All ${retainer.allowed} places filled`
+                  : retainer.missing}
+              </span>
+              <Button
+                onClick={retainer.onConfirm}
+                disabled={!retainer.complete || retainer.confirming}
+                className="px-6 shadow-lg shadow-primary/20 transition-shadow hover:shadow-xl hover:shadow-primary/30"
+              >
+                {retainer.confirming ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                )}
+                Confirm {retainer.label}
+              </Button>
+            </div>
+          ) : !hideApprove ? (
             <Button
               onClick={onApprove}
               disabled={!canApprove}
@@ -189,7 +220,7 @@ export function ProposalActionBar({
               <CheckCircle className="h-4 w-4 mr-2" />
               Approve
             </Button>
-          )}
+          ) : null}
         </div>
         </TooltipProvider>
       </div>

@@ -488,7 +488,9 @@ function BrandProposalViewPageContent() {
     setSelectionDirty(true)
   }, [isTerminal])
 
-  const handleSaveSelection = async () => {
+  /** `silent` is for the save that happens on the way to confirming a month: the client
+   *  asked to confirm, not to save, and two toasts for one click reads as a stutter. */
+  const handleSaveSelection = async ({ silent = false }: { silent?: boolean } = {}) => {
     setSavingSelection(true)
     try {
       const delSelections = Object.entries(deliverableSelections)
@@ -500,7 +502,7 @@ function BrandProposalViewPageContent() {
         period: activeMonth ?? undefined,
         deliverable_selections: delSelections.length > 0 ? delSelections : undefined,
       })
-      toast.success("Draft saved")
+      if (!silent) toast.success("Draft saved")
       setSelectionDirty(false)
     } catch {
       toast.error("Failed to save selection")
@@ -564,10 +566,16 @@ function BrandProposalViewPageContent() {
     }
   }
 
-  /** Confirm one month, whole. The server refuses anything short of the full allowance. */
+  /** Confirm one month, whole.
+   *
+   *  The selection is saved first. The server confirms what it has stored, not what is on
+   *  the client's screen, so a month that looks full here and empty there would be refused
+   *  with a message nobody could act on. */
   const handleConfirmMonth = async (period: string) => {
     setConfirmingMonth(true)
     try {
+      await handleSaveSelection({ silent: true })
+
       const res = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/campaigns/proposals/${proposalId}/confirm-month`,
         {
@@ -770,8 +778,7 @@ function BrandProposalViewPageContent() {
                   months={months}
                   active={activeMonth}
                   onSelect={setActiveMonth}
-                  onConfirm={handleConfirmMonth}
-                  confirming={confirmingMonth}
+                  liveTiers={tierRows}
                 />
               </motion.div>
             )}
@@ -1189,8 +1196,26 @@ function BrandProposalViewPageContent() {
             onRequestMore={() => setRequestMoreOpen(true)}
             onApprove={() => setApproveDialogOpen(true)}
             hideApprove={months.length > 0}
+            /* On a retainer the terminal action is confirming THIS month, so it takes the
+               Approve slot: same weight, same place, right next to Reject. */
+            retainer={
+              month && month.is_open && !month.is_locked
+                ? {
+                    label: month.label,
+                    complete: tierComplete,
+                    picked: tierRows.reduce((n, r) => n + Math.min(r.picked, r.allowed), 0),
+                    allowed: tierRows.reduce((n, r) => n + r.allowed, 0),
+                    missing: tierRows
+                      .filter((r) => r.picked < r.allowed)
+                      .map((r) => `${r.label} ${r.picked} of ${r.allowed}`)
+                      .join(" · "),
+                    confirming: confirmingMonth,
+                    onConfirm: () => handleConfirmMonth(month.period),
+                  }
+                : null
+            }
             onReject={() => setRejectDialogOpen(true)}
-            onSaveSelection={handleSaveSelection}
+            onSaveSelection={() => handleSaveSelection()}
             savingSelection={savingSelection}
             selectionDirty={selectionDirty}
             status={proposal.status}
