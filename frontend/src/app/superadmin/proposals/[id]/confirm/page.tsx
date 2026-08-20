@@ -91,6 +91,12 @@ export default function ConfirmForClientPage() {
   const [note, setNote] = useState("")
   const [picked, setPicked] = useState<Record<string, boolean>>({})
   const [costs, setCosts] = useState<Record<string, string>>({})
+  // By the time we lock a deal ourselves these creators have been spoken to — the rate was
+  // negotiated with them and they know the campaign. Making the team walk the ladder from
+  // "booked" would be theatre, and it buries the thing that actually happens next.
+  const [briefed, setBriefed] = useState(true)
+  const [ships, setShips] = useState(true)
+  const [contentDue, setContentDue] = useState("")
 
   const load = useCallback(async () => {
     try {
@@ -174,6 +180,9 @@ export default function ConfirmForClientPage() {
       const body = {
         via,
         note: note.trim() || undefined,
+        already_briefed: briefed,
+        content_due: contentDue || undefined,
+        ships_product: ships,
         selected_influencer_ids: chosen.map(i => i.id),
         costs: chosen
           .map(i => ({
@@ -403,6 +412,48 @@ export default function ConfirmForClientPage() {
                       )}
                     </div>
                   )}
+
+                  <Separator />
+
+                  {/* Where they actually are, and what happens next. */}
+                  <div className="space-y-3">
+                    <label className="flex items-start gap-3">
+                      <Checkbox checked={briefed}
+                                onCheckedChange={(v: boolean | "indeterminate") => setBriefed(!!v)}
+                                className="mt-0.5" />
+                      <span className="text-[13.5px]">
+                        <span className="font-medium">They already have the brief</span>
+                        <span className="block text-muted-foreground">
+                          Books them straight in as briefed, so the board starts where the work
+                          really is instead of at the beginning.
+                        </span>
+                      </span>
+                    </label>
+
+                    {briefed && (
+                      <div className="pl-7">
+                        <Label htmlFor="due" className="text-[12.5px] text-muted-foreground">
+                          Content due back (optional)
+                        </Label>
+                        <Input id="due" type="date" value={contentDue}
+                               onChange={e => setContentDue(e.target.value)}
+                               className="mt-1 h-9" />
+                      </div>
+                    )}
+
+                    <label className="flex items-start gap-3">
+                      <Checkbox checked={ships}
+                                onCheckedChange={(v: boolean | "indeterminate") => setShips(!!v)}
+                                className="mt-0.5" />
+                      <span className="text-[13.5px]">
+                        <span className="font-medium">We send product to these creators</span>
+                        <span className="block text-muted-foreground">
+                          Turns on packed → sent → received, per creator. The client watches the
+                          same thing on their campaign page.
+                        </span>
+                      </span>
+                    </label>
+                  </div>
 
                   <Separator />
 

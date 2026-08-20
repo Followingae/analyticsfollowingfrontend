@@ -79,8 +79,21 @@ export interface LadderCreator {
 
 export const ladderApi = {
   get: (campaignId: string): Promise<{
-    data: { creators: LadderCreator[]; counts: Record<string, number>; stages: Stage[] }
+    data: {
+      creators: LadderCreator[]; counts: Record<string, number>; stages: Stage[];
+      /** Whether anything physical goes out, answered by the campaign rather than guessed. */
+      campaign?: {
+        id: string; name?: string | null; fulfilment_mode?: string | null;
+        ships: boolean; dine_in: boolean; visit_location?: string | null;
+      };
+    }
   }> => jfetch(`${BASE}/campaigns/${campaignId}/ladder`),
+
+  /** Does this campaign send product to the creators? Nothing can infer it for us. */
+  setFulfilmentMode: (campaignId: string, mode: 'delivery' | 'dine_in' | 'none') =>
+    jfetch(`${BASE}/campaigns/${campaignId}/fulfilment/mode`, {
+      method: 'POST', body: JSON.stringify({ mode }),
+    }),
 
   /** Talent records what was negotiated. It stays a proposal until a founder confirms. */
   proposeRate: (rowId: string, amount_aed: number, note?: string) =>

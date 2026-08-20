@@ -63,6 +63,7 @@ export default function LadderPage() {
   const campaignId = useParams().campaignId as string
   const { canDestroy } = useAdminAccess()
   const [creators, setCreators] = useState<LadderCreator[]>([])
+  const [campaign, setCampaign] = useState<{ ships?: boolean; dine_in?: boolean; fulfilment_mode?: string | null } | null>(null)
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState<LadderCreator | null>(null)
   const [busy, setBusy] = useState(false)
@@ -81,6 +82,7 @@ export default function LadderPage() {
     try {
       const res = await ladderApi.get(campaignId)
       setCreators(res.data.creators)
+      setCampaign(res.data.campaign ?? null)
     } catch (e) {
       toast.error((e as Error).message || "Could not load the board")
     } finally {
@@ -121,15 +123,18 @@ export default function LadderPage() {
 
   const waiting = useMemo(() => creators.filter(c => dueState(c)?.tone !== "calm" && dueState(c)), [creators])
 
-  // The delivery track only appears once something on this campaign actually ships. Marking
-  // the batch ready is what turns it on, so it never clutters a campaign with nothing to send.
+  // Whether this campaign sends product is the CAMPAIGN's answer, not "has anybody stamped
+  // one yet". Deriving it from the stamps made the delivery track invisible until it had
+  // been used — which it could not be, because it was invisible.
   const shipping = useMemo(() => {
     const live = creators.filter(c => c.stage !== "dropped")
     const ready = live.filter(c => c.product_ready_at).length
     const sent = live.filter(c => c.dispatched_at).length
     const got = live.filter(c => c.received_at).length
-    return { on: ready + sent + got > 0, live: live.length, ready, sent, got }
-  }, [creators])
+    const stamped = ready + sent + got > 0
+    return { on: campaign?.ships ?? stamped, asked: campaign?.fulfilment_mode != null,
+             live: live.length, ready, sent, got, stamped }
+  }, [creators, campaign])
 
   return (
     <AuthGuard>
@@ -153,15 +158,9 @@ export default function LadderPage() {
                   <Clock className="h-3 w-3" />{waiting.length} due or late
                 </Badge>
               )}
-              <Button
-                variant="outline" size="sm" className="gap-1.5 rounded-xl" disabled={busy || !creators.length}
-                onClick={() => act(() => ladderApi.productReady(campaignId), "Everyone marked ready to dispatch")}
-              >
-                <Boxes className="h-3.5 w-3.5" />Products ready
-              </Button>
               {shipping.on && (
                 <Badge variant="outline" className="gap-1">
-                  <Truck className="h-3 w-3" />{shipping.got}/{shipping.live} received
+                  <Truck className="h-3 w-3" />{shipping.got}/{shipping.live} have their product
                 </Badge>
               )}
               {byStage.paid?.length > 0 && (
@@ -171,6 +170,76 @@ export default function LadderPage() {
               )}
             </div>
           </div>
+
+          {/* Getting the product to the creators. Its own panel, because on a campaign that
+              ships it is the question everybody asks — the client most of all — and it runs
+              on its own clock alongside the rungs. */}
+          {!loading && creators.length > 0 && !campaign?.dine_in && (
+            shipping.on ? (
+              <Card>
+                <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 font-medium">
+                      <Boxes className="h-4 w-4 text-muted-foreground" />Products
+                    </div>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {shipping.got === shipping.live
+                        ? "Every creator has their product."
+                        : shipping.sent
+                          ? `${shipping.sent} sent, ${shipping.got} received of ${shipping.live}.`
+                          : shipping.ready
+                            ? `${shipping.ready} packed and waiting on a courier.`
+                            : "Nothing packed yet. Mark the batch ready, then send them out one by one."}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <Badge variant="secondary" className="gap-1">{shipping.ready} packed</Badge>
+                      <Badge variant="secondary" className="gap-1">{shipping.sent} sent</Badge>
+                      <Badge variant="secondary" className="gap-1">{shipping.got} received</Badge>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={shipping.ready ? "outline" : "default"} size="sm"
+                      className="gap-1.5 rounded-xl" disabled={busy}
+                      onClick={() => act(() => ladderApi.productReady(campaignId),
+                                         "Everyone marked packed and ready to dispatch")}
+                    >
+                      <PackageCheck className="h-3.5 w-3.5" />Mark everyone packed
+                    </Button>
+                    <Button variant="ghost" size="sm" className="rounded-xl" disabled={busy}
+                            onClick={() => act(() => ladderApi.setFulfilmentMode(campaignId, "none"),
+                                               "This campaign sends nothing")}>
+                      Nothing ships here
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : !shipping.asked ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+                  <div>
+                    <div className="font-medium">Does this campaign send product to the creators?</div>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      If it does, we track it per creator — packed, sent, received — and the
+                      client sees exactly that on their own campaign page.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="gap-1.5 rounded-xl" disabled={busy}
+                            onClick={() => act(() => ladderApi.setFulfilmentMode(campaignId, "delivery"),
+                                               "Product tracking on")}>
+                      <Truck className="h-3.5 w-3.5" />Yes, we send product
+                    </Button>
+                    <Button variant="outline" size="sm" className="rounded-xl" disabled={busy}
+                            onClick={() => act(() => ladderApi.setFulfilmentMode(campaignId, "none"),
+                                               "No product on this campaign")}>
+                      No
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null
+          )}
 
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
