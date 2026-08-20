@@ -285,6 +285,22 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
+  /* The Dirham mark has to be in the family that actually applies.
+   *
+   * The :root stack names "Dirham-Sans", but next/font redefines --font-sans on <body>, so
+   * that stack never took effect and every amount not written with the <Aed> component — which
+   * pins the family by hand — came out as an empty box. Appending the face here, after the
+   * variable is resolved, makes U+20C3 work anywhere: tables, inputs, buttons, the lot. It is
+   * scoped by unicode-range, so no other character is affected. */
+  body,
+  input,
+  textarea,
+  select,
+  button,
+  table {
+    font-family: var(--font-sans), "Dirham-Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+
   /* Improved focus styles */
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ring;
