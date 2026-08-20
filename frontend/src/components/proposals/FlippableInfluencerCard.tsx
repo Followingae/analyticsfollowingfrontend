@@ -58,6 +58,10 @@ function seedColor(seed: string): string {
 const TRANSPARENT_PIXEL =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
 
+/* Reel first: it is what most creators are actually booked on, so it is the price a card
+   should lead with when a post price is not set. */
+const PRICE_ORDER = ["reel", "post", "story", "carousel", "video", "bundle", "monthly"] as const
+
 const DELIVERABLE_LABELS: Record<string, string> = {
   post: "Post",
   story: "Story",
@@ -86,10 +90,20 @@ export function FlippableInfluencerCard({
   const tierConfig = inf.tier ? getTierConfig(inf.tier) : null
   const TierIcon = tierConfig?.icon
 
+  /* The card's third stat is a RATE. When there is no rate to show, a post count went in
+     its place, so a creator with no price on screen read as "289 posts" under a label that
+     says rate. On a tier deal the honest answer is the band they fill, which is what the
+     client is actually choosing; where we simply hold no price, the slot stays empty. */
+  const anyPrice = PRICE_ORDER.map((k) => pricing[k]).find((v) => v != null)
   const rateDisplay = (() => {
-    if (showPricing && pricing.post != null) return formatCurrency(pricing.post)
-    if (showPricing && pricing.reel != null) return formatCurrency(pricing.reel)
-    return formatCount(inf.posts_count) + " posts"
+    if (showPricing && anyPrice != null) return formatCurrency(anyPrice)
+    if ((inf as any).tier_label) return String((inf as any).tier_label)
+    return "—"
+  })()
+  const rateLabel = (() => {
+    if (showPricing && anyPrice != null) return "rate"
+    if ((inf as any).tier_label) return (inf as any).above_band ? "counts as" : "group"
+    return "rate"
   })()
 
   const toolsBadges = (
@@ -273,7 +287,7 @@ export function FlippableInfluencerCard({
                 </a>
               ) : null
             }
-            statLabels={{ rating: "engagement", duration: "followers", rate: showPricing ? "price" : "posts" }}
+            statLabels={{ rating: "engagement", duration: "followers", rate: rateLabel }}
             toolsLabel=""
           />
         </div>

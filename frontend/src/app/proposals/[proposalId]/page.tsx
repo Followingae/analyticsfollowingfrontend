@@ -95,6 +95,7 @@ import { ProposalActionBar } from "@/components/proposals/ProposalActionBar"
 import { RequestMoreDialog } from "@/components/proposals/RequestMoreDialog"
 import { SelectedCreatorsPanel } from "@/components/proposals/SelectedCreatorsPanel"
 import { AISnapshotPanel } from "@/components/proposals/AISnapshotPanel"
+import { TierAllowancePanel } from "@/components/proposals/TierAllowancePanel"
 import { formatCount, formatCurrency, getStockImage, DEFAULT_AVATAR } from "@/components/proposals/proposal-utils"
 import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
 
@@ -426,8 +427,8 @@ function BrandProposalViewPageContent() {
       const allowed = Number(allowances[tier] ?? 0)
       if (tier && allowed > 0 && (pickedByTier[tier] || 0) >= allowed) {
         const label = bands[tier]?.label || tier
-        toast.error(`Your ${label} places are full`, {
-          description: `This proposal includes ${allowed} ${label} creator${allowed === 1 ? "" : "s"}. Remove one to choose another.`,
+        toast.error(`All ${allowed} ${label} places are taken`, {
+          description: "Remove one to swap in someone else. Your plan is on the right.",
         })
         return
       }
@@ -1025,6 +1026,13 @@ function BrandProposalViewPageContent() {
                     the bottom of the viewport and crushed the selection list under it.
                     Capped at 45% of the column: whatever the AI returns, the client can
                     always still see what they have selected. */}
+                {/* What the plan includes, before anything the AI has to say about it.
+                    A client filling places needs the shape of the deal in front of them the
+                    whole time, not only when they overfill a band. */}
+                {byTier && tierRows.length > 0 && (
+                  <TierAllowancePanel rows={tierRows} className="shrink-0" />
+                )}
+
                 <div className="shrink-0 max-h-[45%] overflow-y-auto">
                   <AISnapshotPanel
                     proposalId={proposalId}
@@ -1061,6 +1069,7 @@ function BrandProposalViewPageContent() {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-full sm:max-w-[400px] p-0 flex flex-col">
                   <SheetTitle className="sr-only">Selected Creators</SheetTitle>
+                  {byTier && tierRows.length > 0 && <TierAllowancePanel rows={tierRows} />}
                   <AISnapshotPanel
                     proposalId={proposalId}
                     selectedIds={selectedIds}
