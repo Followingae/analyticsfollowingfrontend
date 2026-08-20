@@ -512,6 +512,8 @@ export class BrandProposalViewApiService {
     selected_influencer_ids: string[]
     deliverable_selections?: { influencer_id: string; deliverables: string[] }[]
     notes?: string
+    /** Which month of a retainer these picks fill. A one-off deal sends nothing. */
+    period?: string
   }): Promise<{
     updated_count: number
     selected_count: number

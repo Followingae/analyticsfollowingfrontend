@@ -15,6 +15,9 @@ interface ProposalActionBarProps {
   showPricing?: boolean
   onRequestMore: () => void
   onApprove: () => void
+  /** A retainer is confirmed a month at a time, up on the page. One Approve button here
+   *  would confirm the whole deal, which is not a thing this client is being offered. */
+  hideApprove?: boolean
   onReject?: () => void
   onSaveSelection?: () => void
   savingSelection?: boolean
@@ -29,6 +32,7 @@ export function ProposalActionBar({
   showPricing = true,
   onRequestMore,
   onApprove,
+  hideApprove = false,
   onReject,
   onSaveSelection,
   savingSelection = false,
@@ -176,14 +180,16 @@ export function ProposalActionBar({
             </Tooltip>
           )}
 
-          <Button
-            onClick={onApprove}
-            disabled={!canApprove}
-            className="ml-3 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow px-6"
-          >
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Approve
-          </Button>
+          {!hideApprove && (
+            <Button
+              onClick={onApprove}
+              disabled={!canApprove}
+              className="ml-3 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-shadow px-6"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Approve
+            </Button>
+          )}
         </div>
         </TooltipProvider>
       </div>

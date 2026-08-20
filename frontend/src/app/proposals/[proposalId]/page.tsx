@@ -96,6 +96,7 @@ import { RequestMoreDialog } from "@/components/proposals/RequestMoreDialog"
 import { SelectedCreatorsPanel } from "@/components/proposals/SelectedCreatorsPanel"
 import { AISnapshotPanel } from "@/components/proposals/AISnapshotPanel"
 import { TierAllowancePanel } from "@/components/proposals/TierAllowancePanel"
+import { RetainerMonths, type RetainerMonth } from "@/components/proposals/RetainerMonths"
 import { formatCount, formatCurrency, getStockImage, DEFAULT_AVATAR } from "@/components/proposals/proposal-utils"
 import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
 
@@ -292,16 +293,35 @@ function BrandProposalViewPageContent() {
 
   /** How many of each band are ticked right now, counted off the live selection rather
       than off what was last saved. */
+  /* A retainer is picked a month at a time. `activeMonth` is the one being filled: it
+     starts on whichever the server says is live, and the client can look at any month that
+     has opened. */
+  const months: RetainerMonth[] = selection?.periods || []
+  const [activeMonth, setActiveMonth] = useState<string | null>(null)
+  const [confirmingMonth, setConfirmingMonth] = useState(false)
+
+  useEffect(() => {
+    if (!months.length) return
+    setActiveMonth((prev) =>
+      prev && months.some((m) => m.period === prev) ? prev : selection?.current_period ?? months[0].period,
+    )
+  }, [months, selection?.current_period])
+
+  const month = months.find((m) => m.period === activeMonth) || null
+
   const pickedByTier = useMemo(() => {
     const out: Record<string, number> = {}
     if (!byTier || !data) return out
     for (const inf of data.influencers as any[]) {
       if (!selectedIds.has(inf.id)) continue
+      // On a retainer a pick counts against the month it belongs to, so a creator taken
+      // for September does not eat October's places.
+      if (months.length && (inf.period ?? activeMonth) !== activeMonth) continue
       const t = inf.tier
       if (t) out[t] = (out[t] || 0) + 1
     }
     return out
-  }, [byTier, data, selectedIds])
+  }, [byTier, data, selectedIds, months.length, activeMonth])
 
   const tierRows = useMemo(
     () =>
@@ -414,7 +434,10 @@ function BrandProposalViewPageContent() {
 
   const isTerminal =
     data?.proposal.status === "approved" ||
-    data?.proposal.status === "rejected"
+    data?.proposal.status === "rejected" ||
+    // A confirmed month is settled. Looking is fine, changing it is not.
+    Boolean(month?.is_locked) ||
+    Boolean(months.length && month && !month.is_open)
 
   const toggleInfluencer = useCallback((id: string) => {
     if (isTerminal) return
@@ -474,6 +497,7 @@ function BrandProposalViewPageContent() {
 
       await brandProposalViewApi.updateInfluencerSelection(proposalId, {
         selected_influencer_ids: Array.from(selectedIds),
+        period: activeMonth ?? undefined,
         deliverable_selections: delSelections.length > 0 ? delSelections : undefined,
       })
       toast.success("Draft saved")
@@ -503,6 +527,8 @@ function BrandProposalViewPageContent() {
     }
     setApproving(true)
     try {
+      // Approving takes no month: a retainer is confirmed month by month, and this path
+      // is only reached on a one-off deal.
       const result = await brandProposalViewApi.approveProposal(proposalId, {
         selected_influencer_ids: Array.from(selectedIds),
       })
@@ -535,6 +561,33 @@ function BrandProposalViewPageContent() {
       toast.error("Failed to reject proposal")
     } finally {
       setRejecting(false)
+    }
+  }
+
+  /** Confirm one month, whole. The server refuses anything short of the full allowance. */
+  const handleConfirmMonth = async (period: string) => {
+    setConfirmingMonth(true)
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/proposals/${proposalId}/confirm-month`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ period }),
+        },
+      )
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(j?.detail || "Could not confirm that month")
+      toast.success(j?.message || "Month confirmed", {
+        description: j?.data?.proposal_closed
+          ? "That is every month of your retainer booked."
+          : "We will be in touch about the creators, and the next month opens on time.",
+      })
+      await loadData()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not confirm that month")
+    } finally {
+      setConfirmingMonth(false)
     }
   }
 
@@ -706,6 +759,23 @@ function BrandProposalViewPageContent() {
                 filling places: three macro and one micro, say. Without this the page asked
                 them to pick from 27 creators with nothing telling them how many they were
                 entitled to, and they could tick all of them. */}
+            {months.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="my-6"
+              >
+                <RetainerMonths
+                  months={months}
+                  active={activeMonth}
+                  onSelect={setActiveMonth}
+                  onConfirm={handleConfirmMonth}
+                  confirming={confirmingMonth}
+                />
+              </motion.div>
+            )}
+
             {byTier && tierRows.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
@@ -1118,6 +1188,7 @@ function BrandProposalViewPageContent() {
             showPricing={showPricing}
             onRequestMore={() => setRequestMoreOpen(true)}
             onApprove={() => setApproveDialogOpen(true)}
+            hideApprove={months.length > 0}
             onReject={() => setRejectDialogOpen(true)}
             onSaveSelection={handleSaveSelection}
             savingSelection={savingSelection}
