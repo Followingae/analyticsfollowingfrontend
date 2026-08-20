@@ -85,7 +85,8 @@
   --sidebar-accent-foreground: oklch(0.2435 0 0);
   --sidebar-border: oklch(0.9037 0 0);
   --sidebar-ring: oklch(0.5500 0.2000 302.8047);
-  --font-sans: var(--font-inter), Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
+  /* Inter first, then the Dirham face for U+20C3, then the usual fallbacks. */
+  --font-app-sans: var(--font-inter), Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
   --font-serif: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-mono: monospace;
   --radius: 0.65rem;
@@ -149,7 +150,8 @@
   --sidebar-accent-foreground: oklch(0.9851 0 0);
   --sidebar-border: oklch(0.2809 0 0);
   --sidebar-ring: oklch(0.9575 0.1596 117.3156);
-  --font-sans: var(--font-inter), Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
+  /* Inter first, then the Dirham face for U+20C3, then the usual fallbacks. */
+  --font-app-sans: var(--font-inter), Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
   --font-serif: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-mono: monospace;
   --radius: 0.65rem;
@@ -209,7 +211,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-app-sans);
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
 
