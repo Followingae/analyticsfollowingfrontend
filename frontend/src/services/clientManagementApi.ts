@@ -198,7 +198,7 @@ export const clientApi = {
       body: JSON.stringify(overrides),
     }) as Promise<{ success: boolean; data: { html: string; to: string; default_cc: string[]; fields: AccountEmailFields } }>,
 
-  sendAccountEmail: (teamId: string, payload: Partial<AccountEmailFields> & { cc?: string[] }) =>
+  sendAccountEmail: (teamId: string, payload: Partial<AccountEmailFields> & { cc?: string[]; bcc?: string[] }) =>
     authFetch(`${BASE}/${teamId}/account-email/send`, {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -217,7 +217,7 @@ export const clientApi = {
       body: JSON.stringify(payload),
     }) as Promise<{ success: boolean; data: { html: string; to: string; default_cc: string[]; subject: string; campaign_count: number } }>,
 
-  sendCampaignBriefing: (teamId: string, payload: CampaignBriefingPayload & { cc?: string[] }) =>
+  sendCampaignBriefing: (teamId: string, payload: CampaignBriefingPayload & { cc?: string[]; bcc?: string[] }) =>
     authFetch(`${BASE}/${teamId}/campaign-briefing/send`, {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -240,7 +240,7 @@ export const clientApi = {
       body: JSON.stringify(payload),
     }) as Promise<{ success: boolean; data: { html: string; to: string; subject: string; default_cc: string[] } }>,
 
-  sendCampaignUpdate: (teamId: string, payload: CampaignUpdatePayload & { cc?: string[] }) =>
+  sendCampaignUpdate: (teamId: string, payload: CampaignUpdatePayload & { cc?: string[]; bcc?: string[] }) =>
     authFetch(`${BASE}/${teamId}/campaign-update/send`, {
       method: 'POST',
       body: JSON.stringify(payload),

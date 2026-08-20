@@ -53,6 +53,7 @@ export function CampaignBriefingDialog({
   const [email, setEmail] = useState(defaultEmail || "");
   const [subject, setSubject] = useState("How to run your Following campaigns");
   const [cc, setCc] = useState("");
+  const [bcc, setBcc] = useState("");
   const [html, setHtml] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -115,6 +116,7 @@ export function CampaignBriefingDialog({
         subject: subject || undefined,
         campaign_ids: selected,
         cc: cc.split(",").map((s) => s.trim()).filter(Boolean),
+        bcc: bcc.split(",").map((s) => s.trim()).filter(Boolean),
       });
       toast.success(res?.message || `Briefing sent to ${email}`);
       onOpenChange(false);
@@ -190,6 +192,12 @@ export function CampaignBriefingDialog({
             <div className="space-y-1.5">
               <Label className="text-xs">CC (comma separated)</Label>
               <Input value={cc} onChange={(e) => setCc(e.target.value)} placeholder="ops@client.com, ..." />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">BCC (comma separated)</Label>
+              <Input value={bcc} onChange={(e) => setBcc(e.target.value)} placeholder="zain@following.ae, ..." />
+              <p className="text-[11px] text-muted-foreground">A blind copy, for the person who needs to see it without the client knowing they are on it.</p>
             </div>
 
             <Separator />

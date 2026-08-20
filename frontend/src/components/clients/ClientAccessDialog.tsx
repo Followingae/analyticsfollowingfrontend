@@ -26,6 +26,7 @@ const EMPTY: AccountEmailFields = {
 export function ClientAccessDialog({ teamId, open, onOpenChange }: Props) {
   const [fields, setFields] = useState<AccountEmailFields>(EMPTY);
   const [cc, setCc] = useState<string>("");
+  const [bcc, setBcc] = useState("");
   const [html, setHtml] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -93,7 +94,8 @@ export function ClientAccessDialog({ teamId, open, onOpenChange }: Props) {
     try {
       setSending(true);
       const ccList = cc.split(",").map((s) => s.trim()).filter(Boolean);
-      const res = await clientApi.sendAccountEmail(teamId, { ...fields, cc: ccList });
+      const bccList = bcc.split(",").map((x) => x.trim()).filter(Boolean);
+      const res = await clientApi.sendAccountEmail(teamId, { ...fields, cc: ccList, bcc: bccList });
       toast.success(res.message || "Email sent");
       onOpenChange(false);
     } catch (e: any) {
@@ -172,6 +174,12 @@ export function ClientAccessDialog({ teamId, open, onOpenChange }: Props) {
             <div className="space-y-1.5">
               <Label className="text-xs">CC (comma separated)</Label>
               <Input value={cc} onChange={(e) => setCc(e.target.value)} placeholder="zain@following.ae, ..." />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">BCC (comma separated)</Label>
+              <Input value={bcc} onChange={(e) => setBcc(e.target.value)} placeholder="someone@following.ae, ..." />
+              <p className="text-[11px] text-muted-foreground">A blind copy, for the person who needs to see it without the client knowing they are on it.</p>
               <p className="text-[11px] text-muted-foreground">zain@following.ae is enforced server-side even if removed here.</p>
             </div>
 

@@ -30,6 +30,7 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
   const [reviewUrl, setReviewUrl] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [cc, setCc] = useState("");
+  const [bcc, setBcc] = useState("");
   const [mandatoryCc, setMandatoryCc] = useState<string[]>([]);
 
   const render = async (overrides: Record<string, unknown> = {}) => {
@@ -73,6 +74,7 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
       setSending(true);
       const r = await post(`/api/v1/admin/proposals/${proposalId}/proposal-email/send`, {
         to, recipient_name: recipientName, subject, review_url: reviewUrl, cc: ccList(),
+        bcc: bcc.split(",").map((x) => x.trim()).filter(Boolean),
       });
       toast.success(r.message || "Proposal email sent");
       onOpenChange(false);
@@ -106,6 +108,13 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
                 {mandatoryCc.length > 0 && (
                   <p className="text-[11px] text-muted-foreground">Always CC&apos;d: {mandatoryCc.join(", ")}</p>
                 )}
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">BCC (comma-separated)</Label>
+                <Input value={bcc} onChange={(e) => setBcc(e.target.value)} placeholder="someone@following.ae" />
+                <p className="text-[11px] text-muted-foreground">
+                  A blind copy, for the person who needs to see it without the client knowing they are on it.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Recipient name</Label>
