@@ -22,6 +22,7 @@ import { proposalApprovalApi, type ApprovalStep } from '@/services/proposalAppro
 import { clientApi } from '@/services/clientManagementApi'
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab'
 import { TmAddCreatorsDialog } from '@/components/proposals/TmAddCreatorsDialog'
+import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
 import { PriceModifierCard } from '@/components/superadmin/proposals/PriceModifierCard'
 import { GateOverrideCard } from '@/components/superadmin/proposals/GateOverrideCard'
 
@@ -162,6 +163,12 @@ export default function ProposalApprovalPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* LEFT: influencers + TM build */}
           <div className="space-y-6 lg:col-span-2">
+            {/* How this one is sold, and which band each creator fills.
+                It lived only on the proposal record, which is not where anybody builds a
+                roster: the work happens here, so a deal bought as "three micro and one
+                nano a month" had nowhere on this page to say so. */}
+            {viewer.is_operator && <SellingMode proposalId={proposalId} />}
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>

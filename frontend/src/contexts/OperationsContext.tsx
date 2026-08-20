@@ -151,7 +151,9 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setUiState(prev => ({ ...prev, isLoading: true }));
     try {
       const response = await operationsApi.getCampaigns();
-      setCampaigns(response.campaigns);
+      // Belt as well as braces: whatever comes back, this state stays an array. Everything
+      // downstream calls .filter and .reduce on it.
+      setCampaigns(Array.isArray(response?.campaigns) ? response.campaigns : []);
     } catch (error) {
       console.error('Failed to load campaigns:', error)
       toast.error('Failed to load campaigns');
@@ -169,7 +171,7 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ]);
 
       setCurrentCampaign(campaignDetails);
-      setWorkstreams(workstreamsData.workstreams);
+      setWorkstreams(Array.isArray(workstreamsData?.workstreams) ? workstreamsData.workstreams : []);
       setCurrentWorkstream(null);
       setDeliverables([]);
       setSelectedDeliverables([]);
@@ -194,7 +196,7 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         uiState.filters.status ? { status: uiState.filters.status } : undefined
       );
 
-      setDeliverables(deliverablesData.deliverables);
+      setDeliverables(Array.isArray(deliverablesData?.deliverables) ? deliverablesData.deliverables : []);
       setSelectedDeliverables([]);
     } catch (error) {
       console.error('Failed to load workstream details:', error)

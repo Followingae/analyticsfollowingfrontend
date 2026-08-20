@@ -66,9 +66,23 @@ class OperationsApiService {
   // All methods return PARSED JSON. (They previously returned the raw fetch
   // Response, so callers' `data.deliverables` etc. were always undefined — a
   // second reason the ops surface never worked.)
+  /**
+   * A failed request has to fail.
+   *
+   * This used to hand back whatever JSON came off the wire, error bodies included, so a 500
+   * returned `{ detail: "..." }` and every caller read `.campaigns` off it as undefined.
+   * The operations page then crashed on `undefined.filter` and the screen went white, which
+   * is a far worse way to learn the API is down than a toast saying so.
+   */
   private async getJson(url: string, init?: RequestInit): Promise<any> {
     const res = await fetchWithAuth(url, init);
-    return res.json();
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(
+        (data && (data.detail || data.message)) || `Request failed (${res.status})`,
+      );
+    }
+    return data;
   }
 
   async getCampaigns(filters?: {

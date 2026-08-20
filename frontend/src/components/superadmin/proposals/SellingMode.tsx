@@ -69,6 +69,10 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
   const [bands, setBands] = useState<Record<string, any>>({})
   const [items, setItems] = useState<Item[]>([])
   const [state, setState] = useState<any>(null)
+  // What the payment structure says the deal is. A retainer for four creators a month is
+  // a tier deal whether or not anybody flipped this switch, and until now nothing on the
+  // screen pointed that out.
+  const [terms, setTerms] = useState<{ mode?: string; months?: number; creators_per_month?: number } | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -81,6 +85,7 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
       setAllowances(d.allowances || {})
       setItems(d.items || [])
       setState(d.state || null)
+      setTerms(d.terms || null)
     } catch { /* the rest of the page still works */ } finally { setLoading(false) }
   }, [proposalId])
 
@@ -179,8 +184,41 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
         </div>
       </CardHeader>
 
+      {/* The deal says one thing and the screen says another. Offer the fix rather than
+          leaving somebody to work out that these two settings are related. */}
+      {mode === 'budget' && !!terms?.creators_per_month && (
+        <CardContent className="pt-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300/60 bg-amber-50 px-4 py-3.5 dark:border-amber-900 dark:bg-amber-950/30">
+            <div className="text-[13.5px]">
+              <span className="font-medium">
+                This deal is {terms.creators_per_month} creators a month
+                {terms.months ? ` for ${terms.months} months` : ''}.
+              </span>{' '}
+              <span className="text-muted-foreground">
+                Sold by budget, the client picks against a price instead of a count.
+              </span>
+            </div>
+            <Button
+              size="sm"
+              className="rounded-xl"
+              disabled={saving}
+              onClick={() => save('tiers')}
+            >
+              Switch to picking by tier
+            </Button>
+          </div>
+        </CardContent>
+      )}
+
       {mode === 'tiers' && (
         <CardContent className="space-y-6">
+          {!!terms?.creators_per_month && (
+            <p className="text-[13px] text-muted-foreground">
+              The payment structure sells {terms.creators_per_month} creators a month, so the
+              bands below should add up to {terms.creators_per_month}.
+            </p>
+          )}
+
           {/* what they bought */}
           <div>
             <Label className="text-xs">How many of each, per month</Label>
