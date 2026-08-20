@@ -448,6 +448,18 @@ function BrandProposalViewPageContent() {
       const inf: any = data?.influencers.find((x) => x.id === id)
       const tier = inf?.tier
       const allowed = Number(allowances[tier] ?? 0)
+
+      // A band the plan never bought is not a band with no places left. A creator moved up
+      // to Mega because of what they charge is simply not on offer here.
+      if (tier && allowed === 0) {
+        const label = bands[tier]?.label || tier
+        toast.error(`${label} creators are not part of your plan`, {
+          description: "Your plan covers " +
+            tierRows.map((r) => `${r.allowed} ${r.label}`).join(" and ") + ".",
+        })
+        return
+      }
+
       if (tier && allowed > 0 && (pickedByTier[tier] || 0) >= allowed) {
         const label = bands[tier]?.label || tier
         toast.error(`All ${allowed} ${label} places are taken`, {
@@ -464,7 +476,7 @@ function BrandProposalViewPageContent() {
       return next
     })
     setSelectionDirty(true)
-  }, [isTerminal, byTier, selectedIds, data, allowances, pickedByTier, bands])
+  }, [isTerminal, byTier, selectedIds, data, allowances, pickedByTier, bands, tierRows])
 
   const toggleDeliverable = useCallback((influencerId: string, deliverable: string) => {
     if (isTerminal) return
