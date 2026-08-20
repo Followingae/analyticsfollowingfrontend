@@ -88,6 +88,11 @@ export default function PublicProposalPage() {
   const token = params.token as string
   const [data, setData] = useState<any>(null)
   const [err, setErr] = useState<string | null>(null)
+  // Which creators are being taken, and whether a request is in flight for one.
+  const [picking, setPicking] = useState<string | null>(null)
+  // Why a choice was refused, said where the choosing happens rather than in a toast
+  // that disappears before it has been read.
+  const [pickError, setPickError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -128,8 +133,34 @@ export default function PublicProposalPage() {
   )
   if (!data) return null
 
+  /** Take a creator, or put one back. The count they bought is the rule, and the server is
+   *  the one that enforces it — a refusal comes back with the reason, which is what we show. */
+  const pick = async (id: string, take: boolean) => {
+    setPicking(id)
+    try {
+      const res = await fetch(`${PUBLIC}/${token}/pick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ influencer_id: id, selected: take }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) { setPickError(j?.detail || 'Could not save that choice'); return }
+      setPickError(null)
+      await load()
+    } catch {
+      setPickError('Could not save that choice')
+    } finally { setPicking(null) }
+  }
+
+
   const { proposal, gate, agreement, advance_invoice, influencers, invoices } = data
   const schedule = proposal?.payment_schedule || []
+  // A deal sold by tier is picked by count, not by price: the client chooses so many from
+  // each band, and no creator on this page carries a figure.
+  const selection = data?.selection || { mode: 'budget' }
+  const byTier = selection.mode === 'tiers'
+  const tierState = selection.state || { tiers: [], complete: false, total_allowed: 0, total_picked: 0 }
+  const instalments = data?.instalments || []
   const total = gate?.total_influencers ?? influencers.length
   const shown = gate?.shown ?? influencers.filter((i: any) => !i.locked).length
   // Kept for the ghost-card count below; no longer surfaced as a number in the copy.
@@ -405,6 +436,37 @@ export default function PublicProposalPage() {
             </Reveal>
           )}
 
+          {byTier && tierState.tiers.length > 0 && (
+            <Reveal delay={0.04}>
+              <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="font-semibold">Your selection</div>
+                    <p className="text-sm text-muted-foreground">
+                      {tierState.complete
+                        ? 'All chosen — you can confirm below.'
+                        : `${tierState.total_picked} of ${tierState.total_allowed} chosen`}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {tierState.tiers.map((t: any) => (
+                      <span key={t.tier}
+                            className={`rounded-full px-3 py-1.5 text-[12.5px] font-medium ${
+                              t.full ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                        {t.label}: {t.picked} of {t.allowed}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                {pickError && (
+                  <p className="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
+                    {pickError}
+                  </p>
+                )}
+              </div>
+            </Reveal>
+          )}
+
           {/* grid: real cards (samples/unlocked) + ghost cards to fill anticipation */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {influencers.map((inf: any, idx: number) => {
@@ -423,12 +485,32 @@ export default function PublicProposalPage() {
                         {inf.full_name && <div className="text-sm text-muted-foreground truncate">{inf.full_name}</div>}
                       </div>
                     </div>
+                    {/* A creator we placed in a smaller band than their size — the client is
+                        getting more than they bought, so it is said out loud. */}
+                    {byTier && inf.above_band && (
+                      <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11.5px] font-medium text-primary">
+                        <Sparkles className="h-3 w-3" />Upgraded pick — counts as {inf.tier_label}
+                      </div>
+                    )}
                     <div className="mt-5 flex items-center justify-between text-sm">
                       <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                         <Users className="h-3.5 w-3.5" />{compact(inf.followers_count) ?? '0'} followers
                       </span>
-                      {inf.sell_price != null && <span className="font-semibold">{money(inf.sell_price)}</span>}
+                      {byTier
+                        ? <span className="text-xs font-medium text-muted-foreground">{inf.tier_label}</span>
+                        : (inf.sell_price != null && <span className="font-semibold">{money(inf.sell_price)}</span>)}
                     </div>
+                    {byTier && (
+                      <Button
+                        className="mt-4 w-full rounded-xl"
+                        variant={inf.selected_by_user ? 'outline' : 'default'}
+                        disabled={picking === inf.id}
+                        onClick={() => pick(inf.id, !inf.selected_by_user)}
+                      >
+                        {picking === inf.id ? 'Saving…'
+                          : inf.selected_by_user ? 'Remove from my picks' : 'Choose this creator'}
+                      </Button>
+                    )}
                   </div>
                 </Reveal>
               )

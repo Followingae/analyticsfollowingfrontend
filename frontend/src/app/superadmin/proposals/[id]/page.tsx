@@ -53,6 +53,7 @@ import {
   TrendingUp,
   Loader2,
 } from "lucide-react"
+import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
 
 export const dynamic = "force-dynamic"
 
@@ -351,6 +352,8 @@ export default function ProposalDetailPage() {
         {/* ================================================================= */}
         {/* 4. INFLUENCERS TABLE                                              */}
         {/* ================================================================= */}
+        <SellingMode proposalId={id} />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Influencers</CardTitle>
