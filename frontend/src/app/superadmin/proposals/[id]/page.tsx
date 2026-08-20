@@ -353,11 +353,7 @@ export default function ProposalDetailPage() {
         {/* ================================================================= */}
         {/* 4. CONFIRMATION — locking it, or the receipt once it is locked     */}
         {/* ================================================================= */}
-        <ConfirmationPanel
-          proposalId={id}
-          influencers={influencers as any}
-          onConfirmed={loadDetail}
-        />
+        <ConfirmationPanel proposalId={id} />
 
         {/* ================================================================= */}
         {/* 5. INFLUENCERS TABLE                                              */}
