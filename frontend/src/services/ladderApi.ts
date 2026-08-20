@@ -68,6 +68,13 @@ export interface LadderCreator {
   defaulted_at?: string | null
   cost_price_snapshot?: Record<string, number | null> | null
   sell_price_snapshot?: Record<string, number | null> | null
+  // Getting the product there. Its own little track alongside the rungs, because plenty of
+  // campaigns ship nothing and the rungs already carry an order everything else ranks against.
+  product_ready_at?: string | null
+  dispatched_at?: string | null
+  dispatch_ref?: string | null
+  received_at?: string | null
+  fulfilment_note?: string | null
 }
 
 export const ladderApi = {
@@ -117,6 +124,29 @@ export const ladderApi = {
   paid: (rowId: string, reference?: string, note?: string) =>
     jfetch(`${BASE}/campaign-creators/${rowId}/paid`, {
       method: 'POST', body: JSON.stringify({ reference, note }),
+    }),
+
+  /** Usually the whole batch at once — a client sends the stock in one delivery. */
+  productReady: (campaignId: string, creator_row_ids?: string[], note?: string) =>
+    jfetch(`${BASE}/campaigns/${campaignId}/fulfilment/product-ready`, {
+      method: 'POST', body: JSON.stringify({ creator_row_ids, note }),
+    }),
+
+  dispatch: (rowId: string, reference?: string, dispatched_on?: string, note?: string) =>
+    jfetch(`${BASE}/campaign-creators/${rowId}/fulfilment/dispatch`, {
+      method: 'POST', body: JSON.stringify({ reference, dispatched_on, note }),
+    }),
+
+  /** The moment the content clock should really start. */
+  received: (rowId: string, received_on?: string, note?: string) =>
+    jfetch(`${BASE}/campaign-creators/${rowId}/fulfilment/received`, {
+      method: 'POST', body: JSON.stringify({ received_on, note }),
+    }),
+
+  /** Undoing a step undoes the ones after it — nothing arrives that was never sent. */
+  undoFulfilment: (rowId: string, step: 'product_ready' | 'dispatched' | 'received') =>
+    jfetch(`${BASE}/campaign-creators/${rowId}/fulfilment/undo`, {
+      method: 'POST', body: JSON.stringify({ step }),
     }),
 
   drop: (rowId: string, reason: string) =>

@@ -223,12 +223,49 @@ export const clientApi = {
       body: JSON.stringify(payload),
     }) as Promise<{ success: boolean; message: string; data: { to: string; cc: string[]; campaign_count: number } }>,
 
+  // --- Campaign update email ("your campaign has moved") ---
+  updatableCampaigns: (teamId: string) =>
+    authFetch(`${BASE}/${teamId}/campaign-update/campaigns`) as Promise<{
+      success: boolean;
+      data: { campaigns: Array<{
+        campaign_id: string; campaign_name: string; hero_image_url: string | null;
+        headline: string; sub: string; highlights: string[]; has_news: boolean;
+        last_update_email_at: string | null; creators: number; live: number;
+      }> };
+    }>,
+
+  previewCampaignUpdate: (teamId: string, payload: CampaignUpdatePayload) =>
+    authFetch(`${BASE}/${teamId}/campaign-update/preview`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }) as Promise<{ success: boolean; data: { html: string; to: string; subject: string; default_cc: string[] } }>,
+
+  sendCampaignUpdate: (teamId: string, payload: CampaignUpdatePayload & { cc?: string[] }) =>
+    authFetch(`${BASE}/${teamId}/campaign-update/send`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }) as Promise<{ success: boolean; message: string; data: { to: string; campaign_id: string } }>,
+
   resetPassword: (teamId: string, password?: string) =>
     authFetch(`${BASE}/${teamId}/reset-password`, {
       method: 'POST',
       body: JSON.stringify(password ? { password } : {}),
     }) as Promise<{ success: boolean; data: { password: string; email: string }; message: string }>,
 };
+
+/** The wording is prefilled server-side from the campaign's real state; the caller may
+ *  override any of it before sending, and nothing sends by itself. */
+export interface CampaignUpdatePayload {
+  campaign_id: string;
+  recipient_name?: string;
+  headline?: string;
+  sub?: string;
+  highlights?: string[];
+  subject?: string;
+  to?: string;
+  view_url?: string;
+  cta_label?: string;
+}
 
 export interface AccountEmailFields {
   recipient_name: string;

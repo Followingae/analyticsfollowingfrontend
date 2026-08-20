@@ -28,13 +28,14 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Separator } from "@/components/ui/separator"
 import {
   ArrowLeft, Loader2, CheckCircle2, Clock, AlertTriangle, FileText, Send,
-  Image as ImageIcon, Link2, Banknote, UserMinus,
+  Image as ImageIcon, Link2, Banknote, UserMinus, PackageCheck, Truck, Undo2, Boxes,
 } from "lucide-react"
 import { toast } from "sonner"
 import { ladderApi, STAGES, type LadderCreator, type Stage } from "@/services/ladderApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { cdnAvatar } from "@/lib/avatar"
 import { CARD } from "@/components/console/primitives"
+import { SettleCosts } from "@/components/superadmin/proposals/SettleCosts"
 
 const aed = (cents?: number | null) =>
   cents == null ? null : `⃃ ${(cents / 100).toLocaleString("en-AE")}`
@@ -73,6 +74,7 @@ export default function LadderPage() {
   const [contentUrl, setContentUrl] = useState("")
   const [postUrl, setPostUrl] = useState("")
   const [payRef, setPayRef] = useState("")
+  const [courier, setCourier] = useState("")
   const [dropWhy, setDropWhy] = useState("")
 
   const load = useCallback(async () => {
@@ -100,7 +102,7 @@ export default function LadderPage() {
       await fn()
       toast.success(done)
       setRate(""); setRateNote(""); setAgreementUrl(""); setGuideUrl(""); setDue("")
-      setContentUrl(""); setPostUrl(""); setPayRef(""); setDropWhy("")
+      setContentUrl(""); setPostUrl(""); setPayRef(""); setDropWhy(""); setCourier("")
       await load()
     } catch (e) {
       toast.error((e as Error).message || "That did not go through")
@@ -118,6 +120,16 @@ export default function LadderPage() {
   }, [creators])
 
   const waiting = useMemo(() => creators.filter(c => dueState(c)?.tone !== "calm" && dueState(c)), [creators])
+
+  // The delivery track only appears once something on this campaign actually ships. Marking
+  // the batch ready is what turns it on, so it never clutters a campaign with nothing to send.
+  const shipping = useMemo(() => {
+    const live = creators.filter(c => c.stage !== "dropped")
+    const ready = live.filter(c => c.product_ready_at).length
+    const sent = live.filter(c => c.dispatched_at).length
+    const got = live.filter(c => c.received_at).length
+    return { on: ready + sent + got > 0, live: live.length, ready, sent, got }
+  }, [creators])
 
   return (
     <AuthGuard>
@@ -139,6 +151,17 @@ export default function LadderPage() {
               {waiting.length > 0 && (
                 <Badge variant="outline" className="gap-1 text-amber-600 dark:text-amber-400">
                   <Clock className="h-3 w-3" />{waiting.length} due or late
+                </Badge>
+              )}
+              <Button
+                variant="outline" size="sm" className="gap-1.5 rounded-xl" disabled={busy || !creators.length}
+                onClick={() => act(() => ladderApi.productReady(campaignId), "Everyone marked ready to dispatch")}
+              >
+                <Boxes className="h-3.5 w-3.5" />Products ready
+              </Button>
+              {shipping.on && (
+                <Badge variant="outline" className="gap-1">
+                  <Truck className="h-3 w-3" />{shipping.got}/{shipping.live} received
                 </Badge>
               )}
               {byStage.paid?.length > 0 && (
@@ -244,6 +267,7 @@ export default function LadderPage() {
               </div>
             </div>
           )}
+          {creators.length > 0 && <SettleCosts campaignId={campaignId} />}
         </div>
 
         {/* The next thing to do for this creator, and only that. */}
@@ -317,6 +341,58 @@ export default function LadderPage() {
                   </div>
 
                   <Separator />
+
+                  {/* ── getting the product there ────────────────────────────────
+                      Alongside the rungs, not inside them: it runs on its own clock,
+                      and it is the part the client watches most closely. */}
+                  {shipping.on && (
+                    <div className="space-y-2.5 rounded-xl border p-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[13px]">Delivery</Label>
+                        <span className="text-xs text-muted-foreground">
+                          {open.received_at ? `Received ${day(open.received_at)}`
+                            : open.dispatched_at ? `Sent ${day(open.dispatched_at)}`
+                              : open.product_ready_at ? "Packed" : "Not packed yet"}
+                        </span>
+                      </div>
+
+                      {!open.dispatched_at && (
+                        <>
+                          <Input placeholder="Courier reference (optional)"
+                                 value={courier} onChange={(e) => setCourier(e.target.value)} />
+                          <Button className="w-full gap-2" variant="outline" disabled={busy}
+                                  onClick={() => act(() => ladderApi.dispatch(open.id, courier || undefined), "Marked dispatched")}>
+                            <Truck className="h-4 w-4" />It has gone out
+                          </Button>
+                        </>
+                      )}
+
+                      {open.dispatched_at && !open.received_at && (
+                        <Button className="w-full gap-2" variant="outline" disabled={busy}
+                                onClick={() => act(() => ladderApi.received(open.id), "Marked received")}>
+                          <PackageCheck className="h-4 w-4" />They have it
+                        </Button>
+                      )}
+
+                      {(open.dispatched_at || open.received_at) && (
+                        <button
+                          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                          disabled={busy}
+                          onClick={() => act(
+                            () => ladderApi.undoFulfilment(open.id, open.received_at ? "received" : "dispatched"),
+                            "Taken back",
+                          )}
+                        >
+                          <Undo2 className="h-3 w-3" />
+                          Undo {open.received_at ? "received" : "dispatched"}
+                        </button>
+                      )}
+
+                      {open.dispatch_ref && (
+                        <p className="text-xs text-muted-foreground">Ref {open.dispatch_ref}</p>
+                      )}
+                    </div>
+                  )}
 
                   {/* ── the rung they are on ─────────────────────────────────── */}
                   {open.stage === "enrolled" && (

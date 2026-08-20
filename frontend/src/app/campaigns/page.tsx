@@ -474,10 +474,17 @@ function AllCampaignsTab({
   const visualFor = groupBy === "type" ? getTypeVisual : getStatusVisual;
   const tileKeys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
 
-  const openCampaign = (c: any) => {
+  // A managed campaign opens on where it is; everything else keeps its own screen. The
+  // analytics page is one click from there, and is still the landing for FA and UGC types
+  // where the progress panel IS the working view.
+  const hrefFor = (c: any) => {
     const ct = c.campaign_type || "influencer";
-    const href = ct === "ugc" ? `/campaigns/${c.id}/ugc` : `/campaigns/${c.id}/posts`;
-    router.push(href);
+    if (ct === "ugc") return `/campaigns/${c.id}/ugc`;
+    return ct === "influencer" ? `/campaigns/${c.id}` : `/campaigns/${c.id}/posts`;
+  };
+
+  const openCampaign = (c: any) => {
+    router.push(hrefFor(c));
   };
 
   const fmtCompact = (n: number) =>
@@ -731,14 +738,10 @@ function AllCampaignsTab({
                     key={campaign.id}
                     className="cursor-pointer hover:bg-muted/40 transition-colors"
                     onClick={() => {
-                      const ct = c.campaign_type || "influencer";
                       // FA types (cashback / paid_deal / barter) use the same progress
                       // panel as superadmin (/posts → FaCampaignProgressPanel), which
                       // surfaces pending applicants and approves via the participant flow.
-                      const href = ct === "ugc"
-                        ? `/campaigns/${campaign.id}/ugc`
-                        : `/campaigns/${campaign.id}/posts`;
-                      router.push(href);
+                      router.push(hrefFor({ ...c, id: campaign.id }));
                     }}
                   >
                     <TableCell>

@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { ClientAccessDialog } from '@/components/clients/ClientAccessDialog';
 import { CampaignBriefingDialog } from '@/components/clients/CampaignBriefingDialog';
+import { CampaignUpdateDialog } from '@/components/clients/CampaignUpdateDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/clientManagementApi';
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
@@ -119,6 +120,7 @@ function ClientDetailPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
 
   const handleAssignAM = async (value: string) => {
@@ -278,6 +280,9 @@ function ClientDetailPage() {
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setBriefingOpen(true)}>
             <Mail className="h-4 w-4" /> Campaign briefing
           </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setUpdateOpen(true)}>
+            <Mail className="h-4 w-4" /> Campaign update
+          </Button>
           <span className="text-xs text-muted-foreground whitespace-nowrap">Account Manager</span>
           <Select value={client.account_manager_id || 'unassigned'} onValueChange={handleAssignAM}>
             <SelectTrigger className="h-8 w-52 text-sm">
@@ -298,6 +303,13 @@ function ClientDetailPage() {
         teamId={teamId}
         open={briefingOpen}
         onOpenChange={setBriefingOpen}
+        defaultEmail={client.owner_email || undefined}
+        defaultName={(client.owner_name || '').split(' ')[0]}
+      />
+      <CampaignUpdateDialog
+        teamId={teamId}
+        open={updateOpen}
+        onOpenChange={setUpdateOpen}
         defaultEmail={client.owner_email || undefined}
         defaultName={(client.owner_name || '').split(' ')[0]}
       />

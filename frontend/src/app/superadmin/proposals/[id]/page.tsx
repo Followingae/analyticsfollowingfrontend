@@ -54,6 +54,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
+import { ConfirmationPanel } from '@/components/superadmin/proposals/ConfirmationPanel'
 
 export const dynamic = "force-dynamic"
 
@@ -350,7 +351,16 @@ export default function ProposalDetailPage() {
         </Card>
 
         {/* ================================================================= */}
-        {/* 4. INFLUENCERS TABLE                                              */}
+        {/* 4. CONFIRMATION — locking it, or the receipt once it is locked     */}
+        {/* ================================================================= */}
+        <ConfirmationPanel
+          proposalId={id}
+          influencers={influencers as any}
+          onConfirmed={loadDetail}
+        />
+
+        {/* ================================================================= */}
+        {/* 5. INFLUENCERS TABLE                                              */}
         {/* ================================================================= */}
         <SellingMode proposalId={id} />
 
