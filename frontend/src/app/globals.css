@@ -85,8 +85,11 @@
   --sidebar-accent-foreground: oklch(0.2435 0 0);
   --sidebar-border: oklch(0.9037 0 0);
   --sidebar-ring: oklch(0.5500 0.2000 302.8047);
-  /* Inter first, then the Dirham face for U+20C3, then the usual fallbacks. */
-  --font-app-sans: var(--font-inter), Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
+  /* Inter first, then the Dirham face for U+20C3, then the usual fallbacks.
+   * The fallback inside var() is load-bearing: next/font defines --font-inter on <body>,
+   * not on :root, and a var() naming an undefined variable makes the whole declaration
+   * invalid at computed-value time — which left the app with no font stack at all. */
+  --font-app-sans: var(--font-inter, Inter), Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
   --font-serif: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-mono: monospace;
   --radius: 0.65rem;
@@ -151,7 +154,7 @@
   --sidebar-border: oklch(0.2809 0 0);
   --sidebar-ring: oklch(0.9575 0.1596 117.3156);
   /* Inter first, then the Dirham face for U+20C3, then the usual fallbacks. */
-  --font-app-sans: var(--font-inter), Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
+  --font-app-sans: var(--font-inter, Inter), Geist, "Dirham-Sans", ui-sans-serif, sans-serif, system-ui;
   --font-serif: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-mono: monospace;
   --radius: 0.65rem;
