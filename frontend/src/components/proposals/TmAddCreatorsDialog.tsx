@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Search, UserPlus, Check, Minus, Plus, Users, ListPlus, X, Globe, ArrowUpDown } from "lucide-react";
+import { Loader2, Search, UserPlus, Check, Minus, Plus, Users, ListPlus, X, Globe, ArrowUpDown, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { proposalApprovalApi } from "@/services/proposalApprovalApi";
 import { imdListsApi, type ImdListSummary } from "@/services/imdListsApi";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { API_CONFIG } from "@/config/api";
+import { fetchWithAuth } from "@/utils/apiInterceptor";
 
 const DELIVERABLES = ["post", "story", "reel", "carousel", "video", "bundle", "monthly"] as const;
 const PAGE_SIZE = 40;
@@ -19,8 +24,106 @@ const ANY_COUNTRY = "__any__";
 interface Creator {
   id: string; username: string; full_name?: string; profile_image_url?: string; profile_pic_url?: string;
   followers_count?: number; engagement_rate?: number; tier?: string; country?: string | null;
+  /** Whether we hold a sell price for them at all. Decided on the server, because a talent
+   *  manager never sees the sell side and could not work it out from the row. */
+  sellable?: boolean;
 }
 type Selected = Record<string, { creator: Creator; deliverables: Record<string, number> }>;
+
+/** "3 have no sell price yet (@a, @b) · 1 already on this proposal" — reasons, not a count. */
+function summariseSkips(skipped: { username?: string | null; reason: string }[]) {
+  const by = new Map<string, string[]>();
+  for (const s of skipped) {
+    const list = by.get(s.reason) || [];
+    if (s.username) list.push("@" + s.username);
+    by.set(s.reason, list);
+  }
+  return [...by.entries()]
+    .map(([reason, names]) => {
+      const n = skipped.filter((s) => s.reason === reason).length;
+      const who = names.length ? ` (${names.slice(0, 4).join(", ")}${names.length > 4 ? "…" : ""})` : "";
+      return reason === "no sell price"
+        ? `${n} ${n === 1 ? "has" : "have"} no sell price yet${who}`
+        : `${n} ${reason}${who}`;
+    })
+    .join(" · ");
+}
+
+/**
+ * Price them here, now.
+ *
+ * Hitting an unpriced creator in the picker is the moment somebody knows what they should
+ * cost — and, if that somebody is a founder, the moment they are allowed to say so. Sending
+ * them to the database screen and back is how a creator stays unpriced for a month, so the
+ * price is set on the spot and the row goes live underneath them.
+ *
+ * Only the sell side is asked for, because only the sell side blocks a quote. The cost is
+ * talent's to record, and offering it here would invite it to be guessed.
+ */
+function PriceInline({ creator, onPriced }: { creator: Creator; onPriced: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [prices, setPrices] = useState<Record<string, string>>({});
+
+  const save = async () => {
+    const sell_pricing: Record<string, number> = {};
+    for (const [k, v] of Object.entries(prices)) {
+      const n = Number(v);
+      if (v !== "" && Number.isFinite(n) && n > 0) sell_pricing[k] = n;
+    }
+    if (!Object.keys(sell_pricing).length) { toast.error("Type at least one price"); return; }
+    setSaving(true);
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/admin/influencers/${creator.id}/pricing`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sell_pricing }) },
+      );
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j?.detail || "Could not save the price");
+      toast.success(j.message || `@${creator.username} priced`);
+      setOpen(false);
+      onPriced();
+    } catch (e) {
+      toast.error((e as Error).message || "Could not save the price");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="outline" className="h-7 shrink-0 gap-1 text-xs">
+          <Tag className="h-3 w-3" />Price them
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72">
+        <p className="text-sm font-medium">What do we charge for @{creator.username}?</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          In AED. Fill only the ones we sell — the rest can wait.
+        </p>
+        <div className="mt-3 space-y-2">
+          {(["reel", "post", "story"] as const).map((d) => (
+            <div key={d} className="flex items-center gap-2">
+              <Label className="w-16 shrink-0 text-xs capitalize">{d}</Label>
+              <Input
+                inputMode="decimal"
+                value={prices[d] ?? ""}
+                placeholder="0"
+                onChange={(e) => setPrices((p) => ({ ...p, [d]: e.target.value.replace(/[^\d.]/g, "") }))}
+                className="h-8 text-right tabular-nums"
+              />
+            </div>
+          ))}
+        </div>
+        <Button onClick={save} disabled={saving} size="sm" className="mt-3 w-full gap-1.5">
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+          Save and make them selectable
+        </Button>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function fmt(n?: number) {
   if (!n) return "0";
@@ -46,6 +149,8 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
   const [loadingMore, setLoadingMore] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<Selected>({});
+  // Only a founder may say what we charge. Everyone else sees the badge and knows to ask.
+  const { canSeeMargin: isLeadership } = useAdminAccess();
   const [lists, setLists] = useState<ImdListSummary[]>([]);
   const [addingList, setAddingList] = useState(false);
 
@@ -97,6 +202,16 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
   }, [search, country, sort]);
 
   const toggle = (c: Creator) => {
+    // Nobody can be quoted without a sell price, so taking them would only produce a row
+    // the builder has to delete again — and, until now, a toast blaming a duplicate.
+    if (c.sellable === false) {
+      toast.error(`@${c.username} has no sell price yet`, {
+        description: isLeadership
+          ? "Use “Price them” on their row to set one."
+          : "Ask a founder to price them and they become selectable.",
+      });
+      return;
+    }
     setSelected((prev) => {
       const next = { ...prev };
       if (next[c.id]) delete next[c.id];
@@ -108,9 +223,10 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
   const selectAllVisible = () => {
     setSelected((prev) => {
       const next = { ...prev };
-      const allOn = results.every((c) => next[c.id]);
-      if (allOn) results.forEach((c) => delete next[c.id]);
-      else results.forEach((c) => { if (!next[c.id]) next[c.id] = { creator: c, deliverables: { reel: 1 } }; });
+      const pickable = results.filter((c) => c.sellable !== false);
+      const allOn = pickable.every((c) => next[c.id]);
+      if (allOn) pickable.forEach((c) => delete next[c.id]);
+      else pickable.forEach((c) => { if (!next[c.id]) next[c.id] = { creator: c, deliverables: { reel: 1 } }; });
       return next;
     });
   };
@@ -141,16 +257,14 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
         }))
         .filter((a) => a.deliverables.length > 0);
       const res = await proposalApprovalApi.addFromDb(proposalId, { influencer_ids, deliverable_assignments });
-      // Report what the backend ACTUALLY added. It silently skips anyone already on the
-      // proposal, and this used to fall back to influencer_ids.length — so adding 10 where
-      // 7 were already there cheerfully claimed "10 added".
-      const added = res?.data?.added;
-      const skipped = typeof added === "number" ? influencer_ids.length - added : 0;
-      toast.success(
-        typeof added === "number"
-          ? `Added ${added} creator${added === 1 ? "" : "s"}${skipped > 0 ? ` — ${skipped} already on this proposal` : ""}`
-          : `Added ${influencer_ids.length} creator(s)`,
-      );
+      // What the server actually did, and its reasons. This used to subtract the count and
+      // call the difference "already on this proposal" — which sent somebody hunting for a
+      // creator who was not on it at all. The real answer is usually "no sell price yet".
+      const added = res?.data?.added ?? 0;
+      const skipped: { username?: string | null; reason: string }[] = res?.data?.skipped ?? [];
+      toast.success(`Added ${added} creator${added === 1 ? "" : "s"}`, {
+        description: skipped.length ? summariseSkips(skipped) : undefined,
+      });
       onAdded?.();
       onOpenChange(false);
     } catch (e) {
@@ -164,8 +278,11 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
     try {
       setAddingList(true);
       const res = await imdListsApi.addToProposal(listId, proposalId);
-      const { added = 0, skipped = 0 } = res?.data ?? {};
-      toast.success(`Added ${added} creator${added === 1 ? "" : "s"}${skipped > 0 ? ` — ${skipped} already on this proposal` : ""}`);
+      const added = res?.data?.added ?? 0;
+      const detail: { username?: string | null; reason: string }[] = res?.data?.skipped_detail ?? [];
+      toast.success(`Added ${added} creator${added === 1 ? "" : "s"}`, {
+        description: detail.length ? summariseSkips(detail) : undefined,
+      });
       onAdded?.();
       onOpenChange(false);
     } catch (e) {
@@ -181,7 +298,8 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
         <DialogHeader className="border-b p-5">
           <DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4" /> Add creators from the master database</DialogTitle>
           <DialogDescription>
-            Only priced (active) creators appear. Anyone already on this proposal is hidden.
+            Active creators only, and anyone already on this proposal is hidden. A creator with
+            no sell price yet is shown, and a founder can price them from their row.
           </DialogDescription>
         </DialogHeader>
 
@@ -272,9 +390,14 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
               {results.map((c) => {
                 const sel = selected[c.id];
                 return (
-                  <div key={c.id} className={`rounded-xl border p-3 transition-colors ${sel ? "border-primary/40 bg-primary/5" : ""}`}>
+                  <div key={c.id} className={`rounded-xl border p-3 transition-colors ${sel ? "border-primary/40 bg-primary/5" : ""} ${c.sellable === false ? "opacity-70" : ""}`}>
                     <div className="flex items-center gap-3">
-                      <button type="button" onClick={() => toggle(c)} className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${sel ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}>
+                      <button
+                        type="button"
+                        onClick={() => toggle(c)}
+                        disabled={c.sellable === false}
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${sel ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"} ${c.sellable === false ? "cursor-not-allowed opacity-40" : ""}`}
+                      >
                         {sel && <Check className="h-3.5 w-3.5" />}
                       </button>
                       <Avatar className="h-9 w-9"><AvatarImage src={c.profile_image_url || c.profile_pic_url} /><AvatarFallback>{(c.username || "?")[0]?.toUpperCase()}</AvatarFallback></Avatar>
@@ -288,6 +411,27 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
                       </div>
                       {c.country && <Badge variant="secondary" className="shrink-0">{c.country}</Badge>}
                       {c.tier && <Badge variant="outline" className="shrink-0 capitalize">{c.tier}</Badge>}
+                      {c.sellable === false && (
+                        <>
+                          <Badge variant="outline" className="shrink-0 border-amber-400 text-amber-700 dark:text-amber-400">
+                            No sell price
+                          </Badge>
+                          {isLeadership && (
+                            <PriceInline
+                              creator={c}
+                              onPriced={() => {
+                                // The row becomes usable where it stands, and ticks itself:
+                                // pricing somebody in the picker means you want them.
+                                setResults((prev) => prev.map((r) =>
+                                  r.id === c.id ? { ...r, sellable: true } : r));
+                                setSelected((prev) => prev[c.id] ? prev : ({
+                                  ...prev, [c.id]: { creator: { ...c, sellable: true }, deliverables: { reel: 1 } },
+                                }));
+                              }}
+                            />
+                          )}
+                        </>
+                      )}
                     </div>
 
                     {sel && (

@@ -193,7 +193,14 @@ export const imdListsApi = {
     jfetch(`${BASE}/imd-lists/${id}/items/${influencerId}`, { method: 'DELETE' }),
 
   /** Returns { added, skipped, list_size } — skipped were already on the proposal. */
-  addToProposal: (id: string, proposalId: string): Promise<{ data: { added: number; skipped: number; list_size: number } }> =>
+  addToProposal: (id: string, proposalId: string): Promise<{
+    data: {
+      added: number; skipped: number; list_size: number;
+      /** Why each one was skipped — "no sell price" far more often than a duplicate. */
+      skipped_detail?: { influencer_db_id: string; username?: string | null; reason: string }[];
+      unpriced?: (string | null)[]; duplicates?: (string | null)[];
+    }
+  }> =>
     jfetch(`${BASE}/imd-lists/${id}/add-to-proposal/${proposalId}`, { method: 'POST', body: '{}' }),
 
   /**
