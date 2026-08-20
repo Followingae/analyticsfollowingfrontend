@@ -281,22 +281,47 @@ function BrandProposalViewPageContent() {
   const showPricing =
     data?.proposal.visible_fields?.show_sell_pricing !== false
 
-  // Group by batch_number — only show headers when there are ≥2 batches so batch 1 stays clean.
-  const batches = useMemo(() => {
-    const groups = new Map<number, { batch: number; addedAt?: string; items: BrandInfluencer[] }>()
-    for (const inf of sortedInfluencers) {
-      const b = inf.batch_number ?? 1
-      if (!groups.has(b)) groups.set(b, { batch: b, addedAt: inf.added_at, items: [] })
-      const group = groups.get(b)!
-      group.items.push(inf)
-      if (inf.added_at && (!group.addedAt || inf.added_at < group.addedAt)) group.addedAt = inf.added_at
+  /* Sold by tier: the client buys a count from each band and never sees a price. The bands
+     and the caps come from the server, which enforces them too, so the screen and the rule
+     cannot drift apart. */
+  const selection = (data as any)?.selection
+  const byTier = selection?.mode === "tiers"
+  const bands: Record<string, any> = selection?.bands || {}
+  const allowances: Record<string, number> = selection?.allowances || {}
+
+  /** How many of each band are ticked right now, counted off the live selection rather
+      than off what was last saved. */
+  const pickedByTier = useMemo(() => {
+    const out: Record<string, number> = {}
+    if (!byTier || !data) return out
+    for (const inf of data.influencers as any[]) {
+      if (!selectedIds.has(inf.id)) continue
+      const t = inf.tier
+      if (t) out[t] = (out[t] || 0) + 1
     }
-    // NEWEST batch first. This used to run ascending, so a brand opening a proposal we
-    // had added to five times landed on the oldest round and had to scroll past
-    // everything they had already reviewed to reach what was new.
-    return Array.from(groups.values()).sort((a, b) => b.batch - a.batch)
-  }, [sortedInfluencers])
-  const showBatchHeaders = batches.length > 1
+    return out
+  }, [byTier, data, selectedIds])
+
+  const tierRows = useMemo(
+    () =>
+      Object.entries(allowances)
+        .filter(([, want]) => Number(want) > 0)
+        .map(([tier, want]) => ({
+          tier,
+          label: bands[tier]?.label || tier.charAt(0).toUpperCase() + tier.slice(1),
+          allowed: Number(want),
+          picked: pickedByTier[tier] || 0,
+        })),
+    [allowances, bands, pickedByTier],
+  )
+  const tierComplete =
+    tierRows.length > 0 && tierRows.every((r) => r.picked >= r.allowed)
+
+  /* One roster.
+     The list used to be cut into "Batch 1", "Batch 2" and so on, which is our filing
+     rather than their shortlist: a client looking at people to hire does not care which
+     afternoon we added them, and the headers made the same page look like several. The
+     newest are still first, so anything we added since they last looked is at the top. */
 
   // Every real value per metric, sorted, so a card can rank its creator against the rest
   // of the proposal. Zeros and nulls are excluded, not treated as lows — a creator whose
@@ -370,14 +395,9 @@ function BrandProposalViewPageContent() {
 
     const draggedId = active.id as string
 
-    // Dropped on sidebar → select
+    // Dropped on sidebar → select. Same cap as the tick: two ways in, one rule.
     if (over.id === "selection-sidebar" && !selectedIds.has(draggedId)) {
-      setSelectedIds((prev) => {
-        const next = new Set(prev)
-        next.add(draggedId)
-        return next
-      })
-      setSelectionDirty(true)
+      toggleInfluencer(draggedId)
     }
   }
 
@@ -397,6 +417,22 @@ function BrandProposalViewPageContent() {
 
   const toggleInfluencer = useCallback((id: string) => {
     if (isTerminal) return
+
+    /* On a tier deal the band is full or it is not. Stopping the tick here, with the
+       reason, beats letting them build a selection of 27 and refusing it at the end. */
+    if (byTier && !selectedIds.has(id)) {
+      const inf: any = data?.influencers.find((x) => x.id === id)
+      const tier = inf?.tier
+      const allowed = Number(allowances[tier] ?? 0)
+      if (tier && allowed > 0 && (pickedByTier[tier] || 0) >= allowed) {
+        const label = bands[tier]?.label || tier
+        toast.error(`Your ${label} places are full`, {
+          description: `This proposal includes ${allowed} ${label} creator${allowed === 1 ? "" : "s"}. Remove one to choose another.`,
+        })
+        return
+      }
+    }
+
     setSelectedIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -404,7 +440,7 @@ function BrandProposalViewPageContent() {
       return next
     })
     setSelectionDirty(true)
-  }, [isTerminal])
+  }, [isTerminal, byTier, selectedIds, data, allowances, pickedByTier, bands])
 
   const toggleDeliverable = useCallback((influencerId: string, deliverable: string) => {
     if (isTerminal) return
@@ -664,6 +700,48 @@ function BrandProposalViewPageContent() {
           {/* Description + Notes + KPIs                                     */}
           {/* ============================================================= */}
           <div className="px-4 md:px-6 lg:px-8">
+            {/* What this deal includes.
+                On a tier proposal the client is not shopping against a price, they are
+                filling places: three macro and one micro, say. Without this the page asked
+                them to pick from 27 creators with nothing telling them how many they were
+                entitled to, and they could tick all of them. */}
+            {byTier && tierRows.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="my-6 rounded-xl border border-border/60 bg-card p-5"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold">What your plan includes</p>
+                    <p className="mt-1 text-[13px] text-muted-foreground">
+                      {tierComplete
+                        ? "Every place is filled. You can confirm below."
+                        : "Choose this many from each group. Prices are already agreed in your plan."}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {tierRows.map((r) => {
+                      const full = r.picked >= r.allowed
+                      return (
+                        <div
+                          key={r.tier}
+                          className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-medium ${
+                            full
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {r.label} {r.picked} of {r.allowed}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {/* KPI strip */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -684,9 +762,11 @@ function BrandProposalViewPageContent() {
                   label: "Selected",
                   value: selectedIds.size,
                   isNumber: true,
-                  sub: selectedIds.size === 0
-                    ? "none yet"
-                    : `of ${summary.total_influencers} creators`,
+                  sub: byTier && tierRows.length
+                    ? `of ${tierRows.reduce((n, r) => n + r.allowed, 0)} places`
+                    : selectedIds.size === 0
+                      ? "none yet"
+                      : `of ${summary.total_influencers} creators`,
                   subClass: selectedIds.size > 0 ? "text-emerald-600 dark:text-emerald-400" : undefined,
                 },
                 ...(showPricing && (proposal as any).total_budget
@@ -813,33 +893,10 @@ function BrandProposalViewPageContent() {
               <div>
                 {viewMode === "grid" ? (
                   <div className="space-y-8">
-                    {batches.map((group) => (
-                      <div key={group.batch} className="space-y-3">
-                        {showBatchHeaders && (
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold">
-                                Batch {group.batch}
-                              </span>
-                              {group.batch > 1 && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium uppercase tracking-wide">
-                                  New
-                                </span>
-                              )}
-                              <span className="text-xs text-muted-foreground">
-                                {group.items.length} creator{group.items.length === 1 ? "" : "s"}
-                              </span>
-                              {group.addedAt && (
-                                <span className="text-xs text-muted-foreground">
-                                  · added {new Date(group.addedAt).toLocaleDateString()}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex-1 h-px bg-border/60" />
-                          </div>
-                        )}
+                    {(
+                      <div className="space-y-3">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {group.items.map((inf, i) => (
+                          {sortedInfluencers.map((inf, i) => (
                             <motion.div
                               key={inf.id}
                               initial={{ opacity: 0, y: 20 }}
@@ -869,7 +926,7 @@ function BrandProposalViewPageContent() {
                           ))}
                         </div>
                       </div>
-                    ))}
+                    )}
 
                     {sortedInfluencers.length === 0 && (
                       <div className="text-center py-16">
