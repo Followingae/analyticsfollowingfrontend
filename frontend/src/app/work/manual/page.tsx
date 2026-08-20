@@ -219,6 +219,22 @@ const SLIDES: Slide[] = [
     handover: 'Yes, no, or “show me more” — all three arrive on the account manager’s Today.',
   },
   {
+    id: 'confirm', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: ShieldCheck,
+    title: 'They say yes',
+    lede: 'Most clients confirm by email or on a call rather than in the platform. That yes can be locked here, and the campaign opens the moment it is.',
+    does: [
+      'Confirm on their behalf: tick who they took, say how they told us, paste what they said.',
+      'The campaign opens exactly as their own confirmation would have opened it.',
+      'Then the real costs: what we actually pay each creator after negotiating, against what we quoted.',
+    ],
+    where: [{ label: 'Proposals', href: '/work/proposals' }],
+    helps: [
+      'A proposal stops sitting at “sent” while the work has already started.',
+      'The margin on the campaign becomes a real number rather than a guess built on quotes.',
+    ],
+    handover: 'Their copy of the proposal keeps the roster and the agreed total — the per-creator prices come off once it is locked.',
+  },
+  {
     id: 'paper', kind: 'stop', who: 'Sana with a founder', role: 'Account management', icon: ClipboardCheck,
     title: 'Agreement and invoice',
     lede: 'The commercial half. This is the client’s money, which makes it leadership’s to confirm.',
@@ -236,6 +252,7 @@ const SLIDES: Slide[] = [
     lede: 'Eight rungs in order, one row per creator. The board is the truth — a creator is wherever the platform says they are.',
     does: [
       'Booked → rate agreed → a founder confirms it → agreement back → guide sent → content in → approved → posted.',
+      'If anything ships: mark the batch packed, then per creator when it goes out and when they have it.',
       'The platform chases the creator for you: four days out, two, one, on the day, then overdue.',
       'Someone who never delivers is marked missed, and it counts against their reliability score.',
     ],
@@ -244,7 +261,7 @@ const SLIDES: Slide[] = [
       'The chasing is automatic: four days out, two, one, on the day, then overdue.',
       'The payable is written from the confirmed rate, so nobody has to reconcile it later.',
     ],
-    handover: 'Posting writes the payable from the confirmed rate, so what we pay is what was agreed.',
+    handover: 'Everything you mark here is what the client sees on their own campaign page, in their words.',
   },
   {
     id: 'pay', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: HandCoins,
