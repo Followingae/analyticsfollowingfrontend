@@ -39,6 +39,8 @@ type State = {
   total_sell_amount?: number | null
   contract_value_aed?: number | null
   total_budget?: number | null
+  /** What they actually agreed: the roster they took, worked out server-side. */
+  agreed_total_aed?: number | null
   selection_mode?: string | null
 }
 
@@ -70,7 +72,10 @@ export function ConfirmationPanel({ proposalId }: { proposalId: string }) {
 
   // ── the receipt, and the costs it opens ────────────────────────────────────────────────
   if (locked) {
-    const agreed = state.contract_value_aed || state.total_sell_amount || state.total_budget
+    // Read, not derived. This used to fall back to total_sell_amount — the sum of every
+    // creator we quoted — so a proposal where they took 15 of 124 showed half a million
+    // dirhams of things nobody bought as the agreed figure.
+    const agreed = state.agreed_total_aed
     return (
       <div className="space-y-6">
       <Card className="border-emerald-200 bg-emerald-50/40 dark:border-emerald-900 dark:bg-emerald-950/20">
@@ -106,6 +111,11 @@ export function ConfirmationPanel({ proposalId }: { proposalId: string }) {
             <div>
               <div className="text-[11.5px] uppercase tracking-wide text-muted-foreground">Agreed total</div>
               <div className="text-base font-semibold tabular-nums"><Aed>{money(agreed)}</Aed></div>
+              {!!state.rates_total && (
+                <div className="text-[12px] text-muted-foreground">
+                  {state.rates_total} creator{state.rates_total === 1 ? "" : "s"} confirmed
+                </div>
+              )}
             </div>
             {!!state.rates_total && (
               <div>
