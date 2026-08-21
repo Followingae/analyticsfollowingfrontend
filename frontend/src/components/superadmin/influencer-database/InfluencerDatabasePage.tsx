@@ -253,22 +253,73 @@ export function InfluencerDatabasePage() {
     }
   }, [])
 
-  const activeJobCount = useMemo(
-    () => Object.values(statusMap).filter((s) => !["completed", "failed", "skipped"].includes(s.status)).length,
-    [statusMap]
+  /* Who is actually being analysed, by name.
+   *
+   * A count on its own is unactionable: "2 influencers are being analysed" for three days
+   * tells you something is wrong and nothing about what. These are the rows, so they can be
+   * chased, retried or stopped. */
+  const activeJobs = useMemo(
+    () =>
+      Object.entries(statusMap)
+        .filter(([, s]) =>
+          !["completed", "failed", "skipped", "unavailable", "not_started"].includes(s.status))
+        .map(([id, s]) => ({
+          id,
+          username: influencers.find((i) => String(i.id) === id)?.username || id.slice(0, 8),
+          status: s.status,
+          progress: s.progress,
+          message: s.progressMessage,
+        })),
+    [statusMap, influencers]
   )
+  const activeJobCount = activeJobs.length
+
+  const stopAnalytics = useCallback(async (influencerId: string) => {
+    try {
+      await superadminApiService.cancelAnalytics(influencerId)
+      toast.success("Stopped")
+      fetchData()
+    } catch {
+      toast.error("Could not stop that one")
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedIdsArray = useMemo(() => Array.from(selectedIds), [selectedIds])
 
   return (
     <div className="space-y-6">
-      {hasActiveJobs && (
+      {hasActiveJobs && activeJobCount > 0 && (
         <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <AlertTitle>Analytics Processing</AlertTitle>
+          <AlertTitle>
+            Analysing {activeJobCount} creator{activeJobCount === 1 ? "" : "s"}
+          </AlertTitle>
           <AlertDescription>
-            {activeJobCount} influencer(s) are being analyzed in the background.
-            Status updates automatically.
+            <div className="mt-2 space-y-1.5">
+              {activeJobs.map((j) => (
+                <div key={j.id} className="flex flex-wrap items-center gap-2 text-[13px]">
+                  <span className="font-medium">@{j.username}</span>
+                  <span className="text-muted-foreground">
+                    {j.message || j.status}
+                    {j.progress ? ` · ${j.progress}%` : ""}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => triggerRetry(j.id)}
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    Start again
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => stopAnalytics(j.id)}
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    Stop
+                  </button>
+                </div>
+              ))}
+            </div>
           </AlertDescription>
         </Alert>
       )}

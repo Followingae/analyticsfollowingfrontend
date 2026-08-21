@@ -524,6 +524,13 @@ export class SuperadminApiService {
     return raw
   }
 
+  /** Stop a run that is going nowhere, so the creator can be dealt with. */
+  async cancelAnalytics(id: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/api/v1/admin/influencer-database/${id}/cancel-analytics`, {
+      method: 'POST',
+    })
+  }
+
   async triggerInfluencerAnalytics(id: string): Promise<ApiResponse<any>> {
     const raw = await this.makeRequest(`/api/v1/admin/influencer-database/${id}/trigger-analytics`, {
       method: 'POST'

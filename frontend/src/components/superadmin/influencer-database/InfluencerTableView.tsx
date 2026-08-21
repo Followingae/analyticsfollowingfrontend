@@ -181,28 +181,49 @@ export function InfluencerTableView({
         ) : (
           <span className="text-muted-foreground">--</span>
         )
-      case "categories":
+      case "categories": {
+        /* What somebody tagged them as, or failing that what the analytics decided they
+           post about. 136 of 315 creators carry no tag at all, and an empty cell says
+           nothing about whether we simply never got round to them. */
+        const cats: string[] =
+          (inf.categories?.length ? inf.categories : (inf as any).ai_content_categories) || []
+        if (!cats.length) return <span className="text-muted-foreground">--</span>
         return (
-          <div className="flex flex-wrap gap-1 max-w-[200px]">
-            {(inf.categories || []).slice(0, 2).map((cat) => (
+          <div className="flex max-w-[200px] flex-wrap gap-1">
+            {cats.slice(0, 2).map((cat) => (
               <Badge key={cat} variant="secondary" className="text-[10px] capitalize">
                 {cat}
               </Badge>
             ))}
-            {(inf.categories || []).length > 2 && (
+            {cats.length > 2 && (
               <Badge variant="outline" className="text-[10px]">
-                +{inf.categories.length - 2}
+                +{cats.length - 2}
               </Badge>
             )}
           </div>
         )
+      }
       case "tier": {
-        const tier = inf.tier
-        if (!tier) return <span className="text-muted-foreground">--</span>
-        const opt = TIER_OPTIONS.find((t) => t.value === tier)
+        /* The BAND, not the pricing tier.
+         *
+         * `tier` on this table means standard / premium / exclusive, and 292 of 315
+         * creators have never been given one, so this column was blank for almost the whole
+         * database. The band is nano / micro / macro / mega, it is what proposals are sold
+         * in, and the server works it out from follower count for anyone we have measured.
+         * A band somebody set by hand is marked, because that is a decision rather than
+         * arithmetic. */
+        const band = (inf as any).band_label as string | undefined
+        const derived = (inf as any).band_derived as boolean | undefined
+        if (!band) return <span className="text-muted-foreground">--</span>
         return (
-          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${opt?.color ?? ""}`}>
-            {opt?.label ?? tier}
+          <span
+            title={derived ? "From their follower count" : "Set by hand"}
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+              derived ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
+            }`}
+          >
+            {band}
+            {!derived && <span className="text-[9px]">•</span>}
           </span>
         )
       }

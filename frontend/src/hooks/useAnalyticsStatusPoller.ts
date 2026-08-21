@@ -21,7 +21,14 @@ export interface AnalyticsStatusMap {
 // 'unavailable' is terminal: Instagram will not expose this profile (private, restricted,
 // or the account is gone), so no amount of polling or re-running changes it. Omitting it
 // here would leave the table polling this creator every 5s forever.
-const TERMINAL_STATUSES = new Set(["completed", "failed", "skipped", "unavailable"])
+/* Every state that is not work in progress.
+ *
+ * `not_started` belongs here and is the important one: a creator nobody has ever analysed
+ * is not a creator being analysed. Defaulting a missing status to "pending" is what put
+ * "2 influencers are being analyzed" on the screen for days with no job anywhere near them. */
+const TERMINAL_STATUSES = new Set([
+  "completed", "failed", "skipped", "unavailable", "not_started",
+])
 const POLL_INTERVAL_MS = 5000
 
 export function useAnalyticsStatusPoller(
@@ -59,7 +66,7 @@ export function useAnalyticsStatusPoller(
         for (const row of rows) {
           const id = String(row.id)
           newMap[id] = {
-            status: row.analytics_status || "pending",
+            status: row.analytics_status || "not_started",
             progress: row.analytics_progress || 0,
             progressMessage: row.analytics_progress_message || undefined,
             error: row.analytics_error || undefined,
@@ -67,20 +74,23 @@ export function useAnalyticsStatusPoller(
           }
 
           // Track newly completed IDs
-          if (
-            TERMINAL_STATUSES.has(row.analytics_status) &&
-            previouslyActiveRef.current.has(id)
-          ) {
+          const state = row.analytics_status || "not_started"
+          if (TERMINAL_STATUSES.has(state) && previouslyActiveRef.current.has(id)) {
             newCompleted.push(id)
             previouslyActiveRef.current.delete(id)
           }
 
-          if (!TERMINAL_STATUSES.has(row.analytics_status)) {
+          if (!TERMINAL_STATUSES.has(state)) {
             previouslyActiveRef.current.add(id)
           }
         }
 
-        setStatusMap((prev) => ({ ...prev, ...newMap }))
+        /* Replace, do not merge.
+         *
+         * This used to spread over the previous map, so a creator seen on another page or
+         * before a filter changed stayed in it for ever, carrying whatever status it had
+         * at the time. That is how a banner counts jobs that finished days ago. */
+        setStatusMap(newMap)
         if (newCompleted.length > 0) {
           setCompletedSinceMount((prev) => [...prev, ...newCompleted])
         }
