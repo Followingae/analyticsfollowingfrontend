@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { faCampaignApi } from "@/services/faAdminApi"
+import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { toast } from "sonner"
 
 const TYPE_CONFIG: Record<string, { icon: any; label: string; color: string }> = {
@@ -40,6 +41,7 @@ const TYPE_CONFIG: Record<string, { icon: any; label: string; color: string }> =
 
 export default function FACampaignsPage() {
   const router = useRouter()
+  const { isSuperAdmin } = useAdminAccess()
   const [tab, setTab] = useState("all")
   const [statusFilter, setStatusFilter] = useState<"active" | "closed">("active")
   const [campaigns, setCampaigns] = useState<any[]>([])
@@ -207,11 +209,15 @@ export default function FACampaignsPage() {
           <CampaignsHubHeader
             action={
               <>
-                <Button size="sm" variant="outline" onClick={reanalyzeSuggested} disabled={backfilling}
-                  title="Re-run analytics for team-suggested creators stuck on 'Analyzing'">
-                  {backfilling ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCcw className="h-4 w-4 mr-1" />}
-                  {backfilling ? "Starting…" : "Re-analyze suggested"}
-                </Button>
+                {/* Starting scraper runs is a superadmin's call — it bills Apify and takes
+                    slots the whole company shares. The server refuses either way. */}
+                {isSuperAdmin && (
+                  <Button size="sm" variant="outline" onClick={reanalyzeSuggested} disabled={backfilling}
+                    title="Re-run analytics for team-suggested creators stuck on 'Analyzing'">
+                    {backfilling ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCcw className="h-4 w-4 mr-1" />}
+                    {backfilling ? "Starting…" : "Re-analyze suggested"}
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" onClick={() => setCreateMasterOpen(true)}>
                   <Layers className="h-4 w-4 mr-1" />New package
                 </Button>

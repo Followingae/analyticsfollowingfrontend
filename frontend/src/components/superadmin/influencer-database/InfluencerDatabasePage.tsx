@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { superadminApiService } from "@/services/superadminApi"
+import { useAdminAccess } from "@/hooks/useAdminAccess"
 import {
   type MasterInfluencer,
   type InfluencerDatabaseFilters,
@@ -159,6 +160,7 @@ export function InfluencerDatabasePage() {
     }
   }, [fetchData])
 
+  const { isSuperAdmin } = useAdminAccess()
   const [refreshingSelected, setRefreshingSelected] = useState(false)
 
   /** Re-run analytics for the creators that are ticked, and nobody else.
@@ -343,6 +345,7 @@ export function InfluencerDatabasePage() {
                   </span>
                   <button
                     type="button"
+                    disabled={!isSuperAdmin}
                     onClick={() => triggerRetry(j.id)}
                     className="underline underline-offset-2 hover:text-foreground"
                   >
@@ -365,7 +368,8 @@ export function InfluencerDatabasePage() {
       <DatabaseHeader
         totalCount={totalCount}
         loading={loading}
-        selectedCount={selectedIds.size}
+        selectedCount={isSuperAdmin ? selectedIds.size : 0}
+        canRefresh={isSuperAdmin}
         refreshing={refreshingSelected}
         onAddClick={onAddClick}
         onRefresh={fetchData}
@@ -408,7 +412,7 @@ export function InfluencerDatabasePage() {
           onPageChange={onPageChange}
           analyticsStatusMap={statusMap}
           completedSinceMount={completedSinceMount}
-          onTriggerAnalytics={triggerRetry}
+          onTriggerAnalytics={isSuperAdmin ? triggerRetry : undefined}
         />
       ) : (
         <InfluencerCardView

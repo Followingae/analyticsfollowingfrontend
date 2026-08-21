@@ -19,6 +19,7 @@ interface DatabaseHeaderProps {
   totalCount: number
   loading: boolean
   selectedCount: number
+  canRefresh: boolean
   refreshing: boolean
   onAddClick: () => void
   onRefresh: () => void
@@ -29,6 +30,7 @@ export function DatabaseHeader({
   totalCount,
   loading,
   selectedCount,
+  canRefresh,
   refreshing,
   onAddClick,
   onRefresh,
@@ -59,7 +61,7 @@ export function DatabaseHeader({
                   onClick={onRefreshSelected}
                   variant="outline"
                   size="sm"
-                  disabled={selectedCount === 0 || refreshing || loading}
+                  disabled={!canRefresh || selectedCount === 0 || refreshing || loading}
                 >
                   {refreshing ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -73,9 +75,11 @@ export function DatabaseHeader({
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              {selectedCount === 0
-                ? "Tick the creators you want re-analysed"
-                : `Re-run analytics for ${selectedCount} selected creator${selectedCount === 1 ? "" : "s"}`}
+              {!canRefresh
+                ? "Only a superadmin can start analytics for a creator"
+                : selectedCount === 0
+                  ? "Tick the creators you want re-analysed"
+                  : `Re-run analytics for ${selectedCount} selected creator${selectedCount === 1 ? "" : "s"}`}
             </TooltipContent>
           </Tooltip>
           <Button onClick={() => setImportOpen(true)} variant="outline" size="sm">
