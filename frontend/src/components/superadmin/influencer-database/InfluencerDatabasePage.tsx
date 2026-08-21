@@ -159,6 +159,44 @@ export function InfluencerDatabasePage() {
     }
   }, [fetchData])
 
+  const [refreshingSelected, setRefreshingSelected] = useState(false)
+
+  /** Re-run analytics for the creators that are ticked, and nobody else.
+   *
+   * One at a time on purpose. Our Apify account allows 32 concurrent runs and 64GB across
+   * them, and each creator launches four actors; firing a page of creators at once is how
+   * five of them ended up reading "failed" this morning when the only thing that failed was
+   * our own queue being full.
+   */
+  const onRefreshSelected = useCallback(async () => {
+    const ids = Array.from(selectedIds)
+    if (!ids.length) return
+
+    setRefreshingSelected(true)
+    let started = 0
+    let already = 0
+    const refused: string[] = []
+    try {
+      for (const id of ids) {
+        const who = influencers.find((i) => i.id === id)?.username ?? "creator"
+        // This service reports failure in the response rather than by throwing, so the
+        // result has to be read; a try/catch alone would count every refusal as a success.
+        const res = await superadminApiService.triggerInfluencerAnalytics(id).catch(
+          (e: any) => ({ success: false, error: String(e?.message ?? e) })
+        )
+        if (res?.success) started += 1
+        else if (/already (queued|in progress)/i.test(String(res?.error ?? ""))) already += 1
+        else refused.push(who)
+      }
+      if (started) toast.success(`Analysing ${started} creator${started === 1 ? "" : "s"}`)
+      if (already) toast.info(`${already} already running`)
+      if (refused.length) toast.error(`Could not start: ${refused.slice(0, 3).join(", ")}`)
+      fetchData()
+    } finally {
+      setRefreshingSelected(false)
+    }
+  }, [selectedIds, influencers, fetchData])
+
   const onDelete = useCallback(async (influencerId: string) => {
     if (!confirm("Remove this influencer from the database?")) return
     try {
@@ -327,8 +365,11 @@ export function InfluencerDatabasePage() {
       <DatabaseHeader
         totalCount={totalCount}
         loading={loading}
+        selectedCount={selectedIds.size}
+        refreshing={refreshingSelected}
         onAddClick={onAddClick}
         onRefresh={fetchData}
+        onRefreshSelected={onRefreshSelected}
       />
 
       <DatabaseToolbar
