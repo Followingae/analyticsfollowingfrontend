@@ -12,7 +12,7 @@
  * nothing else — the next thing to do, not a form with eight fields where seven are wrong.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { AuthGuard } from "@/components/AuthGuard"
@@ -28,7 +28,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Separator } from "@/components/ui/separator"
 import {
   ArrowLeft, Loader2, CheckCircle2, Clock, AlertTriangle, FileText, Send,
-  Image as ImageIcon, Link2, Banknote, UserMinus, PackageCheck, Truck, Undo2, Boxes,
+  Image as ImageIcon, Link2, Banknote, UserMinus, PackageCheck, Truck, Undo2, Boxes, Upload,
 } from "lucide-react"
 import { toast } from "sonner"
 import { ladderApi, STAGES, type LadderCreator, type Stage } from "@/services/ladderApi"
@@ -71,6 +71,7 @@ export default function LadderPage() {
   // one field set per rung, only the one on screen is ever used
   const [rate, setRate] = useState(""); const [rateNote, setRateNote] = useState("")
   const [agreementUrl, setAgreementUrl] = useState("")
+  const agreementFileRef = useRef<HTMLInputElement>(null)
   const [guideUrl, setGuideUrl] = useState(""); const [due, setDue] = useState("")
   const [contentUrl, setContentUrl] = useState("")
   const [postUrl, setPostUrl] = useState("")
@@ -341,10 +342,10 @@ export default function LadderPage() {
 
         {/* The next thing to do for this creator, and only that. */}
         <Sheet open={!!open} onOpenChange={(v: boolean) => { if (!v) setOpen(null) }}>
-          <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+          <SheetContent className="w-full overflow-y-auto px-5 pb-6 sm:max-w-md [&>button]:top-5 [&>button]:right-5">
             {open && (
               <>
-                <SheetHeader className="space-y-3">
+                <SheetHeader className="space-y-3 px-0">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-11 w-11">
                       <AvatarImage src={cdnAvatar(open.avatar || undefined)} />
@@ -494,11 +495,31 @@ export default function LadderPage() {
                   {open.stage === "rate_agreed" && (
                     <div className="space-y-3">
                       <Label>Signed agreement</Label>
+                      {/* Uploading is the primary way in: the file lands on our own CDN, so it
+                          cannot go missing the way a link to someone else's drive does. */}
+                      <input ref={agreementFileRef} type="file" className="hidden"
+                             accept=".pdf,.doc,.docx,image/*"
+                             onChange={(e) => {
+                               const f = e.target.files?.[0]
+                               if (!f) return
+                               act(() => ladderApi.agreementUpload(open.id, f), "Agreement on file")
+                               e.target.value = ""
+                             }} />
+                      <Button className="w-full gap-2" disabled={busy}
+                              onClick={() => agreementFileRef.current?.click()}>
+                        <Upload className="h-4 w-4" />Upload the signed agreement
+                      </Button>
+                      <p className="text-center text-[11px] text-muted-foreground">PDF, Word or a photo of the signed page. Up to 15MB.</p>
+                      <div className="flex items-center gap-3 py-1">
+                        <span className="h-px flex-1 bg-border" />
+                        <span className="text-[11px] text-muted-foreground">or link to it</span>
+                        <span className="h-px flex-1 bg-border" />
+                      </div>
                       <Input placeholder="Link to the signed file"
                              value={agreementUrl} onChange={(e) => setAgreementUrl(e.target.value)} />
-                      <Button className="w-full gap-2" disabled={busy || !agreementUrl}
+                      <Button variant="outline" className="w-full gap-2" disabled={busy || !agreementUrl}
                               onClick={() => act(() => ladderApi.agreement(open.id, agreementUrl), "Agreement on file")}>
-                        <FileText className="h-4 w-4" />Put it on file
+                        <FileText className="h-4 w-4" />Put the link on file
                       </Button>
                     </div>
                   )}

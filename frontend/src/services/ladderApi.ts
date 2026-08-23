@@ -112,6 +112,21 @@ export const ladderApi = {
       method: 'POST', body: JSON.stringify({ url, name }),
     }),
 
+  /** The signed agreement as a file. Stored on our own CDN so it cannot go missing
+   *  the way a link to someone else's drive does. */
+  agreementUpload: async (rowId: string, file: File) => {
+    const body = new FormData()
+    body.append('file', file)
+    const res = await fetchWithAuth(`${BASE}/campaign-creators/${rowId}/agreement/upload`, {
+      method: 'POST', body,
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error(err.detail || `Upload failed: ${res.status}`)
+    }
+    return res.json()
+  },
+
   /** The due date is the point: it is what the platform chases on. */
   guide: (rowId: string, content_due: string, url?: string, note?: string) =>
     jfetch(`${BASE}/campaign-creators/${rowId}/guide`, {
