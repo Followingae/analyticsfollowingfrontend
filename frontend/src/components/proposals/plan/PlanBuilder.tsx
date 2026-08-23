@@ -1,0 +1,562 @@
+"use client"
+
+/**
+ * The client's proposal, as a plan they build rather than a list they judge.
+ *
+ * The problem this exists to solve: clients open a proposal, look at four or five
+ * creators, and turn the whole thing down — so we learn nothing and the deal dies. Three
+ * things here answer that. There is no proposal-level reject at all; turning people down
+ * happens per creator with a reason, so a full no arrives as twelve diagnosable ones.
+ * Asking for different creators unlocks only once they have genuinely read half the list.
+ * And when they are over budget the page offers named, one-tap fixes instead of a red
+ * number and a shrug.
+ *
+ * Smart pick fills the budget rather than fitting inside it: unused budget cannot be
+ * carried into another campaign, so leftover money is money the client loses.
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import {
+  Sparkles, Check, Users, Heart, Wallet, MoreHorizontal, Download, Plus, AlertTriangle,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Progress } from "@/components/ui/progress"
+import { LiquidMetalButton } from "@/components/ui/liquid-metal-button"
+import { SiriOrb } from "@/components/siri-orb"
+import { cdnAvatar } from "@/lib/avatar"
+import { API_CONFIG } from "@/config/api"
+import { fetchWithAuth } from "@/utils/apiInterceptor"
+import { cn } from "@/lib/utils"
+import { brandProposalViewApi, type BrandProposalView, type BrandInfluencer } from "@/services/adminProposalMasterApi"
+import { planBuilderApi } from "@/services/planBuilderApi"
+import { CreatorTile } from "./CreatorTile"
+import { SmartPickModal } from "./SmartPickModal"
+import { creatorCost, optimise, whyFor, STRATEGIES, type Strategy } from "./optimiser"
+
+const COVERAGE = 0.5
+const DECLINE_REASONS = ["Too expensive", "Not our audience", "Content style", "Worked with them", "Wrong category"]
+const fmt = (n?: number | null) =>
+  n == null ? "—" : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}K` : `${n}`
+const aed = (n: number) => `AED ${Math.round(n).toLocaleString("en-US")}`
+
+export function PlanBuilder({ proposalId, data, onReload }: {
+  proposalId: string
+  data: BrandProposalView
+  onReload: () => Promise<void>
+}) {
+  const router = useRouter()
+  const proposal = data.proposal as BrandProposalView["proposal"] & { total_budget?: number }
+  const budget = Number(proposal.total_budget || 0)
+  const showPricing = proposal.visible_fields?.show_sell_pricing !== false && budget > 0
+
+  const [creators, setCreators] = useState<BrandInfluencer[]>(data.influencers)
+  const [chosen, setChosen] = useState<Set<string>>(
+    () => new Set(data.influencers.filter(c => c.selected_by_user).map(c => c.id)),
+  )
+  const [strategy, setStrategy] = useState<Strategy>("mix")
+  const [sort, setSort] = useState<"rec" | "f" | "er" | "p">("rec")
+  const [builtSig, setBuiltSig] = useState<string | null>(null)
+  const [building, setBuilding] = useState(false)
+  const [buildLog, setBuildLog] = useState<string[]>([])
+  const [tested, setTested] = useState({ n: 0, total: 0, best: [] as BrandInfluencer[], spend: 0 })
+  const [smartOpen, setSmartOpen] = useState(false)
+  const [declining, setDeclining] = useState<BrandInfluencer | null>(null)
+  const [askOpen, setAskOpen] = useState(false)
+  const [askText, setAskText] = useState("")
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const shownRef = useRef(new Set<string>())
+
+  useEffect(() => { setCreators(data.influencers) }, [data.influencers])
+
+  /* ---------- derived ---------- */
+  const live = useMemo(() => creators.filter(c => !c.declined_at), [creators])
+  const picked = useMemo(() => creators.filter(c => chosen.has(c.id)), [creators, chosen])
+  const spend = useMemo(() => picked.reduce((s, c) => s + creatorCost(c), 0), [picked])
+  const over = showPricing && spend > budget
+  const reviewed = useMemo(
+    () => creators.filter(c => c.client_opened_at || c.declined_at).length,
+    [creators],
+  )
+  const need = Math.ceil(creators.length * COVERAGE)
+  const covered = reviewed >= need
+
+  const [recommended, setRecommended] = useState<BrandInfluencer[]>([])
+  useEffect(() => {
+    let alive = true
+    if (!showPricing || !live.length) { setRecommended([]); return }
+    optimise(live, budget, strategy, undefined, 0).then(r => { if (alive) setRecommended(r.picks) })
+    return () => { alive = false }
+  }, [live, budget, strategy, showPricing])
+  const recIds = useMemo(() => new Set(recommended.map(c => c.id)), [recommended])
+
+  const sig = (ids: Set<string>, s: Strategy) => `${s}:${[...ids].sort().join(",")}`
+  const builtAlready = builtSig === sig(chosen, strategy)
+
+  const sorted = useMemo(() => {
+    const list = [...creators]
+    if (sort === "f") list.sort((a, b) => (b.followers_count ?? 0) - (a.followers_count ?? 0))
+    else if (sort === "er") list.sort((a, b) => (b.measured?.engagement_rate ?? b.engagement_rate ?? 0) - (a.measured?.engagement_rate ?? a.engagement_rate ?? 0))
+    else if (sort === "p") list.sort((a, b) => creatorCost(b) - creatorCost(a))
+    // The line-up floats to the top; anyone turned down sinks.
+    return list.sort((a, b) =>
+      (Number(chosen.has(b.id)) - Number(chosen.has(a.id))) ||
+      (Number(!!a.declined_at) - Number(!!b.declined_at)))
+  }, [creators, sort, chosen])
+
+  /* ---------- actions ---------- */
+  const save = useCallback(async (ids: Set<string>) => {
+    try {
+      await brandProposalViewApi.updateInfluencerSelection(proposalId, {
+        selected_influencer_ids: [...ids],
+      })
+    } catch { /* a failed autosave must not block the page; confirm re-sends it */ }
+  }, [proposalId])
+
+  const toggle = useCallback((c: BrandInfluencer) => {
+    setChosen(prev => {
+      const next = new Set(prev)
+      next.has(c.id) ? next.delete(c.id) : next.add(c.id)
+      save(next)
+      return next
+    })
+    setBuiltSig(null)
+  }, [save])
+
+  const markOpened = useCallback((c: BrandInfluencer) => {
+    if (c.client_opened_at || shownRef.current.has(c.id)) return
+    shownRef.current.add(c.id)
+    planBuilderApi.opened(proposalId, c.id)
+    setCreators(prev => prev.map(x => x.id === c.id ? { ...x, client_opened_at: new Date().toISOString() } : x))
+  }, [proposalId])
+
+  const openAnalytics = useCallback((c: BrandInfluencer) => {
+    markOpened(c)
+    if (c.username) router.push(`/creator-analytics/${c.username}`)
+  }, [markOpened, router])
+
+  const doDecline = async (reason: string) => {
+    const c = declining!
+    setDeclining(null)
+    try {
+      await planBuilderApi.decline(proposalId, c.id, reason)
+      setCreators(prev => prev.map(x => x.id === c.id
+        ? { ...x, declined_at: new Date().toISOString(), declined_reason: reason, client_opened_at: x.client_opened_at || new Date().toISOString() }
+        : x))
+      setChosen(prev => { const n = new Set(prev); n.delete(c.id); return n })
+    } catch (e) { toast.error((e as Error).message) }
+  }
+
+  const undecline = async (c: BrandInfluencer) => {
+    try {
+      await planBuilderApi.undecline(proposalId, c.id)
+      setCreators(prev => prev.map(x => x.id === c.id ? { ...x, declined_at: null, declined_reason: null } : x))
+    } catch (e) { toast.error((e as Error).message) }
+  }
+
+  /* The search, run in the open. It reads the shortlist back to them first, because a
+     marketing team should finish this knowing people built the list, not a machine. */
+  const runBuild = async () => {
+    setBuilding(true); setBuildLog([])
+    const posts = live.reduce((s, c) => s + (c.measured?.posts_analysed ?? 0), 0)
+    const strong = live.filter(c => c.measured?.standing === "exceptional" || (c.measured?.engagement_rate ?? 0) >= 1).length
+    const cats = [...new Set(live.map(c => c.measured?.category ?? c.categories?.[0]).filter(Boolean))]
+    const beat = (t: string, ms = 760) => new Promise<void>(r => setTimeout(() => { setBuildLog(l => [...l, t]); r() }, ms))
+
+    await beat(`${live.length} creators, shortlisted by our talent team for this brief`, 700)
+    if (posts) await beat(`${posts.toLocaleString()} of their posts measured, not estimated`)
+    if (strong) await beat(`${strong} of them engage above what is typical at their size`)
+    if (cats.length) await beat(`Covering ${cats.slice(0, 4).join(", ")}${cats.length > 4 ? " and more" : ""}`)
+
+    const r = await optimise(live, budget, strategy, p => setTested({ n: p.tested, total: p.total, best: p.best, spend: p.spend }))
+    const ids = new Set(r.picks.map(c => c.id))
+    setChosen(ids); save(ids); setBuiltSig(sig(ids, strategy))
+    setBuildLog(l => [...l, `Best fit found — ${aed(r.spend)} of ${aed(budget)}, ${aed(r.leftover)} unspent`])
+    await new Promise(r2 => setTimeout(r2, 900))
+    setBuilding(false)
+  }
+
+  const confirm = async () => {
+    setSaving(true)
+    try {
+      const res = await brandProposalViewApi.approveProposal(proposalId, { selected_influencer_ids: [...chosen] })
+      toast.success("Confirmed", { description: "We are briefing your creators now." })
+      setConfirmOpen(false)
+      if (res.campaign_id) setTimeout(() => router.push(`/campaigns/${res.campaign_id}`), 1200)
+      else await onReload()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not confirm")
+    } finally { setSaving(false) }
+  }
+
+  const sendRequest = async () => {
+    if (askText.trim().length < 5) return
+    try {
+      await brandProposalViewApi.requestMore(proposalId, { notes: askText.trim() })
+      toast.success("Sent to the team", { description: "More creators will land here." })
+      setAskOpen(false); setAskText("")
+      await onReload()
+    } catch (e) { toast.error((e as Error).message) }
+  }
+
+  /* ---------- over budget: named moves, not a red number ---------- */
+  const moves = useMemo(() => {
+    if (!over) return []
+    const excess = spend - budget
+    const inPlan = [...picked].sort((a, b) => creatorCost(b) - creatorCost(a))
+    const bench = live.filter(c => !chosen.has(c.id))
+    const out: { key: string; title: string; sub: string; save: number; run: () => void }[] = []
+
+    const drop = [...inPlan].reverse().find(c => creatorCost(c) >= excess)
+    if (drop) out.push({
+      key: "drop", title: `Drop ${drop.full_name || drop.username}`, sub: "Clears it in one move",
+      save: creatorCost(drop), run: () => toggle(drop),
+    })
+    for (const a of inPlan) {
+      const b = bench
+        .filter(x => creatorCost(a) - creatorCost(x) >= excess)
+        .sort((x, y) => (y.followers_count ?? 0) * (y.measured?.engagement_rate ?? 0) - (x.followers_count ?? 0) * (x.measured?.engagement_rate ?? 0))[0]
+      if (b) {
+        out.push({
+          key: "swap",
+          title: `Swap ${a.full_name || a.username} for ${b.full_name || b.username}`,
+          sub: `${Math.round(((b.followers_count ?? 0) / (a.followers_count || 1)) * 100)}% of the reach at ${Math.round((creatorCost(b) / (creatorCost(a) || 1)) * 100)}% of the price`,
+          save: creatorCost(a) - creatorCost(b),
+          run: () => setChosen(prev => { const n = new Set(prev); n.delete(a.id); n.add(b.id); save(n); return n }),
+        })
+        break
+      }
+    }
+    out.push({ key: "rebuild", title: "Rebuild it for me", sub: "Best line-up that fits, in one tap", save: excess, run: runBuild })
+    return out.slice(0, 3)
+  }, [over, spend, budget, picked, live, chosen])   // eslint-disable-line react-hooks/exhaustive-deps
+
+  const askForMore = () => { covered ? setAskOpen(true) : setSmartOpen(true) }
+
+  /** The list, as a file. It never carries our prices — in any status. */
+  const exportList = async () => {
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/proposals/${proposalId}/export?format=xlsx`,
+      )
+      if (!res.ok) throw new Error(`Export failed (${res.status})`)
+      const blob = await res.blob()
+      const name = (res.headers.get("content-disposition") || "").match(/filename="?([^"]+)"?/)?.[1]
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url; a.download = name || "creators.xlsx"
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) { toast.error((e as Error).message || "Export failed") }
+  }
+
+  /* ---------- render ---------- */
+  return (
+    <div className="mx-auto max-w-[1440px] px-6 pb-32">
+      {/* Smart pick */}
+      <section className="mt-6 rounded-[22px] border bg-gradient-to-br from-primary/[0.07] to-card p-5">
+        <div className="flex flex-wrap items-center gap-5">
+          <SiriOrb size="52px" animationDuration={building ? 4 : 20} />
+          <div className="min-w-[168px]">
+            <b className="block text-base font-bold tracking-[-0.02em]">Smart pick</b>
+            <span className="text-[12.5px] text-muted-foreground">
+              {building ? "Working through the list" : showPricing ? "Fills your budget, wastes nothing" : "The strongest line-up for this brief"}
+            </span>
+          </div>
+          <div className="ml-auto flex flex-wrap items-center gap-3">
+            <Tabs value={strategy} onValueChange={(v: string) => setStrategy(v as Strategy)}>
+              <TabsList>
+                {STRATEGIES.map(s => (
+                  <TabsTrigger key={s.key} value={s.key} title={s.note}>{s.label}</TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+            <div className={cn(building || builtAlready ? "pointer-events-none opacity-50" : "")}>
+              <LiquidMetalButton
+                label={building ? "Building…" : builtAlready ? "Line-up is built" : "Build my line-up"}
+                onClick={runBuild}
+              />
+            </div>
+          </div>
+        </div>
+
+        {building && (
+          <div className="mt-4 grid gap-6 border-t pt-4 md:grid-cols-[1.15fr_1fr]">
+            <div className="flex flex-col gap-2.5">
+              {buildLog.map((l, n) => (
+                <div key={n} className="flex animate-in fade-in slide-in-from-bottom-1 items-start gap-2.5 text-[13px]">
+                  <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" />{l}
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-baseline justify-between text-[12.5px] text-muted-foreground">
+                <span>{tested.total ? "Testing every line-up against your budget" : "Reading the shortlist"}</span>
+                <span className="tabular-nums"><b className="text-foreground">{tested.n.toLocaleString()}</b> / {tested.total.toLocaleString()}</span>
+              </div>
+              <Progress value={tested.total ? (tested.n / tested.total) * 100 : 0} className="h-[3px]" />
+              <div className="flex items-center">
+                {tested.best.slice(0, 8).map(c => (
+                  <img key={c.id} src={cdnAvatar(c.profile_image_url || undefined)} alt=""
+                       className="-ml-2 size-[30px] rounded-full object-cover ring-2 ring-card first:ml-0" />
+                ))}
+                {tested.spend > 0 && <b className="ml-3 text-[12.5px] tabular-nums text-muted-foreground">{aed(tested.spend)}</b>}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <div className="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_356px]">
+        {/* the wall */}
+        <div>
+          <div className="mb-4 flex items-center gap-3">
+            <h2 className="text-[17px] font-bold tracking-[-0.022em]">{creators.length} creators</h2>
+            <div className="ml-auto">
+              <Select value={sort} onValueChange={(v: string) => setSort(v as typeof sort)}>
+                <SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rec">Recommended</SelectItem>
+                  <SelectItem value="f">Most followers</SelectItem>
+                  <SelectItem value="er">Best engagement</SelectItem>
+                  {showPricing && <SelectItem value="p">Price, high to low</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {building ? (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(232px,1fr))] gap-4">
+              {Array.from({ length: Math.min(creators.length, 8) }).map((_, n) => (
+                <Skeleton key={n} className="aspect-[3/4] rounded-[20px]" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(232px,1fr))] gap-4">
+              {sorted.map(c => (
+                <CreatorTile
+                  key={c.id}
+                  creator={c}
+                  chosen={chosen.has(c.id)}
+                  recommended={recIds.has(c.id)}
+                  why={whyFor(c, live)}
+                  showPricing={showPricing}
+                  onToggle={toggle}
+                  onOpen={openAnalytics}
+                  onDecline={setDeclining}
+                  onUndecline={undecline}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* the plan */}
+        <aside className="sticky top-[76px] flex max-h-[calc(100vh-96px)] flex-col gap-4 overflow-auto">
+          {showPricing && (
+            <section className="rounded-[20px] border bg-card p-[18px]">
+              <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                <Wallet className="size-3.5" />Your budget
+              </p>
+              <div className={cn("mt-3 text-[32px] font-extrabold leading-none tracking-[-0.04em]", over && "text-destructive")}>
+                {aed(spend)}
+              </div>
+              <Progress value={Math.min(100, budget ? (spend / budget) * 100 : 0)} className="my-3 h-2" />
+              <p className={cn("text-[12.5px] font-semibold", over ? "text-destructive" : spend === budget ? "text-emerald-600" : "text-muted-foreground")}>
+                {over ? `+${aed(spend - budget)} over` : spend === budget ? "Every dirham allocated" : `${aed(budget - spend)} unspent of ${aed(budget)}`}
+              </p>
+              <p className="mt-2.5 text-[11.5px] leading-relaxed text-muted-foreground">
+                Unused budget can&apos;t be carried into another campaign.
+              </p>
+            </section>
+          )}
+
+          {over && (
+            <section className="flex animate-in fade-in flex-col gap-3 rounded-[18px] border border-destructive/35 bg-destructive/5 p-4">
+              <div className="flex items-center gap-2 text-[13px] font-bold text-destructive">
+                <AlertTriangle className="size-4" />{aed(spend - budget)} over budget
+              </div>
+              {moves.map(m => (
+                <button key={m.key} onClick={m.run}
+                        className="flex w-full items-center gap-3 rounded-[14px] border bg-card p-2.5 text-left transition hover:border-foreground">
+                  <span className="min-w-0 flex-1">
+                    <b className="block text-[12.5px] font-bold tracking-[-0.01em]">{m.title}</b>
+                    <span className="text-[11.5px] text-muted-foreground">{m.sub}</span>
+                  </span>
+                  {m.key !== "rebuild" && <span className="shrink-0 text-xs font-bold text-emerald-600">−{aed(m.save)}</span>}
+                </button>
+              ))}
+            </section>
+          )}
+
+          <section className="rounded-[20px] border bg-card p-[18px]">
+            <div className="flex items-center justify-between gap-3">
+              <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                <Check className="size-3.5" />Your line-up · {picked.length}
+              </p>
+              <div className="flex items-center gap-2" title="Opened or turned down">
+                <div className="h-[5px] w-[42px] overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(reviewed / Math.max(creators.length, 1)) * 100}%` }} />
+                </div>
+                <span className="whitespace-nowrap text-[11.5px] font-semibold tabular-nums text-muted-foreground">{reviewed}/{creators.length} reviewed</span>
+              </div>
+            </div>
+            <div className="mt-3.5">
+              {picked.length === 0 ? (
+                <div className="rounded-2xl border border-dashed p-5 text-center text-[12.5px] text-muted-foreground">
+                  Tap a creator, or let Smart pick build it.
+                </div>
+              ) : (
+                <div className="flex flex-col">
+                  {[...picked].sort((a, b) => creatorCost(b) - creatorCost(a)).map(c => (
+                    <div key={c.id} className="flex items-center gap-3 border-b py-2.5 last:border-b-0">
+                      <img src={cdnAvatar(c.profile_image_url || undefined)} alt="" className="size-9 shrink-0 rounded-full object-cover" />
+                      <span className="min-w-0 flex-1">
+                        <b className="block truncate text-[12.5px] font-semibold">{c.full_name || c.username}</b>
+                        <span className="text-[11px] text-muted-foreground">
+                          {fmt(c.followers_count)} · {(c.measured?.engagement_rate ?? c.engagement_rate ?? 0).toFixed(2)}%
+                        </span>
+                      </span>
+                      {showPricing && <span className="text-[12.5px] font-bold tabular-nums">{aed(creatorCost(c))}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      {/* dock */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/80 backdrop-blur-xl md:left-[var(--sidebar-width,16.5rem)]">
+        <div className="mx-auto flex max-w-[1440px] items-center gap-4 px-6 py-3.5">
+          <div className="flex">
+            {picked.slice(0, 6).map(c => (
+              <img key={c.id} src={cdnAvatar(c.profile_image_url || undefined)} alt=""
+                   className="-ml-2.5 size-[34px] rounded-full object-cover ring-2 ring-background first:ml-0" />
+            ))}
+          </div>
+          <div>
+            <b className="block text-[15px] font-bold tabular-nums">
+              {picked.length} creators{showPricing ? ` · ${aed(spend)}` : ""}
+            </b>
+            <span className="text-xs text-muted-foreground">
+              {over ? `${aed(spend - budget)} over budget` : showPricing ? `${aed(budget - spend)} unspent` : `${reviewed} of ${creators.length} reviewed`}
+            </span>
+          </div>
+          <div className="ml-auto flex items-center gap-2.5">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="size-10"><MoreHorizontal className="size-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportList}>
+                  <Download className="mr-2 size-4" />Export the list
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={askForMore}>
+                  <Plus className="mr-2 size-4" />Ask for more creators
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button size="lg" className="h-10 gap-2" disabled={!picked.length || over} onClick={() => setConfirmOpen(true)}>
+              <Check className="size-4" />Confirm
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* smart pick */}
+      <SmartPickModal
+        open={smartOpen}
+        onOpenChange={setSmartOpen}
+        picks={recommended}
+        pool={live}
+        showPricing={showPricing}
+        covered={covered}
+        chosenIds={chosen}
+        onAdd={toggle}
+        onRemove={toggle}
+        onRead={markOpened}
+        onUseLineup={() => {
+          const ids = new Set(recommended.map(c => c.id))
+          setChosen(ids); save(ids); setBuiltSig(sig(ids, strategy))
+          setSmartOpen(false); setConfirmOpen(true)
+        }}
+        onAskAnyway={() => { setSmartOpen(false); setAskOpen(true) }}
+      />
+
+      {/* turning one down */}
+      <Dialog open={!!declining} onOpenChange={(v: boolean) => !v && setDeclining(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Not {declining?.full_name || declining?.username}?</DialogTitle>
+            <DialogDescription>One tap. It is what tells us who to send you instead.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-wrap gap-2">
+            {DECLINE_REASONS.map(r => (
+              <Button key={r} variant="outline" size="sm" className="rounded-full" onClick={() => doDecline(r)}>{r}</Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* asking for more */}
+      <Dialog open={askOpen} onOpenChange={setAskOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ask for more creators</DialogTitle>
+            <DialogDescription>Tell us what is missing and we will go and find it.</DialogDescription>
+          </DialogHeader>
+          <Textarea value={askText} onChange={e => setAskText(e.target.value)} placeholder="What kind of creators are you missing?" />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAskOpen(false)}>Cancel</Button>
+            <Button disabled={askText.trim().length < 5} onClick={sendRequest}>Send</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* confirming */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm your line-up</DialogTitle>
+            <DialogDescription>
+              {picked.length} creator{picked.length === 1 ? "" : "s"}{showPricing ? ` for ${aed(spend)}` : ""}. We brief them once you confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex">
+            {picked.slice(0, 8).map(c => (
+              <img key={c.id} src={cdnAvatar(c.profile_image_url || undefined)} alt=""
+                   className="-ml-2.5 size-9 rounded-full object-cover ring-2 ring-background first:ml-0" />
+            ))}
+          </div>
+          {showPricing && budget - spend > budget * 0.05 && (
+            <p className="rounded-xl bg-muted p-3 text-[12.5px] leading-relaxed text-muted-foreground">
+              {aed(budget - spend)} of your budget stays open. Our team will put together a few
+              smaller creators for it and send them over for your approval separately.
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>Not yet</Button>
+            <Button disabled={saving} onClick={confirm} className="gap-2">
+              <Check className="size-4" />{saving ? "Confirming…" : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
