@@ -21,7 +21,10 @@ export function SuperAdminInterface({ children }: SuperAdminInterfaceProps) {
       }
     >
       <SuperAdminSidebar variant="inset" />
-      <SidebarInset>
+      {/* min-w-0: without it the inset is a flex item that refuses to shrink below its
+          content, so a wide board (the delivery ladder is ~2,300px) stretches the whole
+          shell — header included — past the viewport and the page reads as zoomed in. */}
+      <SidebarInset className="min-w-0">
         <SiteHeader />
         {/* The same ground as the rest of the console: white cards need a shade behind them
             or they have no edge. Screens on this shell were the only ones still on plain

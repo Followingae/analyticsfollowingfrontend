@@ -254,7 +254,7 @@ export default function LadderPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="overflow-x-auto pb-4">
+            <div className="w-full min-w-0 overflow-x-auto pb-4">
               <div className="flex min-w-max gap-4">
                 {STAGES.map((s) => {
                   const list = byStage[s.key] ?? []

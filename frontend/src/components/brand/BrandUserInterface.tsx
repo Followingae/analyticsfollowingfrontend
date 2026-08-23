@@ -22,7 +22,7 @@ export function BrandUserInterface({ children }: BrandUserInterfaceProps) {
     >
       <EnhancedAppSidebar variant="inset" />
       <GlobalCommandPalette />
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <SiteHeader />
         <main className="flex-1 min-h-0 bg-background">
           {children}
