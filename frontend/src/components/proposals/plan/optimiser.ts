@@ -8,6 +8,7 @@
  * breaking the tie between equally-spent line-ups.
  */
 import type { BrandInfluencer } from '@/services/adminProposalMasterApi'
+import { EXHAUSTIVE_LIMIT, searchExhaustive, searchGreedy, type Chosen } from './search'
 
 export type Strategy = 'mix' | 'reach' | 'value' | 'ours'
 
@@ -73,6 +74,10 @@ export interface PickResult {
 /**
  * Runs the search in slices so the page can show it happening, and so a long search never
  * blocks the main thread. `onTick` gets the best line-up found so far.
+ *
+ * Exhaustive below eighteen creators, greedy-and-filled above it — a real proposal can
+ * carry fifty, where every-combination is 2^50 and not a plan. Both are hard-capped at the
+ * budget: the result can never come back over.
  */
 export async function optimise(
   pool: BrandInfluencer[],
@@ -81,55 +86,39 @@ export async function optimise(
   onTick?: (p: { tested: number; total: number; best: BrandInfluencer[]; spend: number }) => void,
   pace = 34,
 ): Promise<PickResult> {
-  const live = pool.filter(c => !c.declined_at)
-  const n = Math.min(live.length, 20)          // 2^20 is the practical ceiling
-  const total = 1 << n
+  const live = pool.filter(c => !c.declined_at && creatorCost(c) > 0)
+  if (!live.length || budget <= 0) return { picks: [], spend: 0, leftover: budget, tested: 0 }
+
   const score = scorer(strategy, live)
-  const costs = live.map(creatorCost)
-  const scores = live.map(score)
-  const cats = live.map(cat)
-
-  const candidates: { m: number; cost: number; s: number }[] = []
-  let maxSpend = 0
-  let best: BrandInfluencer[] = []
-  const CHUNK = Math.max(16, Math.floor(total / 90))
-
-  for (let start = 1; start < total; start += CHUNK) {
-    const end = Math.min(total, start + CHUNK)
-    for (let m = start; m < end; m++) {
-      let cost = 0, s = 0, ok = true
-      const seen: Record<string, number> = {}
-      for (let i = 0; i < n; i++) {
-        if (!(m >> i & 1)) continue
-        cost += costs[i]
-        s += scores[i]
-        if (strategy === 'mix') {
-          const k = cats[i]
-          seen[k] = (seen[k] || 0) + 1
-          if (seen[k] > 2) { ok = false; break }
-        }
-      }
-      if (!ok || cost > budget) continue
-      if (cost > maxSpend) {
-        maxSpend = cost
-        best = live.filter((_, i) => m >> i & 1)
-      }
-      candidates.push({ m, cost, s })
-    }
-    onTick?.({ tested: end, total, best, spend: maxSpend })
-    await new Promise(r => requestAnimationFrame(() => r(null)))
-    if (pace) await new Promise(r => setTimeout(r, pace))
+  const cats = new Map(live.map(c => [c.id, cat(c)]))
+  /* Best mix keeps a line-up from becoming six of the same thing. */
+  const allow = (picked: BrandInfluencer[], next: BrandInfluencer) => {
+    if (strategy !== "mix") return true
+    const k = cats.get(next.id)
+    return picked.filter(x => cats.get(x.id) === k).length < 2
   }
 
-  // Among the line-ups that spend within a whisker of the most we can spend, take the
-  // strongest. Maximising spend alone would buy expensive mediocrity.
-  const shortlist = candidates.filter(c => c.cost >= maxSpend * 0.985)
-  shortlist.sort((a, b) => b.s - a.s)
-  const win = shortlist[0] ?? candidates.sort((a, b) => b.s - a.s)[0]
-  if (!win) return { picks: [], spend: 0, leftover: budget, tested: total }
+  const result: Chosen = live.length <= EXHAUSTIVE_LIMIT
+    ? searchExhaustive(live, budget, creatorCost, score, allow, onTick)
+    : searchGreedy(live, budget, creatorCost, score, allow, onTick)
 
-  const picks = live.filter((_, i) => win.m >> i & 1)
-  return { picks, spend: win.cost, leftover: budget - win.cost, tested: total }
+  /* Never hand back something the client cannot afford. If this ever trips, drop the
+     dearest until it fits rather than showing a plan that is over. */
+  let picks = result.picks
+  let spend = picks.reduce((sum: number, c: BrandInfluencer) => sum + creatorCost(c), 0)
+  while (spend > budget && picks.length) {
+    const dearest = picks.reduce((m: BrandInfluencer, c: BrandInfluencer) => (creatorCost(c) > creatorCost(m) ? c : m), picks[0])
+    picks = picks.filter(c => c !== dearest)
+    spend -= creatorCost(dearest)
+  }
+
+  if (pace) await new Promise(r => setTimeout(r, pace))
+  return {
+    picks,
+    spend,
+    leftover: budget - spend,
+    tested: live.length <= EXHAUSTIVE_LIMIT ? 1 << live.length : live.length * 6,
+  }
 }
 
 /**
