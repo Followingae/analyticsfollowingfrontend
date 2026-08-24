@@ -516,7 +516,9 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                 {over ? `+${aed(spend - budget)} over` : spend === budget ? "Every dirham allocated" : `${aed(budget - spend)} unspent of ${aed(budget)}`}
               </p>
               <p className="mt-2.5 text-[11.5px] leading-relaxed text-muted-foreground">
-                Unused budget can&apos;t be carried into another campaign.
+                {/* A warning about losing money reads as pressure. The same fact, said as
+                    something we will do for them, reads as service — and it is true. */}
+                Anything left over, we&apos;ll come back with smaller creators to put it to work.
               </p>
             </section>
           )}
