@@ -44,6 +44,7 @@ import { brandProposalViewApi, type BrandProposalView, type BrandInfluencer } fr
 import { planBuilderApi } from "@/services/planBuilderApi"
 import { CreatorTile } from "./CreatorTile"
 import { SmartPickModal } from "./SmartPickModal"
+import { CreatorSheet } from "./CreatorSheet"
 import { creatorCost, optimise, optimiseByPlaces, whyFor, STRATEGIES, type Strategy } from "./optimiser"
 import type { ProposalSelection, RetainerMonth, TierRow } from "./types"
 
@@ -69,9 +70,9 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const showPricing = !byTier && proposal.visible_fields?.show_sell_pricing !== false && budget > 0
 
   const [creators, setCreators] = useState<BrandInfluencer[]>(data.influencers)
-  const [chosen, setChosen] = useState<Set<string>>(
-    () => new Set(data.influencers.filter(c => c.selected_by_user).map(c => c.id)),
-  )
+  /* Opening a proposal starts from nothing. A selection carried over from a previous
+     visit reads as us having chosen for them, and it is the first thing they see. */
+  const [chosen, setChosen] = useState<Set<string>>(() => new Set())
   const [strategy, setStrategy] = useState<Strategy>("mix")
   const [sort, setSort] = useState<"rec" | "f" | "er" | "p">("rec")
   const [builtSig, setBuiltSig] = useState<string | null>(null)
@@ -87,6 +88,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const shownRef = useRef(new Set<string>())
   const [month, setMonth] = useState<string | null>(selection.current_period ?? months[0]?.period ?? null)
   const [confirmingMonth, setConfirmingMonth] = useState(false)
+  const [viewing, setViewing] = useState<BrandInfluencer | null>(null)
 
   useEffect(() => { setCreators(data.influencers) }, [data.influencers])
 
@@ -193,10 +195,12 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     setCreators(prev => prev.map(x => x.id === c.id ? { ...x, client_opened_at: new Date().toISOString() } : x))
   }, [proposalId])
 
+  /* Beside the wall, never instead of it: sending someone to a full analytics page
+     mid-decision loses them the plan they were building. */
   const openAnalytics = useCallback((c: BrandInfluencer) => {
     markOpened(c)
-    if (c.username) router.push(`/creator-analytics/${c.username}`)
-  }, [markOpened, router])
+    setViewing(c)
+  }, [markOpened])
 
   const doDecline = async (reason: string) => {
     const c = declining!
@@ -633,6 +637,15 @@ export function PlanBuilder({ proposalId, data, onReload }: {
           </div>
         </div>
       </div>
+
+      <CreatorSheet
+        creator={viewing}
+        pool={live}
+        showPricing={showPricing}
+        chosen={viewing ? chosen.has(viewing.id) : false}
+        onToggle={c => { toggle(c); setViewing(null) }}
+        onOpenChange={(open: boolean) => { if (!open) setViewing(null) }}
+      />
 
       {/* smart pick */}
       <SmartPickModal
