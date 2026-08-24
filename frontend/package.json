@@ -18,6 +18,7 @@
     "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^5.2.1",
     "@number-flow/react": "^0.6.0",
+    "@paper-design/shaders": "^0.0.80",
     "@playwright/test": "^1.55.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",

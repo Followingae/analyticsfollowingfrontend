@@ -86,6 +86,7 @@ export interface AdminProposalInfluencer {
   cost_price_snapshot?: Record<string, number | null>
   custom_sell_pricing?: Record<string, number | null>
   assigned_deliverables?: Array<{ type: string; quantity: number }>
+
   selected_deliverables?: string[]
 }
 
@@ -150,6 +151,28 @@ export interface BrandInfluencer {
   available_deliverables?: string[]
   selected_deliverables?: string[]
   assigned_deliverables?: Array<{ type: string; quantity: number }>
+  /** The client's own reading of this creator. Coverage is counted from these, never
+   *  from a selection. */
+  client_opened_at?: string | null
+  declined_at?: string | null
+  declined_reason?: string | null
+  /** What our pipeline measured. Absent for a creator we have not analysed yet. */
+  measured?: {
+    posts_analysed?: number
+    engagement_rate?: number | null
+    standing?: 'exceptional' | 'typical' | 'below_average' | null
+    by_content_type?: Record<string, { engagement_rate: number; sample_size: number }>
+    viral_skew?: boolean
+    median_likes?: number | null
+    median_comments?: number | null
+    median_views?: number | null
+    content_mix?: Record<string, number>
+    primary_format?: string | null
+    posts_per_week?: number | null
+    most_active_weekday?: string | null
+    category?: string | null
+    language?: string | null
+  }
 }
 
 export interface AdminProposalStats {
