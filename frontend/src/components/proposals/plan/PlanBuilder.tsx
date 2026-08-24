@@ -18,7 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
-  Sparkles, Check, Users, Heart, Wallet, MoreHorizontal, Download, Plus, AlertTriangle,
+  Sparkles, Check, Users, Heart, Wallet, MoreHorizontal, Download, Plus, AlertTriangle, Calendar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -44,7 +44,8 @@ import { brandProposalViewApi, type BrandProposalView, type BrandInfluencer } fr
 import { planBuilderApi } from "@/services/planBuilderApi"
 import { CreatorTile } from "./CreatorTile"
 import { SmartPickModal } from "./SmartPickModal"
-import { creatorCost, optimise, whyFor, STRATEGIES, type Strategy } from "./optimiser"
+import { creatorCost, optimise, optimiseByPlaces, whyFor, STRATEGIES, type Strategy } from "./optimiser"
+import type { ProposalSelection, RetainerMonth, TierRow } from "./types"
 
 const COVERAGE = 0.5
 const DECLINE_REASONS = ["Too expensive", "Not our audience", "Content style", "Worked with them", "Wrong category"]
@@ -60,7 +61,12 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const router = useRouter()
   const proposal = data.proposal as BrandProposalView["proposal"] & { total_budget?: number }
   const budget = Number(proposal.total_budget || 0)
-  const showPricing = proposal.visible_fields?.show_sell_pricing !== false && budget > 0
+  /* Three ways a proposal is sold, and they are not variations on a theme: by the
+     dirham, by the head, or the same places repeating month by month. */
+  const selection = ((data as unknown as { selection?: ProposalSelection }).selection) ?? { mode: "budget" as const }
+  const byTier = selection.mode === "tiers"
+  const months: RetainerMonth[] = selection.periods ?? []
+  const showPricing = !byTier && proposal.visible_fields?.show_sell_pricing !== false && budget > 0
 
   const [creators, setCreators] = useState<BrandInfluencer[]>(data.influencers)
   const [chosen, setChosen] = useState<Set<string>>(
@@ -79,6 +85,8 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const shownRef = useRef(new Set<string>())
+  const [month, setMonth] = useState<string | null>(selection.current_period ?? months[0]?.period ?? null)
+  const [confirmingMonth, setConfirmingMonth] = useState(false)
 
   useEffect(() => { setCreators(data.influencers) }, [data.influencers])
 
@@ -91,13 +99,40 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     () => creators.filter(c => c.client_opened_at || c.declined_at).length,
     [creators],
   )
+  /* On a retainer a pick belongs to the month it was made for, so a creator taken for
+     September does not eat October's places. */
+  const tierOf = (c: BrandInfluencer) => (c as unknown as { tier?: string }).tier
+  const places = useMemo(() => {
+    const out: Record<string, number> = {}
+    for (const c of picked) {
+      if (months.length && ((c as unknown as { period?: string }).period ?? month) !== month) continue
+      const t = tierOf(c)
+      if (t) out[t] = (out[t] || 0) + 1
+    }
+    return out
+  }, [picked, months.length, month])
+  const tierRows: TierRow[] = useMemo(() =>
+    Object.entries(selection.allowances ?? {})
+      .filter(([, want]) => Number(want) > 0)
+      .map(([tier, want]) => ({
+        tier,
+        label: selection.bands?.[tier]?.label || tier.charAt(0).toUpperCase() + tier.slice(1),
+        allowed: Number(want),
+        picked: places[tier] || 0,
+      })), [selection.allowances, selection.bands, places])
+  const tiersComplete = tierRows.length > 0 && tierRows.every(r => r.picked >= r.allowed)
+  const openMonth = months.find(m => m.period === month) || null
+  const monthLocked = !!openMonth?.is_locked || (months.length > 0 && !!openMonth && !openMonth.is_open)
+
   const need = Math.ceil(creators.length * COVERAGE)
   const covered = reviewed >= need
 
   const [recommended, setRecommended] = useState<BrandInfluencer[]>([])
   useEffect(() => {
     let alive = true
-    if (!showPricing || !live.length) { setRecommended([]); return }
+    if (!live.length) { setRecommended([]); return }
+    if (byTier) { setRecommended(optimiseByPlaces(live, selection.allowances ?? {}, tierOf, strategy)); return }
+    if (!showPricing) { setRecommended([]); return }
     optimise(live, budget, strategy, undefined, 0).then(r => { if (alive) setRecommended(r.picks) })
     return () => { alive = false }
   }, [live, budget, strategy, showPricing])
@@ -127,6 +162,21 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   }, [proposalId])
 
   const toggle = useCallback((c: BrandInfluencer) => {
+    const adding = !chosen.has(c.id)
+    /* A band that is full is full. Refusing here, with the reason, beats letting them
+       build a selection of twenty-seven and turning it down at the end. */
+    if (adding && byTier) {
+      const t = tierOf(c)
+      const row = tierRows.find(r => r.tier === t)
+      if (!row) {
+        toast.error(`${t ? t.charAt(0).toUpperCase() + t.slice(1) : "These"} creators are not part of your plan`)
+        return
+      }
+      if (row.picked >= row.allowed) {
+        toast.error(`All ${row.allowed} ${row.label} places are taken`, { description: "Remove one to swap somebody in." })
+        return
+      }
+    }
     setChosen(prev => {
       const next = new Set(prev)
       next.has(c.id) ? next.delete(c.id) : next.add(c.id)
@@ -134,7 +184,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       return next
     })
     setBuiltSig(null)
-  }, [save])
+  }, [save, chosen, byTier, tierRows])
 
   const markOpened = useCallback((c: BrandInfluencer) => {
     if (c.client_opened_at || shownRef.current.has(c.id)) return
@@ -187,6 +237,31 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     setBuildLog(l => [...l, `Best fit found — ${aed(r.spend)} of ${aed(budget)}, ${aed(r.leftover)} unspent`])
     await new Promise(r2 => setTimeout(r2, 900))
     setBuilding(false)
+  }
+
+  /* A retainer month is confirmed whole and on its own — approving the proposal would
+     book the entire deal, which is not what this client was sold. */
+  const confirmMonth = async () => {
+    if (!month) return
+    setConfirmingMonth(true)
+    try {
+      await save(chosen)
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/proposals/${proposalId}/confirm-month`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ period: month }) },
+      )
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(j?.detail || "Could not confirm that month")
+      toast.success(j?.message || "Month confirmed", {
+        description: j?.data?.proposal_closed
+          ? "That is every month of your retainer booked."
+          : "We will be in touch, and the next month opens on time.",
+      })
+      setConfirmOpen(false)
+      await onReload()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally { setConfirmingMonth(false) }
   }
 
   const confirm = async () => {
@@ -366,6 +441,68 @@ export function PlanBuilder({ proposalId, data, onReload }: {
 
         {/* the plan */}
         <aside className="sticky top-[76px] flex max-h-[calc(100vh-96px)] flex-col gap-4 overflow-auto">
+          {/* A retainer is the same places repeating. Each month is filled and confirmed on
+              its own, and one that has not opened yet cannot be touched. */}
+          {months.length > 0 && (
+            <section className="rounded-[20px] border bg-card p-[18px]">
+              <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                <Calendar className="size-3.5" />Your retainer
+              </p>
+              <div className="mt-3 flex gap-2">
+                {months.map(m => (
+                  <button
+                    key={m.period}
+                    onClick={() => {
+                      if (!m.is_open && !m.is_locked) {
+                        toast.info(`${m.label} is not open yet`, { description: "It opens shortly before the month starts." })
+                        return
+                      }
+                      setMonth(m.period)
+                    }}
+                    className={cn(
+                      "flex-1 rounded-[13px] border p-2.5 text-center transition",
+                      m.period === month && "border-primary bg-primary/10",
+                      m.is_locked && "border-emerald-500 bg-emerald-500/10",
+                      !m.is_open && !m.is_locked && "opacity-60",
+                    )}
+                  >
+                    <b className="block text-[12.5px] font-bold">{m.label.slice(0, 3)}</b>
+                    <span className="text-[10.5px] text-muted-foreground">
+                      {m.is_locked ? "confirmed" : m.is_open ? "open" : "later"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Sold by the head: the client buys a count from each band and never sees a rate. */}
+          {byTier && tierRows.length > 0 && (
+            <section className="rounded-[20px] border bg-card p-[18px]">
+              <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                <Check className="size-3.5" />{months.length ? `${openMonth?.label ?? "This month"}` : "What your plan includes"}
+              </p>
+              <div className="mt-2">
+                {tierRows.map(r => (
+                  <div key={r.tier} className="flex items-center justify-between border-b py-2.5 last:border-b-0">
+                    <b className="text-[13px] font-semibold">{r.label}</b>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xs tabular-nums text-muted-foreground">{r.picked} / {r.allowed}</span>
+                      <div className="flex gap-1">
+                        {Array.from({ length: r.allowed }).map((_, n) => (
+                          <i key={n} className={cn("size-2.5 rounded-full border", n < r.picked ? "border-transparent bg-emerald-500" : "border-muted-foreground/40")} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                Prices are already agreed in your plan, so there is nothing to add up.
+              </p>
+            </section>
+          )}
+
           {showPricing && (
             <section className="rounded-[20px] border bg-card p-[18px]">
               <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
@@ -454,7 +591,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
               {picked.length} creators{showPricing ? ` · ${aed(spend)}` : ""}
             </b>
             <span className="text-xs text-muted-foreground">
-              {over ? `${aed(spend - budget)} over budget` : showPricing ? `${aed(budget - spend)} unspent` : `${reviewed} of ${creators.length} reviewed`}
+              {byTier
+                ? tierRows.map(r => `${r.label} ${r.picked}/${r.allowed}`).join(" · ")
+                : over ? `${aed(spend - budget)} over budget`
+                : showPricing ? `${aed(budget - spend)} unspent`
+                : `${reviewed} of ${creators.length} reviewed`}
             </span>
           </div>
           <div className="ml-auto flex items-center gap-2.5">
@@ -471,8 +612,21 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button size="lg" className="h-10 gap-2" disabled={!picked.length || over} onClick={() => setConfirmOpen(true)}>
-              <Check className="size-4" />Confirm
+            <Button
+              size="lg"
+              className="h-10 gap-2"
+              disabled={
+                months.length
+                  ? !tiersComplete || monthLocked
+                  : byTier
+                    ? !tiersComplete
+                    : !picked.length || over
+              }
+              title={byTier && !tiersComplete ? tierRows.filter(r => r.picked < r.allowed).map(r => `${r.label} ${r.picked} of ${r.allowed}`).join(" · ") : undefined}
+              onClick={() => setConfirmOpen(true)}
+            >
+              <Check className="size-4" />
+              {months.length ? `Confirm ${openMonth?.label ?? "this month"}` : "Confirm"}
             </Button>
           </div>
         </div>
@@ -532,9 +686,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm your line-up</DialogTitle>
+            <DialogTitle>{months.length ? `Confirm ${openMonth?.label ?? "this month"}` : "Confirm your line-up"}</DialogTitle>
             <DialogDescription>
-              {picked.length} creator{picked.length === 1 ? "" : "s"}{showPricing ? ` for ${aed(spend)}` : ""}. We brief them once you confirm.
+              {months.length
+                ? `${openMonth?.label ?? "This month"}: ${picked.length} creator${picked.length === 1 ? "" : "s"}. The next month opens on time.`
+                : `${picked.length} creator${picked.length === 1 ? "" : "s"}${showPricing ? ` for ${aed(spend)}` : ""}. We brief them once you confirm.`}
             </DialogDescription>
           </DialogHeader>
           <div className="flex">
@@ -551,8 +707,8 @@ export function PlanBuilder({ proposalId, data, onReload }: {
           )}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmOpen(false)}>Not yet</Button>
-            <Button disabled={saving} onClick={confirm} className="gap-2">
-              <Check className="size-4" />{saving ? "Confirming…" : "Confirm"}
+            <Button disabled={saving || confirmingMonth} onClick={months.length ? confirmMonth : confirm} className="gap-2">
+              <Check className="size-4" />{saving || confirmingMonth ? "Confirming…" : "Confirm"}
             </Button>
           </DialogFooter>
         </DialogContent>

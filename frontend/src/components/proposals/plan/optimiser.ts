@@ -132,6 +132,31 @@ export async function optimise(
   return { picks, spend: win.cost, leftover: budget - win.cost, tested: total }
 }
 
+/**
+ * A tier deal is bought by the head, not by the dirham: the client bought three micro and
+ * two macro, so the job is to fill each band with its strongest creators. There is no
+ * budget to fill and no prices on screen, so quality is the only objective.
+ */
+export function optimiseByPlaces(
+  pool: BrandInfluencer[],
+  allowances: Record<string, number>,
+  tierOf: (c: BrandInfluencer) => string | undefined,
+  strategy: Strategy,
+): BrandInfluencer[] {
+  const live = pool.filter(c => !c.declined_at)
+  const score = scorer(strategy, live)
+  const out: BrandInfluencer[] = []
+  for (const [tier, wanted] of Object.entries(allowances)) {
+    if (!wanted) continue
+    const band = live
+      .filter(c => tierOf(c) === tier)
+      .sort((a, b) => score(b) - score(a))
+      .slice(0, wanted)
+    out.push(...band)
+  }
+  return out
+}
+
 /** The one thing a creator is best at on this proposal, or nothing. A label on everybody
  *  says nothing, and a lukewarm one reads as a mark against them. */
 export function whyFor(c: BrandInfluencer, pool: BrandInfluencer[]): { title: string; value: string } | null {
