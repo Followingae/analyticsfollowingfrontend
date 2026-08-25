@@ -106,6 +106,12 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const extras = useMemo(
     () => picked.reduce((s, c) => s + (withMod.has(c.id) ? modifierExtra(c, modifier) : 0), 0),
     [picked, withMod, modifier])
+  const eligibleCount = useMemo(() => live.filter(modifierEligible).length, [live])
+  const allModOn = useMemo(() => {
+    const t = picked.filter(modifierEligible)
+    const pool = t.length ? t : live.filter(modifierEligible)
+    return pool.length > 0 && pool.every(c => withMod.has(c.id))
+  }, [picked, live, withMod])
   const spend = useMemo(
     () => picked.reduce((s, c) => s + creatorCost(c), 0) + extras, [picked, extras])
   const over = showPricing && spend > budget
@@ -200,6 +206,20 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       return next
     })
   }, [chosen, save])
+
+  /* All of them at once — the common case when the extra is a blanket right rather than
+     something negotiated creator by creator. */
+  const toggleModAll = useCallback(() => {
+    const eligible = live.filter(c => modifierEligible(c) && chosen.has(c.id))
+    const target = eligible.length ? eligible : live.filter(modifierEligible)
+    setWithMod(prev => {
+      const allOn = target.length > 0 && target.every(c => prev.has(c.id))
+      const next = new Set(prev)
+      target.forEach(c => allOn ? next.delete(c.id) : next.add(c.id))
+      save(chosen, next)
+      return next
+    })
+  }, [live, chosen, save])
 
   const toggle = useCallback((c: BrandInfluencer) => {
     const adding = !chosen.has(c.id)
@@ -542,6 +562,37 @@ export function PlanBuilder({ proposalId, data, onReload }: {
               <p className="mt-3 text-[11.5px] leading-relaxed text-muted-foreground">
                 Prices are already agreed in your plan, so there is nothing to add up.
               </p>
+            </section>
+          )}
+
+          {/* The optional extra, announced whether or not anything is picked yet. Hiding
+              it inside the line-up meant a client who had chosen nobody saw no sign that
+              an option existed at all, which is how it stayed invisible for weeks. */}
+          {showPricing && modifier && eligibleCount > 0 && (
+            <section className="rounded-[20px] border border-primary/30 bg-primary/[0.06] p-[18px]">
+              <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.15em] text-primary">
+                <Sparkles className="size-3.5" />Optional extra
+              </p>
+              <b className="mt-2.5 block text-[15px] font-bold tracking-[-0.02em]">
+                {modifier.label}
+                <span className="ml-2 text-[13px] font-bold text-primary">
+                  {modifier.kind === "percent" ? `+${modifier.percent_value}%` : `+${aed(modifier.amount_aed ?? 0)}`}
+                </span>
+              </b>
+              {modifier.description && (
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">{modifier.description}</p>
+              )}
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
+                Available on {eligibleCount} of these creators. Add it to anyone in your line-up,
+                or turn it on for all of them at once.
+              </p>
+              <button
+                type="button"
+                onClick={toggleModAll}
+                className="mt-3 w-full rounded-xl border border-primary/40 bg-card px-3 py-2 text-[12.5px] font-semibold transition hover:bg-primary/10"
+              >
+                {allModOn ? "Remove from everyone" : "Add to everyone eligible"}
+              </button>
             </section>
           )}
 
