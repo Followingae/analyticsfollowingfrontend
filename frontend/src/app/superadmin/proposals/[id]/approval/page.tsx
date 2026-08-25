@@ -519,8 +519,13 @@ export default function ProposalApprovalPage() {
               </Card>
             )}
 
-            {/* Priced add-on — only meaningful once there is a roster to price it against. */}
-            {viewer.is_operator && (status === 'internally_approved' || status === 'sent') && (
+            {/* Priced add-on — available at every stage before the client has decided.
+                It used to appear only on internally_approved and sent, which meant the card
+                vanished the moment a client opened the proposal: exactly when someone asks
+                for boosting rights and we need to price them. */}
+            {viewer.is_operator && ['draft', 'building', 'internal_changes_requested',
+              'pending_internal_review', 'internally_approved', 'sent', 'in_review',
+              'more_requested'].includes(status) && (
               <PriceModifierCard
                 proposalId={proposalId}
                 creators={(ws.influencers || []).map((inf: any) => ({

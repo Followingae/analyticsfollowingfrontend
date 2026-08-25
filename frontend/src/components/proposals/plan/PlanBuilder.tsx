@@ -45,7 +45,10 @@ import { planBuilderApi } from "@/services/planBuilderApi"
 import { CreatorTile } from "./CreatorTile"
 import { SmartPickModal } from "./SmartPickModal"
 import { CreatorSheet } from "./CreatorSheet"
-import { creatorCost, optimise, optimiseByPlaces, whyFor, STRATEGIES, type Strategy } from "./optimiser"
+import {
+  creatorCost, optimise, optimiseByPlaces, whyFor, STRATEGIES, type Strategy,
+  modifierEligible, modifierExtra, type PriceModifier,
+} from "./optimiser"
 import type { ProposalSelection, RetainerMonth, TierRow } from "./types"
 
 const COVERAGE = 0.5
@@ -89,13 +92,22 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const [month, setMonth] = useState<string | null>(selection.current_period ?? months[0]?.period ?? null)
   const [confirmingMonth, setConfirmingMonth] = useState(false)
   const [viewing, setViewing] = useState<BrandInfluencer | null>(null)
+  /* The optional extra this proposal offers, e.g. boosting rights at +20%. It only
+     applies to the creators the operator marked eligible, and only where the client
+     asks for it, so it is tracked per creator rather than as one switch. */
+  const modifier = (proposal as unknown as { price_modifier?: PriceModifier }).price_modifier ?? null
+  const [withMod, setWithMod] = useState<Set<string>>(() => new Set())
 
   useEffect(() => { setCreators(data.influencers) }, [data.influencers])
 
   /* ---------- derived ---------- */
   const live = useMemo(() => creators.filter(c => !c.declined_at), [creators])
   const picked = useMemo(() => creators.filter(c => chosen.has(c.id)), [creators, chosen])
-  const spend = useMemo(() => picked.reduce((s, c) => s + creatorCost(c), 0), [picked])
+  const extras = useMemo(
+    () => picked.reduce((s, c) => s + (withMod.has(c.id) ? modifierExtra(c, modifier) : 0), 0),
+    [picked, withMod, modifier])
+  const spend = useMemo(
+    () => picked.reduce((s, c) => s + creatorCost(c), 0) + extras, [picked, extras])
   const over = showPricing && spend > budget
   const reviewed = useMemo(
     () => creators.filter(c => c.client_opened_at || c.declined_at).length,
@@ -155,13 +167,39 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   }, [creators, sort, chosen])
 
   /* ---------- actions ---------- */
-  const save = useCallback(async (ids: Set<string>) => {
+  const save = useCallback(async (ids: Set<string>, mods?: Set<string>) => {
+    const taking = mods ?? withMod
     try {
       await brandProposalViewApi.updateInfluencerSelection(proposalId, {
         selected_influencer_ids: [...ids],
+        /* Only sent when there is an add-on to take. The line list mirrors what we
+           assigned, with the add-on attached to the eligible lines they asked for it on;
+           the server re-checks eligibility rather than trusting this. */
+        deliverable_selections: modifier ? [...ids].map(id => {
+          const c = creators.find(x => x.id === id)
+          const on = taking.has(id)
+          return {
+            influencer_id: id,
+            deliverables: (c?.assigned_deliverables ?? []).map((d: any) => ({
+              type: d.type,
+              quantity: d.quantity || 1,
+              ...(on && d.modifier_eligible ? { modifier: modifier.id } : {}),
+            })),
+          }
+        }) : undefined,
       })
     } catch { /* a failed autosave must not block the page; confirm re-sends it */ }
-  }, [proposalId])
+  }, [proposalId, creators, modifier, withMod])
+
+  /* Taking the add-on, or dropping it, for one creator. */
+  const toggleMod = useCallback((c: BrandInfluencer) => {
+    setWithMod(prev => {
+      const next = new Set(prev)
+      next.has(c.id) ? next.delete(c.id) : next.add(c.id)
+      save(chosen, next)
+      return next
+    })
+  }, [chosen, save])
 
   const toggle = useCallback((c: BrandInfluencer) => {
     const adding = !chosen.has(c.id)
@@ -516,6 +554,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                 {aed(spend)}
               </div>
               <Progress value={Math.min(100, budget ? (spend / budget) * 100 : 0)} className="my-3 h-2" />
+              {extras > 0 && (
+                <p className="-mt-1 mb-1 text-[11.5px] text-muted-foreground">
+                  Includes {aed(extras)} for {modifier?.label?.toLowerCase()}
+                </p>
+              )}
               <p className={cn("text-[12.5px] font-semibold", over ? "text-destructive" : spend === budget ? "text-emerald-600" : "text-muted-foreground")}>
                 {over ? `+${aed(spend - budget)} over` : spend === budget ? "Every dirham allocated" : `${aed(budget - spend)} unspent of ${aed(budget)}`}
               </p>
@@ -564,18 +607,56 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                 </div>
               ) : (
                 <div className="flex flex-col">
-                  {[...picked].sort((a, b) => creatorCost(b) - creatorCost(a)).map(c => (
-                    <div key={c.id} className="flex items-center gap-3 border-b py-2.5 last:border-b-0">
-                      <img src={cdnAvatar(c.profile_image_url || undefined)} alt="" className="size-9 shrink-0 rounded-full object-cover" />
-                      <span className="min-w-0 flex-1">
-                        <b className="block truncate text-[12.5px] font-semibold">{c.full_name || c.username}</b>
-                        <span className="text-[11px] text-muted-foreground">
-                          {fmt(c.followers_count)} · {(c.measured?.engagement_rate ?? c.engagement_rate ?? 0).toFixed(2)}%
-                        </span>
-                      </span>
-                      {showPricing && <span className="text-[12.5px] font-bold tabular-nums">{aed(creatorCost(c))}</span>}
-                    </div>
-                  ))}
+                  {[...picked].sort((a, b) => creatorCost(b) - creatorCost(a)).map(c => {
+                    const canMod = !!modifier && modifierEligible(c)
+                    const on = withMod.has(c.id)
+                    const extra = on ? modifierExtra(c, modifier) : 0
+                    return (
+                      <div key={c.id} className="border-b py-2.5 last:border-b-0">
+                        <div className="flex items-center gap-3">
+                          <img src={cdnAvatar(c.profile_image_url || undefined)} alt="" className="size-9 shrink-0 rounded-full object-cover" />
+                          <span className="min-w-0 flex-1">
+                            <b className="block truncate text-[12.5px] font-semibold">{c.full_name || c.username}</b>
+                            <span className="text-[11px] text-muted-foreground">
+                              {fmt(c.followers_count)} · {(c.measured?.engagement_rate ?? c.engagement_rate ?? 0).toFixed(2)}%
+                            </span>
+                          </span>
+                          {showPricing && (
+                            <span className="text-right text-[12.5px] font-bold tabular-nums">
+                              {aed(creatorCost(c) + extra)}
+                              {extra > 0 && (
+                                <span className="block text-[10.5px] font-medium text-muted-foreground">
+                                  incl. {aed(extra)}
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                        {/* The priced extra, offered only on the creators it applies to. */}
+                        {canMod && showPricing && (
+                          <button
+                            type="button"
+                            onClick={() => toggleMod(c)}
+                            className={cn(
+                              "mt-2 flex w-full items-center gap-2 rounded-xl border px-2.5 py-1.5 text-left transition",
+                              on ? "border-primary/40 bg-primary/10" : "hover:bg-muted",
+                            )}
+                          >
+                            <span className={cn(
+                              "grid size-4 shrink-0 place-items-center rounded-[5px] border",
+                              on ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40",
+                            )}>
+                              {on && <Check className="size-3" />}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate text-[11.5px] font-semibold">{modifier!.label}</span>
+                            <span className="shrink-0 text-[11px] font-bold tabular-nums text-muted-foreground">
+                              {modifier!.kind === "percent" ? `+${modifier!.percent_value}%` : `+${aed(modifier!.amount_aed ?? 0)}`}
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>

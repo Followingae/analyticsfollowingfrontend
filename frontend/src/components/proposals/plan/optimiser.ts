@@ -19,9 +19,46 @@ export const STRATEGIES: { key: Strategy; label: string; note: string }[] = [
   { key: 'ours', label: 'Our pick', note: "Our team's own order for this brief." },
 ]
 
+/** The proposal's priced add-on, e.g. "With boosting rights +20%". */
+export interface PriceModifier {
+  id: string
+  label: string
+  description?: string | null
+  kind: 'percent' | 'fixed'
+  percent_value?: number | null
+  amount_aed?: number | null
+}
+
+/** Can this creator take the add-on at all? Only lines the operator marked eligible. */
+export function modifierEligible(c: BrandInfluencer): boolean {
+  return (c.assigned_deliverables ?? []).some((d: any) => d?.modifier_eligible)
+}
+
+/** What the add-on adds for one creator, on the eligible lines only.
+ *  A fixed add-on is charged once for the creator, not once per line. */
+export function modifierExtra(c: BrandInfluencer, mod?: PriceModifier | null): number {
+  if (!mod || !modifierEligible(c)) return 0
+  if (mod.kind === 'fixed') return mod.amount_aed ?? 0
+  const pct = (mod.percent_value ?? 0) / 100
+  const pricing = c.sell_pricing ?? {}
+  return (c.assigned_deliverables ?? []).reduce((sum, d: any) => {
+    if (!d?.modifier_eligible) return sum
+    const unit = pricing[d.type]
+    return unit == null ? sum : sum + unit * (d.quantity || 1) * pct
+  }, 0)
+}
+
 /** What a creator costs on THIS proposal: the deliverables we assigned them, at the
- *  quantities we assigned, at their frozen price. Never a single headline rate. */
-export function creatorCost(c: BrandInfluencer): number {
+ *  quantities we assigned, at their frozen price. Never a single headline rate.
+ *
+ *  `withMod` adds the priced add-on where the client has taken it, so the budget bar and
+ *  the optimiser both count the real number rather than the standard one. */
+export function creatorCost(c: BrandInfluencer, mod?: PriceModifier | null, withMod?: boolean): number {
+  const base = baseCost(c)
+  return withMod ? base + modifierExtra(c, mod) : base
+}
+
+function baseCost(c: BrandInfluencer): number {
   const pricing = c.sell_pricing ?? {}
   const assigned = c.assigned_deliverables ?? []
   if (assigned.length) {

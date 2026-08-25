@@ -533,7 +533,13 @@ export class BrandProposalViewApiService {
   // ---------------------------------------------------------------------------
   async updateInfluencerSelection(proposalId: string, data: {
     selected_influencer_ids: string[]
-    deliverable_selections?: { influencer_id: string; deliverables: string[] }[]
+    /** Either the plain form (["reel"]) or lines that can carry the proposal's priced
+     *  add-on ({ type, quantity, modifier }). The server re-checks any add-on against
+     *  what was actually offered on that creator. */
+    deliverable_selections?: {
+      influencer_id: string
+      deliverables: (string | { type: string; quantity?: number; modifier?: string })[]
+    }[]
     notes?: string
     /** Which month of a retainer these picks fill. A one-off deal sends nothing. */
     period?: string
