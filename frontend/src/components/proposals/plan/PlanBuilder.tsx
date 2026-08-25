@@ -107,11 +107,12 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     () => picked.reduce((s, c) => s + (withMod.has(c.id) ? modifierExtra(c, modifier) : 0), 0),
     [picked, withMod, modifier])
   const eligibleCount = useMemo(() => live.filter(modifierEligible).length, [live])
+  /* "With" only once every eligible creator in the line-up has it. An empty line-up reads
+     as without, which is what it costs. */
   const allModOn = useMemo(() => {
-    const t = picked.filter(modifierEligible)
-    const pool = t.length ? t : live.filter(modifierEligible)
+    const pool = picked.filter(modifierEligible)
     return pool.length > 0 && pool.every(c => withMod.has(c.id))
-  }, [picked, live, withMod])
+  }, [picked, withMod])
   const spend = useMemo(
     () => picked.reduce((s, c) => s + creatorCost(c), 0) + extras, [picked, extras])
   const over = showPricing && spend > budget
@@ -207,15 +208,14 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     })
   }, [chosen, save])
 
-  /* All of them at once — the common case when the extra is a blanket right rather than
-     something negotiated creator by creator. */
-  const toggleModAll = useCallback(() => {
-    const eligible = live.filter(c => modifierEligible(c) && chosen.has(c.id))
-    const target = eligible.length ? eligible : live.filter(modifierEligible)
+  /* With or without, across the whole line-up. Applies to everyone eligible, so a creator
+     added afterwards still has to be ticked deliberately rather than silently inheriting a
+     price the client never agreed to. */
+  const setModAll = useCallback((on: boolean) => {
+    const target = live.filter(c => modifierEligible(c) && chosen.has(c.id))
     setWithMod(prev => {
-      const allOn = target.length > 0 && target.every(c => prev.has(c.id))
       const next = new Set(prev)
-      target.forEach(c => allOn ? next.delete(c.id) : next.add(c.id))
+      target.forEach(c => on ? next.add(c.id) : next.delete(c.id))
       save(chosen, next)
       return next
     })
@@ -582,17 +582,29 @@ export function PlanBuilder({ proposalId, data, onReload }: {
               {modifier.description && (
                 <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">{modifier.description}</p>
               )}
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
-                Available on {eligibleCount} of these creators. Add it to anyone in your line-up,
-                or turn it on for all of them at once.
+              {/* One switch for the whole line-up, because a right like this is normally
+                  bought across the board. The per-creator ticks below stay for the times
+                  it is not. */}
+              <div className="mt-3 grid grid-cols-2 gap-1.5 rounded-xl bg-muted/60 p-1">
+                {[false, true].map(on => (
+                  <button
+                    key={String(on)}
+                    type="button"
+                    onClick={() => setModAll(on)}
+                    className={cn(
+                      "rounded-lg px-2 py-2 text-[12.5px] font-semibold transition",
+                      allModOn === on ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {on ? "With" : "Without"}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+                {allModOn
+                  ? `Added to every creator in your line-up that can supply it.`
+                  : `Not added. You can also add it to individual creators below.`}
               </p>
-              <button
-                type="button"
-                onClick={toggleModAll}
-                className="mt-3 w-full rounded-xl border border-primary/40 bg-card px-3 py-2 text-[12.5px] font-semibold transition hover:bg-primary/10"
-              >
-                {allModOn ? "Remove from everyone" : "Add to everyone eligible"}
-              </button>
             </section>
           )}
 
