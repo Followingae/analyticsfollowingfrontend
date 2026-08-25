@@ -73,9 +73,18 @@ export const proposalApprovalApi = {
       body: JSON.stringify({ notes, target: opts?.target ?? 'talent_manager', requires_full_reapproval: opts?.requires_full_reapproval ?? true }),
     }),
 
-  // Operator: remove a creator from the proposal (allowed through internally_approved/shared).
+  // Operator: remove a creator from the proposal (allowed through in_review, i.e. while
+  // the client is still reading it — only a client decision closes the roster).
   removeInfluencer: (proposalId: string, influencerId: string) =>
     jfetch(`${BASE}/${proposalId}/influencers/${influencerId}`, { method: 'DELETE' }),
+
+  // Several at once. POST, not DELETE, because a delete carrying a body is not reliably
+  // forwarded by every proxy in the chain.
+  bulkRemoveInfluencers: (proposalId: string, influencerIds: string[]) =>
+    jfetch(`${BASE}/${proposalId}/influencers/bulk-remove`, {
+      method: 'POST',
+      body: JSON.stringify({ influencer_ids: influencerIds }),
+    }),
 
   // Founders: take a percentage off every sell price on the proposal. 0 restores standard
   // rates. Never touches the master database — the frozen snapshot is what it restores to.

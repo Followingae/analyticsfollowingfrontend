@@ -15,6 +15,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   ArrowLeft, Send, UserPlus, CheckCircle2, RotateCcw, Flag, ArrowUp, ArrowDown, Plus, Trash2,
   Construction, Instagram } from 'lucide-react'
@@ -58,6 +59,9 @@ export default function ProposalApprovalPage() {
   const [steps, setSteps] = useState<Partial<ApprovalStep>[]>([])
   const [showPicker, setShowPicker] = useState(false)
   const [discountPct, setDiscountPct] = useState('')
+  // Ticked creators, for removing a batch in one go. Cleared after every reload so a
+  // stale id can never be sent at a roster that has already changed underneath it.
+  const [picked, setPicked] = useState<Set<string>>(new Set())
   const [approveNotes, setApproveNotes] = useState('')
   const [sendBackNotes, setSendBackNotes] = useState('')
   const [shareUrl, setShareUrl] = useState<string | null>(null)
@@ -105,10 +109,16 @@ export default function ProposalApprovalPage() {
 
   const run = async (fn: () => Promise<any>) => {
     setBusy(true); setErr(null)
-    try { await fn(); await load() }
+    try { await fn(); setPicked(new Set()); await load() }
     catch (e) { setErr(e instanceof Error ? e.message : 'Action failed') }
     finally { setBusy(false) }
   }
+
+  const togglePick = (id: string) => setPicked((prev) => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
 
   if (loading) {
     return <SuperadminLayout><div className="p-6 text-muted-foreground">Loading…</div></SuperadminLayout>
@@ -177,6 +187,22 @@ export default function ProposalApprovalPage() {
                 </div>
                 {viewer.is_operator && (
                   <div className="flex items-center gap-2">
+                    {/* Removing a batch. Only appears once something is ticked, so the
+                        destructive action is never the resting state of the header. */}
+                    {picked.size > 0 && (
+                      <Button size="sm" variant="destructive" disabled={busy}
+                              onClick={() => {
+                                const ids = Array.from(picked)
+                                const names = (ws.influencers || [])
+                                  .filter((i: any) => picked.has(i.id))
+                                  .map((i: any) => '@' + (i.username || '?'))
+                                  .join(', ')
+                                if (window.confirm(`Remove ${ids.length} creator${ids.length === 1 ? '' : 's'} from the proposal?\n\n${names}`))
+                                  run(() => proposalApprovalApi.bulkRemoveInfluencers(proposalId, ids))
+                              }}>
+                        <Trash2 className="mr-1.5 h-4 w-4" />Remove {picked.size}
+                      </Button>
+                    )}
                     {/* A client asks for a better rate on the whole package. The alternative is
                         editing every creator by hand, or editing the master database, which
                         would change what every other client is quoted. */}
@@ -218,6 +244,17 @@ export default function ProposalApprovalPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      {viewer.is_operator && (
+                        <TableHead className="w-10">
+                          <Checkbox
+                            aria-label="Select every creator"
+                            checked={(ws.influencers || []).length > 0 && picked.size === (ws.influencers || []).length}
+                            onCheckedChange={(on: boolean | 'indeterminate') =>
+                              setPicked(on === true ? new Set((ws.influencers || []).map((i: any) => i.id)) : new Set())
+                            }
+                          />
+                        </TableHead>
+                      )}
                       <TableHead>Creator</TableHead>
                       <TableHead>Followers</TableHead>
                       <TableHead>Rate (AED)</TableHead>
@@ -232,7 +269,16 @@ export default function ProposalApprovalPage() {
                       const discounted = inf.custom_sell_pricing?.reel != null
                         && standard != null && Number(inf.custom_sell_pricing.reel) < Number(standard)
                       return (
-                        <TableRow key={inf.id}>
+                        <TableRow key={inf.id} data-state={picked.has(inf.id) ? 'selected' : undefined}>
+                          {viewer.is_operator && (
+                            <TableCell>
+                              <Checkbox
+                                aria-label={`Select @${inf.username || 'creator'}`}
+                                checked={picked.has(inf.id)}
+                                onCheckedChange={() => togglePick(inf.id)}
+                              />
+                            </TableCell>
+                          )}
                           <TableCell className="font-medium">
                             {/* Deciding whether to keep someone usually means looking at the
                                 account. Opens in a new tab so the review is not lost. */}
@@ -294,7 +340,7 @@ export default function ProposalApprovalPage() {
                       )
                     })}
                     {(ws.influencers || []).length === 0 && (
-                      <TableRow><TableCell colSpan={viewer.is_operator ? 5 : 3} className="text-center text-sm text-muted-foreground py-6">No influencers yet</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={viewer.is_operator ? 6 : 3} className="text-center text-sm text-muted-foreground py-6">No influencers yet</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
