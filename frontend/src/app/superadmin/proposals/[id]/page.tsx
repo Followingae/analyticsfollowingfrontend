@@ -62,6 +62,7 @@ import {
 import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
 import { ConfirmationPanel } from '@/components/superadmin/proposals/ConfirmationPanel'
 import { ReopenProposal } from '@/components/superadmin/proposals/ReopenProposal'
+import { SettleAndOpen } from '@/components/superadmin/proposals/SettleAndOpen'
 import { AddOnUptake } from '@/components/superadmin/proposals/AddOnUptake'
 
 export const dynamic = "force-dynamic"
@@ -200,7 +201,7 @@ export default function ProposalDetailPage() {
   const canSend = status === "internally_approved" || status === "more_requested"
   // Internal-pipeline states are managed in the approval workspace, not here.
   const isInternalStage = ["building", "pending_internal_review", "internal_changes_requested", "internally_approved"].includes(status)
-  const showBrandResponse = ["in_review", "more_requested", "approved", "rejected"].includes(status)
+  const showBrandResponse = ["in_review", "more_requested", "client_confirmed", "approved", "rejected"].includes(status)
   const lastTimelineEvent = timeline.length > 0 ? timeline[timeline.length - 1].event : null
 
   // Confirmed creators are booked - the backend refuses to remove them, so they are not
@@ -393,6 +394,10 @@ export default function ProposalDetailPage() {
         {/* 4. CONFIRMATION — locking it, or the receipt once it is locked     */}
         {/* ================================================================= */}
         <ConfirmationPanel proposalId={id} />
+
+        {/* The client has said yes and no campaign is open yet: settle what we pay each
+            creator, then open it. Renders nothing at any other stage. */}
+        <SettleAndOpen proposalId={id} onDone={loadDetail} />
 
         {/* Partially confirmed: what is booked, what is left of the budget, and the way
             back to the client for the rest. Renders nothing on a proposal that is not. */}

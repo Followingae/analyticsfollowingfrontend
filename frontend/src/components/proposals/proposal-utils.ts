@@ -160,6 +160,9 @@ export type ProposalStatus =
   // client-facing
   | "sent"
   | "in_review"
+  // Their yes is in and the roster is locked, but no campaign is open yet: the costs are
+  // being settled first, and a person opens the campaign.
+  | "client_confirmed"
   | "approved"
   | "rejected"
   | "more_requested"
@@ -169,6 +172,7 @@ export function getProposalStatusVariant(
 ): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
     case "approved":
+    case "client_confirmed":
     case "internally_approved":
       return "default"
     case "rejected":
@@ -195,7 +199,8 @@ export function getProposalStatusLabel(status: string): string {
     internally_approved: "Internally Approved",
     sent: "Sent",
     in_review: "In Review",
-    approved: "Approved",
+    client_confirmed: "Client confirmed",
+    approved: "Live campaign",
     rejected: "Rejected",
     more_requested: "More Requested",
   }
@@ -209,6 +214,7 @@ export function getProposalStatusIcon(status: string): LucideIcon {
     case "in_review":
       return Eye
     case "approved":
+    case "client_confirmed":
     case "internally_approved":
       return CheckCircle
     case "rejected":

@@ -145,11 +145,20 @@ function ProposalPage() {
               <Check className="size-7" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight">
-              {p.status === "approved" ? "This campaign is confirmed" : "Sent back to the team"}
+              {p.status === "approved"
+                ? "This campaign is confirmed"
+                : p.status === "client_confirmed"
+                  ? "Thank you — that's confirmed"
+                  : "Sent back to the team"}
             </h2>
             {(p as { agreed_total_aed?: number }).agreed_total_aed != null && (
               <p className="text-muted-foreground">
                 Agreed total AED {Number((p as { agreed_total_aed?: number }).agreed_total_aed).toLocaleString("en-US")}
+              </p>
+            )}
+            {p.status === "client_confirmed" && (
+              <p className="text-sm text-muted-foreground">
+                Our team is setting your campaign up now and will be in touch shortly.
               </p>
             )}
           </div>
