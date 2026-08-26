@@ -34,6 +34,48 @@ export interface AdminProposal {
   sent_at?: string
 }
 
+export interface ReopenState {
+  status: string
+  can_reopen: boolean
+  budget?: number | null
+  committed?: number | null
+  remaining?: number | null
+  locked_count: number
+  on_the_table: number
+  reopen_count: number
+  reopened_at?: string | null
+  reopen_note?: string | null
+  confirmed: Array<{
+    id: string
+    username?: string | null
+    full_name?: string | null
+    profile_image_url?: string | null
+    locked_at?: string | null
+    locked_round?: number | null
+  }>
+}
+
+export interface ReopenResult {
+  status: string
+  locked_count: number
+  reopened_count: number
+  round: number
+  budget?: number | null
+  committed?: number | null
+  remaining?: number | null
+}
+
+/** FastAPI puts the sentence in `detail`. Reading it means the toast says what went
+ *  wrong instead of showing the client a JSON blob. */
+async function errorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const body = await response.json()
+    return body?.detail || fallback
+  } catch {
+    return fallback
+  }
+}
+
 export interface AdminProposalDetail {
   proposal: {
     id: string
@@ -51,6 +93,28 @@ export interface AdminProposalDetail {
     cover_image_url?: string
     created_at: string
     sent_at?: string
+    total_budget?: number | null
+    /** A partial confirmation eats part of the budget. These are what is already
+     *  committed to booked creators and what is left for the next round. */
+    budget_committed?: number | null
+    budget_remaining?: number | null
+    locked_count?: number
+    reopen_count?: number
+    reopened_at?: string | null
+    reopen_note?: string | null
+    /** The priced add-on on this proposal, and whether the client actually bought it.
+     *  Absent when the proposal carries no add-on. */
+    price_modifier?: {
+      id: string
+      label: string
+      description?: string | null
+      kind: 'percent' | 'fixed'
+      percent_value?: number | null
+      amount_aed?: number | null
+      offered_on: string[]
+      taken_by: string[]
+      taken: boolean
+    } | null
   }
   influencers: AdminProposalInfluencer[]
   financials: {
@@ -85,9 +149,17 @@ export interface AdminProposalInfluencer {
   sell_price_snapshot?: Record<string, number | null>
   cost_price_snapshot?: Record<string, number | null>
   custom_sell_pricing?: Record<string, number | null>
-  assigned_deliverables?: Array<{ type: string; quantity: number }>
+  assigned_deliverables?: Array<{ type: string; quantity: number; modifier_eligible?: boolean }>
 
-  selected_deliverables?: string[]
+  selected_deliverables?: Array<{ type: string; quantity?: number; modifier?: string }>
+  /** Confirmed onto the campaign, as opposed to merely ticked. Locked creators survive
+   *  a re-open: they cannot be unticked by the client or removed by an operator. */
+  locked?: boolean
+  locked_at?: string | null
+  locked_round?: number | null
+  /** Whether the proposal's add-on was offered on this creator, and whether taken. */
+  modifier_offered?: boolean
+  modifier_taken?: boolean
 }
 
 export interface BrandProposalView {
@@ -111,6 +183,14 @@ export interface BrandProposalView {
      *  was sent anyway. */
     work_in_progress?: boolean
     work_in_progress_note?: string | null
+    total_budget?: number | null
+    /** On a re-opened proposal the cap is not all theirs to spend: part is already
+     *  committed to the creators they confirmed last time. */
+    budget_committed?: number | null
+    budget_remaining?: number | null
+    locked_count?: number
+    reopen_count?: number
+    reopened_at?: string | null
   }
   influencers: BrandInfluencer[]
   summary: {
@@ -149,8 +229,13 @@ export interface BrandInfluencer {
   avg_views?: number
   sell_pricing?: Record<string, number | null>
   available_deliverables?: string[]
-  selected_deliverables?: string[]
-  assigned_deliverables?: Array<{ type: string; quantity: number }>
+  selected_deliverables?: Array<{ type: string; quantity?: number; modifier?: string }> | string[]
+  assigned_deliverables?: Array<{ type: string; quantity: number; modifier_eligible?: boolean }>
+  /** Already confirmed by this client in an earlier round. Shown as confirmed and not
+   *  selectable — the booking is made and we are already acting on it. */
+  locked?: boolean
+  locked_at?: string | null
+  locked_round?: number | null
   /** The client's own reading of this creator. Coverage is counted from these, never
    *  from a selection. */
   client_opened_at?: string | null
@@ -437,6 +522,31 @@ export class AdminProposalApiService {
     }
     const result = await response.json()
     return result.data
+  }
+
+  // ---------------------------------------------------------------------------
+  // GET/POST /api/v1/admin/proposals/{id}/reopen - Carry on after a partial yes
+  //
+  // A client who confirmed part of a roster and came back for more. The GET says what
+  // re-opening would mean in real numbers so the dialog can state the consequence; the
+  // POST does it, keeping the confirmed creators booked and the budget part-spent.
+  // ---------------------------------------------------------------------------
+  async reopenPreview(proposalId: string): Promise<ReopenState> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/reopen`, {
+      headers: getAuthHeaders(),
+    })
+    if (!response.ok) throw new Error(await errorMessage(response, 'Could not read this proposal'))
+    return (await response.json()).data
+  }
+
+  async reopen(proposalId: string, note?: string): Promise<{ data: ReopenResult; message: string }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/reopen`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ note: note || undefined }),
+    })
+    if (!response.ok) throw new Error(await errorMessage(response, 'Could not re-open this proposal'))
+    return await response.json()
   }
 
   // ---------------------------------------------------------------------------

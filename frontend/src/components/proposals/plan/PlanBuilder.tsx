@@ -65,6 +65,12 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const router = useRouter()
   const proposal = data.proposal as BrandProposalView["proposal"] & { total_budget?: number }
   const budget = Number(proposal.total_budget || 0)
+  /* Part of this budget may already be gone. A client can say yes to some of a roster and
+     come back for the rest, and when they do the creators they booked stay on the page as
+     confirmed. What is left is what this visit can actually spend — planning against the
+     full cap would let them build a line-up we cannot sell them. */
+  const committed = Number(proposal.budget_committed || 0)
+  const spendable = Math.max(0, budget - committed)
   /* Three ways a proposal is sold, and they are not variations on a theme: by the
      dirham, by the head, or the same places repeating month by month. */
   const selection = ((data as unknown as { selection?: ProposalSelection }).selection) ?? { mode: "budget" as const }
@@ -101,7 +107,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   useEffect(() => { setCreators(data.influencers) }, [data.influencers])
 
   /* ---------- derived ---------- */
-  const live = useMemo(() => creators.filter(c => !c.declined_at), [creators])
+  /* The pool still open to them. A confirmed creator is neither choosable nor a candidate
+     for the optimiser — they are already bought, and offering them again would double-book
+     and double-charge. They stay on the wall; they just stop being a decision. */
+  const live = useMemo(() => creators.filter(c => !c.declined_at && !c.locked), [creators])
+  const lockedList = useMemo(() => creators.filter(c => c.locked), [creators])
   const picked = useMemo(() => creators.filter(c => chosen.has(c.id)), [creators, chosen])
   const extras = useMemo(
     () => picked.reduce((s, c) => s + (withMod.has(c.id) ? modifierExtra(c, modifier) : 0), 0),
@@ -115,7 +125,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   }, [picked, withMod])
   const spend = useMemo(
     () => picked.reduce((s, c) => s + creatorCost(c), 0) + extras, [picked, extras])
-  const over = showPricing && spend > budget
+  /* What the whole campaign comes to: what they confirmed last time plus what they are
+     adding now. The bar measures this against the cap, so a re-opened proposal starts
+     part-full instead of pretending the first round never happened. */
+  const allocated = committed + spend
+  const over = showPricing && allocated > budget
   const reviewed = useMemo(
     () => creators.filter(c => c.client_opened_at || c.declined_at).length,
     [creators],
@@ -154,9 +168,9 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     if (!live.length) { setRecommended([]); return }
     if (byTier) { setRecommended(optimiseByPlaces(live, selection.allowances ?? {}, tierOf, strategy)); return }
     if (!showPricing) { setRecommended([]); return }
-    optimise(live, budget, strategy, undefined, 0).then(r => { if (alive) setRecommended(r.picks) })
+    optimise(live, spendable, strategy, undefined, 0).then(r => { if (alive) setRecommended(r.picks) })
     return () => { alive = false }
-  }, [live, budget, strategy, showPricing])
+  }, [live, spendable, strategy, showPricing])
   const recIds = useMemo(() => new Set(recommended.map(c => c.id)), [recommended])
 
   const sig = (ids: Set<string>, s: Strategy) => `${s}:${[...ids].sort().join(",")}`
@@ -169,6 +183,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     else if (sort === "p") list.sort((a, b) => creatorCost(b) - creatorCost(a))
     // The line-up floats to the top; anyone turned down sinks.
     return list.sort((a, b) =>
+      (Number(!!b.locked) - Number(!!a.locked)) ||
       (Number(chosen.has(b.id)) - Number(chosen.has(a.id))) ||
       (Number(!!a.declined_at) - Number(!!b.declined_at)))
   }, [creators, sort, chosen])
@@ -222,6 +237,14 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   }, [live, chosen, save])
 
   const toggle = useCallback((c: BrandInfluencer) => {
+    /* Already booked. Not an error they made — the tile says so — but tapping it must do
+       nothing rather than silently drop somebody who is briefed and shooting. */
+    if (c.locked) {
+      toast.info(`${c.full_name || c.username} is already confirmed`, {
+        description: "They're on the campaign. This round is for adding to that.",
+      })
+      return
+    }
     const adding = !chosen.has(c.id)
     /* A band that is full is full. Refusing here, with the reason, beats letting them
        build a selection of twenty-seven and turning it down at the end. */
@@ -293,10 +316,10 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     if (strong) await beat(`${strong} of them engage above what is typical at their size`)
     if (cats.length) await beat(`Covering ${cats.slice(0, 4).join(", ")}${cats.length > 4 ? " and more" : ""}`)
 
-    const r = await optimise(live, budget, strategy, p => setTested({ n: p.tested, total: p.total, best: p.best, spend: p.spend }))
+    const r = await optimise(live, spendable, strategy, p => setTested({ n: p.tested, total: p.total, best: p.best, spend: p.spend }))
     const ids = new Set(r.picks.map(c => c.id))
     setChosen(ids); save(ids); setBuiltSig(sig(ids, strategy))
-    setBuildLog(l => [...l, `Best fit found — ${aed(r.spend)} of ${aed(budget)}, ${aed(r.leftover)} unspent`])
+    setBuildLog(l => [...l, `Best fit found — ${aed(r.spend)} of ${aed(spendable)}, ${aed(r.leftover)} unspent`])
     await new Promise(r2 => setTimeout(r2, 900))
     setBuilding(false)
   }
@@ -352,7 +375,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   /* ---------- over budget: named moves, not a red number ---------- */
   const moves = useMemo(() => {
     if (!over) return []
-    const excess = spend - budget
+    const excess = allocated - budget
     const inPlan = [...picked].sort((a, b) => creatorCost(b) - creatorCost(a))
     const bench = live.filter(c => !chosen.has(c.id))
     const out: { key: string; title: string; sub: string; save: number; run: () => void }[] = []
@@ -379,7 +402,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     }
     out.push({ key: "rebuild", title: "Rebuild it for me", sub: "Best line-up that fits, in one tap", save: excess, run: runBuild })
     return out.slice(0, 3)
-  }, [over, spend, budget, picked, live, chosen])   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [over, allocated, budget, picked, live, chosen])   // eslint-disable-line react-hooks/exhaustive-deps
 
   const askForMore = () => { covered ? setAskOpen(true) : setSmartOpen(true) }
 
@@ -488,6 +511,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                   key={c.id}
                   creator={c}
                   chosen={chosen.has(c.id)}
+                  locked={!!c.locked}
                   recommended={recIds.has(c.id)}
                   why={whyFor(c, live)}
                   showPricing={showPricing}
@@ -614,16 +638,22 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                 <Wallet className="size-3.5" />Your budget
               </p>
               <div className={cn("mt-3 text-[32px] font-extrabold leading-none tracking-[-0.04em]", over && "text-destructive")}>
-                {aed(spend)}
+                {aed(allocated)}
               </div>
-              <Progress value={Math.min(100, budget ? (spend / budget) * 100 : 0)} className="my-3 h-2" />
+              <Progress value={Math.min(100, budget ? (allocated / budget) * 100 : 0)} className="my-3 h-2" />
+              {committed > 0 && (
+                <p className="-mt-1 mb-1 flex items-center gap-1.5 text-[11.5px] font-medium text-emerald-600">
+                  <Check className="size-3.5" />
+                  {aed(committed)} already confirmed
+                </p>
+              )}
               {extras > 0 && (
                 <p className="-mt-1 mb-1 text-[11.5px] text-muted-foreground">
                   Includes {aed(extras)} for {modifier?.label?.toLowerCase()}
                 </p>
               )}
-              <p className={cn("text-[12.5px] font-semibold", over ? "text-destructive" : spend === budget ? "text-emerald-600" : "text-muted-foreground")}>
-                {over ? `+${aed(spend - budget)} over` : spend === budget ? "Every dirham allocated" : `${aed(budget - spend)} unspent of ${aed(budget)}`}
+              <p className={cn("text-[12.5px] font-semibold", over ? "text-destructive" : allocated === budget ? "text-emerald-600" : "text-muted-foreground")}>
+                {over ? `+${aed(allocated - budget)} over` : allocated === budget ? "Every dirham allocated" : `${aed(budget - allocated)} unspent of ${aed(budget)}`}
               </p>
               <p className="mt-2.5 text-[11.5px] leading-relaxed text-muted-foreground">
                 {/* A warning about losing money reads as pressure. The same fact, said as
@@ -636,7 +666,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
           {over && (
             <section className="flex animate-in fade-in flex-col gap-3 rounded-[18px] border border-destructive/35 bg-destructive/5 p-4">
               <div className="flex items-center gap-2 text-[13px] font-bold text-destructive">
-                <AlertTriangle className="size-4" />{aed(spend - budget)} over budget
+                <AlertTriangle className="size-4" />{aed(allocated - budget)} over budget
               </div>
               {moves.map(m => (
                 <button key={m.key} onClick={m.run}
@@ -663,10 +693,31 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                 <span className="whitespace-nowrap text-[11.5px] font-semibold tabular-nums text-muted-foreground">{reviewed}/{creators.length} reviewed</span>
               </div>
             </div>
+            {/* Already yours. Listed above the new picks rather than mixed into them: this
+                part of the plan is settled and is what the rest is being added to. */}
+            {lockedList.length > 0 && (
+              <div className="mt-3.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+                <p className="mb-2 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400">
+                  <Check className="size-3.5" />Already confirmed · {lockedList.length}
+                </p>
+                {lockedList.map(c => (
+                  <div key={c.id} className="flex items-center gap-3 py-1.5">
+                    <img src={cdnAvatar(c.profile_image_url || undefined)} alt="" className="size-8 shrink-0 rounded-full object-cover ring-2 ring-emerald-500" />
+                    <b className="min-w-0 flex-1 truncate text-[12.5px] font-semibold">{c.full_name || c.username}</b>
+                    {showPricing && (
+                      <span className="text-[12.5px] font-bold tabular-nums text-muted-foreground">{aed(creatorCost(c))}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="mt-3.5">
               {picked.length === 0 ? (
                 <div className="rounded-2xl border border-dashed p-5 text-center text-[12.5px] text-muted-foreground">
-                  Tap a creator, or let Smart pick build it.
+                  {lockedList.length > 0
+                    ? "Add to your campaign — tap a creator, or let Smart pick build it."
+                    : "Tap a creator, or let Smart pick build it."}
                 </div>
               ) : (
                 <div className="flex flex-col">
@@ -743,8 +794,8 @@ export function PlanBuilder({ proposalId, data, onReload }: {
             <span className="text-xs text-muted-foreground">
               {byTier
                 ? tierRows.map(r => `${r.label} ${r.picked}/${r.allowed}`).join(" · ")
-                : over ? `${aed(spend - budget)} over budget`
-                : showPricing ? `${aed(budget - spend)} unspent`
+                : over ? `${aed(allocated - budget)} over budget`
+                : showPricing ? `${aed(budget - allocated)} unspent`
                 : `${reviewed} of ${creators.length} reviewed`}
             </span>
           </div>
@@ -858,9 +909,9 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                    className="-ml-2.5 size-9 rounded-full object-cover ring-2 ring-background first:ml-0" />
             ))}
           </div>
-          {showPricing && budget - spend > budget * 0.05 && (
+          {showPricing && budget - allocated > budget * 0.05 && (
             <p className="rounded-xl bg-muted p-3 text-[12.5px] leading-relaxed text-muted-foreground">
-              {aed(budget - spend)} of your budget stays open. Our team will put together a few
+              {aed(budget - allocated)} of your budget stays open. Our team will put together a few
               smaller creators for it and send them over for your approval separately.
             </p>
           )}

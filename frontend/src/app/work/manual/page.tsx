@@ -22,7 +22,7 @@ import { AuthGuard } from '@/components/AuthGuard'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft, ArrowRight, ArrowUpRight, Building2, CheckCircle2, ClipboardCheck,
-  FileText, HandCoins, Layers, Send, ShieldCheck, Sparkles, Tag, Users, X,
+  FileText, HandCoins, Layers, RotateCcw, Send, ShieldCheck, Sparkles, Tag, Users, X,
 } from 'lucide-react'
 
 const LIME = '#D3FF02'
@@ -233,6 +233,23 @@ const SLIDES: Slide[] = [
       'The margin on the campaign becomes a real number rather than a guess built on quotes.',
     ],
     handover: 'Their copy of the proposal keeps the roster and the agreed total — the per-creator prices come off once it is locked.',
+  },
+  {
+    id: 'partial', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: RotateCcw,
+    title: 'They only took some of them',
+    lede: 'Clients read a proposal as a menu. They take the two they are sure about, see how it goes, and come back for the rest — which is not a rejection of the other nineteen, and their budget has not gone anywhere.',
+    does: [
+      'Re-open the proposal. The ones they confirmed stay booked on the running campaign.',
+      'Everyone else goes back on the table at the price they were quoted, with the rest of the budget still to spend.',
+      'Add more names first if you have them, or send it straight back — both are fine.',
+    ],
+    where: [{ label: 'Proposals', href: '/work/proposals' }],
+    helps: [
+      'A partial yes stops closing the conversation and stranding the rest of the budget.',
+      'Confirmed creators cannot be unticked by the client or removed by us — nobody who is already briefed quietly falls off.',
+      'The second round joins the same campaign, so there is one campaign and one invoice trail, not two.',
+    ],
+    handover: 'The client is told the proposal is open again, and their budget bar starts part-full with what they have already spent.',
   },
   {
     id: 'paper', kind: 'stop', who: 'Sana with a founder', role: 'Account management', icon: ClipboardCheck,

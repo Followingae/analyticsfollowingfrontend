@@ -12,7 +12,7 @@
  * decides, so it cannot be hidden.
  */
 import { memo } from "react"
-import { Check, X, Users, Heart, Sparkles, BadgeCheck } from "lucide-react"
+import { Check, X, Users, Heart, Sparkles, BadgeCheck, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { cdnAvatar } from "@/lib/avatar"
 import type { BrandInfluencer } from "@/services/adminProposalMasterApi"
@@ -25,6 +25,8 @@ const aed = (n: number) => `AED ${Math.round(n).toLocaleString("en-US")}`
 interface Props {
   creator: BrandInfluencer
   chosen: boolean
+  /** Already confirmed in an earlier round. Settled, not choosable. */
+  locked?: boolean
   recommended: boolean
   why?: { title: string; value: string } | null
   showPricing: boolean
@@ -35,10 +37,14 @@ interface Props {
 }
 
 export const CreatorTile = memo(function CreatorTile({
-  creator: c, chosen, recommended, why, showPricing, onToggle, onOpen, onDecline, onUndecline,
+  creator: c, chosen, locked = false, recommended, why, showPricing, onToggle, onOpen, onDecline, onUndecline,
 }: Props) {
-  const declined = !!c.declined_at
-  const unread = !c.client_opened_at && !declined
+  const declined = !!c.declined_at && !locked
+  const unread = !c.client_opened_at && !declined && !locked
+  /* Confirmed reads exactly like chosen — full colour, green frame, ticked — because it IS
+     in the plan. The difference is that it cannot be taken back out, which the lock says
+     without dressing a settled decision up as a rejected one. */
+  const inPlan = chosen || locked
   const er = c.measured?.engagement_rate ?? c.engagement_rate
   const cost = creatorCost(c)
 
@@ -46,16 +52,21 @@ export const CreatorTile = memo(function CreatorTile({
     <article
       className={cn(
         "group relative overflow-hidden rounded-[20px] border bg-card shadow-sm transition-all",
-        chosen ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-border",
-        recommended && !chosen && "border-primary",
+        inPlan ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-border",
+        locked && "ring-emerald-500",
+        recommended && !inPlan && "border-primary",
         declined ? "opacity-50" : "hover:-translate-y-0.5 hover:shadow-lg",
       )}
     >
       <button
         type="button"
         onClick={() => !declined && onToggle(c)}
-        className="block w-full text-left"
-        aria-label={chosen ? `Remove ${c.full_name || c.username}` : `Add ${c.full_name || c.username}`}
+        className={cn("block w-full text-left", locked && "cursor-default")}
+        aria-label={
+          locked ? `${c.full_name || c.username} is already confirmed`
+            : chosen ? `Remove ${c.full_name || c.username}`
+            : `Add ${c.full_name || c.username}`
+        }
       >
         <img
           src={cdnAvatar(c.profile_image_url || undefined)}
@@ -63,13 +74,13 @@ export const CreatorTile = memo(function CreatorTile({
           draggable={false}
           className={cn(
             "aspect-[3/4] w-full object-cover transition-[filter,transform] duration-500",
-            chosen ? "grayscale-0" : "grayscale group-hover:grayscale-[.45]",
+            inPlan ? "grayscale-0" : "grayscale group-hover:grayscale-[.45]",
             declined && "grayscale brightness-75",
           )}
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30" />
 
-        {why && recommended && !declined && (
+        {why && recommended && !declined && !locked && (
           <span className="absolute left-3 top-3 z-[3] inline-flex max-w-[calc(100%-24px)] items-center gap-1.5 overflow-hidden rounded-full bg-primary px-2 py-1.5 text-[11px] font-bold text-primary-foreground shadow-md transition-[max-width] duration-300 max-w-7 group-hover:max-w-[calc(100%-24px)]">
             <Sparkles className="size-3.5 shrink-0" />
             <em className="not-italic whitespace-nowrap opacity-0 transition-opacity group-hover:opacity-100">{why.title}</em>
@@ -79,10 +90,10 @@ export const CreatorTile = memo(function CreatorTile({
         <span
           className={cn(
             "absolute right-3 top-3 z-[2] grid size-8 place-items-center rounded-full border-[1.5px] backdrop-blur transition",
-            chosen ? "scale-105 border-transparent bg-emerald-500 text-white" : "border-white/60 bg-black/30 text-white",
+            inPlan ? "scale-105 border-transparent bg-emerald-500 text-white" : "border-white/60 bg-black/30 text-white",
           )}
         >
-          <Check className={cn("size-4 transition-opacity", chosen ? "opacity-100" : "opacity-0")} />
+          <Check className={cn("size-4 transition-opacity", inPlan ? "opacity-100" : "opacity-0")} />
         </span>
 
         <div className="absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-2 p-4 pb-[54px] text-white">
@@ -100,7 +111,13 @@ export const CreatorTile = memo(function CreatorTile({
         </div>
       </button>
 
-      {!declined && (
+      {locked && (
+        <div className="absolute inset-x-0 bottom-0 z-[5] flex items-center justify-center gap-1.5 bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white">
+          <Lock className="size-3.5" />Confirmed
+        </div>
+      )}
+
+      {!declined && !locked && (
         <>
           <button
             type="button"

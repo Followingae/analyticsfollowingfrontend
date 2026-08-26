@@ -49,12 +49,16 @@ import {
   Trash2,
   Clock,
   Coins,
+  Lock,
+  RotateCcw,
   Users,
   TrendingUp,
   Loader2,
 } from "lucide-react"
 import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
 import { ConfirmationPanel } from '@/components/superadmin/proposals/ConfirmationPanel'
+import { ReopenProposal } from '@/components/superadmin/proposals/ReopenProposal'
+import { AddOnUptake } from '@/components/superadmin/proposals/AddOnUptake'
 
 export const dynamic = "force-dynamic"
 
@@ -69,6 +73,7 @@ const TIMELINE_ICONS: Record<string, React.ElementType> = {
   more_added: Plus,
   approved: CheckCircle,
   rejected: XCircle,
+  reopened: RotateCcw,
 }
 
 // Both of these used to read only the `post` price. A roster priced in reels — most of
@@ -350,6 +355,13 @@ export default function ProposalDetailPage() {
         {/* ================================================================= */}
         <ConfirmationPanel proposalId={id} />
 
+        {/* Partially confirmed: what is booked, what is left of the budget, and the way
+            back to the client for the rest. Renders nothing on a proposal that is not. */}
+        <ReopenProposal proposalId={id} onDone={loadDetail} />
+
+        {/* Whether they bought the priced add-on. Renders nothing when there isn't one. */}
+        <AddOnUptake modifier={proposal.price_modifier} />
+
         {/* ================================================================= */}
         {/* 5. INFLUENCERS TABLE                                              */}
         {/* ================================================================= */}
@@ -447,12 +459,22 @@ export default function ProposalDetailPage() {
                             {margin.toFixed(1)}%
                           </TableCell>
                           <TableCell>
-                            {inf.selected_by_user ? (
+                            {inf.locked ? (
+                              <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-600">
+                                <Lock className="h-3 w-3" />
+                                Confirmed
+                              </Badge>
+                            ) : inf.selected_by_user ? (
                               <Badge variant="default">
                                 Selected
                               </Badge>
                             ) : (
                               <Badge variant="secondary">Not Selected</Badge>
+                            )}
+                            {inf.modifier_taken && (
+                              <Badge variant="outline" className="ml-1 text-[10px]">
+                                + add-on
+                              </Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
@@ -467,11 +489,12 @@ export default function ProposalDetailPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
+                                  disabled={!!inf.locked}
                                   className="text-destructive focus:text-destructive"
                                   onClick={() => handleRemoveInfluencer(inf.id)}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
-                                  Remove
+                                  {inf.locked ? "Confirmed - cannot remove" : "Remove"}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
