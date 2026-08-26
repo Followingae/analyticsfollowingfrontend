@@ -542,6 +542,25 @@ export class AdminProposalApiService {
   }
 
   // ---------------------------------------------------------------------------
+  // POST /api/v1/admin/proposals/{id}/influencers/bulk-remove
+  //
+  // POST rather than DELETE because a delete with a body is not reliably carried by every
+  // client and proxy in the chain. Refuses outright if any of them are already confirmed.
+  // ---------------------------------------------------------------------------
+  async bulkRemoveInfluencers(proposalId: string, influencerIds: string[]): Promise<{
+    data: { removed: number; removed_ids: string[]; was_selected: string[] }
+    message: string
+  }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/influencers/bulk-remove`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ influencer_ids: influencerIds }),
+    })
+    if (!response.ok) throw new Error(await errorMessage(response, 'Could not remove those creators'))
+    return await response.json()
+  }
+
+  // ---------------------------------------------------------------------------
   // GET/POST /api/v1/admin/proposals/{id}/reopen - Carry on after a partial yes
   //
   // A client who confirmed part of a roster and came back for more. The GET says what

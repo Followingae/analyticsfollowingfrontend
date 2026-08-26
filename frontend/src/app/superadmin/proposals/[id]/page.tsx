@@ -32,6 +32,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog"
 import { StandardMetricCard } from "@/components/ui/standard-metric-card"
 import { Progress } from "@/components/ui/progress"
 import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
@@ -94,6 +98,12 @@ export default function ProposalDetailPage() {
   const [data, setData] = useState<AdminProposalDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  /* Taking several creators off at once. A roster arrives as a pasted list and is trimmed
+     the same way - one at a time through a row menu turns a twenty-name cut into twenty
+     confirmations. Confirmed creators are never selectable: they are booked. */
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [removeOpen, setRemoveOpen] = useState(false)
+  const [removing, setRemoving] = useState(false)
 
   async function loadDetail() {
     try {
@@ -135,6 +145,29 @@ export default function ProposalDetailPage() {
     }
   }
 
+  async function handleBulkRemove() {
+    setRemoving(true)
+    try {
+      const res = await adminProposalApi.bulkRemoveInfluencers(id, [...picked])
+      toast.success(res.message)
+      setPicked(new Set())
+      setRemoveOpen(false)
+      loadDetail()
+    } catch (err: any) {
+      toast.error(err.message || "Could not remove those creators")
+    } finally {
+      setRemoving(false)
+    }
+  }
+
+  function togglePick(rowId: string) {
+    setPicked(prev => {
+      const next = new Set(prev)
+      next.has(rowId) ? next.delete(rowId) : next.add(rowId)
+      return next
+    })
+  }
+
   if (loading) {
     return (
       <SuperadminLayout>
@@ -169,6 +202,12 @@ export default function ProposalDetailPage() {
   const isInternalStage = ["building", "pending_internal_review", "internal_changes_requested", "internally_approved"].includes(status)
   const showBrandResponse = ["in_review", "more_requested", "approved", "rejected"].includes(status)
   const lastTimelineEvent = timeline.length > 0 ? timeline[timeline.length - 1].event : null
+
+  // Confirmed creators are booked - the backend refuses to remove them, so they are not
+  // offered. Everyone else on the roster can go.
+  const removable = influencers.filter(i => !i.locked)
+  const allPicked = removable.length > 0 && removable.every(i => picked.has(i.id))
+  const pickedList = influencers.filter(i => picked.has(i.id))
 
   // Compute table totals
   const totalSell = influencers.reduce((s, i) => s + getSellPrice(i), 0)
@@ -374,18 +413,41 @@ export default function ProposalDetailPage() {
         <SellingMode proposalId={id} />
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Influencers</CardTitle>
-            <CardDescription>
-              {influencers.length} influencer{influencers.length !== 1 && "s"} in
-              this proposal
-            </CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg">Influencers</CardTitle>
+              <CardDescription>
+                {influencers.length} influencer{influencers.length !== 1 && "s"} in
+                this proposal
+                {influencers.length !== removable.length && (
+                  <> · {influencers.length - removable.length} confirmed and cannot be removed</>
+                )}
+              </CardDescription>
+            </div>
+            {/* Only once something is ticked, so the destructive action is never the
+                resting state of the header. */}
+            {picked.size > 0 && (
+              <Button size="sm" variant="destructive" onClick={() => setRemoveOpen(true)}>
+                <Trash2 className="mr-1.5 h-4 w-4" />
+                Remove {picked.size}
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={allPicked}
+                        disabled={removable.length === 0}
+                        aria-label="Select every creator that can be removed"
+                        onCheckedChange={on =>
+                          setPicked(on ? new Set(removable.map(i => i.id)) : new Set())
+                        }
+                      />
+                    </TableHead>
                     <TableHead className="min-w-[180px]">Influencer</TableHead>
                     <TableHead className="text-right">Followers</TableHead>
                     <TableHead className="text-right">Engagement</TableHead>
@@ -402,7 +464,7 @@ export default function ProposalDetailPage() {
                   {influencers.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={10}
+                        colSpan={11}
                         className="text-center text-muted-foreground py-8"
                       >
                         No influencers added yet
@@ -414,7 +476,15 @@ export default function ProposalDetailPage() {
                       const cost = getCostPrice(inf)
                       const margin = sell > 0 ? ((sell - cost) / sell) * 100 : 0
                       return (
-                        <TableRow key={inf.id}>
+                        <TableRow key={inf.id} data-state={picked.has(inf.id) ? "selected" : undefined}>
+                          <TableCell>
+                            <Checkbox
+                              checked={picked.has(inf.id)}
+                              disabled={!!inf.locked}
+                              onCheckedChange={() => togglePick(inf.id)}
+                              aria-label={`Select ${inf.username || "creator"}`}
+                            />
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
@@ -513,7 +583,7 @@ export default function ProposalDetailPage() {
                 {influencers.length > 0 && (
                   <TableFooter>
                     <TableRow>
-                      <TableCell colSpan={4} className="font-medium">
+                      <TableCell colSpan={5} className="font-medium">
                         Totals
                       </TableCell>
                       <TableCell className="text-right font-medium">
@@ -536,6 +606,56 @@ export default function ProposalDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Removing a batch. A dialog rather than window.confirm because it has something
+            to say: which creators the client has already picked, so nobody quietly deletes
+            somebody the client is expecting to see. */}
+        <Dialog open={removeOpen} onOpenChange={o => !removing && setRemoveOpen(o)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Remove {picked.size} creator{picked.size === 1 ? "" : "s"}?
+              </DialogTitle>
+              <DialogDescription asChild>
+                <div className="space-y-3 text-sm">
+                  <p>They come off this proposal. This cannot be undone.</p>
+                  {pickedList.some(i => i.selected_by_user) && (
+                    <p className="rounded-md bg-amber-500/10 p-2.5 text-amber-700 dark:text-amber-400">
+                      The client has already picked{" "}
+                      {pickedList.filter(i => i.selected_by_user).map(i => "@" + i.username).join(", ")}
+                      {" "}— tell them, or they will look for them.
+                    </p>
+                  )}
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="max-h-56 overflow-auto rounded-md border">
+              {pickedList.map(i => (
+                <div key={i.id} className="flex items-center gap-2.5 border-b p-2.5 text-sm last:border-b-0">
+                  <Avatar className="h-7 w-7">
+                    <AvatarImage src={i.profile_image_url || ""} alt={i.username || ""} />
+                    <AvatarFallback>{(i.username || "?")[0].toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <span className="flex-1 truncate">{i.username}</span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {formatCurrency(getSellPrice(i))}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setRemoveOpen(false)} disabled={removing}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleBulkRemove} disabled={removing}>
+                {removing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Remove {picked.size}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* ================================================================= */}
         {/* 5. BRAND RESPONSE SECTION                                         */}
