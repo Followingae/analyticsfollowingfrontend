@@ -359,8 +359,14 @@ export default function ProposalDetailPage() {
             back to the client for the rest. Renders nothing on a proposal that is not. */}
         <ReopenProposal proposalId={id} onDone={loadDetail} />
 
-        {/* Whether they bought the priced add-on. Renders nothing when there isn't one. */}
-        <AddOnUptake modifier={proposal.price_modifier} />
+        {/* Whether they bought the priced add-on, and putting it on or taking it off by
+            hand. Renders nothing when the proposal carries no add-on. */}
+        <AddOnUptake
+          proposalId={id}
+          modifier={proposal.price_modifier}
+          influencers={influencers}
+          onDone={loadDetail}
+        />
 
         {/* ================================================================= */}
         {/* 5. INFLUENCERS TABLE                                              */}

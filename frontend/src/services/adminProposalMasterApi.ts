@@ -34,6 +34,19 @@ export interface AdminProposal {
   sent_at?: string
 }
 
+export interface AddOnResult {
+  influencer_id: string
+  username?: string | null
+  applied: boolean
+  /** Applied to somebody the client has not selected: the offer is open, nothing charged. */
+  offered_only: boolean
+  was: number
+  now: number
+  delta: number
+  locked: boolean
+  campaign_repriced: boolean
+}
+
 export interface ReopenState {
   status: string
   can_reopen: boolean
@@ -160,6 +173,10 @@ export interface AdminProposalInfluencer {
   /** Whether the proposal's add-on was offered on this creator, and whether taken. */
   modifier_offered?: boolean
   modifier_taken?: boolean
+  /** Set when an operator answered the add-on rather than the client. */
+  modifier_overridden?: boolean
+  modifier_override_at?: string | null
+  modifier_override_reason?: string | null
 }
 
 export interface BrandProposalView {
@@ -546,6 +563,25 @@ export class AdminProposalApiService {
       body: JSON.stringify({ note: note || undefined }),
     })
     if (!response.ok) throw new Error(await errorMessage(response, 'Could not re-open this proposal'))
+    return await response.json()
+  }
+
+  // ---------------------------------------------------------------------------
+  // PUT /api/v1/admin/proposals/{id}/influencers/{rowId}/add-on
+  //
+  // Answering the priced add-on on the client's behalf. Deals are agreed on calls, not by
+  // clicks. Re-prices the proposal and, when the creator is already booked, the campaign.
+  // ---------------------------------------------------------------------------
+  async setAddOn(proposalId: string, rowId: string, body: {
+    applied: boolean
+    types?: string[]
+    reason?: string
+  }): Promise<{ data: AddOnResult; message: string }> {
+    const response = await fetchWithAuth(
+      `${this.baseUrl}/${proposalId}/influencers/${rowId}/add-on`,
+      { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) },
+    )
+    if (!response.ok) throw new Error(await errorMessage(response, 'Could not change the add-on'))
     return await response.json()
   }
 
