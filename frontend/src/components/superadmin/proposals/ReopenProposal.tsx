@@ -77,7 +77,8 @@ export function ReopenProposal({ proposalId, onDone }: { proposalId: string; onD
             Confirmed in part
           </CardTitle>
           <CardDescription>
-            {state.locked_count} creator{state.locked_count === 1 ? ' is' : 's are'} booked and running.
+            {state.locked_count} creator{state.locked_count === 1 ? ' is' : 's are'} confirmed
+            {state.status === 'approved' ? ' and running' : ''}.
             {' '}{state.on_the_table} {state.on_the_table === 1 ? 'is' : 'are'} still on the table.
           </CardDescription>
         </CardHeader>
@@ -126,8 +127,9 @@ export function ReopenProposal({ proposalId, onDone }: { proposalId: string; onD
               <div className="space-y-2 text-sm">
                 <p>
                   The {state.locked_count} creator{state.locked_count === 1 ? '' : 's'} they already
-                  confirmed stay booked on the running campaign. They cannot be unticked or removed,
-                  and nothing about their deal changes.
+                  confirmed stay confirmed
+                  {state.status === 'approved' ? ' on the running campaign' : ''}. They cannot be
+                  unticked or removed, and nothing about their deal changes.
                 </p>
                 <p>
                   The other {state.on_the_table} go back on the table at the prices they were quoted,
