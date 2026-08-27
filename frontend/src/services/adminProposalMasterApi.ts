@@ -148,6 +148,9 @@ export interface AdminProposalInfluencer {
   influencer_db_id?: string
   profile_id?: string
   priority_order: number
+  /** The house's own pick for this client. Floats to the top of the client's wall. */
+  recommended?: boolean
+  recommended_note?: string | null
   selected_by_user: boolean
   selected_at?: string
   admin_notes?: string
@@ -225,6 +228,9 @@ export interface BrandInfluencer {
   id: string
   influencer_db_id?: string
   priority_order: number
+  /** We put our name on this one for this client, with the one-line reason. */
+  recommended?: boolean
+  recommended_note?: string | null
   batch_number?: number
   added_at?: string
   selected_by_user: boolean
@@ -601,6 +607,22 @@ export class AdminProposalApiService {
       { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) },
     )
     if (!response.ok) throw new Error(await errorMessage(response, 'Could not change the add-on'))
+    return await response.json()
+  }
+
+  // ---------------------------------------------------------------------------
+  // PUT /api/v1/admin/proposals/{id}/influencers/{rowId}/recommend
+  // Put our name on one creator for this client, with an optional one-line reason.
+  // ---------------------------------------------------------------------------
+  async setRecommended(proposalId: string, rowId: string, body: {
+    recommended: boolean
+    note?: string
+  }): Promise<{ data: { recommended: boolean; note: string | null } }> {
+    const response = await fetchWithAuth(
+      `${this.baseUrl}/${proposalId}/influencers/${rowId}/recommend`,
+      { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) },
+    )
+    if (!response.ok) throw new Error(await errorMessage(response, 'Could not change the recommendation'))
     return await response.json()
   }
 

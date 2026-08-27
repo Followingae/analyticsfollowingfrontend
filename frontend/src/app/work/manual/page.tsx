@@ -208,12 +208,14 @@ const SLIDES: Slide[] = [
     lede: 'What they picked becomes what we quote. Prices freeze the moment it is built, so a rate moving later cannot change a number the client has seen.',
     does: [
       'Build it from the picks, with deliverables per creator.',
+      'Mark the ones you would put forward: the row menu, “Recommend to client”, and one line saying why. They go to the front of the client’s wall wearing a green badge.',
       'Send it for internal approval; a founder sends it out.',
       'If they ask for more, that comes back as a job on your Today.',
     ],
     where: [{ label: 'Proposals', href: '/work/proposals' }],
     helps: [
       'Prices freeze when the proposal is built, so nobody is caught out by a rate that moved afterwards.',
+      'A client staring at twenty equal faces picks slowly. Two of them wearing our name, with a reason, is the advice they asked us for.',
       'The client\u2019s answer comes back as a job on your Today rather than an email you have to spot.',
     ],
     handover: 'Yes, no, or “show me more” — all three arrive on the account manager’s Today.',

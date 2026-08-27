@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
   Lock, Check, FileSignature, CreditCard, Users, Download, ArrowRight,
-  ShieldCheck, Sparkles, Wallet, CalendarClock,
+  ShieldCheck, Sparkles, Star, Wallet, CalendarClock,
 } from 'lucide-react'
 import { QuoteView } from './QuoteView'
 import { cdnAvatar } from "@/lib/avatar"
@@ -474,7 +474,7 @@ export default function PublicProposalPage() {
               if (inf.locked) return <Reveal key={inf.id} delay={Math.min(idx * 0.03, 0.24)}><GhostCard i={idx} /></Reveal>
               return (
                 <Reveal key={inf.id} delay={Math.min(idx * 0.03, 0.24)}>
-                  <div className="rounded-2xl border border-border bg-card p-5 h-full transition-all hover:border-foreground/20 hover:shadow-sm">
+                  <div className={`rounded-2xl border bg-card p-5 h-full transition-all hover:shadow-sm ${inf.recommended ? 'border-lime-400 ring-2 ring-lime-400/35' : 'border-border hover:border-foreground/20'}`}>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={cdnAvatar(inf.profile_image_url)} alt={inf.username || ''} />
@@ -485,9 +485,18 @@ export default function PublicProposalPage() {
                         {inf.full_name && <div className="text-sm text-muted-foreground truncate">{inf.full_name}</div>}
                       </div>
                     </div>
+                    {/* One chip, and ours outranks the rest: a person here put their name on
+                        this creator for this client, where the others are the system
+                        describing itself. */}
+                    {inf.recommended && (
+                      <div className="mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full bg-lime-400 px-2.5 py-1 text-[11.5px] font-bold text-lime-950">
+                        <Star className="h-3 w-3 shrink-0 fill-current" />
+                        <span className="truncate">{inf.recommended_note || 'Recommended by us'}</span>
+                      </div>
+                    )}
                     {/* A creator we placed in a smaller band than their size — the client is
                         getting more than they bought, so it is said out loud. */}
-                    {byTier && inf.above_band && (
+                    {byTier && inf.above_band && !inf.recommended && (
                       <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11.5px] font-medium text-primary">
                         <Sparkles className="h-3 w-3" />Upgraded pick — counts as {inf.tier_label}
                       </div>

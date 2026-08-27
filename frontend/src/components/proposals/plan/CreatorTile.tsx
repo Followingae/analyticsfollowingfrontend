@@ -10,9 +10,15 @@
  * Two targets only — the tile adds or removes them, the strip opens their numbers. The
  * analytics strip is permanent rather than a hover affordance: it is how a marketing team
  * decides, so it cannot be hidden.
+ *
+ * ONE badge, ever. A tile wearing two labels is a tile saying nothing, and the two we have
+ * are not equals: "Recommended by us" is a person here putting their name on this creator
+ * for this client, and the Smart Pick flash is the optimiser noticing a number. So the house
+ * pick takes the slot outright and the machine's suggestion stands down — it is not stacked,
+ * shrunk or moved elsewhere on the card.
  */
 import { memo } from "react"
-import { Check, X, Users, Heart, Sparkles, BadgeCheck, Lock } from "lucide-react"
+import { Check, X, Users, Heart, Sparkles, Star, BadgeCheck, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { cdnAvatar } from "@/lib/avatar"
 import type { BrandInfluencer } from "@/services/adminProposalMasterApi"
@@ -27,7 +33,8 @@ interface Props {
   chosen: boolean
   /** Already confirmed in an earlier round. Settled, not choosable. */
   locked?: boolean
-  recommended: boolean
+  /** In the optimiser's current line-up. Wears the Smart Pick flash, unless we recommended them. */
+  smartPick: boolean
   why?: { title: string; value: string } | null
   showPricing: boolean
   onToggle: (c: BrandInfluencer) => void
@@ -37,7 +44,7 @@ interface Props {
 }
 
 export const CreatorTile = memo(function CreatorTile({
-  creator: c, chosen, locked = false, recommended, why, showPricing, onToggle, onOpen, onDecline, onUndecline,
+  creator: c, chosen, locked = false, smartPick, why, showPricing, onToggle, onOpen, onDecline, onUndecline,
 }: Props) {
   const declined = !!c.declined_at && !locked
   const unread = !c.client_opened_at && !declined && !locked
@@ -47,6 +54,9 @@ export const CreatorTile = memo(function CreatorTile({
   const inPlan = chosen || locked
   const er = c.measured?.engagement_rate ?? c.engagement_rate
   const cost = creatorCost(c)
+  /* Our recommendation outranks the optimiser's, so only one of these can ever be true. */
+  const ours = !!c.recommended && !declined
+  const flash = !ours && smartPick && !!why && !declined && !locked
 
   return (
     <article
@@ -54,7 +64,8 @@ export const CreatorTile = memo(function CreatorTile({
         "group relative overflow-hidden rounded-[20px] border bg-card shadow-sm transition-all",
         inPlan ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-border",
         locked && "ring-emerald-500",
-        recommended && !inPlan && "border-primary",
+        ours && !inPlan && "border-lime-400 ring-2 ring-lime-400/40",
+        flash && !inPlan && "border-primary",
         declined ? "opacity-50" : "hover:-translate-y-0.5 hover:shadow-lg",
       )}
     >
@@ -80,10 +91,19 @@ export const CreatorTile = memo(function CreatorTile({
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30" />
 
-        {why && recommended && !declined && !locked && (
-          <span className="absolute left-3 top-3 z-[3] inline-flex max-w-[calc(100%-24px)] items-center gap-1.5 overflow-hidden rounded-full bg-primary px-2 py-1.5 text-[11px] font-bold text-primary-foreground shadow-md transition-[max-width] duration-300 max-w-7 group-hover:max-w-[calc(100%-24px)]">
+        {/* The one badge slot. Ours reads in full and never collapses — a recommendation
+            nobody can see is not one — while the optimiser's flash stays a hover reveal. */}
+        {ours && (
+          <span className="absolute left-3 top-3 z-[3] inline-flex max-w-[calc(100%-52px)] items-center gap-1.5 rounded-full bg-lime-400 px-2.5 py-1.5 text-[11px] font-bold leading-none text-lime-950 shadow-[0_2px_12px_rgba(163,230,53,.45)]">
+            <Star className="size-3.5 shrink-0 fill-current" />
+            <em className="not-italic">Recommended by us</em>
+          </span>
+        )}
+
+        {flash && (
+          <span className="absolute left-3 top-3 z-[3] inline-flex max-w-7 items-center gap-1.5 overflow-hidden rounded-full bg-primary px-2 py-1.5 text-[11px] font-bold text-primary-foreground shadow-md transition-[max-width] duration-300 group-hover:max-w-[calc(100%-24px)]">
             <Sparkles className="size-3.5 shrink-0" />
-            <em className="not-italic whitespace-nowrap opacity-0 transition-opacity group-hover:opacity-100">{why.title}</em>
+            <em className="not-italic whitespace-nowrap opacity-0 transition-opacity group-hover:opacity-100">{why!.title}</em>
           </span>
         )}
 
@@ -101,6 +121,11 @@ export const CreatorTile = memo(function CreatorTile({
             {c.full_name || c.username}
             {c.is_verified && <BadgeCheck className="size-4 shrink-0 opacity-85" />}
           </h3>
+          {ours && c.recommended_note && (
+            <p className="line-clamp-2 text-[12.5px] font-semibold leading-snug text-lime-300 [text-shadow:0_2px_10px_rgba(0,0,0,.6)]">
+              {c.recommended_note}
+            </p>
+          )}
           <div className="flex items-center gap-4 text-[13px] font-semibold">
             <span className="inline-flex items-center gap-1.5"><Users className="size-3.5 opacity-80" />{fmt(c.followers_count)}</span>
             {er != null && <span className="inline-flex items-center gap-1.5"><Heart className="size-3.5 opacity-80" />{er.toFixed(2)}%</span>}

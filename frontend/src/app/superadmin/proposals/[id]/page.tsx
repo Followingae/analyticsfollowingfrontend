@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -58,6 +60,7 @@ import {
   Users,
   TrendingUp,
   Loader2,
+  Star,
 } from "lucide-react"
 import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
 import { ConfirmationPanel } from '@/components/superadmin/proposals/ConfirmationPanel'
@@ -105,6 +108,12 @@ export default function ProposalDetailPage() {
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [removeOpen, setRemoveOpen] = useState(false)
   const [removing, setRemoving] = useState(false)
+  /* Putting our name on a creator for this client. The reason is written here rather than
+     picked from a list, because the useful ones are about this brand ("their audience is
+     our exact shopper") and no list would have held that. */
+  const [recFor, setRecFor] = useState<AdminProposalInfluencer | null>(null)
+  const [recNote, setRecNote] = useState("")
+  const [recSaving, setRecSaving] = useState(false)
 
   async function loadDetail() {
     try {
@@ -143,6 +152,33 @@ export default function ProposalDetailPage() {
       loadDetail()
     } catch (err: any) {
       toast.error(err.message || "Failed to remove influencer")
+    }
+  }
+
+  async function saveRecommendation() {
+    if (!recFor) return
+    setRecSaving(true)
+    try {
+      await adminProposalApi.setRecommended(id, recFor.id, {
+        recommended: true, note: recNote.trim(),
+      })
+      toast.success(`@${recFor.username || "Creator"} is now recommended to the client`)
+      setRecFor(null)
+      loadDetail()
+    } catch (err: any) {
+      toast.error(err.message || "Could not save the recommendation")
+    } finally {
+      setRecSaving(false)
+    }
+  }
+
+  async function dropRecommendation(inf: AdminProposalInfluencer) {
+    try {
+      await adminProposalApi.setRecommended(id, inf.id, { recommended: false })
+      toast.success(`@${inf.username || "Creator"} is no longer recommended`)
+      loadDetail()
+    } catch (err: any) {
+      toast.error(err.message || "Could not remove the recommendation")
     }
   }
 
@@ -501,15 +537,25 @@ export default function ProposalDetailPage() {
                                   {(inf.username || "?")[0].toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="flex flex-col">
+                              <div className="flex flex-col min-w-0">
                                 <span className="font-medium text-sm">
                                   {inf.username || "Unknown"}
                                 </span>
-                                {inf.full_name && (
+                                {inf.recommended ? (
+                                  <span
+                                    title={inf.recommended_note || undefined}
+                                    className="mt-0.5 inline-flex w-fit max-w-full items-center gap-1 rounded-full bg-lime-400 px-2 py-0.5 text-[10px] font-bold leading-none text-lime-950"
+                                  >
+                                    <Star className="size-2.5 shrink-0 fill-current" />
+                                    <span className="truncate">
+                                      {inf.recommended_note || "Recommended by us"}
+                                    </span>
+                                  </span>
+                                ) : inf.full_name ? (
                                   <span className="text-xs text-muted-foreground">
                                     {inf.full_name}
                                   </span>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           </TableCell>
@@ -569,6 +615,23 @@ export default function ProposalDetailPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                {inf.recommended ? (
+                                  <>
+                                    <DropdownMenuItem onClick={() => { setRecFor(inf); setRecNote(inf.recommended_note || "") }}>
+                                      <Star className="mr-2 h-4 w-4 fill-current text-lime-500" />
+                                      Edit the reason
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => dropRecommendation(inf)}>
+                                      <Star className="mr-2 h-4 w-4" />
+                                      Stop recommending
+                                    </DropdownMenuItem>
+                                  </>
+                                ) : (
+                                  <DropdownMenuItem onClick={() => { setRecFor(inf); setRecNote("") }}>
+                                    <Star className="mr-2 h-4 w-4" />
+                                    Recommend to client
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
                                   disabled={!!inf.locked}
                                   className="text-destructive focus:text-destructive"
@@ -615,6 +678,48 @@ export default function ProposalDetailPage() {
         {/* Removing a batch. A dialog rather than window.confirm because it has something
             to say: which creators the client has already picked, so nobody quietly deletes
             somebody the client is expecting to see. */}
+        {/* Recommending one creator to this client. The client reads this line on the card,
+            so it is written as we would say it to them, and it is theirs alone — the same
+            creator on the next brand's proposal starts blank. */}
+        <Dialog open={!!recFor} onOpenChange={o => !recSaving && !o && setRecFor(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Recommend @{recFor?.username || "creator"} to this client</DialogTitle>
+              <DialogDescription>
+                They move to the front of the client&apos;s wall and wear a green
+                &ldquo;Recommended by us&rdquo; badge. Only on this proposal.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-2">
+              <Label htmlFor="rec-note">Why, in one line (optional)</Label>
+              <Input
+                id="rec-note"
+                value={recNote}
+                maxLength={80}
+                autoFocus
+                placeholder="Their audience is your exact shopper"
+                onChange={e => setRecNote(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !recSaving) saveRecommendation() }}
+              />
+              <p className="text-xs text-muted-foreground">
+                The client sees this. Leave it blank and the badge just says
+                &ldquo;Recommended by us&rdquo;. {80 - recNote.length} characters left.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setRecFor(null)} disabled={recSaving}>
+                Cancel
+              </Button>
+              <Button onClick={saveRecommendation} disabled={recSaving}>
+                {recSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {recFor?.recommended ? "Save" : "Recommend"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={removeOpen} onOpenChange={o => !removing && setRemoveOpen(o)}>
           <DialogContent>
             <DialogHeader>

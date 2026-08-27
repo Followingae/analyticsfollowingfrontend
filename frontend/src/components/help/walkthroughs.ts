@@ -454,6 +454,8 @@ export const WALKTHROUGHS: Walkthrough[] = [
         body: 'They have no price yet. Ask a founder to price them. Never make up a number.' },
       { title: 'Say what each one delivers',
         body: 'Reels, stories, posts, and how many. This is what makes the total.' },
+      { title: 'Say who you would put forward',
+        body: 'The row menu, Recommend to client, and one line on why. They lead the client’s wall with a green badge. Two or three, not ten: a recommendation everyone gets is not one.' },
       { title: 'Send it for approval',
         body: 'It only reaches the client once a founder has approved it.' },
       { title: 'Three kinds of link',

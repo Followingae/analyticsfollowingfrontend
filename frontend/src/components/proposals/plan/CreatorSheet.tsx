@@ -12,7 +12,7 @@
  * and simply omits the rest, rather than filling the gaps with zeros.
  */
 import {
-  Instagram, Heart, Users, Eye, MessageCircle, CalendarDays, Clock, BarChart3, Check, Plus, TriangleAlert,
+  Instagram, Heart, Users, Eye, MessageCircle, CalendarDays, Clock, BarChart3, Check, Plus, Star, TriangleAlert,
 } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -76,8 +76,22 @@ export function CreatorSheet({
         </SheetHeader>
 
         <div className="flex flex-col gap-5">
+          {/* Our recommendation reads in full here, and where it stands the optimiser's chip
+              stands down — the same order of precedence the tile keeps. */}
+          {c.recommended && (
+            <div className="flex items-start gap-2.5 rounded-2xl border border-lime-400/50 bg-lime-400/10 px-3.5 py-3">
+              <Star className="mt-0.5 size-4 shrink-0 fill-lime-500 text-lime-500" />
+              <div className="min-w-0">
+                <b className="block text-[13px] font-bold tracking-[-0.01em]">Recommended by us</b>
+                {c.recommended_note && (
+                  <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{c.recommended_note}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
-            {why && (
+            {why && !c.recommended && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1.5 text-xs font-bold text-primary">
                 {why.title} · {why.value}
               </span>

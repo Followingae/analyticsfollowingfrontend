@@ -181,10 +181,13 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     if (sort === "f") list.sort((a, b) => (b.followers_count ?? 0) - (a.followers_count ?? 0))
     else if (sort === "er") list.sort((a, b) => (b.measured?.engagement_rate ?? b.engagement_rate ?? 0) - (a.measured?.engagement_rate ?? a.engagement_rate ?? 0))
     else if (sort === "p") list.sort((a, b) => creatorCost(b) - creatorCost(a))
-    // The line-up floats to the top; anyone turned down sinks.
+    // The line-up floats to the top; anyone turned down sinks. Our own recommendations ride
+    // just under it, in every sort and not only the default one: we were asked who we would
+    // put forward, and an answer that moves when the client re-sorts is not an answer.
     return list.sort((a, b) =>
       (Number(!!b.locked) - Number(!!a.locked)) ||
       (Number(chosen.has(b.id)) - Number(chosen.has(a.id))) ||
+      (Number(!!b.recommended) - Number(!!a.recommended)) ||
       (Number(!!a.declined_at) - Number(!!b.declined_at)))
   }, [creators, sort, chosen])
 
@@ -512,7 +515,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                   creator={c}
                   chosen={chosen.has(c.id)}
                   locked={!!c.locked}
-                  recommended={recIds.has(c.id)}
+                  smartPick={recIds.has(c.id)}
                   why={whyFor(c, live)}
                   showPricing={showPricing}
                   onToggle={toggle}

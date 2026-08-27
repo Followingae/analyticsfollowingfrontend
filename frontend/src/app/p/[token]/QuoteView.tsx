@@ -25,7 +25,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  Check, Users, Loader2, Sparkles, Lock, ArrowRight, Info,
+  Check, Users, Loader2, Sparkles, Star, Lock, ArrowRight, Info,
 } from 'lucide-react'
 import { cdnAvatar } from "@/lib/avatar"
 
@@ -73,6 +73,9 @@ interface QuoteInfluencer {
   full_name: string | null
   followers_count: number | null
   profile_image_url: string | null
+  /** We put our name on this one for this client. Reads first, and wears the only badge. */
+  recommended?: boolean
+  recommended_note?: string | null
   deliverables: Line[]
   subtotal: number
   total: number
@@ -451,8 +454,17 @@ function CreatorQuoteCard({
 
   return (
     <div className={`rounded-2xl border bg-card p-5 sm:p-6 transition-colors ${
-      selected.size > 0 ? 'border-primary/40' : 'border-border'
+      inf.recommended ? 'border-lime-400 ring-2 ring-lime-400/35'
+        : selected.size > 0 ? 'border-primary/40' : 'border-border'
     }`}>
+      {/* A person here chose this creator for this client, and said why. It sits above the
+          line items because it is the reason to read them at all. */}
+      {inf.recommended && (
+        <div className="mb-4 inline-flex max-w-full items-center gap-1.5 rounded-full bg-lime-400 px-2.5 py-1 text-[11.5px] font-bold text-lime-950">
+          <Star className="h-3 w-3 shrink-0 fill-current" />
+          <span className="truncate">{inf.recommended_note || 'Recommended by us'}</span>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Avatar className="h-12 w-12">
