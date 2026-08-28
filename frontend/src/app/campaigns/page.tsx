@@ -484,6 +484,9 @@ function AllCampaignsTab({
   };
 
   const openCampaign = (c: any) => {
+    // An archived campaign has nowhere to go: its detail screen is empty tabs, which reads
+    // as a broken campaign rather than a finished one. The card IS the record.
+    if (c.is_pre_platform) return;
     router.push(hrefFor(c));
   };
 
@@ -636,9 +639,15 @@ function AllCampaignsTab({
                   key={campaign.id}
                   type="button"
                   onClick={() => openCampaign(c)}
-                  className="group text-left"
+                  disabled={!!c.is_pre_platform}
+                  aria-label={c.is_pre_platform
+                    ? `${campaign.name} — archived, no detail to open`
+                    : `Open ${campaign.name}`}
+                  className={c.is_pre_platform ? "text-left cursor-default" : "group text-left"}
                 >
-                  <Card className="h-full overflow-hidden border transition-all hover:-translate-y-0.5 hover:shadow-md">
+                  <Card className={c.is_pre_platform
+                    ? "h-full overflow-hidden border"
+                    : "h-full overflow-hidden border transition-all hover:-translate-y-0.5 hover:shadow-md"}>
                     {/* Cover */}
                     <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
                       {c.hero_image_url ? (
@@ -676,9 +685,20 @@ function AllCampaignsTab({
                           Master package \u00b7 {c.sub_count || 0} campaign{(c.sub_count || 0) === 1 ? "" : "s"}
                         </div>
                       ) : c.is_pre_platform ? (
-                        <div className="flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-2 text-[11px] text-muted-foreground">
-                          <Clock className="h-3.5 w-3.5 shrink-0" />
-                          Executed before platform \u2014 data limited
+                        <div className="space-y-2 border-t pt-3">
+                          {campaign.budget ? (
+                            <div className="flex items-baseline justify-between">
+                              <span className="text-[11px] text-muted-foreground">Campaign value</span>
+                              <span className="text-sm font-semibold tabular-nums">
+                                AED {Number(campaign.budget).toLocaleString("en-US")}
+                              </span>
+                            </div>
+                          ) : null}
+                          <div className="flex items-start gap-1.5 rounded-md bg-muted/60 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
+                            <Clock className="mt-px h-3.5 w-3.5 shrink-0" />
+                            Ran before this platform. Kept here as a record — the detail
+                            lives in our files rather than on screen.
+                          </div>
                         </div>
                       ) : (
                         <div className="grid grid-cols-4 gap-2 border-t pt-3">
@@ -736,8 +756,12 @@ function AllCampaignsTab({
                 return (
                   <TableRow
                     key={campaign.id}
-                    className="cursor-pointer hover:bg-muted/40 transition-colors"
+                    className={c.is_pre_platform
+                      ? "transition-colors"
+                      : "cursor-pointer hover:bg-muted/40 transition-colors"}
                     onClick={() => {
+                      // Archived campaigns do not open — see openCampaign.
+                      if (c.is_pre_platform) return;
                       // FA types (cashback / paid_deal / barter) use the same progress
                       // panel as superadmin (/posts → FaCampaignProgressPanel), which
                       // surfaces pending applicants and approves via the participant flow.
