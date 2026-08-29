@@ -641,7 +641,8 @@ function AllCampaignsTab({
                   onClick={() => openCampaign(c)}
                   disabled={!!c.is_pre_platform}
                   aria-label={c.is_pre_platform
-                    ? `${campaign.name} — archived, no detail to open`
+                    ? `${campaign.name} — ${(campaign.status || "").toLowerCase() === "active"
+                        ? "tracked outside the platform" : "archived"}, no detail to open`
                     : `Open ${campaign.name}`}
                   className={c.is_pre_platform ? "text-left cursor-default" : "group text-left"}
                 >
@@ -696,8 +697,9 @@ function AllCampaignsTab({
                           ) : null}
                           <div className="flex items-start gap-1.5 rounded-md bg-muted/60 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
                             <Clock className="mt-px h-3.5 w-3.5 shrink-0" />
-                            Ran before this platform. Kept here as a record — the detail
-                            lives in our files rather than on screen.
+                            {(campaign.status || "").toLowerCase() === "active"
+                              ? "Running now. We are tracking this one outside the platform, so the day to day is not on screen here."
+                              : "Ran before this platform. Kept here as a record — the detail lives in our files rather than on screen."}
                           </div>
                         </div>
                       ) : (
@@ -784,7 +786,9 @@ function AllCampaignsTab({
                             )}
                             {c.is_pre_platform && (
                               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[9px] text-muted-foreground">
-                                <Clock className="h-2.5 w-2.5" /> Pre-platform
+                                <Clock className="h-2.5 w-2.5" />
+                                {(campaign.status || "").toLowerCase() === "active"
+                                  ? "Tracked off-platform" : "Pre-platform"}
                               </span>
                             )}
                           </div>
