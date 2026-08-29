@@ -146,9 +146,12 @@
   --chart-5: oklch(0.7845 0.1325 181.9120);
   --sidebar: oklch(0.1822 0 0);
   --sidebar-foreground: oklch(0.6301 0 0);
-  /* Sidebar active-nav pill stays lime in dark (matches the dark-mode brand hue) */
+  /* Sidebar active-nav pill stays lime in dark (matches the dark-mode brand hue).
+     Its text is near-black for the same reason --primary-foreground is: the lime sits at
+     L 0.94, so a light label leaves a lightness gap of 0.01 and the active nav item reads
+     as a blank lime block. Every other surface in this theme clears 0.44. */
   --sidebar-primary: oklch(0.9354 0.2254 121.4851);
-  --sidebar-primary-foreground: oklch(0.9213 0.0135 167.1556);
+  --sidebar-primary-foreground: oklch(0.1822 0 0);
   --sidebar-accent: oklch(0.3132 0 0);
   --sidebar-accent-foreground: oklch(0.9851 0 0);
   --sidebar-border: oklch(0.2809 0 0);
