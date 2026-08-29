@@ -11,6 +11,7 @@ import { ArrowLeft, Users, Loader2, ClipboardList, ExternalLink } from "lucide-r
 import Link from "next/link"
 import { faCampaignApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
+import { AutoApproveCard } from '@/components/superadmin/fa/AutoApproveCard'
 
 interface FunnelCreator {
   participant_id: string
@@ -114,6 +115,8 @@ export default function FACampaignFunnelPage() {
               <Button size="sm" variant="outline"><ClipboardList className="h-4 w-4 mr-1.5" />All deliverables</Button>
             </Link>
           </div>
+
+          <AutoApproveCard campaignId={id} />
 
           {/* Funnel strip — click a stage to filter the list below */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
