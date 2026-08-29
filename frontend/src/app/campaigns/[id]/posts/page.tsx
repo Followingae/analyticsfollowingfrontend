@@ -73,6 +73,7 @@ import { CampaignWorkflow } from "@/components/campaigns/unified/CampaignWorkflo
 import { InfluencerSelection } from "@/components/campaigns/unified/InfluencerSelection";
 import { PostCard } from "@/components/campaigns/PostCard";
 import { FaCampaignProgressPanel } from "@/components/campaigns/fa/FaCampaignProgressPanel";
+import { AutoApproveCard } from "@/components/superadmin/fa/AutoApproveCard";
 import { CampaignShareCard } from "@/components/campaigns/fa/CampaignShareCard";
 import { MasterCampaignPanel } from "@/components/campaigns/MasterCampaignPanel";
 import { cdnAvatar } from "@/lib/avatar"
@@ -1842,6 +1843,8 @@ export default function CampaignDetailsPage() {
             />
 
             {campaignOverview}
+
+            {isSuperadmin && <AutoApproveCard campaignId={String(campaign.id)} />}
 
             <FaCampaignProgressPanel
               campaignId={String(campaign.id)}
