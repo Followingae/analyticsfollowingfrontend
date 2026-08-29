@@ -73,7 +73,9 @@ export function AutoApproveCard({ campaignId }: { campaignId: string }) {
     setSaving(true)
     try {
       const res = await fetchWithAuth(`${BASE}/campaigns/${campaignId}/auto-approve`, {
-        method: 'PUT', body: JSON.stringify({ enabled, hours: h }),
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled, hours: h }),
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.detail || 'Could not save that')

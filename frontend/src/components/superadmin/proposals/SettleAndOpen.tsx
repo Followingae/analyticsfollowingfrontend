@@ -108,7 +108,9 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
         amount_aed: draft[c.id]?.trim() === '' ? null : Number(draft[c.id]),
       }))
       const res = await fetchWithAuth(`${BASE}/proposals/${proposalId}/costs`, {
-        method: 'POST', body: JSON.stringify({ costs }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ costs }),
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.detail || 'Could not save those costs')
@@ -125,7 +127,9 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
     setOpening(true)
     try {
       const res = await fetchWithAuth(`${BASE}/proposals/${proposalId}/open-campaign`, {
-        method: 'POST', body: JSON.stringify({}),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.detail || 'Could not open the campaign')
