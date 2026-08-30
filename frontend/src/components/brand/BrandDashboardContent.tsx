@@ -57,9 +57,6 @@ export function BrandDashboardContent() {
   // Balloons celebration for credit events
   const balloonsRef = useRef<{ launchAnimation: () => void }>(null)
   const [celebrationDone, setCelebrationDone] = useState(false)
-  /* Whether the team has shared anything. Drives the width of the campaign chart beside it:
-     an empty 4-column wrapper would leave a hole rather than collapsing. */
-  const [hasShares, setHasShares] = useState(false)
 
   useEffect(() => {
     if (celebrationDone || !notifications.length) return
@@ -331,19 +328,6 @@ export function BrandDashboardContent() {
             and until now the answer was a notification list. The spotlight renders nothing
             at all when they have no campaign running, so a discovery-only client sees the
             page they had. */}
-        <div
-          className={`grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-12 transition-all duration-500 ease-out ${
-            showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-          }`}
-          style={{ transitionDelay: '40ms' }}
-        >
-          <div className={hasShares ? "md:col-span-8" : "md:col-span-12"}>
-            <CampaignBars className="h-full" />
-          </div>
-          <div className={hasShares ? "md:col-span-4" : "hidden"}>
-            <ShareCenterCard className="h-full" onHasItems={setHasShares} />
-          </div>
-        </div>
 
         {/* Row 2: Discovery (primary action) + Usage this cycle */}
         <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-12">
@@ -387,6 +371,12 @@ export function BrandDashboardContent() {
 
             {/* Companion detail: contract quota (only renders when set) + activity */}
             <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 mt-4">
+              {/* What is running, as a display. Renders nothing when they have no campaign. */}
+              <CampaignBars />
+
+              {/* What the team has sent them. Renders nothing when nothing has been sent. */}
+              <ShareCenterCard />
+
               {/* Contract delivery quota — only renders when a quota is set */}
               <BrandQuotaWidget />
 

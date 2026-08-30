@@ -55,12 +55,7 @@ const ago = (iso?: string | null) => {
 const size = (n?: number | null) =>
   !n ? '' : n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(Math.round(n / 1024), 1)} KB`
 
-export function ShareCenterCard({ className, onHasItems }: {
-  className?: string
-  /* Told to the parent so the dashboard can widen the campaign chart when this card has
-     nothing to show. The card hiding itself is not enough — its grid column would remain. */
-  onHasItems?: (has: boolean) => void
-}) {
+export function ShareCenterCard({ className }: { className?: string }) {
   const [items, setItems] = useState<Share[] | null>(null)
   const [unread, setUnread] = useState(0)
   const [open, setOpen] = useState<Share | null>(null)
@@ -74,9 +69,8 @@ export function ShareCenterCard({ className, onHasItems }: {
       const j = await res.json()
       setItems(j.data.items)
       setUnread(j.data.unread)
-      onHasItems?.(j.data.items.length > 0)
-    } catch { setItems([]); onHasItems?.(false) }
-  }, [onHasItems])
+    } catch { setItems([]) }
+  }, [])
 
   useEffect(() => { load() }, [load])
 
