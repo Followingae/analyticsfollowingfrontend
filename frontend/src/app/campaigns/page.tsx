@@ -58,6 +58,7 @@ import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { CampaignCard, type CampaignCardData } from "@/components/campaigns/CampaignCard";
 // CampaignAnalyticsCards removed — aggregating KPIs across campaigns is not industry practice
+import { GeneratedCover } from "@/components/campaigns/GeneratedCover";
 import { unifiedCampaignApi, type ScopeCampaign } from "@/services/clientManagementApi";
 import { toast } from "sonner";
 
@@ -659,9 +660,14 @@ function AllCampaignsTab({
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : (
-                        <div className={cn("flex h-full w-full items-center justify-center", v.tile)}>
-                          <v.Icon className={cn("h-10 w-10 opacity-80", v.text)} />
-                        </div>
+                        /* A flat tile with an icon says "no image". A generated cover says
+                           "this campaign", which is what a grid is for. Seeded on the id so
+                           it renders identically every time. */
+                        <GeneratedCover
+                          seed={String(campaign.id)}
+                          title={campaign.name}
+                          subtitle={campaign.brand_name}
+                        />
                       )}
                       <span className={cn("absolute left-2 top-2 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur", v.text)}>
                         {v.label}
@@ -671,10 +677,14 @@ function AllCampaignsTab({
                       </Badge>
                     </div>
                     <CardContent className="space-y-3 p-4">
-                      <div>
-                        <div className="truncate font-semibold leading-tight text-foreground">{campaign.name}</div>
-                        <span className="truncate text-xs text-muted-foreground">{campaign.brand_name || "\u2014"}</span>
-                      </div>
+                      {/* The name is on the generated cover already; repeating it directly
+                          underneath reads as a mistake. */}
+                      {c.hero_image_url ? (
+                        <div>
+                          <div className="truncate font-semibold leading-tight text-foreground">{campaign.name}</div>
+                          <span className="truncate text-xs text-muted-foreground">{campaign.brand_name || "—"}</span>
+                        </div>
+                      ) : null}
                       {c.master_name && (
                         <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                           <Layers className="h-3 w-3 shrink-0" /> Part of: <span className="truncate font-medium text-foreground">{c.master_name}</span>
