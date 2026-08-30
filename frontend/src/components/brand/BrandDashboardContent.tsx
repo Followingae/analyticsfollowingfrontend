@@ -10,6 +10,7 @@ import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
 import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
 import { BrandQuotaWidget } from "@/components/brand/BrandQuotaWidget"
 import { CampaignSpotlight } from "@/components/brand/CampaignSpotlight"
+import { ShareCenterCard } from "@/components/brand/ShareCenterCard"
 import { MetricCard } from "@/components/analytics-cards"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -328,12 +329,22 @@ export function BrandDashboardContent() {
             at all when they have no campaign running, so a discovery-only client sees the
             page they had. */}
         <div
-          className={`transition-all duration-500 ease-out ${
+          className={`grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-12 transition-all duration-500 ease-out ${
             showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
           }`}
           style={{ transitionDelay: '40ms' }}
         >
-          <CampaignSpotlight />
+          {/* This was the only element on the page outside the 12-column grid - a bare div,
+              so it spanned full width at a fixed height while every neighbour sat in 4+8 or
+              6+6. That is why it read as bolted on. */}
+          <div className="md:col-span-8">
+            <CampaignSpotlight />
+          </div>
+          {/* Renders nothing when the team has sent them nothing, so a discovery-only client
+              keeps a full-width campaign row rather than a gap beside it. */}
+          <div className="md:col-span-4">
+            <ShareCenterCard className="h-full" />
+          </div>
         </div>
 
         {/* Row 2: Discovery (primary action) + Usage this cycle */}

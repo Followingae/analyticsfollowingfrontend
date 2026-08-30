@@ -8,13 +8,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import {
-  LayoutDashboard, Users, Compass, List, Share2, Target, FileText,
-  CreditCard, Settings, Bell, BookOpen, Building2, ListChecks, Megaphone,
-  Database, Wrench, Banknote, UserPlus, Plus, Receipt, Activity,
-  ShieldCheck, ClipboardCheck, Wallet, Store, Image as ImageIcon, MailCheck,
-  MessageCircle,
-} from "lucide-react"
+import { Activity, Banknote, Bell, BookOpen, Building2, ClipboardCheck, Compass, CreditCard, Database, FileText, Image as ImageIcon, LayoutDashboard, List, ListChecks, MailCheck, Megaphone, MessageCircle, Plus, Receipt, Send, Settings, Share2, ShieldCheck, Store, Target, UserPlus, Users, Wallet, Wrench } from "lucide-react"
 import {
   CommandDialog,
   CommandEmpty,
@@ -50,6 +44,7 @@ const OPERATOR_NAV: (CmdEntry & { module?: string })[] = [
   { title: "Users", href: "/work/users", icon: Users, module: "users" },
   { title: "Campaigns", href: "/work/campaigns", icon: Megaphone, module: "campaigns" },
   { title: "Proposals", href: "/work/proposals", icon: FileText, module: "proposals" },
+  { title: "Share Center", href: "/work/share", icon: Send, module: "clients" },
   { title: "Influencer Database", href: "/work/influencers", icon: Database, module: "influencers" },
   { title: "Analyzed Creators", href: "/work/influencers/analyzed", icon: Users, module: "influencers" },
   { title: "FA Overview", href: "/work/fa", icon: LayoutDashboard, module: "fa" },
