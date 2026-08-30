@@ -9,7 +9,7 @@ import { useNotifications } from "@/contexts/NotificationContext"
 import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
 import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
 import { BrandQuotaWidget } from "@/components/brand/BrandQuotaWidget"
-import { CampaignSpotlight } from "@/components/brand/CampaignSpotlight"
+import { CampaignBars } from "@/components/brand/CampaignBars"
 import { ShareCenterCard } from "@/components/brand/ShareCenterCard"
 import { MetricCard } from "@/components/analytics-cards"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
@@ -57,6 +57,9 @@ export function BrandDashboardContent() {
   // Balloons celebration for credit events
   const balloonsRef = useRef<{ launchAnimation: () => void }>(null)
   const [celebrationDone, setCelebrationDone] = useState(false)
+  /* Whether the team has shared anything. Drives the width of the campaign chart beside it:
+     an empty 4-column wrapper would leave a hole rather than collapsing. */
+  const [hasShares, setHasShares] = useState(false)
 
   useEffect(() => {
     if (celebrationDone || !notifications.length) return
@@ -334,16 +337,11 @@ export function BrandDashboardContent() {
           }`}
           style={{ transitionDelay: '40ms' }}
         >
-          {/* This was the only element on the page outside the 12-column grid - a bare div,
-              so it spanned full width at a fixed height while every neighbour sat in 4+8 or
-              6+6. That is why it read as bolted on. */}
-          <div className="md:col-span-8">
-            <CampaignSpotlight />
+          <div className={hasShares ? "md:col-span-8" : "md:col-span-12"}>
+            <CampaignBars className="h-full" />
           </div>
-          {/* Renders nothing when the team has sent them nothing, so a discovery-only client
-              keeps a full-width campaign row rather than a gap beside it. */}
-          <div className="md:col-span-4">
-            <ShareCenterCard className="h-full" />
+          <div className={hasShares ? "md:col-span-4" : "hidden"}>
+            <ShareCenterCard className="h-full" onHasItems={setHasShares} />
           </div>
         </div>
 
