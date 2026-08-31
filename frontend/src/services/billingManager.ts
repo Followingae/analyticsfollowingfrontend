@@ -68,7 +68,6 @@ export interface BillingStatus {
     description: string
     max_team_members: number
     monthly_profile_limit: number
-    monthly_email_limit: number
     monthly_posts_limit: number
     monthly_credits: number
     topup_discount: number
@@ -97,8 +96,6 @@ export interface BillingStatus {
   usage: {
     profiles_used: number
     profiles_limit: number
-    emails_used: number
-    emails_limit: number
     posts_used: number
     posts_limit: number
   }
@@ -287,8 +284,8 @@ class BillingManager {
       body: JSON.stringify({
         tier,
         billing_interval: 'monthly',
-        success_url: `${window.location.origin}/settings/billing?upgraded=true`,
-        cancel_url: `${window.location.origin}/settings/billing`
+        success_url: `${window.location.origin}/billing?upgraded=true`,
+        cancel_url: `${window.location.origin}/billing?checkout=cancelled`
       })
     })
 

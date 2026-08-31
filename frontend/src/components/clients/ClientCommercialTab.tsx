@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Upload, Send, CheckCircle2, XCircle, Receipt, FileText, Plus, ExternalLink, Trash2, X } from 'lucide-react'
-import { clientCommercialApi, type ClientDocument, type CampaignInvoice } from '@/services/clientCommercialApi'
+import { clientCommercialApi, type ClientDocument, type CampaignInvoice, type VatConfig } from '@/services/clientCommercialApi'
 
 const agreementBadge = (s: string | null) => {
   const map: Record<string, string> = {
@@ -33,7 +33,8 @@ export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId
   const [invoices, setInvoices] = useState<CampaignInvoice[]>([])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [newInv, setNewInv] = useState({ invoice_type: 'advance', milestone_label: '', amount_aed: '', advance_pct: '', payment_terms: '', due_date: '', payment_link_url: '' })
+  const [newInv, setNewInv] = useState({ invoice_type: 'advance', milestone_label: '', amount_aed: '', advance_pct: '', payment_terms: '', due_date: '', payment_link_url: '', vat_mode: 'exclusive' })
+  const [vat, setVat] = useState<VatConfig | null>(null)
 
   const agrInput = useRef<HTMLInputElement>(null)
   const signInput = useRef<HTMLInputElement>(null)
@@ -53,6 +54,31 @@ export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId
     } catch (e) { setErr(e instanceof Error ? e.message : 'Failed to load') }
   }
   useEffect(() => { load() }, [teamId])
+
+  // The rate NEW invoices will be raised at. Only ever used for the create-form
+  // preview — an existing invoice is always rendered from its own vat_rate.
+  useEffect(() => {
+    clientCommercialApi.getVatConfig()
+      .then((r) => { setVat(r.data); setNewInv((p) => ({ ...p, vat_mode: r.data.default_mode })) })
+      .catch(() => setVat(null))
+  }, [])
+
+  // Live preview of what the entered amount splits into. Mirrors app/core/tax.py:
+  // VAT is rounded once and the other side derived by subtraction, so net + VAT
+  // always equals the total shown.
+  const preview = (() => {
+    const entered = Number(newInv.amount_aed)
+    if (!newInv.amount_aed || !Number.isFinite(entered) || !vat) return null
+    const rate = newInv.vat_mode === 'exempt' ? 0 : Number(vat.rate)
+    const r2 = (n: number) => Math.round(n * 100) / 100
+    if (rate === 0) return { net: r2(entered), vatAmount: 0, gross: r2(entered) }
+    if (newInv.vat_mode === 'inclusive') {
+      const gross = r2(entered); const vatAmount = r2((gross * rate) / (1 + rate))
+      return { net: r2(gross - vatAmount), vatAmount, gross }
+    }
+    const net = r2(entered); const vatAmount = r2(net * rate)
+    return { net, vatAmount, gross: r2(net + vatAmount) }
+  })()
 
   const run = async (fn: () => Promise<any>) => {
     setBusy(true); setErr(null)
@@ -133,6 +159,15 @@ export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId
               </Select></div>
             <div><Label className="text-xs">Milestone</Label><Input className="h-8 w-32" placeholder="e.g. Advance" value={newInv.milestone_label} onChange={(e) => setNewInv((p) => ({ ...p, milestone_label: e.target.value }))} /></div>
             <div><Label className="text-xs">Amount (AED)</Label><Input className="h-8 w-32" type="number" value={newInv.amount_aed} onChange={(e) => setNewInv((p) => ({ ...p, amount_aed: e.target.value }))} /></div>
+            <div><Label className="text-xs">VAT{vat ? ` (${Number(vat.percent)}%)` : ''}</Label>
+              <Select value={newInv.vat_mode} onValueChange={(v: string) => setNewInv((p) => ({ ...p, vat_mode: v }))}>
+                <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="exclusive">Add on top</SelectItem>
+                  <SelectItem value="inclusive">Already included</SelectItem>
+                  <SelectItem value="exempt">No VAT</SelectItem>
+                </SelectContent>
+              </Select></div>
             <div><Label className="text-xs">Advance %</Label><Input className="h-8 w-24" type="number" value={newInv.advance_pct} onChange={(e) => setNewInv((p) => ({ ...p, advance_pct: e.target.value }))} /></div>
             <div className="flex-1 min-w-[160px]"><Label className="text-xs">Payment link</Label><Input className="h-8" placeholder="https://…" value={newInv.payment_link_url} onChange={(e) => setNewInv((p) => ({ ...p, payment_link_url: e.target.value }))} /></div>
             <div><Label className="text-xs">Terms</Label><Input className="h-8 w-32" value={newInv.payment_terms} onChange={(e) => setNewInv((p) => ({ ...p, payment_terms: e.target.value }))} /></div>
@@ -141,14 +176,20 @@ export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId
                 invoice_type: newInv.invoice_type,
                 milestone_label: newInv.milestone_label || undefined,
                 amount_aed: newInv.amount_aed ? Number(newInv.amount_aed) : undefined,
+                vat_mode: newInv.vat_mode,
                 advance_pct: newInv.advance_pct ? Number(newInv.advance_pct) : undefined,
                 payment_terms: newInv.payment_terms || undefined,
                 payment_link_url: newInv.payment_link_url || undefined,
                 ...(campaignId ? { campaign_id: campaignId } : {}),
                 ...(proposalId ? { proposal_id: proposalId } : {}),
               } as any)
-              setNewInv({ invoice_type: 'advance', milestone_label: '', amount_aed: '', advance_pct: '', payment_terms: '', due_date: '', payment_link_url: '' })
+              setNewInv({ invoice_type: 'advance', milestone_label: '', amount_aed: '', advance_pct: '', payment_terms: '', due_date: '', payment_link_url: '', vat_mode: vat?.default_mode || 'exclusive' })
             })}><Plus className="mr-1 h-4 w-4" />Create</Button>
+            {preview && (
+              <div className="w-full text-xs text-muted-foreground">
+                Net {aed(preview.net)} + VAT {aed(preview.vatAmount)} = <span className="font-medium text-foreground">Total {aed(preview.gross)}</span>
+              </div>
+            )}
           </div>
 
           <input ref={invFileInput} type="file" className="hidden" accept=".pdf"
@@ -164,7 +205,17 @@ export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId
               {invoices.map((inv) => (
                 <TableRow key={inv.id}>
                   <TableCell className="capitalize">{inv.invoice_type}{(inv as any).milestone_label ? <span className="block text-xs text-muted-foreground normal-case">{(inv as any).milestone_label}</span> : null}</TableCell>
-                  <TableCell>{aed(inv.amount_aed)}{inv.amount_paid ? <span className="text-xs text-muted-foreground"> ({aed(inv.amount_paid)} paid)</span> : null}</TableCell>
+                  <TableCell>
+                    {aed(inv.amount_aed)}{inv.amount_paid ? <span className="text-xs text-muted-foreground"> ({aed(inv.amount_paid)} paid)</span> : null}
+                    {/* Only invoices raised with VAT carry a breakdown. Legacy rows
+                        (vat_rate null) render exactly as they always have. */}
+                    {inv.vat_rate != null && (
+                      <span className="block text-xs text-muted-foreground">
+                        {aed(inv.net_amount_aed ?? null)} net + {aed(inv.vat_amount_aed ?? null)} VAT
+                        {Number(inv.vat_rate) > 0 ? ` (${Number((Number(inv.vat_rate) * 100).toFixed(2))}%)` : ' (exempt)'}
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>{payBadge(inv.status)}</TableCell>
                   <TableCell>{inv.receipt_count || 0}</TableCell>
                   <TableCell className="space-x-2">

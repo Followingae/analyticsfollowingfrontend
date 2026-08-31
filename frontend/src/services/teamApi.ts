@@ -17,22 +17,18 @@ export interface TeamContext {
   subscription_status: 'active' | 'inactive' | 'expired'
   monthly_limits: {
     profiles: number
-    emails: number
     posts: number
   }
   current_usage: {
     profiles: number
-    emails: number
     posts: number
   }
   remaining_capacity: {
     profiles: number
-    emails: number
     posts: number
   }
   user_permissions: {
     can_analyze_profiles: boolean
-    can_unlock_emails: boolean
     can_analyze_posts: boolean
     can_manage_team: boolean
     can_invite_members: boolean
@@ -51,7 +47,6 @@ export interface TeamMember {
   joined_at: string
   permissions: {
     can_analyze_profiles: boolean
-    can_unlock_emails: boolean
     can_analyze_posts: boolean
     can_manage_team: boolean
     can_invite_members: boolean
@@ -63,13 +58,18 @@ export interface TeamMember {
 export interface TeamInvitation {
   id: string
   email: string
-  role: 'member'
+  role: 'member' | 'manager' | 'admin'
   status: 'pending' | 'accepted' | 'expired' | 'cancelled'
   expires_at: string
   invitation_token?: string
   invited_by_email: string
   created_at: string
   personal_message?: string
+  // Returned only when an invitation is created. The seat is real either way, so the
+  // owner is told when the email did not go out, and handed the link to pass on.
+  email_sent?: boolean
+  email_error?: string | null
+  invitation_url?: string | null
 }
 
 // Team Overview Interface
@@ -87,12 +87,10 @@ export interface TeamOverview {
   }
   usage_summary: {
     profiles: number
-    emails: number
     posts: number
   }
   permissions: {
     can_analyze_profiles: boolean
-    can_unlock_emails: boolean
     can_analyze_posts: boolean
     can_manage_team: boolean
     can_invite_members: boolean
@@ -108,22 +106,18 @@ export interface TeamUsageSummary {
   billing_month: string
   monthly_limits: {
     profiles: number
-    emails: number
     posts: number
   }
   current_usage: {
     profiles: number
-    emails: number
     posts: number
   }
   remaining_capacity: {
     profiles: number
-    emails: number
     posts: number
   }
   usage_percentage: {
     profiles: number
-    emails: number
     posts: number
   }
   member_usage: Array<{
@@ -365,17 +359,14 @@ class TeamApiService {
         subscription_tier: stats.team_context.subscription_tier || 'free',
         current_usage: {
           profiles: stats.usage_limits.profiles_used,
-          emails: 0, // TODO: Add email usage if needed
           posts: stats.usage_limits.posts_used
         },
         monthly_limits: {
           profiles: stats.usage_limits.profiles_limit || 0,
-          emails: 0, // TODO: Add email limits if needed
           posts: stats.usage_limits.posts_limit || 0
         },
         remaining_capacity: {
           profiles: Math.max(0, (stats.usage_limits.profiles_limit || 0) - (stats.usage_limits.profiles_used || 0)),
-          emails: 0, // TODO: Add email remaining if needed
           posts: Math.max(0, (stats.usage_limits.posts_limit || 0) - (stats.usage_limits.posts_used || 0))
         },
         billing_cycle_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // TODO: Add actual billing cycle
@@ -395,6 +386,48 @@ class TeamApiService {
       return {
         success: false,
         error: error.message || 'Failed to fetch team usage'
+      }
+    }
+  }
+
+  /**
+   * Who this user is on their team, and how many seats the plan actually has.
+   *
+   * getTeamContext below reports every user as a 'member' with a TODO next to it, which
+   * is why the owner of a team never saw their own invite controls. This asks the two
+   * endpoints that know.
+   */
+  async getSeatContext(): Promise<ApiResponse<{
+    team_name: string
+    user_role: 'owner' | 'member' | 'admin' | 'manager'
+    subscription_tier: string
+    active_members: number
+    max_members: number
+    pending_invitations: number
+    available_slots: number
+  }>> {
+    try {
+      const [myTeam, overview] = await Promise.all([
+        this.makeRequest<any>(ENDPOINTS.teams.myTeam),
+        this.makeRequest<any>(ENDPOINTS.teams.overview),
+      ])
+
+      return {
+        success: true,
+        data: {
+          team_name: myTeam?.team_name || overview?.team_info?.team_name || 'Your team',
+          user_role: myTeam?.team_role || 'member',
+          subscription_tier: overview?.team_info?.subscription_tier || 'free',
+          active_members: overview?.membership?.active_members ?? 0,
+          max_members: overview?.membership?.max_members ?? 1,
+          pending_invitations: overview?.membership?.pending_invitations ?? 0,
+          available_slots: overview?.membership?.available_slots ?? 0,
+        },
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to fetch team seats'
       }
     }
   }
@@ -421,22 +454,18 @@ class TeamApiService {
         subscription_status: 'active', // TODO: Add status to backend response if needed
         monthly_limits: {
           profiles: stats.usage_limits.profiles_limit || 0,
-          emails: 0, // TODO: Add email limits if needed
           posts: stats.usage_limits.posts_limit || 0
         },
         current_usage: {
           profiles: stats.usage_limits.profiles_used || 0,
-          emails: 0, // TODO: Add email usage if needed  
           posts: stats.usage_limits.posts_used || 0
         },
         remaining_capacity: {
           profiles: Math.max(0, (stats.usage_limits.profiles_limit || 0) - (stats.usage_limits.profiles_used || 0)),
-          emails: 0, // TODO: Add email remaining if needed
           posts: Math.max(0, (stats.usage_limits.posts_limit || 0) - (stats.usage_limits.posts_used || 0))
         },
         user_permissions: {
           can_analyze_profiles: true,
-          can_unlock_emails: false, // TODO: Add permission logic if needed
           can_analyze_posts: true,
           can_manage_team: false, // TODO: Add permission logic if needed
           can_invite_members: false, // TODO: Add permission logic if needed

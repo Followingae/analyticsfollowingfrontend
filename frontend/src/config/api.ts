@@ -72,6 +72,9 @@ export const ENDPOINTS = {
     invite: '/api/v1/teams/invite', // POST - Invite member
     invitations: '/api/v1/teams/invitations', // GET - Team invitations
     acceptInvitation: (token: string) => `/api/v1/teams/invitations/${token}/accept`, // PUT - Accept invitation
+    previewInvitation: (token: string) => `/api/v1/teams/invitations/${token}/preview`, // GET - Public, powers the accept page
+    registerFromInvitation: (token: string) => `/api/v1/teams/invitations/${token}/register`, // POST - Public, creates the invited account
+    myTeam: '/api/v1/teams/my-team', // GET - Current user's team and role
     removeMember: (userId: string) => `/api/v1/teams/members/${userId}`, // DELETE - Remove member
     cancelInvitation: (id: string) => `/api/v1/teams/invitations/${id}`, // DELETE - Cancel invitation
     overview: '/api/v1/teams/overview', // GET - Team overview

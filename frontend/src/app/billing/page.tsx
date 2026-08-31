@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { toast } from 'sonner'
+import { formatPlanLabel, formatMonthlyPlanPrice, getBillingCurrency, hydrateBillingCurrency } from '@/config/planPricing'
 import {
   CreditCard,
   Package,
@@ -117,9 +118,11 @@ function BillingContent() {
     { type: 'upgrade'; tier: string } | { type: 'manage' } | null
   >(null)
 
+  // Prices come from the single source of truth (src/config/planPricing.ts),
+  // which mirrors the backend. Never hardcode a plan price here.
   const PLAN_LABELS: Record<string, string> = {
-    standard: 'Standard ($199/month)',
-    premium: 'Premium ($499/month)',
+    standard: formatPlanLabel('standard'),
+    premium: formatPlanLabel('premium'),
   }
 
   // Deep-linkable tabs: /billing?tab=cashback-pool (the old standalone
@@ -168,6 +171,9 @@ function BillingContent() {
       }
 
       const billingStatus = await billingManager.getBillingStatus()
+      // Adopt the currency the backend actually charges in, so static upsell
+      // copy can never quote a different currency than the invoice.
+      hydrateBillingCurrency(billingStatus?.plan?.currency)
       setStatus(billingStatus)
     } catch (error) {
       toast.error('Failed to load billing information')
@@ -294,7 +300,7 @@ function BillingContent() {
     return <Badge className={tierColors[tier] || tierColors.free}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</Badge>
   }
 
-  const formatCurrency = (amount: number, currency: string = 'AED') => {
+  const formatCurrency = (amount: number, currency: string = getBillingCurrency()) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)
   }
 
@@ -410,7 +416,7 @@ function BillingContent() {
                       </span>
                       {!isAdminManaged && (
                         <span className="text-muted-foreground">
-                          . After your trial, you will be charged ⃃199/month for the Standard plan. You can cancel anytime.
+                          . After your trial, you will be charged {formatMonthlyPlanPrice('standard')} for the Standard plan. You can cancel anytime.
                         </span>
                       )}
                     </p>
@@ -674,12 +680,6 @@ function BillingContent() {
                     limit={status.usage.profiles_limit}
                     label="Profile Unlocks"
                     icon={Users}
-                  />
-                  <UsageBar
-                    used={status.usage.emails_used}
-                    limit={status.usage.emails_limit}
-                    label="Email Lookups"
-                    icon={Mail}
                   />
                   <UsageBar
                     used={status.usage.posts_used}

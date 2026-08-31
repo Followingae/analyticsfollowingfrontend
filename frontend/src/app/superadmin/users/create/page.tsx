@@ -24,6 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { formatMonthlyPlanPrice } from '@/config/planPricing'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,7 +63,6 @@ export default function CreateBrandAccountPage() {
     team_name: '',
     max_team_members: 1,
     monthly_profile_limit: 5,
-    monthly_email_limit: 0,
     monthly_posts_limit: 0,
   })
 
@@ -71,23 +71,20 @@ export default function CreateBrandAccountPage() {
     free: {
       initial_credits: 125,       // 5 profiles × 25 credits
       monthly_profile_limit: 5,
-      monthly_email_limit: 0,
       monthly_posts_limit: 0,
       max_team_members: 1,
       create_team: true,          // Always create team - required for platform
     },
     standard: {
-      initial_credits: 8750,      // ⃃199 tier canonical credits
+      initial_credits: 8750,      // Standard tier canonical credits
       monthly_profile_limit: 350,
-      monthly_email_limit: 200,
       monthly_posts_limit: 100,
       max_team_members: 2,
       create_team: true,
     },
     premium: {
-      initial_credits: 25000,     // ⃃499 tier canonical credits
+      initial_credits: 25000,     // Premium tier canonical credits
       monthly_profile_limit: 1000,
-      monthly_email_limit: 500,
       monthly_posts_limit: 250,
       max_team_members: 5,
       create_team: true,
@@ -296,7 +293,6 @@ export default function CreateBrandAccountPage() {
                       team_name: '',
                       max_team_members: 1,
                       monthly_profile_limit: 5,
-                      monthly_email_limit: 0,
                       monthly_posts_limit: 0,
                     })
                   }}
@@ -453,15 +449,6 @@ export default function CreateBrandAccountPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Monthly Email Limit</label>
-                <Input
-                  type="number"
-                  value={formData.monthly_email_limit}
-                  onChange={(e) => setFormData(prev => ({ ...prev, monthly_email_limit: parseInt(e.target.value) || 0 }))}
-                  className="mt-1"
-                />
-              </div>
-              <div>
                 <label className="text-sm font-medium">Monthly Posts Limit</label>
                 <Input
                   type="number"
@@ -542,13 +529,13 @@ export default function CreateBrandAccountPage() {
                 </SelectItem>
                 <SelectItem value="standard">
                   <div className="flex flex-col">
-                    <span className="font-medium">Standard - ⃃199/month</span>
+                    <span className="font-medium">Standard - {formatMonthlyPlanPrice('standard')}</span>
                     <span className="text-xs text-muted-foreground">350 profiles • 8,750 credits • 2 members</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="premium">
                   <div className="flex flex-col">
-                    <span className="font-medium">Premium - ⃃499/month</span>
+                    <span className="font-medium">Premium - {formatMonthlyPlanPrice('premium')}</span>
                     <span className="text-xs text-muted-foreground">1,000 profiles • 25,000 credits • 5 members</span>
                   </div>
                 </SelectItem>
@@ -609,10 +596,6 @@ export default function CreateBrandAccountPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Profile Limit:</span>
                 <span className="font-medium">{formData.monthly_profile_limit}/month</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Email Limit:</span>
-                <span className="font-medium">{formData.monthly_email_limit}/month</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Posts Limit:</span>

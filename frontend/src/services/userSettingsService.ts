@@ -57,14 +57,12 @@ export interface MyTeam {
   team_role: string
   monthly_limits: {
     profile_limit: number
-    email_limit: number
   }
 }
 
 export interface MyTeamUsage {
   usage_this_month: {
     profiles_unlocked: number
-    emails_sent: number
   }
 }
 

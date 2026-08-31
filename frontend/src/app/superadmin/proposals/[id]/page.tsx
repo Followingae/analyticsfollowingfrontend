@@ -230,6 +230,13 @@ export default function ProposalDetailPage() {
   }
 
   const { proposal, influencers, financials, timeline } = data
+  // What we pay, and therefore our margin, is leadership's number. The backend already
+  // refuses to send it to anyone else; this leaves the columns out entirely, because a
+  // column of dashes where money used to be only invites someone to ask why.
+  const showCost = data.scope === "leadership"
+  // Sell is the other half of the same rule: talent managers negotiate what we pay and are
+  // never shown what we charge. Unknown scope keeps sell, because sell was never the leak.
+  const showSell = data.scope !== "talent" && data.scope !== "none"
   const status = proposal.status as string
   const canEdit = status === "draft"
   // A proposal may only be sent to the client once it has cleared internal approval
@@ -247,8 +254,8 @@ export default function ProposalDetailPage() {
   const pickedList = influencers.filter(i => picked.has(i.id))
 
   // Compute table totals
-  const totalSell = influencers.reduce((s, i) => s + getSellPrice(i), 0)
-  const totalCost = influencers.reduce((s, i) => s + getCostPrice(i), 0)
+  const totalSell = showSell ? influencers.reduce((s, i) => s + getSellPrice(i), 0) : 0
+  const totalCost = showCost ? influencers.reduce((s, i) => s + getCostPrice(i), 0) : 0
 
   return (
     <SuperadminLayout>
@@ -399,30 +406,38 @@ export default function ProposalDetailPage() {
               variants={proposalMotion.staggerContainer}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-2 md:grid-cols-4 gap-4"
+              className={showCost ? "grid grid-cols-2 md:grid-cols-4 gap-4" : "grid grid-cols-2 gap-4"}
             >
-              <motion.div variants={proposalMotion.staggerItem}>
-                <StandardMetricCard icon={Coins} label="Total Sell" value={formatCurrency(financials.total_sell)} />
-              </motion.div>
-              <motion.div variants={proposalMotion.staggerItem}>
-                <StandardMetricCard icon={Coins} label="Total Cost" value={formatCurrency(financials.total_cost)} />
-              </motion.div>
-              <motion.div variants={proposalMotion.staggerItem}>
-                <StandardMetricCard icon={TrendingUp} label="Margin %" value={`${financials.margin_percentage?.toFixed(1) ?? "0.0"}%`} />
-              </motion.div>
+              {showSell && (
+                <motion.div variants={proposalMotion.staggerItem}>
+                  <StandardMetricCard icon={Coins} label="Total Sell" value={formatCurrency(financials.total_sell ?? 0)} />
+                </motion.div>
+              )}
+              {showCost && (
+                <motion.div variants={proposalMotion.staggerItem}>
+                  <StandardMetricCard icon={Coins} label="Total Cost" value={formatCurrency(financials.total_cost ?? 0)} />
+                </motion.div>
+              )}
+              {showCost && (
+                <motion.div variants={proposalMotion.staggerItem}>
+                  <StandardMetricCard icon={TrendingUp} label="Margin %" value={`${financials.margin_percentage?.toFixed(1) ?? "0.0"}%`} />
+                </motion.div>
+              )}
               <motion.div variants={proposalMotion.staggerItem}>
                 <StandardMetricCard icon={Users} label="Influencers" value={influencers.length} />
               </motion.div>
             </motion.div>
-            <Card className="mt-4">
-              <CardContent className="pt-4 pb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-muted-foreground">Profit Margin</span>
-                  <span className="text-sm font-medium">{financials.margin_percentage?.toFixed(1) ?? "0.0"}%</span>
-                </div>
-                <Progress value={financials.margin_percentage ?? 0} />
-              </CardContent>
-            </Card>
+            {showCost && (
+              <Card className="mt-4">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-muted-foreground">Profit Margin</span>
+                    <span className="text-sm font-medium">{financials.margin_percentage?.toFixed(1) ?? "0.0"}%</span>
+                  </div>
+                  <Progress value={financials.margin_percentage ?? 0} />
+                </CardContent>
+              </Card>
+            )}
           </CardContent>
         </Card>
 
@@ -493,9 +508,9 @@ export default function ProposalDetailPage() {
                     <TableHead className="text-right">Followers</TableHead>
                     <TableHead className="text-right">Engagement</TableHead>
                     <TableHead>Tier</TableHead>
-                    <TableHead className="text-right">Sell Price</TableHead>
-                    <TableHead className="text-right">Cost Price</TableHead>
-                    <TableHead className="text-right">Margin</TableHead>
+                    {showSell && <TableHead className="text-right">Sell Price</TableHead>}
+                    {showCost && <TableHead className="text-right">Cost Price</TableHead>}
+                    {showCost && <TableHead className="text-right">Margin</TableHead>}
                     <TableHead>Selected</TableHead>
                     <TableHead className="min-w-[120px]">Admin Notes</TableHead>
                     <TableHead className="w-[50px]" />
@@ -505,7 +520,7 @@ export default function ProposalDetailPage() {
                   {influencers.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={11}
+                        colSpan={9 + (showCost ? 2 : 0) - (showSell ? 0 : 1)}
                         className="text-center text-muted-foreground py-8"
                       >
                         No influencers added yet
@@ -513,8 +528,8 @@ export default function ProposalDetailPage() {
                     </TableRow>
                   ) : (
                     influencers.map((inf) => {
-                      const sell = getSellPrice(inf)
-                      const cost = getCostPrice(inf)
+                      const sell = showSell ? getSellPrice(inf) : 0
+                      const cost = showCost ? getCostPrice(inf) : 0
                       const margin = sell > 0 ? ((sell - cost) / sell) * 100 : 0
                       return (
                         <TableRow key={inf.id} data-state={picked.has(inf.id) ? "selected" : undefined}>
@@ -576,15 +591,21 @@ export default function ProposalDetailPage() {
                               "-"
                             )}
                           </TableCell>
-                          <TableCell className="text-right">
-                            {formatCurrency(sell)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {formatCurrency(cost)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {margin.toFixed(1)}%
-                          </TableCell>
+                          {showSell && (
+                            <TableCell className="text-right">
+                              {formatCurrency(sell)}
+                            </TableCell>
+                          )}
+                          {showCost && (
+                            <TableCell className="text-right">
+                              {formatCurrency(cost)}
+                            </TableCell>
+                          )}
+                          {showCost && (
+                            <TableCell className="text-right">
+                              {margin.toFixed(1)}%
+                            </TableCell>
+                          )}
                           <TableCell>
                             {inf.locked ? (
                               <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-600">
@@ -654,18 +675,24 @@ export default function ProposalDetailPage() {
                       <TableCell colSpan={5} className="font-medium">
                         Totals
                       </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(totalSell)}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(totalCost)}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {totalSell > 0
-                          ? (((totalSell - totalCost) / totalSell) * 100).toFixed(1) +
-                            "%"
-                          : "0.0%"}
-                      </TableCell>
+                      {showSell && (
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(totalSell)}
+                        </TableCell>
+                      )}
+                      {showCost && (
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(totalCost)}
+                        </TableCell>
+                      )}
+                      {showCost && (
+                        <TableCell className="text-right font-medium">
+                          {totalSell > 0
+                            ? (((totalSell - totalCost) / totalSell) * 100).toFixed(1) +
+                              "%"
+                            : "0.0%"}
+                        </TableCell>
+                      )}
                       <TableCell colSpan={3} />
                     </TableRow>
                   </TableFooter>

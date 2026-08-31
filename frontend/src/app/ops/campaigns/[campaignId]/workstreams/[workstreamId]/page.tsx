@@ -492,7 +492,8 @@ const DeliverablesTab = ({
                 <TableHead>Due Date</TableHead>
                 <TableHead>Creator</TableHead>
                 <TableHead>Assets</TableHead>
-                <TableHead className="w-12"></TableHead>
+                {/* Row actions (assign creator, delete) are internal-only. */}
+                {isInternal && <TableHead className="w-12"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -571,6 +572,7 @@ const DeliverablesTab = ({
                       )}
                     </div>
                   </TableCell>
+                  {isInternal && (
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -595,6 +597,7 @@ const DeliverablesTab = ({
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -900,10 +903,12 @@ export default function WorkstreamDetailPage() {
 
   // Per-type production tab: shoots (video/photo), events (activation), payouts (paid).
   const wsType = currentWorkstream?.type;
+  // Payouts are what we pay creators — cost. Brand-side users never see cost, and the
+  // /payouts endpoints are superadmin-only anyway, so the tab would only ever 403 for them.
   const prodMode: 'shoots' | 'events' | 'payouts' | null =
     wsType === 'video_shoot' || wsType === 'photo_shoot' ? 'shoots'
     : wsType === 'event_activation' ? 'events'
-    : wsType === 'influencer_paid' ? 'payouts'
+    : wsType === 'influencer_paid' ? (isInternal ? 'payouts' : null)
     : null;
   const prodLabel = prodMode === 'shoots' ? 'Shoots' : prodMode === 'events' ? 'Events' : prodMode === 'payouts' ? 'Payouts' : '';
 

@@ -84,7 +84,6 @@ interface UserDetails {
   team_name?: string
   team_role?: string
   monthly_profile_limit: number
-  monthly_email_limit: number
   email_verified: boolean
   two_factor_enabled: boolean
   last_sign_in_at: string
@@ -142,7 +141,6 @@ export default function UserEditPage() {
     team_name: '',
     team_role: '',
     monthly_profile_limit: 0,
-    monthly_email_limit: 0
   })
 
   const [securityOverrides, setSecurityOverrides] = useState({
@@ -179,7 +177,6 @@ export default function UserEditPage() {
           team_name: userData.team_name || '',
           team_role: userData.team_role || '',
           monthly_profile_limit: userData.monthly_profile_limit || 0,
-          monthly_email_limit: userData.monthly_email_limit || 0
         })
 
         setSecurityOverrides({
@@ -746,10 +743,6 @@ export default function UserEditPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Profile Limit:</span>
                   <span className="font-medium">{user.monthly_profile_limit}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Email Limit:</span>
-                  <span className="font-medium">{user.monthly_email_limit}</span>
                 </div>
               </div>
             </CardContent>

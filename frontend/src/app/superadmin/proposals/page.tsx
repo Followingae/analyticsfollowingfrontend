@@ -53,6 +53,7 @@ export default function SuperadminProposalsPage() {
   const [stats, setStats] = useState<AdminProposalStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [showMargin, setShowMargin] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -67,6 +68,9 @@ export default function SuperadminProposalsPage() {
       ])
       setProposals(proposalsRes.proposals || [])
       setStats(statsRes)
+      // What we pay and what we keep is leadership's number; the backend decides and says
+      // so, and the screen drops the column rather than showing an empty one.
+      setShowMargin((statsRes.scope || proposalsRes.scope) === "leadership")
     } catch (err) {
       toast.error("Failed to load proposals")
     } finally {
@@ -117,7 +121,9 @@ export default function SuperadminProposalsPage() {
               variants={proposalMotion.staggerContainer}
               initial="hidden"
               animate="visible"
-              className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+              className={showMargin
+                ? "grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+                : "grid gap-4 md:grid-cols-3"}
             >
               <motion.div variants={proposalMotion.staggerItem}>
                 <StandardMetricCard icon={FileText} label="Total" value={stats.total_proposals} subtitle="proposals" />
@@ -128,9 +134,11 @@ export default function SuperadminProposalsPage() {
               <motion.div variants={proposalMotion.staggerItem}>
                 <StandardMetricCard icon={CheckCircle} label="Approved" value={stats.approved_proposals} subtitle={`${stats.approval_rate}% rate`} />
               </motion.div>
-              <motion.div variants={proposalMotion.staggerItem}>
-                <StandardMetricCard icon={Coins} label="Margin" value={`⃃${stats.total_margin.toLocaleString()}`} subtitle={`avg ${stats.avg_margin_percentage.toFixed(1)}%`} />
-              </motion.div>
+              {showMargin && (
+                <motion.div variants={proposalMotion.staggerItem}>
+                  <StandardMetricCard icon={Coins} label="Margin" value={`⃃${(stats.total_margin ?? 0).toLocaleString()}`} subtitle={`avg ${(stats.avg_margin_percentage ?? 0).toFixed(1)}%`} />
+                </motion.div>
+              )}
             </motion.div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -184,7 +192,7 @@ export default function SuperadminProposalsPage() {
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Creators</TableHead>
                     <TableHead className="text-right">Sell</TableHead>
-                    <TableHead className="text-right">Margin</TableHead>
+                    {showMargin && <TableHead className="text-right">Margin</TableHead>}
                     <TableHead>Deadline</TableHead>
                     <TableHead className="text-right w-[60px]">Actions</TableHead>
                   </TableRow>
@@ -210,7 +218,7 @@ export default function SuperadminProposalsPage() {
                     ))
                   ) : proposals.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-16">
+                      <TableCell colSpan={showMargin ? 8 : 7} className="text-center py-16">
                         <FileText className="h-8 w-8 mx-auto text-muted-foreground/60 mb-3" />
                         <p className="text-sm font-medium mb-1">No proposals found</p>
                         <p className="text-xs text-muted-foreground mb-4">Create a proposal to get started</p>
@@ -251,11 +259,13 @@ export default function SuperadminProposalsPage() {
                             ? `⃃${p.total_sell_amount.toLocaleString()}`
                             : "--"}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums text-sm">
-                          {p.margin_percentage
-                            ? `${p.margin_percentage.toFixed(1)}%`
-                            : "--"}
-                        </TableCell>
+                        {showMargin && (
+                          <TableCell className="text-right tabular-nums text-sm">
+                            {p.margin_percentage
+                              ? `${p.margin_percentage.toFixed(1)}%`
+                              : "--"}
+                          </TableCell>
+                        )}
                         <TableCell className="text-sm text-muted-foreground">
                           {p.deadline_at
                             ? new Date(p.deadline_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })

@@ -18,7 +18,7 @@ interface UsageLimitWarningProps {
 }
 
 interface UsageWarning {
-  type: 'profiles' | 'emails' | 'posts'
+  type: 'profiles' | 'posts'
   remaining: number
   used: number
   limit: number
@@ -65,7 +65,7 @@ export function UsageLimitWarning({
 
     // Check each usage type
     Object.entries(context.remaining_capacity).forEach(([type, remaining]) => {
-      const usageType = type as 'profiles' | 'emails' | 'posts'
+      const usageType = type as 'profiles' | 'posts'
       const limit = context.monthly_limits[usageType]
       const used = context.current_usage[usageType]
       const percentage = limit > 0 ? (used / limit) * 100 : 0
@@ -96,13 +96,11 @@ export function UsageLimitWarning({
 
   const getUsageTypeLabel = (type: string): string => {
     return type === 'profiles' ? 'Profile analyses' :
-           type === 'emails' ? 'Email unlocks' :
            'Post analyses'
   }
 
   const getUsageTypeIcon = (type: string): string => {
     return type === 'profiles' ? '👤' :
-           type === 'emails' ? '📧' :
            '📊'
   }
 

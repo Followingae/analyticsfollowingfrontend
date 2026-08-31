@@ -7,8 +7,9 @@ import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, RefreshCw, Trash2, AlertTriangle, CheckCircle2, Clock, Loader2 } from "lucide-react"
+import { ArrowLeft, RefreshCw, Trash2, AlertTriangle, CheckCircle2, Clock, Loader2, Lock, XCircle } from "lucide-react"
 import { toast } from "sonner"
+import { useAdminAccess } from "@/hooks/useAdminAccess"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.following.ae"
 
@@ -23,10 +24,16 @@ interface StuckJob {
   minutes_stuck: number
 }
 
+/** What went wrong, so the screen can say which — never "All Clear" over a failed read. */
+type LoadFailure = { kind: "forbidden" | "error"; detail: string } | null
+
 export default function JobQueuePage() {
   const [stuckJobs, setStuckJobs] = useState<StuckJob[]>([])
+  const [failure, setFailure] = useState<LoadFailure>(null)
   const [loading, setLoading] = useState(true)
   const [cleaning, setCleaning] = useState(false)
+  // Force-failing every queued job is destructive. Scoped staff operate; they do not destroy.
+  const { canDestroy, loading: accessLoading } = useAdminAccess()
 
   const getToken = () => (tokenManager.getTokenSync() || localStorage.getItem("access_token")) || ""
 
@@ -36,12 +43,26 @@ export default function JobQueuePage() {
       const res = await fetch(`${API_BASE}/api/v1/admin/jobs/stuck`, {
         headers: { Authorization: `Bearer ${getToken()}` }
       })
-      if (res.ok) {
-        const data = await res.json()
-        setStuckJobs(data.data?.jobs || data.jobs || [])
+      if (!res.ok) {
+        // A refused or broken read is not an empty queue. Say which one it was, and keep the
+        // list empty rather than reporting a count we do not have.
+        const body = await res.json().catch(() => null)
+        const detail = (body?.detail && String(body.detail)) || res.statusText || `HTTP ${res.status}`
+        setStuckJobs([])
+        setFailure(res.status === 401 || res.status === 403
+          ? { kind: "forbidden", detail }
+          : { kind: "error", detail: `${res.status} · ${detail}` })
+        return
       }
-    } catch {
-      toast.error("Failed to fetch stuck jobs")
+      const data = await res.json()
+      // The route answers { success, data: [...], count }. Older shapes kept as fallbacks.
+      const jobs = Array.isArray(data?.data) ? data.data : (data?.data?.jobs || data?.jobs || [])
+      setStuckJobs(jobs)
+      setFailure(null)
+    } catch (e) {
+      setStuckJobs([])
+      setFailure({ kind: "error", detail: (e as Error)?.message || "The request did not complete" })
+      toast.error("Could not load the job queue")
     } finally {
       setLoading(false)
     }
@@ -59,7 +80,10 @@ export default function JobQueuePage() {
         toast.success(`Cleaned ${data.cleaned_count || 0} stuck jobs`)
         fetchStuckJobs()
       } else {
-        toast.error("Failed to cleanup jobs")
+        const body = await res.json().catch(() => null)
+        toast.error(res.status === 401 || res.status === 403
+          ? "You do not have permission to clean up jobs"
+          : `Could not clean up jobs — ${body?.detail || res.statusText || res.status}`)
       }
     } catch {
       toast.error("Failed to cleanup jobs")
@@ -86,20 +110,24 @@ export default function JobQueuePage() {
               <Button variant="outline" size="sm" onClick={fetchStuckJobs} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} /> Refresh
               </Button>
-              <Button variant="destructive" size="sm" onClick={cleanupJobs} disabled={cleaning || stuckJobs.length === 0}>
-                <Trash2 className="h-4 w-4 mr-1" /> {cleaning ? "Cleaning..." : `Cleanup ${stuckJobs.length} Jobs`}
-              </Button>
+              {!accessLoading && canDestroy && (
+                <Button variant="destructive" size="sm" onClick={cleanupJobs}
+                        disabled={cleaning || !!failure || stuckJobs.length === 0}>
+                  <Trash2 className="h-4 w-4 mr-1" /> {cleaning ? "Cleaning..." : `Cleanup ${stuckJobs.length} Jobs`}
+                </Button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Summary */}
+        {/* Summary. A failed read has no counts, so it shows an em-dash — a 0 here would
+            read as "nothing is stuck", which is exactly the lie this screen used to tell. */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <AlertTriangle className="h-8 w-8 text-amber-500" />
               <div>
-                <p className="text-2xl font-bold">{stuckJobs.length}</p>
+                <p className="text-2xl font-bold">{failure ? "—" : stuckJobs.length}</p>
                 <p className="text-xs text-muted-foreground">Stuck Jobs</p>
               </div>
             </CardContent>
@@ -108,7 +136,7 @@ export default function JobQueuePage() {
             <CardContent className="p-4 flex items-center gap-3">
               <Clock className="h-8 w-8 text-blue-500" />
               <div>
-                <p className="text-2xl font-bold">{stuckJobs.filter(j => j.status === 'processing').length}</p>
+                <p className="text-2xl font-bold">{failure ? "—" : stuckJobs.filter(j => j.status === 'processing').length}</p>
                 <p className="text-xs text-muted-foreground">Processing</p>
               </div>
             </CardContent>
@@ -117,7 +145,7 @@ export default function JobQueuePage() {
             <CardContent className="p-4 flex items-center gap-3">
               <CheckCircle2 className="h-8 w-8 text-green-500" />
               <div>
-                <p className="text-2xl font-bold">{stuckJobs.filter(j => j.status === 'queued').length}</p>
+                <p className="text-2xl font-bold">{failure ? "—" : stuckJobs.filter(j => j.status === 'queued').length}</p>
                 <p className="text-xs text-muted-foreground">Queued</p>
               </div>
             </CardContent>
@@ -130,6 +158,31 @@ export default function JobQueuePage() {
             <CardContent className="py-12 text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
               <p className="text-muted-foreground">Loading stuck jobs...</p>
+            </CardContent>
+          </Card>
+        ) : failure?.kind === "forbidden" ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <h3 className="font-semibold text-lg">You do not have permission to see the job queue</h3>
+              <p className="text-muted-foreground">
+                The server refused this read, so nothing here is known — not that the queue is empty.
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">{failure.detail}</p>
+            </CardContent>
+          </Card>
+        ) : failure ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <XCircle className="h-12 w-12 text-destructive mx-auto mb-3" />
+              <h3 className="font-semibold text-lg">Could not load the job queue</h3>
+              <p className="text-muted-foreground">
+                This is not an all-clear. The queue may be full of stuck jobs we cannot see.
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">{failure.detail}</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={fetchStuckJobs}>
+                <RefreshCw className="h-4 w-4 mr-1" /> Try again
+              </Button>
             </CardContent>
           </Card>
         ) : stuckJobs.length === 0 ? (
@@ -157,7 +210,12 @@ export default function JobQueuePage() {
                         <Badge variant="outline">{job.job_type}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Created: {new Date(job.created_at).toLocaleString()} · Stuck for {Math.round(job.minutes_stuck || 0)} min
+                        {/* The route does not return minutes_stuck; printing 0 would claim
+                            the job just got stuck, so it is simply left out when absent. */}
+                        Created: {new Date(job.created_at).toLocaleString()}
+                        {typeof job.minutes_stuck === "number"
+                          ? ` · Stuck for ${Math.round(job.minutes_stuck)} min`
+                          : ""}
                       </p>
                     </div>
                   </div>

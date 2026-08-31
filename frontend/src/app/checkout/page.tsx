@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, Loader2, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { billingManager } from '@/services/billingManager'
+import { formatMonthlyPlanPrice, formatPlanLabel, formatPlanPrice } from '@/config/planPricing'
 
 // Initialize Stripe with the publishable key
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
@@ -26,13 +27,11 @@ function CheckoutContent() {
   // Backend hosted checkout only — embedded mode (client_secret) is not supported.
   const mode = searchParams.get('mode') || 'redirect'
 
+  // Single source of truth for plan prices - see src/config/planPricing.ts.
   const getPlanPrice = (planTier: string) => {
-    const prices: Record<string, string> = {
-      free: '$0',
-      standard: '$199 / month',
-      premium: '$499 / month'
-    }
-    return prices[planTier] || ''
+    if (planTier === 'free') return formatPlanPrice(0)
+    if (planTier !== 'standard' && planTier !== 'premium') return ''
+    return formatMonthlyPlanPrice(planTier, undefined, ' / month')
   }
 
   const initializeCheckout = async () => {
@@ -98,12 +97,9 @@ function CheckoutContent() {
   }
 
   const getPlanDisplayName = (planTier: string) => {
-    const names: Record<string, string> = {
-      free: 'Free',
-      standard: 'Standard ($199/mo)',
-      premium: 'Premium ($499/mo)'
-    }
-    return names[planTier] || planTier
+    if (planTier === 'free') return 'Free'
+    if (planTier !== 'standard' && planTier !== 'premium') return planTier
+    return formatPlanLabel(planTier, '/mo')
   }
 
   return (

@@ -1,3 +1,25 @@
+/**
+ * Operations OS access matrix.
+ *
+ * READ THIS BEFORE TRUSTING THE TABLE BELOW. As of August 2026 it declares roughly 45
+ * permissions and the UI enforces exactly three of them:
+ *
+ *   view_internal_notes   — read as `isInternal` and used as the single internal/client gate
+ *   create_workstream
+ *   view_settings
+ *
+ * Every other entry is documentation, not enforcement: nothing calls `hasPermission` for it.
+ * The real gate on writes is the server, where the operations routes sit behind
+ * `require_superadmin`. Treat a permission here as a statement of intent until you have
+ * checked the call site.
+ *
+ * Second trap: `admin` ranks above `premium` in ROLE_HIERARCHY but appears in ZERO
+ * permission lists, so `hasPermission(admin, anything)` is false — an admin is less
+ * privileged here than a premium brand user. That is left as found deliberately; wiring the
+ * matrix up would change what `admin` can reach, which is a product decision rather than a
+ * bug fix, and it needs someone to say what an admin should be able to do in /ops.
+ */
+
 import { User } from '@/types/user';
 
 // Role hierarchy and permissions

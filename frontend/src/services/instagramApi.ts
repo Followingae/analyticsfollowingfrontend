@@ -414,22 +414,18 @@ export interface ProfileResponse {
     subscription_status: 'active' | 'inactive' | 'expired'
     monthly_limits: {
       profiles: number
-      emails: number
       posts: number
     }
     current_usage: {
       profiles: number
-      emails: number
       posts: number
     }
     remaining_capacity: {
       profiles: number
-      emails: number
       posts: number
     }
     user_permissions: {
       can_analyze_profiles: boolean
-      can_unlock_emails: boolean
       can_analyze_posts: boolean
       can_manage_team: boolean
       can_invite_members: boolean

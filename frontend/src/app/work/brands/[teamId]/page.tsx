@@ -29,7 +29,9 @@ const aed = (n: number | null | undefined) =>
 const when = (iso: string | null) =>
   !iso ? '—' : new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 
-const LIVE = ['active', 'in_progress', 'live']
+// campaigns_status_check permits draft|active|completed|paused|cancelled only; 'in_progress'
+// and 'live' were dead values that could never match a row.
+const LIVE = ['active']
 
 export default function BrandBrowsePage() {
   const { teamId } = useParams<{ teamId: string }>()

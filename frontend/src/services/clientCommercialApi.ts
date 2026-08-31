@@ -39,12 +39,26 @@ export interface ClientDocument {
   notes: string | null; accepted_at: string | null; uploaded_at: string;
 }
 
+export type VatMode = 'exclusive' | 'inclusive' | 'exempt';
+
 export interface CampaignInvoice {
   id: string; campaign_id: string | null; invoice_type: string;
+  /** GROSS amount payable (VAT-inclusive when vat_rate is set). */
   amount_aed: number | null; advance_pct: number | null; payment_terms: string | null;
   due_date: string | null; payment_link_url: string | null; invoice_file_url: string | null;
   status: string; amount_paid: number | null; paid_at: string | null;
   payment_reference: string | null; receipt_count: number; created_at: string;
+  /**
+   * VAT breakdown. All three are null on invoices raised before VAT support —
+   * those render exactly as they always have, one amount and no tax line.
+   * vat_rate is the rate THIS invoice was raised at; never re-derive it from
+   * the currently configured rate.
+   */
+  net_amount_aed?: number | null; vat_amount_aed?: number | null; vat_rate?: number | null;
+}
+
+export interface VatConfig {
+  rate: string; percent: string; default_mode: VatMode; modes: VatMode[]; currency: string;
 }
 
 export const clientCommercialApi = {
@@ -74,6 +88,7 @@ export const clientCommercialApi = {
     jfetch(`${BASE}/${teamId}/agreements/${docId}/void`, { method: 'POST', body: '{}' }),
 
   // Invoices
+  getVatConfig: (): Promise<{ success: boolean; data: VatConfig }> => jfetch(`${BASE}/vat-config`),
   listInvoices: (teamId: string, opts?: { campaignId?: string; proposalId?: string }) => {
     const qs = new URLSearchParams();
     if (opts?.campaignId) qs.set('campaign_id', opts.campaignId);

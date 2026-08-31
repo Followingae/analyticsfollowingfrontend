@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { ENDPOINTS, API_CONFIG } from '@/config/api'
 import { motion, AnimatePresence } from 'motion/react'
+import { formatPlanPrice, getPlanAmount } from '@/config/planPricing'
 
 // Step definitions
 const STEPS = [
@@ -109,8 +110,8 @@ const PLANS: PlanDetails[] = [
   {
     id: 'standard',
     name: 'Standard',
-    price: '⃃199',
-    priceMonthly: 199,
+    price: formatPlanPrice(getPlanAmount('standard')),
+    priceMonthly: getPlanAmount('standard'),
     profiles: '500 profile unlocks',
     emails: '250 email reveals',
     posts: '125 post analytics',
@@ -128,8 +129,8 @@ const PLANS: PlanDetails[] = [
   {
     id: 'premium',
     name: 'Premium',
-    price: '⃃499',
-    priceMonthly: 499,
+    price: formatPlanPrice(getPlanAmount('premium')),
+    priceMonthly: getPlanAmount('premium'),
     profiles: '2,000 profile unlocks',
     emails: '800 email reveals',
     posts: '300 post analytics',
@@ -433,7 +434,7 @@ export function CleanOnboardingSignup() {
         use_case: formData.useCases.join(',') || '', // Join array for API
         marketing_budget: formData.marketingBudget || '',
         success_url: `${window.location.origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${window.location.origin}/signup?payment=cancelled`
+        cancel_url: `${window.location.origin}/auth/register?payment=cancelled`
       })
     })
 

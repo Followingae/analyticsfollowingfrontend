@@ -1,4 +1,8 @@
 // utils/subscriptionUtils.ts
+//
+// Plan PRICES are not defined here. They live in the single source of truth,
+// src/config/planPricing.ts (mirroring the backend app/core/plan_pricing.py).
+import { getPlanAmount } from '@/config/planPricing'
 
 export type SubscriptionTier = 'free' | 'standard' | 'premium' | 'enterprise'
 
@@ -24,14 +28,14 @@ export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> =
     emails: 200,
     posts: 100,
     teamMembers: 2,
-    price: 199
+    price: getPlanAmount('standard')
   },
   premium: {
     profiles: 1000,
     emails: 500,
     posts: 250,
     teamMembers: 5,
-    price: 499,
+    price: getPlanAmount('premium'),
     topupDiscount: 20
   },
   enterprise: {
@@ -39,7 +43,7 @@ export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> =
     emails: 500,
     posts: 250,
     teamMembers: 5,
-    price: 499,
+    price: getPlanAmount('premium'),
     topupDiscount: 20
   }
 }

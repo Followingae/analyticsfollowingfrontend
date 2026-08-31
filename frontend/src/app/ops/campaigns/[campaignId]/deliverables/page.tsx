@@ -198,10 +198,20 @@ export default function GlobalDeliverablesPage() {
             Manage deliverables across all workstreams
           </p>
         </div>
-        <Button variant="outline" onClick={handleExport} disabled={filteredDeliverables.length === 0}>
-          <Download className="h-4 w-4 mr-2" />
-          Export
-        </Button>
+        {/* Bulk extraction is internal-only: a CSV cannot enforce field visibility once it
+            has left the screen, and there is no server endpoint to refuse it — the file is
+            built here, so this gate IS the access control.
+            It deliberately rides on `isInternal` (view_internal_notes) rather than the
+            `export_campaigns` permission it should read, because that permission is declared
+            and never enforced — see the header of utils/operationsAccess.ts. Both resolve to
+            super_admin today, so this is correct now; move it to a real `export_campaigns`
+            check when the matrix is wired up. */}
+        {isInternal && (
+          <Button variant="outline" onClick={handleExport} disabled={filteredDeliverables.length === 0}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        )}
       </div>
 
       {/* Bulk action bar */}
@@ -301,14 +311,17 @@ export default function GlobalDeliverablesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={allSelected}
-                        onCheckedChange={(checked: boolean) =>
-                          setSelectedDeliverables(checked ? allFilteredIds : [])
-                        }
-                      />
-                    </TableHead>
+                    {/* Selection only exists to feed the internal-only bulk bar. */}
+                    {isInternal && (
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={allSelected}
+                          onCheckedChange={(checked: boolean) =>
+                            setSelectedDeliverables(checked ? allFilteredIds : [])
+                          }
+                        />
+                      </TableHead>
+                    )}
                     <TableHead>Title</TableHead>
                     <TableHead>Workstream</TableHead>
                     <TableHead>Status</TableHead>
@@ -328,6 +341,7 @@ export default function GlobalDeliverablesPage() {
                           `/ops/campaigns/${campaignId}/workstreams/${deliverable.workstream_id}`
                         )}
                       >
+                        {isInternal && (
                         <TableCell>
                           <Checkbox
                             checked={selectedDeliverables.includes(deliverable.id)}
@@ -343,6 +357,7 @@ export default function GlobalDeliverablesPage() {
                             onClick={(e) => e.stopPropagation()}
                           />
                         </TableCell>
+                        )}
                         <TableCell className="font-medium">
                           {deliverable.title}
                         </TableCell>
