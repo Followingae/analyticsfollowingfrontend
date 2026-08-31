@@ -1,5 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* ui2 design tokens — the type scale and radius scale for the new component set.
+ * Purely additive: every token is namespaced `ds-`, so it creates new utilities
+ * (text-ds-body, rounded-ds-control) and redefines none of the existing ones.
+ * See src/components/ui2/README.md. */
+@import "../components/ui2/tokens.css";
 
 /* ============================================================================
    ANALYTICS FOLLOWING - COMPREHENSIVE DESIGN SYSTEM

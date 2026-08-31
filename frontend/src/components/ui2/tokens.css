@@ -1,0 +1,100 @@
+/* ============================================================================
+   UI2 DESIGN TOKENS — type scale + radius scale
+   ============================================================================
+
+   Imported once from src/app/globals.css. Everything here is ADDITIVE and
+   namespaced `ds-`: it defines new Tailwind utilities and redefines none.
+   No existing class (text-sm, rounded-lg, ...) changes behaviour, which is
+   why this file is safe to add to a live app.
+
+   Use these on new screens instead of picking a size by eye. The audit that
+   prompted this wave found nine different ad-hoc spacing values on a single
+   page and radii written as raw pixel literals; the cure is a scale that is
+   named, not a rule that is remembered.
+   ============================================================================ */
+
+@theme {
+  /* --------------------------------------------------------------------
+     TYPE SCALE
+     Nine steps, each a role rather than a size, so the name survives a
+     redesign. Ratio is roughly 1.2 (minor third) from the 14px body step.
+     Each step ships its own line-height, tracking and weight so a single
+     class is a complete typographic decision.
+     -------------------------------------------------------------------- */
+
+  /* Page-level hero number or statement. One per screen, at most. */
+  --text-ds-display: 2.986rem;          /* 47.8px */
+  --text-ds-display--line-height: 1.05;
+  --text-ds-display--letter-spacing: -0.035em;
+  --text-ds-display--font-weight: 600;
+
+  /* Page title — the <h1> of a route. */
+  --text-ds-title: 2.074rem;            /* 33.2px */
+  --text-ds-title--line-height: 1.15;
+  --text-ds-title--letter-spacing: -0.025em;
+  --text-ds-title--font-weight: 600;
+
+  /* Section heading — the <h2> that opens a panel or card group. */
+  --text-ds-heading: 1.44rem;           /* 23.0px */
+  --text-ds-heading--line-height: 1.25;
+  --text-ds-heading--letter-spacing: -0.02em;
+  --text-ds-heading--font-weight: 600;
+
+  /* Sub-heading — card titles, dialog titles, table section rows. */
+  --text-ds-subheading: 1.2rem;         /* 19.2px */
+  --text-ds-subheading--line-height: 1.35;
+  --text-ds-subheading--letter-spacing: -0.015em;
+  --text-ds-subheading--font-weight: 600;
+
+  /* Body — the default. Prose, table cells, descriptions. */
+  --text-ds-body: 0.875rem;             /* 14px */
+  --text-ds-body--line-height: 1.55;
+  --text-ds-body--letter-spacing: 0em;
+  --text-ds-body--font-weight: 400;
+
+  /* Body small — secondary prose, helper text under a field. */
+  --text-ds-body-sm: 0.8125rem;         /* 13px */
+  --text-ds-body-sm--line-height: 1.5;
+  --text-ds-body-sm--letter-spacing: 0em;
+  --text-ds-body-sm--font-weight: 400;
+
+  /* Label — form labels, buttons, tabs. Never a paragraph. */
+  --text-ds-label: 0.875rem;            /* 14px */
+  --text-ds-label--line-height: 1.2;
+  --text-ds-label--letter-spacing: 0em;
+  --text-ds-label--font-weight: 500;
+
+  /* Caption — timestamps, footnotes, axis ticks. */
+  --text-ds-caption: 0.75rem;           /* 12px */
+  --text-ds-caption--line-height: 1.4;
+  --text-ds-caption--letter-spacing: 0.005em;
+  --text-ds-caption--font-weight: 400;
+
+  /* Overline — the small all-caps eyebrow above a heading. */
+  --text-ds-overline: 0.6875rem;        /* 11px */
+  --text-ds-overline--line-height: 1.3;
+  --text-ds-overline--letter-spacing: 0.08em;
+  --text-ds-overline--font-weight: 600;
+
+  /* --------------------------------------------------------------------
+     RADIUS SCALE
+     Derived from the theme's --radius (0.65rem) so a single change to the
+     theme still moves the whole set. `ds-field` and `ds-control` are named
+     for what they wrap, not how round they are — an input and a button
+     should agree without either page remembering a number.
+     -------------------------------------------------------------------- */
+  --radius-ds-none: 0px;
+  --radius-ds-xs: calc(var(--radius) - 6px);   /* 0.275rem — chips, tags */
+  --radius-ds-sm: calc(var(--radius) - 4px);   /* 0.4rem   — small controls */
+  --radius-ds-md: calc(var(--radius) - 2px);   /* 0.525rem — inputs, buttons */
+  --radius-ds-lg: var(--radius);               /* 0.65rem  — cards, popovers */
+  --radius-ds-xl: calc(var(--radius) + 4px);   /* 0.9rem   — dialogs, sheets */
+  --radius-ds-2xl: calc(var(--radius) + 10px); /* 1.275rem — full-bleed panels */
+  --radius-ds-full: 9999px;                    /* pills, avatars */
+
+  /* Semantic aliases — reach for these first. */
+  --radius-ds-control: calc(var(--radius) - 2px);
+  --radius-ds-field: calc(var(--radius) - 2px);
+  --radius-ds-surface: var(--radius);
+  --radius-ds-overlay: calc(var(--radius) + 4px);
+}
