@@ -74,7 +74,7 @@ export function MasterCampaignPanel({ campaignId, isSuperadmin }: { campaignId: 
       <Card className="border-primary/30 bg-primary/5">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Layers className="h-4 w-4" /> Master package — reconciliation
+            <Layers className="h-4 w-4" /> Master package, reconciliation
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -1,112 +1,202 @@
 "use client"
 
-import { useState, useEffect } from "react"
+/**
+ * Every movement in and out of the cashback pool. Density tier: SCANNING.
+ *
+ * This is a ledger, so it is deliberately the tightest screen in the campaign area. Rows sit
+ * on hairlines at the 32 to 36 pixel floor rather than in cards, amounts are right aligned so
+ * they compare down the column, and the air goes around the table instead of inside it.
+ *
+ * Two things were dishonest here and are not any more. A failed read fell through to "No
+ * transactions yet", which tells a client their pool has never moved when in fact we could
+ * not ask; that is now its own state with a retry. And every amount was printed with a bare
+ * U+20C3, a codepoint no shipped system font carries, so a page about money was rendering
+ * empty rectangles where the currency should be.
+ */
+
+import { useCallback, useEffect, useState } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, ArrowUpRight, ArrowDownRight } from "lucide-react"
 import Link from "next/link"
 import { brandPoolApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
+import {
+  Cell,
+  Empty,
+  Failed,
+  Ledger,
+  LedgerHead,
+  Money,
+  Page,
+  PageHead,
+  Sections,
+  State,
+  Waiting,
+  type StateTone,
+} from "@/components/campaigns/surface"
 
-const TYPE_COLORS: Record<string, string> = {
-  topup: "bg-green-500/10 text-green-600",
-  campaign_reserve: "bg-amber-500/10 text-amber-600",
-  cashback_payout: "bg-blue-500/10 text-blue-600",
-  deal_payout: "bg-purple-500/10 text-purple-600",
-  refund: "bg-red-500/10 text-red-600",
-  adjustment: "bg-gray-500/10 text-gray-600",
+/** A movement's kind, as a word plus a tone. Money leaving is not an error, so it is never
+ *  red: a routine deduction is typography, and red stays with genuine failures. */
+const TYPE_STATE: Record<string, { label: string; tone: StateTone }> = {
+  topup: { label: "Top up", tone: "good" },
+  campaign_reserve: { label: "Reserved", tone: "warn" },
+  cashback_payout: { label: "Cashback paid", tone: "info" },
+  deal_payout: { label: "Deal paid", tone: "info" },
+  refund: { label: "Refund", tone: "good" },
+  adjustment: { label: "Adjustment", tone: "neutral" },
 }
 
 export default function PoolTransactionsPage() {
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
   const [offset, setOffset] = useState(0)
   const limit = 20
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      try {
-        const res = await brandPoolApi.transactions(limit, offset)
-        // BE returns data:{transactions:[...], total, ...}; mirror the summary page.
-        if (res.success) {
-          const payload: any = res.data ?? res
-          setTransactions(Array.isArray(payload) ? payload : (payload?.transactions ?? []))
-        }
-      } catch (error) {
-        console.error('Failed to load cashback transactions:', error)
-        toast.error("Failed to load transactions")
-      } finally {
-        setLoading(false)
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await brandPoolApi.transactions(limit, offset)
+      // BE returns data:{transactions:[...], total, ...}; mirror the summary page.
+      if (res.success) {
+        const payload: any = res.data ?? res
+        setTransactions(Array.isArray(payload) ? payload : (payload?.transactions ?? []))
+        setFailed(false)
+      } else {
+        setFailed(true)
       }
+    } catch (error) {
+      console.error('Failed to load cashback transactions:', error)
+      toast.error("Failed to load transactions")
+      setFailed(true)
+    } finally {
+      setLoading(false)
     }
-    load()
   }, [offset])
 
-  const fmt = (cents: number) => `⃃ ${(Math.abs(cents) / 100).toLocaleString("en-AE", { minimumFractionDigits: 2 })}`
+  useEffect(() => { load() }, [load])
 
   return (
     <AuthGuard requireAuth={true}>
       <BrandUserInterface>
-        <div className="space-y-6">
-          <div>
-            <Link href="/billing?tab=cashback-pool" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
-              <ArrowLeft className="h-4 w-4" />Back to Cashback Pool
-            </Link>
-            <h1 className="text-2xl font-bold">Pool Transactions</h1>
-            <p className="text-muted-foreground text-sm">Complete history of all pool movements</p>
-          </div>
+        <Page width="page">
+          <Sections>
+            <PageHead
+              title="Pool transactions"
+              sub="Every movement in and out of your cashback pool, newest first."
+              back={
+                <Link
+                  href="/billing?tab=cashback-pool"
+                  className="inline-flex w-fit items-center gap-ds-2 text-ds-body-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to cashback pool
+                </Link>
+              }
+            />
 
-          <Card>
-            <CardContent className="p-0">
-              {transactions.length === 0 && !loading ? (
-                <p className="text-sm text-muted-foreground text-center py-12">No transactions yet</p>
+            <div className="flex flex-col gap-ds-4">
+              {loading ? (
+                <Waiting lines={6} />
+              ) : failed ? (
+                <Failed
+                  what="We could not load your transactions"
+                  detail="Your pool has not changed, we just could not read its history. Nothing below is a real figure until this loads."
+                  onRetry={load}
+                />
+              ) : transactions.length === 0 ? (
+                <Empty>
+                  {offset === 0
+                    ? "Nothing has moved in or out of your pool yet."
+                    : "No further transactions on this page."}
+                </Empty>
               ) : (
-                <div className="divide-y">
-                  {transactions.map((t: any) => (
-                    <div key={t.id} className="flex items-center justify-between p-4">
-                      <div className="flex items-center gap-3">
-                        {t.amount_cents > 0 ? (
-                          <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center">
-                            <ArrowUpRight className="h-4 w-4 text-green-500" />
-                          </div>
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-red-500/10 flex items-center justify-center">
-                            <ArrowDownRight className="h-4 w-4 text-red-500" />
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-medium">{t.description || t.type}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(t.created_at).toLocaleDateString("en-AE", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right flex items-center gap-3">
-                        <Badge variant="outline" className={TYPE_COLORS[t.type] || ""}>{t.type?.replace("_", " ")}</Badge>
-                        <p className={`text-sm font-semibold min-w-[100px] text-right ${t.amount_cents > 0 ? "text-green-500" : "text-red-500"}`}>
-                          {t.amount_cents > 0 ? "+" : "-"}{fmt(t.amount_cents)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <Ledger>
+                  <LedgerHead
+                    cols={[
+                      { key: "what", label: "What happened" },
+                      { key: "when", label: "When" },
+                      { key: "kind", label: "Kind" },
+                      { key: "amount", label: "Amount", align: "right" },
+                    ]}
+                  />
+                  <tbody>
+                    {transactions.map((t: any) => {
+                      const cents = Number(t.amount_cents)
+                      const known = Number.isFinite(cents)
+                      const incoming = known && cents > 0
+                      const kind = TYPE_STATE[t.type] || {
+                        label: String(t.type || "Movement").replace(/_/g, " "),
+                        tone: "neutral" as StateTone,
+                      }
+                      return (
+                        <tr key={t.id} className="border-b last:border-0">
+                          <Cell className="font-medium">
+                            <span className="flex items-center gap-ds-2">
+                              {known &&
+                                (incoming ? (
+                                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                ) : (
+                                  <ArrowDownRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                ))}
+                              <span className="truncate">{t.description || kind.label}</span>
+                            </span>
+                          </Cell>
+                          <Cell className="text-muted-foreground">
+                            {t.created_at
+                              ? new Date(t.created_at).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "–"}
+                          </Cell>
+                          <Cell>
+                            <State tone={kind.tone}>{kind.label}</State>
+                          </Cell>
+                          <Cell align="right" className="font-medium">
+                            {/* A movement whose amount did not arrive is a dash, not a zero. */}
+                            {known ? (
+                              <>
+                                {incoming ? "+" : "−"}
+                                <Money amount={Math.abs(cents) / 100} decimals={2} />
+                              </>
+                            ) : (
+                              <Money amount={null} />
+                            )}
+                          </Cell>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </Ledger>
               )}
-            </CardContent>
-          </Card>
 
-          <div className="flex justify-between">
-            <Button variant="outline" size="sm" onClick={() => setOffset(Math.max(0, offset - limit))} disabled={offset === 0}>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setOffset(offset + limit)} disabled={transactions.length < limit}>
-              Next
-            </Button>
-          </div>
-        </div>
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOffset(Math.max(0, offset - limit))}
+                  disabled={offset === 0 || loading}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOffset(offset + limit)}
+                  disabled={loading || failed || transactions.length < limit}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </Sections>
+        </Page>
       </BrandUserInterface>
     </AuthGuard>
   )

@@ -29,13 +29,41 @@ and 244 files improve for free" is also "break the base components and 244
 files break for free", and there is no staging environment where that would
 surface before a client saw it.
 
-So:
+That reasoning was sound about the risk and wrong about the remedy, and the
+original rule has been narrowed:
 
-> **`src/components/ui/` is frozen. Do not edit any file in it.**
+> **`src/components/ui/` is closed to API changes and open to visual ones.**
 
-Not to add a variant, not to fix a radius, not to tidy a class list. If
-something in the old set is wrong, the fix is a new component here that new
-screens adopt — never an edit there.
+The distinction is the whole rule, so it is worth being exact about.
+
+A **visual default** is a class in a class list that a caller can already
+override: a radius, a shadow, a font weight, a padding value, a type size.
+Changing one cannot break a screen. The worst case is that a screen looks
+different, on every screen at once, which is the point. Nothing throws,
+nothing goes undefined, no prop stops working, and any call site that had an
+opinion still wins because every one of these components ends in
+`cn(defaults, className)`.
+
+An **API change** is anything a caller can see from the outside: a prop, a
+variant name, an exported symbol, the DOM structure, the element type, a
+`data-` attribute, or a default that changes behaviour rather than
+appearance. Those are what "break the base components and 244 files break for
+free" actually describes, and they stay forbidden here.
+
+Freezing both together bought nothing. The small wrongness in the old set, a
+24px title on a card and a button rounded two steps tighter than the surface
+it sits on, could only be worked around one call site at a time, and it was:
+223 cards now override their own padding, 166 of 351 card
+titles set their own size, and the client-facing proposal view passes
+`rounded-xl` on every button on the page. Every one of those is a screen
+paying, in a diff, for a decision that belonged in one file.
+
+**One caveat that is easy to get wrong.** Inside anything that takes a
+`className`, use stock Tailwind, not the `ds-` scale. `tailwind-merge` has no
+idea that `p-ds-4` is a padding utility, so a caller passing `p-4` ends up
+with both classes and the browser picks. `twMerge('p-ds-4','p-4')` returns
+`"p-ds-4 p-4"`; `twMerge('p-6','p-4')` returns `"p-4"`. Use the `ds-` scale in
+page and layout code, where nothing merges over the top.
 
 ## When to use which
 
@@ -45,10 +73,11 @@ screens adopt — never an edit there.
 | Building a new screen | `ui2/` for anything this set provides; `ui/` for the rest. |
 | A component exists in both | `ui2/` on new screens, `ui/` on old ones. Never mix the two in one component. |
 | Migrating an old screen | A deliberate, separately reviewed change. Not something to do in passing. |
+| A default in `ui/` is wrong | Fix it there, if it is a visual default. One file, every screen. |
 
-`ui2` components **compose** the frozen primitives (`Button`, `Popover`,
+`ui2` components **compose** the base primitives (`Button`, `Popover`,
 `Command`, `Table`, `Select`, `Separator`, `Label`) rather than duplicating
-them. Using a frozen component is fine; editing one is not. This keeps the set
+them. Composing a base component is always right; forking one is not. This keeps the set
 to twelve files instead of thirty, and means a `ui2` screen still looks like the
 rest of the app.
 
@@ -74,13 +103,19 @@ rest of the app.
 Both live in `tokens.css` and are namespaced `ds-`, so they add utilities and
 override none. `text-sm` and `rounded-lg` behave exactly as they did.
 
-**Type — nine steps, named for role, not size.** Each step carries its own
+**Type: six steps, named for role, not size.** Each step carries its own
 line-height, tracking and weight, so one class is a complete typographic
 decision rather than the first of three.
 
-`text-ds-display` · `text-ds-title` · `text-ds-heading` · `text-ds-subheading` ·
-`text-ds-body` · `text-ds-body-sm` · `text-ds-label` · `text-ds-caption` ·
-`text-ds-overline`
+`text-ds-title` · `text-ds-heading` · `text-ds-body` · `text-ds-label` ·
+`text-ds-caption` · `text-ds-overline`
+
+It was nine. Two names a pixel apart are two ways to spell one decision, and
+the second one only exists because someone could not find the first. Three
+older names still work and always will, so nothing had to be rewritten:
+`text-ds-display` is `text-ds-title`, `text-ds-subheading` is
+`text-ds-heading`, `text-ds-body-sm` is `text-ds-caption`. They are a
+migration path, not a vocabulary.
 
 **Radius — derived from the theme's `--radius`,** so changing the theme still
 moves the whole set. Reach for the semantic aliases first:
@@ -110,7 +145,7 @@ screens whitespace is the grouping mechanism: stepping up this scale is
 almost always better than drawing a border, because a border is an extra
 edge the eye must cross to reach the number inside it.
 
-**These scales are not retrofitted to existing pages.** They are defined so new
+**The type and spacing scales are not retrofitted to existing pages.** They are defined so new
 work has something to reach for. Rewriting a live page's type to use them is a
 separate, deliberate change.
 
@@ -118,7 +153,8 @@ separate, deliberate change.
 
 1. Ship components **as shadcn ships them**. No wrappers, no invented variants.
    If you need different behaviour, that is a new component with its own name.
-2. Never edit `src/components/ui/`.
+2. In `src/components/ui/`, change visual defaults freely and APIs never. See
+   "Why it exists beside the old one" above for where the line falls.
 3. New sizes go through the scales in `tokens.css`, not into a class list as a
    literal.
 4. `motion/react`, never `framer-motion`.

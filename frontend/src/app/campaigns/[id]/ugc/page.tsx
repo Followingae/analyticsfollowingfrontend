@@ -31,6 +31,13 @@ import {
 } from "lucide-react";
 
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
+import {
+  Empty as SurfaceEmpty,
+  Failed,
+  Money,
+  Page,
+  Waiting,
+} from "@/components/campaigns/surface";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { fetchWithAuth } from "@/utils/apiInterceptor";
@@ -193,25 +200,31 @@ interface ModelPoolResult {
 // =============================================================================
 
 function StatusBadge({ status }: { status: string }) {
+  const info = "bg-blue-500/10 text-blue-700 dark:text-blue-400";
+  const good = "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+  const warn = "bg-amber-500/10 text-amber-700 dark:text-amber-400";
+  const bad = "bg-red-500/10 text-red-700 dark:text-red-400";
+  const busy = "bg-violet-500/10 text-violet-700 dark:text-violet-400";
+  const quiet = "bg-muted text-muted-foreground";
   const colors: Record<string, string> = {
-    draft: "bg-zinc-700 text-zinc-300",
-    proposed: "bg-blue-900/50 text-blue-300",
-    approved: "bg-green-900/50 text-green-300",
-    rejected: "bg-red-900/50 text-red-300",
-    revision_requested: "bg-yellow-900/50 text-yellow-300",
-    in_production: "bg-purple-900/50 text-purple-300",
-    completed: "bg-emerald-900/50 text-emerald-300",
-    pending: "bg-zinc-700 text-zinc-300",
-    uploaded: "bg-blue-900/50 text-blue-300",
-    in_review: "bg-yellow-900/50 text-yellow-300",
-    final: "bg-emerald-900/50 text-emerald-300",
-    selected: "bg-green-900/50 text-green-300",
-    confirmed: "bg-emerald-900/50 text-emerald-300",
+    draft: quiet,
+    proposed: info,
+    approved: good,
+    rejected: bad,
+    revision_requested: warn,
+    in_production: busy,
+    completed: good,
+    pending: quiet,
+    uploaded: info,
+    in_review: warn,
+    final: good,
+    selected: good,
+    confirmed: good,
   };
   return (
     <span
       className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-        colors[status] || "bg-zinc-700 text-zinc-300"
+        colors[status] || quiet
       }`}
     >
       {status
@@ -235,6 +248,18 @@ export default function UGCCampaignPage() {
   const [campaign, setCampaign] = useState<CampaignDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+
+  /**
+   * Which reads failed, as opposed to coming back with nothing.
+   *
+   * Every fetch on this page used to swallow its error into an empty catch, so a models
+   * endpoint returning 500 left `models` at `[]` and the tab said "No models assigned to
+   * this campaign yet". A client reading that concludes we have not cast anybody. These
+   * flags exist so the screen can tell the two apart, which it could not before.
+   */
+  const [failed, setFailed] = useState<Record<string, boolean>>({});
+  const markFailed = (key: string, value: boolean) =>
+    setFailed((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
 
   // Data state
   const [stats, setStats] = useState<UGCStats | null>(null);
@@ -348,6 +373,9 @@ export default function UGCCampaignPage() {
         return;
       }
       toast.error("Failed to load campaign data");
+      // Not a 404: the campaign exists, we just could not read it. Reporting it as "not
+      // found" told the client their campaign had been deleted.
+      markFailed("campaign", true);
     } finally {
       setIsLoading(false);
     }
@@ -358,11 +386,12 @@ export default function UGCCampaignPage() {
       const response = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/ugc/stats`
       );
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.data || data);
-      }
+      if (!response.ok) throw new Error(String(response.status));
+      const data = await response.json();
+      setStats(data.data || data);
+      markFailed("stats", false);
     } catch (error) {
+      markFailed("stats", true);
     }
   }, [campaignId]);
 
@@ -371,11 +400,13 @@ export default function UGCCampaignPage() {
       const response = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/ugc/models`
       );
-      if (response.ok) {
-        const data = await response.json();
-        setModels(data.data || []);
-      }
+      if (!response.ok) throw new Error(String(response.status));
+      const data = await response.json();
+      setModels(data.data || []);
+      markFailed("models", false);
     } catch (error) {
+      // A failed read is not an empty cast list, and the tab has to be able to say so.
+      markFailed("models", true);
     }
   }, [campaignId]);
 
@@ -389,11 +420,12 @@ export default function UGCCampaignPage() {
         const response = await fetchWithAuth(
           `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/ugc/concepts${filterParam}`
         );
-        if (response.ok) {
-          const data = await response.json();
-          setConcepts(data.data || []);
-        }
+        if (!response.ok) throw new Error(String(response.status));
+        const data = await response.json();
+        setConcepts(data.data || []);
+        markFailed("concepts", false);
       } catch (error) {
+        markFailed("concepts", true);
       }
     },
     [campaignId]
@@ -409,11 +441,12 @@ export default function UGCCampaignPage() {
         const response = await fetchWithAuth(
           `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/ugc/videos${filterParam}`
         );
-        if (response.ok) {
-          const data = await response.json();
-          setVideos(data.data || []);
-        }
+        if (!response.ok) throw new Error(String(response.status));
+        const data = await response.json();
+        setVideos(data.data || []);
+        markFailed("videos", false);
       } catch (error) {
+        markFailed("videos", true);
       }
     },
     [campaignId]
@@ -854,12 +887,20 @@ export default function UGCCampaignPage() {
   if (authLoading || isLoading || !user) {
     return (
       <AuthGuard>
-        <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
-            <p className="text-zinc-400">Loading campaign...</p>
-          </div>
-        </div>
+        <BrandUserInterface>
+          <Page width="page">
+            {/* Shapes the size of what is coming, at the width it will land at, so the page
+                does not jump. A spinner centred in an empty viewport told the reader nothing
+                about what was on its way. */}
+            <div className="flex flex-col gap-ds-6" aria-busy="true">
+              <div className="space-y-ds-2">
+                <div className="h-9 w-72 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-48 animate-pulse rounded bg-muted" />
+              </div>
+              <Waiting lines={5} />
+            </div>
+          </Page>
+        </BrandUserInterface>
       </AuthGuard>
     );
   }
@@ -868,17 +909,33 @@ export default function UGCCampaignPage() {
     return (
       <AuthGuard>
         <BrandUserInterface>
-            <div className="container mx-auto py-8 px-4">
-              <div className="text-center py-12">
-                <p className="text-zinc-400">Campaign not found</p>
+            <Page width="page">
+              {/* "Campaign not found" over a 500 tells a client their campaign has been
+                  deleted. A failed read and a missing campaign now say different things. */}
+              <div className="flex flex-col items-start gap-ds-4">
+                {failed.campaign ? (
+                  <Failed
+                    what="We could not load this campaign"
+                    detail="Nothing has changed on the campaign itself. This is a read that failed at our end."
+                    onRetry={() => fetchCampaignData()}
+                  />
+                ) : (
+                  <div className="space-y-ds-2">
+                    <h1 className="text-ds-heading">This campaign is not here</h1>
+                    <p className="max-w-prose text-ds-body text-muted-foreground">
+                      It may have been removed, or the link may point somewhere that no
+                      longer exists.
+                    </p>
+                  </div>
+                )}
                 <button
                   onClick={() => router.push("/campaigns")}
-                  className="mt-4 px-4 py-2 bg-white text-black rounded-lg font-medium hover:bg-zinc-200 transition-colors"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-ds-control font-medium hover:bg-primary/90 transition-colors"
                 >
-                  Back to Campaigns
+                  Back to campaigns
                 </button>
               </div>
-            </div>
+            </Page>
         </BrandUserInterface>
       </AuthGuard>
     );
@@ -889,21 +946,30 @@ export default function UGCCampaignPage() {
   // =========================================================================
 
   const renderOverview = () => {
+    if (failed.stats && !stats) {
+      return (
+        <Failed
+          what="We could not load this campaign's figures"
+          detail="Nothing below is a real number until this loads, so none are shown."
+          onRetry={() => fetchStats()}
+        />
+      );
+    }
     if (!stats) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 animate-pulse">
+        <div className="grid grid-cols-1 gap-x-ds-5 gap-y-ds-4 md:grid-cols-2 lg:grid-cols-5" aria-busy="true">
           {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-32"
-            />
+            <div key={i} className="space-y-ds-2">
+              <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+              <div className="h-8 w-24 animate-pulse rounded bg-muted" />
+            </div>
           ))}
         </div>
       );
     }
 
     const pipelineStages = [
-      { label: "Draft", count: stats.concepts.draft, color: "bg-zinc-600" },
+      { label: "Draft", count: stats.concepts.draft, color: "bg-muted-foreground/30" },
       { label: "Proposed", count: stats.concepts.proposed, color: "bg-blue-500" },
       { label: "Approved", count: stats.concepts.approved, color: "bg-green-500" },
       { label: "In Production", count: stats.concepts.in_production, color: "bg-purple-500" },
@@ -912,147 +978,147 @@ export default function UGCCampaignPage() {
     const totalPipeline = pipelineStages.reduce((s, p) => s + p.count, 0);
 
     return (
-      <div className="space-y-8">
-        {/* Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="flex flex-col gap-ds-6">
+        {/* The five figures */}
+        <div className="grid grid-cols-1 gap-x-ds-5 gap-y-ds-5 md:grid-cols-2 lg:grid-cols-5">
           {/* Total Concepts */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
+          <div>
+            <div className="mb-ds-2 flex items-center justify-between gap-ds-2">
+              <span className="text-ds-overline uppercase text-muted-foreground">
                 Concepts
               </span>
-              <Lightbulb className="w-4 h-4 text-zinc-600" />
+              <Lightbulb className="w-4 h-4 text-muted-foreground" />
             </div>
-            <p className="text-3xl font-bold text-white">
+            <p className="text-[34px] font-semibold leading-none tracking-[-0.025em] tabular-nums">
               {stats.concepts.total_concepts}
             </p>
-            <div className="mt-3 space-y-1">
+            <div className="mt-ds-3 space-y-1 border-t pt-ds-2">
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Draft</span>
-                <span className="text-zinc-400">{stats.concepts.draft}</span>
+                <span className="text-muted-foreground">Draft</span>
+                <span className="tabular-nums text-muted-foreground">{stats.concepts.draft}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Proposed</span>
-                <span className="text-blue-400">{stats.concepts.proposed}</span>
+                <span className="text-muted-foreground">Proposed</span>
+                <span className="tabular-nums text-foreground">{stats.concepts.proposed}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Approved</span>
-                <span className="text-green-400">{stats.concepts.approved}</span>
+                <span className="text-muted-foreground">Approved</span>
+                <span className="tabular-nums text-foreground">{stats.concepts.approved}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">In Production</span>
-                <span className="text-purple-400">{stats.concepts.in_production}</span>
+                <span className="text-muted-foreground">In Production</span>
+                <span className="tabular-nums text-foreground">{stats.concepts.in_production}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Completed</span>
-                <span className="text-emerald-400">{stats.concepts.completed}</span>
+                <span className="text-muted-foreground">Completed</span>
+                <span className="tabular-nums text-foreground">{stats.concepts.completed}</span>
               </div>
             </div>
           </div>
 
           {/* Total Videos */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
+          <div>
+            <div className="mb-ds-2 flex items-center justify-between gap-ds-2">
+              <span className="text-ds-overline uppercase text-muted-foreground">
                 Videos
               </span>
-              <Video className="w-4 h-4 text-zinc-600" />
+              <Video className="w-4 h-4 text-muted-foreground" />
             </div>
-            <p className="text-3xl font-bold text-white">
+            <p className="text-[34px] font-semibold leading-none tracking-[-0.025em] tabular-nums">
               {stats.videos.total_videos}
             </p>
-            <div className="mt-3 space-y-1">
+            <div className="mt-ds-3 space-y-1 border-t pt-ds-2">
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Pending</span>
-                <span className="text-zinc-400">{stats.videos.pending}</span>
+                <span className="text-muted-foreground">Pending</span>
+                <span className="tabular-nums text-muted-foreground">{stats.videos.pending}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">In Review</span>
-                <span className="text-yellow-400">{stats.videos.in_review}</span>
+                <span className="text-muted-foreground">In Review</span>
+                <span className="tabular-nums text-foreground">{stats.videos.in_review}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Approved</span>
-                <span className="text-green-400">{stats.videos.approved}</span>
+                <span className="text-muted-foreground">Approved</span>
+                <span className="tabular-nums text-foreground">{stats.videos.approved}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Final</span>
-                <span className="text-emerald-400">{stats.videos.final}</span>
+                <span className="text-muted-foreground">Final</span>
+                <span className="tabular-nums text-foreground">{stats.videos.final}</span>
               </div>
             </div>
           </div>
 
           {/* Models */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
+          <div>
+            <div className="mb-ds-2 flex items-center justify-between gap-ds-2">
+              <span className="text-ds-overline uppercase text-muted-foreground">
                 Models
               </span>
-              <Users className="w-4 h-4 text-zinc-600" />
+              <Users className="w-4 h-4 text-muted-foreground" />
             </div>
-            <p className="text-3xl font-bold text-white">
+            <p className="text-[34px] font-semibold leading-none tracking-[-0.025em] tabular-nums">
               {stats.models.total_models}
             </p>
-            <div className="mt-3 space-y-1">
+            <div className="mt-ds-3 space-y-1 border-t pt-ds-2">
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Proposed</span>
-                <span className="text-blue-400">{stats.models.proposed}</span>
+                <span className="text-muted-foreground">Proposed</span>
+                <span className="tabular-nums text-foreground">{stats.models.proposed}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Selected</span>
-                <span className="text-green-400">{stats.models.selected}</span>
+                <span className="text-muted-foreground">Selected</span>
+                <span className="tabular-nums text-foreground">{stats.models.selected}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Confirmed</span>
-                <span className="text-emerald-400">{stats.models.confirmed}</span>
+                <span className="text-muted-foreground">Confirmed</span>
+                <span className="tabular-nums text-foreground">{stats.models.confirmed}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Rejected</span>
-                <span className="text-red-400">{stats.models.rejected}</span>
+                <span className="text-muted-foreground">Rejected</span>
+                <span className="tabular-nums text-foreground">{stats.models.rejected}</span>
               </div>
             </div>
           </div>
 
           {/* Approval Rate */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
+          <div>
+            <div className="mb-ds-2 flex items-center justify-between gap-ds-2">
+              <span className="text-ds-overline uppercase text-muted-foreground">
                 Approval Rate
               </span>
-              <ThumbsUp className="w-4 h-4 text-zinc-600" />
+              <ThumbsUp className="w-4 h-4 text-muted-foreground" />
             </div>
-            <p className="text-3xl font-bold text-white">
+            <p className="text-[34px] font-semibold leading-none tracking-[-0.025em] tabular-nums">
               {stats.approval_rate}%
             </p>
-            <p className="text-xs text-zinc-500 mt-2">
+            <p className="mt-ds-2 text-ds-caption text-muted-foreground">
               Based on approved + completed concepts
             </p>
           </div>
 
           {/* Avg Revisions */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-zinc-500 uppercase tracking-wider font-medium">
+          <div>
+            <div className="mb-ds-2 flex items-center justify-between gap-ds-2">
+              <span className="text-ds-overline uppercase text-muted-foreground">
                 Avg Revisions
               </span>
-              <RefreshCw className="w-4 h-4 text-zinc-600" />
+              <RefreshCw className="w-4 h-4 text-muted-foreground" />
             </div>
-            <p className="text-3xl font-bold text-white">
+            <p className="text-[34px] font-semibold leading-none tracking-[-0.025em] tabular-nums">
               {stats.avg_revisions}
             </p>
-            <p className="text-xs text-zinc-500 mt-2">
+            <p className="mt-ds-2 text-ds-caption text-muted-foreground">
               Average revisions per video
             </p>
           </div>
         </div>
 
         {/* Production Pipeline */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-          <h3 className="text-sm font-semibold text-white mb-6 uppercase tracking-wider">
-            Production Pipeline
+        <div className="rounded-ds-lg border p-ds-4">
+          <h3 className="mb-ds-4 text-ds-overline uppercase text-muted-foreground">
+            Production pipeline
           </h3>
 
           {/* Pipeline bar */}
-          <div className="relative h-3 rounded-full overflow-hidden bg-zinc-800 mb-6">
+          <div className="relative h-3 rounded-full overflow-hidden bg-muted mb-6">
             {totalPipeline > 0 && (
               <div className="flex h-full">
                 {pipelineStages.map((stage) =>
@@ -1077,12 +1143,12 @@ export default function UGCCampaignPage() {
                 <div className="text-center">
                   <div className="flex items-center gap-1.5 mb-1">
                     <div className={`w-2 h-2 rounded-full ${stage.color}`} />
-                    <span className="text-xs text-zinc-400">{stage.label}</span>
+                    <span className="text-xs text-muted-foreground">{stage.label}</span>
                   </div>
-                  <p className="text-xl font-bold text-white">{stage.count}</p>
+                  <p className="text-xl font-bold text-foreground">{stage.count}</p>
                 </div>
                 {index < pipelineStages.length - 1 && (
-                  <ChevronRight className="w-4 h-4 text-zinc-700 mx-4" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground/60 mx-4" />
                 )}
               </div>
             ))}
@@ -1097,9 +1163,9 @@ export default function UGCCampaignPage() {
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">
+          <h3 className="text-lg font-semibold text-foreground">
             Campaign Models{" "}
-            <span className="text-zinc-500 text-sm font-normal">
+            <span className="text-muted-foreground text-sm font-normal">
               ({models.length})
             </span>
           </h3>
@@ -1109,7 +1175,7 @@ export default function UGCCampaignPage() {
                 setShowAddModelModal(true);
                 searchModelPool();
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-zinc-200 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-ds-control text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add Models
@@ -1118,13 +1184,18 @@ export default function UGCCampaignPage() {
         </div>
 
         {/* Model Cards */}
-        {models.length === 0 ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center">
-            <Users className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-            <p className="text-zinc-400">No models assigned to this campaign yet</p>
+        {failed.models ? (
+          <Failed
+            what="We could not load the models on this campaign"
+            detail="Nobody has been removed from the cast. This is a read that failed at our end."
+            onRetry={() => fetchModels()}
+          />
+        ) : models.length === 0 ? (
+          <div className="flex flex-col items-start gap-ds-2">
+            <SurfaceEmpty>Nobody has been cast on this campaign yet.</SurfaceEmpty>
             {isSuperadmin && (
-              <p className="text-zinc-600 text-sm mt-1">
-                Click "Add Models" to assign from the talent pool
+              <p className="text-ds-body-sm text-muted-foreground">
+                Add models to assign them from the talent pool.
               </p>
             )}
           </div>
@@ -1133,10 +1204,10 @@ export default function UGCCampaignPage() {
             {models.map((model) => (
               <div
                 key={model.assignment_id || model.id}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-start gap-4"
+                className="bg-card border border-border rounded-xl p-4 flex items-start gap-4"
               >
                 {/* Photo */}
-                <div className="w-16 h-16 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-muted overflow-hidden flex-shrink-0">
                   {model.profile_photo_url ? (
                     <img
                       src={model.profile_photo_url}
@@ -1144,7 +1215,7 @@ export default function UGCCampaignPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       <User className="w-8 h-8" />
                     </div>
                   )}
@@ -1152,11 +1223,11 @@ export default function UGCCampaignPage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-white truncate">
+                  <h4 className="font-semibold text-foreground truncate">
                     {model.full_name}
                   </h4>
                   {model.ethnicity && (
-                    <p className="text-sm text-zinc-400">{model.ethnicity}</p>
+                    <p className="text-sm text-muted-foreground">{model.ethnicity}</p>
                   )}
                   {model.instagram_url && (
                     <a
@@ -1172,16 +1243,16 @@ export default function UGCCampaignPage() {
                     {(model.specialties || []).map((s, i) => (
                       <span
                         key={i}
-                        className="text-xs px-2 py-0.5 bg-zinc-800 rounded-full text-zinc-300"
+                        className="text-xs px-2 py-0.5 bg-muted rounded-full text-foreground"
                       >
                         {s}
                       </span>
                     ))}
                   </div>
                   {model.brand_feedback && (
-                    <div className="mt-2 p-2 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                      <p className="text-xs text-zinc-500 mb-0.5">Feedback</p>
-                      <p className="text-xs text-zinc-300">{model.brand_feedback}</p>
+                    <div className="mt-2 p-2 bg-muted/50 rounded-lg border border-border">
+                      <p className="text-xs text-muted-foreground mb-0.5">Feedback</p>
+                      <p className="text-xs text-foreground">{model.brand_feedback}</p>
                     </div>
                   )}
                 </div>
@@ -1217,7 +1288,7 @@ export default function UGCCampaignPage() {
                     <button
                       onClick={() => removeModel(model.id)}
                       disabled={actionLoading === `remove-model-${model.id}`}
-                      className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-muted transition-colors disabled:opacity-50"
                       title="Remove from campaign"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -1248,16 +1319,16 @@ export default function UGCCampaignPage() {
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">
+          <h3 className="text-lg font-semibold text-foreground">
             Concepts{" "}
-            <span className="text-zinc-500 text-sm font-normal">
+            <span className="text-muted-foreground text-sm font-normal">
               ({concepts.length})
             </span>
           </h3>
           {isSuperadmin && (
             <button
               onClick={() => setShowCreateConceptModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-zinc-200 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-ds-control text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               <Plus className="w-4 h-4" />
               New Concept
@@ -1273,8 +1344,8 @@ export default function UGCCampaignPage() {
               onClick={() => setConceptStatusFilter(s)}
               className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
                 conceptStatusFilter === s
-                  ? "bg-white text-black"
-                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted"
               }`}
             >
               {s === "all"
@@ -1287,33 +1358,36 @@ export default function UGCCampaignPage() {
         </div>
 
         {/* Concept Cards */}
-        {concepts.length === 0 ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center">
-            <Lightbulb className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-            <p className="text-zinc-400">
-              {conceptStatusFilter !== "all"
-                ? `No concepts with status "${conceptStatusFilter.replace(/_/g, " ")}"`
-                : "No concepts created yet"}
-            </p>
-          </div>
+        {failed.concepts ? (
+          <Failed
+            what="We could not load the concepts"
+            detail="Nothing has been deleted. This is a read that failed at our end."
+            onRetry={() => fetchConcepts(conceptStatusFilter)}
+          />
+        ) : concepts.length === 0 ? (
+          <SurfaceEmpty>
+            {conceptStatusFilter !== "all"
+              ? `No concepts are at "${conceptStatusFilter.replace(/_/g, " ")}" right now.`
+              : "No concepts have been written for this campaign yet."}
+          </SurfaceEmpty>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {concepts.map((concept) => (
               <div
                 key={concept.id}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors"
+                className="bg-card border border-border rounded-xl p-5 hover:border-foreground/25 transition-colors"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="min-w-0 flex-1 mr-3">
-                    <span className="text-xs text-zinc-500 font-mono">
+                    <span className="text-xs text-muted-foreground font-mono">
                       #{concept.concept_number}
                     </span>
-                    <h4 className="font-semibold text-white truncate">
+                    <h4 className="font-semibold text-foreground truncate">
                       {concept.concept_name}
                     </h4>
                     {concept.product_group && (
-                      <p className="text-sm text-zinc-400 mt-0.5">
+                      <p className="text-sm text-muted-foreground mt-0.5">
                         {concept.product_group}
                       </p>
                     )}
@@ -1335,21 +1409,21 @@ export default function UGCCampaignPage() {
 
                 {/* Hook */}
                 {concept.primary_hook && (
-                  <p className="text-sm text-zinc-300 mt-2 italic leading-relaxed">
+                  <p className="text-sm text-foreground mt-2 italic leading-relaxed">
                     &ldquo;{concept.primary_hook}&rdquo;
                   </p>
                 )}
 
                 {/* Model */}
                 {concept.model_name && (
-                  <p className="text-xs text-zinc-500 mt-2 flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                     <User className="w-3 h-3" /> Model: {concept.model_name}
                   </p>
                 )}
 
                 {/* Shoot date */}
                 {concept.shoot_date && (
-                  <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                     <Calendar className="w-3 h-3" /> Shoot:{" "}
                     {formatDate(concept.shoot_date)}
                   </p>
@@ -1357,7 +1431,7 @@ export default function UGCCampaignPage() {
 
                 {/* Shoot type */}
                 {concept.shoot_type && (
-                  <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                     <MapPin className="w-3 h-3" />{" "}
                     {concept.shoot_type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                   </p>
@@ -1365,9 +1439,9 @@ export default function UGCCampaignPage() {
 
                 {/* Brand Feedback */}
                 {concept.brand_feedback && (
-                  <div className="mt-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                    <p className="text-xs text-zinc-500 mb-1">Brand Feedback</p>
-                    <p className="text-sm text-zinc-300">
+                  <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Brand Feedback</p>
+                    <p className="text-sm text-foreground">
                       {concept.brand_feedback}
                     </p>
                   </div>
@@ -1380,7 +1454,7 @@ export default function UGCCampaignPage() {
                       value={feedbackText}
                       onChange={(e) => setFeedbackText(e.target.value)}
                       placeholder="Add your feedback..."
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                      className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring resize-none"
                       rows={2}
                     />
                     <div className="flex gap-2">
@@ -1403,7 +1477,7 @@ export default function UGCCampaignPage() {
                           setFeedbackType(null);
                           setFeedbackText("");
                         }}
-                        className="text-xs px-3 py-1.5 text-zinc-400 hover:text-white"
+                        className="text-xs px-3 py-1.5 text-muted-foreground hover:text-foreground"
                       >
                         Cancel
                       </button>
@@ -1419,7 +1493,7 @@ export default function UGCCampaignPage() {
                       setSelectedConcept(concept);
                       setShowConceptDetailModal(true);
                     }}
-                    className="text-xs px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded-lg hover:bg-zinc-700 transition-colors flex items-center gap-1"
+                    className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors flex items-center gap-1"
                   >
                     <Eye className="w-3 h-3" /> Details
                   </button>
@@ -1485,7 +1559,7 @@ export default function UGCCampaignPage() {
                       disabled={
                         actionLoading === `delete-concept-${concept.id}`
                       }
-                      className="text-xs px-3 py-1.5 text-zinc-500 hover:text-red-400 rounded-lg hover:bg-zinc-800 disabled:opacity-50 flex items-center gap-1"
+                      className="text-xs px-3 py-1.5 text-muted-foreground hover:text-red-400 rounded-lg hover:bg-muted disabled:opacity-50 flex items-center gap-1"
                     >
                       <Trash2 className="w-3 h-3" /> Delete
                     </button>
@@ -1513,32 +1587,32 @@ export default function UGCCampaignPage() {
       <div className="space-y-4">
         {/* Budget Summary Card */}
         {budgetSummary && (budgetSummary.total_budget > 0 || budgetSummary.total_consumed > 0) && (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h4 className="text-sm font-semibold text-white uppercase tracking-wider">
+                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider">
                   Budget Summary
                 </h4>
-                <p className="text-sm text-zinc-400 mt-1">
-                  ⃃ {budgetSummary.total_consumed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} consumed across {budgetSummary.video_count} video{budgetSummary.video_count !== 1 ? "s" : ""}
+                <p className="text-sm text-muted-foreground mt-1">
+<Money amount={budgetSummary.total_consumed} decimals={2} /> consumed across {budgetSummary.video_count} video{budgetSummary.video_count !== 1 ? "s" : ""}
                 </p>
               </div>
               {budgetSummary.total_budget > 0 && (
                 <div className="text-right">
-                  <p className="text-xs text-zinc-500">Remaining</p>
+                  <p className="text-xs text-muted-foreground">Remaining</p>
                   <p className={`text-lg font-bold ${budgetSummary.remaining >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                    ⃃ {budgetSummary.remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+<Money amount={budgetSummary.remaining} decimals={2} />
                   </p>
                 </div>
               )}
             </div>
             {budgetSummary.total_budget > 0 && (
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs text-zinc-500">
-                  <span>⃃ {budgetSummary.total_consumed.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                  <span>⃃ {budgetSummary.total_budget.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span><Money amount={budgetSummary.total_consumed} /></span>
+                  <span><Money amount={budgetSummary.total_budget} /></span>
                 </div>
-                <div className="relative h-2.5 rounded-full overflow-hidden bg-zinc-800">
+                <div className="relative h-2.5 rounded-full overflow-hidden bg-muted">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       (budgetSummary.total_consumed / budgetSummary.total_budget) > 0.9
@@ -1552,7 +1626,7 @@ export default function UGCCampaignPage() {
                     }}
                   />
                 </div>
-                <p className="text-xs text-zinc-500 text-right">
+                <p className="text-xs text-muted-foreground text-right">
                   {((budgetSummary.total_consumed / budgetSummary.total_budget) * 100).toFixed(1)}% used
                 </p>
               </div>
@@ -1562,16 +1636,16 @@ export default function UGCCampaignPage() {
 
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">
+          <h3 className="text-lg font-semibold text-foreground">
             Videos{" "}
-            <span className="text-zinc-500 text-sm font-normal">
+            <span className="text-muted-foreground text-sm font-normal">
               ({videos.length})
             </span>
           </h3>
           {isSuperadmin && (
             <button
               onClick={() => setShowUploadVideoModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-zinc-200 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-ds-control text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Upload Video
@@ -1587,8 +1661,8 @@ export default function UGCCampaignPage() {
               onClick={() => setVideoStatusFilter(s)}
               className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
                 videoStatusFilter === s
-                  ? "bg-white text-black"
-                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted"
               }`}
             >
               {s === "all"
@@ -1601,33 +1675,36 @@ export default function UGCCampaignPage() {
         </div>
 
         {/* Video Cards */}
-        {videos.length === 0 ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center">
-            <Film className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-            <p className="text-zinc-400">
-              {videoStatusFilter !== "all"
-                ? `No videos with status "${videoStatusFilter.replace(/_/g, " ")}"`
-                : "No videos uploaded yet"}
-            </p>
-          </div>
+        {failed.videos ? (
+          <Failed
+            what="We could not load the videos"
+            detail="Nothing has been removed. This is a read that failed at our end."
+            onRetry={() => fetchVideos(videoStatusFilter)}
+          />
+        ) : videos.length === 0 ? (
+          <SurfaceEmpty>
+            {videoStatusFilter !== "all"
+              ? `No videos are at "${videoStatusFilter.replace(/_/g, " ")}" right now.`
+              : "No videos have been delivered on this campaign yet."}
+          </SurfaceEmpty>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {videos.map((video) => (
               <div
                 key={video.id}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors"
+                className="bg-card border border-border rounded-xl p-5 hover:border-foreground/25 transition-colors"
               >
                 {/* Header row */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="min-w-0 flex-1 mr-3">
                     <div className="flex items-center gap-2">
-                      <Film className="w-4 h-4 text-zinc-500 flex-shrink-0" />
-                      <h4 className="font-semibold text-white truncate">
+                      <Film className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <h4 className="font-semibold text-foreground truncate">
                         {video.video_name || "Untitled Video"}
                       </h4>
                     </div>
                     {video.concept_name && (
-                      <p className="text-sm text-zinc-400 mt-0.5 ml-6">
+                      <p className="text-sm text-muted-foreground mt-0.5 ml-6">
                         Concept #{video.concept_number}: {video.concept_name}
                       </p>
                     )}
@@ -1636,7 +1713,7 @@ export default function UGCCampaignPage() {
                 </div>
 
                 {/* Meta row */}
-                <div className="flex flex-wrap gap-3 text-xs text-zinc-500 mb-3">
+                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-3">
                   {video.dimension && (
                     <span className="flex items-center gap-1">
                       {video.dimension}
@@ -1655,7 +1732,7 @@ export default function UGCCampaignPage() {
                   )}
                   {video.budget_consumed != null && video.budget_consumed > 0 && (
                     <span className="flex items-center gap-1 text-emerald-400">
-                      ⃃ {Number(video.budget_consumed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+<Money amount={Number(video.budget_consumed)} decimals={2} />
                     </span>
                   )}
                 </div>
@@ -1665,7 +1742,7 @@ export default function UGCCampaignPage() {
                     {video.requested_dimensions.map((dim, idx) => (
                       <span
                         key={idx}
-                        className="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded-full text-zinc-300"
+                        className="text-[10px] px-2 py-0.5 bg-muted border border-border rounded-full text-foreground"
                       >
                         {dim === "9:16" ? "9:16 Vertical" : dim === "16:9" ? "16:9 Horizontal" : dim === "1:1" ? "1:1 Square" : dim}
                       </span>
@@ -1687,9 +1764,9 @@ export default function UGCCampaignPage() {
 
                 {/* Brand Feedback */}
                 {video.brand_feedback && (
-                  <div className="mt-2 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                    <p className="text-xs text-zinc-500 mb-1">Brand Feedback</p>
-                    <p className="text-sm text-zinc-300">
+                  <div className="mt-2 p-3 bg-muted/50 rounded-lg border border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Brand Feedback</p>
+                    <p className="text-sm text-foreground">
                       {video.brand_feedback}
                     </p>
                   </div>
@@ -1702,7 +1779,7 @@ export default function UGCCampaignPage() {
                       value={feedbackText}
                       onChange={(e) => setFeedbackText(e.target.value)}
                       placeholder="Add your feedback..."
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                      className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring resize-none"
                       rows={2}
                     />
                     <div className="flex gap-2">
@@ -1727,7 +1804,7 @@ export default function UGCCampaignPage() {
                           setFeedbackType(null);
                           setFeedbackText("");
                         }}
-                        className="text-xs px-3 py-1.5 text-zinc-400 hover:text-white"
+                        className="text-xs px-3 py-1.5 text-muted-foreground hover:text-foreground"
                       >
                         Cancel
                       </button>
@@ -1767,7 +1844,7 @@ export default function UGCCampaignPage() {
                     <button
                       onClick={() => deleteVideo(video.id)}
                       disabled={actionLoading === `delete-video-${video.id}`}
-                      className="text-xs px-3 py-1.5 text-zinc-500 hover:text-red-400 rounded-lg hover:bg-zinc-800 disabled:opacity-50 flex items-center gap-1"
+                      className="text-xs px-3 py-1.5 text-muted-foreground hover:text-red-400 rounded-lg hover:bg-muted disabled:opacity-50 flex items-center gap-1"
                     >
                       <Trash2 className="w-3 h-3" /> Delete
                     </button>
@@ -1801,14 +1878,14 @@ export default function UGCCampaignPage() {
 
     return (
       <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-white">
+        <h3 className="text-lg font-semibold text-foreground">
           Production Schedule
         </h3>
 
         {sortedDates.length === 0 ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center">
-            <Calendar className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-            <p className="text-zinc-400">No concepts scheduled yet</p>
+          <div className="bg-card border border-border rounded-xl p-12 text-center">
+            <Calendar className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+            <p className="text-muted-foreground">No concepts scheduled yet</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -1823,8 +1900,8 @@ export default function UGCCampaignPage() {
                     <div
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
                         isUnscheduled
-                          ? "bg-zinc-800 text-zinc-400"
-                          : "bg-zinc-800 text-white"
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-muted text-foreground"
                       }`}
                     >
                       <Calendar className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
@@ -1840,11 +1917,11 @@ export default function UGCCampaignPage() {
                             }
                           )}
                     </div>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-muted-foreground">
                       {dateConcepts.length} concept
                       {dateConcepts.length !== 1 ? "s" : ""}
                     </span>
-                    <div className="flex-1 border-t border-zinc-800" />
+                    <div className="flex-1 border-t border-border" />
                   </div>
 
                   {/* Concepts for this date */}
@@ -1852,14 +1929,14 @@ export default function UGCCampaignPage() {
                     {dateConcepts.map((concept) => (
                       <div
                         key={concept.id}
-                        className="bg-zinc-900 border border-zinc-800 rounded-xl p-4"
+                        className="bg-card border border-border rounded-xl p-4"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="min-w-0 flex-1">
-                            <span className="text-xs text-zinc-500 font-mono">
+                            <span className="text-xs text-muted-foreground font-mono">
                               #{concept.concept_number}
                             </span>
-                            <h4 className="text-sm font-semibold text-white truncate">
+                            <h4 className="text-sm font-semibold text-foreground truncate">
                               {concept.concept_name}
                             </h4>
                           </div>
@@ -1867,20 +1944,20 @@ export default function UGCCampaignPage() {
                         </div>
 
                         {concept.model_name && (
-                          <p className="text-xs text-zinc-400 flex items-center gap-1 mt-1">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                             <User className="w-3 h-3" /> {concept.model_name}
                           </p>
                         )}
 
                         {concept.shoot_location && (
-                          <p className="text-xs text-zinc-500 flex items-center gap-1 mt-1">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                             <MapPin className="w-3 h-3" />{" "}
                             {concept.shoot_location}
                           </p>
                         )}
 
                         {concept.product_group && (
-                          <p className="text-xs text-zinc-500 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {concept.product_group}
                           </p>
                         )}
@@ -1903,55 +1980,60 @@ export default function UGCCampaignPage() {
   return (
     <AuthGuard>
       <BrandUserInterface>
-          <div className="container mx-auto py-8 px-4 space-y-6">
-            {/* Page Header */}
-            <div className="flex items-center gap-4">
+          <Page width="page">
+           <div className="flex flex-col gap-ds-6">
+            {/*
+              The header. The way back is a quiet link above the title rather than an icon
+              button wedged against the edge of the screen, so the title starts where every
+              other page title starts and the row beside it holds only what you can do here.
+            */}
+            <div className="flex flex-col gap-ds-3">
               <button
                 onClick={() => router.push("/campaigns")}
-                className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                className="inline-flex w-fit items-center gap-ds-2 text-ds-body-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 <ArrowLeft className="h-4 w-4" />
+                All campaigns
               </button>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-ds-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 items-start gap-ds-3">
                   {campaign.brand_logo_url ? (
                     <img
                       src={campaign.brand_logo_url}
                       alt={campaign.brand_name}
-                      className="w-10 h-10 rounded-full object-cover"
+                      className="w-11 h-11 shrink-0 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 text-sm font-bold">
+                    <div className="w-11 h-11 shrink-0 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-sm font-semibold">
                       {campaign.brand_name
                         ? campaign.brand_name.substring(0, 2).toUpperCase()
                         : "UG"}
                     </div>
                   )}
-                  <div className="min-w-0">
-                    <h1 className="text-2xl font-bold tracking-tight text-white truncate">
-                      {campaign.name}
-                    </h1>
-                    <p className="text-sm text-zinc-400">
-                      {campaign.brand_name} &middot; UGC Campaign
+                  <div className="min-w-0 space-y-ds-2">
+                    <h1 className="text-ds-title text-balance">{campaign.name}</h1>
+                    <p className="text-ds-body-sm text-muted-foreground">
+                      {campaign.brand_name} &middot; UGC campaign
                     </p>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <StatusBadge status={campaign.status} />
-                <button
-                  onClick={refreshAll}
-                  className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-                  title="Refresh data"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
+                <div className="flex shrink-0 items-center gap-ds-2">
+                  <StatusBadge status={campaign.status} />
+                  <button
+                    onClick={refreshAll}
+                    className="p-2 rounded-ds-control text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    title="Refresh data"
+                    aria-label="Refresh data"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Tab Navigation */}
-            <div className="border-b border-zinc-800">
-              <div className="flex gap-1">
+            <div className="border-b border-border">
+              <div className="flex gap-1 overflow-x-auto">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   return (
@@ -1960,8 +2042,8 @@ export default function UGCCampaignPage() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                         activeTab === tab.id
-                          ? "border-white text-white"
-                          : "border-transparent text-zinc-500 hover:text-zinc-300"
+                          ? "border-foreground text-foreground"
+                          : "border-transparent text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -1980,7 +2062,8 @@ export default function UGCCampaignPage() {
               {activeTab === "videos" && renderVideos()}
               {activeTab === "schedule" && isSuperadmin && renderSchedule()}
             </div>
-          </div>
+           </div>
+          </Page>
       </BrandUserInterface>
 
       {/* ================================================================== */}
@@ -1990,9 +2073,9 @@ export default function UGCCampaignPage() {
       {/* Add Models Modal (Superadmin) */}
       {showAddModelModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-foreground">
                 Add Models from Pool
               </h3>
               <button
@@ -2002,7 +2085,7 @@ export default function UGCCampaignPage() {
                   setModelPoolResults([]);
                   setModelPoolSearch("");
                 }}
-                className="text-zinc-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2011,20 +2094,20 @@ export default function UGCCampaignPage() {
             {/* Search */}
             <div className="flex gap-2 mb-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="text"
                   value={modelPoolSearch}
                   onChange={(e) => setModelPoolSearch(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && searchModelPool()}
                   placeholder="Search by name, email, ethnicity..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                  className="w-full pl-10 pr-4 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                 />
               </div>
               <button
                 onClick={searchModelPool}
                 disabled={isSearchingModels}
-                className="px-4 py-2.5 bg-zinc-800 text-white rounded-lg text-sm hover:bg-zinc-700 disabled:opacity-50 transition-colors"
+                className="px-4 py-2.5 bg-muted text-foreground rounded-lg text-sm hover:bg-muted disabled:opacity-50 transition-colors"
               >
                 {isSearchingModels ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -2045,7 +2128,7 @@ export default function UGCCampaignPage() {
             {/* Results */}
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {modelPoolResults.length === 0 ? (
-                <p className="text-zinc-500 text-sm text-center py-8">
+                <p className="text-muted-foreground text-sm text-center py-8">
                   {isSearchingModels
                     ? "Searching..."
                     : "Search the model pool to find talent"}
@@ -2070,14 +2153,14 @@ export default function UGCCampaignPage() {
                       disabled={isAlreadyAssigned}
                       className={`w-full text-left p-3 rounded-xl border transition-colors flex items-center gap-3 ${
                         isAlreadyAssigned
-                          ? "border-zinc-800 bg-zinc-900/50 opacity-50 cursor-not-allowed"
+                          ? "border-border bg-card/50 opacity-50 cursor-not-allowed"
                           : isSelected
                           ? "border-blue-500/50 bg-blue-900/20"
-                          : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                          : "border-border bg-card hover:border-foreground/25"
                       }`}
                     >
                       {/* Photo */}
-                      <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
                         {model.profile_photo_url ? (
                           <img
                             src={model.profile_photo_url}
@@ -2085,17 +2168,17 @@ export default function UGCCampaignPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                             <User className="w-5 h-5" />
                           </div>
                         )}
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {model.full_name}
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-muted-foreground">
                           {[model.ethnicity, model.gender, model.age_range]
                             .filter(Boolean)
                             .join(" / ")}
@@ -2105,7 +2188,7 @@ export default function UGCCampaignPage() {
                             {(model.specialties || []).slice(0, 3).map((s, i) => (
                               <span
                                 key={i}
-                                className="text-[10px] px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400"
+                                className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground"
                               >
                                 {s}
                               </span>
@@ -2115,15 +2198,15 @@ export default function UGCCampaignPage() {
                       </div>
 
                       {isAlreadyAssigned ? (
-                        <span className="text-xs text-zinc-600">
+                        <span className="text-xs text-muted-foreground">
                           Already assigned
                         </span>
                       ) : isSelected ? (
                         <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-3 h-3 text-white" />
+                          <Check className="w-3 h-3 text-foreground" />
                         </div>
                       ) : (
-                        <div className="w-5 h-5 rounded-full border border-zinc-700 flex-shrink-0" />
+                        <div className="w-5 h-5 rounded-full border border-border flex-shrink-0" />
                       )}
                     </button>
                   );
@@ -2132,7 +2215,7 @@ export default function UGCCampaignPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-zinc-800">
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border">
               <button
                 onClick={() => {
                   setShowAddModelModal(false);
@@ -2140,7 +2223,7 @@ export default function UGCCampaignPage() {
                   setModelPoolResults([]);
                   setModelPoolSearch("");
                 }}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Cancel
               </button>
@@ -2150,7 +2233,7 @@ export default function UGCCampaignPage() {
                   selectedModelIds.length === 0 ||
                   actionLoading === "assign-models"
                 }
-                className="px-5 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="px-5 py-2 bg-primary text-primary-foreground rounded-ds-control text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
                 {actionLoading === "assign-models" && (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -2165,12 +2248,12 @@ export default function UGCCampaignPage() {
       {/* Create Concept Modal (Superadmin) */}
       {showCreateConceptModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-white">New Concept</h3>
+              <h3 className="text-lg font-bold text-foreground">New Concept</h3>
               <button
                 onClick={() => setShowCreateConceptModal(false)}
-                className="text-zinc-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2179,7 +2262,7 @@ export default function UGCCampaignPage() {
             <div className="space-y-4">
               {/* Concept Name */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Concept Name *
                 </label>
                 <input
@@ -2192,14 +2275,14 @@ export default function UGCCampaignPage() {
                     }))
                   }
                   placeholder="e.g., Morning Routine - Product Unboxing"
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                 />
               </div>
 
               {/* Two column layout */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                     Product Group
                   </label>
                   <input
@@ -2212,11 +2295,11 @@ export default function UGCCampaignPage() {
                       }))
                     }
                     placeholder="e.g., Skincare, Electronics"
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                     Month
                   </label>
                   <input
@@ -2229,14 +2312,14 @@ export default function UGCCampaignPage() {
                       }))
                     }
                     placeholder="e.g., March 2026"
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                   />
                 </div>
               </div>
 
               {/* Primary Hook */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Primary Hook
                 </label>
                 <input
@@ -2249,13 +2332,13 @@ export default function UGCCampaignPage() {
                     }))
                   }
                   placeholder="e.g., You won't believe what this product does..."
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                 />
               </div>
 
               {/* Reference URL */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Reference URL
                 </label>
                 <input
@@ -2268,14 +2351,14 @@ export default function UGCCampaignPage() {
                     }))
                   }
                   placeholder="https://..."
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                 />
               </div>
 
               {/* Location and Shoot Date */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                     Shoot Location
                   </label>
                   <input
@@ -2288,11 +2371,11 @@ export default function UGCCampaignPage() {
                       }))
                     }
                     placeholder="e.g., Studio A, Dubai"
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                     Shoot Date
                   </label>
                   <input
@@ -2304,14 +2387,14 @@ export default function UGCCampaignPage() {
                         shoot_date: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-zinc-500 [color-scheme:dark]"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-ring [color-scheme:dark]"
                   />
                 </div>
               </div>
 
               {/* Shoot Type */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Shoot Type
                 </label>
                 <div className="flex flex-wrap gap-3 mt-1">
@@ -2325,8 +2408,8 @@ export default function UGCCampaignPage() {
                       key={option.value}
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors text-sm ${
                         conceptForm.shoot_type === option.value
-                          ? "border-white bg-zinc-800 text-white"
-                          : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600"
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border bg-card text-muted-foreground hover:border-foreground/25"
                       }`}
                     >
                       <input
@@ -2345,12 +2428,12 @@ export default function UGCCampaignPage() {
                       <div
                         className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${
                           conceptForm.shoot_type === option.value
-                            ? "border-white"
-                            : "border-zinc-600"
+                            ? "border-primary"
+                            : "border-border"
                         }`}
                       >
                         {conceptForm.shoot_type === option.value && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
                         )}
                       </div>
                       {option.label}
@@ -2361,7 +2444,7 @@ export default function UGCCampaignPage() {
 
               {/* Props Required */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Props Needed for Shoot
                 </label>
                 <textarea
@@ -2374,13 +2457,13 @@ export default function UGCCampaignPage() {
                   }
                   placeholder="List all props needed (e.g., product samples, signage, packaging...)"
                   rows={2}
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring resize-none"
                 />
               </div>
 
               {/* FOC Products - Repeatable Rows */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   FOC Products
                 </label>
                 <div className="space-y-2">
@@ -2398,7 +2481,7 @@ export default function UGCCampaignPage() {
                           setFocProductRows(updated);
                         }}
                         placeholder="Product name"
-                        className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                        className="flex-1 px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                       />
                       <input
                         type="number"
@@ -2413,7 +2496,7 @@ export default function UGCCampaignPage() {
                         }}
                         min={1}
                         placeholder="Qty"
-                        className="w-20 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                        className="w-20 px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                       />
                       <input
                         type="text"
@@ -2427,7 +2510,7 @@ export default function UGCCampaignPage() {
                           setFocProductRows(updated);
                         }}
                         placeholder="Product link (optional)"
-                        className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                        className="flex-1 px-3 py-2 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                       />
                       {focProductRows.length > 1 && (
                         <button
@@ -2437,7 +2520,7 @@ export default function UGCCampaignPage() {
                               focProductRows.filter((_, i) => i !== index)
                             );
                           }}
-                          className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
+                          className="p-2 text-muted-foreground hover:text-red-400 transition-colors"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -2461,7 +2544,7 @@ export default function UGCCampaignPage() {
 
               {/* Creative Direction */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Creative Direction
                 </label>
                 <textarea
@@ -2474,13 +2557,13 @@ export default function UGCCampaignPage() {
                   }
                   placeholder="Overall creative vision and direction..."
                   rows={2}
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring resize-none"
                 />
               </div>
 
               {/* Scene Description */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Scene Description
                 </label>
                 <textarea
@@ -2493,13 +2576,13 @@ export default function UGCCampaignPage() {
                   }
                   placeholder="Describe the visual scene..."
                   rows={2}
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring resize-none"
                 />
               </div>
 
               {/* Script */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Script
                 </label>
                 <textarea
@@ -2512,14 +2595,14 @@ export default function UGCCampaignPage() {
                   }
                   placeholder="Script or talking points..."
                   rows={3}
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring resize-none"
                 />
               </div>
 
               {/* Captions */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                     Caption (EN)
                   </label>
                   <textarea
@@ -2532,11 +2615,11 @@ export default function UGCCampaignPage() {
                     }
                     placeholder="English caption..."
                     rows={2}
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring resize-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                     Caption (AR)
                   </label>
                   <textarea
@@ -2550,14 +2633,14 @@ export default function UGCCampaignPage() {
                     placeholder="Arabic caption..."
                     rows={2}
                     dir="rtl"
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring resize-none"
                   />
                 </div>
               </div>
 
               {/* Assigned Model */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Assigned Model
                 </label>
                 <select
@@ -2568,7 +2651,7 @@ export default function UGCCampaignPage() {
                       assigned_model_id: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-zinc-500 [color-scheme:dark]"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-ring [color-scheme:dark]"
                 >
                   <option value="">No model assigned</option>
                   {models.map((m) => (
@@ -2581,7 +2664,7 @@ export default function UGCCampaignPage() {
 
               {/* Status */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Initial Status
                 </label>
                 <select
@@ -2592,7 +2675,7 @@ export default function UGCCampaignPage() {
                       status: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-zinc-500 [color-scheme:dark]"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-ring [color-scheme:dark]"
                 >
                   <option value="draft">Draft</option>
                   <option value="proposed">Proposed</option>
@@ -2601,17 +2684,17 @@ export default function UGCCampaignPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-zinc-800">
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border">
               <button
                 onClick={() => setShowCreateConceptModal(false)}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={createConcept}
                 disabled={actionLoading === "create-concept"}
-                className="px-5 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="px-5 py-2 bg-primary text-primary-foreground rounded-ds-control text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
                 {actionLoading === "create-concept" && (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -2626,12 +2709,12 @@ export default function UGCCampaignPage() {
       {/* Upload Video Modal (Superadmin) */}
       {showUploadVideoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-white">Add Video</h3>
+              <h3 className="text-lg font-bold text-foreground">Add Video</h3>
               <button
                 onClick={() => setShowUploadVideoModal(false)}
-                className="text-zinc-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2640,7 +2723,7 @@ export default function UGCCampaignPage() {
             <div className="space-y-4">
               {/* Video Name */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Video Name
                 </label>
                 <input
@@ -2653,13 +2736,13 @@ export default function UGCCampaignPage() {
                     }))
                   }
                   placeholder="e.g., Final Edit v2 - Concept #5"
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                 />
               </div>
 
               {/* Video URL */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Video URL
                 </label>
                 <input
@@ -2672,13 +2755,13 @@ export default function UGCCampaignPage() {
                     }))
                   }
                   placeholder="https://drive.google.com/... or direct link"
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                 />
               </div>
 
               {/* Linked Concept */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Linked Concept
                 </label>
                 <select
@@ -2689,7 +2772,7 @@ export default function UGCCampaignPage() {
                       concept_id: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-zinc-500 [color-scheme:dark]"
+                  className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-ring [color-scheme:dark]"
                 >
                   <option value="">None (standalone)</option>
                   {concepts.map((c) => (
@@ -2703,7 +2786,7 @@ export default function UGCCampaignPage() {
               {/* Dimension and Duration */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                     Output Dimension
                   </label>
                   <input
@@ -2716,11 +2799,11 @@ export default function UGCCampaignPage() {
                       }))
                     }
                     placeholder="e.g., 9:16, 1:1, 16:9"
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                  <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                     Duration (seconds)
                   </label>
                   <input
@@ -2733,18 +2816,18 @@ export default function UGCCampaignPage() {
                       }))
                     }
                     placeholder="e.g., 30"
-                    className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                    className="w-full px-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                   />
                 </div>
               </div>
 
               {/* Budget Consumed */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Budget Consumed
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500 font-medium">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
                     AED
                   </span>
                   <input
@@ -2759,14 +2842,14 @@ export default function UGCCampaignPage() {
                     placeholder="0.00"
                     step="0.01"
                     min="0"
-                    className="w-full pl-12 pr-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                    className="w-full pl-12 pr-3 py-2.5 bg-muted border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring"
                   />
                 </div>
               </div>
 
               {/* Requested Dimensions */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5 font-medium">
+                <label className="block text-xs text-muted-foreground mb-1.5 font-medium">
                   Requested Dimensions
                 </label>
                 <div className="flex flex-wrap gap-3 mt-1">
@@ -2783,8 +2866,8 @@ export default function UGCCampaignPage() {
                         key={option.value}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors text-sm ${
                           isChecked
-                            ? "border-white bg-zinc-800 text-white"
-                            : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600"
+                            ? "border-primary bg-primary/10 text-foreground"
+                            : "border-border bg-card text-muted-foreground hover:border-foreground/25"
                         }`}
                       >
                         <input
@@ -2805,12 +2888,12 @@ export default function UGCCampaignPage() {
                         <div
                           className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                             isChecked
-                              ? "border-white bg-white"
-                              : "border-zinc-600"
+                              ? "border-primary bg-primary"
+                              : "border-border"
                           }`}
                         >
                           {isChecked && (
-                            <Check className="w-3 h-3 text-black" />
+                            <Check className="w-3 h-3 text-primary-foreground" />
                           )}
                         </div>
                         {option.label}
@@ -2822,17 +2905,17 @@ export default function UGCCampaignPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-zinc-800">
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border">
               <button
                 onClick={() => setShowUploadVideoModal(false)}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={createVideo}
                 disabled={actionLoading === "create-video"}
-                className="px-5 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="px-5 py-2 bg-primary text-primary-foreground rounded-ds-control text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
                 {actionLoading === "create-video" && (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -2847,13 +2930,13 @@ export default function UGCCampaignPage() {
       {/* Concept Detail Modal */}
       {showConceptDetailModal && selectedConcept && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <span className="text-xs text-zinc-500 font-mono">
+                <span className="text-xs text-muted-foreground font-mono">
                   Concept #{selectedConcept.concept_number}
                 </span>
-                <h3 className="text-lg font-bold text-white">
+                <h3 className="text-lg font-bold text-foreground">
                   {selectedConcept.concept_name}
                 </h3>
               </div>
@@ -2864,7 +2947,7 @@ export default function UGCCampaignPage() {
                     setShowConceptDetailModal(false);
                     setSelectedConcept(null);
                   }}
-                  className="text-zinc-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -2876,46 +2959,46 @@ export default function UGCCampaignPage() {
               <div className="grid grid-cols-2 gap-4">
                 {selectedConcept.product_group && (
                   <div>
-                    <p className="text-xs text-zinc-500 mb-0.5">Product Group</p>
-                    <p className="text-sm text-white">
+                    <p className="text-xs text-muted-foreground mb-0.5">Product Group</p>
+                    <p className="text-sm text-foreground">
                       {selectedConcept.product_group}
                     </p>
                   </div>
                 )}
                 {selectedConcept.month && (
                   <div>
-                    <p className="text-xs text-zinc-500 mb-0.5">Month</p>
-                    <p className="text-sm text-white">{selectedConcept.month}</p>
+                    <p className="text-xs text-muted-foreground mb-0.5">Month</p>
+                    <p className="text-sm text-foreground">{selectedConcept.month}</p>
                   </div>
                 )}
                 {selectedConcept.shoot_date && (
                   <div>
-                    <p className="text-xs text-zinc-500 mb-0.5">Shoot Date</p>
-                    <p className="text-sm text-white">
+                    <p className="text-xs text-muted-foreground mb-0.5">Shoot Date</p>
+                    <p className="text-sm text-foreground">
                       {formatDate(selectedConcept.shoot_date)}
                     </p>
                   </div>
                 )}
                 {selectedConcept.shoot_location && (
                   <div>
-                    <p className="text-xs text-zinc-500 mb-0.5">Location</p>
-                    <p className="text-sm text-white">
+                    <p className="text-xs text-muted-foreground mb-0.5">Location</p>
+                    <p className="text-sm text-foreground">
                       {selectedConcept.shoot_location}
                     </p>
                   </div>
                 )}
                 {selectedConcept.model_name && (
                   <div>
-                    <p className="text-xs text-zinc-500 mb-0.5">Assigned Model</p>
-                    <p className="text-sm text-white">
+                    <p className="text-xs text-muted-foreground mb-0.5">Assigned Model</p>
+                    <p className="text-sm text-foreground">
                       {selectedConcept.model_name}
                     </p>
                   </div>
                 )}
                 {selectedConcept.content_purpose && (
                   <div>
-                    <p className="text-xs text-zinc-500 mb-0.5">Content Purpose</p>
-                    <p className="text-sm text-white">
+                    <p className="text-xs text-muted-foreground mb-0.5">Content Purpose</p>
+                    <p className="text-sm text-foreground">
                       {selectedConcept.content_purpose}
                     </p>
                   </div>
@@ -2925,7 +3008,7 @@ export default function UGCCampaignPage() {
               {/* Reference */}
               {selectedConcept.reference_url && (
                 <div>
-                  <p className="text-xs text-zinc-500 mb-1">Reference</p>
+                  <p className="text-xs text-muted-foreground mb-1">Reference</p>
                   <a
                     href={selectedConcept.reference_url}
                     target="_blank"
@@ -2941,8 +3024,8 @@ export default function UGCCampaignPage() {
               {/* Primary Hook */}
               {selectedConcept.primary_hook && (
                 <div>
-                  <p className="text-xs text-zinc-500 mb-1">Primary Hook</p>
-                  <p className="text-sm text-zinc-200 italic bg-zinc-800/50 rounded-lg p-3 border border-zinc-800">
+                  <p className="text-xs text-muted-foreground mb-1">Primary Hook</p>
+                  <p className="text-sm text-foreground italic bg-muted/50 rounded-lg p-3 border border-border">
                     &ldquo;{selectedConcept.primary_hook}&rdquo;
                   </p>
                 </div>
@@ -2951,10 +3034,10 @@ export default function UGCCampaignPage() {
               {/* Creative Direction */}
               {selectedConcept.creative_direction && (
                 <div>
-                  <p className="text-xs text-zinc-500 mb-1">
+                  <p className="text-xs text-muted-foreground mb-1">
                     Creative Direction
                   </p>
-                  <p className="text-sm text-zinc-300">
+                  <p className="text-sm text-foreground">
                     {selectedConcept.creative_direction}
                   </p>
                 </div>
@@ -2963,8 +3046,8 @@ export default function UGCCampaignPage() {
               {/* Scene Description */}
               {selectedConcept.scene_description && (
                 <div>
-                  <p className="text-xs text-zinc-500 mb-1">Scene Description</p>
-                  <p className="text-sm text-zinc-300">
+                  <p className="text-xs text-muted-foreground mb-1">Scene Description</p>
+                  <p className="text-sm text-foreground">
                     {selectedConcept.scene_description}
                   </p>
                 </div>
@@ -2973,8 +3056,8 @@ export default function UGCCampaignPage() {
               {/* On-Screen Text */}
               {selectedConcept.on_screen_text && (
                 <div>
-                  <p className="text-xs text-zinc-500 mb-1">On-Screen Text</p>
-                  <p className="text-sm text-zinc-300">
+                  <p className="text-xs text-muted-foreground mb-1">On-Screen Text</p>
+                  <p className="text-sm text-foreground">
                     {selectedConcept.on_screen_text}
                   </p>
                 </div>
@@ -2983,8 +3066,8 @@ export default function UGCCampaignPage() {
               {/* Script */}
               {selectedConcept.script && (
                 <div>
-                  <p className="text-xs text-zinc-500 mb-1">Script</p>
-                  <pre className="text-sm text-zinc-300 bg-zinc-800/50 rounded-lg p-3 border border-zinc-800 whitespace-pre-wrap font-sans">
+                  <p className="text-xs text-muted-foreground mb-1">Script</p>
+                  <pre className="text-sm text-foreground bg-muted/50 rounded-lg p-3 border border-border whitespace-pre-wrap font-sans">
                     {selectedConcept.script}
                   </pre>
                 </div>
@@ -2993,8 +3076,8 @@ export default function UGCCampaignPage() {
               {/* Usability Notes */}
               {selectedConcept.usability_notes && (
                 <div>
-                  <p className="text-xs text-zinc-500 mb-1">Usability Notes</p>
-                  <p className="text-sm text-zinc-300">
+                  <p className="text-xs text-muted-foreground mb-1">Usability Notes</p>
+                  <p className="text-sm text-foreground">
                     {selectedConcept.usability_notes}
                   </p>
                 </div>
@@ -3005,16 +3088,16 @@ export default function UGCCampaignPage() {
                 <div className="grid grid-cols-2 gap-4">
                   {selectedConcept.caption_en && (
                     <div>
-                      <p className="text-xs text-zinc-500 mb-1">Caption (EN)</p>
-                      <p className="text-sm text-zinc-300">
+                      <p className="text-xs text-muted-foreground mb-1">Caption (EN)</p>
+                      <p className="text-sm text-foreground">
                         {selectedConcept.caption_en}
                       </p>
                     </div>
                   )}
                   {selectedConcept.caption_ar && (
                     <div dir="rtl">
-                      <p className="text-xs text-zinc-500 mb-1">Caption (AR)</p>
-                      <p className="text-sm text-zinc-300">
+                      <p className="text-xs text-muted-foreground mb-1">Caption (AR)</p>
+                      <p className="text-sm text-foreground">
                         {selectedConcept.caption_ar}
                       </p>
                     </div>
@@ -3025,8 +3108,8 @@ export default function UGCCampaignPage() {
               {/* Shoot Type */}
               {selectedConcept.shoot_type && (
                 <div>
-                  <p className="text-xs text-zinc-500 mb-1">Shoot Type</p>
-                  <span className="text-xs px-2.5 py-1 bg-zinc-800 rounded-full text-zinc-200 font-medium">
+                  <p className="text-xs text-muted-foreground mb-1">Shoot Type</p>
+                  <span className="text-xs px-2.5 py-1 bg-muted rounded-full text-foreground font-medium">
                     {selectedConcept.shoot_type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                   </span>
                 </div>
@@ -3035,8 +3118,8 @@ export default function UGCCampaignPage() {
               {/* Props Required */}
               {selectedConcept.props_required && (
                 <div>
-                  <p className="text-xs text-zinc-500 mb-1">Props Required</p>
-                  <p className="text-sm text-zinc-300 bg-zinc-800/50 rounded-lg p-3 border border-zinc-800 whitespace-pre-wrap">
+                  <p className="text-xs text-muted-foreground mb-1">Props Required</p>
+                  <p className="text-sm text-foreground bg-muted/50 rounded-lg p-3 border border-border whitespace-pre-wrap">
                     {selectedConcept.props_required}
                   </p>
                 </div>
@@ -3046,19 +3129,19 @@ export default function UGCCampaignPage() {
               {selectedConcept.foc_products &&
                 selectedConcept.foc_products.length > 0 && (
                   <div>
-                    <p className="text-xs text-zinc-500 mb-1">FOC Products</p>
+                    <p className="text-xs text-muted-foreground mb-1">FOC Products</p>
                     <div className="space-y-1.5">
                       {selectedConcept.foc_products.map((p, i) => (
                         <div
                           key={i}
-                          className="flex items-center gap-3 text-sm text-zinc-300 bg-zinc-800/50 rounded-lg px-3 py-2 border border-zinc-800"
+                          className="flex items-center gap-3 text-sm text-foreground bg-muted/50 rounded-lg px-3 py-2 border border-border"
                         >
                           {typeof p === "string" ? (
                             <span>{p}</span>
                           ) : (
                             <>
                               <span className="flex-1 truncate">{(p as FOCProductRow).product_name}</span>
-                              <span className="text-xs text-zinc-500">x{(p as FOCProductRow).quantity}</span>
+                              <span className="text-xs text-muted-foreground">x{(p as FOCProductRow).quantity}</span>
                               {(p as FOCProductRow).link && (
                                 <a
                                   href={(p as FOCProductRow).link}
@@ -3079,9 +3162,9 @@ export default function UGCCampaignPage() {
 
               {/* Brand Feedback */}
               {selectedConcept.brand_feedback && (
-                <div className="p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                  <p className="text-xs text-zinc-500 mb-1">Brand Feedback</p>
-                  <p className="text-sm text-zinc-300">
+                <div className="p-3 bg-muted/50 rounded-lg border border-border">
+                  <p className="text-xs text-muted-foreground mb-1">Brand Feedback</p>
+                  <p className="text-sm text-foreground">
                     {selectedConcept.brand_feedback}
                   </p>
                 </div>
@@ -3089,13 +3172,13 @@ export default function UGCCampaignPage() {
             </div>
 
             {/* Close */}
-            <div className="flex justify-end mt-6 pt-4 border-t border-zinc-800">
+            <div className="flex justify-end mt-6 pt-4 border-t border-border">
               <button
                 onClick={() => {
                   setShowConceptDetailModal(false);
                   setSelectedConcept(null);
                 }}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Close
               </button>

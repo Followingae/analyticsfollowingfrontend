@@ -1,34 +1,45 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+
+/**
+ * Unlocked creators.
+ *
+ * Density tier: SCANNING at the grid, WORKING at the head. The air goes around the grid,
+ * at the page margin, not into each tile.
+ *
+ * What changed. The entire page used to live inside a single `<Card>`: the title, the
+ * "Add Creator" button, three filters and the whole grid, all wrapped in one border with
+ * a header rule across it. A page is not an object, so it does not get a card. The title
+ * is now the page's own head, the filters sit on the ground as a rail with one hairline
+ * under them, and the grid is a grid of creators rather than a grid inside a box.
+ *
+ * Error, loading and empty were also being drawn as one shape, three sizes: the same
+ * centred icon-over-heading-over-sentence, so a 500 looked exactly like an empty portfolio.
+ * They are three different components now and the failure says out loud that it is not a
+ * count of zero.
+ */
+
+import { useState, useRef } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { creatorApiService } from "@/services/creatorApi"
 import { useCreatorSearch } from "@/hooks/useCreatorSearch"
 import { useProcessingToast } from "@/contexts/ProcessingToastContext"
 import { useQuery } from "@tanstack/react-query"
-import { CreatorProfile, Profile, UnlockedCreatorsResponse } from "@/services/creatorApi"
+import { CreatorProfile } from "@/services/creatorApi"
 import { discoveryService } from "@/services/discoveryService"
 import {
   Plus,
-  Users,
-  Heart,
-  BarChart3,
   Search,
   X,
-  TrendingUp,
-  Brain,
-  Sparkles,
   RefreshCw,
-  AlertCircle,
-  CheckCircle,
   Instagram,
   Loader2,
   Unlock,
+  Sparkles,
+  BarChart3,
 } from "lucide-react"
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CreatorsSkeleton } from "@/components/skeletons"
@@ -39,13 +50,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { ProfileImage } from "@/components/ProfileImage"
 import {
   Dialog,
   DialogContent,
@@ -64,8 +68,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { CreatorGridCard, ProcessingCreatorCard } from "@/components/creator-cards"
-import ReactCountryFlag from "react-country-flag"
-import { getCountryCode } from "@/lib/countryUtils"
+import {
+  Page,
+  PageHead,
+  LoadFailed,
+  Nothing,
+  unmeasuredLast,
+} from "@/components/brand/primitives"
 
 // Disable static generation for this page
 export const dynamic = 'force-dynamic'
@@ -82,7 +91,6 @@ export default function CreatorsPage() {
   const [analyzingCreators, setAnalyzingCreators] = useState<Set<string>>(new Set())
   const [currentPage, setCurrentPage] = useState(1)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const router = useRouter()
 
   // Authentication state - moved before React Query
   const { isAuthenticated, isLoading: authLoading, user } = useEnhancedAuth()
@@ -149,6 +157,7 @@ export default function CreatorsPage() {
   const availableCategories = Array.from(
     new Set(unlockedCreators.map(c => c.category).filter(Boolean))
   ) as string[]
+
   const visibleCreators = unlockedCreators.filter(c => {
     if (filterText.trim()) {
       const q = filterText.trim().toLowerCase()
@@ -156,61 +165,28 @@ export default function CreatorsPage() {
     }
     if (filterCategory !== 'all' && c.category !== filterCategory) return false
     if (filterTier !== 'all') {
-      const f = c.followers_count || 0
+      const f = c.followers_count
+      // A creator we could not measure has no tier. They are excluded from a tier filter
+      // rather than counted as "nano", which is what `|| 0` used to do to them.
+      if (f == null || f <= 0) return false
       const tier = f >= 1000000 ? 'mega' : f >= 100000 ? 'macro' : f >= 10000 ? 'micro' : 'nano'
       if (tier !== filterTier) return false
     }
     return true
   })
+  // Biggest first, and anyone whose scrape failed sorts LAST rather than as a zero.
+  .sort(unmeasuredLast<CreatorProfile>(c => c.followers_count, 'desc', true))
+
   const hasActiveFilters = filterText.trim() !== '' || filterCategory !== 'all' || filterTier !== 'all'
 
-  // Robust deduplication utility
-  const deduplicateProfiles = (profiles: CreatorProfile[]): CreatorProfile[] => {
-
-    
-    const seen = new Set<string>()
-    const deduplicated = profiles.filter(profile => {
-      // Use multiple identifiers for robust deduplication
-      const primaryId = profile.username?.toLowerCase()
-      const secondaryId = profile.id || profile.pk
-      const fallbackId = profile.full_name?.toLowerCase()
-      
-      // Create a unique key combining multiple identifiers
-      const uniqueKey = `${primaryId}|${secondaryId}|${fallbackId}`
-      
-      // Also check individual identifiers to catch various duplicate scenarios
-      const isDuplicate = seen.has(primaryId) || 
-                         (secondaryId && seen.has(secondaryId.toString())) ||
-                         seen.has(uniqueKey)
-      
-      if (!isDuplicate) {
-        seen.add(primaryId)
-        if (secondaryId) seen.add(secondaryId.toString())
-        seen.add(uniqueKey)
-        return true
-      }
-      
-
-      return false
-    })
-    
-
-    return deduplicated
-  }
-
-  // Helper function to update page
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
   }
-  // Router already declared above
 
   // Modern React Query based creator search
   const creatorSearchMutation = useCreatorSearch({
-    onError: (error) => {
-
-    }
+    onError: () => {}
   })
-
 
   // Manual refresh function for refresh button
   const handleRefresh = async () => {
@@ -254,7 +230,6 @@ export default function CreatorsPage() {
       // Always dispatch credit balance update (worker auto-unlock also spends credits)
       window.dispatchEvent(new CustomEvent('credit-balance-changed'))
 
-      // Remove from analyzing set
       setAnalyzingCreators(prev => {
         const newSet = new Set(prev)
         newSet.delete(cleanUsername)
@@ -321,54 +296,11 @@ export default function CreatorsPage() {
     }
   }
 
-  const formatNumber = (num: number | undefined | null) => {
-    if (num === undefined || num === null || isNaN(num)) return '0'
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toString()
-  }
-
-  // Helper function to determine influencer tier
-  const getInfluencerTier = (followerCount: number) => {
-    if (followerCount >= 1000000) return 'mega';
-    if (followerCount >= 100000) return 'macro';
-    if (followerCount >= 10000) return 'micro';
-    return 'nano';
-  };
-
-  // Tier Badge Component
-  function TierBadge({ tier, isExpired }: { tier: 'nano' | 'micro' | 'macro' | 'mega', isExpired?: boolean }) {
-    const tierStyles = {
-      nano: "bg-muted text-muted-foreground border-border",
-      micro: "bg-primary/10 text-primary border-primary/20",
-      macro: "bg-primary/15 text-primary border-primary/30 font-medium",
-      mega: "bg-gradient-to-r from-primary/20 to-primary/15 text-primary border-primary/40 font-semibold shadow-sm"
-    };
-    const tierLabels = {
-      nano: 'Nano',
-      micro: 'Micro',
-      macro: 'Macro',
-      mega: 'Mega'
-    };
-
-    if (isExpired) {
-      return (
-        <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
-          Expired
-        </Badge>
-      );
-    }
-
-    return (
-      <Badge className={`text-xs font-bold border ${tierStyles[tier]}`}>
-        {tierLabels[tier]}
-      </Badge>
-    );
-  }
-
   // Get processing creators not already in the unlocked list
   const processingUsernames = processingToasts
     .filter(t => !unlockedCreators.some(c => c.username?.toLowerCase() === t.username?.toLowerCase()))
+
+  const clearFilters = () => { setFilterText(""); setFilterCategory("all"); setFilterTier("all") }
 
   return (
     <AuthGuard requireAuth={true}>
@@ -376,127 +308,49 @@ export default function CreatorsPage() {
         {unlockedLoading ? (
           <CreatorsSkeleton />
         ) : (
-          <div className="flex min-h-screen">
-            {/* Main Content */}
-            <div className="flex-1">
-              <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-            {/* Header - Now empty since title moved to top bar and Add Creators moved to card */}
+          <Page tier="working">
 
-            
-            {/* Creators Portfolio */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between mb-4">
-                  <CardTitle>Your Creator Portfolio</CardTitle>
-                  <Button onClick={() => setIsSearchOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Creator
-                  </Button>
+            <PageHead
+              title="Your creators"
+              sub={
+                unlockedError
+                  ? undefined
+                  : "Everyone your team has unlocked. Open one for the full analytics, or add another by username."
+              }
+              action={
+                <Button onClick={() => setIsSearchOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add creator
+                </Button>
+              }
+            />
 
-                  {/* Search Dialog */}
-                  <Dialog open={isSearchOpen} onOpenChange={(open) => {
-                    setIsSearchOpen(open)
-                    if (!open) setSearchUsername("")
-                  }}>
-                    <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden border-border/40">
-                      {/* Header gradient */}
-                      <div className="bg-gradient-to-b from-primary/5 to-transparent px-6 pt-6 pb-4">
-                        <DialogHeader>
-                          <DialogTitle className="text-lg font-semibold">Add Creator</DialogTitle>
-                          <DialogDescription className="text-sm text-muted-foreground">
-                            Enter an Instagram username to unlock their full analytics.
-                          </DialogDescription>
-                        </DialogHeader>
-                      </div>
-
-                      {/* Search input */}
-                      <div className="px-6 pb-6 space-y-4">
-                        <div className="relative">
-                          <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            ref={searchInputRef}
-                            placeholder="username"
-                            value={searchUsername}
-                            onChange={(e) => setSearchUsername(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearchCreator()}
-                            className="pl-9 h-11 text-sm"
-                            autoFocus
-                          />
-                          {searchUsername && (
-                            <button
-                              onClick={() => setSearchUsername("")}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-
-                        <Button
-                          className="w-full h-10 gap-2"
-                          onClick={handleSearchCreator}
-                          disabled={creatorSearchMutation.isPending || !searchUsername.trim()}
-                        >
-                          {creatorSearchMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Unlock className="h-4 w-4" />
-                          )}
-                          {creatorSearchMutation.isPending ? "Searching..." : "Search & Unlock"}
-                        </Button>
-
-                        <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground pt-1">
-                          <span className="flex items-center gap-1"><Sparkles className="h-3 w-3" /> AI analysis</span>
-                          <span className="text-border">|</span>
-                          <span className="flex items-center gap-1"><BarChart3 className="h-3 w-3" /> Full analytics</span>
-                          <span className="text-border">|</span>
-                          <span className="font-medium text-primary">25 credits</span>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  {/* Unlock consent — 25 credits is never spent silently */}
-                  <AlertDialog open={!!pendingUnlock} onOpenChange={(open) => { if (!open) setPendingUnlock(null) }}>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Unlock @{pendingUnlock?.username}?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This creator is already in our database. Unlocking costs{" "}
-                          <span className="font-semibold text-foreground">25 credits</span> and gives your team
-                          full analytics access for 30 days.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmPendingUnlock}>
-                          <Unlock className="h-4 w-4 mr-2" />
-                          Unlock for 25 credits
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-
-                {/* Search and Filters in one row */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            {/* A FAILED fetch. It replaces the grid entirely and says what it is, because
+                the alternative here has always been an empty grid that reads as "you have
+                no creators". */}
+            {unlockedError ? (
+              <LoadFailed what="Your creators" detail={unlockedError} onRetry={handleRefresh} />
+            ) : (
+              <>
+                {/* The filter rail: on the ground, one hairline beneath it. 16px between
+                    siblings, 8px between a control and its own parts. */}
+                <div className="flex flex-col gap-ds-3 border-b border-border/70 pb-ds-3 sm:flex-row sm:flex-wrap sm:items-center">
+                  <div className="relative w-full sm:w-[220px]">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="Search creators..."
-                      className="pl-10 w-full sm:w-[200px]"
+                      placeholder="Search your creators"
+                      className="pl-9"
                       value={filterText}
                       onChange={(e) => setFilterText(e.target.value)}
                     />
                   </div>
 
                   <Select value={filterCategory} onValueChange={setFilterCategory}>
-                    <SelectTrigger className="w-full sm:w-[160px]">
+                    <SelectTrigger className="w-full sm:w-[170px]">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="all">All categories</SelectItem>
                       {availableCategories.map((cat) => (
                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                       ))}
@@ -504,152 +358,178 @@ export default function CreatorsPage() {
                   </Select>
 
                   <Select value={filterTier} onValueChange={setFilterTier}>
-                    <SelectTrigger className="w-full sm:w-[120px]">
+                    <SelectTrigger className="w-full sm:w-[150px]">
                       <SelectValue placeholder="Tier" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Tiers</SelectItem>
-                      <SelectItem value="nano">Nano (1K-10K)</SelectItem>
-                      <SelectItem value="micro">Micro (10K-100K)</SelectItem>
-                      <SelectItem value="macro">Macro (100K-1M)</SelectItem>
-                      <SelectItem value="mega">Mega (1M+)</SelectItem>
+                      <SelectItem value="all">All tiers</SelectItem>
+                      <SelectItem value="nano">Nano, 1K to 10K</SelectItem>
+                      <SelectItem value="micro">Micro, 10K to 100K</SelectItem>
+                      <SelectItem value="macro">Macro, 100K to 1M</SelectItem>
+                      <SelectItem value="mega">Mega, over 1M</SelectItem>
                     </SelectContent>
                   </Select>
 
                   {hasActiveFilters && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { setFilterText(""); setFilterCategory("all"); setFilterTier("all") }}
-                    >
-                      <X className="h-3.5 w-3.5 mr-1" />
-                      Clear Filters
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <X className="mr-1.5 h-3.5 w-3.5" />
+                      Clear
                     </Button>
                   )}
 
-                  <Button variant="outline" size="sm" onClick={handleRefresh}>
-                    <RefreshCw className="h-4 w-4 mr-1" />
-                    Refresh
+                  {/* The count reflects what is SELECTED, not the blanket total, whenever
+                      a filter is on. */}
+                  <p className="text-ds-body-sm text-muted-foreground sm:ml-auto">
+                    {hasActiveFilters
+                      ? `${visibleCreators.length} of ${unlockedCreators.length} shown`
+                      : `${unlockedCreators.length} creator${unlockedCreators.length === 1 ? '' : 's'}`}
+                  </p>
+
+                  <Button variant="ghost" size="sm" onClick={handleRefresh} aria-label="Refresh">
+                    <RefreshCw className="h-4 w-4" />
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {/* Loading State */}
-                  {unlockedLoading && (
-                    <div className="col-span-full flex items-center justify-center py-12">
-                      <div className="text-center space-y-4">
-                        <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                        <p className="text-muted-foreground">Loading your unlocked creators...</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Error State */}
-                  {unlockedError && !unlockedLoading && (
-                    <div className="col-span-full flex items-center justify-center py-12">
-                      <div className="text-center space-y-4">
-                        <AlertCircle className="h-12 w-12 mx-auto text-red-500" />
-                        <div>
-                          <h3 className="text-lg font-semibold text-red-600">Failed to Load Creators</h3>
-                          <p className="text-muted-foreground">{unlockedError}</p>
-                        </div>
-                        <Button variant="outline" onClick={handleRefresh}>
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Try Again
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Empty State */}
-                  {!unlockedLoading && !unlockedError && unlockedCreators.length === 0 && processingUsernames.length === 0 && (
-                    <div className="col-span-full flex items-center justify-center py-12">
-                      <div className="text-center space-y-4">
-                        <Users className="h-12 w-12 mx-auto text-muted-foreground" />
-                        <div>
-                          <h3 className="text-lg font-semibold">No unlocked creators yet</h3>
-                          <p className="text-muted-foreground">Start by searching for creators to build your portfolio</p>
-                        </div>
-                        <Button onClick={() => setIsSearchOpen(true)}>
-                          <Search className="h-4 w-4 mr-2" />
-                          Add Creators
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Processing Creator Cards */}
-                  {!unlockedLoading && processingUsernames.map((pt) => (
-                    <ProcessingCreatorCard
-                      key={`processing-${pt.username}`}
-                      username={pt.username}
-                      startedAt={pt.startedAt}
-                    />
-                  ))}
 
-                  {/* Filtered-empty hint (portfolio exists, filters match nothing) */}
-                  {!unlockedLoading && !unlockedError && unlockedCreators.length > 0 && visibleCreators.length === 0 && (
-                    <div className="col-span-full flex items-center justify-center py-12">
-                      <div className="text-center space-y-3">
-                        <Search className="h-10 w-10 mx-auto text-muted-foreground" />
-                        <p className="text-muted-foreground">No creators match your filters</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => { setFilterText(""); setFilterCategory("all"); setFilterTier("all") }}
-                        >
-                          Clear Filters
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Creator Cards */}
-                  {!unlockedLoading && visibleCreators.map((creator, index) => (
-                    <CreatorGridCard
-                      key={creator.id || creator.pk || creator.username || `creator-${index}`}
-                      creator={creator}
-                      isAnalyzing={analyzingCreators.has(creator.username)}
-                    />
-                  ))}
-                </div>
-                
-                {/* Pagination Controls */}
-                {!unlockedLoading && !unlockedError && unlockedCreators.length > 0 && pagination.total_pages > 1 && (
-                  <div className="flex items-center justify-between pt-6 border-t">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(pagination.current_page - 1)}
-                        disabled={pagination.current_page <= 1}
-                      >
-                        Previous
-                      </Button>
-                      <span className="text-sm text-muted-foreground">
-                        Page {pagination.current_page} of {pagination.total_pages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(pagination.current_page + 1)}
-                        disabled={!pagination.has_next}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {unlockedCreators.length} creators shown
-                    </div>
+                {/* Genuinely nothing unlocked yet. One sentence and the action, no
+                    illustration and no pitch. */}
+                {unlockedCreators.length === 0 && processingUsernames.length === 0 ? (
+                  <Nothing action={
+                    <Button onClick={() => setIsSearchOpen(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add your first creator
+                    </Button>
+                  }>
+                    You have not unlocked anyone yet.
+                  </Nothing>
+                ) : visibleCreators.length === 0 && processingUsernames.length === 0 ? (
+                  <Nothing action={<Button variant="outline" onClick={clearFilters}>Clear filters</Button>}>
+                    No creator matches these filters.
+                  </Nothing>
+                ) : (
+                  <div className="grid grid-cols-1 gap-ds-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    {processingUsernames.map((pt) => (
+                      <ProcessingCreatorCard
+                        key={`processing-${pt.username}`}
+                        username={pt.username}
+                        startedAt={pt.startedAt}
+                      />
+                    ))}
+                    {visibleCreators.map((creator, index) => (
+                      <CreatorGridCard
+                        key={creator.id || creator.pk || creator.username || `creator-${index}`}
+                        creator={creator}
+                        isAnalyzing={analyzingCreators.has(creator.username)}
+                      />
+                    ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-              </div>
-            </div>
-            </div>
-          </div>
+
+                {/* Pagination, on the ground with one rule above it. */}
+                {unlockedCreators.length > 0 && pagination.total_pages > 1 && (
+                  <div className="flex items-center gap-ds-3 border-t border-border/70 pt-ds-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(pagination.current_page - 1)}
+                      disabled={pagination.current_page <= 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-ds-body-sm text-muted-foreground">
+                      Page {pagination.current_page} of {pagination.total_pages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(pagination.current_page + 1)}
+                      disabled={!pagination.has_next}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Add a creator by username. */}
+            <Dialog open={isSearchOpen} onOpenChange={(open) => {
+              setIsSearchOpen(open)
+              if (!open) setSearchUsername("")
+            }}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add a creator</DialogTitle>
+                  <DialogDescription>
+                    Enter an Instagram username to unlock their full analytics.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="flex flex-col gap-ds-3">
+                  <div className="relative">
+                    <Instagram className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      ref={searchInputRef}
+                      placeholder="username"
+                      value={searchUsername}
+                      onChange={(e) => setSearchUsername(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearchCreator()}
+                      className="h-11 pl-9"
+                      autoFocus
+                    />
+                    {searchUsername && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchUsername("")}
+                        aria-label="Clear"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <Button
+                    className="h-10 w-full gap-2"
+                    onClick={handleSearchCreator}
+                    disabled={creatorSearchMutation.isPending || !searchUsername.trim()}
+                  >
+                    {creatorSearchMutation.isPending
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Unlock className="h-4 w-4" />}
+                    {creatorSearchMutation.isPending ? "Searching" : "Search and unlock"}
+                  </Button>
+
+                  <p className="flex flex-wrap items-center justify-center gap-x-ds-3 gap-y-ds-1 text-ds-caption text-muted-foreground">
+                    <span className="inline-flex items-center gap-ds-1"><Sparkles className="h-3 w-3" /> AI analysis</span>
+                    <span className="inline-flex items-center gap-ds-1"><BarChart3 className="h-3 w-3" /> Full analytics</span>
+                    <span className="font-medium text-foreground">25 credits</span>
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Unlock consent — 25 credits is never spent silently */}
+            <AlertDialog open={!!pendingUnlock} onOpenChange={(open) => { if (!open) setPendingUnlock(null) }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Unlock @{pendingUnlock?.username}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This creator is already in our database. Unlocking costs{" "}
+                    <span className="font-semibold text-foreground">25 credits</span> and gives your team
+                    full analytics access for 30 days.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmPendingUnlock}>
+                    <Unlock className="mr-2 h-4 w-4" />
+                    Unlock for 25 credits
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+          </Page>
         )}
       </BrandUserInterface>
     </AuthGuard>

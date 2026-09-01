@@ -271,7 +271,7 @@ function getStatusBadge(status: string) {
 // Format AED currency
 function formatAED(amount: number | null | undefined): string {
   if (amount == null) return "-";
-  return `⃃ ${Number(amount).toLocaleString()}`;
+  return `AED ${Number(amount).toLocaleString()}`;
 }
 
 // Small metric cell used inside the grid cards
@@ -644,7 +644,7 @@ function AllCampaignsTab({
                   onClick={() => openCampaign(c)}
                   disabled={!!c.is_pre_platform}
                   aria-label={c.is_pre_platform
-                    ? `${campaign.name} — ${(campaign.status || "").toLowerCase() === "active"
+                    ? `${campaign.name}, ${(campaign.status || "").toLowerCase() === "active"
                         ? "tracked outside the platform" : "archived"}, no detail to open`
                     : `Open ${campaign.name}`}
                   className={c.is_pre_platform ? "text-left cursor-default" : "group text-left"}
@@ -711,7 +711,7 @@ function AllCampaignsTab({
                             <Clock className="mt-px h-3.5 w-3.5 shrink-0" />
                             {(campaign.status || "").toLowerCase() === "active"
                               ? "Running now. We are tracking this one outside the platform, so the day to day is not on screen here."
-                              : "Ran before this platform. Kept here as a record — the detail lives in our files rather than on screen."}
+                              : "Ran before this platform. Kept here as a record. The detail lives in our files rather than on screen."}
                           </div>
                         </div>
                       ) : (

@@ -1,35 +1,42 @@
+/**
+ * What the campaigns list looks like while it is on its way.
+ *
+ * The shapes are the ones that actually land, at the widths the page actually uses, so
+ * nothing jumps when the data arrives. It is deliberately quiet: a skeleton is a promise
+ * about layout, not a place for a shimmer or a spinner.
+ */
 export default function CampaignsLoading() {
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 p-4 md:p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <div className="h-8 w-40 rounded bg-muted animate-pulse" />
-          <div className="h-4 w-56 rounded bg-muted animate-pulse" />
-        </div>
-        <div className="h-10 w-36 rounded bg-muted animate-pulse" />
-      </div>
-      {/* Tab bar */}
-      <div className="flex gap-2 border-b border-border pb-2">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-8 w-24 rounded bg-muted animate-pulse" />
-        ))}
-      </div>
-      {/* Campaign cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="rounded-xl border bg-card p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="h-5 w-40 rounded bg-muted animate-pulse" />
-              <div className="h-5 w-16 rounded-full bg-muted animate-pulse" />
-            </div>
-            <div className="h-4 w-full rounded bg-muted animate-pulse" />
-            <div className="flex items-center gap-3 pt-2">
-              <div className="h-4 w-24 rounded bg-muted animate-pulse" />
-              <div className="h-4 w-20 rounded bg-muted animate-pulse" />
-            </div>
+    <div className="mx-auto w-full max-w-7xl px-ds-3 pb-ds-6 pt-ds-5 sm:px-ds-5" aria-busy="true">
+      <div className="flex flex-col gap-ds-6">
+        {/* Title and the one action */}
+        <div className="flex flex-col gap-ds-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-ds-2">
+            <div className="h-9 w-56 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-72 animate-pulse rounded bg-muted" />
           </div>
-        ))}
+          <div className="h-10 w-36 animate-pulse rounded-ds-control bg-muted" />
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-ds-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-9 w-28 animate-pulse rounded-ds-control bg-muted" />
+          ))}
+        </div>
+
+        {/* The grid of campaigns */}
+        <div className="grid grid-cols-1 gap-ds-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="overflow-hidden rounded-ds-lg border">
+              <div className="aspect-[16/9] w-full animate-pulse bg-muted" />
+              <div className="flex flex-col gap-ds-2 p-ds-3">
+                <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

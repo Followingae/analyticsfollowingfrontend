@@ -7,6 +7,7 @@ import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { AuthGuard } from '@/components/AuthGuard'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
+import { Page, PageHead } from '@/components/brand/primitives'
 
 /**
  * The rebuilt pipeline (/api/v2/creator-analytics) is the only creator analytics.
@@ -44,25 +45,28 @@ function CreatorAnalyticsInner() {
   return (
     <AuthGuard requireAuth={true}>
       <BrandUserInterface>
-          <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
-            {/* Back Navigation */}
-            <div className="flex items-center gap-4">
+        {/* Density tier: READING. This is the longest single screen a brand looks at, so
+            the head gets the room the rest of the page borrows its rhythm from. The back
+            link sits ABOVE the name rather than beside it: the name is the subject of the
+            page and used to share a row with a button, which made it look like a caption. */}
+        <Page tier="reading">
+          <PageHead
+            back={
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => router.back()}
-                className="flex items-center gap-2"
+                className="-ml-2 h-7 w-fit gap-1.5 px-2 text-muted-foreground hover:text-foreground"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-3.5 w-3.5" />
                 Back
               </Button>
-              <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold truncate">@{username}</h1>
-                <p className="text-muted-foreground text-sm">Creator Analytics</p>
-              </div>
-            </div>
-            <CreatorAnalyticsV2 username={username} />
-          </div>
+            }
+            title={<span className="truncate">@{username}</span>}
+            sub="Everything we have measured for this creator."
+          />
+          <CreatorAnalyticsV2 username={username} />
+        </Page>
       </BrandUserInterface>
     </AuthGuard>
   )

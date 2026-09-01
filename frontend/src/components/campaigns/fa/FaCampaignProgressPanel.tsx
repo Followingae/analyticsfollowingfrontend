@@ -173,7 +173,7 @@ function fmtCount(n?: number | null): string {
   return String(n)
 }
 function fmtAED(amount: number): string {
-  return `⃃ ${amount.toLocaleString("en-AE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+  return `AED ${amount.toLocaleString("en-AE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 }
 function hoursUntil(iso?: string | null): number | null {
   if (!iso) return null
@@ -278,7 +278,7 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
         { method: "POST", headers: getAuthHeaders() }
       )
       if (!res.ok) throw new Error(await res.text())
-      toast.success("Approved — creator has been notified")
+      toast.success("Approved, the creator has been notified")
       load()
     } catch (e: any) {
       toast.error(e.message || "Approve failed")
@@ -421,7 +421,7 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
         {canCurate && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-4">
             <div className="text-sm text-muted-foreground">
-              Suggest creators for this campaign — they’ll go to the brand for approval.
+              Suggest creators for this campaign. They go to the brand for approval.
             </div>
             <AddCuratedCreatorsDialog campaignId={campaignId} onAdded={load} />
           </div>
@@ -720,7 +720,7 @@ function RosterCard({ p, campaignType, onOpen }: { p: Participant; campaignType:
             <UtensilsCrossed className="h-3.5 w-3.5" />
             {typeof p.visit.days_left === "number"
               ? (p.visit.days_left <= 0
-                  ? "Last day to visit — spot released after today"
+                  ? "Last day to visit, the spot is released after today"
                   : `Awaiting visit · ${p.visit.days_left}d left`)
               : "Awaiting visit"}
             {p.visit.code ? ` · ${p.visit.code}` : ""}

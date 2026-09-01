@@ -1,192 +1,359 @@
 'use client'
-import { tokenManager } from '@/utils/tokenManager'
 
-import { useState, Suspense } from 'react'
+/**
+ * Checkout: the last screen before Stripe.
+ *
+ * Three things were wrong here and are fixed:
+ *
+ *  1. The interval was thrown away. /pricing handed this page ?interval=annual
+ *     and this page created a monthly session anyway (billingManager pins
+ *     billing_interval to 'monthly'). Someone who chose Annual was billed
+ *     monthly. This page now posts to /api/v1/checkout/create-session itself
+ *     with the interval the customer actually picked. The backend has always
+ *     accepted it: CreateCheckoutRequest.billing_interval is
+ *     Literal["monthly", "annual"].
+ *
+ *  2. The price shown was a frontend constant in whatever currency an env var
+ *     happened to name. It is now the amount the SERVER returns from
+ *     GET /api/v1/checkout/pricing, in the currency that response names. If
+ *     that call fails we show the failure and disable the button. We do not
+ *     guess at a number someone is about to be charged.
+ *
+ *  3. A blank Stripe price ID for the active currency used to surface as a 503
+ *     after the click. The pricing response carries price_id, so a plan that
+ *     cannot be bought today says so before the click.
+ *
+ * Loading, failed and ready are three different screens, on purpose.
+ */
+
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { loadStripe } from '@stripe/stripe-js'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Loader2, ShieldCheck } from 'lucide-react'
-import { toast } from 'sonner'
-import { billingManager } from '@/services/billingManager'
-import { formatMonthlyPlanPrice, formatPlanLabel, formatPlanPrice } from '@/config/planPricing'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+import { AlertCircle, ArrowLeft, Loader2, ShieldCheck } from 'lucide-react'
+import { API_CONFIG, ENDPOINTS, getAuthHeaders } from '@/config/api'
+import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { tokenManager } from '@/utils/tokenManager'
+import {
+  ANNUAL_DISCOUNT,
+  formatPlanPrice,
+  getPlanLimits,
+  hydrateBillingCurrency,
+  type BillingCurrency,
+} from '@/config/planPricing'
 
-// Initialize Stripe with the publishable key
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
+type PaidTier = 'standard' | 'premium'
+type Interval = 'monthly' | 'annual'
+
+interface IntervalPricing {
+  amount: number
+  interval: string
+  currency?: string
+  price_id?: string
+  savings?: number
+  monthly_equivalent?: number
+}
+
+interface PricingResponse {
+  pricing: Record<string, { name: string; credits: number; pricing: Record<string, IntervalPricing> }>
+  currency: string
+}
+
+const TIER_NAME: Record<PaidTier, string> = { standard: 'Standard', premium: 'Premium' }
 
 function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  // Do NOT auto-redirect on mount — show an in-app order summary first and only
-  // create the Stripe session once the user explicitly confirms.
-  const [loading, setLoading] = useState(false)
-  const [started, setStarted] = useState(false)
+
+  const rawTier = (searchParams.get('tier') || '').toLowerCase()
+  const tier: PaidTier | null = rawTier === 'standard' || rawTier === 'premium' ? rawTier : null
+  const interval: Interval = searchParams.get('interval') === 'annual' ? 'annual' : 'monthly'
+
+  const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading')
+  const [pricing, setPricing] = useState<PricingResponse | null>(null)
+  const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const tier = searchParams.get('tier') || 'free'
-  // Backend hosted checkout only — embedded mode (client_secret) is not supported.
-  const mode = searchParams.get('mode') || 'redirect'
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.checkout.pricing}`)
+        if (!res.ok) throw new Error('pricing unavailable')
+        const data: PricingResponse = await res.json()
+        if (cancelled) return
+        if (!data?.pricing) {
+          setState('failed')
+          return
+        }
+        // Quote in the currency the server charges in, never an assumed one.
+        hydrateBillingCurrency(data.currency)
+        setPricing(data)
+        setState('ready')
+      } catch {
+        if (!cancelled) setState('failed')
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  // Single source of truth for plan prices - see src/config/planPricing.ts.
-  const getPlanPrice = (planTier: string) => {
-    if (planTier === 'free') return formatPlanPrice(0)
-    if (planTier !== 'standard' && planTier !== 'premium') return ''
-    return formatMonthlyPlanPrice(planTier, undefined, ' / month')
-  }
+  const currency = (pricing?.currency?.toUpperCase() as BillingCurrency) || 'AED'
 
-  const initializeCheckout = async () => {
-    setStarted(true)
+  const line = useMemo<IntervalPricing | null>(() => {
+    if (!tier || !pricing) return null
+    return pricing.pricing?.[tier]?.pricing?.[interval] ?? null
+  }, [tier, pricing, interval])
+
+  /** True once Stripe has a price object for this tier, interval and currency. */
+  const purchasable = Boolean(line?.price_id)
+
+  const startCheckout = async () => {
+    if (!tier || !purchasable) return
+    setError(null)
+
+    // Checkout is an authenticated action: the session is created against the
+    // signed-in team. Someone arriving cold goes to signup carrying their choice,
+    // not to a dead end.
+    const token = tokenManager.getTokenSync() || localStorage.getItem('access_token')
+    const stored = localStorage.getItem('auth_tokens')
+    if (!token && !stored) {
+      router.push(`/auth/register?plan=${tier}&interval=${interval}`)
+      return
+    }
+
+    setRedirecting(true)
     try {
-      setLoading(true)
-      setError(null)
+      const response = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}${ENDPOINTS.checkout.createSession}`,
+        {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            tier,
+            // The whole point of this page: the interval the customer chose.
+            billing_interval: interval,
+            success_url: `${window.location.origin}/dashboard?subscription=success`,
+            cancel_url: `${window.location.origin}/pricing?subscription=cancelled`,
+          }),
+        }
+      )
 
-      // Check if user is authenticated
-      const token = (tokenManager.getTokenSync() || localStorage.getItem('access_token'))
-      const authTokens = localStorage.getItem('auth_tokens')
+      const data = await response.json().catch(() => ({}))
 
-      if (!token && !authTokens) {
-        toast.error('Not authenticated. Please log in first.')
-        router.push('/auth/login')
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          setError('Your session has expired. Please sign in again and we will bring you back here.')
+        } else if (response.status === 503) {
+          setError('This plan cannot be bought online at the moment. Email support@following.ae and we will set it up for you.')
+        } else {
+          setError(
+            data?.detail ||
+              'We could not open the payment page. Please try again, or email support@following.ae.'
+          )
+        }
+        setRedirecting(false)
         return
       }
 
-      // Create checkout session using billing manager
-      const sessionData = await billingManager.createCheckoutSession(tier)
-
-      if (mode === 'redirect') {
-        // Hosted-checkout: prefer the checkout_url returned by the backend (no Stripe.js round-trip needed).
-        if (sessionData.checkout_url) {
-          window.location.href = sessionData.checkout_url
-          return
-        }
-
-        // Fallback: use Stripe.js redirectToCheckout with session_id.
-        const stripe = await stripePromise
-        if (!stripe) {
-          throw new Error('Failed to load Stripe')
-        }
-
-        const { error } = await stripe.redirectToCheckout({
-          sessionId: sessionData.session_id
-        })
-
-        if (error) {
-          throw error
-        }
-      } else {
-        // Option B: Embedded Checkout (stays on your site)
-        const stripe = await stripePromise
-        if (!stripe) {
-          throw new Error('Failed to load Stripe')
-        }
-
-        // Initialize Embedded Checkout
-        const checkout = await stripe.initEmbeddedCheckout({
-          clientSecret: sessionData.client_secret
-        })
-
-        // Mount checkout
-        checkout.mount('#checkout')
-        setLoading(false)
+      if (!data?.checkout_url) {
+        setError('We could not open the payment page. Please try again in a moment.')
+        setRedirecting(false)
+        return
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to initialize checkout')
-      setLoading(false)
-      toast.error('Failed to load checkout. Please try again.')
+
+      window.location.href = data.checkout_url
+    } catch {
+      setError('We could not reach our servers. Check your connection and try again.')
+      setRedirecting(false)
     }
   }
 
-  const getPlanDisplayName = (planTier: string) => {
-    if (planTier === 'free') return 'Free'
-    if (planTier !== 'standard' && planTier !== 'premium') return planTier
-    return formatPlanLabel(planTier, '/mo')
+  // ── A tier we do not sell here ───────────────────────────────────────────
+  if (!tier) {
+    return (
+      <Shell>
+        <div className="space-y-4 text-center">
+          <AlertCircle className="mx-auto h-8 w-8 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold tracking-tight">Nothing to check out</h1>
+          <p className="text-muted-foreground">
+            Pick a plan first and we will bring you straight back here.
+          </p>
+          <Button onClick={() => router.push('/pricing')}>See the plans</Button>
+        </div>
+      </Shell>
+    )
   }
 
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => router.back()}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-
-          <h1 className="text-3xl font-bold">Complete Your Subscription</h1>
-          <p className="text-muted-foreground mt-2">
-            You're subscribing to the {getPlanDisplayName(tier)} plan
-          </p>
+  // ── Loading ──────────────────────────────────────────────────────────────
+  if (state === 'loading') {
+    return (
+      <Shell>
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-56" />
+          <Skeleton className="h-[220px] rounded-lg" />
         </div>
+      </Shell>
+    )
+  }
 
-        <Card className="p-6">
-          {/* Order summary — shown BEFORE any redirect. The Stripe session is only
-              created when the user clicks "Continue to payment". */}
-          {!started && !error && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold mb-4">Order summary</h2>
-                <div className="flex items-center justify-between py-3 border-b">
-                  <span className="text-muted-foreground">Plan</span>
-                  <span className="font-medium">{getPlanDisplayName(tier)}</span>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-muted-foreground">Price</span>
-                  <span className="text-xl font-bold">{getPlanPrice(tier)}</span>
-                </div>
-              </div>
+  // ── Failed ───────────────────────────────────────────────────────────────
+  if (state === 'failed' || !line) {
+    return (
+      <Shell>
+        <div className="space-y-4 text-center">
+          <AlertCircle className="mx-auto h-8 w-8 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold tracking-tight">We could not load your price</h1>
+          <p className="text-muted-foreground">
+            We would rather show you nothing than a number you have not confirmed. Reload, or ask
+            us and we will send it over.
+          </p>
+          <div className="flex items-center justify-center gap-2">
+            <Button onClick={() => window.location.reload()}>Try again</Button>
+            <Button variant="outline" asChild>
+              <a href="mailto:support@following.ae?subject=Checkout">Ask us</a>
+            </Button>
+          </div>
+        </div>
+      </Shell>
+    )
+  }
 
-              <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
-                <p>You&apos;ll be taken to Stripe to complete your payment securely. You can review the full total before you&apos;re charged.</p>
-              </div>
+  const limits = getPlanLimits(tier)
+  const perMonth =
+    interval === 'annual'
+      ? line.monthly_equivalent ?? Math.round(line.amount / 12)
+      : line.amount
+  const billedNow = line.amount
 
-              <Button className="w-full" size="lg" onClick={initializeCheckout}>
-                Continue to payment
-              </Button>
+  return (
+    <Shell>
+      <Button variant="ghost" onClick={() => router.push('/pricing')} className="mb-6 -ml-3">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to plans
+      </Button>
+
+      <h1 className="text-3xl font-semibold tracking-tight">Confirm your plan</h1>
+      <p className="mt-2 text-muted-foreground">
+        {TIER_NAME[tier]}, billed {interval === 'annual' ? 'annually' : 'monthly'}.
+      </p>
+
+      <Card className="mt-8">
+        <CardContent className="space-y-6 py-6">
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Plan</span>
+              <span className="font-medium">{TIER_NAME[tier]}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Billing</span>
+              <span className="font-medium">{interval === 'annual' ? 'Annual' : 'Monthly'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Included</span>
+              <span className="font-medium">
+                {limits.monthlyUnlocks.toLocaleString()} unlocks, {limits.seats} seat
+                {limits.seats === 1 ? '' : 's'}
+              </span>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="flex items-baseline justify-between">
+            <span className="font-medium">
+              {interval === 'annual' ? 'Billed today, for the year' : 'Billed monthly'}
+            </span>
+            <span className="text-2xl font-semibold">
+              {formatPlanPrice(billedNow, currency)}
+            </span>
+          </div>
+
+          {interval === 'annual' && (
+            <p className="text-sm text-muted-foreground">
+              That is {formatPlanPrice(perMonth, currency)} a month
+              {typeof line.savings === 'number' && line.savings > 0
+                ? `, saving ${formatPlanPrice(line.savings, currency)} against monthly billing.`
+                : `, ${Math.round(ANNUAL_DISCOUNT * 100)}% off the monthly price.`}
+            </p>
           )}
 
-          {loading && (
-            <div className="flex items-center justify-center py-12" role="status" aria-live="polite">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-3 text-muted-foreground">Redirecting to secure checkout...</span>
+          {!purchasable && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <p>
+                This plan is not set up for online payment in {currency} yet. Email{' '}
+                <a href="mailto:support@following.ae" className="underline underline-offset-2">
+                  support@following.ae
+                </a>{' '}
+                and we will invoice you and switch it on the same day.
+              </p>
             </div>
           )}
 
           {error && (
-            <div className="text-center py-12">
-              <p className="text-destructive mb-4">{error}</p>
-              <Button onClick={initializeCheckout}>Try Again</Button>
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              <p>{error}</p>
             </div>
           )}
 
-          {/* Stripe Embedded Checkout will be mounted here */}
-          {mode === 'embedded' && <div id="checkout" className="min-h-[600px]"></div>}
-        </Card>
+          <Button
+            className="w-full"
+            size="lg"
+            disabled={!purchasable || redirecting}
+            onClick={startCheckout}
+          >
+            {redirecting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Opening secure checkout
+              </>
+            ) : (
+              'Continue to payment'
+            )}
+          </Button>
 
-        {/* Test Card Info */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <h3 className="font-semibold mb-2">Test Card Numbers</h3>
-            <ul className="text-sm space-y-1">
-              <li>✅ Success: 4242 4242 4242 4242</li>
-              <li>🔐 Requires Auth: 4000 0025 0000 3155</li>
-              <li>❌ Declined: 4000 0000 0000 9995</li>
-              <li>Use any future expiry date and any 3-digit CVC</li>
-            </ul>
+          <div className="flex items-start gap-2 text-xs text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              Payment is taken by Stripe. You can review the full total before you are charged, and
+              cancel or change your plan at any time from Billing.
+            </p>
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
+    </Shell>
+  )
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-[100dvh] bg-background">
+      <div className="mx-auto max-w-xl px-6 py-16">{children}</div>
     </div>
   )
 }
 
 export default function CheckoutPage() {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[100dvh] items-center justify-center bg-background">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
       <CheckoutContent />
     </Suspense>
   )

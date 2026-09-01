@@ -229,7 +229,10 @@ export function useAccountInvoices(enabled: boolean): AccountInvoicesResult {
       return
     }
     setLoading(true)
-    const headers = getAuthHeaders()
+    // getAuthHeaders returns a union: the signed-out shape has no Authorization
+    // key at all, so reading it directly does not typecheck. Widen rather than
+    // assert, because the whole point of the check is that it may be absent.
+    const headers = getAuthHeaders() as Record<string, string>
     if (!headers.Authorization) {
       setInvoices([])
       setFailedSources(['stripe', 'campaign'])

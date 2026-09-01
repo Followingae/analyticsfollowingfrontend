@@ -29,9 +29,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  ArrowLeft, Building2, Coins, FileText, Users, Video,
+  ArrowLeft, Boxes, Building2, Coins, FileText, Users, Video,
   Calendar, Activity, TrendingUp, AlertCircle, CheckCircle2,
-  Clock, XCircle, ChevronRight, Upload, Loader2, ShieldCheck, Mail
+  Clock, XCircle, ChevronRight, Upload, Loader2, ShieldCheck, Mail, Handshake
 } from 'lucide-react';
 import { ClientAccessDialog } from '@/components/clients/ClientAccessDialog';
 import { CampaignBriefingDialog } from '@/components/clients/CampaignBriefingDialog';
@@ -40,6 +40,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/clientManagementApi';
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab';
+import { ClientModulesTab } from '@/components/clients/ClientModulesTab';
+import { ClientManagementTermsTab } from '@/components/clients/ClientManagementTermsTab';
 import { Aed, Panel, Stat, StatGrid } from '@/components/console/primitives';
 
 /**
@@ -161,7 +163,7 @@ function ClientDetailPage() {
   // Every deep link into a client — chase the agreement, chase the invoice — landed on
   // Scope, because the record ignored where it was asked to open.
   const search = useSearchParams();
-  const TABS = ['scope','campaigns','proposals','barter','ugc','commercial','finance','activity'];
+  const TABS = ['scope','campaigns','proposals','barter','ugc','commercial','modules','finance','activity'];
   const asked = search?.get('tab') || '';
   const [activeTab, setActiveTab] = useState(TABS.includes(asked) ? asked : 'scope');
   const [scopeYear, setScopeYear] = useState<string>('all');
@@ -436,13 +438,15 @@ function ClientDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={loadTabData}>
-        <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-8">
+        <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-10">
           <TabsTrigger value="scope"><FileText className="mr-1.5 h-3.5 w-3.5" />What we agreed</TabsTrigger>
           <TabsTrigger value="campaigns"><Building2 className="mr-1.5 h-3.5 w-3.5" />Campaigns</TabsTrigger>
           <TabsTrigger value="proposals"><Users className="mr-1.5 h-3.5 w-3.5" />Proposals</TabsTrigger>
           <TabsTrigger value="barter"><Calendar className="mr-1.5 h-3.5 w-3.5" />Barter & Events</TabsTrigger>
           <TabsTrigger value="ugc"><Video className="mr-1.5 h-3.5 w-3.5" />UGC</TabsTrigger>
           <TabsTrigger value="commercial"><Coins className="mr-1.5 h-3.5 w-3.5" />Agreement &amp; invoices</TabsTrigger>
+          <TabsTrigger value="modules"><Boxes className="mr-1.5 h-3.5 w-3.5" />What they can use</TabsTrigger>
+          <TabsTrigger value="management"><Handshake className="mr-1.5 h-3.5 w-3.5" />Management deal</TabsTrigger>
           <TabsTrigger value="finance"><TrendingUp className="mr-1.5 h-3.5 w-3.5" />Money in</TabsTrigger>
           <TabsTrigger value="activity"><Activity className="mr-1.5 h-3.5 w-3.5" />Activity</TabsTrigger>
         </TabsList>
@@ -791,6 +795,17 @@ function ClientDetailPage() {
         {/* COMMERCIAL TAB */}
         <TabsContent value="commercial" className="space-y-4">
           <ClientCommercialTab teamId={teamId} />
+        </TabsContent>
+
+        {/* MODULES TAB: which of the four products this client holds, and how each is billed */}
+        <TabsContent value="modules" className="space-y-4">
+          <ClientModulesTab teamId={teamId} clientName={client.company_name || client.name} />
+        </TabsContent>
+
+        {/* MANAGEMENT TAB: the retainer and the service charge we run this client on, and
+            what having a deal at all means for what they are charged elsewhere */}
+        <TabsContent value="management" className="space-y-4">
+          <ClientManagementTermsTab teamId={teamId} clientName={client.company_name || client.name} />
         </TabsContent>
 
         {/* FINANCE TAB */}

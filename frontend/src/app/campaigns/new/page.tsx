@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Upload, X, Link as LinkIcon, ChevronRight } from "lucide-react";
+import {
+  ArrowLeft, Plus, X, Link as LinkIcon, ChevronRight, BarChart3, Clapperboard,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,20 +18,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { AuthGuard } from "@/components/AuthGuard";
 import { API_CONFIG } from "@/config/api";
 import { tokenManager } from "@/utils/tokenManager";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { ImageCropper } from "@/components/ui/image-cropper";
+import { Empty, Page, PageHead, SectionHead } from "@/components/campaigns/surface";
 
 interface CampaignPost {
   url: string;
@@ -323,92 +317,107 @@ export default function NewCampaignPage() {
   return (
     <AuthGuard>
       <BrandUserInterface>
-          <div className="container mx-auto py-8 px-4 max-w-4xl">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Header */}
-              <div className="flex items-center gap-4">
-                <Button type="button" variant="ghost" size="icon" onClick={() => {
-                  if (selectedType) {
-                    setSelectedType(null);
-                  } else {
-                    handleCancel();
-                  }
-                }}>
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div className="flex-1">
-                  {selectedType && (
-                    <h2 className="text-lg font-semibold">
-                      New {selectedType === 'ugc' ? 'UGC' : 'Influencer'} Campaign
-                    </h2>
-                  )}
-                </div>
-                <Badge variant="outline" className={isSuperadmin ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}>
-                  {isSuperadmin ? 'Admin Mode' : 'Self-Managed'}
-                </Badge>
-              </div>
+          <Page width="form">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-ds-6">
+              {/* Where you are, and the way back. The step back is a quiet link above the
+                  title rather than an icon button beside it, so nothing competes with the
+                  one action at the foot of the form. */}
+              <PageHead
+                eyebrow={isSuperadmin ? 'Creating on behalf of a client' : undefined}
+                title={selectedType
+                  ? `New ${selectedType === 'ugc' ? 'UGC' : 'influencer'} campaign`
+                  : 'New campaign'}
+                sub={selectedType
+                  ? 'The name and the brand are all we need to open it. Everything else can be filled in later.'
+                  : undefined}
+                back={
+                  <button
+                    type="button"
+                    onClick={() => { if (selectedType) setSelectedType(null); else handleCancel(); }}
+                    className="inline-flex w-fit items-center gap-ds-2 text-ds-body-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    {selectedType ? 'Choose a different type' : 'Back to campaigns'}
+                  </button>
+                }
+              />
 
         {/* Campaign Type Selector */}
         {!selectedType ? (
-          <div className="py-12">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold tracking-tight mb-2">Choose Campaign Type</h2>
-              <p className="text-muted-foreground">Select the type of campaign you want to create</p>
-            </div>
-            <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
+          /* Two choices, so two rows on one hairline. The old pair were hardcoded dark
+             tiles with an emoji on them: they rendered as black boxes with white text in
+             light mode, which is where nearly everyone using this actually is. */
+          <div className="flex flex-col gap-ds-4">
+            <SectionHead
+              title="What kind of campaign is this?"
+              sub="It decides which screens the campaign gets. You cannot change it afterwards."
+            />
+            <div className="divide-y overflow-hidden rounded-ds-lg border">
               <button
                 type="button"
                 onClick={() => setSelectedType('influencer')}
-                className="p-8 rounded-2xl border-2 border-zinc-700 hover:border-blue-500 transition-all bg-zinc-900/50 text-left group"
+                className="flex w-full items-start gap-ds-3 px-ds-4 py-ds-4 text-left transition-colors hover:bg-muted/60"
               >
-                <div className="text-3xl mb-4">📊</div>
-                <h3 className="text-xl font-bold text-white mb-2">Influencer Campaign</h3>
-                <p className="text-sm text-zinc-400">Track posts, analyze reach, and measure ROI from influencer collaborations</p>
+                <BarChart3 className="mt-1 h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.7} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-ds-subheading">Influencer campaign</span>
+                  <span className="mt-1 block max-w-prose text-ds-body-sm text-muted-foreground">
+                    Creators post to their own accounts. We track the posts and report on
+                    what they reached.
+                  </span>
+                </span>
+                <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/50" />
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedType('ugc')}
-                className="p-8 rounded-2xl border-2 border-zinc-700 hover:border-purple-500 transition-all bg-zinc-900/50 text-left group"
+                className="flex w-full items-start gap-ds-3 px-ds-4 py-ds-4 text-left transition-colors hover:bg-muted/60"
               >
-                <div className="text-3xl mb-4">🎬</div>
-                <h3 className="text-xl font-bold text-white mb-2">UGC Campaign</h3>
-                <p className="text-sm text-zinc-400">Creative concepts, model casting, video production & delivery management</p>
+                <Clapperboard className="mt-1 h-5 w-5 shrink-0 text-muted-foreground" strokeWidth={1.7} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-ds-subheading">UGC campaign</span>
+                  <span className="mt-1 block max-w-prose text-ds-body-sm text-muted-foreground">
+                    Creators film for you, not for their own feed. Concepts, casting,
+                    production and delivery.
+                  </span>
+                </span>
+                <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/50" />
               </button>
             </div>
           </div>
         ) : (
         <>
         {/* Campaign Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Campaign Details</CardTitle>
-            <CardDescription>Basic information about your campaign</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <div className="flex flex-col gap-ds-4">
+          <SectionHead title="The campaign" sub="Basic information about your campaign" />
+          <div className="flex flex-col gap-ds-3">
             {/* User Selection (Superadmin Only) */}
             {isSuperadmin && (
-              <div className="space-y-2 p-4 bg-purple-50 rounded-lg border-purple-200 border">
-                <Label htmlFor="targetUser" className="font-semibold text-purple-700">
-                  Create Campaign For User <span className="text-destructive">*</span>
+              /* A tint rather than a coloured border and coloured text: this is set apart
+                 because it is ours and not the client's, and one surface says that. The
+                 hardcoded purple had no dark variant and went unreadable at night. */
+              <div className="space-y-ds-2 rounded-ds-lg bg-muted px-ds-3 py-ds-3">
+                <Label htmlFor="targetUser" className="text-ds-label">
+                  Create this campaign for <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="targetUser"
-                  placeholder="Enter user ID or email"
+                  placeholder="User ID or email"
                   value={targetUserId}
                   onChange={(e) => setTargetUserId(e.target.value)}
                   required={isSuperadmin}
-                  className="border-purple-200 focus:border-purple-500"
+                  className="bg-background"
                 />
-                <p className="text-xs text-purple-600">
-                  As a superadmin, you are creating this campaign FOR another user. Enter their user ID.
+                <p className="text-ds-caption text-muted-foreground">
+                  The campaign will belong to this account, not to yours.
                 </p>
               </div>
             )}
 
             {/* Campaign Name */}
-            <div className="space-y-2">
+            <div className="space-y-ds-2">
               <Label htmlFor="campaignName">
-                Campaign Name <span className="text-destructive">*</span>
+                Campaign name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="campaignName"
@@ -420,9 +429,9 @@ export default function NewCampaignPage() {
             </div>
 
             {/* Brand Name */}
-            <div className="space-y-2">
+            <div className="space-y-ds-2">
               <Label htmlFor="brandName">
-                Brand Name <span className="text-destructive">*</span>
+                Brand name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="brandName"
@@ -434,8 +443,8 @@ export default function NewCampaignPage() {
             </div>
 
             {/* Brand Logo Upload */}
-            <div className="space-y-2">
-              <Label htmlFor="brandLogo">Brand Logo</Label>
+            <div className="space-y-ds-2">
+              <Label htmlFor="brandLogo">Brand logo</Label>
               <div className="flex items-center gap-4">
                 {logoPreview && (
                   <div className="h-20 w-20 rounded-lg border overflow-hidden">
@@ -454,17 +463,17 @@ export default function NewCampaignPage() {
                     onChange={handleLogoUpload}
                     className="cursor-pointer"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    PNG, JPG or SVG (max. 2MB)
+                  <p className="mt-ds-2 text-ds-caption text-muted-foreground">
+                    PNG, JPG or SVG, up to 2MB.
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Description */}
-            <div className="space-y-2">
+            <div className="space-y-ds-2">
               <Label htmlFor="description">
-                Campaign Description
+                Campaign description
               </Label>
               <textarea
                 id="description"
@@ -473,15 +482,15 @@ export default function NewCampaignPage() {
                 onChange={(e) => setDescription(e.target.value)}
                 className="min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
-              <p className="text-xs text-muted-foreground">
-                Provide details about campaign objectives and requirements
+              <p className="text-ds-caption text-muted-foreground">
+                Objectives, audience, key messages. Anything the team should know.
               </p>
             </div>
 
             {/* Budget */}
-            <div className="space-y-2">
+            <div className="space-y-ds-2">
               <Label htmlFor="budget">
-                Campaign Budget
+                Campaign budget
               </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">AED</span>
@@ -496,16 +505,16 @@ export default function NewCampaignPage() {
                   step="1"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Total budget for this campaign (optional)
+              <p className="text-ds-caption text-muted-foreground">
+                Optional, and only your own note of it. Nothing is charged here.
               </p>
             </div>
 
             {/* Campaign Dates */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-ds-3 md:grid-cols-2">
+              <div className="space-y-ds-2">
                 <Label htmlFor="startDate">
-                  Start Date
+                  Start date
                 </Label>
                 <Input
                   id="startDate"
@@ -514,14 +523,14 @@ export default function NewCampaignPage() {
                   onChange={(e) => setStartDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
                 />
-                <p className="text-xs text-muted-foreground">
-                  When should this campaign begin?
+                <p className="text-ds-caption text-muted-foreground">
+                  When it begins.
                 </p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-ds-2">
                 <Label htmlFor="endDate">
-                  End Date
+                  End date
                 </Label>
                 <Input
                   id="endDate"
@@ -530,23 +539,20 @@ export default function NewCampaignPage() {
                   onChange={(e) => setEndDate(e.target.value)}
                   min={startDate || new Date().toISOString().split('T')[0]}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Campaign completion deadline
+                <p className="text-ds-caption text-muted-foreground">
+                  When it should be finished.
                 </p>
               </div>
             </div>
-
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Campaign Posts */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Campaign Posts</CardTitle>
-                <CardDescription>Add Instagram post URLs to track</CardDescription>
-              </div>
+        <div className="flex flex-col gap-ds-4">
+          <SectionHead
+            title="Posts to track"
+            sub="Instagram posts we should measure. You can add these later, the campaign opens without them."
+            action={
               <Dialog open={isAddPostDialogOpen} onOpenChange={setIsAddPostDialogOpen}>
                 <DialogTrigger asChild>
                   <Button type="button" variant="outline" size="sm">
@@ -556,14 +562,14 @@ export default function NewCampaignPage() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Add Post URL</DialogTitle>
+                    <DialogTitle>Add a post</DialogTitle>
                     <DialogDescription>
-                      Enter the Instagram post URL you want to track in this campaign
+                      Paste the Instagram post you want tracked on this campaign.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="postUrl">Instagram Post URL</Label>
+                  <div className="space-y-ds-3 py-ds-3">
+                    <div className="space-y-ds-2">
+                      <Label htmlFor="postUrl">Instagram post URL</Label>
                       <div className="flex gap-2">
                         <div className="flex-1 relative">
                           <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -582,8 +588,8 @@ export default function NewCampaignPage() {
                           />
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Example: https://instagram.com/p/CXXXxxxxxx/
+                      <p className="text-ds-caption text-muted-foreground">
+                        For example https://instagram.com/p/CXXXxxxxxx/
                       </p>
                     </div>
                   </div>
@@ -599,73 +605,69 @@ export default function NewCampaignPage() {
                       Cancel
                     </Button>
                     <Button type="button" onClick={handleAddPost}>
-                      Add Post
+                      Add post
                     </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-            </div>
-          </CardHeader>
-          <CardContent>
+            }
+          />
+          <div>
             {posts.length === 0 ? (
-              <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                <LinkIcon className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-sm text-muted-foreground">
-                  No posts added yet. Click "Add Posts" to get started.
+              /* Nothing added is not an error and not a failure, so it is a sentence. The
+                 dashed box with a large icon in it was a placeholder pretending to be
+                 content. */
+              <Empty>No posts added. You can add them now or once the campaign is running.</Empty>
+            ) : (
+              <div className="flex flex-col gap-ds-3">
+                <div className="divide-y overflow-hidden rounded-ds-lg border">
+                  {posts.map((post) => (
+                    <div key={post.id} className="flex items-center gap-ds-3 py-1 pl-ds-3 pr-1">
+                      <LinkIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate text-ds-body-sm">{post.url}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Remove this post"
+                        onClick={() => handleRemovePost(post.id)}
+                        className="shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-ds-caption text-muted-foreground">
+                  {posts.length} {posts.length === 1 ? "post" : "posts"} will be tracked.
                 </p>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-sm truncate">{post.url}</span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemovePost(post.id)}
-                      className="flex-shrink-0"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between pt-2">
-                  <p className="text-sm text-muted-foreground">
-                    {posts.length} {posts.length === 1 ? "post" : "posts"} added
-                  </p>
-                  <Badge variant="secondary">{posts.length} URLs</Badge>
-                </div>
-              </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Form Actions */}
-        <div className="flex items-center justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => setSelectedType(null)}>
-            Back
-          </Button>
-          <Button type="button" variant="outline" onClick={handleCancel}>
+        {/* The one action. Cancel stops shouting: it is a quiet link, not a third button of
+            equal weight beside the thing you actually came to do. */}
+        <div className="flex items-center justify-end gap-ds-5 border-t pt-ds-5">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="text-ds-body-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
             Cancel
-          </Button>
+          </button>
           <Button
             type="submit"
+            size="lg"
             disabled={isSubmitting || !campaignName || !brandName || (isSuperadmin && !targetUserId)}
           >
-            {isSubmitting ? 'Creating...' : isSuperadmin ? 'Create Managed Campaign' : 'Create My Campaign'}
+            {isSubmitting ? 'Creating' : isSuperadmin ? 'Create for this client' : 'Create campaign'}
           </Button>
         </div>
         </>
         )}
-              </form>
-          </div>
+            </form>
+          </Page>
       </BrandUserInterface>
 
       {/* Image Cropper Dialog */}

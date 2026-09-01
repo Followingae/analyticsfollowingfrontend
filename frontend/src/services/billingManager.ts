@@ -277,13 +277,18 @@ class BillingManager {
   }
 
   // Upgrade existing user's subscription
-  async upgradeSubscription(tier: string): Promise<any> {
+  // interval is a parameter, not a constant. It was hardcoded to monthly
+  // here and in createCheckoutSession, so a customer who chose annual, read
+  // "billed annually, 20% off", and clicked Continue got a MONTHLY
+  // subscription. The backend has always accepted the interval; only this
+  // file refused to send it.
+  async upgradeSubscription(tier: string, billingInterval: "monthly" | "annual" = "monthly"): Promise<any> {
     const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.upgradeSubscription}`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
         tier,
-        billing_interval: 'monthly',
+        billing_interval: billingInterval,
         success_url: `${window.location.origin}/billing?upgraded=true`,
         cancel_url: `${window.location.origin}/billing?checkout=cancelled`
       })
@@ -314,13 +319,13 @@ class BillingManager {
   // Backend (/api/v1/checkout/create-session) returns hosted-checkout: { checkout_url, session_id }.
   // Embedded checkout (client_secret) is NOT supported by the backend — callers should use the
   // checkout_url for full-page redirect, or sessionId with stripe.redirectToCheckout().
-  async createCheckoutSession(tier: string): Promise<CheckoutSession & { checkout_url?: string }> {
+  async createCheckoutSession(tier: string, billingInterval: "monthly" | "annual" = "monthly"): Promise<CheckoutSession & { checkout_url?: string }> {
     const response = await fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.createCheckoutSession}`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
         tier,
-        billing_interval: 'monthly',
+        billing_interval: billingInterval,
         success_url: `${window.location.origin}/dashboard?subscription=success`,
         cancel_url: `${window.location.origin}/pricing?subscription=cancelled`
       })

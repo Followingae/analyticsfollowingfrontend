@@ -65,6 +65,28 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { AuthGuard } from "@/components/AuthGuard";
+import {
+  Empty as SurfaceEmpty,
+  Failed,
+  Figure,
+  Figures,
+  Page,
+  SectionHead,
+  State,
+  Waiting,
+  type StateTone,
+} from "@/components/campaigns/surface";
+
+/** A campaign's status, as a word with a tone behind it. Colour never carries it alone. */
+const STATUS_TONE: Record<string, StateTone> = {
+  active: "good",
+  live: "good",
+  completed: "info",
+  paused: "warn",
+  draft: "neutral",
+  cancelled: "bad",
+  archived: "neutral",
+};
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { toast } from "sonner";
 import { ImageCropper } from "@/components/ui/image-cropper";
@@ -386,6 +408,15 @@ export default function CampaignDetailsPage() {
   const { user, isLoading: authLoading } = useEnhancedAuth();
 
   const [campaign, setCampaign] = useState<BackendCampaignDetails | null>(null);
+  /**
+   * Whether the last read failed, as opposed to coming back empty.
+   *
+   * Without this the two were indistinguishable downstream: a 500 left `campaign` null and
+   * the page said "Campaign not found", which tells a client their campaign has been
+   * deleted. It is the difference between "there is nothing here" and "we could not find
+   * out", and it is the whole reason this flag exists.
+   */
+  const [loadFailed, setLoadFailed] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
   const [posts, setPosts] = useState<BackendCampaignPost[]>([]);
   const [creators, setCreators] = useState<BackendCreator[]>([]);
@@ -513,6 +544,7 @@ export default function CampaignDetailsPage() {
   const fetchCampaignData = async () => {
     try {
       setIsLoading(true);
+      setLoadFailed(false);
       const { API_CONFIG } = await import("@/config/api");
       const { tokenManager } = await import("@/utils/tokenManager");
       const tokenResult = await tokenManager.getValidTokenWithRefresh();
@@ -818,6 +850,10 @@ export default function CampaignDetailsPage() {
       // Set empty state if campaign not found
       if (error.message?.includes('404')) {
         setCampaign(null);
+      } else {
+        // Anything else is our fault, not a missing campaign, and the screen has to say so
+        // rather than reporting the campaign as gone.
+        setLoadFailed(true);
       }
     } finally {
       setIsLoading(false);
@@ -1545,7 +1581,7 @@ export default function CampaignDetailsPage() {
         <div>
           <div className="font-medium">Fetching post metrics</div>
           <div className="text-xs text-gray-400">
-            {urls.length} post{urls.length === 1 ? "" : "s"} queued — appearing as each finishes
+            {urls.length} post{urls.length === 1 ? "" : "s"} queued, appearing as each one finishes
           </div>
         </div>
       </div>,
@@ -1606,7 +1642,7 @@ export default function CampaignDetailsPage() {
           const first = r.failed?.[0];
           toast.error(
             `${failed} post${failed === 1 ? "" : "s"} could not be queued` +
-              (first?.error ? ` — ${String(first.error).slice(0, 120)}` : ""),
+              (first?.error ? `: ${String(first.error).slice(0, 120)}` : ""),
             { duration: 10000, position: 'bottom-center' }
           );
         }
@@ -1657,16 +1693,58 @@ export default function CampaignDetailsPage() {
     }
   };
 
-  // Show consistent loading state to prevent hydration mismatch
+  // Show consistent loading state to prevent hydration mismatch.
+  // Shapes the size of what is coming rather than a spinner on an empty screen, so the page
+  // does not jump when it lands.
   if (authLoading || isLoading || !user) {
     return (
       <AuthGuard>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground">Loading campaign...</p>
-          </div>
-        </div>
+        <BrandUserInterface>
+          <Page width="page">
+            <div className="flex flex-col gap-ds-6" aria-busy="true">
+              <div className="h-40 w-full animate-pulse rounded-ds-lg bg-muted" />
+              <div className="space-y-ds-2">
+                <div className="h-9 w-72 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-48 animate-pulse rounded bg-muted" />
+              </div>
+              <div className="grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 lg:grid-cols-5">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={i} className="space-y-ds-2">
+                    <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+                    <div className="h-8 w-24 animate-pulse rounded bg-muted" />
+                  </div>
+                ))}
+              </div>
+              <Waiting lines={5} />
+            </div>
+          </Page>
+        </BrandUserInterface>
+      </AuthGuard>
+    );
+  }
+
+  /* A read that failed is not a campaign that does not exist. Saying "Campaign not found"
+     over a 500 tells a client their campaign has been deleted, which is the worst thing this
+     screen could say and it was saying it for every non-404 error. */
+  if (loadFailed && !campaign) {
+    return (
+      <AuthGuard>
+        <BrandUserInterface>
+          <Page width="page">
+            <div className="flex flex-col gap-ds-4">
+              <Failed
+                what="We could not load this campaign"
+                detail="Nothing has changed on the campaign itself. This is a read that failed at our end."
+                onRetry={() => fetchCampaignData()}
+              />
+              <div>
+                <Button variant="outline" onClick={() => router.push("/campaigns")}>
+                  Back to campaigns
+                </Button>
+              </div>
+            </div>
+          </Page>
+        </BrandUserInterface>
       </AuthGuard>
     );
   }
@@ -1675,14 +1753,22 @@ export default function CampaignDetailsPage() {
     return (
       <AuthGuard>
         <BrandUserInterface>
-            <div className="container mx-auto py-8 px-4">
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">Campaign not found</p>
-                <Button className="mt-4" onClick={() => router.push("/campaigns")}>
-                  Back to Campaigns
+          <Page width="page">
+            <div className="flex flex-col gap-ds-4">
+              <div className="space-y-ds-2">
+                <h1 className="text-ds-heading">This campaign is not here</h1>
+                <p className="max-w-prose text-ds-body text-muted-foreground">
+                  It may have been removed, or the link may point somewhere that no longer
+                  exists.
+                </p>
+              </div>
+              <div>
+                <Button variant="outline" onClick={() => router.push("/campaigns")}>
+                  Back to campaigns
                 </Button>
               </div>
             </div>
+          </Page>
         </BrandUserInterface>
       </AuthGuard>
     );
@@ -1775,7 +1861,7 @@ export default function CampaignDetailsPage() {
     return (
       <AuthGuard>
         <BrandUserInterface>
-          <div className="container mx-auto py-8 px-4 space-y-6">
+          <Page width="page"><div className="flex flex-col gap-ds-6">
             {coverBanner}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -1798,7 +1884,7 @@ export default function CampaignDetailsPage() {
             </div>
             {campaignOverview}
             <MasterCampaignPanel campaignId={String(campaign.id)} isSuperadmin={isSuperadmin} />
-          </div>
+          </div></Page>
         </BrandUserInterface>
       </AuthGuard>
     );
@@ -1811,7 +1897,7 @@ export default function CampaignDetailsPage() {
     return (
       <AuthGuard>
         <BrandUserInterface>
-          <div className="container mx-auto py-8 px-4 space-y-6">
+          <Page width="page"><div className="flex flex-col gap-ds-6">
             {coverBanner}
             {/* Header reuses existing pattern for visual consistency */}
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1850,7 +1936,7 @@ export default function CampaignDetailsPage() {
               campaignId={String(campaign.id)}
               campaignType={faType as "cashback" | "paid_deal" | "barter"}
             />
-          </div>
+          </div></Page>
         </BrandUserInterface>
       </AuthGuard>
     );
@@ -1859,74 +1945,82 @@ export default function CampaignDetailsPage() {
   return (
     <AuthGuard>
       <BrandUserInterface>
-          <div className="container mx-auto py-8 px-4 space-y-6">
+          <Page width="page"><div className="flex flex-col gap-ds-6">
       {coverBanner}
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" aria-label="Back to campaigns" onClick={() => router.push("/campaigns")}>
+      {/*
+        The header. The way back is a quiet link above the title rather than an icon button
+        wedged between the edge of the screen and the brand mark, so the title starts where
+        every other page's title starts and the row below it holds only things you can do.
+      */}
+      <div className="flex flex-col gap-ds-3">
+        <button
+          type="button"
+          onClick={() => router.push("/campaigns")}
+          className="inline-flex w-fit items-center gap-ds-2 text-ds-body-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
           <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
+          All campaigns
+        </button>
+        <div className="flex flex-col gap-ds-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-ds-3">
+            <Avatar className="h-11 w-11 shrink-0">
               <AvatarImage src={campaign.brand_logo_url || ""} />
               <AvatarFallback>{campaign.brand_name ? campaign.brand_name.substring(0, 2).toUpperCase() : 'BR'}</AvatarFallback>
             </Avatar>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
+            <div className="min-w-0 space-y-ds-2">
+              <div className="flex items-center gap-ds-2">
+                <h1 className="text-ds-title text-balance">{campaign.name}</h1>
                 {!isViewOnly && (
                   <Button variant="ghost" size="icon" aria-label="Edit campaign" onClick={handleOpenEditDialog}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                 )}
               </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-sm text-muted-foreground">{campaign.brand_name}</span>
+              {/* One line of facts, separated by space rather than by a badge each. */}
+              <div className="flex flex-wrap items-center gap-x-ds-3 gap-y-1 text-ds-body-sm text-muted-foreground">
+                <span>{campaign.brand_name}</span>
                 {campaign.campaign_type && (
-                  <Badge variant="outline" className="text-[10px] capitalize">{campaign.campaign_type}</Badge>
+                  <span className="capitalize">{String(campaign.campaign_type).replace(/_/g, ' ')}</span>
                 )}
+                <State tone={STATUS_TONE[String(campaign.status || '').toLowerCase()] || 'neutral'}>
+                  {campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : 'Draft'}
+                </State>
                 {campaign.created_at && (
-                  <span className="text-xs text-muted-foreground">
-                    Created {new Date(campaign.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  <span>
+                    Opened {new Date(campaign.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
                 )}
               </div>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge>{campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : 'Draft'}</Badge>
-          {!isViewOnly && (
-            <Button
-              variant="default"
-              onClick={() => setIsAddPostDialogOpen(true)}
-              className="h-10"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Posts
-            </Button>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-10">
-                <Download className="mr-2 h-4 w-4" />
-                Export
+          <div className="flex shrink-0 flex-wrap items-center gap-ds-2">
+            {!isViewOnly && (
+              <Button variant="default" onClick={() => setIsAddPostDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add posts
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport('pdf')}>Export PDF Report</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('csv')}>Export CSV</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('json')}>Export JSON</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport('pdf')}>Export PDF report</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('csv')}>Export CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('json')}>Export JSON</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
       {campaignOverview}
 
       {/* Tabs */}
-      <Tabs defaultValue="stats" className="space-y-6">
+      <Tabs defaultValue="stats" className="flex flex-col gap-ds-5">
         <TabsList className={`flex w-full max-w-3xl overflow-x-auto md:grid ${campaign?.has_workflow ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
           {campaign?.has_workflow && (
             <TabsTrigger value="workflow">Workflow</TabsTrigger>
@@ -1940,7 +2034,7 @@ export default function CampaignDetailsPage() {
 
         {/* Campaign Workflow Tab — only for campaigns with active workflow state */}
         {campaign?.has_workflow && (
-          <TabsContent value="workflow" className="space-y-6">
+          <TabsContent value="workflow" className="mt-0 flex flex-col gap-ds-6">
             <CampaignWorkflow
               campaignId={campaignId}
               currentStage={campaign?.status === "active" ? "influencer_selection" : "proposal"}
@@ -1950,224 +2044,138 @@ export default function CampaignDetailsPage() {
         )}
 
         {/* Campaign Stats Tab */}
-        <TabsContent value="stats" className="space-y-6">
-          {/* Period Selector */}
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Campaign Analytics</h3>
-            <div className="flex items-center gap-1 rounded-lg border p-1">
+        <TabsContent value="stats" className="mt-0 flex flex-col gap-ds-6">
+          {/* Period selector. Says out loud that the figures follow it: metrics reflect
+              what is selected, not a blanket total, and the reader should not have to infer
+              that from a control sitting in a corner. */}
+          <div className="flex flex-wrap items-center justify-between gap-ds-3">
+            <div className="space-y-1">
+              <h2 className="text-ds-subheading">How this campaign performed</h2>
+              {/* Deliberately does NOT claim the period scopes these figures.
+                  `analyticsPeriod` is passed to the analytics read only; the headline
+                  numbers below are derived client side from every post on the campaign, so
+                  they are whole-campaign totals whatever this control says. Writing "the
+                  last 30 days" over them would have been a fabricated scope. This is
+                  presentation only, so the wiring is left alone and reported instead. */}
+              <p className="text-ds-body-sm text-muted-foreground">
+                Counted across every post on this campaign.
+              </p>
+            </div>
+            <div className="flex items-center gap-1 rounded-ds-full bg-muted p-1">
               {(['7d', '30d', '90d', 'all'] as const).map((period) => (
                 <button
                   key={period}
                   aria-pressed={analyticsPeriod === period}
                   onClick={() => { setAnalyticsPeriod(period); }}
-                  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  className={`rounded-ds-full px-3 py-1.5 text-ds-caption font-medium transition-colors ${
                     analyticsPeriod === period
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-background text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {period === '7d' ? '7 Days' : period === '30d' ? '30 Days' : period === '90d' ? '90 Days' : 'All Time'}
+                  {period === '7d' ? '7 days' : period === '30d' ? '30 days' : period === '90d' ? '90 days' : 'All time'}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Overview — headline metrics (Enhanced with Collaboration Support) */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Overview</h4>
-            <div className="grid gap-4 md:grid-cols-5">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Creators</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats?.totalCreators || campaign?.creators_count || 0}</div>
-                {stats && stats.totalCreators > (campaign?.creators_count || 0) && (
-                  <p className="text-xs text-muted-foreground mt-1">Unique creators (no duplicates)</p>
-                )}
-              </CardContent>
-            </Card>
+          {/*
+            Nine numbers used to arrive in nine cards: eighteen borders and eighteen
+            backgrounds between figures the reader is being asked to compare. The cards come
+            off and the gap between columns goes up a step instead, which is the separation
+            the borders were drawing. The figures grew into the room the padding was using.
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Posts</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{campaign?.posts_count || stats?.totalPosts || 0}</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Followers</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatNumber(stats?.totalFollowers || 0)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Combined followers</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-1.5">
-                  Video plays
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" aria-label="About video plays" className="text-muted-foreground/70 hover:text-foreground transition-colors">
-                          <AlertCircle className="h-3 w-3" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs">
-                        <p className="text-xs">
-                          Instagram&apos;s play count, summed across the campaign&apos;s video
-                          posts. Images contribute nothing. This is not reach — true reach
-                          and impressions are visible only to the account owner.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </CardTitle>
-                <Eye className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatNumber(stats?.totalReach || 0)}
-                </div>
-                {/* Was "Estimated · not a measured metric" sitting under an invented
-                    figure. It is now a counted play total, so the caption says so. */}
-                <p className="text-xs text-muted-foreground mt-1">Counted from video plays</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {campaign?.engagement_rate !== undefined
+            Every value below is `null` when the read failed, and `Figure` renders that as a
+            dash. It used to be `|| 0`, so a campaign whose analytics did not load reported
+            zero creators, zero reach and 0.0% engagement as if measured.
+          */}
+          <div className="flex flex-col gap-ds-4">
+            <SectionHead title="Overview" rule />
+            <Figures cols={5}>
+              <Figure
+                label="Creators"
+                value={stats ? formatNumber(stats.totalCreators) : (campaign?.creators_count ?? null)}
+                hint={stats && stats.totalCreators > (campaign?.creators_count || 0)
+                  ? 'Unique creators, no duplicates'
+                  : undefined}
+              />
+              <Figure
+                label="Posts"
+                value={campaign?.posts_count ?? (stats ? stats.totalPosts : null)}
+              />
+              <Figure
+                label="Combined followers"
+                value={stats ? formatNumber(stats.totalFollowers) : null}
+                hint="Everyone who follows a creator on this campaign"
+              />
+              <Figure
+                label="Video plays"
+                value={stats ? formatNumber(stats.totalReach) : null}
+                /* Was "Estimated · not a measured metric" sitting under an invented figure.
+                   It is now a counted play total, so the caption says so, and the caveat
+                   that used to hide in a tooltip is on the page where it can be read. */
+                hint="Instagram's play count across this campaign's videos. Images count nothing, and this is not reach: only the account owner can see true reach."
+              />
+              <Figure
+                label="Engagement rate"
+                value={
+                  campaign?.engagement_rate !== undefined
                     ? `${Math.min(campaign.engagement_rate, 100).toFixed(2)}%`
-                    : stats?.overallEngagementRate
-                    ? `${Math.min(stats.overallEngagementRate, 100).toFixed(2)}%`
-                    : '0.0%'}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Campaign average</p>
-              </CardContent>
-            </Card>
-            </div>
+                    : stats
+                      ? `${Math.min(stats.overallEngagementRate, 100).toFixed(2)}%`
+                      : null
+                }
+                hint="Campaign average"
+              />
+            </Figures>
           </div>
 
           {/* Engagement */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Engagement</h4>
-          {/* Engagement Metrics */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Comments</CardTitle>
-                <MessageCircle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatNumber(stats?.totalComments || 0)}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Likes</CardTitle>
-                <Heart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatNumber(stats?.totalLikes || 0)}
-                </div>
-              </CardContent>
-            </Card>
+          <div className="flex flex-col gap-ds-4">
+            <SectionHead title="Engagement" rule />
+            <Figures cols={4}>
+              <Figure label="Likes" value={stats ? formatNumber(stats.totalLikes) : null} />
+              <Figure label="Comments" value={stats ? formatNumber(stats.totalComments) : null} />
+              {/* Shown only where it says something. A collaboration rate of zero on a
+                  campaign with no collaborations is a row of noise. */}
+              {stats && (stats.collaborationRate || 0) > 0 && (
+                <>
+                  <Figure
+                    label="Collaboration rate"
+                    value={`${stats.collaborationRate?.toFixed(1)}%`}
+                    hint="Posts carrying more than one creator"
+                  />
+                  <Figure
+                    label="Collaboration posts"
+                    value={stats.collaborationPosts}
+                    hint={`of ${stats.totalPosts} posts`}
+                  />
+                </>
+              )}
+            </Figures>
           </div>
 
-          {/* Collaboration Metrics - NEW (Matching Theme Colors) */}
-          {stats && (stats.collaborationRate || 0) > 0 && (
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="border-primary/20 bg-primary/5">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Collaboration Rate</CardTitle>
-                  <Users className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-primary">
-                    {stats.collaborationRate?.toFixed(1) || '0.0'}%
-                  </div>
-                  <p className="text-xs text-primary/70 mt-1">Posts with multiple creators</p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-primary/20 bg-primary/5">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Collaboration Posts</CardTitle>
-                  <Users className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-primary">
-                    {stats.collaborationPosts || 0}
-                  </div>
-                  <p className="text-xs text-primary/70 mt-1">
-                    of {stats.totalPosts} total posts
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-          </div>
-
-          {/* Content */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Content</h4>
-          {/* Post Type Breakdown */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Post Type Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Image className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">Static Posts</span>
-                  </div>
-                  <span className="text-2xl font-bold">
-                    {stats?.postTypeBreakdown.static || 0}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Video className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">Reels</span>
-                  </div>
-                  <span className="text-2xl font-bold">
-                    {stats?.postTypeBreakdown.reels || 0}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Share2 className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">Stories</span>
-                  </div>
-                  <span className="text-2xl font-bold">
-                    {stats?.postTypeBreakdown.story || 0}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Content. Three counts of the same kind of thing, so one band of figures rather
+              than three bordered boxes inside a fourth bordered card. */}
+          <div className="flex flex-col gap-ds-4">
+            <SectionHead title="What was made" rule />
+            <Figures cols={3}>
+              <Figure
+                label="Static posts"
+                value={stats ? stats.postTypeBreakdown.static : null}
+                emphasis="quiet"
+              />
+              <Figure
+                label="Reels"
+                value={stats ? stats.postTypeBreakdown.reels : null}
+                emphasis="quiet"
+              />
+              <Figure
+                label="Stories"
+                value={stats ? stats.postTypeBreakdown.story : null}
+                emphasis="quiet"
+              />
+            </Figures>
           </div>
 
           {/* AI content-intelligence block removed: Content Quality, Sentiment and
@@ -2190,37 +2198,21 @@ export default function CampaignDetailsPage() {
             </div>
           </div>
 
+          {/* Three states, told apart, and none of them centred inside a card with a large
+              grey icon over it. That layout made "nothing here" look like an event. */}
           {isLoadingCreators ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
-                <p className="text-muted-foreground">Loading creators...</p>
-              </CardContent>
-            </Card>
+            <Waiting lines={4} />
           ) : creatorsError && campaignCreators.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12 space-y-4">
-                <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Couldn&apos;t load creators</p>
-                  <p className="text-sm text-muted-foreground mt-1">Something went wrong fetching this campaign&apos;s creators.</p>
-                </div>
-                <Button variant="outline" onClick={() => fetchCampaignCreators()}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Retry
-                </Button>
-              </CardContent>
-            </Card>
+            <Failed
+              what="We could not load the creators"
+              detail="Nobody has left this campaign. This is a read that failed at our end."
+              onRetry={() => fetchCampaignCreators()}
+            />
           ) : campaignCreators.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No creators yet</h3>
-                <p className="text-muted-foreground">
-                  Creators are automatically added when posts are tracked
-                </p>
-              </CardContent>
-            </Card>
+            <SurfaceEmpty>
+              No creators on this campaign yet. They are added automatically as posts are
+              tracked.
+            </SurfaceEmpty>
           ) : (
             <div className="space-y-3">
               <TooltipProvider>
@@ -2505,21 +2497,21 @@ export default function CampaignDetailsPage() {
           </div>
 
           {posts.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Image className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No posts yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  {isViewOnly ? 'No posts have been added to this campaign yet.' : 'Start adding posts to track campaign performance'}
-                </p>
-                {!isViewOnly && (
-                  <Button onClick={() => setIsAddPostDialogOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Your First Post
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+            /* A sentence, and the action only for someone who can act. A client looking at
+               their own campaign gets no button they cannot press. */
+            <div className="flex flex-col items-start gap-ds-3">
+              <SurfaceEmpty>
+                {isViewOnly
+                  ? 'No posts have gone live on this campaign yet.'
+                  : 'No posts are being tracked on this campaign yet.'}
+              </SurfaceEmpty>
+              {!isViewOnly && (
+                <Button onClick={() => setIsAddPostDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add the first post
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-stretch" style={{ gridAutoRows: 'minmax(0, 1fr)' }}>
               {posts.map((post) => (
@@ -2847,7 +2839,7 @@ https://instagram.com/reel/DEF456/
           </DialogFooter>
         </DialogContent>
       </Dialog>
-          </div>
+          </div></Page>
       </BrandUserInterface>
 
       {/* Image Cropper Dialog */}

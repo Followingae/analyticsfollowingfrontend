@@ -16,6 +16,13 @@
  * from live API data (/billing status, /pricing) already carries its own
  * `currency` field - prefer that; these constants are for static marketing and
  * upsell copy that has no API call behind it.
+ *
+ * NEVER call getPlanAmount() or formatPlanPrice() at module scope. A module-level
+ * constant is evaluated at import time, which is before hydrateBillingCurrency()
+ * can run, so it silently freezes whatever the env var said and no later
+ * correction can reach it. The signup page used to build its plan cards that way
+ * and quoted USD prices to a business that charges in AED. Read prices inside
+ * render, from live data where there is any.
  */
 
 export type PlanTier = 'free' | 'standard' | 'premium'

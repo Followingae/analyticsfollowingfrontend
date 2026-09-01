@@ -38,6 +38,7 @@ export function CampaignBars({ className }: { className?: string }) {
   const [rows, setRows] = useState<Row[] | null>(null)
   const [total, setTotal] = useState(0)
   const [dark, setDark] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     const el = document.documentElement
@@ -69,13 +70,26 @@ export function CampaignBars({ className }: { className?: string }) {
         setRows(all.slice(0, ROWS))
         setTotal(all.length)
       } catch {
-        if (alive) setRows([])
+        // A failed fetch is NOT an empty campaign list. Rendering nothing here reads to
+        // the brand as "you have no campaigns", which is the same lie as a zero, so the
+        // failure gets its own state instead.
+        if (alive) { setRows([]); setFailed(true) }
       }
     })()
     return () => { alive = false }
   }, [])
 
   if (rows === null) return <Skeleton className={cn('h-full w-full rounded-xl', className)} />
+  if (failed) {
+    return (
+      <Card className={cn('flex flex-col justify-center gap-1 p-5', className)}>
+        <p className="text-[13px] font-medium">Campaigns did not load</p>
+        <p className="text-[12px] text-muted-foreground">
+          This is a display problem, not a count of zero.
+        </p>
+      </Card>
+    )
+  }
   if (rows.length === 0) return null
 
   const palette = dark ? DARK : LIGHT

@@ -102,7 +102,7 @@ const STATE_STYLE: Record<string, { icon: LucideIcon; wash: string; dot: string 
 }
 
 const compact = (n?: number | null) =>
-  n == null ? '—' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : `${n}`
+  n == null ? '–' : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : `${n}`
 
 const when = (iso?: string | null) => {
   if (!iso) return null
@@ -224,20 +224,30 @@ function HeroStatus({ overall, needsProduct }: { overall: Journey['overall']; ne
 
 // ── the small numbers ─────────────────────────────────────────────────────────────────────
 
+/**
+ * One of the four numbers under the status, with no box around it.
+ *
+ * They used to be four cards: eight borders between the first figure and the last, all of
+ * them saying something the row was already saying. The borders come off, the gap between
+ * columns goes up a step so the space itself draws the separation, and the figure takes the
+ * room the padding was using.
+ */
 function Tile({ label, value, sub, icon: Icon }: {
   label: string; value: string | number; sub?: string; icon: LucideIcon
 }) {
   return (
-    <Card className="border-border/70">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <span className="text-[11.5px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
-          <Icon className="h-4 w-4 text-muted-foreground/60" strokeWidth={1.7} />
-        </div>
-        <div className="mt-3 text-[28px] font-semibold leading-none tabular-nums">{value}</div>
-        {sub && <div className="mt-1.5 text-[13px] text-muted-foreground">{sub}</div>}
-      </CardContent>
-    </Card>
+    <div className="min-w-0">
+      <div className="flex items-center gap-2">
+        <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" strokeWidth={1.8} />
+        <span className="text-[11.5px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+          {label}
+        </span>
+      </div>
+      <div className="mt-2 text-[34px] font-semibold leading-none tracking-[-0.025em] tabular-nums">
+        {value}
+      </div>
+      {sub && <div className="mt-2 text-[13px] text-muted-foreground">{sub}</div>}
+    </div>
   )
 }
 
@@ -431,21 +441,31 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
 
   if (loading) {
     return (
-      <div className="space-y-5 p-4 md:p-8">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-ds-5 px-ds-3 pb-ds-6 pt-ds-5 sm:px-ds-5">
         <Skeleton className="h-44 w-full rounded-2xl" />
         <Skeleton className="h-72 w-full rounded-2xl" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-ds-5 sm:grid-cols-2 lg:grid-cols-4">
           {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}
         </div>
       </div>
     )
   }
 
+  /* A read that failed and a campaign with nothing in it are not the same thing, and this
+     used to say the same sentence for both. "Nothing to show yet" over a 500 tells a client
+     their campaign is not happening, when what happened is that we could not ask. */
   if (err || !data) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-8 text-center">
-        <p className="text-muted-foreground">{err || 'Nothing to show yet'}</p>
-        <Button variant="outline" onClick={() => { setLoading(true); load() }}>Try again</Button>
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-ds-3 px-ds-3 py-ds-6 sm:px-ds-5">
+        <h1 className="text-ds-heading">We could not load this campaign</h1>
+        <p className="max-w-prose text-ds-body text-muted-foreground">
+          {err || 'Something went wrong at our end. Nothing has changed on the campaign itself, we just could not read it.'}
+        </p>
+        <div>
+          <Button variant="outline" onClick={() => { setLoading(true); setErr(null); load() }}>
+            Try again
+          </Button>
+        </div>
       </div>
     )
   }
@@ -454,7 +474,10 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
   const agreements = data.agreements || []
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 p-4 pb-16 md:p-8">
+    /* Gaps rather than `space-y`: they do not collapse, they do not leak past the container,
+       and they cannot double up where two stacked pieces meet. ds-6 is the band between the
+       major parts of the page, which is the step this product is almost entirely missing. */
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-ds-6 px-ds-3 pb-ds-6 pt-ds-5 sm:px-ds-5">
       {/* The campaign's own picture, carried through from the proposal it came from. */}
       <div className="relative overflow-hidden rounded-3xl border border-border/70 bg-card">
         {campaign.hero_image_url ? (
@@ -481,7 +504,9 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
 
       <HeroStatus overall={overall} needsProduct={data.needs_product} />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* ds-5 between columns: wider than any gap inside a figure, so the space reads as the
+          break the four borders used to draw. */}
+      <div className="grid gap-x-ds-5 gap-y-ds-4 border-y py-ds-5 sm:grid-cols-2 lg:grid-cols-4">
         <Tile label="Creators" value={counts.creators} icon={Users}
               sub={counts.briefed ? `${counts.briefed} briefed` : 'Booked for you'} />
         {data.needs_product ? (
@@ -497,21 +522,21 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
               sub={`${compact(counts.reach)} combined followers`} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-ds-5 lg:grid-cols-3">
         {/* Every creator, because a campaign is never uniformly anywhere. */}
         <div className="lg:col-span-2">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-ds-3 flex items-baseline justify-between border-b pb-ds-3">
             <h3 className="text-[15px] font-semibold">Your creators</h3>
             <span className="text-[13px] text-muted-foreground">{creators.length} on this campaign</span>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-ds-3 sm:grid-cols-2">
             {creators.map(c => (
               <CreatorCard key={c.id} c={c} onOpen={() => setOpenCreator(c)} />
             ))}
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="flex flex-col gap-ds-5">
           {delivery.length > 0 && (
             <Card className="border-border/70">
               <CardContent className="p-5">

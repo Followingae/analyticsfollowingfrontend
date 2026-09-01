@@ -90,6 +90,17 @@ export const SignInPage: React.FC<SignInPageProps> = ({
             <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">{title}</h1>
             {description && <p className="animate-element animate-delay-200 text-muted-foreground">{description}</p>}
 
+            {/* Google first. It is the single highest-converting element on either
+                auth screen, and it is the same account either way: a person who
+                signed up with Google and then types a password gets told so. */}
+            <GoogleSignInButton
+              next={googleNext}
+              disabled={isLoading}
+              className="animate-element animate-delay-300"
+            />
+
+            <AuthDivider label="or sign in with email" className="animate-element animate-delay-300" />
+
             <form className="space-y-5" onSubmit={onSignIn}>
               <div className="animate-element animate-delay-300">
                 <label htmlFor="signin-email" className="text-sm font-medium text-muted-foreground mb-1.5 block">
@@ -158,16 +169,8 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               </button>
             </form>
 
-            <AuthDivider className="animate-element animate-delay-600" />
-
-            <GoogleSignInButton
-              next={googleNext}
-              disabled={isLoading}
-              className="animate-element animate-delay-700"
-            />
-
             <p className="animate-element animate-delay-700 text-center text-sm text-muted-foreground">
-              New to our platform? <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-foreground hover:underline transition-colors">Create Account</a>
+              New here? <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-foreground hover:underline transition-colors">Create a free account</a>
             </p>
           </div>
         </div>

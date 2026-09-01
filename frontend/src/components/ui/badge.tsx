@@ -3,8 +3,17 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Badge.
+ *
+ * Two changes from the shadcn default. Weight drops from semibold to medium:
+ * a badge is a label on something else, and at semibold it shouted louder
+ * than the row it was labelling. And a 4px gap, because most badges in this
+ * product carry a small icon in front of the word and were writing their own
+ * gap to separate it.
+ */
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {

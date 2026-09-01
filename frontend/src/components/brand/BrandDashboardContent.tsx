@@ -1,6 +1,27 @@
 'use client'
 
-import { useMemo, useEffect, useState, useRef, useCallback, type ReactNode } from "react"
+/**
+ * Home, for a brand.
+ *
+ * Density tier: WORKING. 40px between subjects, 24px inside a panel, and no box drawn
+ * around anything that is not a real object.
+ *
+ * What changed and why. This page used to open with eight cards: a welcome card, three
+ * metric cards, two gauge cards and two companion cards, each with its own border, its own
+ * shadow and its own padding. Sixteen edges sat between the first figure and the last, and
+ * every one of them was drawn around something that was always the same kind of thing.
+ * The greeting is now the page's own head, the three figures are a band separated by space,
+ * and a card is kept only for the things that genuinely are objects: the discovery tile you
+ * click, and the panels that hold lists.
+ *
+ * The honesty fix is the more important one. `unlockedProfilesCount` and
+ * `activeCampaignsCount` are both `?? 0` inside the hook, so a 500 on either endpoint used
+ * to render a confident "0" — a brand with sixty unlocked creators would be told they had
+ * none. The hook has always exposed `profilesError` and `campaignsError`; this page now
+ * reads them and renders an en dash with a line saying it did not load.
+ */
+
+import { useMemo, useEffect, useState, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useDashboardData } from "@/hooks/useDashboardData"
@@ -11,19 +32,24 @@ import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2
 import { BrandQuotaWidget } from "@/components/brand/BrandQuotaWidget"
 import { CampaignBars } from "@/components/brand/CampaignBars"
 import { ShareCenterCard } from "@/components/brand/ShareCenterCard"
-import { MetricCard } from "@/components/analytics-cards"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Balloons } from "@/components/ui/balloons"
 import { UserAvatar } from "@/components/UserAvatar"
 import { SmartDiscovery } from "@/components/smart-discovery"
 import { brandPoolApi } from "@/services/faAdminApi"
 import {
-  Target,
-  Users,
-  Star,
+  Page,
+
+  StatBand,
+  Stat,
+  Panel,
+  ListRow,
+  GroupLabel,
+  Money,
+  UNKNOWN,
+} from "@/components/brand/primitives"
+import {
   AlertTriangle,
   Wallet,
   ArrowRight,
@@ -33,7 +59,6 @@ import {
   FileText,
   Link2,
   UserPlus,
-  ChevronRight,
 } from "lucide-react"
 
 export function BrandDashboardContent() {
@@ -44,8 +69,10 @@ export function BrandDashboardContent() {
     teamsLoading,
     unlockedProfilesCount,
     profilesLoading,
+    profilesError,
     activeCampaignsCount,
     campaignsLoading,
+    campaignsError,
     isLoading,
   } = useDashboardData()
 
@@ -73,8 +100,8 @@ export function BrandDashboardContent() {
     }
   }, [notifications, celebrationDone])
 
-  // Pool balance for low-balance warning. A fetch FAILURE is now a distinct
-  // error state (with retry) — not silently conflated with a zero/empty pool.
+  // Pool balance for low-balance warning. A fetch FAILURE is a distinct error state
+  // (with retry) — never silently conflated with a zero or empty pool.
   const [poolBalance, setPoolBalance] = useState<{ available_aed: number; total_funded_aed: number } | null>(null)
   const [poolError, setPoolError] = useState(false)
   const poolFetchedRef = useRef(false)
@@ -112,33 +139,17 @@ export function BrandDashboardContent() {
       return null
     }
 
-    const getUserInitials = () => {
-      if (user.first_name && user.last_name) return `${user.first_name[0]}${user.last_name[0]}`
-      if (user.full_name) {
-        const names = user.full_name.split(' ')
-        return names.length > 1 ? `${names[0][0]}${names[names.length - 1][0]}` : names[0][0]
-      }
-      if (user.first_name) return user.first_name[0]
-      if (user.email) return user.email[0].toUpperCase()
-      return null
-    }
-
     return {
       displayName: getDisplayName(),
       companyName: user.company || null,
-      initials: getUserInitials(),
     }
   }, [user, isLoading])
 
-  // PERF FIX: No artificial delays - show content immediately when data is ready
-  const showWelcome = !isLoading && !!user
-  const showMetrics = !isLoading && !!user
-  const showDiscovery = !isLoading && !!user
-  const showAnalytics = !isLoading && !!user
-
-  // Derive subscription tier display
+  // Derive subscription tier display. `null` means we do not know yet, which is a
+  // different thing from Free — a brand on Premium must never be shown "Free" because a
+  // request was still in flight.
   const tierValue = useMemo(() => {
-    if (userStoreLoading || teamsLoading) return "Loading..."
+    if (userStoreLoading || teamsLoading) return null
 
     const tier = team?.subscription_tier
       || subscription?.tier
@@ -154,299 +165,247 @@ export function BrandDashboardContent() {
     return tier ? (tierMap[tier] || tier) : 'Free'
   }, [userStoreLoading, teamsLoading, team, subscription, teamsOverview])
 
-  // Ranked, all present. HERO = "Creators unlocked (all time)" (the brand's
-  // accumulated value); the other two rank below. Every card now has a real
-  // destination, so the hover affordance is honest. The label is disambiguated
-  // from the adjacent "Profile Unlocks" gauge (remaining/month) to end the
-  // lifetime-vs-monthly collision.
-  const brandMetrics: {
-    title: string
-    value: string
-    icon: ReactNode
-    href?: string
-    emphasis?: "hero" | "default"
-  }[] = [
-    {
-      title: "Creators unlocked (all time)",
-      value: profilesLoading ? "Loading..." : unlockedProfilesCount.toString(),
-      icon: <Users className="h-4 w-4 text-primary" />,
-      href: "/creators",
-      emphasis: "hero",
-    },
-    {
-      title: "Active Campaigns",
-      value: campaignsLoading ? "Loading..." : activeCampaignsCount.toString(),
-      icon: <Target className="h-4 w-4 text-primary" />,
-      href: "/campaigns",
-    },
-    {
-      title: "Your Plan",
-      value: tierValue,
-      icon: <Star className="h-4 w-4 text-primary" />,
-      href: "/billing",
-    },
-  ]
-
   if (isLoading) {
     return <DashboardSkeleton />
   }
 
+  const greeting = (() => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 18) return 'Good afternoon'
+    return 'Good evening'
+  })()
+
+  const who = userDisplayData?.companyName || userDisplayData?.displayName
+
   return (
-    <div className="w-full min-h-0">
-      <div className="@container/main w-full max-w-full space-y-6 p-4 md:p-6">
+    <Page tier="working">
 
-        {/* Pool Low Balance Warning */}
-        {poolBalance && poolBalance.total_funded_aed > 0 && (() => {
-          const pct = (poolBalance.available_aed / poolBalance.total_funded_aed) * 100
-          if (poolBalance.available_aed <= 0) return (
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
-              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-red-800 dark:text-red-300">Cashback pool is depleted</p>
-                <p className="text-xs text-red-600 dark:text-red-400">Your campaigns cannot process cashbacks. Top up now to continue.</p>
-              </div>
-              <Link href="/cashback-pool/topup" className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
-                Top Up Now <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
-          )
-          if (pct < 5) return (
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
-              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-red-800 dark:text-red-300">Cashback pool critically low — ⃃ {poolBalance.available_aed.toLocaleString("en-AE", { minimumFractionDigits: 2 })}</p>
-                <p className="text-xs text-red-600 dark:text-red-400">Your campaigns may stop processing cashbacks soon.</p>
-              </div>
-              <Link href="/cashback-pool/topup" className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
-                Top Up <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
-          )
-          if (pct < 20) return (
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800">
-              <Wallet className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Cashback pool running low — ⃃ {poolBalance.available_aed.toLocaleString("en-AE", { minimumFractionDigits: 2 })} remaining</p>
-              </div>
-              <Link href="/cashback-pool/topup" className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900">
-                Top Up <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
-          )
-          return null
-        })()}
+      {/* Anything genuinely wrong comes before the greeting, because a depleted pool stops
+          campaigns paying out and nothing else on this page matters until it is fixed. */}
+      {poolBalance && poolBalance.total_funded_aed > 0 && (() => {
+        const pct = (poolBalance.available_aed / poolBalance.total_funded_aed) * 100
 
-        {/* Cashback pool load failure — a DISTINCT error state (muted, not the
-            red "depleted" state) so a failed fetch is never read as an empty
-            pool. Offers a retry. */}
-        {poolError && !poolBalance && (
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/40 border border-border">
-            <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Couldn&apos;t load your cashback pool balance</p>
-              <p className="text-xs text-muted-foreground">This is a display issue — it doesn&apos;t mean your pool is empty.</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={fetchPool}>Retry</Button>
+        if (poolBalance.available_aed <= 0) return (
+          <Alert
+            tone="bad"
+            icon={AlertTriangle}
+            title="Your cashback pool is empty"
+            body="Campaigns cannot pay cashback until it is topped up."
+            action={<PoolAction href="/cashback-pool/topup" label="Top up now" primary />}
+          />
+        )
+        if (pct < 5) return (
+          <Alert
+            tone="bad"
+            icon={AlertTriangle}
+            title={<>Cashback pool critically low, <Money amount={poolBalance.available_aed} /> left</>}
+            body="Campaigns may stop paying cashback within days."
+            action={<PoolAction href="/cashback-pool/topup" label="Top up" primary />}
+          />
+        )
+        if (pct < 20) return (
+          <Alert
+            tone="warn"
+            icon={Wallet}
+            title={<>Cashback pool running low, <Money amount={poolBalance.available_aed} /> left</>}
+            action={<PoolAction href="/cashback-pool/topup" label="Top up" />}
+          />
+        )
+        return null
+      })()}
+
+      {/* A failed balance fetch is its own state, in the quiet tone, so it can never be
+          read as "the pool is empty". */}
+      {poolError && !poolBalance && (
+        <Alert
+          tone="neutral"
+          icon={AlertTriangle}
+          title="We could not load your cashback pool balance"
+          body="This is a display problem. It does not mean your pool is empty."
+          action={<Button variant="outline" size="sm" onClick={fetchPool}>Try again</Button>}
+        />
+      )}
+
+      {/* The greeting IS the page head. It used to be a card of its own, sitting beside
+          three more cards, which spent a border and a shadow on saying hello. */}
+      <header className="flex items-center gap-ds-3">
+        <UserAvatar
+          key={`dashboard-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
+          user={user || undefined}
+          size={56}
+          className="shrink-0"
+        />
+        <div className="flex min-w-0 flex-col gap-ds-1">
+          <h1 className="truncate text-ds-title text-foreground">
+            {greeting}{who ? <>, {who}</> : null}
+          </h1>
+          <p className="max-w-[65ch] text-ds-body text-muted-foreground">
+            {tierValue
+              ? `You are on the ${tierValue} plan. Here is where your creators, credits and campaigns stand today.`
+              : 'Here is where your creators, credits and campaigns stand today.'}
+          </p>
+        </div>
+      </header>
+
+      {/* Three figures, separated by 40px of space instead of by six borders. Each one
+          carries its own loading and error state; none of them can print a zero it does
+          not have. */}
+      <StatBand cols={3}>
+        <Stat
+          label="Creators unlocked, all time"
+          value={unlockedProfilesCount}
+          hint="Everyone your team has ever opened"
+          href="/creators"
+          loading={profilesLoading}
+          error={!!profilesError}
+        />
+        <Stat
+          label="Active campaigns"
+          value={activeCampaignsCount}
+          hint="Running right now"
+          href="/campaigns"
+          loading={campaignsLoading}
+          error={!!campaignsError}
+        />
+        <Stat
+          label="Your plan"
+          value={tierValue ?? UNKNOWN}
+          hint="Seats, unlocks and credits"
+          href="/billing"
+          loading={userStoreLoading || teamsLoading}
+        />
+      </StatBand>
+
+      {/* The one thing we want them to do next, at the size that says so. A real object,
+          so it keeps its card. */}
+      <SmartDiscovery onDiscover={() => router.push('/discover')} className="h-[280px]" />
+
+      {/* Reference data, deliberately below the action and behind its own section label.
+          The gauges are the only figures on this page that keep a surface, because each is
+          a drawn dial rather than a number. */}
+      <section className="flex flex-col gap-ds-3">
+        <GroupLabel>Usage this cycle</GroupLabel>
+        <div className="grid grid-cols-1 gap-ds-3 lg:grid-cols-2">
+          <div aria-label="Profile unlocks remaining this billing cycle" className="h-[300px]">
+            <ChartProfileAnalysisV2 />
           </div>
-        )}
-
-        {/* Row 1: Welcome + Metric Cards */}
-        <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-12">
-          {/* Welcome Section */}
-          <div className={`md:col-span-4 transition-all duration-500 ease-out ${
-            showWelcome ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-          }`}>
-            <Card className="@container/card h-full welcome-card">
-              <CardHeader className="flex items-start justify-center h-full">
-                {userDisplayData ? (
-                  <div className="flex items-center gap-4 min-w-0 w-full">
-                    <UserAvatar
-                      key={`dashboard-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
-                      user={user || undefined}
-                      size={90}
-                      className="h-22 w-22 shrink-0"
-                    />
-                    <div className="flex flex-col gap-0.5 min-w-0">
-                      <span className="welcome-text-primary font-semibold italic text-muted-foreground">Welcome,</span>
-                      {userDisplayData.companyName && (
-                        <span
-                          className="welcome-text-brand font-bold tracking-tight"
-                          title={userDisplayData.companyName}
-                        >
-                          {userDisplayData.companyName}
-                        </span>
-                      )}
-                      {!userDisplayData.companyName && userDisplayData.displayName && (
-                        <span
-                          className="welcome-text-brand font-bold tracking-tight"
-                          title={userDisplayData.displayName}
-                        >
-                          {userDisplayData.displayName}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4">
-                    <div className="h-22 w-22 rounded-full bg-muted animate-pulse shrink-0" />
-                    <div className="flex flex-col gap-2">
-                      <div className="h-4 w-16 rounded bg-muted animate-pulse" />
-                      <div className="h-6 w-32 rounded bg-muted animate-pulse" />
-                    </div>
-                  </div>
-                )}
-              </CardHeader>
-            </Card>
-          </div>
-
-          {/* Metric Cards */}
-          <div className="md:col-span-8">
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-              {brandMetrics.map((metric, index) => (
-                <div
-                  key={metric.title}
-                  className={`transition-all duration-500 ease-out ${
-                    showMetrics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-                  }`}
-                  style={{ transitionDelay: `${index * 80}ms` }}
-                >
-                  <MetricCard
-                    title={metric.title}
-                    value={metric.value}
-                    icon={metric.icon}
-                    href={metric.href}
-                    emphasis={metric.emphasis}
-                  />
-                </div>
-              ))}
-            </div>
+          <div aria-label="Remaining credits this billing cycle" className="h-[300px]">
+            <ChartRemainingCreditsV2 />
           </div>
         </div>
+      </section>
 
-        {/* Their campaigns, before anything of ours.
-            A brand with work in flight opens this page to find out what is happening to it,
-            and until now the answer was a notification list. The spotlight renders nothing
-            at all when they have no campaign running, so a discovery-only client sees the
-            page they had. */}
+      {/* Companion detail. Every one of these renders nothing at all when it has nothing
+          to say, so a brand with no campaigns and no shares sees a shorter page rather
+          than a wall of apologies. */}
+      <section className="grid grid-cols-1 gap-ds-3 lg:grid-cols-2">
+        <CampaignBars />
+        <ShareCenterCard />
+        <BrandQuotaWidget />
 
-        {/* Row 2: Discovery (primary action) + Usage this cycle */}
-        <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-12">
-          {/* Smart Discovery — the single primary next action */}
-          <div className={`md:col-span-6 transition-all duration-500 ease-out ${
-            showDiscovery ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-          }`}>
-            <div className="h-[320px]">
-              <SmartDiscovery
-                onDiscover={() => router.push('/discover')}
-                className="h-full"
-              />
+        <Panel
+          title="Recent activity"
+          action={
+            <Link href="/notifications" className="text-ds-body-sm text-primary hover:underline">
+              See all
+            </Link>
+          }
+          flush
+        >
+          {notifications.length === 0 ? (
+            <p className="px-6 pb-ds-3 text-ds-body-sm text-muted-foreground">Nothing yet.</p>
+          ) : (
+            <div className="px-4">
+              {notifications.slice(0, 5).map((n) => {
+                const iconMap: Record<string, typeof Bell> = {
+                  credit_purchase: CreditCard,
+                  low_balance: AlertTriangle,
+                  analytics_completed: BarChart3,
+                  proposal_received: FileText,
+                  proposal_updated: FileText,
+                  share_received: Link2,
+                  team_invite: UserPlus,
+                }
+                const Icon = iconMap[n.notification_type] || Bell
+                const activate = () => {
+                  if (!n.is_read) markAsRead(n.id)
+                  if (n.action_url) router.push(n.action_url)
+                }
+                return (
+                  <ListRow
+                    key={n.id}
+                    onClick={activate}
+                    aria-label={`Notification: ${n.title}${n.is_read ? '' : ' (unread)'}`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className={`min-w-0 flex-1 truncate text-ds-body ${n.is_read ? 'text-muted-foreground' : 'font-medium'}`}>
+                      {n.title}
+                    </span>
+                    {!n.is_read && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
+                    <span className="shrink-0 text-ds-caption text-muted-foreground">
+                      {getTimeAgo(n.created_at)}
+                    </span>
+                  </ListRow>
+                )
+              })}
             </div>
-          </div>
+          )}
+        </Panel>
+      </section>
 
-          {/* Usage this cycle — the two capacity gauges grouped + demoted under
-              one shared label so they read as reference data, not the page hero.
-              Contract quota + recent activity sit below as companion detail. */}
-          <div
-            className={`md:col-span-6 transition-all duration-500 ease-out ${
-              showAnalytics ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-            }`}
-            style={{ transitionDelay: '80ms' }}
-          >
-            <div className="mb-3">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Usage this cycle
-              </span>
-            </div>
-
-            <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2">
-              {/* Profile Unlocks gauge — remaining this billing cycle */}
-              <section aria-label="Profile unlocks remaining this billing cycle" className="h-[320px]">
-                <ChartProfileAnalysisV2 />
-              </section>
-              {/* Remaining Credits gauge — this billing cycle */}
-              <section aria-label="Remaining credits this billing cycle" className="h-[320px]">
-                <ChartRemainingCreditsV2 />
-              </section>
-            </div>
-
-            {/* Companion detail: contract quota (only renders when set) + activity */}
-            <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 mt-4">
-              {/* What is running, as a display. Renders nothing when they have no campaign. */}
-              <CampaignBars />
-
-              {/* What the team has sent them. Renders nothing when nothing has been sent. */}
-              <ShareCenterCard />
-
-              {/* Contract delivery quota — only renders when a quota is set */}
-              <BrandQuotaWidget />
-
-              {/* Compact Notification Preview */}
-              <Card className="overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b">
-                  <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                    <Bell className="h-3 w-3" />Activity
-                  </span>
-                  <Link href="/notifications" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
-                    View all <ChevronRight className="h-2.5 w-2.5" />
-                  </Link>
-                </div>
-                <div className="divide-y">
-                  {notifications.length === 0 ? (
-                    <div className="flex items-center gap-2.5 px-4 py-4 text-center justify-center">
-                      <Bell className="h-3.5 w-3.5 text-muted-foreground/50" />
-                      <span className="text-xs text-muted-foreground">No activity yet</span>
-                    </div>
-                  ) : (
-                    notifications.slice(0, 4).map((n) => {
-                      const iconMap: Record<string, { icon: typeof Bell; color: string }> = {
-                        credit_purchase: { icon: CreditCard, color: "text-green-500" },
-                        low_balance: { icon: AlertTriangle, color: "text-amber-500" },
-                        analytics_completed: { icon: BarChart3, color: "text-purple-500" },
-                        proposal_received: { icon: FileText, color: "text-blue-500" },
-                        proposal_updated: { icon: FileText, color: "text-indigo-500" },
-                        share_received: { icon: Link2, color: "text-green-500" },
-                        team_invite: { icon: UserPlus, color: "text-blue-500" },
-                      }
-                      const cfg = iconMap[n.notification_type] || { icon: Bell, color: "text-muted-foreground" }
-                      const Icon = cfg.icon
-                      const activate = () => {
-                        if (!n.is_read) markAsRead(n.id)
-                        if (n.action_url) router.push(n.action_url)
-                      }
-                      return (
-                        <div
-                          key={n.id}
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`Notification: ${n.title}${n.is_read ? '' : ' (unread)'}`}
-                          className="flex items-center gap-2.5 px-4 py-2 cursor-pointer hover:bg-muted/40 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                          onClick={activate}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault()
-                              activate()
-                            }
-                          }}
-                        >
-                          <Icon className={`h-3.5 w-3.5 shrink-0 ${cfg.color}`} />
-                          <span className={`text-xs truncate flex-1 ${!n.is_read ? "font-medium" : "text-muted-foreground"}`}>{n.title}</span>
-                          {!n.is_read && <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
-                          <span className="text-[10px] text-muted-foreground shrink-0">{getTimeAgo(n.created_at)}</span>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-              </Card>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Celebration balloons */}
       <Balloons ref={balloonsRef} />
+    </Page>
+  )
+}
+
+/**
+ * One banner, three tones, all four colours from the global semantic tokens.
+ *
+ * This replaces three hand-written blocks of `bg-red-50 dark:bg-red-950 border-red-200
+ * dark:border-red-800 text-red-800 dark:text-red-300`, which is the same decision written
+ * out four times per tone and is why "warning" meant two different ambers on two screens.
+ */
+function Alert({
+  tone, icon: Icon, title, body, action,
+}: {
+  tone: 'bad' | 'warn' | 'neutral'
+  icon: React.ComponentType<{ className?: string }>
+  title: React.ReactNode
+  body?: React.ReactNode
+  action?: React.ReactNode
+}) {
+  const skin = {
+    bad: 'border-danger/30 bg-danger/[0.07]',
+    warn: 'border-warning/35 bg-warning/[0.09]',
+    neutral: 'border-border bg-muted/40',
+  }[tone]
+  const ink = {
+    bad: 'text-danger',
+    warn: 'text-warning',
+    neutral: 'text-muted-foreground',
+  }[tone]
+
+  return (
+    <div className={`flex flex-col gap-ds-3 rounded-ds-lg border px-5 py-4 sm:flex-row sm:items-center ${skin}`}>
+      <Icon className={`h-5 w-5 shrink-0 ${ink}`} />
+      <div className="flex min-w-0 flex-1 flex-col gap-ds-1">
+        <p className="text-ds-label text-foreground">{title}</p>
+        {body && <p className="text-ds-body-sm text-muted-foreground">{body}</p>}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
     </div>
+  )
+}
+
+function PoolAction({ href, label, primary }: { href: string; label: string; primary?: boolean }) {
+  return (
+    <Button asChild size="sm" variant={primary ? 'default' : 'outline'}>
+      <Link href={href} className="gap-ds-1">
+        {label}
+        <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
+    </Button>
   )
 }
 

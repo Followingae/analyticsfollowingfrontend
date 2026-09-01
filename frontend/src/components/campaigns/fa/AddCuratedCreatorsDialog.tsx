@@ -72,10 +72,10 @@ export function AddCuratedCreatorsDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add creators{campaignName ? ` — ${campaignName}` : ""}</DialogTitle>
+          <DialogTitle>Add creators{campaignName ? `: ${campaignName}` : ""}</DialogTitle>
           <DialogDescription>
             Suggest Instagram creators for this campaign. Each lands as &quot;Team Suggested&quot; in
-            pending review — the brand decides who gets approved.
+            pending review. The brand decides who gets approved.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
@@ -87,7 +87,7 @@ export function AddCuratedCreatorsDialog({
             className="w-full min-h-[140px] rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono"
           />
           <p className="text-xs text-muted-foreground">
-            Handles that match FA-app members are linked automatically — others are managed offline by the Following team.
+            Handles that match FA-app members are linked automatically. Others are managed offline by the Following team.
           </p>
         </div>
         <DialogFooter>

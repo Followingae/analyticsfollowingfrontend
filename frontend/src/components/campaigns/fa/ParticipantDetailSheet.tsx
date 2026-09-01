@@ -49,7 +49,7 @@ function xhrPutToR2(
         ? resolve()
         : reject(new Error(`Upload failed (${xhr.status})`))
     xhr.onerror = () => reject(new Error("Network error during upload"))
-    xhr.ontimeout = () => reject(new Error("Upload timed out — file may be too large or the connection dropped"))
+    xhr.ontimeout = () => reject(new Error("Upload timed out. The file may be too large, or the connection dropped."))
     xhr.send(file)
   })
 }
@@ -134,7 +134,7 @@ interface Deliverable {
 
 const fmtCount = (n?: number | null) =>
   n == null ? "—" : n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : String(n)
-const fmtAED = (a: number) => `⃃ ${a.toLocaleString("en-AE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+const fmtAED = (a: number) => `AED ${a.toLocaleString("en-AE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "—")
 
 const DTYPE: Record<string, { icon: typeof Film; label: string }> = {
@@ -263,8 +263,8 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
       }
 
       toast.success(kind === "proof"
-        ? "Proof of posting submitted — sent to the Following team to verify"
-        : "Content uploaded — sent to brand for approval")
+        ? "Proof of posting submitted, sent to the Following team to verify"
+        : "Content uploaded, sent to the brand for approval")
       await loadDeliverables()
       onChanged?.()
     } catch (e: any) {
@@ -289,7 +289,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
         { method: "POST", headers: { ...getAuthHeaders() } }
       )
       if (!res.ok) { let m = ""; try { m = (await res.json())?.detail } catch { m = await res.text() }; throw new Error(m || "Could not remove content") }
-      toast.success("Content removed — you can upload a replacement")
+      toast.success("Content removed, you can upload a replacement")
       await loadDeliverables()
       onChanged?.()
     } catch (e: any) {
@@ -312,7 +312,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
           : { method: "POST", headers: getAuthHeaders() }
       )
       if (!res.ok) throw new Error(await res.text())
-      toast.success(action === "approve" ? "Approved — creator notified" : "Rejected")
+      toast.success(action === "approve" ? "Approved, the creator has been notified" : "Rejected")
       onChanged?.()
       onOpenChange(false)
     } catch (e: any) {
@@ -338,7 +338,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
         try { msg = (await res.json())?.detail } catch { msg = await res.text() }
         throw new Error(msg || "Enrol failed")
       }
-      toast.success("Enrolled by Following — creator notified")
+      toast.success("Enrolled by Following, the creator has been notified")
       onChanged?.()
       onOpenChange(false)
     } catch (e: any) {
@@ -365,7 +365,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
       }
       const body = await res.json().catch(() => ({}))
       toast.success(body?.data?.sent === false
-        ? "No app account/phone on file — nothing to send"
+        ? "No app account or phone on file, so there is nothing to send"
         : "Approval notification sent (push + email + WhatsApp)")
     } catch (e: any) {
       toast.error(e.message || "Could not resend")
@@ -398,7 +398,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
         throw new Error(msg || "Action failed")
       }
       const okMsg: Record<string, string> = {
-        "approve-content": "Content approved — creator can post now",
+        "approve-content": "Content approved, the creator can post now",
         "request-edit": "Edit requested",
       }
       toast.success(okMsg[action])
@@ -682,19 +682,19 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                             <p className="text-[11px] text-muted-foreground mt-0.5">
                               {visit.party_size ? `${visit.party_size} guests` : ""}
                               {visit.party_size && visit.bill_amount_aed != null ? " · " : ""}
-                              {visit.bill_amount_aed != null ? `⃃ ${visit.bill_amount_aed.toFixed(2)}` : ""}
+                              {visit.bill_amount_aed != null ? `AED ${visit.bill_amount_aed.toFixed(2)}` : ""}
                             </p>
                           )}
                         </div>
                       ) : (
                         <div className="mt-2">
                           <p className="text-[11px] text-muted-foreground">
-                            Not visited yet — the venue confirms this when the creator walks in.
+                            Not visited yet. The venue confirms this when the creator walks in.
                           </p>
                           {typeof visit.days_left === "number" && (
                             <p className={`text-[11px] mt-0.5 ${visit.days_left <= 2 ? "text-amber-600" : "text-muted-foreground"}`}>
                               {visit.days_left <= 0
-                                ? "Last day — the spot is released after today"
+                                ? "Last day, the spot is released after today"
                                 : `${visit.days_left} day${visit.days_left === 1 ? "" : "s"} left to visit`}
                               {visit.due_at ? ` · by ${new Date(visit.due_at).toLocaleDateString()}` : ""}
                             </p>
@@ -793,7 +793,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                   <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <BadgeCheck className="mr-1 h-3 w-3" /> First-party · Instagram
                   </Badge>
-                  <span className="text-xs text-muted-foreground">Owner-consented Graph API data — authoritative.</span>
+                  <span className="text-xs text-muted-foreground">Owner-consented Graph API data, authoritative.</span>
                 </div>
                 {hasFirstParty ? (
                   <FirstPartyAudienceAnalytics
@@ -821,7 +821,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                   <Badge variant="outline" className="border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400">
                     <Bot className="mr-1 h-3 w-3" /> AI · estimated
                   </Badge>
-                  <span className="text-xs text-muted-foreground">From public Instagram signals — not first-party.</span>
+                  <span className="text-xs text-muted-foreground">From public Instagram signals, not first-party.</span>
                 </div>
                 {/* Native Apify snapshot — no full-analytics unlock required. */}
                 <div className="px-6 py-5 space-y-5 overflow-y-auto">
@@ -865,7 +865,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                   )}
 
                   {participant.member.analytics_pending && (
-                    <p className="text-xs text-muted-foreground">Analytics still syncing — check back shortly.</p>
+                    <p className="text-xs text-muted-foreground">Analytics still syncing, check back shortly.</p>
                   )}
                 </div>
               </TabsContent>
@@ -975,7 +975,7 @@ function SubmissionCard({
               </a>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-white/85">
-                <Icon className="h-9 w-9" /><span className="text-[10px]">Submitted — no media</span>
+                <Icon className="h-9 w-9" /><span className="text-[10px]">Submitted, no media</span>
               </div>
             )}
             <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-black/35 backdrop-blur px-2 py-0.5">
@@ -1011,7 +1011,7 @@ function SubmissionCard({
         {stage === "content_approved" && !showProofUpload && (
           <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-sky-600 dark:text-sky-400">
             <Loader2 className="h-3 w-3 mt-px shrink-0 animate-spin" />
-            <span>Influencer is posting approved content — system will update once it&apos;s posted</span>
+            <span>Influencer is posting approved content. This updates once it is posted.</span>
           </div>
         )}
         {/* Offline/team-suggested stage 2 — team uploads proof of posting on the
@@ -1034,7 +1034,7 @@ function SubmissionCard({
         {stage === "proof_submitted" && (
           <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-violet-600 dark:text-violet-400">
             <Clock className="h-3 w-3 mt-px shrink-0" />
-            <span>Proof submitted — under review by the Following team</span>
+            <span>Proof submitted, under review by the Following team</span>
           </div>
         )}
 
@@ -1061,7 +1061,7 @@ function SubmissionCard({
         {stage === "content_review" && !canDecide && (
           <div className="flex items-start gap-1.5 pt-1 text-[10px] leading-snug text-amber-600 dark:text-amber-400">
             <Clock className="h-3 w-3 mt-px shrink-0" />
-            <span>Submitted — awaiting the brand’s review</span>
+            <span>Submitted, awaiting the brand’s review</span>
           </div>
         )}
         {stage === "content_review" && canDecide && (

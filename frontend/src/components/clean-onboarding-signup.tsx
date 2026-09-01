@@ -1,1089 +1,445 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+/**
+ * Sign up.
+ *
+ * This used to be a four step wizard: pick a theme, make an account, name your
+ * company, tick five goals, drag a budget slider, then choose a plan from a card
+ * before you had seen a single creator. Six screens of asking, zero screens of
+ * showing. It did not convert, and it never could.
+ *
+ * What it is now: one screen. Google first, or three fields. Everyone lands on
+ * the Free plan with a working team and a credit wallet, and sees the product.
+ * Plans are sold later, from /pricing, once there is something to buy an upgrade
+ * for. Company, industry and budget are sales questions, not signup questions:
+ * the backend has always treated them as optional, so they are gone.
+ *
+ * Two rules this file must keep:
+ *
+ *  1. Never print a limit the server does not enforce. Every number on this page
+ *     comes from PLAN_LIMITS in src/config/planPricing.ts, which mirrors
+ *     SUBSCRIPTION_TIER_LIMITS in app/models/teams.py. The old copy advertised
+ *     500 and 2,000 monthly unlocks while the server enforced 350 and 1,000.
+ *  2. Never print a plan price here. Prices depend on the billing currency the
+ *     SERVER charges in, which is only known from a live response. Anything with
+ *     a number on it lives on /pricing and /checkout, which read that response.
+ *
+ * Paid intent still works. Arriving with ?plan=standard&interval=annual creates
+ * the free account first and then hands the person to /checkout with the tier
+ * and interval intact, which is the only path that can actually bill annually
+ * (POST /api/v1/checkout/create-session takes billing_interval; the old
+ * pre-registration checkout this page used to call is monthly-only).
+ */
+
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { useTheme } from 'next-themes'
-import {
-  Check,
-  Loader2,
-  Eye,
-  EyeOff,
-  TrendingUp,
-  CheckCircle,
-  Search,
-  Users,
-  BarChart3,
-  Shield,
-  RefreshCw
-} from 'lucide-react'
-import { Sun } from '@/components/animate-ui/icons/sun'
-import { Moon } from '@/components/animate-ui/icons/moon'
+import { AlertCircle, Check, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { GoogleSignInButton, AuthDivider } from '@/components/google-sign-in-button'
-import { Label } from '@/components/ui/label'
 import { AnimatedInput } from '@/components/ui/animated-input'
-import { Slider } from '@/components/ui/slider'
+import { GoogleSignInButton, AuthDivider } from '@/components/google-sign-in-button'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
 import { ENDPOINTS, API_CONFIG } from '@/config/api'
-import { motion, AnimatePresence } from 'motion/react'
-import { formatPlanPrice, getPlanAmount } from '@/config/planPricing'
+import { getPlanLimits } from '@/config/planPricing'
 
-// Step definitions
-const STEPS = [
-  { id: 1, title: 'Welcome' },
-  { id: 2, title: 'Account' },
-  { id: 3, title: 'Profile' },
-  { id: 4, title: 'Plan' }
-]
+// ---------------------------------------------------------------------------
+// Password
+// ---------------------------------------------------------------------------
+// Mirrors app/utils/password_validator.py. Checked here so the person is told
+// before the round trip, never instead of it: the server is still the authority.
 
-// Industry options
-const INDUSTRIES = [
-  { value: 'fashion_beauty', label: 'Fashion & Beauty' },
-  { value: 'food_beverage', label: 'Food & Beverage' },
-  { value: 'technology', label: 'Technology' },
-  { value: 'health_fitness', label: 'Health & Fitness' },
-  { value: 'travel_hospitality', label: 'Travel & Hospitality' },
-  { value: 'ecommerce', label: 'E-commerce' },
-  { value: 'agency', label: 'Agency' },
-  { value: 'other', label: 'Other' }
-]
-
-// Company size options
-const COMPANY_SIZES = [
-  { value: 'solo', label: 'Just me' },
-  { value: 'small', label: '2-10 people' },
-  { value: 'growing', label: '11-50 people' },
-  { value: 'large', label: '50+ people' }
-]
-
-// Use case options with icons
-const USE_CASES = [
-  { value: 'find_influencers', label: 'Find influencers', icon: Search },
-  { value: 'analyze_competitors', label: 'Analyze competitors', icon: Users },
-  { value: 'track_campaigns', label: 'Track campaigns', icon: BarChart3 },
-  { value: 'verify_authenticity', label: 'Verify authenticity', icon: Shield },
-  { value: 'research_trends', label: 'Research trends', icon: TrendingUp }
-]
-
-// Marketing budget options
-const MARKETING_BUDGETS = [
-  { value: 'under_5k', label: 'Under ⃃5K' },
-  { value: '5k_25k', label: '⃃5K - ⃃25K' },
-  { value: '25k_100k', label: '⃃25K - ⃃100K' },
-  { value: 'over_100k', label: 'Over ⃃100K' },
-  { value: 'not_sure', label: 'Not sure' }
-]
-
-// Plan details
-interface PlanDetails {
-  id: 'free' | 'standard' | 'premium'
-  name: string
-  price: string
-  priceMonthly: number
-  profiles: string
-  emails: string
-  posts: string
-  teams: string
-  credits: string
-  features: string[]
-  popular?: boolean
-}
-
-const PLANS: PlanDetails[] = [
+const PASSWORD_RULES = [
+  { id: 'length', label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+  { id: 'upper', label: 'One capital letter', test: (p: string) => /[A-Z]/.test(p) },
+  { id: 'lower', label: 'One lowercase letter', test: (p: string) => /[a-z]/.test(p) },
+  { id: 'number', label: 'One number', test: (p: string) => /\d/.test(p) },
   {
-    id: 'free',
-    name: 'Free',
-    price: '⃃0',
-    priceMonthly: 0,
-    profiles: '5 profile unlocks',
-    emails: '0 email reveals',
-    posts: '0 post analytics',
-    teams: '1 team member',
-    credits: '100 credits included',
-    features: [
-      'Basic analytics only',
-      'No export features',
-      'No campaigns',
-      'Community support'
-    ]
+    id: 'special',
+    label: 'One symbol, like ! or @',
+    test: (p: string) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(p),
   },
-  {
-    id: 'standard',
-    name: 'Standard',
-    price: formatPlanPrice(getPlanAmount('standard')),
-    priceMonthly: getPlanAmount('standard'),
-    profiles: '500 profile unlocks',
-    emails: '250 email reveals',
-    posts: '125 post analytics',
-    teams: '2 team members',
-    credits: '2,000 credits included',
-    features: [
-      'Full analytics suite',
-      'All AI insights',
-      'Campaign management',
-      'Data export (CSV/Excel)',
-      'Email support'
-    ],
-    popular: true
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: formatPlanPrice(getPlanAmount('premium')),
-    priceMonthly: getPlanAmount('premium'),
-    profiles: '2,000 profile unlocks',
-    emails: '800 email reveals',
-    posts: '300 post analytics',
-    teams: '5 team members',
-    credits: '5,000 credits included',
-    features: [
-      'Everything in Standard',
-      '20% discount on credit top-ups',
-      'Priority support',
-      'Advanced exports'
-    ]
+] as const
+
+function failedPasswordRules(password: string) {
+  return PASSWORD_RULES.filter((rule) => !rule.test(password))
+}
+
+// ---------------------------------------------------------------------------
+// Errors
+// ---------------------------------------------------------------------------
+// Three states, three treatments: idle, submitting, failed. A failure says what
+// went wrong and what to do about it. Never a status code, never "error 400".
+
+interface AuthError {
+  message: string
+  /** An in-app route that resolves the problem, when one exists. */
+  actionHref?: string
+  actionLabel?: string
+}
+
+function readableSignupError(raw: unknown): AuthError {
+  const text = String((raw as Error)?.message ?? raw ?? '').trim()
+  const lower = text.toLowerCase()
+
+  if (!text || lower.includes('failed to fetch') || lower.includes('networkerror')) {
+    return { message: 'We could not reach our servers. Check your connection and try again.' }
   }
-]
-
-// Password validation with Supabase requirements
-const validatePassword = (password: string): {valid: boolean, errors: string[]} => {
-  const errors: string[] = []
-
-  if (password.length < 8) {
-    errors.push("Password must be at least 8 characters")
+  if (lower.includes('already exists') || lower.includes('already registered')) {
+    return {
+      message: 'There is already an account with that email address.',
+      actionHref: '/auth/login',
+      actionLabel: 'Sign in instead',
+    }
   }
-
-  if (!/[A-Z]/.test(password)) {
-    errors.push("Password must contain at least one uppercase letter")
+  if (lower.includes('password')) {
+    // The server prefixes its own sentence. Keep its reason, drop its scaffolding.
+    const reason = text.replace(/^password validation failed:\s*/i, '')
+    return { message: reason.charAt(0).toUpperCase() + reason.slice(1) }
   }
-
-  if (!/[a-z]/.test(password)) {
-    errors.push("Password must contain at least one lowercase letter")
+  if (lower.includes('email')) {
+    return { message: 'That email address was not accepted. Please check it and try again.' }
   }
-
-  if (!/[0-9]/.test(password)) {
-    errors.push("Password must contain at least one number")
-  }
-
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    errors.push("Password must contain at least one special character")
-  }
-
-  // Common weak passwords that Supabase rejects
-  // Client-side vanity blocklist only — real strength is enforced by length/complexity
-  // rules above and by Supabase. Do NOT add real/internal credentials here: this array
-  // ships in client JS, so any specific secret placed here is publicly readable.
-  const weakPasswords = [
-    'password', 'Password123', '12345678', 'qwerty123',
-    'admin123', 'Welcome123', 'Password1'
-  ]
-
-  if (weakPasswords.some(weak => password.toLowerCase().includes(weak.toLowerCase()))) {
-    errors.push("Password is too common, please choose a stronger one")
-  }
-
   return {
-    valid: errors.length === 0,
-    errors
+    message: 'We could not create your account just now. Please try again, or email support@following.ae and we will set it up for you.',
   }
 }
 
-// Password strength indicator helper
-const checkPasswordStrength = (password: string) => {
-  const checks = {
-    length: password.length >= 8,
-    lowercase: /[a-z]/.test(password),
-    uppercase: /[A-Z]/.test(password),
-    number: /\d/.test(password),
-    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
-  }
+// ---------------------------------------------------------------------------
+// Where the person goes next
+// ---------------------------------------------------------------------------
 
-  let strength = 0
-  if (password.length >= 8) strength++
-  if (password.length >= 12) strength++
-  if (checks.uppercase && checks.lowercase) strength++
-  if (checks.number) strength++
-  if (checks.special) strength++
+type PaidTier = 'standard' | 'premium'
 
-  const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong']
-  const colors = ['red', 'orange', 'yellow', 'blue', 'green']
-
-  return {
-    checks,
-    strength,
-    score: labels[Math.min(strength - 1, 4)],
-    color: colors[Math.min(strength - 1, 4)]
-  }
+/** Only ever follow a same-site path: an open redirect here is a phishing hop. */
+function safeNext(raw: string | null): string | null {
+  if (!raw) return null
+  if (!raw.startsWith('/') || raw.startsWith('//')) return null
+  return raw
 }
 
-// Generate strong password helper
-const generateStrongPassword = (): string => {
-  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  const lowercase = 'abcdefghijklmnopqrstuvwxyz'
-  const numbers = '0123456789'
-  const special = '!@#$%^&*'
+function SignupForm() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
-  let password = ''
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [passwordTouched, setPasswordTouched] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [error, setError] = useState<AuthError | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Ensure at least one of each required character type
-  password += uppercase[Math.floor(Math.random() * uppercase.length)]
-  password += lowercase[Math.floor(Math.random() * lowercase.length)]
-  password += numbers[Math.floor(Math.random() * numbers.length)]
-  password += special[Math.floor(Math.random() * special.length)]
+  useEffect(() => setMounted(true), [])
 
-  // Fill the rest randomly to reach 12 chars
-  const all = uppercase + lowercase + numbers + special
-  for (let i = 0; i < 8; i++) {
-    password += all[Math.floor(Math.random() * all.length)]
+  // Paid intent, carried from /pricing. The account is still created free; the
+  // card comes after, on the one checkout that can bill annually.
+  const intendedTier = useMemo<PaidTier | null>(() => {
+    const raw = (searchParams.get('plan') || '').toLowerCase()
+    return raw === 'standard' || raw === 'premium' ? raw : null
+  }, [searchParams])
+
+  const intendedInterval = searchParams.get('interval') === 'annual' ? 'annual' : 'monthly'
+  const nextPath = safeNext(searchParams.get('next'))
+
+  const destination = useMemo(() => {
+    if (intendedTier) return `/checkout?tier=${intendedTier}&interval=${intendedInterval}`
+    return nextPath || '/dashboard'
+  }, [intendedTier, intendedInterval, nextPath])
+
+  const freeLimits = getPlanLimits('free')
+
+  const passwordProblems = failedPasswordRules(password)
+
+  const validate = (): boolean => {
+    const next: Record<string, string> = {}
+    if (!fullName.trim()) next.fullName = 'Please tell us your name'
+    if (!email.trim()) next.email = 'Please enter your email'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) next.email = 'That does not look like an email address'
+    if (!password) next.password = 'Please choose a password'
+    else if (passwordProblems.length > 0) next.password = passwordProblems[0].label
+    setFieldErrors(next)
+    return Object.keys(next).length === 0
   }
 
-  // Shuffle the password
-  return password.split('').sort(() => Math.random() - 0.5).join('')
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setError(null)
+    if (!validate()) return
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}${ENDPOINTS.billing.freeTierRegistration}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+            full_name: fullName.trim(),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+            language: 'en',
+          }),
+        }
+      )
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data?.detail || data?.message || '')
+
+      // Sign in through the normal login path rather than hand-writing tokens.
+      // The registration response does not always carry a usable token (the
+      // endpoint falls back to a token-less payload when Supabase is slow), and
+      // a half-written session lands the person on a dashboard that bounces them
+      // straight back out. One extra request buys a session the whole app agrees
+      // exists.
+      const { authService } = await import('@/services/authService')
+      const signedIn = await authService.login({ email: email.trim(), password })
+
+      if (!signedIn.success) {
+        // The registration endpoint answers 200 even when it could not finish
+        // (it catches its own errors), and the commonest reason is an email that
+        // already has an account. One sentence that is true either way, and a way
+        // out of both.
+        setError({
+          message:
+            'We could not sign you in. If you already have an account with that email, sign in with the password you set then.',
+          actionHref: '/auth/login',
+          actionLabel: 'Go to sign in',
+        })
+        setIsSubmitting(false)
+        return
+      }
+
+      // A hard navigation: the auth contexts read the stored session on mount, so
+      // a fresh document load is what puts the app in the signed-in state.
+      window.location.assign(destination)
+    } catch (err) {
+      setError(readableSignupError(err))
+      setIsSubmitting(false)
+    }
+  }
+
+  const logoSrc =
+    mounted && resolvedTheme === 'dark' ? '/Following Logo Dark Mode.svg' : '/followinglogo.svg'
+
+  return (
+    <div className="min-h-[100dvh] bg-background grid lg:grid-cols-[1fr_26rem]">
+      {/* ── The ask ─────────────────────────────────────────────────────── */}
+      <div className="flex flex-col px-6 py-10 sm:px-10 lg:px-16">
+        <img src={logoSrc} alt="Following" className="h-5 w-auto opacity-80" />
+
+        <div className="flex flex-1 items-center justify-center py-12">
+          <div className="w-full max-w-sm">
+            <h1 className="text-3xl font-semibold tracking-tight">Create your account</h1>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Free to start. No card, and nobody calls you.
+            </p>
+
+            {intendedTier && (
+              <p className="mt-5 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                We will set up your account first, then take you to pay for{' '}
+                <span className="font-medium text-foreground capitalize">{intendedTier}</span>
+                {intendedInterval === 'annual' ? ', billed annually.' : ', billed monthly.'}
+              </p>
+            )}
+
+            <div className="mt-8">
+              <GoogleSignInButton
+                label="Sign up with Google"
+                next={destination}
+                disabled={isSubmitting}
+                onError={(message) => setError({ message })}
+                className="rounded-lg"
+              />
+            </div>
+
+            <AuthDivider label="or" className="my-6" />
+
+            <form onSubmit={handleSubmit} noValidate className="space-y-5">
+              <AnimatedInput
+                id="fullName"
+                type="text"
+                label="Your name"
+                placeholder="Jamie Rivera"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                autoComplete="name"
+                error={fieldErrors.fullName}
+                disabled={isSubmitting}
+                required
+              />
+
+              <AnimatedInput
+                id="email"
+                type="email"
+                label="Work email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                error={fieldErrors.email}
+                disabled={isSubmitting}
+                required
+              />
+
+              <div>
+                <div className="relative">
+                  <AnimatedInput
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    label="Password"
+                    placeholder="At least 8 characters"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setPasswordTouched(true)}
+                    autoComplete="new-password"
+                    error={fieldErrors.password}
+                    disabled={isSubmitting}
+                    className="pr-11"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-8 p-1 text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+
+                {/* Only once they have started. A checklist of five red crosses
+                    on an empty field reads as a telling-off. */}
+                {passwordTouched && passwordProblems.length > 0 && (
+                  <ul className="mt-3 space-y-1">
+                    {PASSWORD_RULES.map((rule) => {
+                      const met = rule.test(password)
+                      return (
+                        <li
+                          key={rule.id}
+                          className={cn(
+                            'flex items-center gap-2 text-xs',
+                            met ? 'text-foreground' : 'text-muted-foreground'
+                          )}
+                        >
+                          <Check
+                            className={cn('h-3 w-3 shrink-0', met ? 'opacity-100' : 'opacity-25')}
+                          />
+                          {rule.label}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              {error && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm"
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                  <div className="space-y-1">
+                    <p className="text-foreground">{error.message}</p>
+                    {error.actionHref && (
+                      <Link
+                        href={error.actionHref}
+                        className="inline-block font-medium underline underline-offset-2"
+                      >
+                        {error.actionLabel}
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <Button type="submit" disabled={isSubmitting} className="min-h-[44px] w-full">
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating your account
+                  </>
+                ) : (
+                  'Create account'
+                )}
+              </Button>
+            </form>
+
+            <p className="mt-6 text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <Link href="/auth/login" className="text-foreground underline underline-offset-2">
+                Sign in
+              </Link>
+            </p>
+
+            {/* No link here on purpose: there is no /terms or /privacy route in
+                this app yet, and a link to a 404 is worse than plain text. Turn
+                these into links the day those pages exist. */}
+            <p className="mt-8 text-xs leading-relaxed text-muted-foreground">
+              By creating an account you agree to our terms of service and privacy policy.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── The value, beside the ask rather than behind it ──────────────── */}
+      <aside className="hidden border-l border-border bg-muted/20 px-12 py-16 lg:flex lg:flex-col lg:justify-center">
+        <div className="max-w-xs space-y-10">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              What you get today
+            </p>
+            <p className="mt-4 text-lg leading-snug">
+              Search Dubai creators, open their real analytics, and build a shortlist you can
+              actually send to a client.
+            </p>
+          </div>
+
+          <ul className="space-y-4 text-sm">
+            <ValueLine>
+              {freeLimits.monthlyUnlocks} creator profiles a month, unlocked in full
+            </ValueLine>
+            <ValueLine>
+              {freeLimits.monthlyCredits.toLocaleString()} credits, renewed every month
+            </ValueLine>
+            <ValueLine>Audience, engagement and content analysis on every profile</ValueLine>
+            <ValueLine>Shortlists you can name, sort and export</ValueLine>
+          </ul>
+
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Upgrade from inside the app whenever you need more, and not before. No card is stored
+            until you do.
+          </p>
+        </div>
+      </aside>
+    </div>
+  )
+}
+
+function ValueLine({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-3">
+      <Check className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+      <span>{children}</span>
+    </li>
+  )
 }
 
 export function CleanOnboardingSignup() {
-  const router = useRouter()
-  const { theme, setTheme } = useTheme()
-  const [currentStep, setCurrentStep] = useState(1)
-  const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState<'free' | 'standard' | 'premium'>('standard')
-  const [passwordFocused, setPasswordFocused] = useState(false)
-  const [selectedTheme, setSelectedTheme] = useState<'light' | 'dark'>('light')
-  const [mounted, setMounted] = useState(false)
-
-  // Prevent hydration mismatch
-  useEffect(() => {
-    setMounted(true)
-    if (theme) {
-      setSelectedTheme(theme as 'light' | 'dark')
-    }
-  }, [])
-
-  // Form data for all steps
-  const [formData, setFormData] = useState({
-    // Step 2: Account
-    email: '',
-    password: '',
-    fullName: '',
-
-    // Step 3: Profile
-    company: '',
-    jobTitle: '',
-    language: 'en',
-    industry: '',
-    companySize: '',
-    useCases: [] as string[], // Changed to array for multi-select
-    marketingBudget: ''
-  })
-
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [passwordStrength, setPasswordStrength] = useState<ReturnType<typeof checkPasswordStrength>>()
-
-  // Update password strength
-  useEffect(() => {
-    if (formData.password) {
-      setPasswordStrength(checkPasswordStrength(formData.password))
-    }
-  }, [formData.password])
-
-  // Handle theme changes
-  const handleThemeChange = (newTheme: 'light' | 'dark') => {
-    setSelectedTheme(newTheme)
-    setTheme(newTheme)
-  }
-
-  const validateStep = (step: number): boolean => {
-    const newErrors: Record<string, string> = {}
-
-    switch (step) {
-      case 1:
-        return true
-
-      case 2:
-        if (!formData.email) {
-          newErrors.email = 'Email is required'
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-          newErrors.email = 'Please enter a valid email'
-        }
-
-        if (!formData.password) {
-          newErrors.password = 'Password is required'
-        } else {
-          const passwordValidation = validatePassword(formData.password)
-          if (!passwordValidation.valid) {
-            newErrors.password = passwordValidation.errors[0] // Show first error
-          }
-        }
-
-        if (!formData.fullName) {
-          newErrors.fullName = 'Full name is required'
-        }
-        break
-
-      case 3:
-        if (!formData.company) {
-          newErrors.company = 'Company name is required'
-        }
-        break
-
-      case 4:
-        return true
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      if (currentStep === STEPS.length) {
-        handleSubmit()
-      } else {
-        setCurrentStep(currentStep + 1)
+  // useSearchParams needs a boundary above it or the route cannot be prerendered.
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[100dvh] items-center justify-center bg-background">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
       }
-    }
-  }
-
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-      setErrors({})
-    }
-  }
-
-  const handleSkip = () => {
-    if (currentStep === 3) {
-      setCurrentStep(4)
-    }
-  }
-
-  const handleSubmit = async () => {
-    setIsLoading(true)
-
-    try {
-      if (selectedPlan === 'free') {
-        await handleFreeSignup()
-      } else {
-        await handlePaidSignup()
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Something went wrong. Please try again.')
-      setIsLoading(false)
-    }
-  }
-
-  const handleFreeSignup = async () => {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.freeTierRegistration}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: formData.email,
-        password: formData.password,
-        full_name: formData.fullName,
-        company: formData.company,
-        job_title: formData.jobTitle || '',
-        phone_number: '',
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-        language: formData.language,
-        // New personalization fields
-        industry: formData.industry || '',
-        company_size: formData.companySize || '',
-        use_case: formData.useCases.join(',') || '', // Join array for API
-        marketing_budget: formData.marketingBudget || ''
-      })
-    })
-
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.detail || 'Registration failed')
-
-    if (data.access_token) {
-      const tokenData = {
-        access_token: data.access_token,
-        refresh_token: data.refresh_token || '',
-        token_type: 'bearer',
-        expires_at: Date.now() + (24 * 60 * 60 * 1000)
-      }
-      localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
-      if (data.user) {
-        localStorage.setItem('user_data', JSON.stringify(data.user))
-      }
-    }
-
-    toast.success('Welcome! Redirecting to dashboard...')
-    router.push('/dashboard')
-  }
-
-  const handlePaidSignup = async () => {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.billing.preRegistrationCheckout}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: formData.email,
-        password: formData.password,
-        full_name: formData.fullName,
-        plan: selectedPlan.toLowerCase(),
-        company: formData.company,
-        job_title: formData.jobTitle || '',
-        phone_number: '',
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-        language: formData.language,
-        // New personalization fields
-        industry: formData.industry || '',
-        company_size: formData.companySize || '',
-        use_case: formData.useCases.join(',') || '', // Join array for API
-        marketing_budget: formData.marketingBudget || '',
-        success_url: `${window.location.origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${window.location.origin}/auth/register?payment=cancelled`
-      })
-    })
-
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.detail || 'Failed to create checkout session')
-
-    if (data.sessionUrl || data.session_url || data.checkout_url) {
-      const checkoutUrl = data.sessionUrl || data.session_url || data.checkout_url
-      window.location.href = checkoutUrl
-    } else {
-      throw new Error('No checkout URL received')
-    }
-  }
-
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return <StepWelcome selectedTheme={selectedTheme} setSelectedTheme={handleThemeChange} />
-      case 2:
-        return (
-          <StepAccount
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
-            passwordFocused={passwordFocused}
-            setPasswordFocused={setPasswordFocused}
-            passwordStrength={passwordStrength}
-          />
-        )
-      case 3:
-        return (
-          <StepProfile
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-          />
-        )
-      case 4:
-        return (
-          <StepPlan
-            selectedPlan={selectedPlan}
-            setSelectedPlan={setSelectedPlan}
-          />
-        )
-      default:
-        return null
-    }
-  }
-
-  const logoSrc = mounted && theme === 'dark' ? '/Following Logo Dark Mode.svg' : '/followinglogo.svg'
-
-  if (!mounted) return null
-
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header with logo */}
-      <div className="p-6 lg:p-8">
-        <img
-          src={logoSrc}
-          alt="Following"
-          className="h-5 opacity-70"
-        />
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-lg">
-          {/* Progress dots */}
-          <div className="flex justify-center mb-12">
-            <div className="flex gap-2">
-              {STEPS.map((step) => (
-                <div
-                  key={step.id}
-                  className={cn(
-                    "h-1.5 transition-all duration-300 rounded-full",
-                    currentStep === step.id ? "w-8 bg-foreground" : "w-1.5 bg-muted-foreground/30",
-                    currentStep > step.id && "bg-muted-foreground/50"
-                  )}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Step content */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {renderStep()}
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Navigation */}
-          <div className="flex justify-between items-center mt-12">
-            {currentStep > 1 ? (
-              <Button
-                variant="ghost"
-                onClick={handleBack}
-                disabled={isLoading}
-                className="text-muted-foreground min-h-[44px]"
-              >
-                Back
-              </Button>
-            ) : (
-              <div />
-            )}
-
-            {currentStep === 3 && (
-              <Button
-                variant="ghost"
-                onClick={handleSkip}
-                disabled={isLoading}
-                className="text-muted-foreground min-h-[44px]"
-              >
-                Skip
-              </Button>
-            )}
-
-            <Button
-              onClick={handleNext}
-              disabled={isLoading}
-              className={cn(
-                "min-w-[140px] min-h-[44px] transition-all duration-150",
-                currentStep === STEPS.length && "bg-primary"
-              )}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Setting up...
-                </>
-              ) : currentStep === STEPS.length ? (
-                'Complete setup'
-              ) : (
-                'Continue'
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Step 1: Welcome & Theme Selection
-function StepWelcome({
-  selectedTheme,
-  setSelectedTheme
-}: {
-  selectedTheme: 'light' | 'dark'
-  setSelectedTheme: (theme: 'light' | 'dark') => void
-}) {
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold mb-2">Choose your theme</h1>
-        <p className="text-muted-foreground text-sm">Select your preferred appearance</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <button
-          onClick={() => setSelectedTheme('light')}
-          aria-label="Select light theme"
-          className={cn(
-            "relative p-6 rounded-lg border-2 transition-all duration-150 text-center group min-h-[44px]",
-            selectedTheme === 'light'
-              ? "border-foreground bg-muted/30"
-              : "border-border hover:border-muted-foreground/50"
-          )}
-        >
-          <div className="mx-auto mb-3 flex justify-center">
-            <Sun
-              animateOnHover
-              className="h-8 w-8"
-            />
-          </div>
-          <span className="text-sm font-medium">Light</span>
-          {selectedTheme === 'light' && (
-            <motion.div
-              className="absolute top-3 right-3"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", bounce: 0.5, duration: 0.4 }}
-            >
-              <div className="w-2 h-2 rounded-full bg-foreground" />
-            </motion.div>
-          )}
-        </button>
-
-        <button
-          onClick={() => setSelectedTheme('dark')}
-          aria-label="Select dark theme"
-          className={cn(
-            "relative p-6 rounded-lg border-2 transition-all duration-150 text-center group min-h-[44px]",
-            selectedTheme === 'dark'
-              ? "border-foreground bg-muted/30"
-              : "border-border hover:border-muted-foreground/50"
-          )}
-        >
-          <div className="mx-auto mb-3 flex justify-center">
-            <Moon
-              animateOnHover
-              className="h-8 w-8"
-            />
-          </div>
-          <span className="text-sm font-medium">Dark</span>
-          {selectedTheme === 'dark' && (
-            <motion.div
-              className="absolute top-3 right-3"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", bounce: 0.5, duration: 0.4 }}
-            >
-              <div className="w-2 h-2 rounded-full bg-foreground" />
-            </motion.div>
-          )}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// Step 2: Account Setup
-function StepAccount({
-  formData,
-  setFormData,
-  errors,
-  showPassword,
-  setShowPassword,
-  passwordFocused,
-  setPasswordFocused,
-  passwordStrength
-}: any) {
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold mb-2">Create your account</h1>
-        <p className="text-muted-foreground text-sm">Enter your details to get started</p>
-      </div>
-
-      {/* Google skips the rest of this wizard. It creates the same Free account the
-          email path creates: team, credit wallet and all. The plan can be upgraded
-          from Billing afterwards. */}
-      <div className="space-y-5">
-        <GoogleSignInButton label="Sign up with Google" className="rounded-lg" />
-        <AuthDivider label="or sign up with email" />
-      </div>
-
-      <div className="space-y-5">
-        <AnimatedInput
-          id="fullName"
-          type="text"
-          label="What's your name?"
-          placeholder="Enter your full name"
-          value={formData.fullName}
-          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-          autoComplete="name"
-          error={errors.fullName}
-          autoFocus
-          required
-        />
-
-        <AnimatedInput
-          id="email"
-          type="email"
-          label="What's your email?"
-          placeholder="name@company.com"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          autoComplete="email"
-          error={errors.email}
-          required
-        />
-
-        <div className="space-y-2">
-          <div className="relative">
-            <AnimatedInput
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              label="Create a password"
-              placeholder="Strong password required"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              onFocus={() => setPasswordFocused(true)}
-              onBlur={() => setPasswordFocused(false)}
-              autoComplete="new-password"
-              error={errors.password}
-              className="pr-20"
-              required
-            />
-            <div className="absolute right-3 top-8 flex gap-1">
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="p-1 text-muted-foreground hover:text-foreground transition-colors duration-150"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const newPassword = generateStrongPassword()
-                  setFormData({ ...formData, password: newPassword })
-                  setShowPassword(true)
-                }}
-                className="p-1 text-muted-foreground hover:text-foreground transition-colors duration-150"
-                title="Generate strong password"
-                aria-label="Generate strong password"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Password strength indicator */}
-          {formData.password && passwordStrength && (
-            <div className="space-y-2">
-              <div className="flex gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "h-1.5 flex-1 rounded-full transition-all duration-200",
-                      i < passwordStrength.strength
-                        ? passwordStrength.color === 'green'
-                          ? "bg-green-500"
-                          : passwordStrength.color === 'blue'
-                          ? "bg-blue-500"
-                          : passwordStrength.color === 'yellow'
-                          ? "bg-yellow-500"
-                          : passwordStrength.color === 'orange'
-                          ? "bg-orange-500"
-                          : "bg-red-500"
-                        : "bg-muted"
-                    )}
-                  />
-                ))}
-              </div>
-              <p className={cn(
-                "text-xs font-medium",
-                passwordStrength.color === 'green' && "text-green-600",
-                passwordStrength.color === 'blue' && "text-blue-600",
-                passwordStrength.color === 'yellow' && "text-yellow-600",
-                passwordStrength.color === 'orange' && "text-orange-600",
-                passwordStrength.color === 'red' && "text-red-600"
-              )}>
-                Password Strength: {passwordStrength.score}
-              </p>
-            </div>
-          )}
-
-          {/* Password requirements checklist */}
-          {(passwordFocused || formData.password) && (
-            <div className="text-xs space-y-1 mt-2">
-              <p className={cn(
-                "flex items-center gap-1.5",
-                passwordStrength?.checks.length ? "text-green-600" : "text-muted-foreground"
-              )}>
-                <span className="text-[10px]">{passwordStrength?.checks.length ? "✓" : "○"}</span>
-                At least 8 characters
-              </p>
-              <p className={cn(
-                "flex items-center gap-1.5",
-                passwordStrength?.checks.uppercase ? "text-green-600" : "text-muted-foreground"
-              )}>
-                <span className="text-[10px]">{passwordStrength?.checks.uppercase ? "✓" : "○"}</span>
-                One uppercase letter
-              </p>
-              <p className={cn(
-                "flex items-center gap-1.5",
-                passwordStrength?.checks.lowercase ? "text-green-600" : "text-muted-foreground"
-              )}>
-                <span className="text-[10px]">{passwordStrength?.checks.lowercase ? "✓" : "○"}</span>
-                One lowercase letter
-              </p>
-              <p className={cn(
-                "flex items-center gap-1.5",
-                passwordStrength?.checks.number ? "text-green-600" : "text-muted-foreground"
-              )}>
-                <span className="text-[10px]">{passwordStrength?.checks.number ? "✓" : "○"}</span>
-                One number
-              </p>
-              <p className={cn(
-                "flex items-center gap-1.5",
-                passwordStrength?.checks.special ? "text-green-600" : "text-muted-foreground"
-              )}>
-                <span className="text-[10px]">{passwordStrength?.checks.special ? "✓" : "○"}</span>
-                One special character (!@#$%^&*)
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Step 3: Profile
-function StepProfile({
-  formData,
-  setFormData,
-  errors
-}: any) {
-  // Helper to toggle goals
-  const toggleGoal = (goal: string) => {
-    setFormData((prev: any) => ({
-      ...prev,
-      useCases: prev.useCases.includes(goal)
-        ? prev.useCases.filter((g: string) => g !== goal)
-        : [...prev.useCases, goal]
-    }))
-  }
-
-  // Map slider value to budget option
-  const sliderToBudget = (value: number) => {
-    if (value === 0) return 'not_sure'
-    if (value === 1) return 'under_5k'
-    if (value === 2) return '5k_25k'
-    if (value === 3) return '25k_100k'
-    return 'over_100k'
-  }
-
-  const budgetToSlider = (budget: string) => {
-    switch(budget) {
-      case 'not_sure': return 0
-      case 'under_5k': return 1
-      case '5k_25k': return 2
-      case '25k_100k': return 3
-      case 'over_100k': return 4
-      default: return 0
-    }
-  }
-
-  const getBudgetLabel = (value: number) => {
-    const budgets = ['Not sure', 'Under ⃃5K', '⃃5K-25K', '⃃25K-100K', 'Over ⃃100K']
-    return budgets[value] || 'Not sure'
-  }
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold mb-2">About your business</h1>
-        <p className="text-muted-foreground text-sm">Help us customize your experience</p>
-      </div>
-
-      <div className="space-y-6">
-        {/* Company */}
-        <AnimatedInput
-          id="company"
-          type="text"
-          label="Company name"
-          placeholder="Acme Inc."
-          value={formData.company}
-          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-          autoComplete="organization"
-          error={errors.company}
-          autoFocus
-          required
-        />
-
-        {/* Goals - Multi-select grid */}
-        <div>
-          <Label className="text-sm font-normal text-muted-foreground mb-3">
-            Goals <span className="text-muted-foreground/50">(select all that apply)</span>
-          </Label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-            {USE_CASES.map(useCase => {
-              const Icon = useCase.icon
-              const isSelected = formData.useCases.includes(useCase.value)
-              return (
-                <button
-                  key={useCase.value}
-                  type="button"
-                  onClick={() => toggleGoal(useCase.value)}
-                  className={cn(
-                    "relative aspect-square rounded-lg border-2 transition-all flex flex-col items-center justify-center p-3",
-                    isSelected
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-muted-foreground/50"
-                  )}
-                >
-                  <Icon className={cn(
-                    "h-5 w-5 mb-1",
-                    isSelected ? "text-primary" : "text-muted-foreground"
-                  )} />
-                  <p className="text-[10px] text-center leading-tight">
-                    {useCase.label.split(' ')[0]}
-                  </p>
-                  {isSelected && (
-                    <div className="absolute top-1.5 right-1.5">
-                      <Check className="h-3 w-3 text-primary" />
-                    </div>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Marketing Budget Slider */}
-        <div>
-          <Label className="text-sm font-normal text-muted-foreground mb-4">
-            Monthly marketing budget
-          </Label>
-          <div className="space-y-3">
-            <Slider
-              value={[budgetToSlider(formData.marketingBudget)]}
-              onValueChange={(values) => setFormData({ ...formData, marketingBudget: sliderToBudget(values[0]) })}
-              min={0}
-              max={4}
-              step={1}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Not sure</span>
-              <span className="font-medium text-foreground">
-                {getBudgetLabel(budgetToSlider(formData.marketingBudget))}
-              </span>
-              <span>⃃100K+</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Step 4: Plan Selection
-function StepPlan({
-  selectedPlan,
-  setSelectedPlan
-}: {
-  selectedPlan: 'free' | 'standard' | 'premium'
-  setSelectedPlan: (plan: 'free' | 'standard' | 'premium') => void
-}) {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly')
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold mb-2">Choose your plan</h1>
-        <p className="text-muted-foreground text-sm">Select the best option for your needs</p>
-      </div>
-
-      {/* Billing cycle toggle */}
-      <div className="flex justify-center">
-        <div className="bg-muted p-1 rounded-lg flex gap-1">
-          <button
-            onClick={() => setBillingCycle('monthly')}
-            className={cn(
-              "px-4 py-1.5 rounded-md text-sm font-medium transition-all",
-              billingCycle === 'monthly'
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBillingCycle('annual')}
-            className={cn(
-              "px-4 py-1.5 rounded-md text-sm font-medium transition-all",
-              billingCycle === 'annual'
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Annual
-            <span className="ml-1.5 text-xs text-green-600 dark:text-green-400">Save 20%</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {PLANS.map((plan) => {
-          const isSelected = selectedPlan === plan.id
-
-          return (
-            <button
-              key={plan.id}
-              onClick={() => setSelectedPlan(plan.id)}
-              className={cn(
-                "p-4 rounded-lg border-2 transition-all duration-150 text-left relative",
-                isSelected
-                  ? "border-foreground bg-muted/20"
-                  : "border-border hover:border-muted-foreground/50"
-              )}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-primary text-primary-foreground text-[10px] font-medium px-2 py-0.5 rounded-full">
-                    RECOMMENDED
-                  </span>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                {/* Header */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-sm">{plan.name}</span>
-                    {isSelected && (
-                      <CheckCircle className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                  <p className="text-xl font-semibold">
-                    {billingCycle === 'annual' && plan.priceMonthly > 0
-                      ? `⃃${Math.round(plan.priceMonthly * 0.8)}`
-                      : plan.price}
-                    {plan.priceMonthly > 0 && <span className="text-xs font-normal text-muted-foreground">/mo</span>}
-                  </p>
-                </div>
-
-                {/* Key limits */}
-                <div className="space-y-1 py-2">
-                  <p className="text-xs font-medium">{plan.profiles.split(' ')[0]} profiles</p>
-                  {plan.priceMonthly > 0 && (
-                    <>
-                      <p className="text-xs text-muted-foreground">{plan.credits.split(' ')[0]} credits</p>
-                      <p className="text-xs text-muted-foreground">{plan.teams}</p>
-                    </>
-                  )}
-                </div>
-
-                {/* Top features only */}
-                <div className="space-y-1 pt-2 border-t border-border">
-                  {plan.features.slice(0, 3).map((feature, idx) => (
-                    <p key={idx} className="text-[10px] text-muted-foreground">
-                      {feature}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </button>
-          )
-        })}
-      </div>
-
-      <p className="text-xs text-center text-muted-foreground">
-        Cancel or change anytime
-      </p>
-    </div>
+    >
+      <SignupForm />
+    </Suspense>
   )
 }

@@ -3,9 +3,13 @@
 /**
  * Surface 4 - the pricing page, for someone who already knows what they want.
  *
- * Not a brochure. A basket: pick a plan, tick Run, see one total, one
- * checkout. The annual toggle takes 20% off the whole basket, not off the plan
- * with the add-on quietly left at list price.
+ * Not a brochure. A basket: pick a plan, see one total, one checkout. The
+ * annual toggle takes 20% off, and it now survives the trip: /checkout posts
+ * the interval it is handed, so someone who picks Annual is billed annually.
+ *
+ * Run is shown with its price but is a request, not a checkout line. Nothing
+ * downstream can sell it yet, and a control that pretends otherwise is worse
+ * than an honest one.
  *
  * Every plan price comes from the live /checkout/pricing response, in the
  * currency that response names. Nothing here writes a price literal. Run and
@@ -31,9 +35,9 @@ import { API_CONFIG, ENDPOINTS } from '@/config/api'
 import {
   ANNUAL_DISCOUNT,
   formatPlanPrice,
+  getBillingCurrency,
   getModuleAmount,
   getPlanLimits,
-  getSeatAmount,
   hydrateBillingCurrency,
   type BillingCurrency,
 } from '@/config/planPricing'
@@ -83,7 +87,6 @@ export default function PricingPage() {
   const [state, setState] = useState<FetchState>('loading')
   const [pricing, setPricing] = useState<PricingResponse | null>(null)
   const [tier, setTier] = useState<SelectableTier>('standard')
-  const [withRun, setWithRun] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -113,7 +116,10 @@ export default function PricingPage() {
     }
   }, [])
 
-  const currency = (pricing?.currency?.toUpperCase() as BillingCurrency) || 'USD'
+  // The live response is the authority. The fallback is only ever reached before
+  // that response lands, and this page renders a skeleton until it does, so no
+  // price is ever drawn in a currency the server did not name.
+  const currency = (pricing?.currency?.toUpperCase() as BillingCurrency) || getBillingCurrency()
   const interval = annual ? 'annual' : 'monthly'
 
   /** Monthly amount for a tier in the selected interval, or null if unknown. */
@@ -137,7 +143,12 @@ export default function PricingPage() {
 
   const selectedPlanMonthly = planMonthly(tier)
   const basketKnown = selectedPlanMonthly !== null
-  const totalMonthly = basketKnown ? selectedPlanMonthly + (withRun ? runMonthly : 0) : null
+  // Run is deliberately NOT in this total. Nothing downstream can sell it:
+  // there is no Stripe price object for it (MODULE_STRIPE_PRICE_IDS is empty)
+  // and POST /api/v1/checkout/create-session takes a tier and an interval, and
+  // no add-on line. A basket that totalled it would be a number nobody could
+  // charge, so Run is a request until that path exists.
+  const totalMonthly = selectedPlanMonthly
   const totalAnnual = totalMonthly !== null ? Math.round(totalMonthly * 12) : null
 
   const priceCell = (value: number | null) =>
@@ -245,7 +256,7 @@ export default function PricingPage() {
             {/* ── The one add-on ───────────────────────────────────────── */}
             <section>
               <h2 className="text-sm font-medium text-muted-foreground mb-3">2. Add-on</h2>
-              <Card className={withRun ? 'border-primary/50 ring-1 ring-primary/20' : ''}>
+              <Card>
                 <CardContent className="py-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
@@ -270,12 +281,16 @@ export default function PricingPage() {
                         {formatPlanPrice(Math.round(runMonthly), currency)}
                         <span className="text-sm font-normal text-muted-foreground">/mo</span>
                       </p>
-                      <Button
-                        variant={withRun ? 'default' : 'outline'}
-                        onClick={() => setWithRun((v) => !v)}
-                      >
-                        {withRun ? 'In your basket' : 'Add Run'}
+                      {/* A request, not a checkout line: see the note by totalMonthly.
+                          This is the same route the in-product Run card takes. */}
+                      <Button variant="outline" asChild>
+                        <a href="mailto:support@following.ae?subject=Adding%20Run%20to%20my%20plan">
+                          Ask us to add Run
+                        </a>
                       </Button>
+                      <p className="text-xs text-muted-foreground max-w-[12rem]">
+                        Added to your account by hand today, and billed on your next invoice.
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -294,12 +309,6 @@ export default function PricingPage() {
                   <span className="capitalize">{tier} plan</span>
                   <span>{priceCell(selectedPlanMonthly)}</span>
                 </div>
-                {withRun && (
-                  <div className="flex items-center justify-between">
-                    <span>Run</span>
-                    <span>{priceCell(runMonthly)}</span>
-                  </div>
-                )}
               </div>
 
               <Separator />
@@ -315,14 +324,18 @@ export default function PricingPage() {
               {annual && totalAnnual !== null && (
                 <p className="text-xs text-muted-foreground">
                   {formatPlanPrice(totalAnnual, currency)} billed annually, {Math.round(ANNUAL_DISCOUNT * 100)}%
-                  off the whole basket.
+                  off the monthly price.
                 </p>
               )}
 
               <div className="text-xs text-muted-foreground space-y-1">
+                {/* No "extra seats at X each" line: max_team_members in
+                    app/models/teams.py is a hard cap per tier, there is no seat
+                    price anywhere in the backend and no way to buy one. Quoting a
+                    seat price would be advertising something nobody can sell. */}
                 <p>
-                  {getPlanLimits(tier).seats} seat{getPlanLimits(tier).seats === 1 ? '' : 's'} included ·
-                  extra seats {formatPlanPrice(getSeatAmount(currency), currency)}/mo each.
+                  {getPlanLimits(tier).seats} seat{getPlanLimits(tier).seats === 1 ? '' : 's'}. More
+                  people means the next plan up, or a word with us.
                 </p>
                 <p>
                   {getPlanLimits(tier).monthlyUnlocks.toLocaleString()} profile unlocks a month,
@@ -330,25 +343,19 @@ export default function PricingPage() {
                 </p>
               </div>
 
-              {withRun && (
-                <p className="text-xs text-muted-foreground">
-                  Checkout takes the plan. Run is switched on with it and appears on your first
-                  invoice - you are not charged twice.
-                </p>
-              )}
-
               <Button
                 className="w-full"
                 disabled={!basketKnown}
                 onClick={() => {
+                  // The checkout contract is tier + interval, and /checkout now
+                  // sends both. Free goes to signup; someone signed out who picks
+                  // a paid plan signs up first and is handed back to checkout with
+                  // their choice intact.
                   if (tier === 'free') {
                     router.push('/auth/register')
                     return
                   }
-                  // The checkout contract is unchanged: tier + interval.
-                  router.push(
-                    `/checkout?tier=${tier}&interval=${interval}${withRun ? '&addons=run' : ''}`
-                  )
+                  router.push(`/checkout?tier=${tier}&interval=${interval}`)
                 }}
               >
                 {tier === 'free' ? 'Start free' : 'Continue to checkout'}

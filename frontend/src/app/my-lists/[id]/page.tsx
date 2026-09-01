@@ -1,10 +1,8 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -18,9 +16,6 @@ import {
   Edit3,
   Trash2,
   UserPlus,
-  X,
-  Hash,
-  AtSign,
   Check,
   BadgeCheck
 } from 'lucide-react'
@@ -28,7 +23,7 @@ import Link from 'next/link'
 import { AuthGuard } from '@/components/AuthGuard'
 import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { listsApiService } from '@/services/listsApi'
-import { instagramApiService, UnlockedProfile } from '@/services/instagramApi'
+import { UnlockedProfile } from '@/services/instagramApi'
 import { API_CONFIG, ENDPOINTS } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import {
@@ -56,6 +51,28 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { cdnAvatar } from "@/lib/avatar"
+import {
+  Page,
+  PageHead,
+  ListRow,
+  LoadFailed,
+  Nothing,
+  Loading,
+  compact,
+} from "@/components/brand/primitives"
+
+/** The one way back, above the title rather than beside it. */
+function BackLink() {
+  return (
+    <Link
+      href="/my-lists"
+      className="-ml-1 inline-flex w-fit items-center gap-1.5 text-ds-body-sm text-muted-foreground transition-colors hover:text-foreground"
+    >
+      <ArrowLeft className="h-3.5 w-3.5" />
+      Your lists
+    </Link>
+  )
+}
 
 interface ListItem {
   id: string
@@ -106,6 +123,18 @@ export default function ListDetailPage() {
   const listId = params.id as string
   const [list, setList] = useState<ListDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  /**
+   * Three states, not two.
+   *
+   * This page used to `catch (error) { setLoading(false) }` and then render "List not
+   * found. The list you're looking for doesn't exist." That sentence was printed over a
+   * 500, over a 403, and over a dropped connection. It is the worst version of the bug
+   * this codebase keeps repeating, because it does not merely omit information, it
+   * asserts something false about the client's own data.
+   *
+   * `loadError` now separates "we could not ask" from "we asked and it is not there".
+   */
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   // Creator addition states
   const [isAddingCreator, setIsAddingCreator] = useState(false)
@@ -123,23 +152,33 @@ export default function ListDetailPage() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [creatorToDelete, setCreatorToDelete] = useState<ListItem | null>(null)
 
-  useEffect(() => {
-    const loadListData = async () => {
-      try {
-        const response = await listsApiService.getListDetails(listId, { include_profiles: true })
-        if (response.success && response.data) {
-          setList(transformListResponse(response.data))
+  const loadListData = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const response = await listsApiService.getListDetails(listId, { include_profiles: true })
+      if (response.success && response.data) {
+        setList(transformListResponse(response.data))
+      } else {
+        // The request came back and said no. Only a 404 is genuinely "not there"; every
+        // other failure is ours and must say so.
+        const msg = response.error || ''
+        if (/404|not found/i.test(msg)) {
+          setList(null)
+        } else {
+          setLoadError(msg || 'We could not load this list.')
         }
-        setLoading(false)
-      } catch (error) {
-        setLoading(false)
       }
-    }
-
-    if (listId) {
-      loadListData()
+    } catch (error: any) {
+      setLoadError(error?.message || 'We could not load this list.')
+    } finally {
+      setLoading(false)
     }
   }, [listId])
+
+  useEffect(() => {
+    if (listId) loadListData()
+  }, [listId, loadListData])
 
   const loadAvailableCreators = async () => {
     setSearchLoading(true)
@@ -209,10 +248,12 @@ export default function ListDetailPage() {
               username: profile.username || profile.handle || `user_${index}`,
               full_name: profile.full_name || profile.name || profile.display_name || '',
               profile_pic_url: profile.cdn_avatar_url || profile.profile_pic_url_hd || profile.profile_pic_url || profile.avatar_url || '',
-              followers_count: profile.followers_count || profile.followers || 0,
-              engagement_rate: profile.engagement_rate || 0,
+              // Keep null rather than collapsing to 0: a creator we could not measure
+              // must not be rendered as a creator measured at nothing.
+              followers_count: profile.followers_count ?? profile.followers ?? null,
+              engagement_rate: profile.engagement_rate ?? null,
               is_verified: profile.is_verified || false
-            }
+            } as unknown as UnlockedProfile
 
 
             return safeProfile
@@ -401,180 +442,164 @@ export default function ListDetailPage() {
   return (
     <AuthGuard requireAuth={true}>
       <BrandUserInterface>
-          <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+          {/* Density tier: WORKING at the head, SCANNING in the roster. The roster used to
+              be a grid of cards, one border per creator, with the note wrapped in a second
+              tinted box inside it. A list of people is a list: one hairline per row, the
+              note beside the name, four rows of air saved. */}
+          <Page tier="working">
             {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-              </div>
+              <>
+                <PageHead title="Loading this list" />
+                <Loading rows={5} />
+              </>
+            ) : loadError ? (
+              <>
+                <PageHead
+                  back={<BackLink />}
+                  title="This list"
+                />
+                <LoadFailed what="This list" detail={loadError} onRetry={loadListData} />
+              </>
             ) : !list ? (
-              <Card>
-                <CardContent className="text-center py-8">
-                  <h2 className="text-lg font-semibold mb-2">List not found</h2>
-                  <p className="text-muted-foreground mb-4">The list you're looking for doesn't exist.</p>
-                  <Link href="/my-lists">
-                    <Button variant="outline">
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Back to Lists
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+              <>
+                <PageHead back={<BackLink />} title="List not found" />
+                <Nothing action={
+                  <Button variant="outline" asChild>
+                    <Link href="/my-lists">Back to your lists</Link>
+                  </Button>
+                }>
+                  This list has been deleted, or it was never yours.
+                </Nothing>
+              </>
             ) : (
-              <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Link href="/my-lists">
-                      <Button variant="outline" size="sm">
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back
-                      </Button>
-                    </Link>
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className="h-6 w-1 rounded"
+              <>
+                <PageHead
+                  back={<BackLink />}
+                  title={
+                    <span className="flex items-center gap-ds-3">
+                      <span
+                        aria-hidden
+                        className="h-7 w-1 shrink-0 rounded-full"
                         style={{ backgroundColor: list.color }}
                       />
-                      <div>
-                        <h1 className="text-2xl font-bold">{list.name}</h1>
-                        {list.description && (
-                          <p className="text-muted-foreground">{list.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      onClick={() => {
-                        setIsAddingCreator(true)
-                        loadAvailableCreators()
-                      }}
-                      className="gap-2"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      Add Creator
-                    </Button>
-                    {/* No handler wired yet — kept visible but honest via a coming-soon
-                        toast rather than reading as a live capability that does nothing. */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toast.info("Sharing lists is coming soon.")}
-                    >
-                      <Share className="w-4 h-4 mr-2" />
-                      Share
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toast.info("Exporting lists is coming soon.")}
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Export
-                    </Button>
-                  </div>
-                </div>
-
-
-                {/* Creators Grid */}
-                {list.items.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {list.items.map((creator) => (
-                      <Card key={creator.id} className="group hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center space-x-3">
-                              {creator.avatar_url ? (
-                                <img src={creator.avatar_url} alt={creator.display_name || creator.username} className="w-12 h-12 rounded-full object-cover" />
-                              ) : (
-                              <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center text-primary font-semibold text-lg">
-                                {creator.display_name?.charAt(0) || creator.username?.charAt(0)?.toUpperCase() || '?'}
-                              </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <h3 className="font-semibold truncate">{creator.display_name || creator.username}</h3>
-                                <p className="text-sm text-muted-foreground flex items-center">
-                                  <AtSign className="w-3 h-3 mr-1" />
-                                  {creator.username}
-                                </p>
-                              </div>
-                            </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEditCreator(creator)}>
-                                  <Edit3 className="h-4 w-4 mr-2" />
-                                  Edit Notes
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteCreator(creator)}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Remove
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          {creator.notes ? (
-                            <div className="bg-muted/50 rounded-md p-3">
-                              <p className="text-sm text-muted-foreground mb-1 flex items-center">
-                                <Hash className="w-3 h-3 mr-1" />
-                                Notes
-                              </p>
-                              <p className="text-sm">{creator.notes}</p>
-                            </div>
-                          ) : (
-                            <div className="text-center py-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditCreator(creator)}
-                                className="text-xs"
-                              >
-                                Add notes
-                              </Button>
-                            </div>
-                          )}
-                          <div className="mt-3 pt-3 border-t border-border">
-                            <p className="text-xs text-muted-foreground">
-                              Added {new Date(creator.added_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <Card className="border-dashed">
-                    <CardContent className="text-center py-12">
-                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No creators yet</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Start building your creator list by adding influencers you want to work with
-                      </p>
+                      <span className="min-w-0 truncate">{list.name}</span>
+                    </span>
+                  }
+                  sub={
+                    list.description ||
+                    `${list.items.length} creator${list.items.length === 1 ? '' : 's'} on this shortlist.`
+                  }
+                  action={
+                    <>
+                      {/* No handler wired yet, kept visible but honest. */}
+                      <Button variant="ghost" size="sm" onClick={() => toast.info("Sharing lists is coming soon.")}>
+                        <Share className="mr-2 h-4 w-4" />
+                        Share
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => toast.info("Exporting lists is coming soon.")}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Export
+                      </Button>
                       <Button
                         onClick={() => {
                           setIsAddingCreator(true)
                           loadAvailableCreators()
                         }}
-                        className="gap-2"
                       >
-                        <UserPlus className="w-4 h-4" />
-                        Add Creator
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Add creator
                       </Button>
-                    </CardContent>
-                  </Card>
+                    </>
+                  }
+                />
+
+                {list.items.length > 0 ? (
+                  <div className="flex flex-col border-t border-border/70">
+                    {list.items.map((creator) => (
+                      <ListRow key={creator.id}>
+                        {/* cdnAvatar(): raw scontent-*.cdninstagram.com URLs are hotlink
+                            blocked and render as a broken image. This row was passing
+                            avatar_url through untouched while the dialog below already
+                            went through the helper. */}
+                        {creator.avatar_url ? (
+                          <img
+                            src={cdnAvatar(creator.avatar_url)}
+                            alt=""
+                            className="h-10 w-10 shrink-0 rounded-ds-full object-cover"
+                          />
+                        ) : (
+                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-ds-full bg-muted text-ds-label text-muted-foreground">
+                            {creator.display_name?.charAt(0)?.toUpperCase() || creator.username?.charAt(0)?.toUpperCase() || '?'}
+                          </span>
+                        )}
+
+                        <div className="flex min-w-0 flex-1 flex-col gap-ds-1">
+                          <span className="truncate text-ds-label font-semibold">
+                            {creator.display_name || creator.username}
+                          </span>
+                          <span className="truncate text-ds-body-sm text-muted-foreground">
+                            @{creator.username}
+                          </span>
+                        </div>
+
+                        {/* The note, as a column rather than a tinted box inside a card. */}
+                        <div className="hidden min-w-0 flex-1 md:block">
+                          {creator.notes ? (
+                            <p className="truncate text-ds-body-sm text-muted-foreground" title={creator.notes}>
+                              {creator.notes}
+                            </p>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleEditCreator(creator)}
+                              className="text-ds-body-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                            >
+                              Add a note
+                            </button>
+                          )}
+                        </div>
+
+                        <span className="hidden shrink-0 text-ds-body-sm text-muted-foreground lg:block">
+                          Added {new Date(creator.added_at).toLocaleDateString()}
+                        </span>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`Actions for ${creator.username}`}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditCreator(creator)}>
+                              <Edit3 className="mr-2 h-4 w-4" />
+                              Edit note
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteCreator(creator)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Remove
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </ListRow>
+                    ))}
+                  </div>
+                ) : (
+                  <Nothing action={
+                    <Button
+                      onClick={() => {
+                        setIsAddingCreator(true)
+                        loadAvailableCreators()
+                      }}
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Add a creator
+                    </Button>
+                  }>
+                    Nobody on this list yet.
+                  </Nothing>
                 )}
 
                 {/* Add Creator Dialog */}
@@ -590,7 +615,7 @@ export default function ListDetailPage() {
                       </DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex-1 flex flex-col min-h-0 space-y-4">
+                    <div className="flex min-h-0 flex-1 flex-col gap-ds-3">
                       <div className="relative flex-shrink-0">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                         <Input
@@ -619,66 +644,60 @@ export default function ListDetailPage() {
                               const username = creator.username || `unknown-${index}`
                               const isSelected = selectedCreators.has(username)
                               return (
-                                <div
+                                <button
                                   key={username}
-                                  className="flex flex-col items-center space-y-3 cursor-pointer"
+                                  type="button"
+                                  aria-pressed={isSelected}
+                                  className="flex flex-col items-center gap-ds-2 text-left outline-none"
                                   onClick={() => toggleCreatorSelection(username)}
                                 >
-                                  <div className="relative">
-                                    <div className="w-40 h-40 rounded-xl overflow-hidden bg-muted relative transition-all duration-200 hover:scale-105 border-4 border-transparent">
-                                      {creator.profile_pic_url ? (
-                                        <img
-                                          src={cdnAvatar(creator.profile_pic_url)}
-                                          alt={creator.full_name || username}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                                          <span className="text-xl font-bold text-primary">
-                                            {creator.full_name?.charAt(0) || creator.username?.charAt(0)?.toUpperCase() || '?'}
-                                          </span>
-                                        </div>
-                                      )}
+                                  {/* The face carries the tile and nothing is ever written
+                                      over it. Selection is a ring on the theme's primary,
+                                      not a green wash across the photograph; the whole
+                                      point of this grid is being able to see the person. */}
+                                  <div
+                                    className={`relative aspect-square w-full overflow-hidden rounded-ds-lg bg-muted transition-shadow ${
+                                      isSelected
+                                        ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                                        : 'hover:ring-2 hover:ring-border hover:ring-offset-2 hover:ring-offset-background'
+                                    }`}
+                                  >
+                                    {creator.profile_pic_url ? (
+                                      <img
+                                        src={cdnAvatar(creator.profile_pic_url)}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <span className="grid h-full w-full place-items-center text-ds-heading text-muted-foreground">
+                                        {creator.full_name?.charAt(0) || creator.username?.charAt(0)?.toUpperCase() || '?'}
+                                      </span>
+                                    )}
 
-                                      {/* Selection overlay */}
-                                      {isSelected && (
-                                        <div className="absolute inset-0 bg-green-500/80 flex items-center justify-center">
-                                          <Check className="w-6 h-6 text-white" />
-                                        </div>
-                                      )}
-
-                                      {/* Verified badge */}
-                                      {creator.is_verified && (
-                                        <div className="absolute top-0 right-0 bg-blue-500 rounded-full p-0.5 transform translate-x-1 -translate-y-1">
-                                          <BadgeCheck className="w-3 h-3 text-white" />
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Selection ring */}
                                     {isSelected && (
-                                      <div className="absolute inset-0 rounded-xl border-4 border-green-500 animate-pulse" />
+                                      <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-ds-full bg-primary text-primary-foreground">
+                                        <Check className="h-3.5 w-3.5" />
+                                      </span>
                                     )}
                                   </div>
 
-                                  {/* Creator info */}
-                                  <div className="text-center space-y-1 min-w-0 w-40">
-                                    <p className="text-sm font-medium truncate w-full">
-                                      {username !== `unknown-${index}` ? `@${username}` : 'No username'}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {creator.followers_count && creator.followers_count > 0 ? (
-                                        creator.followers_count >= 1000000
-                                          ? `${(creator.followers_count / 1000000).toFixed(1)}M followers`
-                                          : creator.followers_count >= 1000
-                                          ? `${(creator.followers_count / 1000).toFixed(0)}K followers`
-                                          : `${creator.followers_count} followers`
-                                      ) : (
-                                        'No follower data'
+                                  <div className="flex w-full min-w-0 flex-col gap-ds-1">
+                                    <span className="flex min-w-0 items-center gap-ds-1">
+                                      <span className="truncate text-ds-body-sm font-medium">
+                                        {username !== `unknown-${index}` ? `@${username}` : 'No username'}
+                                      </span>
+                                      {creator.is_verified && (
+                                        <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
                                       )}
-                                    </p>
+                                    </span>
+                                    {/* An en dash, not "No follower data": a creator with
+                                        no follower count has failed to scrape, and the row
+                                        should not imply we measured them at nothing. */}
+                                    <span className="text-ds-caption tabular-nums text-muted-foreground">
+                                      {compact(creator.followers_count, true)} followers
+                                    </span>
                                   </div>
-                                </div>
+                                </button>
                               )
                             })}
                           </div>
@@ -692,7 +711,7 @@ export default function ListDetailPage() {
                           </div>
                         ) : allAvailableCreators.length === 0 ? (
                           <div className="flex items-center justify-center h-full">
-                            <div className="text-center text-muted-foreground space-y-4">
+                            <div className="flex flex-col gap-ds-3 text-center text-muted-foreground">
                               <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
                               <div>
                                 <p className="font-medium">No available creators to add</p>
@@ -757,7 +776,7 @@ export default function ListDetailPage() {
                       </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4">
+                    <div className="flex max-w-[640px] flex-col gap-ds-3">
                       <Textarea
                         placeholder="Add your thoughts, collaboration ideas, or any notes about this creator..."
                         value={creatorNotes}
@@ -811,9 +830,9 @@ export default function ListDetailPage() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-              </div>
+              </>
             )}
-          </div>
+          </Page>
       </BrandUserInterface>
     </AuthGuard>
   )

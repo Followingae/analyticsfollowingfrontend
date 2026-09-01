@@ -29,7 +29,7 @@ export function CampaignShareCard({
       toast.success("Campaign link copied")
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error("Couldn't copy — select and copy manually")
+      toast.error("Could not copy, select and copy it manually")
     }
   }
 
@@ -55,7 +55,7 @@ export function CampaignShareCard({
             <Link2 className="h-4 w-4 text-violet-600" /> Campaign link
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Share this with creators — it opens your campaign in the Following app so they can apply.
+            Share this with creators. It opens your campaign in the Following app so they can apply.
           </p>
 
           <div className="mt-3 flex items-center gap-2">

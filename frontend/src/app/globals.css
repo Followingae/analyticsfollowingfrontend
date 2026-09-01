@@ -475,6 +475,37 @@
 }
 
 /* ============================================================================
+   READING WIDTH
+   ============================================================================
+
+   Past roughly 70 characters a line gets long enough that the eye loses its
+   place on the way back to the start of the next one. On a 1400px shell with
+   no cap, a paragraph runs to about 180. This is the single most visible
+   thing that separates a screen someone laid out from a screen that simply
+   filled the space it was given.
+
+   Two rules below, both maximums rather than widths, so nothing narrow is
+   made narrower and no layout is forced.
+
+   `.reading-width` is the one to reach for by hand, on any block of running
+   prose: a page intro, an explanation above a form, an empty-state paragraph.
+
+   The `.prose-stack` rule caps the paragraphs inside a container without
+   touching the container itself, for the common case of a header block whose
+   heading should stay full width while its description does not.
+
+   `CardDescription` carries the same cap in the component, so the 650-odd
+   cards in the product got it without anyone editing a page. */
+
+.reading-width {
+  max-width: 68ch;
+}
+
+.prose-stack > p {
+  max-width: 68ch;
+}
+
+/* ============================================================================
    RESPONSIVE DESIGN HELPERS
    Mobile-first responsive design utilities
    ============================================================================ */
@@ -549,12 +580,19 @@
   }
 }
 
-/* FreelancerProfileCard transparent banner — allows FlickeringGrid to show through */
+/* FreelancerProfileCard transparent banner — allows FlickeringGrid to show through.
+ *
+ * `--card` is already a complete colour, so wrapping it in oklch() built
+ * oklch(oklch(0.2046 0 0)), which no parser accepts. The declaration was thrown
+ * away and the whole gradient with it, which is why the lower half of this card
+ * was transparent instead of solid and the grid animated straight through the
+ * text. Same mistake, same file, as the one the comment above already records.
+ * The variable goes in as it is. */
 .card-transparent-banner {
   background: linear-gradient(
     180deg,
     transparent 8rem,
-    oklch(var(--card)) 8rem
+    var(--card) 8rem
   ) !important;
 }
 

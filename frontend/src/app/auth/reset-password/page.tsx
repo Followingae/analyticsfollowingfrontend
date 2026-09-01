@@ -36,8 +36,13 @@ function ResetPasswordContent() {
     uppercase: /[A-Z]/.test(password),
     lowercase: /[a-z]/.test(password),
     number: /[0-9]/.test(password),
+    // The symbol rule was missing here while signup and the server both require
+    // one, so a reset could be refused by Supabase and this page printed its raw
+    // message. Five rules on both screens, one story.
+    special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
   }
   const strengthMet = Object.values(checks).filter(Boolean).length
+  const RULE_COUNT = Object.keys(checks).length
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,8 +53,8 @@ function ResetPasswordContent() {
       return
     }
 
-    if (strengthMet < 4) {
-      setError('Please meet all password requirements')
+    if (strengthMet < RULE_COUNT) {
+      setError('Your password needs all five of the things listed below.')
       return
     }
 
@@ -69,7 +74,17 @@ function ResetPasswordContent() {
       })
 
       if (updateError) {
-        setError(updateError.message)
+        // Supabase speaks to developers. Say what happened and what to do next.
+        const reason = (updateError.message || '').toLowerCase()
+        if (reason.includes('session') || reason.includes('expired') || reason.includes('token')) {
+          setError('This reset link has expired. Ask for a new one from the sign in page and use it within the hour.')
+        } else if (reason.includes('different') || reason.includes('same')) {
+          setError('That is the password you already have. Please choose a different one.')
+        } else if (reason.includes('weak') || reason.includes('password')) {
+          setError('That password was refused. Try a longer one, with a capital, a number and a symbol.')
+        } else {
+          setError('We could not update your password. Please request a new reset link and try again.')
+        }
         return
       }
 
@@ -177,12 +192,12 @@ function ResetPasswordContent() {
                 {password.length > 0 && (
                   <div className="animate-element animate-delay-350 space-y-2">
                     <div className="flex gap-1.5">
-                      {[1, 2, 3, 4].map((i) => (
+                      {[1, 2, 3, 4, 5].map((i) => (
                         <div
                           key={i}
                           className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
                             i <= strengthMet
-                              ? strengthMet <= 2 ? 'bg-amber-500' : 'bg-emerald-500'
+                              ? strengthMet <= 3 ? 'bg-amber-500' : 'bg-emerald-500'
                               : 'bg-border'
                           }`}
                         />
@@ -193,6 +208,7 @@ function ResetPasswordContent() {
                       <span className={checks.uppercase ? 'text-emerald-500' : ''}>Uppercase</span>
                       <span className={checks.lowercase ? 'text-emerald-500' : ''}>Lowercase</span>
                       <span className={checks.number ? 'text-emerald-500' : ''}>Number</span>
+                      <span className={checks.special ? 'text-emerald-500' : ''}>Symbol</span>
                     </div>
                   </div>
                 )}
@@ -228,7 +244,7 @@ function ResetPasswordContent() {
                 {/* Submit */}
                 <button
                   type="submit"
-                  disabled={isLoading || strengthMet < 4 || password !== confirmPassword}
+                  disabled={isLoading || strengthMet < RULE_COUNT || password !== confirmPassword}
                   className="animate-element animate-delay-500 w-full rounded-2xl bg-foreground min-h-[44px] py-4 font-medium text-background hover:bg-foreground/90 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isLoading && (

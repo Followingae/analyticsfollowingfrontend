@@ -3,10 +3,9 @@
 import { AuthGuard } from "@/components/AuthGuard"
 import { useNotifications } from "@/contexts/NotificationContext"
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Page, PageHead, ListRow, Nothing } from "@/components/brand/primitives"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Bell,
@@ -37,34 +36,48 @@ import {
 
 // ── Icon + color map (matches bell dropdown) ─────────────────────────
 
+/**
+ * Thirteen notification types used to carry thirteen hand-picked hues: green, red, blue,
+ * indigo, emerald, cyan, purple, orange. None of them is a token in this theme, six of
+ * them are near-indistinguishable from each other, and none of them told the reader
+ * anything the icon and the title were not already saying.
+ *
+ * So colour is now reserved for the three cases where it IS the information: something
+ * needs money (warning), something was taken away (danger), something arrived (success).
+ * Everything else is the icon, in the muted ink, and the type is a word in the meta line.
+ */
 const ICON_MAP: Record<ServerNotificationType, {
   icon: React.ComponentType<{ className?: string }>
-  color: string
-  bg: string
+  tone: 'plain' | 'good' | 'warn' | 'bad'
 }> = {
-  share_received:      { icon: Link2,          color: 'text-green-500',  bg: 'bg-green-500/10' },
-  share_revoked:       { icon: Link2,          color: 'text-red-500',    bg: 'bg-red-500/10' },
-  share_extended:      { icon: Clock,          color: 'text-blue-500',   bg: 'bg-blue-500/10' },
-  proposal_received:   { icon: FileText,       color: 'text-blue-500',   bg: 'bg-blue-500/10' },
-  proposal_updated:    { icon: FileCheck,      color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-  campaign_application:{ icon: Megaphone,      color: 'text-emerald-500',bg: 'bg-emerald-500/10' },
-  campaign_deliverable:{ icon: FileUp,         color: 'text-cyan-500',   bg: 'bg-cyan-500/10' },
-  analytics_completed: { icon: BarChart3,      color: 'text-purple-500', bg: 'bg-purple-500/10' },
-  credit_purchase:     { icon: CreditCard,     color: 'text-green-500',  bg: 'bg-green-500/10' },
-  low_balance:         { icon: AlertTriangle,  color: 'text-orange-500', bg: 'bg-orange-500/10' },
-  team_invite:         { icon: UserPlus,       color: 'text-blue-500',   bg: 'bg-blue-500/10' },
-  team_update:         { icon: Users,          color: 'text-blue-500',   bg: 'bg-blue-500/10' },
-  system:              { icon: Bell,           color: 'text-muted-foreground', bg: 'bg-muted' },
+  share_received:      { icon: Link2,         tone: 'good' },
+  share_revoked:       { icon: Link2,         tone: 'bad' },
+  share_extended:      { icon: Clock,         tone: 'plain' },
+  proposal_received:   { icon: FileText,      tone: 'plain' },
+  proposal_updated:    { icon: FileCheck,     tone: 'plain' },
+  campaign_application:{ icon: Megaphone,     tone: 'plain' },
+  campaign_deliverable:{ icon: FileUp,        tone: 'plain' },
+  analytics_completed: { icon: BarChart3,     tone: 'plain' },
+  credit_purchase:     { icon: CreditCard,    tone: 'good' },
+  low_balance:         { icon: AlertTriangle, tone: 'warn' },
+  team_invite:         { icon: UserPlus,      tone: 'plain' },
+  team_update:         { icon: Users,         tone: 'plain' },
+  system:              { icon: Bell,          tone: 'plain' },
 }
+
+const TONE_INK = {
+  plain: 'text-muted-foreground',
+  good: 'text-success',
+  warn: 'text-warning',
+  bad: 'text-danger',
+} as const
 
 function NotifIcon({ type }: { type: ServerNotificationType }) {
   const entry = ICON_MAP[type] || ICON_MAP.system
   const Icon = entry.icon
-  return (
-    <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", entry.bg)}>
-      <Icon className={cn("h-5 w-5", entry.color)} />
-    </div>
-  )
+  // No coloured disc behind it. The disc was a second shape per row for thirteen rows,
+  // which is what made this page read as a wall rather than a list.
+  return <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', TONE_INK[entry.tone])} />
 }
 
 // ── Relative time ────────────────────────────────────────────────────
@@ -148,177 +161,121 @@ export default function NotificationsPage() {
   return (
     <AuthGuard requireAuth={true}>
       <BrandUserInterface>
-          <div className="flex flex-1 flex-col">
-            <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+        {/* Density tier: SCANNING. The rows are the page, so the air goes to the page
+            margin and the rail, never between the rows. Two nested cards came off: the
+            category rail was a card of buttons and the feed was a card of rows, so every
+            notification sat inside three borders. Now the rail is a plain column of links
+            and the feed is one list on the page ground with a hairline between rows. */}
+        <Page tier="scanning">
 
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.back()}
-                    className="h-8 w-8 p-0"
+          <PageHead
+            back={
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="-ml-1 inline-flex w-fit items-center gap-1.5 text-ds-body-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Back
+              </button>
+            }
+            title="Notifications"
+            sub="Shares, proposals, campaigns, analytics and billing, newest first."
+            action={
+              activeCategoryUnread > 0 ? (
+                <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
+                  <Check className="mr-1.5 h-4 w-4" />
+                  Mark all read
+                </Button>
+              ) : undefined
+            }
+          />
+
+          <div className="grid grid-cols-1 gap-ds-5 lg:grid-cols-[200px_minmax(0,1fr)]">
+
+            {/* The rail. Horizontal on mobile, a column on large screens, and quiet either
+                way: the selected item is the one in the foreground ink, not the one with a
+                filled primary background shouting over the page's real action. */}
+            <nav className="flex gap-ds-3 overflow-x-auto border-b border-border/70 pb-ds-2 lg:flex-col lg:gap-0 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-ds-3">
+              {CATEGORY_TABS.map(tab => {
+                const count = tab.countKey ? unreadCounts[tab.countKey] : unreadCounts.total_unread
+                const isActive = activeCategory === tab.key
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setActiveCategory(tab.key)}
+                    className={cn(
+                      "flex shrink-0 items-center justify-between gap-ds-2 whitespace-nowrap rounded-ds-md text-ds-label transition-colors lg:w-full lg:px-2 lg:py-2",
+                      isActive
+                        ? "font-semibold text-foreground lg:bg-muted"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
                   >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                      <Bell className="h-6 w-6" />
-                      Notifications
-                      {unreadCounts.total_unread > 0 && (
-                        <Badge variant="destructive" className="text-xs">
-                          {unreadCounts.total_unread}
-                        </Badge>
-                      )}
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                      Stay updated with shares, proposals, analytics, and more
-                    </p>
-                  </div>
-                </div>
-              </div>
+                    <span>{tab.label}</span>
+                    {count > 0 && (
+                      <span className="text-ds-caption tabular-nums text-muted-foreground">{count}</span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
 
-              {/* Main layout: rail + content — stacks on mobile (tabs become a
-                  horizontal swipeable row; the 12-col grid only kicks in at lg) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+            <div className="flex min-w-0 flex-col gap-ds-3">
+              <label className="flex w-fit cursor-pointer items-center gap-ds-2">
+                <Checkbox
+                  checked={unreadOnly}
+                  onCheckedChange={(checked) => setUnreadOnly(checked === true)}
+                />
+                <span className="text-ds-body-sm text-muted-foreground">Unread only</span>
+              </label>
 
-                {/* Category tabs: horizontal scroll on mobile, vertical rail on lg+ */}
-                <div className="lg:col-span-3">
-                  <Card>
-                    <CardContent className="p-2">
-                      <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-0 lg:space-y-0.5">
-                        {CATEGORY_TABS.map(tab => {
-                          const count = tab.countKey ? unreadCounts[tab.countKey] : unreadCounts.total_unread
-                          const isActive = activeCategory === tab.key
-                          return (
-                            <button
-                              key={tab.key}
-                              onClick={() => setActiveCategory(tab.key)}
-                              className={cn(
-                                "shrink-0 lg:w-full flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                                isActive
-                                  ? "bg-primary text-primary-foreground"
-                                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                              )}
-                            >
-                              <span>{tab.label}</span>
-                              {count > 0 && (
-                                <Badge
-                                  variant={isActive ? "secondary" : "outline"}
-                                  className={cn(
-                                    "h-5 min-w-[20px] px-1.5 text-[11px]",
-                                    isActive && "bg-primary-foreground/20 text-primary-foreground border-0"
-                                  )}
-                                >
-                                  {count}
-                                </Badge>
-                              )}
-                            </button>
-                          )
-                        })}
-                      </nav>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Main content */}
-                <div className="lg:col-span-9">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">
-                          {CATEGORY_TABS.find(t => t.key === activeCategory)?.label || 'All Notifications'}
-                        </CardTitle>
-                        <div className="flex items-center gap-3">
-                          {/* Unread only toggle */}
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={unreadOnly}
-                              onCheckedChange={(checked) => setUnreadOnly(checked === true)}
-                            />
-                            <span className="text-sm text-muted-foreground">Unread only</span>
-                          </label>
-                          {/* Mark all read (scoped) */}
-                          {activeCategoryUnread > 0 && (
-                            <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
-                              <Check className="h-4 w-4 mr-1.5" />
-                              Mark all read
-                            </Button>
+              {filtered.length > 0 ? (
+                <ScrollArea className="h-[calc(100vh-300px)] min-h-[400px]">
+                  <div className="flex flex-col border-t border-border/70">
+                    {filtered.map(n => (
+                      <ListRow key={n.id} onClick={() => handleNotificationClick(n)} className="items-start">
+                        <NotifIcon type={n.notification_type} />
+                        <div className="flex min-w-0 flex-1 flex-col gap-ds-1">
+                          <span className="flex items-center gap-ds-2">
+                            <span className={cn('min-w-0 text-ds-body leading-snug', !n.is_read && 'font-semibold')}>
+                              {n.title}
+                            </span>
+                            {/* Unread, on the theme's own primary rather than a raw blue. */}
+                            {!n.is_read && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
+                          </span>
+                          {n.message && (
+                            <span className="max-w-[65ch] text-ds-body-sm leading-snug text-muted-foreground">
+                              {n.message}
+                            </span>
                           )}
+                          <span className="text-ds-caption text-muted-foreground">
+                            {getRelativeTime(n.created_at)}
+                            {' · '}
+                            {n.notification_type.replace(/_/g, ' ')}
+                          </span>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      {filtered.length > 0 ? (
-                        <ScrollArea className="h-[600px]">
-                          <div className="divide-y">
-                            {filtered.map(n => (
-                              <div
-                                key={n.id}
-                                onClick={() => handleNotificationClick(n)}
-                                className={cn(
-                                  "group flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors hover:bg-muted/50",
-                                  !n.is_read && "bg-muted/30"
-                                )}
-                              >
-                                <NotifIcon type={n.notification_type} />
-                                <div className="flex-1 min-w-0 space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className={cn(
-                                      "text-sm leading-tight",
-                                      !n.is_read ? "font-semibold" : "font-medium"
-                                    )}>
-                                      {n.title}
-                                    </h4>
-                                    {!n.is_read && (
-                                      <div className="h-2 w-2 shrink-0 rounded-full bg-blue-600" />
-                                    )}
-                                  </div>
-                                  {n.message && (
-                                    <p className="text-sm text-muted-foreground leading-snug">
-                                      {n.message}
-                                    </p>
-                                  )}
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-xs text-muted-foreground">
-                                      {getRelativeTime(n.created_at)}
-                                    </span>
-                                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4">
-                                      {n.notification_type.replace(/_/g, ' ')}
-                                    </Badge>
-                                    {n.action_url && (
-                                      <span className="text-xs text-primary">
-                                        View details →
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      ) : (
-                        <div className="px-6 py-16 text-center text-muted-foreground">
-                          <Bell className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                          <h3 className="text-base font-medium mb-1">
-                            {unreadOnly ? 'No unread notifications' : 'No notifications'}
-                          </h3>
-                          <p className="text-sm">
-                            {unreadOnly
-                              ? 'All caught up! Check back later for new updates.'
-                              : 'We\'ll notify you about important updates and activities.'
-                            }
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-
-              </div>
+                        {n.action_url && (
+                          <span className="hidden shrink-0 text-ds-body-sm text-primary sm:block">Open</span>
+                        )}
+                      </ListRow>
+                    ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                /* Genuinely nothing. One sentence, no illustration, no pitch. */
+                <Nothing>
+                  {unreadOnly
+                    ? 'Nothing unread here.'
+                    : activeCategory === 'all'
+                      ? 'Nothing yet.'
+                      : 'Nothing in this category yet.'}
+                </Nothing>
+              )}
             </div>
+
           </div>
+        </Page>
       </BrandUserInterface>
     </AuthGuard>
   )

@@ -540,7 +540,7 @@ export function InfluencerSelectionV3({
                           <Coins className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <p className="text-2xl font-bold">
-                          ⃃{selectedData.totalBudget.toLocaleString()}
+                          AED {selectedData.totalBudget.toLocaleString()}
                         </p>
                         <p className="text-xs text-muted-foreground">Total Budget</p>
                       </div>

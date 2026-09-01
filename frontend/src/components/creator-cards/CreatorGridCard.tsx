@@ -1,36 +1,40 @@
 "use client"
 
+/**
+ * A creator, as a card.
+ *
+ * This is the one place in the brand product where a card is the right answer: a creator
+ * IS an object, you click it, and the page is a grid of them. So the card stays — but
+ * everything drawn inside it that was not carrying information has gone.
+ *
+ * What came off. Two decorative gradient washes and a blurred blob behind the avatar; a
+ * bordered, tinted box around each of the two figures (a box inside a box inside a box);
+ * a lift-and-shadow hover on a card that is already a link. What went on instead: the
+ * avatar is half again as large, because this is an influencer product and the face is the
+ * content, and the figures sit on the ground with a single hairline above them.
+ *
+ * The honesty fix. `formatNumber` returned the string `'0'` for a null follower count and
+ * engagement showed `N/A`. A creator with no followers or 0% engagement has not been
+ * measured at zero, they have FAILED to scrape, and the difference matters because these
+ * cards are how a brand decides who to pay. Both now render an en dash, through the shared
+ * `compact` and `percent` helpers, and the card says plainly when a profile did not scrape.
+ */
+
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Heart,
-  Users,
-  BarChart3,
-  Plus,
-  CheckCircle,
-  Building,
-  Target,
-  Brain,
-  Sparkles,
-  ExternalLink,
-  Star,
-  Crown,
-  Zap,
-  TrendingUp,
-  Clock
-} from 'lucide-react'
+import { BarChart3, Plus, BadgeCheck, Clock } from 'lucide-react'
 import ReactCountryFlag from 'react-country-flag'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Progress } from '@/components/ui/progress'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { getCountryCode } from '@/lib/countryUtils'
 import { toast } from 'sonner'
 import { CreatorProfile } from '@/types/creator'
-import { getOptimizedProfilePicture, getOptimizedCountry } from '@/utils/cdnUtils'
+import { getOptimizedCountry } from '@/utils/cdnUtils'
+import { compact, percent, unmeasured, UNKNOWN } from '@/components/brand/primitives'
 
 interface CreatorGridCardProps {
   creator: CreatorProfile
@@ -39,6 +43,18 @@ interface CreatorGridCardProps {
   showAddButton?: boolean
   isAnalyzing?: boolean
 }
+
+/** Nano / Micro / Macro / Mega, from a follower count we actually have. */
+function tierOf(followers: number | null | undefined): 'nano' | 'micro' | 'macro' | 'mega' | null {
+  if (unmeasured(followers, true)) return null
+  const f = followers as number
+  if (f >= 1_000_000) return 'mega'
+  if (f >= 100_000) return 'macro'
+  if (f >= 10_000) return 'micro'
+  return 'nano'
+}
+
+const TIER_LABEL = { nano: 'Nano', micro: 'Micro', macro: 'Macro', mega: 'Mega' } as const
 
 export function CreatorGridCard({
   creator,
@@ -49,23 +65,12 @@ export function CreatorGridCard({
 }: CreatorGridCardProps) {
   const router = useRouter()
 
-
-  const formatNumber = (num: number | undefined | null) => {
-    if (num === undefined || num === null || isNaN(num)) return '0'
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toString()
-  }
-
-  const getInfluencerTier = (followerCount: number) => {
-    if (followerCount >= 1000000) return 'mega'
-    if (followerCount >= 100000) return 'macro'
-    if (followerCount >= 10000) return 'micro'
-    return 'nano'
-  }
-
-  const tier = getInfluencerTier(creator.followers_count)
-  const hasAI = creator.ai_insights?.available
+  const tier = tierOf(creator.followers_count)
+  const country = getOptimizedCountry(creator)
+  // Both of these are failed measurements when absent OR zero, so the card can say so
+  // once rather than printing two dashes and leaving the brand to guess why.
+  const noFollowers = unmeasured(creator.followers_count, true)
+  const noEngagement = unmeasured(creator.engagement_rate, true)
 
   const handleAnalyticsClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -76,56 +81,17 @@ export function CreatorGridCard({
         toast.error('Creator username is missing')
         return
       }
-      const analyticsUrl = `/creator-analytics/${creator.username}`
-      router.push(analyticsUrl)
+      router.push(`/creator-analytics/${creator.username}`)
     }
   }
 
-  // Only a live action when a handler is wired. Without one the "Add to list"
-  // feature has no home yet, so the control is rendered disabled with a
-  // "coming soon" tooltip rather than firing a dead-end toast (see below).
+  // Only a live action when a handler is wired. Without one the "Add to list" feature has
+  // no home yet, so the control is rendered disabled with a tooltip rather than firing a
+  // dead-end toast.
   const addComingSoon = !onAddClick
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (onAddClick) {
-      onAddClick(creator)
-    }
-  }
-
-  // Tier Badge Component
-  const TierBadge = ({ tier }: { tier: 'nano' | 'micro' | 'macro' | 'mega' }) => {
-    const tierConfig = {
-      nano: {
-        label: 'Nano',
-        icon: Star,
-        className: 'bg-muted text-muted-foreground border-border'
-      },
-      micro: {
-        label: 'Micro',
-        icon: Zap,
-        className: 'bg-primary/10 text-primary border-primary/20'
-      },
-      macro: {
-        label: 'Macro',
-        icon: TrendingUp,
-        className: 'bg-primary/15 text-primary border-primary/30 font-medium'
-      },
-      mega: {
-        label: 'Mega',
-        icon: Crown,
-        className: 'bg-gradient-to-r from-primary/20 to-primary/15 text-primary border-primary/40 font-semibold shadow-sm'
-      }
-    }
-
-    const config = tierConfig[tier]
-    const Icon = config.icon
-
-    return (
-      <Badge className={`text-xs font-medium ${config.className} flex items-center gap-1`}>
-        <Icon className="h-3 w-3" />
-        {config.label}
-      </Badge>
-    )
+    if (onAddClick) onAddClick(creator)
   }
 
   const handleCardClick = () => {
@@ -133,12 +99,9 @@ export function CreatorGridCard({
       toast.error('Creator username is missing')
       return
     }
-    const analyticsUrl = `/creator-analytics/${creator.username}`
-    router.push(analyticsUrl)
+    router.push(`/creator-analytics/${creator.username}`)
   }
 
-  // Keyboard parity for the whole-card nav: Enter / Space opens the creator,
-  // matching the pointer onClick. tabIndex + role make it focusable.
   const handleCardKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
@@ -151,183 +114,132 @@ export function CreatorGridCard({
       role="button"
       tabIndex={0}
       aria-label={`Open analytics for @${creator.username}`}
-      className="group relative overflow-hidden bg-card border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="group relative flex cursor-pointer flex-col gap-ds-3 overflow-hidden p-6 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
     >
-      {/* Hover gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-
-      {/* Background decorative elements */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:from-primary/10 transition-colors duration-500 pointer-events-none" />
-
-      {/* Country flag */}
-      {getOptimizedCountry(creator) && (
-        <div className="absolute top-3 left-3 z-10">
-          <div className="bg-background/80 border border-border rounded-full p-1 shadow-sm backdrop-blur-sm">
-            <ReactCountryFlag
-              countryCode={getCountryCode(getOptimizedCountry(creator)!)}
-              svg
-              style={{
-                width: '14px',
-                height: '10px',
-                borderRadius: '2px'
-              }}
-              title={getOptimizedCountry(creator)!}
+      {/* The face, at a size that lets it carry the card. Never anything written over it. */}
+      <div className="flex items-start gap-ds-3">
+        <div className="relative shrink-0">
+          <Avatar className="h-20 w-20">
+            {/* Only R2 CDN URLs. Raw Instagram CDN URLs (scontent-*.cdninstagram.com)
+                are hotlink-blocked and return 403 in the browser. */}
+            <AvatarImage
+              src={creator.cdn_avatar_url || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
+              alt={creator.username}
             />
-          </div>
-        </div>
-      )}
-
-      {/* AI badge */}
-      {hasAI && (
-        <div className="absolute top-3 right-3 z-10">
-          <Badge className="bg-primary text-primary-foreground text-xs px-1.5 py-0.5 shadow-sm">
-            <Brain className="h-2.5 w-2.5 mr-1" />
-            AI
-          </Badge>
-        </div>
-      )}
-
-      <CardContent className="p-4 space-y-4">
-        {/* Avatar and basic info */}
-        <div className="text-center space-y-3">
-          <div className="relative mx-auto w-fit">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-lg scale-110 opacity-20 group-hover:opacity-40 transition-opacity duration-300" />
-            <Avatar className="relative h-16 w-16 border-3 border-background shadow-md">
-              {/* F4: only use R2 CDN URLs. Raw Instagram CDN URLs (scontent-*.cdninstagram.com)
-                  return 403 from the browser due to IG hotlink protection. The avatar
-                  fallback below shows the user initials when no CDN avatar exists yet. */}
-              <AvatarImage
-                src={creator.cdn_avatar_url || `https://cdn.following.ae/profiles/ig/${creator.username}/profile_picture.webp`}
-                alt={creator.username}
-              />
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-sm font-semibold text-primary">
-                {creator.full_name?.charAt(0)?.toUpperCase() || creator.username?.charAt(0)?.toUpperCase() || '?'}
-              </AvatarFallback>
-            </Avatar>
-            {creator.is_verified && (
-              <div className="absolute -bottom-1 -right-1 bg-primary rounded-full p-1 border-2 border-background">
-                <CheckCircle className="h-3 w-3 text-primary-foreground" />
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-1">
-            <h3 className="font-bold text-sm leading-tight line-clamp-1">
-              {creator.full_name || creator.username}
-            </h3>
-            <p className="text-xs text-muted-foreground">@{creator.username}</p>
-          </div>
-
-          {/* Tier badge + expiry */}
-          <div className="flex justify-center items-center gap-1.5">
-            <TierBadge tier={tier} />
-            {creator.days_remaining != null && (
-              <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground gap-0.5">
-                <Clock className="h-2.5 w-2.5" />
-                {creator.days_remaining}d
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-2 text-center">
-          <div className="p-2 bg-muted/50 rounded-md border border-border">
-            <div className="text-sm font-bold text-primary">{formatNumber(creator.followers_count)}</div>
-            <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-              <Users className="h-2.5 w-2.5" />
-              Followers
-            </div>
-          </div>
-          <div className="p-2 bg-muted/50 rounded-md border border-border">
-            <div className="text-sm font-bold text-primary">
-              {creator.engagement_rate != null ? `${creator.engagement_rate.toFixed(1)}%` : 'N/A'}
-            </div>
-            <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-              <Heart className="h-2.5 w-2.5" />
-              Engagement
-            </div>
-          </div>
-        </div>
-
-        {/* AI Quality Score or Loading State */}
-        {isAnalyzing ? (
-          <div className="p-3 bg-muted/50 rounded-md border">
-            <div className="flex items-center justify-center gap-2">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-              <span className="text-xs text-muted-foreground">Processing</span>
-            </div>
-          </div>
-        ) : hasAI && creator.ai_insights?.content_quality_score && (
-          <div className="p-2 bg-primary/5 rounded-md border border-primary/20">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">AI Score</span>
-              <div className="flex items-center gap-1">
-                <Sparkles className="h-2.5 w-2.5 text-primary" />
-                <span className="font-bold text-xs text-primary">
-                  {creator.ai_insights.content_quality_score.toFixed(1)}/10
-                </span>
-              </div>
-            </div>
-            <Progress
-              value={creator.ai_insights.content_quality_score * 10}
-              className="h-1.5"
-            />
-          </div>
-        )}
-
-        {/* Action buttons.
-            The whole card is already the primary click target for Analytics, so
-            this button is demoted to a secondary (outline) weight — the page keeps
-            a single filled primary instead of one per card. Same label + action. */}
-        <div className="flex gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAnalyticsClick}
-            className={`${showAddButton ? 'flex-1' : 'w-full'} border-border hover:bg-muted transition-all duration-200 text-xs py-1.5`}
-          >
-            <BarChart3 className="h-3 w-3 mr-1" />
-            Analytics
-          </Button>
-          {showAddButton && (
-            addComingSoon ? (
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    {/* span wrapper: disabled buttons don't emit the pointer
-                        events Radix Tooltip listens for. */}
-                    <span className="inline-flex">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled
-                        aria-label="Add to list — coming soon"
-                        className="px-2 border-border transition-all duration-200"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>Coming soon</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAddClick}
-                aria-label="Add to list"
-                className="px-2 border-border hover:bg-muted hover:border-border transition-all duration-200"
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            )
+            <AvatarFallback className="bg-muted text-ds-subheading text-muted-foreground">
+              {creator.full_name?.charAt(0)?.toUpperCase() || creator.username?.charAt(0)?.toUpperCase() || '?'}
+            </AvatarFallback>
+          </Avatar>
+          {creator.is_verified && (
+            <BadgeCheck className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-card text-primary" />
           )}
         </div>
-      </CardContent>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-ds-1 pt-1">
+          <h3 className="truncate text-ds-label font-semibold leading-snug">
+            {creator.full_name || creator.username}
+          </h3>
+          <p className="truncate text-ds-body-sm text-muted-foreground">@{creator.username}</p>
+
+          <div className="mt-ds-1 flex flex-wrap items-center gap-ds-1">
+            {tier && (
+              <Badge variant="secondary" className="text-ds-caption font-medium">
+                {TIER_LABEL[tier]}
+              </Badge>
+            )}
+            {country && (
+              <span className="inline-flex items-center gap-ds-1 text-ds-caption text-muted-foreground">
+                <ReactCountryFlag
+                  countryCode={getCountryCode(country)}
+                  svg
+                  style={{ width: '14px', height: '10px', borderRadius: '2px' }}
+                  title={country}
+                />
+                {country}
+              </span>
+            )}
+            {creator.days_remaining != null && (
+              <span className="inline-flex items-center gap-ds-1 text-ds-caption text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                {creator.days_remaining}d left
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* The two figures. One hairline above them says "different subject"; nothing is
+          drawn around either number, and the space between them does the separating. */}
+      <div className="grid grid-cols-2 gap-ds-3 border-t border-border/70 pt-ds-3">
+        <div>
+          <p className="text-ds-caption text-muted-foreground">Followers</p>
+          <p className="mt-0.5 text-ds-heading tabular-nums">{compact(creator.followers_count, true)}</p>
+        </div>
+        <div>
+          <p className="text-ds-caption text-muted-foreground">Engagement</p>
+          <p className="mt-0.5 text-ds-heading tabular-nums">{percent(creator.engagement_rate)}</p>
+        </div>
+      </div>
+
+      {/* An en dash on its own invites the reader to assume a bad creator. Said once, in
+          words, it is what it actually is: our data, not their performance. */}
+      {(noFollowers || noEngagement) && !isAnalyzing && (
+        <p className="text-ds-caption text-muted-foreground">
+          {UNKNOWN} means we have not measured this yet, not that it is zero.
+        </p>
+      )}
+
+      {isAnalyzing && (
+        <p className="text-ds-caption text-muted-foreground">Analysing this profile now.</p>
+      )}
+
+      {/* The AI quality score, when there is one. A figure and its caption, on the ground,
+          rather than a tinted bordered strip with a progress bar restating the same number. */}
+      {!isAnalyzing && creator.ai_insights?.available && creator.ai_insights?.content_quality_score != null && (
+        <p className="text-ds-caption text-muted-foreground">
+          Content quality{' '}
+          <span className="font-semibold tabular-nums text-foreground">
+            {creator.ai_insights.content_quality_score.toFixed(1)}
+          </span>{' '}
+          out of 10
+        </p>
+      )}
+
+      <div className="mt-auto flex gap-ds-2 pt-ds-1">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleAnalyticsClick}
+          className={showAddButton ? 'flex-1' : 'w-full'}
+        >
+          <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
+          Analytics
+        </Button>
+        {showAddButton && (
+          addComingSoon ? (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* span wrapper: disabled buttons don't emit the pointer events Radix
+                      Tooltip listens for. */}
+                  <span className="inline-flex">
+                    <Button variant="outline" size="sm" disabled aria-label="Add to list, coming soon" className="px-2">
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Coming soon</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Button variant="outline" size="sm" onClick={handleAddClick} aria-label="Add to list" className="px-2">
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          )
+        )}
+      </div>
     </Card>
   )
 }

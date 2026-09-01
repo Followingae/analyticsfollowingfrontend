@@ -1,92 +1,35 @@
 "use client"
 
-import React, { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, type MouseEvent } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { AuthGuard } from "@/components/AuthGuard"
-import { instagramApiService, UnlockedProfile } from "@/services/instagramApi"
-import { listsApiService, List, CreateListRequest, UpdateListRequest, ListsPaginatedResponse, ListTemplate, CollaborationSettings, ExportSettings, PerformanceMetrics, Collaborator, ActivityLog } from "@/services/listsApi"
+import { UnlockedProfile } from "@/services/instagramApi"
+import { listsApiService, List, CreateListRequest, UpdateListRequest, ListTemplate, CollaborationSettings, ExportSettings, PerformanceMetrics, Collaborator, ActivityLog } from "@/services/listsApi"
 import {
   Plus,
-  Users,
-  Eye,
-  Heart,
-  BarChart3,
   Search,
-  List as ListIcon,
-  FileText,
-  X,
+  BarChart3,
   Edit3,
   Trash2,
-  Calendar,
-  TrendingUp,
-  GripVertical,
-  Folder,
-  FolderOpen,
   MoreHorizontal,
   Share2,
-  Copy,
   Download,
-  UserPlus,
-  Settings,
-  Activity,
-  Target,
-  Zap,
-  Bookmark,
-  Star,
-  Clock,
   ExternalLink,
 } from "lucide-react"
-
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  useDroppable,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import {
-  useSortable,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 
 import { superadminApiService } from "@/services/superadminApi"
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { ProfileAvatar } from "@/components/ui/profile-avatar"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   AlertDialog,
@@ -104,6 +47,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Page,
+  PageHead,
+  ListRow,
+  LoadFailed,
+  Nothing,
+  Loading,
+  UNKNOWN,
+} from "@/components/brand/primitives"
 
 // Disable static generation for this page
 export const dynamic = 'force-dynamic'
@@ -458,16 +410,17 @@ function MyListsContent() {
     "#ef4444"  // red
   ]
 
+  // The three states, kept apart. Loading shows the page's own shape; the failure says it
+  // is a failure and never falls through into the "No lists yet" copy, which is what an
+  // empty grid over a 500 used to tell a client who had fourteen lists.
   if (loading && myLists.length === 0) {
     return (
       <AuthGuard requireAuth={true}>
         <BrandUserInterface>
-            <div className="flex flex-1 flex-col items-center justify-center p-4">
-              <div className="text-center space-y-4">
-                <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <p className="text-muted-foreground">Loading your lists...</p>
-              </div>
-            </div>
+          <Page tier="working">
+            <PageHead title="Your lists" sub="Shortlists of creators you are considering." />
+            <Loading rows={4} />
+          </Page>
         </BrandUserInterface>
       </AuthGuard>
     )
@@ -477,14 +430,10 @@ function MyListsContent() {
     return (
       <AuthGuard requireAuth={true}>
         <BrandUserInterface>
-            <div className="flex flex-1 flex-col items-center justify-center p-4">
-              <div className="text-center space-y-4">
-                <p className="text-red-600 dark:text-red-400">{error}</p>
-                <Button variant="outline" onClick={() => loadLists()}>
-                  Try Again
-                </Button>
-              </div>
-            </div>
+          <Page tier="working">
+            <PageHead title="Your lists" />
+            <LoadFailed what="Your lists" detail={error} onRetry={() => loadLists()} />
+          </Page>
         </BrandUserInterface>
       </AuthGuard>
     )
@@ -493,294 +442,205 @@ function MyListsContent() {
   return (
     <AuthGuard requireAuth={true}>
       <BrandUserInterface>
-          <div className="flex flex-1 flex-col">
-            <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+          {/* Density tier: WORKING. A list is not a card: the boxes came off and one shared
+              hairline per row went on, which fits eight rows where four used to sit and
+              stops each list claiming to be a separate object. The user's chosen colour
+              survives as a swatch on the row rather than a full-bleed banner. */}
+          <Page tier="working">
 
-              {/* Tab Switcher */}
-              <div className="flex items-center gap-1 rounded-lg bg-muted p-1 w-fit">
+            <PageHead
+              title="Your lists"
+              sub="Shortlists of creators you are considering. Open one to add people, or write a note against a name."
+              action={
+                activeTab === "my-lists" ? (
+                  <Button onClick={handleCreateList}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    New list
+                  </Button>
+                ) : undefined
+              }
+            />
+
+            {/* Two populations of the same thing, so a quiet underline switch rather than
+                a filled pill group that competes with the page's one primary action. */}
+            <div className="flex items-center gap-ds-5 border-b border-border/70">
+              {([
+                { key: "my-lists" as const, label: "Yours" },
+                { key: "shared" as const, label: "Shared with you" },
+              ]).map(t => (
                 <button
-                  onClick={() => setActiveTab("my-lists")}
-                  className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    activeTab === "my-lists"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+                  key={t.key}
+                  type="button"
+                  onClick={() => setActiveTab(t.key)}
+                  className={`-mb-px flex items-center gap-ds-2 border-b-2 pb-ds-2 text-ds-label transition-colors ${
+                    activeTab === t.key
+                      ? "border-foreground text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  My Lists
-                </button>
-                <button
-                  onClick={() => setActiveTab("shared")}
-                  className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
-                    activeTab === "shared"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  Shared with Me
-                  {sharedLists.length > 0 && (
-                    <Badge variant="secondary" className="text-xs h-5 min-w-5 px-1.5 ml-1">
-                      {sharedLists.length}
-                    </Badge>
+                  {t.label}
+                  {t.key === "shared" && sharedLists.length > 0 && (
+                    <span className="text-ds-caption tabular-nums text-muted-foreground">{sharedLists.length}</span>
                   )}
                 </button>
-              </div>
+              ))}
+            </div>
 
-              {/* === MY LISTS TAB === */}
-              {activeTab === "my-lists" && (
-                <>
-              {/* Search and Filters */}
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search lists..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
+            {/* === YOURS === */}
+            {activeTab === "my-lists" && (
+              <>
+                <div className="flex flex-col gap-ds-3 sm:flex-row sm:items-center">
+                  <div className="relative w-full sm:w-[280px]">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search your lists"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  {/* The count reflects what is SELECTED once a search is on. */}
+                  <p className="text-ds-body-sm text-muted-foreground sm:ml-auto">
+                    {searchQuery.trim()
+                      ? `${filteredLists.length} of ${myLists.length} shown`
+                      : `${myLists.length} list${myLists.length === 1 ? '' : 's'}`}
+                  </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={handleCreateList}
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    New List
-                  </Button>
-                </div>
-              </div>
+                {filteredLists.length === 0 ? (
+                  searchQuery.trim() ? (
+                    <Nothing>No list matches that search.</Nothing>
+                  ) : (
+                    <Nothing action={
+                      <Button onClick={handleCreateList}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create your first list
+                      </Button>
+                    }>
+                      You have not made a list yet.
+                    </Nothing>
+                  )
+                ) : (
+                  <div className="flex flex-col border-t border-border/70">
+                    {filteredLists.map((list) => (
+                      <ListRow key={list.id} onClick={() => router.push(`/my-lists/${list.id}`)}>
+                        <span
+                          aria-hidden
+                          className="h-8 w-1 shrink-0 rounded-full"
+                          style={{ backgroundColor: list.color || '#5100f3' }}
+                        />
+                        <div className="flex min-w-0 flex-1 flex-col gap-ds-1">
+                          <span className="truncate text-ds-label font-semibold">{list.name}</span>
+                          {list.description && (
+                            <span className="truncate text-ds-body-sm text-muted-foreground">{list.description}</span>
+                          )}
+                        </div>
+                        {/* Two bugs in one line, both of which printed "0 creators".
+                            The field is `profiles_count` — the page has always read
+                            `profile_count`, which does not exist on `List`, so every list
+                            resolved to `undefined`. And `|| 0` then turned that undefined
+                            into a confident zero. It is `?? UNKNOWN` now, so a count we do
+                            not have shows an en dash rather than claiming the list is
+                            empty. */}
+                        <span className="hidden shrink-0 text-ds-body-sm tabular-nums text-muted-foreground sm:block">
+                          {list.profiles_count ?? UNKNOWN} creators
+                        </span>
+                        <span className="hidden shrink-0 text-ds-body-sm text-muted-foreground lg:block">
+                          Updated {formatDate(list.updated_at)}
+                        </span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e: MouseEvent) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`Actions for ${list.name}`}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e: MouseEvent) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={() => handleEditList(list)}>
+                              <Edit3 className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            {/* Share / Export / Analytics have no dialog wired yet. Kept
+                                visible but honest — they announce that rather than silently
+                                setting state no dialog consumes. */}
+                            <DropdownMenuItem onClick={() => toast.info("Sharing lists is coming soon.")}>
+                              <Share2 className="mr-2 h-4 w-4" />
+                              Share
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toast.info("Exporting lists is coming soon.")}>
+                              <Download className="mr-2 h-4 w-4" />
+                              Export
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toast.info("List analytics are coming soon.")}>
+                              <BarChart3 className="mr-2 h-4 w-4" />
+                              Analytics
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => deleteList(list)} className="text-destructive focus:text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </ListRow>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
 
-              {/* Lists Grid */}
-              {filteredLists.length === 0 ? (
-                <div className="flex justify-center py-12">
-                  <EmptyState
-                    title={searchQuery.trim() ? "No lists found" : "No lists yet"}
-                    description={searchQuery.trim()
-                      ? "Try adjusting your search criteria\nto find the lists you're looking for."
-                      : "Create your first list to get started\norganizing and managing your creators."
-                    }
-                    icons={[ListIcon, Users, FileText]}
-                    action={!searchQuery.trim() ? {
-                      label: "Create Your First List",
-                      onClick: handleCreateList
-                    } : undefined}
-                  />
-                </div>
+            {/* === SHARED WITH YOU === */}
+            {activeTab === "shared" && (
+              sharedLoading ? (
+                <Loading rows={3} />
+              ) : sharedError ? (
+                <LoadFailed what="Lists shared with you" detail={sharedError} onRetry={loadSharedLists} />
+              ) : sharedLists.length === 0 ? (
+                <Nothing>Nobody has shared a list with you yet.</Nothing>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredLists.map((list) => {
-                    const bannerColor = list.color || '#5100f3'
+                <div className="flex flex-col border-t border-border/70">
+                  {sharedLists.map((share) => {
+                    const now = new Date()
+                    const expiresAt = share.expires_at ? new Date(share.expires_at) : null
+                    const isExpired = expiresAt ? expiresAt < now : false
+                    const isExpiringSoon = expiresAt ? (!isExpired && (expiresAt.getTime() - now.getTime()) < 7 * 24 * 60 * 60 * 1000) : false
 
                     return (
-                      <Card key={list.id} className="group hover:scale-[1.02] transition-all duration-200 bg-card border border-border">
-                        {/* Color banner */}
-                        <div
-                          className="h-2 w-full"
-                          style={{ backgroundColor: bannerColor }}
+                      <ListRow
+                        key={share.share_id}
+                        onClick={isExpired ? undefined : () => router.push('/shared-influencers')}
+                      >
+                        {/* Status as a dot plus the word beside it, from the global
+                            semantic tokens. It was a raw bg-red-500 / bg-amber-500 /
+                            bg-emerald-500 banner, three colours this theme does not own. */}
+                        <span
+                          aria-hidden
+                          className={`h-2 w-2 shrink-0 rounded-full ${
+                            isExpired ? 'bg-danger' : isExpiringSoon ? 'bg-warning' : 'bg-success'
+                          }`}
                         />
-
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div className="min-w-0 flex-1">
-                              <CardTitle className="text-lg leading-tight truncate">
-                                {list.name}
-                              </CardTitle>
-                              {list.description && (
-                                <CardDescription className="line-clamp-2 mt-1">
-                                  {list.description}
-                                </CardDescription>
-                              )}
-                            </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 ml-2"
-                                >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEditList(list)}>
-                                  <Edit3 className="h-4 w-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                                {/* Share / Export / Analytics have no dialog wired yet.
-                                    Kept visible but honest — they announce "coming soon"
-                                    instead of silently setting state no dialog consumes. */}
-                                <DropdownMenuItem
-                                  onClick={() => toast.info("Sharing lists is coming soon.")}
-                                >
-                                  <Share2 className="h-4 w-4 mr-2" />
-                                  Share
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => toast.info("Exporting lists is coming soon.")}
-                                >
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Export
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => toast.info("List analytics are coming soon.")}
-                                >
-                                  <BarChart3 className="h-4 w-4 mr-2" />
-                                  Analytics
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => deleteList(list)} className="text-red-600">
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="flex items-center justify-between text-xs mb-3 text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              <span>{list.profile_count || 0} creators</span>
-                            </div>
-                            <span>Updated {formatDate(list.updated_at)}</span>
-                          </div>
-
-                          <Button
-                            onClick={() => router.push(`/my-lists/${list.id}`)}
-                            size="sm"
-                            className="w-full"
-                            variant="outline"
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            View List
-                          </Button>
-                        </CardContent>
-                      </Card>
+                        <div className="flex min-w-0 flex-1 flex-col gap-ds-1">
+                          <span className="truncate text-ds-label font-semibold">{share.share_name}</span>
+                          <span className="truncate text-ds-body-sm text-muted-foreground">
+                            {share.shared_by ? `Shared by ${share.shared_by}. ` : ''}
+                            {isExpired ? 'Expired' : isExpiringSoon ? 'Expiring soon' : 'Active'}
+                            {expiresAt ? `, ${isExpired ? 'ended' : 'until'} ${formatDate(share.expires_at!)}` : ''}
+                          </span>
+                        </div>
+                        {share.categories && share.categories.length > 0 && (
+                          <span className="hidden shrink-0 text-ds-body-sm text-muted-foreground lg:block">
+                            {share.categories.slice(0, 3).join(', ')}
+                            {share.categories.length > 3 ? ` +${share.categories.length - 3}` : ''}
+                          </span>
+                        )}
+                        <span className="hidden shrink-0 text-ds-body-sm tabular-nums text-muted-foreground sm:block">
+                          {share.influencers?.length ?? 0} influencers
+                        </span>
+                        {!isExpired && <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                      </ListRow>
                     )
                   })}
                 </div>
-              )}
-
-                </>
-              )}
-
-              {/* === SHARED WITH ME TAB === */}
-              {activeTab === "shared" && (
-                <div className="space-y-6">
-                  {sharedLoading ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      <p className="text-muted-foreground mt-4">Loading shared lists...</p>
-                    </div>
-                  ) : sharedError ? (
-                    <div className="text-center py-12">
-                      <p className="text-red-600 dark:text-red-400">{sharedError}</p>
-                      <Button variant="outline" className="mt-4" onClick={loadSharedLists}>
-                        Try Again
-                      </Button>
-                    </div>
-                  ) : sharedLists.length === 0 ? (
-                    <div className="flex justify-center py-12">
-                      <EmptyState
-                        title="No shared lists"
-                        description={"No influencer lists have been shared with you yet.\nShared lists from admins will appear here."}
-                        icons={[Share2, Users, FileText]}
-                      />
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {sharedLists.map((share) => {
-                        const now = new Date()
-                        const expiresAt = share.expires_at ? new Date(share.expires_at) : null
-                        const isExpired = expiresAt && expiresAt < now
-                        const isExpiringSoon = expiresAt && !isExpired && (expiresAt.getTime() - now.getTime()) < 7 * 24 * 60 * 60 * 1000
-
-                        return (
-                          <Card
-                            key={share.share_id}
-                            className="group hover:scale-[1.02] transition-all duration-200 bg-card border border-border"
-                          >
-                            {/* Status banner */}
-                            <div
-                              className={`h-2 w-full ${
-                                isExpired
-                                  ? 'bg-red-500'
-                                  : isExpiringSoon
-                                  ? 'bg-amber-500'
-                                  : 'bg-emerald-500'
-                              }`}
-                            />
-                            <CardHeader className="pb-3">
-                              <div className="flex items-start justify-between">
-                                <div className="min-w-0 flex-1">
-                                  <CardTitle className="text-lg leading-tight truncate">
-                                    {share.share_name}
-                                  </CardTitle>
-                                  {share.shared_by && (
-                                    <CardDescription className="mt-1">
-                                      Shared by {share.shared_by}
-                                    </CardDescription>
-                                  )}
-                                </div>
-                                <Badge
-                                  variant={isExpired ? 'destructive' : isExpiringSoon ? 'outline' : 'secondary'}
-                                  className="text-xs ml-2 shrink-0"
-                                >
-                                  {isExpired ? 'Expired' : isExpiringSoon ? 'Expiring Soon' : 'Active'}
-                                </Badge>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="pt-0">
-                              <div className="flex items-center justify-between text-xs mb-3 text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <Users className="h-3 w-3" />
-                                  <span>{share.influencers?.length || 0} influencers</span>
-                                </div>
-                                {expiresAt && (
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    <span>
-                                      {isExpired
-                                        ? `Expired ${formatDate(share.expires_at!)}`
-                                        : `Expires ${formatDate(share.expires_at!)}`
-                                      }
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                              {share.categories && share.categories.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-3">
-                                  {share.categories.slice(0, 3).map((cat) => (
-                                    <Badge key={cat} variant="outline" className="text-xs">
-                                      {cat}
-                                    </Badge>
-                                  ))}
-                                  {share.categories.length > 3 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      +{share.categories.length - 3}
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
-                              <Button
-                                onClick={() => router.push('/shared-influencers')}
-                                size="sm"
-                                className="w-full"
-                                variant="outline"
-                                disabled={isExpired}
-                              >
-                                <ExternalLink className="h-3 w-3 mr-1" />
-                                View Influencers
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
+              )
+            )}
 
               {/* Create List Dialog */}
               <Dialog open={isCreatingList} onOpenChange={setIsCreatingList}>
@@ -792,37 +652,43 @@ function MyListsContent() {
                     </DialogDescription>
                   </DialogHeader>
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Name</label>
+                  {/* A form with rhythm: 8px from a label to its input, 16px between
+                      siblings, and 40px before the actions because they are a different
+                      subject. Nothing is wrapped in a box. */}
+                  <div className="flex max-w-[640px] flex-col gap-ds-3">
+                    <div className="flex flex-col gap-ds-2">
+                      <label className="text-ds-label">Name</label>
                       <Input
-                        placeholder="Enter list name"
+                        placeholder="Ramadan shortlist"
                         value={newListName}
                         onChange={(e) => setNewListName(e.target.value)}
                       />
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Description (Optional)</label>
+                    <div className="flex flex-col gap-ds-2">
+                      <label className="text-ds-label">Description</label>
                       <Textarea
-                        placeholder="Enter description"
+                        placeholder="What this list is for. Optional."
                         value={newListDescription}
                         onChange={(e) => setNewListDescription(e.target.value)}
                         rows={3}
                       />
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Banner Color</label>
-                      <div className="flex gap-2">
+                    <div className="flex flex-col gap-ds-2">
+                      <label className="text-ds-label">Colour</label>
+                      <div className="flex flex-wrap gap-ds-2">
                         {colorOptions.map((color) => (
                           <button
                             key={color}
+                            type="button"
+                            aria-label={`Colour ${color}`}
+                            aria-pressed={selectedColor === color}
                             onClick={() => setSelectedColor(color)}
-                            className={`w-8 h-8 rounded border-2 transition-all ${
+                            className={`h-7 w-7 rounded-ds-full transition-transform ${
                               selectedColor === color
-                                ? 'border-foreground scale-110'
-                                : 'border-border hover:border-muted-foreground'
+                                ? 'scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-background'
+                                : 'hover:scale-105'
                             }`}
                             style={{ backgroundColor: color }}
                           />
@@ -831,17 +697,15 @@ function MyListsContent() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 mt-6">
+                  <div className="mt-ds-5 flex gap-ds-2">
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       onClick={() => setIsCreatingList(false)}
-                      className="flex-1"
                     >
                       Cancel
                     </Button>
                     <Button
                       onClick={createList}
-                      className="flex-1"
                       disabled={!newListName.trim()}
                     >
                       Create List
@@ -860,37 +724,43 @@ function MyListsContent() {
                     </DialogDescription>
                   </DialogHeader>
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Name</label>
+                  {/* A form with rhythm: 8px from a label to its input, 16px between
+                      siblings, and 40px before the actions because they are a different
+                      subject. Nothing is wrapped in a box. */}
+                  <div className="flex max-w-[640px] flex-col gap-ds-3">
+                    <div className="flex flex-col gap-ds-2">
+                      <label className="text-ds-label">Name</label>
                       <Input
-                        placeholder="Enter list name"
+                        placeholder="Ramadan shortlist"
                         value={newListName}
                         onChange={(e) => setNewListName(e.target.value)}
                       />
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Description (Optional)</label>
+                    <div className="flex flex-col gap-ds-2">
+                      <label className="text-ds-label">Description</label>
                       <Textarea
-                        placeholder="Enter description"
+                        placeholder="What this list is for. Optional."
                         value={newListDescription}
                         onChange={(e) => setNewListDescription(e.target.value)}
                         rows={3}
                       />
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Banner Color</label>
-                      <div className="flex gap-2">
+                    <div className="flex flex-col gap-ds-2">
+                      <label className="text-ds-label">Colour</label>
+                      <div className="flex flex-wrap gap-ds-2">
                         {colorOptions.map((color) => (
                           <button
                             key={color}
+                            type="button"
+                            aria-label={`Colour ${color}`}
+                            aria-pressed={selectedColor === color}
                             onClick={() => setSelectedColor(color)}
-                            className={`w-8 h-8 rounded border-2 transition-all ${
+                            className={`h-7 w-7 rounded-ds-full transition-transform ${
                               selectedColor === color
-                                ? 'border-foreground scale-110'
-                                : 'border-border hover:border-muted-foreground'
+                                ? 'scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-background'
+                                : 'hover:scale-105'
                             }`}
                             style={{ backgroundColor: color }}
                           />
@@ -899,17 +769,15 @@ function MyListsContent() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 mt-6">
+                  <div className="mt-ds-5 flex gap-ds-2">
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       onClick={() => setIsEditingList(false)}
-                      className="flex-1"
                     >
                       Cancel
                     </Button>
                     <Button
                       onClick={updateList}
-                      className="flex-1"
                       disabled={!newListName.trim()}
                     >
                       Update List
@@ -946,8 +814,7 @@ function MyListsContent() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            </div>
-          </div>
+          </Page>
       </BrandUserInterface>
     </AuthGuard>
   )

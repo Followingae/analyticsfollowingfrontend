@@ -180,156 +180,105 @@ function WelcomeContent() {
     router.push('/auth/register')
   }
 
+  /**
+   * Density tier: READING. This is one screen with one thing on it, so it gets the
+   * reading treatment: text left-aligned and capped near 65 characters, 40px between
+   * subjects, and nothing competing with the single sentence that says what is happening.
+   *
+   * What came off: two blurred colour blobs pulsing behind the content, a ping halo around
+   * a 128px icon, a gradient-clipped heading, and three raw palette colours (green-500,
+   * red-500, red-600) that are not tokens in this theme. What went on: the theme's own
+   * success and danger tokens, one icon at text scale, and left alignment, because a
+   * centred column of three left-aligned checkmarks under a centred heading was never
+   * aligned to anything.
+   */
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      {/* Modern gradient background effect */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse delay-1000" />
-      </div>
+    <div className="flex min-h-screen items-center justify-center bg-background px-6 py-12">
+      <div className="flex w-full max-w-md flex-col gap-ds-5">
 
-      <div className="relative z-10 w-full max-w-md">
-        {/* Loading State */}
         {status === 'loading' && (
-          <div className="text-center space-y-8">
-            {/* Animated Logo/Icon */}
-            <div className="relative mx-auto w-32 h-32">
-              <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
-              <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping animation-delay-200" />
-              <div className="relative flex items-center justify-center w-full h-full bg-background border-2 border-primary/20 rounded-full">
-                <Sparkles className="w-12 h-12 text-primary animate-pulse" />
-              </div>
-            </div>
-
-            {/* Loading Text */}
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                Setting Up Your Account
-              </h1>
-              <p className="text-muted-foreground">
-                Just a moment while we verify your payment...
+          <>
+            <div className="flex flex-col gap-ds-2">
+              <Sparkles className="h-6 w-6 text-primary" />
+              <h1 className="text-ds-title">Setting up your account</h1>
+              <p className="max-w-[65ch] text-ds-body text-muted-foreground">
+                We are verifying your payment. This usually takes a few seconds.
               </p>
             </div>
 
-            {/* Progress Steps */}
-            <div className="space-y-3 text-left max-w-xs mx-auto">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                  </div>
-                </div>
-                <span className="text-sm font-medium">Verifying payment</span>
-              </div>
+            <ol className="flex flex-col gap-ds-3">
+              <li className="flex items-center gap-ds-3">
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+                <span className="text-ds-body font-medium">Verifying payment</span>
+              </li>
+              <li className="flex items-center gap-ds-3">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+                <span className="text-ds-body text-muted-foreground">Creating account</span>
+              </li>
+              <li className="flex items-center gap-ds-3">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+                <span className="text-ds-body text-muted-foreground">Setting up workspace</span>
+              </li>
+            </ol>
 
-              <div className="flex items-center gap-3 opacity-50">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground" />
-                </div>
-                <span className="text-sm text-muted-foreground">Creating account</span>
-              </div>
-
-              <div className="flex items-center gap-3 opacity-50">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground" />
-                </div>
-                <span className="text-sm text-muted-foreground">Setting up workspace</span>
-              </div>
-            </div>
-
-            {/* Poll count indicator (subtle) */}
             {pollCount > 10 && (
-              <p className="text-xs text-muted-foreground animate-in fade-in">
-                This is taking a bit longer than usual...
+              <p className="text-ds-body-sm text-muted-foreground">
+                This is taking longer than usual. Do not close this page.
               </p>
             )}
-          </div>
+          </>
         )}
 
-        {/* Success State */}
         {status === 'success' && (
-          <div className="text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Success Icon */}
-            <div className="relative mx-auto w-32 h-32">
-              <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping" />
-              <div className="relative flex items-center justify-center w-full h-full bg-background border-2 border-green-500/30 rounded-full">
-                <CheckCircle className="w-16 h-16 text-green-500" />
-              </div>
-            </div>
-
-            {/* Success Text */}
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold">
-                Welcome to Following!
-              </h1>
-              <p className="text-muted-foreground">
-                Your account is ready. Let's get started!
+          <>
+            <div className="flex flex-col gap-ds-2">
+              <CheckCircle className="h-6 w-6 text-success" />
+              <h1 className="text-ds-title">Welcome to Following</h1>
+              <p className="max-w-[65ch] text-ds-body text-muted-foreground">
+                Your account is ready.
               </p>
             </div>
 
-            {/* Checkmarks */}
-            <div className="space-y-3 text-left max-w-xs mx-auto">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-sm">Payment verified</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-sm">Account created</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-sm">Subscription activated</span>
-              </div>
-            </div>
+            <ul className="flex flex-col gap-ds-3">
+              {['Payment verified', 'Account created', 'Subscription activated'].map(step => (
+                <li key={step} className="flex items-center gap-ds-3">
+                  <CheckCircle className="h-4 w-4 shrink-0 text-success" />
+                  <span className="text-ds-body">{step}</span>
+                </li>
+              ))}
+            </ul>
 
-            {/* Redirecting indicator */}
-            <div className="pt-4">
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <span>Redirecting to dashboard</span>
-                <ArrowRight className="w-4 h-4 animate-pulse" />
-              </div>
-            </div>
-          </div>
+            <p className="flex items-center gap-ds-2 text-ds-body-sm text-muted-foreground">
+              Taking you to your dashboard
+              <ArrowRight className="h-3.5 w-3.5" />
+            </p>
+          </>
         )}
 
-        {/* Error State */}
         {status === 'error' && (
-          <div className="text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Error Icon */}
-            <div className="relative mx-auto w-32 h-32">
-              <div className="relative flex items-center justify-center w-full h-full bg-background border-2 border-red-500/30 rounded-full">
-                <XCircle className="w-16 h-16 text-red-500" />
-              </div>
-            </div>
-
-            {/* Error Text */}
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold text-red-600 dark:text-red-400">
-                Something Went Wrong
-              </h1>
-              <p className="text-muted-foreground">
+          <>
+            <div className="flex flex-col gap-ds-2">
+              <XCircle className="h-6 w-6 text-danger" />
+              <h1 className="text-ds-title">Something went wrong</h1>
+              <p className="max-w-[65ch] text-ds-body text-muted-foreground">
                 {message}
               </p>
             </div>
 
-            {/* Retry Button */}
-            <div className="pt-4">
-              <Button
-                onClick={handleRetry}
-                className="min-w-[200px] min-h-[44px]"
-                size="lg"
-              >
-                Try Again
+            <div>
+              <Button onClick={handleRetry} size="lg" className="min-h-[44px]">
+                Try again
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
 
-            {/* Support Link */}
-            <p className="text-xs text-muted-foreground">
-              Need help? <a href="mailto:support@following.ae" className="text-primary hover:underline">Contact support</a>
+            <p className="text-ds-body-sm text-muted-foreground">
+              Need help?{' '}
+              <a href="mailto:support@following.ae" className="text-primary hover:underline">
+                Contact support
+              </a>
             </p>
-          </div>
+          </>
         )}
       </div>
     </div>
