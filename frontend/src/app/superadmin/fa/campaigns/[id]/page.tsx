@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Users, Loader2, ClipboardList, ExternalLink } from "lucide-react"
@@ -70,6 +69,12 @@ export default function FACampaignFunnelPage() {
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [creators, setCreators] = useState<FunnelCreator[]>([])
   const [bucket, setBucket] = useState<string>("all")
+  /** Whether the funnel request actually answered. Before this existed the strip read
+   *  `counts[key] ?? 0` unconditionally, so while the page was loading — and for as long
+   *  as it stayed failed — all eight stages showed a confident "0". Eight measured zeroes
+   *  and eight unanswered questions are not the same thing, and the screen said the first
+   *  when it meant the second. Unanswered now shows an em dash. */
+  const [answered, setAnswered] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -79,7 +84,9 @@ export default function FACampaignFunnelPage() {
       setCampaign(d?.campaign ?? null)
       setCounts(d?.counts ?? {})
       setCreators(Array.isArray(d?.creators) ? d.creators : [])
+      setAnswered(true)
     } catch {
+      setAnswered(false)
       toast.error("Failed to load campaign funnel")
     } finally {
       setLoading(false)
@@ -96,9 +103,14 @@ export default function FACampaignFunnelPage() {
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
+        {/* This shell (SuperAdminInterface) supplies no page padding of its own, so its
+            screens sat flush against the panel edge. The other console shell pads at
+            p-4 md:p-7; ds-3/ds-4 is the same measure taken from the scale instead of by
+            eye. space-y-ds-5 is the gap between subjects: header, auto-approve, funnel,
+            people. */}
+        <div className="space-y-ds-5 p-ds-3 md:p-ds-4">
+          <div className="flex flex-wrap items-center justify-between gap-ds-3">
+            <div className="flex items-center gap-ds-3 min-w-0">
               <Button size="sm" variant="ghost" onClick={() => router.push("/superadmin/fa/campaigns")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
@@ -118,45 +130,77 @@ export default function FACampaignFunnelPage() {
 
           <AutoApproveCard campaignId={id} />
 
-          {/* Funnel strip — click a stage to filter the list below */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+          {/* Funnel strip — click a stage to filter the list below.
+              Each stage used to be its own bordered, padded box, so reading this row of
+              eight meant crossing sixteen edges to compare two numbers. The edges said
+              nothing the row was not already saying. They are gone; the gap between
+              stages does the grouping instead, and the figures took the room the padding
+              was holding. The selected stage is marked by a rule under it and by its
+              label going to full strength, which is a stronger signal than the old tinted
+              border because nothing else on the row carries either. */}
+          <div className="-mx-ds-2 grid grid-cols-2 gap-x-ds-4 gap-y-ds-4 sm:grid-cols-4 lg:grid-cols-8">
             {BUCKETS.map((b) => {
-              const n = counts[b.key] ?? 0
+              const n = answered ? counts[b.key] ?? 0 : null
               const active = bucket === b.key
               return (
                 <button
                   key={b.key}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => setBucket(active ? "all" : b.key)}
-                  className={`rounded-lg border p-3 text-left transition-colors ${active ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
+                  className={`group rounded-ds-md px-ds-2 pb-ds-2 pt-ds-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${active ? "" : "hover:bg-black/[0.035] dark:hover:bg-white/[0.05]"}`}
                 >
-                  <p className="text-2xl font-semibold leading-none">{n}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1.5 leading-tight">{b.label}</p>
+                  <p
+                    className={`text-[32px] font-semibold leading-none tracking-[-0.025em] tabular-nums ${
+                      active ? "text-foreground" : n === 0 ? "text-muted-foreground/50" : "text-foreground"
+                    }`}
+                  >
+                    {n ?? "—"}
+                  </p>
+                  <p
+                    className={`mt-ds-2 text-ds-caption leading-tight ${
+                      active ? "font-medium text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {b.label}
+                  </p>
+                  <span
+                    className={`mt-ds-2 block h-[2px] rounded-full transition-colors ${
+                      active ? "bg-foreground" : "bg-transparent"
+                    }`}
+                  />
                 </button>
               )
             })}
           </div>
 
+          {/* The one hairline on this screen. Above it the funnel; below it the people in
+              it. That is a genuinely different subject, and it is the only place here
+              where a rule earns its keep. */}
+          <div className="border-t border-black/[0.06] pt-ds-4 dark:border-white/[0.07]">
           {loading ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : visible.length === 0 ? (
-            <Card><CardContent className="text-center py-12">
-              <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <div className="py-ds-6 text-center">
+              <Users className="h-10 w-10 text-muted-foreground mx-auto mb-ds-3" />
               <p className="text-muted-foreground">
                 {bucket === "all" ? "No creators in this campaign yet" : `No creators in “${BUCKETS.find((b) => b.key === bucket)?.label}”`}
               </p>
-            </CardContent></Card>
+            </div>
           ) : (
-            <div className="space-y-2">
+            /* Was a Card per creator: forty rows, forty borders, forty shadows, and the
+               eye crossing two edges to get from one person's name to the next. It is a
+               list, so it is drawn as one — a hairline between rows, nothing around
+               them. Every field the cards carried is still on the row. */
+            <div className="divide-y divide-black/[0.06] dark:divide-white/[0.07]">
               {visible.map((c) => {
                 const meta = BUCKETS.find((b) => b.key === c.bucket) ?? BUCKETS[0]
                 const chips = Object.entries(c.deliverables)
                   .filter(([k, v]) => k !== "total" && (v as number) > 0)
                   .map(([k, v]) => `${v} ${DELIVERABLE_CHIP_LABELS[k] ?? k}`)
                 return (
-                  <Card key={c.participant_id}>
-                    <CardContent className="p-3.5 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
+                  <div key={c.participant_id} className="flex flex-wrap items-center justify-between gap-ds-3 py-ds-3">
+                      <div className="flex items-center gap-ds-3 min-w-0">
                         {c.avatar_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={c.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" />
@@ -203,12 +247,12 @@ export default function FACampaignFunnelPage() {
                         </div>
                       </div>
                       <Badge variant="outline" className={`text-[10px] shrink-0 ${meta.cls}`}>{meta.label}</Badge>
-                    </CardContent>
-                  </Card>
+                  </div>
                 )
               })}
             </div>
           )}
+          </div>
         </div>
       </SuperAdminInterface>
     </AuthGuard>
