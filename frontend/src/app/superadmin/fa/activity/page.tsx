@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, type ReactNode } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { CARD, Empty, PageHead, Stat, StatGrid, type Tone } from "@/components/console/primitives"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -167,39 +167,60 @@ export default function FAActivityPage() {
 
   const refresh = () => { loadSummary(); load(true) }
 
-  const cards = [
-    { label: "New Applications (today)", value: summary?.new_applications ?? 0, icon: Send, color: "text-indigo-500" },
-    { label: "Deliverables Awaiting Review", value: summary?.deliverables_awaiting_review ?? 0, icon: FileImage, color: "text-amber-500" },
-    { label: "Pending Withdrawals", value: summary?.pending_withdrawals ?? 0, icon: Banknote, color: "text-rose-500" },
-    { label: "New Signups (today)", value: summary?.new_signups ?? 0, icon: UserPlus, color: "text-blue-500" },
+  /**
+   * The four headline figures.
+   *
+   * They read `summary?.x ?? 0`, and `loadSummary` swallows its own failure as
+   * "non-fatal" — so when the summary call did not answer, the band printed four
+   * confident zeroes: no applications, nothing awaiting review, no withdrawals
+   * pending. On a live-operations screen that is the most expensive lie available,
+   * because zero waiting is exactly the state that means "go and do something else".
+   * Absent is a dash now. A real zero still prints 0.
+   *
+   * The colours were decoration — indigo, amber, rose, blue, one per tile, meaning
+   * nothing. Tone now carries only state: the two queues turn amber while somebody is
+   * actually waiting in them, and the two counters stay neutral because a signup is
+   * news, not a problem.
+   */
+  const n = (v: number | undefined) => (v == null ? "—" : v)
+  const queue = (v: number | undefined): Tone => (v ? "warn" : "neutral")
+  const cards: { label: string; value: ReactNode; icon: any; tone?: Tone }[] = [
+    { label: "New applications (today)", value: n(summary?.new_applications), icon: Send },
+    { label: "Deliverables awaiting review", value: n(summary?.deliverables_awaiting_review),
+      icon: FileImage, tone: queue(summary?.deliverables_awaiting_review) },
+    { label: "Pending withdrawals", value: n(summary?.pending_withdrawals),
+      icon: Banknote, tone: queue(summary?.pending_withdrawals) },
+    { label: "New signups (today)", value: n(summary?.new_signups), icon: UserPlus },
   ]
 
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="space-y-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold">Platform Activity</h1>
-              <p className="text-muted-foreground text-sm">Live feed of everything happening across the Following App</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={refresh}>
-              <RefreshCw className="h-4 w-4 mr-1.5" />Refresh
-            </Button>
-          </div>
+        <div className="space-y-ds-5">
+          <PageHead
+            title="Platform Activity"
+            sub="Live feed of everything happening across the Following App"
+            action={
+              <Button variant="outline" size="sm" onClick={refresh}>
+                <RefreshCw className="h-4 w-4 mr-1.5" />Refresh
+              </Button>
+            }
+          />
 
-          {/* Headline stat cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* The four headline figures.
+
+              They were four Cards: a border, a background, a shadow and its own padding
+              each, laid out in a row — eight edges to cross to compare the first number
+              with the last, and every one of those edges saying only "this is a tile",
+              which the row already said. The borders come off and the gap goes up a step
+              instead, which separates them more clearly than the hairlines did because
+              nothing else in the band carries either. The figures take the room the
+              padding was holding: 30px to 40px. */}
+          <StatGrid>
             {cards.map((c) => (
-              <Card key={c.label}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">{c.label}</CardTitle>
-                  <c.icon className={`h-5 w-5 ${c.color}`} />
-                </CardHeader>
-                <CardContent><p className="text-3xl font-bold">{c.value}</p></CardContent>
-              </Card>
+              <Stat key={c.label} label={c.label} value={c.value} icon={c.icon} tone={c.tone} />
             ))}
-          </div>
+          </StatGrid>
 
           {/* Filters */}
           <Tabs value={filter} onValueChange={setFilter}>
@@ -210,36 +231,36 @@ export default function FAActivityPage() {
             </TabsList>
           </Tabs>
 
-          {/* Feed */}
-          <Card>
-            <CardContent className="p-4">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <Loader2 className="h-8 w-8 animate-spin mb-3" />
-                  <p className="text-sm">Loading activity...</p>
+          {/* Feed. This box stays: it is the one place on the screen where the subject
+              genuinely changes, from "how much is waiting" to "what happened". It moves to
+              the console card shell so its radius and shadow match every other panel. */}
+          <div className={`${CARD} bg-[var(--tone-neutral-wash)] p-ds-3`}>
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin mb-ds-3" />
+                <p className="text-sm">Loading activity...</p>
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex flex-col items-center">
+                <ActivityIcon className="mt-ds-4 h-10 w-10 text-muted-foreground" />
+                <Empty>No recent activity</Empty>
+              </div>
+            ) : (
+              <>
+                <div className="divide-y divide-black/[0.06] dark:divide-white/[0.07]">
+                  {items.map((it) => <ActivityRow key={it.id} item={it} />)}
                 </div>
-              ) : items.length === 0 ? (
-                <div className="text-center py-12">
-                  <ActivityIcon className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">No recent activity</p>
-                </div>
-              ) : (
-                <>
-                  <div className="divide-y">
-                    {items.map((it) => <ActivityRow key={it.id} item={it} />)}
+                {hasMore && (
+                  <div className="flex justify-center pt-ds-3">
+                    <Button variant="outline" size="sm" disabled={loadingMore} onClick={() => load(false)}>
+                      {loadingMore ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null}
+                      Load more
+                    </Button>
                   </div>
-                  {hasMore && (
-                    <div className="flex justify-center pt-4">
-                      <Button variant="outline" size="sm" disabled={loadingMore} onClick={() => load(false)}>
-                        {loadingMore ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null}
-                        Load more
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </SuperAdminInterface>
     </AuthGuard>
