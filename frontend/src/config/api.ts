@@ -42,6 +42,7 @@ export const ENDPOINTS = {
     canPerform: (actionType: string) => `/api/v1/credits/can-perform/${actionType}`, // GET - Check permissions
     pricing: '/api/v1/credits/pricing', // GET - Pricing info
     topUpEstimate: '/api/v1/credits/top-up/estimate', // POST - Estimate top-up cost
+    topupOptions: '/api/v1/credits/topup/options', // GET - Top-up packages (credits + price + tier discount)
   },
 
   // Creator Search (/api/v1/search/ & /api/v1/simple/)

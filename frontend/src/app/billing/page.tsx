@@ -62,6 +62,9 @@ import { TrialBanner } from '@/components/billing/TrialBanner'
 import { TrialDailyLimitsCard } from '@/components/billing/TrialDailyLimitsCard'
 import { PremiumFeatureGate } from '@/components/ui/premium-feature-gate'
 import { brandPoolApi } from '@/services/faAdminApi'
+import { PlanScreen } from '@/components/commercial/PlanScreen'
+import { SubscriptionLines } from '@/components/commercial/SubscriptionLines'
+import { resolveModules, isManagedAccount } from '@/hooks/useCommercialAccount'
 
 export default function BillingPage() {
   return (
@@ -104,7 +107,11 @@ function UsageBar({ used, limit, label, icon: Icon }: { used: number; limit: num
   )
 }
 
-const BILLING_TABS = ['subscription', 'invoices', 'cashback-pool'] as const
+// 'plan' is the plan screen: every module as a row, and the ONE place tier
+// limits are shown. It lives here rather than at its own /upgrade address,
+// because the place you buy a module should be the place you can see what you
+// already pay for.
+const BILLING_TABS = ['subscription', 'plan', 'invoices', 'cashback-pool'] as const
 
 function BillingContent() {
   const router = useRouter()
@@ -355,6 +362,13 @@ function BillingContent() {
   }
 
   const isAdminManaged = status.user?.billing_type === 'admin_managed'
+  // The new commercial surfaces read managed-ness the wider way (billing_type
+  // OR subscription status), because both spellings exist in live data and a
+  // managed account must never be shown a card form on either of them.
+  const managedAccount = isManagedAccount(status)
+  const accountModules = resolveModules(status, {
+    isSuperAdmin: user?.role === 'super_admin' || user?.role === 'admin',
+  })
   const isFreeTier = status.plan?.tier === 'free'
   const hasStripeCustomer = status.user?.has_stripe_customer
   const isTrialing = billingManager.isTrialing(status)
@@ -375,6 +389,7 @@ function BillingContent() {
         >
           <TabsList>
             <TabsTrigger value="subscription">Subscription</TabsTrigger>
+            <TabsTrigger value="plan">Plan &amp; modules</TabsTrigger>
             {!isAdminManaged && <TabsTrigger value="invoices">Invoices</TabsTrigger>}
             {!isAdminManaged && <TabsTrigger value="cashback-pool">Cashback Pool</TabsTrigger>}
           </TabsList>
@@ -424,6 +439,10 @@ function BillingContent() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Every line itemised, each cancellable on its own, with the
+                modules this account does not have in the same list. */}
+            <SubscriptionLines status={status} managed={managedAccount} owns={accountModules} />
 
             {/* Plan & Status */}
             <div className="grid gap-6 md:grid-cols-2">
@@ -732,6 +751,12 @@ function BillingContent() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Plan & modules — the plan screen. Managed accounts get the same
+              screen, with Request in place of every price. */}
+          <TabsContent value="plan" className="space-y-6">
+            <PlanScreen />
           </TabsContent>
 
           {/* Invoices Tab — hidden for admin-managed clients (billing handled offline) */}

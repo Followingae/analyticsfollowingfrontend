@@ -1,17 +1,46 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+/**
+ * Surface 4 - the pricing page, for someone who already knows what they want.
+ *
+ * Not a brochure. A basket: pick a plan, tick Run, see one total, one
+ * checkout. The annual toggle takes 20% off the whole basket, not off the plan
+ * with the add-on quietly left at list price.
+ *
+ * Every plan price comes from the live /checkout/pricing response, in the
+ * currency that response names. Nothing here writes a price literal. Run and
+ * seat prices come from src/config/planPricing.ts, the one place the frontend
+ * is allowed to know a price.
+ *
+ * The loading, empty and failed states are three different screens on purpose.
+ * A price that did not load is an em-dash and a disabled button - never a zero
+ * and never a stale guess.
+ */
+
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import Link from 'next/link'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import { Check, ArrowRight, Users, Zap, ShieldCheck, Percent, Sparkles } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { Check, ArrowRight, Users, Zap, ShieldCheck, Handshake, AlertCircle, Megaphone } from 'lucide-react'
 import { API_CONFIG, ENDPOINTS } from '@/config/api'
+import {
+  ANNUAL_DISCOUNT,
+  formatPlanPrice,
+  getModuleAmount,
+  getPlanLimits,
+  getSeatAmount,
+  hydrateBillingCurrency,
+  type BillingCurrency,
+} from '@/config/planPricing'
+import { MODULES } from '@/config/modules'
 
 // ──────────────────────────────────────────────
-// Types
+// Live pricing shape (GET /api/v1/checkout/pricing)
 // ──────────────────────────────────────────────
 
 interface TierPricing {
@@ -25,10 +54,7 @@ interface TierPricing {
 interface PricingTier {
   name: string
   credits: number
-  pricing: {
-    monthly?: TierPricing
-    annual?: TierPricing
-  }
+  pricing: { monthly?: TierPricing; annual?: TierPricing }
   topup_discount?: number
 }
 
@@ -37,153 +63,95 @@ interface PricingResponse {
   pricing: Record<string, PricingTier>
   currency: string
   annual_discount: number
-  notes: Record<string, string>
 }
 
-// ──────────────────────────────────────────────
-// Static plan metadata (not from API)
-// ──────────────────────────────────────────────
+type FetchState = 'loading' | 'loaded' | 'failed'
 
-const PLAN_META: Record<string, {
-  teamSize: number
-  profiles: number
-  features: string[]
-  cta: string
-  href: (interval: string) => string
-  trialBadge?: boolean
-  trialText?: string
-}> = {
-  free: {
-    teamSize: 1,
-    profiles: 5,
-    features: [
-      '125 credits per month',
-      '1 team member',
-      '5 profile unlocks per month',
-      'Basic analytics',
-      'Community support',
-    ],
-    cta: 'Get started',
-    href: () => '/auth/register',
-  },
-  standard: {
-    teamSize: 2,
-    profiles: 500,
-    features: [
-      '8,750 credits per month',
-      '2 team members',
-      '500 profile unlocks per month',
-      'Full analytics suite',
-      'Priority email support',
-      'Bulk exports',
-    ],
-    cta: 'Start Free Trial',
-    href: (interval) => `/checkout?tier=standard&interval=${interval}`,
-    trialBadge: true,
-    trialText: 'Start with 7 days free. No charge until trial ends.',
-  },
-  premium: {
-    teamSize: 5,
-    profiles: 2000,
-    features: [
-      '25,000 credits per month',
-      '5 team members',
-      '2,000 profile unlocks per month',
-      'Full analytics suite',
-      'Dedicated account manager',
-      '20% credit top-up discount',
-      'API access',
-    ],
-    cta: 'Start premium',
-    href: (interval) => `/checkout?tier=premium&interval=${interval}`,
-  },
-}
+type SelectableTier = 'free' | 'standard' | 'premium'
+
+const TIER_ORDER: SelectableTier[] = ['free', 'standard', 'premium']
+
+const TIER_ICON = { free: Zap, standard: Users, premium: ShieldCheck } as const
 
 // ──────────────────────────────────────────────
-// Feature comparison data
-// ──────────────────────────────────────────────
-
-const COMPARISON_ROWS: { label: string; free: string; standard: string; premium: string }[] = [
-  { label: 'Monthly credits', free: '125', standard: '8,750', premium: '25,000' },
-  { label: 'Team members', free: '1', standard: '2', premium: '5' },
-  { label: 'Profile unlocks / month', free: '5', standard: '500', premium: '2,000' },
-  { label: 'Post analytics', free: 'Limited', standard: 'Unlimited', premium: 'Unlimited' },
-  { label: 'Discovery search', free: 'Basic', standard: 'Advanced', premium: 'Advanced' },
-  { label: 'Bulk export', free: '--', standard: 'CSV & JSON', premium: 'CSV & JSON' },
-  { label: 'Campaign tracking', free: '--', standard: 'Included', premium: 'Included' },
-  { label: 'Credit top-up discount', free: '--', standard: '--', premium: '20%' },
-  { label: 'Support', free: 'Community', standard: 'Priority email', premium: 'Dedicated manager' },
-]
-
-// ──────────────────────────────────────────────
-// Page component
+// Page
 // ──────────────────────────────────────────────
 
 export default function PricingPage() {
   const router = useRouter()
   const [annual, setAnnual] = useState(false)
+  const [state, setState] = useState<FetchState>('loading')
   const [pricing, setPricing] = useState<PricingResponse | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [tier, setTier] = useState<SelectableTier>('standard')
+  const [withRun, setWithRun] = useState(false)
 
   useEffect(() => {
-    fetchPricing()
+    let cancelled = false
+
+    const load = async () => {
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.checkout.pricing}`)
+        if (!res.ok) throw new Error('pricing unavailable')
+        const data: PricingResponse = await res.json()
+        if (cancelled) return
+        if (!data?.pricing) {
+          setState('failed')
+          return
+        }
+        // Quote in the currency the server charges in, never an assumed one.
+        hydrateBillingCurrency(data.currency)
+        setPricing(data)
+        setState('loaded')
+      } catch {
+        if (!cancelled) setState('failed')
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  const fetchPricing = async () => {
-    try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}${ENDPOINTS.checkout.pricing}`)
-      if (res.ok) {
-        const data: PricingResponse = await res.json()
-        setPricing(data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch pricing data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const displayPrice = (tier: string): string => {
-    if (!pricing) return '--'
-    const t = pricing.pricing[tier]
-    if (!t) return '--'
-
-    if (annual && t.pricing.annual) {
-      return `$${t.pricing.annual.monthly_equivalent}`
-    }
-    return `$${t.pricing.monthly?.amount ?? 0}`
-  }
-
-  const annualTotal = (tier: string): string | null => {
-    if (!annual || !pricing) return null
-    const t = pricing.pricing[tier]
-    if (!t?.pricing.annual) return null
-    return `$${t.pricing.annual.amount.toLocaleString()} billed annually`
-  }
-
-  const savings = (tier: string): number | null => {
-    if (!annual || !pricing) return null
-    const t = pricing.pricing[tier]
-    return t?.pricing.annual?.savings ?? null
-  }
-
+  const currency = (pricing?.currency?.toUpperCase() as BillingCurrency) || 'USD'
   const interval = annual ? 'annual' : 'monthly'
 
-  // ──────────────────────────────────────────
-  // Skeleton loading state
-  // ──────────────────────────────────────────
+  /** Monthly amount for a tier in the selected interval, or null if unknown. */
+  const planMonthly = (key: SelectableTier): number | null => {
+    const t = pricing?.pricing?.[key]
+    if (!t) return null
+    if (key === 'free') return 0
+    if (annual) {
+      const a = t.pricing.annual
+      if (typeof a?.monthly_equivalent === 'number') return a.monthly_equivalent
+      if (typeof a?.amount === 'number') return Math.round(a.amount / 12)
+      return null
+    }
+    return typeof t.pricing.monthly?.amount === 'number' ? t.pricing.monthly.amount : null
+  }
 
-  if (loading) {
+  const runMonthly = useMemo(
+    () => getModuleAmount('run', annual ? 'annual' : 'monthly', currency) / (annual ? 12 : 1),
+    [annual, currency]
+  )
+
+  const selectedPlanMonthly = planMonthly(tier)
+  const basketKnown = selectedPlanMonthly !== null
+  const totalMonthly = basketKnown ? selectedPlanMonthly + (withRun ? runMonthly : 0) : null
+  const totalAnnual = totalMonthly !== null ? Math.round(totalMonthly * 12) : null
+
+  const priceCell = (value: number | null) =>
+    value === null ? '—' : formatPlanPrice(Math.round(value), currency)
+
+  // ── Loading ──────────────────────────────────────────────────────────────
+  if (state === 'loading') {
     return (
       <div className="min-h-screen bg-background">
-        <div className="max-w-5xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
-          <div className="space-y-4 mb-12">
-            <Skeleton className="h-10 w-64" />
-            <Skeleton className="h-5 w-96" />
-          </div>
+        <div className="max-w-5xl mx-auto px-4 py-16 sm:px-6 lg:px-8 space-y-8">
+          <Skeleton className="h-10 w-64" />
           <div className="grid gap-6 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-[420px] rounded-lg" />
+              <Skeleton key={i} className="h-[360px] rounded-lg" />
             ))}
           </div>
         </div>
@@ -191,275 +159,298 @@ export default function PricingPage() {
     )
   }
 
-  // ──────────────────────────────────────────
-  // Render
-  // ──────────────────────────────────────────
+  // ── Failed ───────────────────────────────────────────────────────────────
+  if (state === 'failed' || !pricing) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-xl mx-auto px-4 py-24 sm:px-6 text-center space-y-4">
+          <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground" />
+          <h1 className="text-2xl font-bold tracking-tight">We could not load our prices</h1>
+          <p className="text-muted-foreground">
+            We would rather show you nothing than a number we have not confirmed. Reload, or ask
+            us and we will send them over.
+          </p>
+          <div className="flex items-center justify-center gap-2">
+            <Button onClick={() => window.location.reload()}>Try again</Button>
+            <Button variant="outline" asChild>
+              <a href="mailto:support@following.ae?subject=Pricing">Ask us</a>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
-
-        {/* ── Header ── */}
-        <div className="mb-12">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Pricing
-          </h1>
-          <p className="mt-3 text-muted-foreground text-base max-w-lg">
-            Start free. Upgrade when your team needs more profiles, credits, or seats.
+      <div className="max-w-6xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mb-10">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Pricing</h1>
+          <p className="mt-3 text-muted-foreground max-w-xl">
+            Pick a plan, add Run if you are running campaigns, and check out once. Find is in
+            every plan.
           </p>
 
-          {/* ── Billing toggle ── */}
           <div className="mt-8 flex items-center gap-3">
-            <span className={`text-sm font-medium ${!annual ? 'text-foreground' : 'text-muted-foreground'}`}>
+            <span className={`text-sm font-medium ${!annual ? '' : 'text-muted-foreground'}`}>
               Monthly
             </span>
-            <Switch
-              checked={annual}
-              onCheckedChange={setAnnual}
-              aria-label="Toggle annual billing"
-            />
-            <span className={`text-sm font-medium ${annual ? 'text-foreground' : 'text-muted-foreground'}`}>
+            <Switch checked={annual} onCheckedChange={setAnnual} aria-label="Toggle annual billing" />
+            <span className={`text-sm font-medium ${annual ? '' : 'text-muted-foreground'}`}>
               Annual
             </span>
-            {annual && (
-              <Badge
-                variant="secondary"
-                className="ml-1 text-xs bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-0"
-              >
-                Save up to 20%
-              </Badge>
-            )}
+            <Badge variant="secondary">{Math.round(ANNUAL_DISCOUNT * 100)}% off everything</Badge>
           </div>
         </div>
 
-        {/* ── Plan cards ── */}
-        <div className="grid gap-6 lg:grid-cols-3 items-start">
-
-          {/* ─── Free ─── */}
-          <PlanCard
-            tier="free"
-            price={displayPrice('free')}
-            annualNote={null}
-            savingsAmount={null}
-            highlighted={false}
-            interval={interval}
-            router={router}
-          />
-
-          {/* ─── Standard (highlighted) ─── */}
-          <PlanCard
-            tier="standard"
-            price={displayPrice('standard')}
-            annualNote={annualTotal('standard')}
-            savingsAmount={savings('standard')}
-            highlighted
-            interval={interval}
-            router={router}
-          />
-
-          {/* ─── Premium ─── */}
-          <PlanCard
-            tier="premium"
-            price={displayPrice('premium')}
-            annualNote={annualTotal('premium')}
-            savingsAmount={savings('premium')}
-            highlighted={false}
-            interval={interval}
-            router={router}
-          />
-        </div>
-
-        {/* ── Feature comparison ── */}
-        <section className="mt-20">
-          <h2 className="text-xl font-semibold mb-6">Compare plans</h2>
-
-          {/* Desktop table */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 pr-4 font-medium text-muted-foreground w-1/4">Feature</th>
-                  <th className="text-left py-3 px-4 font-medium w-1/4">Free</th>
-                  <th className="text-left py-3 px-4 font-medium w-1/4">Standard</th>
-                  <th className="text-left py-3 px-4 font-medium w-1/4">Premium</th>
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARISON_ROWS.map((row) => (
-                  <tr key={row.label} className="border-b last:border-0">
-                    <td className="py-3 pr-4 text-muted-foreground">{row.label}</td>
-                    <td className="py-3 px-4">{formatCell(row.free)}</td>
-                    <td className="py-3 px-4">{formatCell(row.standard)}</td>
-                    <td className="py-3 px-4">{formatCell(row.premium)}</td>
-                  </tr>
+        <div className="grid gap-8 lg:grid-cols-[1fr_20rem] items-start">
+          {/* ── Choose ─────────────────────────────────────────────────── */}
+          <div className="space-y-8">
+            <section>
+              <h2 className="text-sm font-medium text-muted-foreground mb-3">1. Your plan</h2>
+              <div className="grid gap-4 sm:grid-cols-3">
+                {TIER_ORDER.map((key) => (
+                  <PlanCard
+                    key={key}
+                    tier={key}
+                    selected={tier === key}
+                    onSelect={() => setTier(key)}
+                    monthly={planMonthly(key)}
+                    currency={currency}
+                    annual={annual}
+                    credits={pricing.pricing[key]?.credits}
+                  />
                 ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile stacked list */}
-          <div className="sm:hidden space-y-4">
-            {COMPARISON_ROWS.map((row) => (
-              <div key={row.label} className="border-b pb-3 last:border-0">
-                <p className="text-xs text-muted-foreground mb-1.5">{row.label}</p>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <span className="text-xs text-muted-foreground block">Free</span>
-                    {formatCell(row.free)}
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground block">Standard</span>
-                    {formatCell(row.standard)}
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground block">Premium</span>
-                    {formatCell(row.premium)}
-                  </div>
-                </div>
               </div>
-            ))}
-          </div>
-        </section>
 
-        {/* ── FAQ / bottom note ── */}
-        <section className="mt-16 pb-8">
-          <p className="text-sm text-muted-foreground">
-            All plans include access to the discovery page, creator analytics, and proposal system.
-            Credits reset each billing cycle. Need a custom arrangement?{' '}
-            <a href="mailto:support@following.ae" className="underline underline-offset-2 hover:text-foreground transition-colors">
-              Contact us
-            </a>.
-          </p>
-        </section>
+              <Card className="mt-4">
+                <CardContent className="flex flex-wrap items-center justify-between gap-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <Handshake className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="font-medium">Managed</p>
+                      <p className="text-sm text-muted-foreground max-w-md">
+                        {MODULES.manage.summary} Quoted against the work, so it starts with a
+                        conversation rather than a price.
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="outline" asChild>
+                    <a href="mailto:support@following.ae?subject=Managed%20plan">Talk to us</a>
+                  </Button>
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* ── The one add-on ───────────────────────────────────────── */}
+            <section>
+              <h2 className="text-sm font-medium text-muted-foreground mb-3">2. Add-on</h2>
+              <Card className={withRun ? 'border-primary/50 ring-1 ring-primary/20' : ''}>
+                <CardContent className="py-5">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <Megaphone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="font-medium">{MODULES.run.name}</p>
+                        <p className="text-sm text-muted-foreground max-w-md">
+                          {MODULES.run.summary}
+                        </p>
+                        <ul className="mt-3 space-y-1.5">
+                          {MODULES.run.contains.map((line) => (
+                            <li key={line} className="flex items-start gap-2 text-sm">
+                              <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                              <span>{line}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="text-right space-y-2">
+                      <p className="font-semibold">
+                        {formatPlanPrice(Math.round(runMonthly), currency)}
+                        <span className="text-sm font-normal text-muted-foreground">/mo</span>
+                      </p>
+                      <Button
+                        variant={withRun ? 'default' : 'outline'}
+                        onClick={() => setWithRun((v) => !v)}
+                      >
+                        {withRun ? 'In your basket' : 'Add Run'}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          </div>
+
+          {/* ── Basket ───────────────────────────────────────────────────── */}
+          <Card className="lg:sticky lg:top-8">
+            <CardHeader className="pb-3">
+              <p className="font-semibold">Your basket</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="capitalize">{tier} plan</span>
+                  <span>{priceCell(selectedPlanMonthly)}</span>
+                </div>
+                {withRun && (
+                  <div className="flex items-center justify-between">
+                    <span>Run</span>
+                    <span>{priceCell(runMonthly)}</span>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              <div className="flex items-baseline justify-between">
+                <span className="font-medium">Total</span>
+                <span className="text-2xl font-bold">
+                  {priceCell(totalMonthly)}
+                  <span className="text-sm font-normal text-muted-foreground">/mo</span>
+                </span>
+              </div>
+
+              {annual && totalAnnual !== null && (
+                <p className="text-xs text-muted-foreground">
+                  {formatPlanPrice(totalAnnual, currency)} billed annually, {Math.round(ANNUAL_DISCOUNT * 100)}%
+                  off the whole basket.
+                </p>
+              )}
+
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>
+                  {getPlanLimits(tier).seats} seat{getPlanLimits(tier).seats === 1 ? '' : 's'} included ·
+                  extra seats {formatPlanPrice(getSeatAmount(currency), currency)}/mo each.
+                </p>
+                <p>
+                  {getPlanLimits(tier).monthlyUnlocks.toLocaleString()} profile unlocks a month,
+                  metered in credits.
+                </p>
+              </div>
+
+              {withRun && (
+                <p className="text-xs text-muted-foreground">
+                  Checkout takes the plan. Run is switched on with it and appears on your first
+                  invoice - you are not charged twice.
+                </p>
+              )}
+
+              <Button
+                className="w-full"
+                disabled={!basketKnown}
+                onClick={() => {
+                  if (tier === 'free') {
+                    router.push('/auth/register')
+                    return
+                  }
+                  // The checkout contract is unchanged: tier + interval.
+                  router.push(
+                    `/checkout?tier=${tier}&interval=${interval}${withRun ? '&addons=run' : ''}`
+                  )
+                }}
+              >
+                {tier === 'free' ? 'Start free' : 'Continue to checkout'}
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Already a customer?{' '}
+                <Link href="/billing?tab=plan" className="underline underline-offset-2">
+                  Change your plan in billing
+                </Link>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
 }
 
 // ──────────────────────────────────────────────
-// Plan card component
+// Plan card
 // ──────────────────────────────────────────────
 
 function PlanCard({
   tier,
-  price,
-  annualNote,
-  savingsAmount,
-  highlighted,
-  interval,
-  router,
+  selected,
+  onSelect,
+  monthly,
+  currency,
+  annual,
+  credits,
 }: {
-  tier: string
-  price: string
-  annualNote: string | null
-  savingsAmount: number | null
-  highlighted: boolean
-  interval: string
-  router: ReturnType<typeof useRouter>
+  tier: SelectableTier
+  selected: boolean
+  onSelect: () => void
+  monthly: number | null
+  currency: BillingCurrency
+  annual: boolean
+  credits?: number
 }) {
-  const meta = PLAN_META[tier]
-  if (!meta) return null
-
-  const icon = tier === 'free' ? Zap : tier === 'standard' ? Users : ShieldCheck
-  const Icon = icon
+  const Icon = TIER_ICON[tier]
+  const limits = getPlanLimits(tier)
 
   return (
     <Card
-      className={`relative flex flex-col transition-shadow duration-200 ease-out ${
-        highlighted
-          ? 'border-primary/50 shadow-md ring-1 ring-primary/20'
-          : ''
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
+      className={`cursor-pointer transition-shadow ${
+        selected ? 'border-primary/50 shadow-md ring-1 ring-primary/20' : ''
       }`}
     >
-      {highlighted && (
-        <div className="absolute -top-3 left-6 flex items-center gap-1.5">
-          <Badge className="bg-primary text-primary-foreground text-xs px-2.5 py-0.5">
-            Most popular
-          </Badge>
-          {meta.trialBadge && (
-            <Badge className="bg-gradient-to-r from-blue-500 to-violet-600 text-white text-xs px-2.5 py-0.5 border-0">
-              <Sparkles className="h-3 w-3 mr-1" />
-              7-Day Free Trial
-            </Badge>
-          )}
-        </div>
-      )}
-
-      <CardHeader className={`pb-4 ${highlighted ? 'pt-8' : ''}`}>
-        <div className="flex items-center gap-2 mb-3">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2 mb-2">
           <Icon className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium capitalize">{tier}</span>
+          {selected && <Badge variant="secondary" className="ml-auto">Selected</Badge>}
         </div>
-
         <div className="flex items-baseline gap-1">
-          <span className="text-3xl font-bold tracking-tight">{price}</span>
-          {tier !== 'free' && (
-            <span className="text-sm text-muted-foreground">/mo</span>
-          )}
+          <span className="text-2xl font-bold tracking-tight">
+            {monthly === null ? '—' : formatPlanPrice(monthly, currency)}
+          </span>
+          <span className="text-sm text-muted-foreground">/mo</span>
         </div>
-
-        {annualNote && (
-          <p className="text-xs text-muted-foreground mt-1">{annualNote}</p>
-        )}
-
-        {savingsAmount && (
-          <Badge
-            variant="secondary"
-            className="w-fit mt-2 text-xs bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-0"
-          >
-            Save ${savingsAmount.toLocaleString()}/yr
-          </Badge>
-        )}
-
-        {meta.trialText && (
-          <p className="text-xs text-muted-foreground mt-2">{meta.trialText}</p>
-        )}
-
-        {tier === 'premium' && (
-          <div className="flex items-center gap-1.5 mt-2">
-            <Percent className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">20% off credit top-ups</span>
-          </div>
+        {annual && monthly !== null && monthly > 0 && (
+          <p className="text-xs text-muted-foreground mt-1">billed annually</p>
         )}
       </CardHeader>
-
-      <CardContent className="flex-1 pb-4">
-        <ul className="space-y-2.5">
-          {meta.features.map((feature) => (
-            <li key={feature} className="flex items-start gap-2.5 text-sm">
-              <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-              <span>{feature}</span>
-            </li>
-          ))}
+      <CardContent className="pt-0">
+        <ul className="space-y-1.5 text-sm">
+          <li className="flex items-start gap-2">
+            <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+            <span>
+              {typeof credits === 'number'
+                ? credits.toLocaleString()
+                : limits.monthlyCredits.toLocaleString()}{' '}
+              credits a month
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+            <span>{limits.monthlyUnlocks.toLocaleString()} profile unlocks</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+            <span>
+              {limits.seats} seat{limits.seats === 1 ? '' : 's'}
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+            <span>Find included</span>
+          </li>
         </ul>
       </CardContent>
-
-      <CardFooter className="pt-2 pb-6">
-        <Button
-          className={`w-full min-h-[44px] ${
-            meta.trialBadge
-              ? 'bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 text-white border-0 shadow-sm'
-              : ''
-          }`}
-          variant={highlighted && !meta.trialBadge ? 'default' : meta.trialBadge ? undefined : 'outline'}
-          onClick={() => router.push(meta.href(interval))}
-        >
-          {meta.trialBadge && <Sparkles className="h-4 w-4 mr-1" />}
-          {meta.cta}
-          <ArrowRight className="h-4 w-4 ml-1" />
-        </Button>
-      </CardFooter>
     </Card>
   )
-}
-
-// ──────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────
-
-function formatCell(value: string) {
-  if (value === '--') {
-    return <span className="text-muted-foreground">--</span>
-  }
-  return <span>{value}</span>
 }

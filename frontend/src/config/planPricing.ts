@@ -111,3 +111,124 @@ export function formatPlanLabel(
   const name = key.charAt(0).toUpperCase() + key.slice(1)
   return `${name} (${formatMonthlyPlanPrice(key, getBillingCurrency(), suffix)})`
 }
+
+// ---------------------------------------------------------------------------
+// Modules, seats and the usage meter
+// ---------------------------------------------------------------------------
+// The commercial model has one plan and one add-on:
+//
+//   Find    - in every plan, never sold separately.
+//   Run     - the one add-on, AED 1,200/month.
+//   Manage  - the Managed plan. Quoted, never a self-serve price.
+//
+// Amounts below are the decided business prices. They are canonical in AED;
+// the USD figure is the AED amount at the fixed 3.6725 peg rounded to a whole
+// unit, so a USD-quoting account is never shown a number that is a different
+// commercial decision from the AED one.
+//
+// <<< CONFIG POINT >>> There is no Stripe price object for the Run add-on in
+// either currency yet, so MODULE_STRIPE_PRICE_IDS is empty and every "add Run"
+// button routes through the account-manager request flow instead of checkout.
+// The day those price objects exist, fill these in: hasModuleCheckout() flips
+// the buttons over and nothing else needs editing.
+
+export type ModuleKey = 'find' | 'run' | 'manage'
+/** Modules sold as a recurring add-on line. */
+export type ModuleAddonKey = 'run'
+
+export const MODULE_AMOUNTS: Record<BillingCurrency, Record<ModuleAddonKey, number>> = {
+  AED: { run: 1200 },
+  USD: { run: 327 },
+}
+
+export const MODULE_STRIPE_PRICE_IDS: Record<BillingCurrency, Partial<Record<ModuleAddonKey, string>>> = {
+  AED: {},
+  USD: {},
+}
+
+/** An extra seat, beyond the seats the plan includes. */
+export const SEAT_AMOUNTS: Record<BillingCurrency, number> = {
+  AED: 180,
+  USD: 49,
+}
+
+/** Annual billing takes this off the whole basket. Mirrors ANNUAL_DISCOUNT server-side. */
+export const ANNUAL_DISCOUNT = 0.2
+
+/**
+ * Credits per profile unlock - the only conversion between the two, because
+ * top-ups are sold as unlocks and nobody wants "1,000 credits". The live
+ * figure comes from GET /api/v1/credits/pricing; this is the fallback when
+ * that call does not answer.
+ */
+export const CREDITS_PER_UNLOCK = 25
+
+/** Action types that mean "unlock a profile", across the spellings in use. */
+export const UNLOCK_ACTION_TYPES = ['profile_unlock', 'profile_analysis', 'unlock_profile']
+
+export function getModuleAmount(
+  module: ModuleAddonKey,
+  interval: BillingInterval = 'monthly',
+  currency: BillingCurrency = getBillingCurrency()
+): number {
+  const monthly = MODULE_AMOUNTS[currency][module]
+  if (interval === 'annual') return Math.round(monthly * 12 * (1 - ANNUAL_DISCOUNT))
+  return monthly
+}
+
+/** e.g. "AED 1,200/month" */
+export function formatModulePrice(
+  module: ModuleAddonKey,
+  currency: BillingCurrency = getBillingCurrency(),
+  suffix: string = '/month'
+): string {
+  return `${formatPlanPrice(getModuleAmount(module, 'monthly', currency), currency)}${suffix}`
+}
+
+export function getSeatAmount(currency: BillingCurrency = getBillingCurrency()): number {
+  return SEAT_AMOUNTS[currency]
+}
+
+/** True once a Stripe price object exists for the add-on in the active currency. */
+export function hasModuleCheckout(
+  module: ModuleAddonKey,
+  currency: BillingCurrency = getBillingCurrency()
+): boolean {
+  return Boolean(MODULE_STRIPE_PRICE_IDS[currency][module])
+}
+
+/** Monthly-equivalent price when a basket is billed annually. */
+export function annualMonthlyEquivalent(monthlyAmount: number): number {
+  return Math.round(monthlyAmount * (1 - ANNUAL_DISCOUNT))
+}
+
+// ---------------------------------------------------------------------------
+// Tier limits
+// ---------------------------------------------------------------------------
+// These MIRROR SUBSCRIPTION_TIER_LIMITS in app/models/teams.py, which is what
+// the server actually enforces. They exist for the signed-out pricing page,
+// which has no /billing status to read.
+//
+// Inside the product, limits are read from the live billing status and shown
+// in exactly one place (the plan screen) - never from this table, so a brand
+// is never quoted a limit the server disagrees with. The public page used to
+// claim 500 and 2,000 monthly unlocks while the server enforced 350 and 1,000.
+
+export interface PlanLimits {
+  seats: number
+  monthlyUnlocks: number
+  monthlyPosts: number
+  monthlyCredits: number
+  /** Fraction off credit top-ups, e.g. 0.2. */
+  topupDiscount: number
+}
+
+export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
+  free: { seats: 1, monthlyUnlocks: 5, monthlyPosts: 0, monthlyCredits: 125, topupDiscount: 0 },
+  standard: { seats: 2, monthlyUnlocks: 350, monthlyPosts: 100, monthlyCredits: 8750, topupDiscount: 0 },
+  premium: { seats: 5, monthlyUnlocks: 1000, monthlyPosts: 250, monthlyCredits: 25000, topupDiscount: 0.2 },
+}
+
+export function getPlanLimits(tier: string): PlanLimits {
+  return PLAN_LIMITS[normalizePlanTier(tier)]
+}
