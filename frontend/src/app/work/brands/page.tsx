@@ -47,13 +47,22 @@ function BrandsPage() {
   const params = useSearchParams()
   const [newOpen, setNewOpen] = useState(params?.get('new') === '1')
 
+  // A refused request and an empty client list are different facts and must not
+  // render the same. Failure is held here so the page can say the read failed,
+  // rather than falling through to "Nothing to show." — which would report an
+  // agency with no clients every time the endpoint 500s.
+  const [failure, setFailure] = useState<string | null>(null)
+
   const load = async () => {
+    setFailure(null)
     try {
       const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/brands/heartbeat`)
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed')
       setData((await res.json()).data)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not load brands')
+      const msg = e instanceof Error ? e.message : 'Could not load brands'
+      setFailure(msg)
+      toast.error(msg)
     } finally { setLoading(false) }
   }
 
@@ -77,11 +86,29 @@ function BrandsPage() {
       </SuperadminLayout>
     )
   }
+  if (failure) {
+    return (
+      <SuperadminLayout>
+        <div className="space-y-3">
+          <p className="text-sm font-medium">Could not load the client list.</p>
+          <p className="text-sm text-muted-foreground">
+            {failure}. This is not an all clear, and nothing below is known.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => { setLoading(true); load() }}>
+            Try again
+          </Button>
+        </div>
+      </SuperadminLayout>
+    )
+  }
   if (!data) {
-    return <SuperadminLayout><p className="text-sm text-muted-foreground">Nothing to show.</p></SuperadminLayout>
+    return <SuperadminLayout><p className="text-sm text-muted-foreground">No clients yet.</p></SuperadminLayout>
   }
 
   const s = data.summary || {}
+  // An em-dash where a figure did not arrive. A zero here would read as a fact:
+  // "no clients at risk" is a very different sentence from "we did not find out".
+  const stat = (v: unknown) => (typeof v === 'number' ? v : '—')
   const ours = (data.brands || []).filter((b: any) => b.whose_move !== 'client').length
 
   return (
@@ -97,14 +124,14 @@ function BrandsPage() {
         />
 
         <StatGrid>
-          <Stat label="Active clients" value={s.total ?? 0} icon={Building2}
+          <Stat label="Active clients" value={stat(s.total)} icon={Building2}
                 hint={`${ours} waiting on us`} onClick={() => setTab('all')} />
-          <Stat label="Healthy" value={s.healthy ?? 0} tone="good" icon={HeartPulse}
+          <Stat label="Healthy" value={stat(s.healthy)} tone="good" icon={HeartPulse}
                 hint="Something moved in the last week" />
-          <Stat label="Going quiet" value={s.quiet ?? 0} tone={s.quiet ? 'warn' : 'neutral'}
+          <Stat label="Going quiet" value={stat(s.quiet)} tone={s.quiet ? 'warn' : 'neutral'}
                 icon={PhoneOff} hint="One to two weeks of silence"
                 onClick={() => setTab('attention')} />
-          <Stat label="At risk" value={s.at_risk ?? 0} tone={s.at_risk ? 'bad' : 'neutral'}
+          <Stat label="At risk" value={stat(s.at_risk)} tone={s.at_risk ? 'bad' : 'neutral'}
                 icon={TriangleAlert} hint="Over a fortnight — call, do not email"
                 onClick={() => setTab('attention')} />
         </StatGrid>
