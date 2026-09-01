@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button"
 import { CARD, PageHead, Stat, StatGrid, type Tone } from "@/components/console/primitives"
 import {
   Users, Store, Megaphone, ClipboardCheck, Banknote, Clock, Activity, ArrowRight,
-  Loader2, Camera, UserPlus, UserCheck, Receipt,
+  Camera, UserPlus, UserCheck, Receipt,
 } from "lucide-react"
 import Link from "next/link"
 import { faStatsApi, faActivityApi } from "@/services/faAdminApi"
+import { FaPage, Failed, Loading, Nothing } from "./_ui"
 import { ActivityRow } from "@/app/superadmin/fa/activity/page"
 
 type Summary = {
@@ -24,15 +25,20 @@ type Summary = {
 export default function FADashboardPage() {
   const [stats, setStats] = useState<any>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
-  const [activity, setActivity] = useState<any[] | null>(null)
+  /** null = has not answered yet, false = the request failed, [] = we asked and it is quiet. */
+  const [activity, setActivity] = useState<any[] | null | false>(null)
 
+  /* The feed used to `catch(() => setActivity([]))`, and an empty array renders "No recent
+     activity". So a broken feed told the operator the platform had gone quiet. Failure is
+     its own state now: `false` means the request came back broken, `null` means it has not
+     answered yet, and an empty array means we asked and nothing happened. */
   const loadActivity = useCallback(() => {
     faActivityApi.feed({ limit: 8 })
       .then((res) => {
         const list = res?.data?.activity ?? res?.data ?? []
         setActivity(Array.isArray(list) ? list : [])
       })
-      .catch(() => setActivity([]))
+      .catch(() => setActivity(false))
   }, [])
 
   const loadSummary = useCallback(() => {
@@ -99,25 +105,25 @@ export default function FADashboardPage() {
       href: "/superadmin/fa/deliverables",
     },
     {
-      label: "Pending withdrawals",
+      label: "Withdrawals to approve",
       value: summary?.pending_withdrawals,
       icon: Banknote,
       href: "/superadmin/fa/withdrawals",
     },
     {
-      label: "Pending members",
+      label: "Creators to decide on",
       value: stats?.pending_approvals,
       icon: UserCheck,
       href: "/superadmin/fa/members",
     },
     {
-      label: "New signups today",
+      label: "Signed up today",
       value: summary?.new_signups,
       icon: UserPlus,
       href: "/superadmin/fa/members",
     },
     {
-      label: "Receipts to review",
+      label: "Receipts to check",
       value: summary?.pending_receipts,
       icon: Receipt,
       href: "/superadmin/fa/receipt-claims",
@@ -126,12 +132,12 @@ export default function FADashboardPage() {
 
   // ─── (c) Platform overview — existing roll-up stat cards ──────────────
   const cards = [
-    { label: "Total Members", value: stats?.total_members, icon: Users, href: "/superadmin/fa/members" },
-    { label: "Edge-Case Review", value: stats?.pending_approvals, icon: Clock, href: "/superadmin/fa/members" },
-    { label: "Active Merchants", value: stats?.active_merchants, icon: Store, href: "/superadmin/fa/merchants" },
-    { label: "Active Campaigns", value: stats?.active_campaigns, icon: Megaphone, href: "/superadmin/fa/campaigns" },
-    { label: "Pending Deliverables", value: stats?.pending_deliverables, icon: ClipboardCheck, href: "/superadmin/fa/deliverables" },
-    { label: "Pending Withdrawals", value: stats?.pending_withdrawals, icon: Banknote, href: "/superadmin/fa/withdrawals" },
+    { label: "Creators signed up", value: stats?.total_members, icon: Users, href: "/superadmin/fa/members" },
+    { label: "Waiting on a decision", value: stats?.pending_approvals, icon: Clock, href: "/superadmin/fa/members" },
+    { label: "Merchants live", value: stats?.active_merchants, icon: Store, href: "/superadmin/fa/merchants" },
+    { label: "Campaigns running", value: stats?.active_campaigns, icon: Megaphone, href: "/superadmin/fa/campaigns" },
+    { label: "Deliverables outstanding", value: stats?.pending_deliverables, icon: ClipboardCheck, href: "/superadmin/fa/deliverables" },
+    { label: "Withdrawals waiting", value: stats?.pending_withdrawals, icon: Banknote, href: "/superadmin/fa/withdrawals" },
   ]
 
   /* The shared hover/focus affordance the Stat gets when it is a link. Stat itself supplies
@@ -150,12 +156,15 @@ export default function FADashboardPage() {
             section headings and the space beneath them are what separate "what needs a
             human" from "how big the platform is", which is the one place on this screen
             the subject genuinely changes. */}
-        <div className="space-y-ds-5">
-          <PageHead title="Following App" sub="Influencer cashback platform management" />
+        <FaPage>
+          <PageHead
+            title="Following App"
+            sub="The staff side of the creator app: who is waiting on a decision, what has just happened, and how big the platform is right now."
+          />
 
           {/* ─── (a) Pending Tasks ─── */}
           <section className="space-y-ds-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Pending Tasks</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Waiting on somebody</h2>
             {/* Five across, so this band writes StatGrid's language out rather than adding a
                 fifth column to a primitive sixteen other screens depend on. */}
             <div className="-mx-ds-2 grid grid-cols-2 gap-x-ds-5 gap-y-ds-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -171,21 +180,21 @@ export default function FADashboardPage() {
           <section className="space-y-ds-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-ds-2">
-                <Activity className="h-4 w-4 text-primary" />Latest Activity
+                <Activity className="h-4 w-4 text-primary" />What just happened
               </h2>
               <Link href="/superadmin/fa/activity">
-                <Button variant="ghost" size="sm">View all<ArrowRight className="h-4 w-4 ml-1" /></Button>
+                <Button variant="ghost" size="sm">See everything<ArrowRight className="h-4 w-4 ml-1" /></Button>
               </Link>
             </div>
             {/* The feed keeps its box: it is a list, not a figure, and it is the one thing
                 on the page that reads top to bottom. */}
             <div className={`${CARD} bg-[var(--tone-neutral-wash)] p-ds-3`}>
               {activity === null ? (
-                <div className="flex items-center justify-center py-8 text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                </div>
+                <Loading label="Loading the feed" />
+              ) : activity === false ? (
+                <Failed what="the activity feed" onRetry={loadActivity} />
               ) : activity.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">No recent activity</p>
+                <Nothing>Nothing has happened on the platform yet.</Nothing>
               ) : (
                 <div className="divide-y divide-black/[0.06] dark:divide-white/[0.07]">
                   {activity.map((it: any) => <ActivityRow key={it.id} item={it} />)}
@@ -196,7 +205,7 @@ export default function FADashboardPage() {
 
           {/* ─── (c) Platform overview ─── */}
           <section className="space-y-ds-3">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Platform Overview</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">How big the platform is</h2>
             <StatGrid cols={3}>
               {cards.map((c) => (
                 <Link key={c.label} href={c.href} className={TILE_LINK}>
@@ -205,7 +214,7 @@ export default function FADashboardPage() {
               ))}
             </StatGrid>
           </section>
-        </div>
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

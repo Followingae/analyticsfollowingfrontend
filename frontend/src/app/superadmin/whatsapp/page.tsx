@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
-  MessageCircle, Loader2, Send, Upload, Users, UserX, FileText,
+  Loader2, Send, Upload, Users, UserX, FileText,
   Plus, Search, Megaphone, CheckCircle2, XCircle, Archive, RefreshCw, Clock,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -22,13 +22,17 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import {
   whatsappApi, type WhatsAppOverview, type WhatsAppContact,
   type WhatsAppTemplate, type WhatsAppBroadcast, type AudienceSpec,
 } from "@/services/whatsappApi"
-import { Panel, Stat } from "@/components/console/primitives"
+import { PageHead, Panel, Stat } from "@/components/console/primitives"
 
 /* The five headline figures used to be five cards, and inside each card the icon sat in a
    rounded, tinted box of its own — so eleven edges stood between "how many contacts" and
@@ -39,6 +43,15 @@ export default function SuperadminWhatsAppPage() {
   const [overview, setOverview] = useState<WhatsAppOverview | null>(null)
   const [templates, setTemplates] = useState<WhatsAppTemplate[]>([])
   const [broadcasts, setBroadcasts] = useState<WhatsAppBroadcast[]>([])
+  /**
+   * A failed load left `templates` and `broadcasts` as empty arrays, and both lists render an
+   * empty array as a sentence of advice: "No broadcasts yet", "No templates yet. Create one in
+   * Twilio, then click Sync." So an outage read as a fresh, unconfigured account, and the
+   * suggested fix was to go and build things that already exist. The five headline figures
+   * were already honest, because `overview` stays null and each Stat falls back to a dash;
+   * the two lists under them were not.
+   */
+  const [failure, setFailure] = useState<string | null>(null)
 
   const loadTop = useCallback(async () => {
     try {
@@ -50,8 +63,13 @@ export default function SuperadminWhatsAppPage() {
       setOverview(ov)
       setTemplates(tp.templates)
       setBroadcasts(bc.broadcasts)
+      setFailure(null)
     } catch (e: any) {
-      toast.error(e?.message || "Failed to load WhatsApp data")
+      setOverview(null)
+      setTemplates([])
+      setBroadcasts([])
+      setFailure(e?.message || "The request did not complete")
+      toast.error(e?.message || "Could not load the WhatsApp data")
     }
   }, [])
 
@@ -60,19 +78,28 @@ export default function SuperadminWhatsAppPage() {
   return (
     <SuperadminLayout>
       <div className="mx-auto w-full max-w-6xl space-y-ds-5 p-ds-3 md:p-ds-4">
-        <div className="flex items-center gap-ds-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-ds-lg bg-[#25D366]/15">
-            <MessageCircle className="h-6 w-6 text-[#25D366]" />
+        {/* The title sat beside a rounded tile tinted with #25D366, WhatsApp's own green:
+            a raw hex the theme does not know, carrying no state, on a page whose name
+            already says which channel this is. */}
+        <PageHead
+          title="WhatsApp marketing"
+          sub="Broadcast to the influencers in our network: the app launch, campaigns and updates. Opt-outs are honoured automatically."
+        />
+
+        {failure && (
+          <div className="flex flex-wrap items-center gap-ds-3">
+            <div className="min-w-0">
+              <p className="text-ds-label">Could not load the WhatsApp data</p>
+              <p className="mt-ds-1 text-ds-body-sm text-muted-foreground">
+                Nothing below is a count. Contacts, broadcasts and templates may all be there,
+                this page just could not read them. {failure}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" className="ml-auto" onClick={loadTop}>
+              <RefreshCw className="mr-1.5 h-4 w-4" />Try again
+            </Button>
           </div>
-          <div>
-            <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">
-              WhatsApp Marketing
-            </h1>
-            <p className="mt-ds-1 text-[15px] leading-relaxed text-muted-foreground">
-              Broadcast to your network influencers — the app launch, campaigns & updates.
-            </p>
-          </div>
-        </div>
+        )}
 
         <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-3 xl:grid-cols-5">
           <Stat icon={Users} label="Contacts" value={overview?.total_contacts ?? "—"} />
@@ -89,20 +116,21 @@ export default function SuperadminWhatsAppPage() {
             <TabsTrigger value="templates">Templates</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="broadcasts" className="mt-4">
+          <TabsContent value="broadcasts" className="mt-ds-3">
             <BroadcastsTab
               templates={templates}
               broadcasts={broadcasts}
+              failed={!!failure}
               onChange={loadTop}
             />
           </TabsContent>
 
-          <TabsContent value="contacts" className="mt-4">
+          <TabsContent value="contacts" className="mt-ds-3">
             <ContactsTab onChange={loadTop} />
           </TabsContent>
 
-          <TabsContent value="templates" className="mt-4">
-            <TemplatesTab templates={templates} onChange={loadTop} />
+          <TabsContent value="templates" className="mt-ds-3">
+            <TemplatesTab templates={templates} failed={!!failure} onChange={loadTop} />
           </TabsContent>
         </Tabs>
       </div>
@@ -114,10 +142,11 @@ export default function SuperadminWhatsAppPage() {
 /*  Broadcasts                                                             */
 /* ======================================================================= */
 function BroadcastsTab({
-  templates, broadcasts, onChange,
+  templates, broadcasts, failed, onChange,
 }: {
   templates: WhatsAppTemplate[]
   broadcasts: WhatsAppBroadcast[]
+  failed: boolean
   onChange: () => void
 }) {
   const active = templates.filter(t => t.status === "active")
@@ -288,7 +317,11 @@ function BroadcastsTab({
             </TableHeader>
             <TableBody>
               {broadcasts.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No broadcasts yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center text-ds-body-sm text-muted-foreground">
+                  {failed
+                    ? "The broadcast history did not load. This is not a record of nothing being sent."
+                    : "No broadcast has been sent yet."}
+                </TableCell></TableRow>
               )}
               {broadcasts.map(b => (
                 <TableRow key={b.id} className="cursor-pointer" onClick={() => setDetailId(b.id)}>
@@ -512,14 +545,21 @@ function ContactsTab({ onChange }: { onChange: () => void }) {
   const [search, setSearch] = useState("")
   const [sendableOnly, setSendableOnly] = useState(false)
   const [loading, setLoading] = useState(true)
+  // "No contacts. Import a CSV/Excel of your network influencers to begin." over a failed
+  // read told an operator with two thousand contacts to go and import them again.
+  const [failure, setFailure] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const res = await whatsappApi.listContacts({ search, only_sendable: sendableOnly, limit: 200 })
-      setContacts(res.contacts); setTotal(res.total)
-    } catch (e: any) { toast.error(e?.message || "Failed to load contacts") }
+      setContacts(res.contacts); setTotal(res.total); setFailure(null)
+    } catch (e: any) {
+      setContacts([]); setTotal(0)
+      setFailure(e?.message || "The request did not complete")
+      toast.error(e?.message || "Could not load the contacts")
+    }
     finally { setLoading(false) }
   }, [search, sendableOnly])
 
@@ -544,7 +584,7 @@ function ContactsTab({ onChange }: { onChange: () => void }) {
 
   return (
     <Panel
-      title={`Contacts (${total.toLocaleString()})`}
+      title={failure ? "Contacts" : `Contacts (${total.toLocaleString()})`}
       action={
         <div className="flex items-center gap-ds-2">
           <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
@@ -582,8 +622,20 @@ function ContactsTab({ onChange }: { onChange: () => void }) {
           <TableBody>
             {loading && <TableRow><TableCell colSpan={6} className="text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></TableCell></TableRow>}
             {!loading && contacts.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
-                No contacts. Import a CSV/Excel of your network influencers to begin.
+              <TableRow><TableCell colSpan={6} className="text-center text-ds-body-sm text-muted-foreground">
+                {failure ? (
+                  <>
+                    The contact list did not load, so this is not an empty address book.
+                    <span className="block text-ds-caption">{failure}</span>
+                    <Button variant="outline" size="sm" className="mt-ds-2" onClick={load}>
+                      <RefreshCw className="mr-1.5 h-4 w-4" />Try again
+                    </Button>
+                  </>
+                ) : search || sendableOnly ? (
+                  "No contact matches these filters."
+                ) : (
+                  "No contacts yet. Import a CSV or Excel of the influencers in our network to begin."
+                )}
               </TableCell></TableRow>
             )}
             {contacts.map(c => (
@@ -654,7 +706,20 @@ function AddContactDialog({ onDone }: { onDone: () => void }) {
 /* ======================================================================= */
 /*  Templates                                                              */
 /* ======================================================================= */
-function TemplatesTab({ templates, onChange }: { templates: WhatsAppTemplate[]; onChange: () => void }) {
+function TemplatesTab({ templates, failed, onChange }: {
+  templates: WhatsAppTemplate[]; failed: boolean; onChange: () => void
+}) {
+  // Archiving takes a template out of the composer's picker, so a broadcast that was going
+  // out on it cannot be built until someone un-archives it in Twilio. It was a bare icon
+  // button with no label and no confirmation, sitting at the end of the row.
+  const [confirmArchive, setConfirmArchive] = useState<WhatsAppTemplate | null>(null)
+
+  const archive = async (t: WhatsAppTemplate) => {
+    setConfirmArchive(null)
+    try { await whatsappApi.archiveTemplate(t.id); toast.success(`"${t.name}" archived`); onChange() }
+    catch (e: any) { toast.error(e?.message || "Could not archive the template") }
+  }
+
   return (
     <Panel
       title="Templates"
@@ -685,8 +750,10 @@ function TemplatesTab({ templates, onChange }: { templates: WhatsAppTemplate[]; 
           </TableHeader>
           <TableBody>
             {templates.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
-                No templates yet. Create one in Twilio, then click Sync from Twilio.
+              <TableRow><TableCell colSpan={7} className="text-center text-ds-body-sm text-muted-foreground">
+                {failed
+                  ? "The template list did not load. Templates you already have in Twilio are unaffected, this page just could not read them."
+                  : "No templates yet. Create one in Twilio, then click Sync from Twilio."}
               </TableCell></TableRow>
             )}
             {templates.map(t => (
@@ -703,11 +770,9 @@ function TemplatesTab({ templates, onChange }: { templates: WhatsAppTemplate[]; 
                 <TableCell>{t.status}</TableCell>
                 <TableCell className="text-right">
                   {t.status === "active" && (
-                    <Button variant="ghost" size="sm" onClick={async () => {
-                      try { await whatsappApi.archiveTemplate(t.id); toast.success("Archived"); onChange() }
-                      catch (e: any) { toast.error(e?.message || "Failed") }
-                    }}>
-                      <Archive className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" className="gap-1.5"
+                            onClick={() => setConfirmArchive(t)}>
+                      <Archive className="h-4 w-4" />Archive
                     </Button>
                   )}
                 </TableCell>
@@ -715,6 +780,25 @@ function TemplatesTab({ templates, onChange }: { templates: WhatsAppTemplate[]; 
             ))}
           </TableBody>
         </Table>
+
+        <AlertDialog open={!!confirmArchive} onOpenChange={(o: boolean) => !o && setConfirmArchive(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Archive &ldquo;{confirmArchive?.name}&rdquo;?</AlertDialogTitle>
+              <AlertDialogDescription>
+                It disappears from the template picker, so no new broadcast can be built on it.
+                Broadcasts already sent on this template keep their delivery figures. Meta&apos;s
+                approval is not withdrawn, and syncing from Twilio will bring it back.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep it active</AlertDialogCancel>
+              <AlertDialogAction onClick={() => confirmArchive && archive(confirmArchive)}>
+                Archive it
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Panel>
   )

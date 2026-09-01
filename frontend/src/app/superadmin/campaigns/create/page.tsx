@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { PageHead, Panel } from "@/components/console/primitives"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -221,7 +221,7 @@ export default function SuperadminCreateCampaignPage() {
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="max-w-4xl mx-auto space-y-8 pb-16">
+        <div className="mx-auto max-w-4xl space-y-ds-5 p-4 pb-16 md:p-7">
           {/* Header */}
           <div>
             <Link
@@ -230,10 +230,8 @@ export default function SuperadminCreateCampaignPage() {
             >
               <ArrowLeft className="h-4 w-4" /> Back to Campaigns
             </Link>
-            <h1 className="text-3xl font-bold">Create Campaign</h1>
-            <p className="text-muted-foreground mt-1">
-              Create a managed campaign for a brand client
-            </p>
+            <PageHead title="Create a campaign"
+                      sub="A managed campaign for a brand client." />
             <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">
               Direct create is for campaigns that don't need the client to approve an influencer list.
               Need internal approval (talent manager → cofounder → CEO) and a client sign‑off + agreement/invoice before it runs?{' '}
@@ -243,16 +241,8 @@ export default function SuperadminCreateCampaignPage() {
           </div>
 
           {/* Client Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" /> Select Client
-              </CardTitle>
-              <CardDescription>
-                Choose which brand this campaign is for
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <Panel title="Client" description="Which brand this campaign is for"
+                 action={<Users className="h-4 w-4 text-muted-foreground" />}>
               {loadingClients ? (
                 <p className="text-sm text-muted-foreground">Loading clients...</p>
               ) : (
@@ -287,15 +277,10 @@ export default function SuperadminCreateCampaignPage() {
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </Panel>
 
           {/* Campaign Type */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Campaign Type</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Panel title="Campaign type" description="What kind of work this is">
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => setCampaignType("influencer")}
@@ -326,15 +311,11 @@ export default function SuperadminCreateCampaignPage() {
                   </p>
                 </button>
               </div>
-            </CardContent>
-          </Card>
+          </Panel>
 
           {/* Campaign Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Campaign Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Panel title="Details" description="Name, dates and budget">
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Campaign Name *</Label>
@@ -413,15 +394,15 @@ export default function SuperadminCreateCampaignPage() {
                   <p className="text-xs text-muted-foreground">PNG, JPEG, or WebP. Max 2MB.</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Panel>
 
           {/* Instagram Posts (for influencer campaigns) */}
           {campaignType === "influencer" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Instagram Posts</span>
+            <Panel
+              title="Instagram posts"
+              description="Post URLs to track. Analytics run once the campaign is created."
+              action={
                   <Dialog open={isAddPostOpen} onOpenChange={setIsAddPostOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm">
@@ -447,22 +428,20 @@ export default function SuperadminCreateCampaignPage() {
                       </div>
                     </DialogContent>
                   </Dialog>
-                </CardTitle>
-                <CardDescription>
-                  Add Instagram post URLs to track. Analytics will be processed after campaign creation.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+              }
+            >
                 {posts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">
-                    No posts added yet. You can add posts now or after campaign creation.
+                  <p className="text-sm text-muted-foreground">
+                    No posts yet. You can add them now, or once the campaign exists.
                   </p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
+                    {/* A bordered, tinted line per URL, inside a panel that already has an
+                        edge. The rows are separated by the gap now. */}
                     {posts.map((post) => (
-                      <div key={post.id} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-                        <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-sm truncate flex-1">{post.url}</span>
+                      <div key={post.id} className="flex items-center gap-3 rounded-ds-lg px-3 py-2.5 transition-colors hover:bg-black/[0.035] dark:hover:bg-white/[0.05]">
+                        <LinkIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="flex-1 truncate text-sm">{post.url}</span>
                         <Button variant="ghost" size="icon" onClick={() => setPosts(posts.filter((p) => p.id !== post.id))}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -470,8 +449,7 @@ export default function SuperadminCreateCampaignPage() {
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+            </Panel>
           )}
 
           {/* Submit */}

@@ -6,7 +6,8 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Users, Loader2, ClipboardList, ExternalLink } from "lucide-react"
+import { ArrowLeft, Users, ClipboardList, ExternalLink } from "lucide-react"
+import { FaPage, Failed, Loading, Nothing, TONE_BADGE, TONE_TEXT, type Tone } from "../../_ui"
 import Link from "next/link"
 import { faCampaignApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
@@ -34,15 +35,17 @@ interface FunnelCreator {
 
 // Funnel order = lifecycle order. One creator lands in exactly one bucket (computed
 // by the backend), so the counts read as a real funnel.
-const BUCKETS: { key: string; label: string; cls: string }[] = [
-  { key: "applied", label: "Applied", cls: "bg-slate-500/10 text-slate-600 border-slate-300/40" },
-  { key: "enrolled", label: "Enrolled · content pending", cls: "bg-blue-500/10 text-blue-600 border-blue-300/40" },
-  { key: "content_review", label: "Content review", cls: "bg-amber-500/15 text-amber-700 border-amber-300/40" },
-  { key: "revision_requested", label: "Edit requested", cls: "bg-orange-500/15 text-orange-700 border-orange-300/40" },
-  { key: "content_approved", label: "Approved · awaiting post", cls: "bg-sky-500/15 text-sky-700 border-sky-300/40" },
-  { key: "proof_submitted", label: "Proof submitted", cls: "bg-violet-500/15 text-violet-700 border-violet-300/40" },
-  { key: "completed", label: "Completed", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-300/40" },
-  { key: "rejected", label: "Rejected", cls: "bg-rose-500/15 text-rose-700 border-rose-300/40" },
+/* Eight stages that were eight unrelated palette families. Tone carries it now, so the
+   same stage looks the same here as it does on the deliverables queue. */
+const BUCKETS: { key: string; label: string; tone: Tone }[] = [
+  { key: "applied", label: "Applied", tone: "neutral" },
+  { key: "enrolled", label: "Enrolled, content pending", tone: "info" },
+  { key: "content_review", label: "Content review", tone: "warn" },
+  { key: "revision_requested", label: "Edit requested", tone: "warn" },
+  { key: "content_approved", label: "Approved, awaiting the post", tone: "info" },
+  { key: "proof_submitted", label: "Proof submitted", tone: "warn" },
+  { key: "completed", label: "Completed", tone: "good" },
+  { key: "rejected", label: "Rejected", tone: "bad" },
 ]
 
 const DELIVERABLE_CHIP_LABELS: Record<string, string> = {
@@ -87,7 +90,7 @@ export default function FACampaignFunnelPage() {
       setAnswered(true)
     } catch {
       setAnswered(false)
-      toast.error("Failed to load campaign funnel")
+      toast.error("Could not load the campaign funnel")
     } finally {
       setLoading(false)
     }
@@ -103,23 +106,28 @@ export default function FACampaignFunnelPage() {
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        {/* This shell (SuperAdminInterface) supplies no page padding of its own, so its
-            screens sat flush against the panel edge. The other console shell pads at
-            p-4 md:p-7; ds-3/ds-4 is the same measure taken from the scale instead of by
-            eye. space-y-ds-5 is the gap between subjects: header, auto-approve, funnel,
-            people. */}
-        <div className="space-y-ds-5 p-ds-3 md:p-ds-4">
+        <FaPage>
           <div className="flex flex-wrap items-center justify-between gap-ds-3">
             <div className="flex items-center gap-ds-3 min-w-0">
               <Button size="sm" variant="ghost" onClick={() => router.push("/superadmin/fa/campaigns")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="min-w-0">
-                <h1 className="text-2xl font-bold truncate">{campaign?.name || "Campaign"}</h1>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  {campaign?.campaign_type && <Badge variant="outline" className="text-[10px]">{campaign.campaign_type}</Badge>}
-                  {campaign?.status && <Badge variant={campaign.status === "active" ? "default" : "secondary"} className="text-[10px]">{campaign.status}</Badge>}
-                  <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{creators.length}{campaign?.max_participants ? ` / ${campaign.max_participants}` : ""} creators</span>
+                <h1 className="truncate text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">
+                  {campaign?.name || "Campaign"}
+                </h1>
+                <div className="mt-ds-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  {campaign?.campaign_type && (
+                    <Badge variant="outline" className={`capitalize ${TONE_BADGE.neutral}`}>
+                      {String(campaign.campaign_type).replace(/_/g, " ")}
+                    </Badge>
+                  )}
+                  {campaign?.status && (
+                    <Badge variant="outline" className={`capitalize ${campaign.status === "active" ? TONE_BADGE.good : TONE_BADGE.neutral}`}>
+                      {campaign.status}
+                    </Badge>
+                  )}
+                  <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{creators.length}{campaign?.max_participants ? ` of ${campaign.max_participants}` : ""} creators</span>
                 </div>
               </div>
             </div>
@@ -179,14 +187,18 @@ export default function FACampaignFunnelPage() {
               where a rule earns its keep. */}
           <div className="border-t border-black/[0.06] pt-ds-4 dark:border-white/[0.07]">
           {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            <Loading label="Loading the funnel" />
+          ) : !answered ? (
+            /* The funnel request did not come back. Before this branch existed the page
+               fell through to the empty state and told the operator this campaign has no
+               creators in it, which is a claim about the campaign made out of a 500. */
+            <Failed what="this campaign's creators" onRetry={load} />
           ) : visible.length === 0 ? (
-            <div className="py-ds-6 text-center">
-              <Users className="h-10 w-10 text-muted-foreground mx-auto mb-ds-3" />
-              <p className="text-muted-foreground">
-                {bucket === "all" ? "No creators in this campaign yet" : `No creators in “${BUCKETS.find((b) => b.key === bucket)?.label}”`}
-              </p>
-            </div>
+            <Nothing>
+              {bucket === "all"
+                ? "No creator has joined this campaign yet."
+                : `Nobody is at “${BUCKETS.find((b) => b.key === bucket)?.label}” right now.`}
+            </Nothing>
           ) : (
             /* Was a Card per creator: forty rows, forty borders, forty shadows, and the
                eye crossing two edges to get from one person's name to the next. It is a
@@ -232,7 +244,7 @@ export default function FACampaignFunnelPage() {
                             {chips.length > 0 && <span>· {chips.join(" · ")}</span>}
                           </div>
                           {c.bucket === "rejected" && c.brand_rejection_reason && (
-                            <p className="text-[11px] text-rose-600 italic truncate max-w-[420px] mt-0.5">“{c.brand_rejection_reason}”</p>
+                            <p className={`mt-0.5 max-w-[420px] truncate text-ds-caption italic ${TONE_TEXT.bad}`}>“{c.brand_rejection_reason}”</p>
                           )}
                           {/* The edit the brand asked for. The row already showed an
                               "Edit requested" badge with no text beside it, so the team
@@ -240,20 +252,20 @@ export default function FACampaignFunnelPage() {
                               which makes the badge worse than useless. Not truncated:
                               this is an instruction someone has to act on. */}
                           {c.bucket === "revision_requested" && c.revision_reason && (
-                            <p className="text-[11px] text-orange-700 italic max-w-[520px] mt-0.5">
+                            <p className={`mt-0.5 max-w-[520px] text-ds-caption italic ${TONE_TEXT.warn}`}>
                               Edit requested: “{c.revision_reason}”
                             </p>
                           )}
                         </div>
                       </div>
-                      <Badge variant="outline" className={`text-[10px] shrink-0 ${meta.cls}`}>{meta.label}</Badge>
+                      <Badge variant="outline" className={`text-[10px] shrink-0 ${TONE_BADGE[meta.tone]}`}>{meta.label}</Badge>
                   </div>
                 )
               })}
             </div>
           )}
           </div>
-        </div>
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

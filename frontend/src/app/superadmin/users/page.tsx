@@ -6,10 +6,8 @@ import { useRouter } from "next/navigation"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { superadminApiService, UserManagement } from "@/services/superadminApi"
 import {
-  Users,
   UserPlus,
   Search,
-  Filter,
   Download,
   RefreshCw,
   Eye,
@@ -22,7 +20,6 @@ import {
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -31,13 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { FieldStrip, PageHead } from "@/components/console/primitives"
 import {
   DropdownMenu,
@@ -77,6 +72,9 @@ export default function SuperadminUsersPage() {
   // Dialogs
   const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserManagement | null>(null)
+  // Suspending cuts a paying client out of the platform on the spot. It was one item in a
+  // dropdown, one click, no confirmation, directly beside "Edit User" in the same menu.
+  const [suspending, setSuspending] = useState<UserManagement | null>(null)
 
   const router = useRouter()
 
@@ -94,11 +92,21 @@ export default function SuperadminUsersPage() {
       if (result.success && result.data) {
         setUsers(result.data.users || [])
       } else {
-        throw new Error(result.error || 'Failed to load users')
+        throw new Error(result.error || 'The request did not complete')
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to load users")
-      toast.error("Failed to load users")
+      /**
+       * `error` was set here and then never read anywhere in the render.
+       *
+       * A failed load emptied nothing and rendered nothing about the failure, so the table
+       * fell through to its own empty state: "No users found. Try adjusting your search or
+       * filter criteria." An outage therefore presented as a filter that matched nobody, and
+       * the suggested fix was to change a filter that was working fine. The list is cleared
+       * and the failure is shown instead.
+       */
+      setUsers([])
+      setError(err?.response?.data?.detail || err?.message || "The request did not complete")
+      toast.error("Could not load the users")
     } finally {
       setLoading(false)
     }
@@ -193,9 +201,11 @@ export default function SuperadminUsersPage() {
   }
 
   const formatNumber = (num: any) => {
-    // Handle all possible falsy/invalid values
+    // This returned the string '0' for null, undefined, '' and NaN alike, so every caller
+    // that forgot to check first printed a measured zero over a value we never had. The
+    // callers below do check; the helper no longer relies on them remembering.
     if (num === undefined || num === null || num === '' || typeof num !== 'number' || isNaN(num)) {
-      return '0'
+      return '—'
     }
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
@@ -204,44 +214,35 @@ export default function SuperadminUsersPage() {
 
   if (loading && users.length === 0) {
     return (
+      /* The skeleton stood the table inside a card the loaded screen no longer draws, and
+         was built from hand-rolled `bg-muted animate-pulse` divs rather than the Skeleton
+         component. It now matches the shape of what actually arrives. */
       <SuperadminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="h-7 w-48 bg-muted animate-pulse rounded" />
-              <div className="h-4 w-72 bg-muted animate-pulse rounded mt-2" />
+        <div className="space-y-ds-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-ds-2">
+              <Skeleton className="h-9 w-64 rounded-ds-lg" />
+              <Skeleton className="h-4 w-72 rounded-ds-sm" />
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-9 w-24 bg-muted animate-pulse rounded" />
-              <div className="h-9 w-44 bg-muted animate-pulse rounded" />
+              <Skeleton className="h-9 w-24 rounded-ds-md" />
+              <Skeleton className="h-9 w-44 rounded-ds-md" />
             </div>
           </div>
-          <div className="flex gap-3">
-            <div className="h-9 w-[250px] bg-muted animate-pulse rounded" />
-            <div className="h-9 w-[140px] bg-muted animate-pulse rounded" />
-            <div className="h-9 w-[140px] bg-muted animate-pulse rounded" />
+          <div className="flex flex-wrap gap-ds-2">
+            <Skeleton className="h-9 w-[250px] rounded-ds-md" />
+            <Skeleton className="h-9 w-[140px] rounded-ds-md" />
+            <Skeleton className="h-9 w-[140px] rounded-ds-md" />
+            <Skeleton className="h-9 w-[140px] rounded-ds-md" />
           </div>
-          <Card>
-            <CardHeader>
-              <div className="h-5 w-36 bg-muted animate-pulse rounded" />
-              <div className="h-4 w-64 bg-muted animate-pulse rounded mt-1" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="h-4 w-48 bg-muted animate-pulse rounded" />
-                    <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                    <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                    <div className="h-5 w-16 bg-muted animate-pulse rounded-full" />
-                    <div className="h-4 w-16 bg-muted animate-pulse rounded" />
-                    <div className="h-4 w-32 bg-muted animate-pulse rounded" />
-                    <div className="h-8 w-8 bg-muted animate-pulse rounded" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-ds-3">
+            <Skeleton className="h-5 w-36 rounded-ds-sm" />
+            <div className="space-y-ds-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 rounded-ds-sm" />
+              ))}
+            </div>
+          </div>
         </div>
       </SuperadminLayout>
     )
@@ -330,17 +331,20 @@ export default function SuperadminUsersPage() {
                 </Button>
               </div>
 
-              {/* Users Table */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-base">Platform Users</CardTitle>
-                      <CardDescription>{users.length} total users</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0 overflow-x-auto">
+              {/* The table sat inside a Card, which drew a rounded edge around a grid that
+                  already has rules of its own: a box around a box. The card comes off; the
+                  heading and the row rule carry the same structure with two fewer edges. */}
+              <section className="space-y-ds-3">
+                <div className="space-y-ds-1">
+                  <h2 className="text-ds-subheading">Platform users</h2>
+                  <p className="text-ds-body-sm text-muted-foreground">
+                    {/* "0 total users" over a failed read described the platform as empty. */}
+                    {error
+                      ? "The list did not load, so this is not a count."
+                      : `${users.length} account${users.length === 1 ? "" : "s"} matching these filters.`}
+                  </p>
+                </div>
+                <div>
                   <div className="overflow-x-auto">
                   <Table className="min-w-[700px]">
                     <TableHeader>
@@ -415,9 +419,12 @@ export default function SuperadminUsersPage() {
                                 {user.role !== 'super_admin' && (
                                   <DropdownMenuItem
                                     className={user.status === 'active' ? 'text-destructive focus:text-destructive' : ''}
-                                    onClick={() => handleUpdateUserStatus(user.id,
-                                      user.status === 'active' ? 'suspended' : 'active'
-                                    )}
+                                    onClick={() => {
+                                      // Re-activating is harmless and stays immediate.
+                                      // Suspending is the one that locks somebody out.
+                                      if (user.status === 'active') setSuspending(user)
+                                      else handleUpdateUserStatus(user.id, 'active')
+                                    }}
                                   >
                                     {user.status === 'active' ? (
                                       <>
@@ -441,17 +448,53 @@ export default function SuperadminUsersPage() {
                   </Table>
                   
                   </div>
-                  {users.length === 0 && !loading && (
-                    <div className="py-16 flex justify-center border-t">
-                      <EmptyState
-                        title="No users found"
-                        description="Try adjusting your search or filter criteria to find the users you're looking for."
-                        icons={[Users, Search, Filter]}
-                      />
+                  {error && !loading && (
+                    <div className="border-t py-ds-6 text-center">
+                      <p className="text-ds-subheading">Could not load the users</p>
+                      <p className="mt-ds-2 text-ds-body text-muted-foreground">
+                        No account has gone anywhere. The list did not come back, so nothing
+                        here reflects who is on the platform. Changing a filter will not help.
+                      </p>
+                      <p className="mt-ds-2 text-ds-caption text-muted-foreground">{error}</p>
+                      <Button variant="outline" size="sm" className="mt-ds-3" onClick={loadUsers}>
+                        <RefreshCw className="mr-1.5 h-4 w-4" /> Try again
+                      </Button>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                  {!error && users.length === 0 && !loading && (
+                    <p className="border-t py-ds-6 text-center text-ds-body text-muted-foreground">
+                      No account matches these filters.
+                    </p>
+                  )}
+                </div>
+              </section>
+
+      {/* The confirmation names the person and their email, because two rows in this table
+          can carry the same display name and suspending the wrong one locks out a client. */}
+      <AlertDialog open={!!suspending} onOpenChange={(o: boolean) => !o && setSuspending(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Suspend {suspending?.full_name || suspending?.email}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{suspending?.email}</strong> is signed out and cannot log back in until
+              somebody activates the account again. Their credits, team and unlocked creators
+              are all kept. You can undo this from the same menu.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Leave them active</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              const u = suspending
+              setSuspending(null)
+              if (u) handleUpdateUserStatus(u.id, 'suspended')
+            }}>
+              Suspend the account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* View Details */}
       <Dialog open={isUserDetailsOpen} onOpenChange={setIsUserDetailsOpen}>

@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, type ReactNode } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Button } from "@/components/ui/button"
-import { CARD, Empty, PageHead, Stat, StatGrid, type Tone } from "@/components/console/primitives"
+import { CARD, PageHead, Stat, StatGrid, type Tone } from "@/components/console/primitives"
+import { FaPage, Failed, Loading, Nothing, TONE_BADGE } from "../_ui"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -36,19 +37,23 @@ type Summary = {
 }
 
 // kind → presentation. Keep in sync with backend `add(kind, ...)` calls.
-const KIND_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-  signup:                { label: "Signup",        icon: UserPlus,    color: "text-blue-600",    bg: "bg-blue-500/10" },
-  application:           { label: "Application",   icon: Send,        color: "text-indigo-600",  bg: "bg-indigo-500/10" },
-  brand_approved:        { label: "Approved",      icon: CheckCircle2,color: "text-emerald-600", bg: "bg-emerald-500/10" },
-  brand_rejected:        { label: "Rejected",      icon: XCircle,     color: "text-red-600",     bg: "bg-red-500/10" },
-  content_submitted:     { label: "Content",       icon: FileImage,   color: "text-amber-600",   bg: "bg-amber-500/10" },
-  content_edit_requested:{ label: "Edit asked",    icon: PenLine,     color: "text-orange-600",  bg: "bg-orange-500/10" },
-  content_approved:      { label: "Content OK",    icon: ThumbsUp,    color: "text-emerald-600", bg: "bg-emerald-500/10" },
-  proof_submitted:       { label: "Proof",         icon: Camera,      color: "text-purple-600",  bg: "bg-purple-500/10" },
-  deliverable_verified:  { label: "Verified",      icon: ShieldCheck, color: "text-green-600",   bg: "bg-green-500/10" },
-  withdrawal_requested:  { label: "Withdrawal",    icon: Banknote,    color: "text-rose-600",    bg: "bg-rose-500/10" },
-  withdrawal_processed:  { label: "Paid out",      icon: Banknote,    color: "text-teal-600",    bg: "bg-teal-500/10" },
-  receipt_claim:         { label: "Receipt",       icon: Receipt,     color: "text-cyan-600",    bg: "bg-cyan-500/10" },
+/* Twelve kinds in twelve hues — blue, indigo, emerald, red, amber, orange, purple, green,
+   rose, teal, cyan — is a rainbow, not a signal. None of them meant anything, and they were
+   the loudest thing on a screen whose figures above carry real state in the same palette.
+   The icon tells the kinds apart; the mark behind it is one neutral. */
+const KIND_META: Record<string, { label: string; icon: any }> = {
+  signup:                { label: "Signup",      icon: UserPlus },
+  application:           { label: "Application", icon: Send },
+  brand_approved:        { label: "Approved",    icon: CheckCircle2 },
+  brand_rejected:        { label: "Rejected",    icon: XCircle },
+  content_submitted:     { label: "Content in",  icon: FileImage },
+  content_edit_requested:{ label: "Edit asked",  icon: PenLine },
+  content_approved:      { label: "Content ok",  icon: ThumbsUp },
+  proof_submitted:       { label: "Proof in",    icon: Camera },
+  deliverable_verified:  { label: "Verified",    icon: ShieldCheck },
+  withdrawal_requested:  { label: "Withdrawal",  icon: Banknote },
+  withdrawal_processed:  { label: "Paid out",    icon: Banknote },
+  receipt_claim:         { label: "Receipt",     icon: Receipt },
 }
 
 const FILTERS: { key: string; label: string }[] = [
@@ -101,20 +106,20 @@ export function activityHref(item: ActivityItem): string {
 }
 
 export function ActivityRow({ item }: { item: ActivityItem }) {
-  const meta = KIND_META[item.kind] || { label: item.kind, icon: ActivityIcon, color: "text-muted-foreground", bg: "bg-muted" }
+  const meta = KIND_META[item.kind] || { label: item.kind, icon: ActivityIcon }
   const Icon = meta.icon
   return (
     <Link
       href={activityHref(item)}
-      className="-mx-2 flex items-start gap-3 rounded-md px-2 py-3 transition-colors hover:bg-muted/60"
+      className="-mx-2 flex items-start gap-3 rounded-ds-md px-2 py-3 transition-colors hover:bg-black/[0.035] dark:hover:bg-white/[0.05]"
     >
-      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${meta.bg}`}>
-        <Icon className={`h-4 w-4 ${meta.color}`} />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-ds-md bg-black/[0.04] dark:bg-white/[0.07]">
+        <Icon className="h-4 w-4 text-muted-foreground" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <p className="font-medium text-sm leading-tight">{item.title}</p>
-          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${meta.color}`}>{meta.label}</Badge>
+          <Badge variant="outline" className={`px-1.5 py-0 text-[10px] ${TONE_BADGE.neutral}`}>{meta.label}</Badge>
         </div>
         <p className="text-xs text-muted-foreground mt-0.5 truncate">
           {[item.subtitle, item.campaign_name].filter(Boolean).join(" · ")}
@@ -130,6 +135,10 @@ export default function FAActivityPage() {
   const [items, setItems] = useState<ActivityItem[]>([])
   const [filter, setFilter] = useState("all")
   const [loading, setLoading] = useState(true)
+  /* Whether the feed answered. Without it a failed request left `items` empty and the
+     panel said "No recent activity" — the platform reported quiet because we could not
+     ask it. */
+  const [error, setError] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const PAGE = 30
@@ -142,6 +151,7 @@ export default function FAActivityPage() {
 
   const load = useCallback(async (reset = true) => {
     if (reset) setLoading(true); else setLoadingMore(true)
+    if (reset) setError(false)
     try {
       const offset = reset ? 0 : items.length
       const res = await faActivityApi.feed({
@@ -153,7 +163,8 @@ export default function FAActivityPage() {
       setItems(reset ? list : [...items, ...list])
       setHasMore(!!res?.data?.has_more)
     } catch {
-      toast.error("Failed to load activity")
+      if (reset) setError(true)
+      toast.error("Could not load the activity feed")
     } finally {
       setLoading(false); setLoadingMore(false)
     }
@@ -185,21 +196,21 @@ export default function FAActivityPage() {
   const n = (v: number | undefined) => (v == null ? "—" : v)
   const queue = (v: number | undefined): Tone => (v ? "warn" : "neutral")
   const cards: { label: string; value: ReactNode; icon: any; tone?: Tone }[] = [
-    { label: "New applications (today)", value: n(summary?.new_applications), icon: Send },
-    { label: "Deliverables awaiting review", value: n(summary?.deliverables_awaiting_review),
+    { label: "Applications today", value: n(summary?.new_applications), icon: Send },
+    { label: "Deliverables to review", value: n(summary?.deliverables_awaiting_review),
       icon: FileImage, tone: queue(summary?.deliverables_awaiting_review) },
-    { label: "Pending withdrawals", value: n(summary?.pending_withdrawals),
+    { label: "Withdrawals to approve", value: n(summary?.pending_withdrawals),
       icon: Banknote, tone: queue(summary?.pending_withdrawals) },
-    { label: "New signups (today)", value: n(summary?.new_signups), icon: UserPlus },
+    { label: "Signed up today", value: n(summary?.new_signups), icon: UserPlus },
   ]
 
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="space-y-ds-5">
+        <FaPage>
           <PageHead
-            title="Platform Activity"
-            sub="Live feed of everything happening across the Following App"
+            title="Activity"
+            sub="Everything that has happened across the Following App, newest first. Click a line to go to the screen where you can act on it."
             action={
               <Button variant="outline" size="sm" onClick={refresh}>
                 <RefreshCw className="h-4 w-4 mr-1.5" />Refresh
@@ -236,15 +247,13 @@ export default function FAActivityPage() {
               the console card shell so its radius and shadow match every other panel. */}
           <div className={`${CARD} bg-[var(--tone-neutral-wash)] p-ds-3`}>
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <Loader2 className="h-8 w-8 animate-spin mb-ds-3" />
-                <p className="text-sm">Loading activity...</p>
-              </div>
+              <Loading label="Loading activity" />
+            ) : error ? (
+              <Failed what="the activity feed" onRetry={() => load(true)} />
             ) : items.length === 0 ? (
-              <div className="flex flex-col items-center">
-                <ActivityIcon className="mt-ds-4 h-10 w-10 text-muted-foreground" />
-                <Empty>No recent activity</Empty>
-              </div>
+              /* The illustration came off with the apology. Nothing happened, and that is
+                 the whole sentence. */
+              <Nothing>Nothing has happened here yet.</Nothing>
             ) : (
               <>
                 <div className="divide-y divide-black/[0.06] dark:divide-white/[0.07]">
@@ -261,7 +270,7 @@ export default function FAActivityPage() {
               </>
             )}
           </div>
-        </div>
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

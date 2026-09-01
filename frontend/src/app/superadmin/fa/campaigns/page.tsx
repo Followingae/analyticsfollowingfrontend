@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { CampaignsHubHeader } from "@/components/console/CampaignsHubHeader"
-import { Card, CardContent } from "@/components/ui/card"
+import { FaPage, Failed, Loading, Nothing, TONE_BADGE } from "../_ui"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { Megaphone, QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download, ImagePlus, RefreshCcw, Users } from "lucide-react"
+import { QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download, ImagePlus, RefreshCcw, Users } from "lucide-react"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 import { MasterPackageDialog } from "@/components/superadmin/fa/MasterPackageDialog"
 import { CreateMasterDialog } from "@/components/superadmin/fa/CreateMasterDialog"
@@ -33,10 +33,14 @@ import { faCampaignApi } from "@/services/faAdminApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { toast } from "sonner"
 
-const TYPE_CONFIG: Record<string, { icon: any; label: string; color: string }> = {
-  cashback: { icon: QrCode, label: "Cashback", color: "bg-green-500/10 text-green-600" },
-  paid_deal: { icon: Coins, label: "Paid Deal", color: "bg-purple-500/10 text-purple-600" },
-  barter: { icon: Gift, label: "Barter", color: "bg-blue-500/10 text-blue-600" },
+/* The three campaign types. They were green, purple and blue, which read as three states
+   of one thing rather than three different things - and they collided with the status
+   badge sitting right beside them. Type is a fact about the campaign, not a state, so it
+   is drawn in neutral with its own icon; the status badge next to it keeps the colour. */
+const TYPE_CONFIG: Record<string, { icon: any; label: string }> = {
+  cashback: { icon: QrCode, label: "Cashback" },
+  paid_deal: { icon: Coins, label: "Paid deal" },
+  barter: { icon: Gift, label: "Barter" },
 }
 
 export default function FACampaignsPage() {
@@ -46,6 +50,11 @@ export default function FACampaignsPage() {
   const [statusFilter, setStatusFilter] = useState<"active" | "closed">("active")
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  /* Whether the list actually answered. `load` only filled the array `if (res.success)`
+     and swallowed the throw, so both a failed request and a non-success response left the
+     page saying "No active campaigns" — a sentence about the business, assembled from a
+     request that never came back. */
+  const [error, setError] = useState(false)
 
   // Close-campaign dialog state
   const [closeTarget, setCloseTarget] = useState<any | null>(null)
@@ -137,6 +146,7 @@ export default function FACampaignsPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
+    setError(false)
     try {
       const type = tab === "all" ? undefined : tab
       const res = await faCampaignApi.list(type)
@@ -144,8 +154,13 @@ export default function FACampaignsPage() {
       if (res.success) {
         const payload: any = res.data
         setCampaigns(Array.isArray(payload?.campaigns) ? payload.campaigns : (Array.isArray(payload) ? payload : []))
+      } else {
+        setError(true)
       }
-    } catch { toast.error("Failed to load campaigns") }
+    } catch {
+      setError(true)
+      toast.error("Could not load campaigns")
+    }
     finally { setLoading(false) }
   }, [tab])
 
@@ -204,7 +219,7 @@ export default function FACampaignsPage() {
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="space-y-6">
+        <FaPage>
           {/* One create entry - type is chosen in the wizard's first step */}
           <CampaignsHubHeader
             action={
@@ -249,16 +264,22 @@ export default function FACampaignsPage() {
             </ToggleGroup>
           </div>
 
-          <div className="space-y-3">
+          {/* Was a Card per campaign, each with its own border and shadow: a list of thirty
+              put sixty edges between the first name and the last, and the row of buttons on
+              the right already tells you where one campaign ends. The card comes off; the
+              hairline between rows does the separating. */}
+          <div className="divide-y divide-black/[0.06] dark:divide-white/[0.07]">
             {(() => {
               const visible = campaigns.filter((c: any) =>
                 statusFilter === "closed" ? c.status === "closed" : c.status !== "closed"
               )
-              if (!loading && visible.length === 0) {
+              if (loading) return <Loading label="Loading campaigns" />
+              if (error) return <Failed what="campaigns" onRetry={load} />
+              if (visible.length === 0) {
                 return (
-                  <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
+                  <Nothing>
                     No {statusFilter} campaigns{tab !== "all" ? ` in ${tab.replace("_", " ")}` : ""}.
-                  </CardContent></Card>
+                  </Nothing>
                 )
               }
               return visible.map((c: any) => {
@@ -266,15 +287,14 @@ export default function FACampaignsPage() {
               const Icon = cfg.icon
               const isActive = c.status === "active"
               return (
-                <Card key={c.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div key={c.id} className="flex flex-wrap items-center justify-between gap-ds-3 py-ds-3">
                     <button
                       type="button"
                       onClick={() => router.push(`/campaigns/${c.id}/posts`)}
                       className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
                     >
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Icon className="h-5 w-5 text-primary" />
+                      <div className="h-10 w-10 rounded-ds-md bg-black/[0.04] flex items-center justify-center shrink-0 dark:bg-white/[0.07]">
+                        <Icon className="h-4.5 w-4.5 text-muted-foreground" />
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium truncate">{c.name}</p>
@@ -282,8 +302,8 @@ export default function FACampaignsPage() {
                       </div>
                     </button>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="outline" className={cfg.color}>{cfg.label}</Badge>
-                      <Badge variant={isActive ? "default" : "secondary"}>{c.status}</Badge>
+                      <Badge variant="outline" className={TONE_BADGE.neutral}>{cfg.label}</Badge>
+                      <Badge variant="outline" className={`capitalize ${isActive ? TONE_BADGE.good : TONE_BADGE.neutral}`}>{c.status}</Badge>
                       <Button
                         size="sm"
                         variant="outline"
@@ -339,8 +359,7 @@ export default function FACampaignsPage() {
                         </>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
               )
               })
             })()}
@@ -492,10 +511,10 @@ export default function FACampaignsPage() {
             onCreated={load}
           />
 
-          {!loading && campaigns.length === 0 && (
-            <Card><CardContent className="text-center py-12"><Megaphone className="h-10 w-10 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">No campaigns yet</p></CardContent></Card>
-          )}
-        </div>
+          {/* A second empty state used to sit here, under the dialogs, saying "No campaigns
+              yet" at the same time as the list above said "No active campaigns" — two
+              apologies for the same silence. The list owns the answer; this one is gone. */}
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

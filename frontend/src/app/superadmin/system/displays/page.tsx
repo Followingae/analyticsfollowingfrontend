@@ -20,7 +20,7 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { UnauthorizedAccess } from "@/components/UnauthorizedAccess"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { CARD } from "@/components/console/primitives"
+import { CARD, PageHead } from "@/components/console/primitives"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,6 +29,10 @@ import { Switch } from "@/components/ui/switch"
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Loader2, Plus, Monitor, Copy, Power, Eye, CalendarClock, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { API_CONFIG } from "@/config/api"
@@ -109,6 +113,19 @@ export default function DisplaysPage() {
   // because an expiry nobody watches is a blank wall on a Sunday.
   const [expiryOn, setExpiryOn] = useState(true)
   const [expiryDays, setExpiryDays] = useState(90)
+  /**
+   * Two irreversible actions, neither of which used to ask.
+   *
+   * "New link" rotates the token, which stops the URL currently open on the wall: the screen
+   * in the office goes to an error page and stays there until someone walks over with the new
+   * link. "Turn off" revokes it outright. Both were a single click on a small ghost button
+   * sitting beside "Copy link". They now confirm, and the confirmation names the screen.
+   */
+  const [confirmRotate, setConfirmRotate] = useState<Display | null>(null)
+  const [confirmRevoke, setConfirmRevoke] = useState<Display | null>(null)
+  // A failed read is not "no screens yet" — the wall may be running perfectly on links this
+  // page simply could not list.
+  const [failure, setFailure] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -116,7 +133,10 @@ export default function DisplaysPage() {
       // The route returns `items`; reading `displays` left the list permanently empty.
       setItems(res?.data?.items ?? res?.data?.displays ?? [])
       setSlideKeys(res?.data?.slide_keys ?? [])
+      setFailure(null)
     } catch (e) {
+      setItems([])
+      setFailure((e as Error).message || "The request did not complete")
       toast.error((e as Error).message || "Could not load screens")
     } finally {
       setLoading(false)
@@ -165,6 +185,7 @@ export default function DisplaysPage() {
   }
 
   const rotate = async (d: Display) => {
+    setConfirmRotate(null)
     try {
       const res = await api(`/${d.id}/rotate`, { method: "POST", body: "{}" })
       const path = res?.data?.path
@@ -177,6 +198,7 @@ export default function DisplaysPage() {
   }
 
   const revoke = async (d: Display) => {
+    setConfirmRevoke(null)
     try {
       await api(`/${d.id}/revoke`, { method: "POST", body: "{}" })
       toast.success(`"${d.label}" turned off`)
@@ -201,15 +223,12 @@ export default function DisplaysPage() {
     <AuthGuard requireAuth={true} requireAdmin={true}>
       <SuperAdminInterface>
         <div className="mx-auto max-w-5xl space-y-ds-5 p-ds-4">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">Office screens</h1>
-              <p className="mt-1 max-w-2xl text-muted-foreground">
-                The wall in the office and anything else we hang. A screen link stays open until
-                you turn it off — it runs unattended, and an expiry nobody watches is a blank wall.
-                A screen that shows money is the exception, and is offered an end date.
-              </p>
-            </div>
+          {/* The title was a fourth hand-rolled copy of the console's page head. It is the
+              shared one now, so this screen's title weighs what every other title weighs. */}
+          <PageHead
+            title="Office screens"
+            sub="The wall in the office and anything else we hang. A screen link stays open until you turn it off: it runs unattended, and an expiry nobody watches is a blank wall on a Sunday. A screen that shows money is the exception, and is offered an end date."
+            action={
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2"><Plus className="h-4 w-4" />New screen</Button>
@@ -299,16 +318,27 @@ export default function DisplaysPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
+            }
+          />
 
           {loading ? (
-            <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            <div className="flex justify-center py-ds-6"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : failure ? (
+            <div className="py-ds-6 text-center">
+              <p className="text-ds-subheading">Could not load the screens</p>
+              <p className="mt-ds-2 text-ds-body text-muted-foreground">
+                Any screen already hanging carries on showing what it was showing. This page
+                just could not list them, so nothing below is a count.
+              </p>
+              <p className="mt-ds-2 text-ds-caption text-muted-foreground">{failure}</p>
+              <Button variant="outline" size="sm" className="mt-ds-3" onClick={() => { setLoading(true); load() }}>
+                <RefreshCw className="mr-1.5 h-4 w-4" />Try again
+              </Button>
+            </div>
           ) : items.length === 0 ? (
             <div className="py-ds-6 text-center">
-              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full border border-black/[0.08] dark:border-white/[0.1]">
-                <Monitor className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <p className="mt-ds-3 font-medium">No screens yet</p>
+              <Monitor className="mx-auto h-8 w-8 text-muted-foreground" />
+              <p className="mt-ds-3 text-ds-label">No screens yet</p>
             </div>
           ) : (
             <div className="space-y-ds-2">
@@ -389,11 +419,11 @@ export default function DisplaysPage() {
                           <Copy className="h-3.5 w-3.5" />Copy link
                         </Button>
                         <Button variant="outline" size="sm" className="gap-1.5" disabled={off}
-                                onClick={() => rotate(d)}>
+                                onClick={() => setConfirmRotate(d)}>
                           <RefreshCw className="h-3.5 w-3.5" />New link
                         </Button>
                         <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-destructive"
-                                disabled={off} onClick={() => revoke(d)}>
+                                disabled={off} onClick={() => setConfirmRevoke(d)}>
                           <Power className="h-3.5 w-3.5" />Turn off
                         </Button>
                       </div>
@@ -403,6 +433,49 @@ export default function DisplaysPage() {
               })}
             </div>
           )}
+
+          {/* Both confirmations name the screen, because the list is a list of physical
+              objects in the office and "this one" is not enough to walk to. */}
+          <AlertDialog open={!!confirmRotate} onOpenChange={(o: boolean) => !o && setConfirmRotate(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Issue a new link for &ldquo;{confirmRotate?.label}&rdquo;?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  The link currently open on that screen stops working the moment you do this,
+                  so the screen in the office goes blank until somebody opens the new link on
+                  it. The new link is copied to your clipboard.
+                  {confirmRotate?.scope === "leadership"
+                    ? " This screen shows money, so treat the new URL the same way: anyone holding it reads our revenue without logging in."
+                    : ""}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep the current link</AlertDialogCancel>
+                <AlertDialogAction onClick={() => confirmRotate && rotate(confirmRotate)}>
+                  Issue a new link
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog open={!!confirmRevoke} onOpenChange={(o: boolean) => !o && setConfirmRevoke(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Turn off &ldquo;{confirmRevoke?.label}&rdquo;?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Its link stops working for good. Whatever is on that screen now will be
+                  replaced by an error page, and turning it back on means creating a new
+                  screen with a new URL.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Leave it running</AlertDialogCancel>
+                <AlertDialogAction onClick={() => confirmRevoke && revoke(confirmRevoke)}>
+                  Turn it off
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </SuperAdminInterface>
     </AuthGuard>

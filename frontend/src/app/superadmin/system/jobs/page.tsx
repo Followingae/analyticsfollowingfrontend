@@ -3,9 +3,13 @@ import { tokenManager } from '@/utils/tokenManager'
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
-import { Panel, Stat, StatGrid } from "@/components/console/primitives"
+import { PageHead, Panel, Stat, StatGrid } from "@/components/console/primitives"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { ArrowLeft, RefreshCw, Trash2, AlertTriangle, CheckCircle2, Clock, Loader2, Lock, XCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
@@ -27,6 +31,10 @@ export default function JobQueuePage() {
   const [failure, setFailure] = useState<LoadFailure>(null)
   const [loading, setLoading] = useState(true)
   const [cleaning, setCleaning] = useState(false)
+  // Cleanup force-fails every stuck job in one press, and there is no undo: a job it kills
+  // that was merely slow has to be re-queued by hand. It went straight through on a single
+  // click. It now names how many jobs it is about to fail, and what that costs.
+  const [confirmCleanup, setConfirmCleanup] = useState(false)
   // Force-failing every queued job is destructive. Scoped staff operate; they do not destroy.
   const { canDestroy, loading: accessLoading } = useAdminAccess()
   const getToken = () => (tokenManager.getTokenSync() || localStorage.getItem("access_token")) || ""
@@ -61,6 +69,7 @@ export default function JobQueuePage() {
     }
   }
   const cleanupJobs = async () => {
+    setConfirmCleanup(false)
     setCleaning(true)
     try {
       const res = await fetch(`${API_BASE}/api/v1/admin/jobs/cleanup`, {
@@ -92,26 +101,29 @@ export default function JobQueuePage() {
     <SuperadminLayout>
       <div className="space-y-ds-5">
         <div>
-          <Link href="/superadmin/system" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
-            <ArrowLeft className="h-4 w-4" /> Back to System
+          <Link href="/superadmin/system" className="inline-flex items-center gap-2 text-ds-body-sm text-muted-foreground transition-colors hover:text-foreground mb-ds-3">
+            <ArrowLeft className="h-4 w-4" /> System
           </Link>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">Job Queue Management</h1>
-              <p className="text-muted-foreground text-sm">View and clean up stuck post analytics jobs</p>
-            </div>
-            <div className="flex items-center gap-2">
+          <PageHead
+            title="Job queue"
+            sub="Post analytics jobs that have been processing or queued for too long. Failing them clears the queue, it does not produce the analytics."
+            action={
+              <>
               <Button variant="outline" size="sm" onClick={fetchStuckJobs} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} /> Refresh
               </Button>
               {!accessLoading && canDestroy && (
-                <Button variant="destructive" size="sm" onClick={cleanupJobs}
+                <Button variant="destructive" size="sm" onClick={() => setConfirmCleanup(true)}
                         disabled={cleaning || !!failure || stuckJobs.length === 0}>
-                  <Trash2 className="h-4 w-4 mr-1" /> {cleaning ? "Cleaning..." : `Cleanup ${stuckJobs.length} Jobs`}
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  {cleaning
+                    ? "Failing them…"
+                    : `Fail ${stuckJobs.length} stuck job${stuckJobs.length === 1 ? "" : "s"}`}
                 </Button>
               )}
-            </div>
-          </div>
+              </>
+            }
+          />
         </div>
         {/* Summary. A failed read has no counts, so it shows an em-dash — a 0 here would
             read as "nothing is stuck", which is exactly the lie this screen used to tell. */}
@@ -121,7 +133,7 @@ export default function JobQueuePage() {
         <StatGrid cols={3}>
           {/* Tone is warn only when something IS stuck. A permanently amber "Stuck Jobs"
               caption would be decoration, and colour on this console is only ever state. */}
-          <Stat label="Stuck Jobs" tone={!failure && stuckJobs.length > 0 ? "warn" : "neutral"}
+          <Stat label="Stuck jobs" tone={!failure && stuckJobs.length > 0 ? "warn" : "neutral"}
                 value={failure ? "—" : stuckJobs.length} icon={AlertTriangle} />
           <Stat label="Processing"
                 value={failure ? "—" : stuckJobs.filter(j => j.status === 'processing').length} icon={Clock} />
@@ -132,12 +144,12 @@ export default function JobQueuePage() {
         {loading ? (
           <div className="py-ds-6 text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
-              <p className="text-muted-foreground">Loading stuck jobs...</p>
+              <p className="text-ds-body text-muted-foreground">Loading the queue…</p>
           </div>
         ) : failure?.kind === "forbidden" ? (
           <div className="py-ds-6 text-center">
-              <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <h3 className="font-semibold text-lg">You do not have permission to see the job queue</h3>
+              <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-ds-3" />
+              <h3 className="text-ds-subheading">You do not have permission to see the job queue</h3>
               <p className="text-muted-foreground">
                 The server refused this read, so nothing here is known — not that the queue is empty.
               </p>
@@ -145,8 +157,8 @@ export default function JobQueuePage() {
           </div>
         ) : failure ? (
           <div className="py-ds-6 text-center">
-              <XCircle className="h-12 w-12 text-destructive mx-auto mb-3" />
-              <h3 className="font-semibold text-lg">Could not load the job queue</h3>
+              <XCircle className="h-12 w-12 text-destructive mx-auto mb-ds-3" />
+              <h3 className="text-ds-subheading">Could not load the job queue</h3>
               <p className="text-muted-foreground">
                 This is not an all-clear. The queue may be full of stuck jobs we cannot see.
               </p>
@@ -157,9 +169,13 @@ export default function JobQueuePage() {
           </div>
         ) : stuckJobs.length === 0 ? (
           <div className="py-ds-6 text-center">
-              <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
-              <h3 className="font-semibold text-lg">All Clear</h3>
-              <p className="text-muted-foreground">No stuck jobs found. The system is healthy.</p>
+              {/* text-green-500 was a raw palette step with no dark-mode answer. The console
+                  decides "good" once, and this is that token. */}
+              <CheckCircle2 className="h-12 w-12 text-[var(--tone-good-ink)] mx-auto mb-ds-3" />
+              <h3 className="text-ds-subheading">Nothing is stuck</h3>
+              <p className="text-ds-body text-muted-foreground">
+                The queue answered, and no job has been processing or queued for too long.
+              </p>
           </div>
         ) : (
           <Panel title={`Stuck Jobs (${stuckJobs.length})`}
@@ -190,6 +206,29 @@ export default function JobQueuePage() {
               </div>
           </Panel>
         )}
+
+        {/* The confirmation names the number and says what survives it, because "Cleanup"
+            on its own does not tell you that a job which was only slow dies with the rest. */}
+        <AlertDialog open={confirmCleanup} onOpenChange={(o: boolean) => !o && setConfirmCleanup(false)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Fail {stuckJobs.length} stuck job{stuckJobs.length === 1 ? "" : "s"}?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Every job listed here is marked failed. Any of them that was merely slow rather
+                than stuck dies with the rest, and has to be queued again by hand. The post
+                analytics those jobs were producing will be missing until they are re-run.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Leave them running</AlertDialogCancel>
+              <AlertDialogAction onClick={cleanupJobs}>
+                Fail {stuckJobs.length} job{stuckJobs.length === 1 ? "" : "s"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </SuperadminLayout>
   )

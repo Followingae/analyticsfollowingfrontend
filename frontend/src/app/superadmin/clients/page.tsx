@@ -122,16 +122,25 @@ export default function ClientsPage() {
         </Select>
       </div>
 
-      {/* Error State */}
-      {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
-          <AlertCircle className="h-4 w-4" />
-          <span>{error}</span>
+      {/* A failed read is not an empty agency.
+          The banner used to sit ABOVE the grid, and the grid still rendered — with
+          `clients` at [] it drew "No clients found. Clients appear here when you create
+          brand user accounts", which told an agency with a full book that it had none, and
+          then explained how to get started. The error now replaces everything below it, so
+          the only claim on screen is the one we can stand behind. */}
+      {error ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+            <AlertCircle className="h-4 w-4 flex-none" />
+            <span>{error}</span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            The client list could not be read, so nothing is known here. This is not an
+            empty book.
+          </p>
+          <Button variant="outline" size="sm" onClick={fetchClients}>Try again</Button>
         </div>
-      )}
-
-      {/* Client Grid */}
-      {loading ? (
+      ) : loading ? (
         <div className="grid grid-cols-1 gap-ds-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className={`${CARD} bg-[var(--tone-neutral-wash)] p-ds-4`}>

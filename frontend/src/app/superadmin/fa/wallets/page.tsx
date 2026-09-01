@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -15,19 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Wallet, Search, Loader2, Instagram, ExternalLink } from "lucide-react"
+import { PageHead } from "@/components/console/primitives"
+import { FaPage, Failed, Loading, Nothing, Section, TIER_BADGE, TONE_TEXT } from "../_ui"
+import { Search, Instagram, ExternalLink } from "lucide-react"
 import { faWalletApi } from "@/services/faAdminApi"
 import { formatCurrencyAED } from "@/components/ui/currency"
 import { toast } from "sonner"
 
 const PAGE_SIZE = 50
-
-const TIER_STYLES: Record<string, string> = {
-  MEGA:  "bg-violet-500/10 text-violet-600 border-violet-300",
-  MACRO: "bg-amber-500/10 text-amber-600 border-amber-300",
-  MICRO: "bg-blue-500/10 text-blue-600 border-blue-300",
-  NANO:  "bg-emerald-500/10 text-emerald-600 border-emerald-300",
-}
 
 interface FAWallet {
   member_id: string
@@ -41,12 +35,18 @@ interface FAWallet {
   total_withdrawn: number
 }
 
-/** AED money cell. Amounts arrive as numbers in AED. */
+/**
+ * AED money cell. Amounts arrive as numbers in AED.
+ *
+ * An absent amount is a dash. `Number(amount) || 0` turned a missing balance into a
+ * confident nought, which on a wallets screen reads as "this creator is owed nothing".
+ */
 function Money({ amount, className }: { amount: number | null | undefined; className?: string }) {
+  if (amount == null) return <span className="text-muted-foreground">—</span>
   return (
-    <span className={`font-mono tabular-nums whitespace-nowrap ${className || ""}`}>
-      <span className="text-muted-foreground text-xs mr-1">AED</span>
-      {formatCurrencyAED(Number(amount) || 0)}
+    <span className={`whitespace-nowrap tabular-nums ${className || ""}`}>
+      <span className="mr-1 text-xs text-muted-foreground">AED</span>
+      {formatCurrencyAED(Number(amount))}
     </span>
   )
 }
@@ -70,7 +70,7 @@ export default function FAWalletsPage() {
       setTotal(res?.data?.total ?? (Array.isArray(list) ? list.length : 0))
     } catch {
       setError(true)
-      toast.error("Failed to load creator wallets")
+      toast.error("Could not load creator wallets")
     } finally {
       setLoading(false)
     }
@@ -95,66 +95,61 @@ export default function FAWalletsPage() {
   return (
     <AuthGuard requiredRole="admin">
       <SuperAdminInterface>
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight">Creator Wallets</h1>
-                {!loading && !error && (
-                  <Badge variant="secondary" className="text-xs font-medium">{total} creators</Badge>
+        <FaPage>
+          <PageHead
+            title="Creator wallets"
+            sub="What every creator is holding: available now, cashback still clearing, and what they have earned and taken out over their whole time with us. All figures in AED."
+            action={
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search a name or @username"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="h-9 w-72 pl-9"
+                />
+              </div>
+            }
+          />
+
+          {/* The table sat inside a Card: a rounded edge drawn around a grid that already
+              has rules of its own. The card comes off; the heading and the row rule carry
+              the same structure with two fewer edges. */}
+          <Section
+            title="Every creator"
+            description={
+              !loading && !error
+                ? `${total} creator${total === 1 ? "" : "s"}${search ? ` matching “${search}”` : ""}`
+                : undefined
+            }
+          >
+            {loading ? (
+              <Loading label="Loading wallets" />
+            ) : error ? (
+              <Failed what="creator wallets" onRetry={load} />
+            ) : wallets.length === 0 ? (
+              <div className="space-y-ds-2">
+                <Nothing>
+                  {search ? `No creator matches “${search}”.` : "No creator holds a wallet yet."}
+                </Nothing>
+                {search && (
+                  <Button variant="outline" size="sm" onClick={() => setSearchInput("")}>
+                    Clear the search
+                  </Button>
                 )}
               </div>
-              <p className="text-muted-foreground text-sm mt-0.5">
-                Available, pending and lifetime balances for every creator (AED)
-              </p>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search name or @username..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9 w-72 h-9"
-              />
-            </div>
-          </div>
-
-          {/* Table */}
-          <Card>
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <Loader2 className="h-8 w-8 animate-spin mb-3" />
-                  <p className="text-sm">Loading wallets...</p>
-                </div>
-              ) : error ? (
-                <div className="text-center py-16">
-                  <Wallet className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-                  <p className="text-muted-foreground font-medium">Couldn&apos;t load creator wallets</p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={load}>Try again</Button>
-                </div>
-              ) : wallets.length === 0 ? (
-                <div className="text-center py-16">
-                  <Wallet className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-                  <p className="text-muted-foreground font-medium">
-                    {search ? `No creators matching "${search}"` : "No creator wallets yet"}
-                  </p>
-                  {search && (
-                    <Button variant="ghost" size="sm" className="mt-2" onClick={() => setSearchInput("")}>Clear search</Button>
-                  )}
-                </div>
-              ) : (
+            ) : (
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Creator</TableHead>
                       <TableHead>Tier</TableHead>
                       <TableHead className="text-right">Available</TableHead>
-                      <TableHead className="text-right">Pending cashback</TableHead>
+                      <TableHead className="text-right">Cashback clearing</TableHead>
                       <TableHead className="text-right">Withdrawing</TableHead>
-                      <TableHead className="text-right">Lifetime earned</TableHead>
-                      <TableHead className="text-right">Lifetime withdrawn</TableHead>
+                      <TableHead className="text-right">Earned, all time</TableHead>
+                      <TableHead className="text-right">Withdrawn, all time</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -167,7 +162,7 @@ export default function FAWalletsPage() {
                               href={`https://instagram.com/${w.instagram_username}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                             >
                               <Instagram className="h-3 w-3" />
                               @{w.instagram_username}
@@ -176,34 +171,33 @@ export default function FAWalletsPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`text-[11px] px-2 ${TIER_STYLES[w.tier] || ""}`}>
+                          <Badge variant="outline" className={`px-2 text-[11px] ${TIER_BADGE[w.tier] || ""}`}>
                             {w.tier || "—"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right"><Money amount={w.balance_available} className="font-semibold" /></TableCell>
-                        <TableCell className="text-right"><Money amount={w.balance_pending_cashback} className="text-amber-600" /></TableCell>
-                        <TableCell className="text-right"><Money amount={w.balance_pending_withdrawal} className="text-blue-600" /></TableCell>
+                        <TableCell className="text-right"><Money amount={w.balance_pending_cashback} className={TONE_TEXT.warn} /></TableCell>
+                        <TableCell className="text-right"><Money amount={w.balance_pending_withdrawal} /></TableCell>
                         <TableCell className="text-right text-muted-foreground"><Money amount={w.total_earned} /></TableCell>
                         <TableCell className="text-right text-muted-foreground"><Money amount={w.total_withdrawn} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </Section>
 
-          {/* Pagination */}
           {!loading && !error && wallets.length > 0 && (
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Showing {from}–{to} of {total}</p>
+              <p className="text-xs text-muted-foreground">Showing {from} to {to} of {total}</p>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" disabled={!hasPrev} onClick={() => setPage((p) => Math.max(0, p - 1))}>Previous</Button>
                 <Button variant="outline" size="sm" disabled={!hasNext} onClick={() => setPage((p) => p + 1)}>Next</Button>
               </div>
             </div>
           )}
-        </div>
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

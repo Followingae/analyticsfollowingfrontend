@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { CARD, Stat, StatGrid } from "@/components/console/primitives"
+import { CARD, PageHead, Stat, StatGrid } from "@/components/console/primitives"
+import { FaPage, Failed, Loading, Nothing, TONE_BADGE, type Tone } from "../_ui"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -82,13 +83,9 @@ const TYPE_OPTIONS = ["cashback", "deliverable", "withdrawal", "merchant", "syst
 const TIER_OPTIONS = ["NANO", "MICRO", "MACRO", "MEGA"] as const
 const STATUS_OPTIONS = ["active", "suspended", "pending", "inactive"] as const
 
-const TYPE_STYLES: Record<string, string> = {
-  cashback:    "bg-emerald-500/10 text-emerald-600 border-emerald-300",
-  deliverable: "bg-blue-500/10 text-blue-600 border-blue-300",
-  withdrawal:  "bg-amber-500/10 text-amber-600 border-amber-300",
-  merchant:    "bg-violet-500/10 text-violet-600 border-violet-300",
-  system:      "bg-slate-500/10 text-slate-600 border-slate-300",
-}
+/* Five notification kinds in five palette families: emerald, blue, amber, violet, slate.
+   A kind is not a state, nothing here is going wrong, so the colour was saying something
+   untrue. They are neutral now and the word does the telling. */
 
 const PAGE_SIZE = 25
 
@@ -113,7 +110,7 @@ function formatDate(iso: string): string {
 
 function TypeBadge({ type }: { type: string }) {
   return (
-    <Badge variant="outline" className={`text-[11px] px-2 capitalize ${TYPE_STYLES[type] || ""}`}>
+    <Badge variant="outline" className={`px-2 text-[11px] capitalize ${TONE_BADGE.neutral}`}>
       {type}
     </Badge>
   )
@@ -325,6 +322,10 @@ export default function FANotificationsPage() {
   // which reads as "we have never notified anyone" rather than "we could not check".
   const [total, setTotal] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  /* Whether the sent log answered. Without it a failed request emptied the table and the
+     page said "No notifications sent yet", which is a claim about what creators have and
+     have not been told. */
+  const [error, setError] = useState(false)
 
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [search, setSearch] = useState("")
@@ -336,12 +337,13 @@ export default function FANotificationsPage() {
       const res = await faNotificationApi.analytics()
       setAnalytics(res?.data ?? null)
     } catch {
-      toast.error("Failed to load notification analytics")
+      toast.error("Could not load the notification figures")
     }
   }, [])
 
   const loadList = useCallback(async () => {
     setLoading(true)
+    setError(false)
     try {
       const res = await faNotificationApi.list({
         type: typeFilter === "all" ? undefined : typeFilter,
@@ -352,8 +354,9 @@ export default function FANotificationsPage() {
       setItems(res?.data?.items ?? [])
       setTotal(res?.data?.total ?? null)
     } catch {
+      setError(true)
       setTotal(null)
-      toast.error("Failed to load notifications")
+      toast.error("Could not load the sent log")
     } finally {
       setLoading(false)
     }
@@ -379,20 +382,17 @@ export default function FANotificationsPage() {
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="space-y-ds-5">
+        <FaPage>
           {/* ─── Header ─── */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">Notifications Manager</h1>
-                <Badge variant="secondary" className="text-xs font-medium">{formatNumber(total)} sent</Badge>
-              </div>
-              <p className="text-muted-foreground text-sm mt-0.5">
-                Compose and broadcast push notifications to Following App creators
-              </p>
-            </div>
-            <ComposeDialog onSent={refresh} />
-          </div>
+          <PageHead
+            title="Notifications"
+            sub={
+              total == null
+                ? "Push notifications to creators in the Following App. Send to everybody, to one tier, or to a single person."
+                : `${formatNumber(total)} notifications sent so far. Send to everybody, to one tier, or to a single person.`
+            }
+            action={<ComposeDialog onSent={refresh} />}
+          />
 
           {/* ─── Analytics Row ─── */}
           <StatGrid>
@@ -469,16 +469,16 @@ export default function FANotificationsPage() {
           <div className={`${CARD} overflow-hidden bg-[var(--tone-neutral-wash)]`}>
             <div>
               {loading ? (
-                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <Loader2 className="h-8 w-8 animate-spin mb-3" />
-                  <p className="text-sm">Loading notifications...</p>
-                </div>
+                <Loading label="Loading what has been sent" />
+              ) : error ? (
+                <Failed what="the sent log" onRetry={loadList} />
               ) : items.length === 0 ? (
-                <div className="text-center py-16">
-                  <Bell className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-                  <p className="text-muted-foreground font-medium">
-                    {search || typeFilter !== "all" ? "No notifications match your filters" : "No notifications sent yet"}
-                  </p>
+                <div className="px-ds-3">
+                  <Nothing>
+                    {search || typeFilter !== "all"
+                      ? "Nothing matches those filters."
+                      : "Nothing has been sent yet."}
+                  </Nothing>
                 </div>
               ) : (
                 <Table>
@@ -560,7 +560,7 @@ export default function FANotificationsPage() {
               </div>
             </div>
           )}
-        </div>
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

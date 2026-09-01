@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Bell, Loader2, Send, MailCheck, Search, Users, ShieldAlert } from "lucide-react"
+import { Loader2, Send, MailCheck, Search, Users, ShieldAlert, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
-import { CARD } from "@/components/console/primitives"
+import { CARD, PageHead } from "@/components/console/primitives"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -27,10 +27,12 @@ import {
 function EventRow({
   event,
   recipients,
+  recipientsFailed,
   onSaved,
 }: {
   event: NotificationEvent
   recipients: RecipientCandidate[]
+  recipientsFailed: boolean
   onSaved: (e: NotificationEvent) => void
 }) {
   const [emailEnabled, setEmailEnabled] = useState(event.email_enabled)
@@ -192,7 +194,13 @@ function EventRow({
             </Label>
             <div className="max-h-44 divide-y divide-black/[0.06] overflow-auto rounded-ds-md border border-black/[0.06] dark:divide-white/[0.07] dark:border-white/[0.07]">
               {recipients.length === 0 && (
-                <div className="p-3 text-xs text-muted-foreground">No admin/staff users found.</div>
+                /* "No admin/staff users found" over a failed read invites someone to type
+                   addresses into the box below to work around a list that is actually fine. */
+                <div className="p-3 text-ds-caption text-muted-foreground">
+                  {recipientsFailed
+                    ? "The team list did not load, so nobody can be ticked here. Whoever is already selected on this event is unaffected."
+                    : "No admin or staff users to choose from."}
+                </div>
               )}
               {recipients.map((r) => (
                 <label key={r.id} className="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/40">
@@ -326,20 +334,35 @@ export default function SuperadminNotificationsPage() {
   const [recipients, setRecipients] = useState<RecipientCandidate[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  /**
+   * The two counts in the header were derived from `events`, and the catch set `events` to
+   * an empty array. So a failed load rendered "0 of the 0 live events are in the digest" and
+   * a badge reading "0 events enabled" — a confident statement that every alert on the
+   * platform is switched off, made by a screen that never got an answer. Both are dashes now,
+   * and the page says which of the two reads failed.
+   */
+  const [failure, setFailure] = useState<string | null>(null)
+  // The recipient list failed into `.catch(() => [])`, which the picker renders as "No
+  // admin/staff users found" — an empty roster where the real one could not be read.
+  const [recipientsFailed, setRecipientsFailed] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const [ev, rc] = await Promise.all([
         notificationSettingsApi.listEvents(),
-        notificationSettingsApi.listRecipients().catch(() => []),
+        notificationSettingsApi.listRecipients()
+          .catch(() => { setRecipientsFailed(true); return [] as RecipientCandidate[] }),
       ])
       setEvents(ev.events)
       setDomains(ev.domains)
       setRecipients(rc)
+      setFailure(null)
     } catch (e: any) {
-      toast.error(e?.message || "Failed to load notification settings")
+      toast.error(e?.message || "Could not load the alert settings")
       setEvents([])
+      setDomains([])
+      setFailure(e?.message || "The request did not complete")
     } finally {
       setLoading(false)
     }
@@ -377,23 +400,37 @@ export default function SuperadminNotificationsPage() {
   return (
     <SuperadminLayout>
       <div className="mx-auto w-full max-w-5xl space-y-ds-5 p-ds-3 md:p-ds-4">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="flex items-center gap-ds-2 text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">
-              <Bell className="h-6 w-6" /> Email Alerts
-            </h1>
-            <p className="text-muted-foreground mt-1 max-w-2xl">
-              Control which platform events send email, how it arrives, and who receives it. An
-              event either interrupts someone straight away, or waits and arrives as one line in
-              the twice-daily digest. {digestCount} of the {enabledCount} live events are in the
-              digest, which is what stops a busy day turning into thirty emails.
-            </p>
+        <PageHead
+          title="Email alerts"
+          sub={
+            failure
+              ? "Control which platform events send email, how it arrives, and who receives it. An event either interrupts someone straight away, or waits and arrives as one line in the twice-daily digest."
+              : `Control which platform events send email, how it arrives, and who receives it. An event either interrupts someone straight away, or waits and arrives as one line in the twice-daily digest. ${digestCount} of the ${enabledCount} live events are in the digest, which is what stops a busy day turning into thirty emails.`
+          }
+          action={
+            <Badge variant="outline" className="gap-1.5 py-1.5 px-3">
+              <MailCheck className="h-4 w-4" />
+              {failure
+                ? "count unknown"
+                : `${enabledCount} event${enabledCount === 1 ? "" : "s"} enabled`}
+            </Badge>
+          }
+        />
+
+        {failure && (
+          <div className="flex flex-wrap items-center gap-ds-3">
+            <div className="min-w-0">
+              <p className="text-ds-label">Could not load the alert settings</p>
+              <p className="mt-ds-1 text-ds-body-sm text-muted-foreground">
+                Every rule is still in force exactly as it was: this screen failed to read them,
+                it did not switch anything off. {failure}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" className="ml-auto" onClick={load}>
+              <RefreshCw className="mr-1.5 h-4 w-4" />Try again
+            </Button>
           </div>
-          <Badge variant="outline" className="gap-1.5 py-1.5 px-3">
-            <MailCheck className="h-4 w-4" /> {enabledCount} event{enabledCount === 1 ? "" : "s"} enabled
-          </Badge>
-        </div>
+        )}
 
         <DigestPanel />
 
@@ -423,8 +460,10 @@ export default function SuperadminNotificationsPage() {
           <div className="flex items-center justify-center py-24 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
-        ) : grouped.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">No events match your search.</div>
+        ) : failure ? null : grouped.length === 0 ? (
+          <p className="py-ds-6 text-center text-ds-body text-muted-foreground">
+            {search ? `No event matches "${search}".` : "No events are configured."}
+          </p>
         ) : (
           grouped.map((g) => (
             /* The domain was a card wrapped around cards. It is a heading now: the domain
@@ -433,7 +472,8 @@ export default function SuperadminNotificationsPage() {
               <h2 className="text-ds-overline uppercase text-muted-foreground">{g.domain}</h2>
               <div className="space-y-ds-2">
                 {g.items.map((e) => (
-                  <EventRow key={e.event_key} event={e} recipients={recipients} onSaved={onSaved} />
+                  <EventRow key={e.event_key} event={e} recipients={recipients}
+                            recipientsFailed={recipientsFailed} onSaved={onSaved} />
                 ))}
               </div>
             </section>

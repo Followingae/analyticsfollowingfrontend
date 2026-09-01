@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -43,13 +42,23 @@ export default function ReportCampaignsPage() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
   const [revoking, setRevoking] = useState<ReportCampaignSummary | null>(null)
+  /**
+   * A failed list rendered as the first-run empty state: "No report campaigns yet", with a
+   * Create button under it. So an outage looked like a clean slate and invited an operator to
+   * build a second copy of a report that already exists, with a second share link the client
+   * would then hold alongside the first.
+   */
+  const [failure, setFailure] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
       const r = await reportCampaignApi.list()
       setRows(r?.data?.campaigns ?? [])
+      setFailure(null)
     } catch (e) {
-      toast.error((e as Error).message || "Could not load report campaigns")
+      setRows([])
+      setFailure((e as Error).message || "The request did not complete")
+      toast.error((e as Error).message || "Could not load the report campaigns")
     } finally {
       setLoading(false)
     }
@@ -64,7 +73,7 @@ export default function ReportCampaignsPage() {
       const r = await reportCampaignApi.create({
         name: name.trim(), brand_name: brand.trim(), description: descr.trim() || undefined,
       })
-      toast.success("Report campaign created — add the post links next")
+      toast.success("Report campaign created. Add the post links next.")
       setOpen(false); setName(""); setBrand(""); setDescr("")
       await load()
       if (r?.data?.id) window.location.href = `/campaigns/${r.data.id}/posts`
@@ -100,7 +109,7 @@ export default function ReportCampaignsPage() {
     setRevoking(null); setBusyId(row.id)
     try {
       await reportCampaignApi.revokeShare(row.id)
-      toast.success("Link revoked — anyone holding it now sees nothing")
+      toast.success("Link revoked. Anyone holding it now sees nothing.")
       await load()
     } catch (e) {
       toast.error((e as Error).message || "Could not revoke link")
@@ -111,7 +120,7 @@ export default function ReportCampaignsPage() {
 
   return (
     <SuperadminLayout>
-    <div className="space-y-6 p-6">
+    <div className="space-y-ds-5 p-ds-4">
       <CampaignsHubHeader
         action={
           <Button className="gap-1.5" onClick={() => setOpen(true)}>
@@ -120,9 +129,9 @@ export default function ReportCampaignsPage() {
         }
       />
 
-      <p className="max-w-2xl text-sm text-muted-foreground">
+      <p className="max-w-2xl text-ds-body text-muted-foreground">
         Create a campaign, paste the post and reel links it produced, and share a measured
-        performance report with the client. Every figure is counted from the live posts —
+        performance report with the client. Every figure is counted from the live posts:
         nothing is estimated.
       </p>
 
@@ -163,29 +172,42 @@ export default function ReportCampaignsPage() {
       </Dialog>
 
       {loading ? (
-        <div className="flex justify-center py-20">
+        <div className="flex justify-center py-ds-6">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
+      ) : failure ? (
+        /* No Create button here. An error is not an invitation to make a second report. */
+        <div className="py-ds-6 text-center">
+          <p className="text-ds-subheading">Could not load the report campaigns</p>
+          <p className="mt-ds-2 text-ds-body text-muted-foreground">
+            Existing reports and any share links already with a client are unaffected. This
+            page could not read the list, so do not create a replacement from here.
+          </p>
+          <p className="mt-ds-2 text-ds-caption text-muted-foreground">{failure}</p>
+          <Button variant="outline" size="sm" className="mt-ds-3"
+                  onClick={() => { setLoading(true); load() }}>
+            Try again
+          </Button>
+        </div>
       ) : rows.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-            <FileText className="h-8 w-8 text-muted-foreground" />
-            <div>
-              <p className="font-medium">No report campaigns yet</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Create one, paste the post links, and you&apos;ll have a shareable report.
-              </p>
-            </div>
-            <Button className="mt-2 gap-1.5" onClick={() => setOpen(true)}>
-              <Plus className="h-4 w-4" /> New report campaign
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="py-ds-6 text-center">
+          <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
+          <p className="mt-ds-3 text-ds-label">No report campaigns yet</p>
+          <p className="mt-ds-2 text-ds-body text-muted-foreground">
+            Create one, paste the post links, and the report builds itself.
+          </p>
+          <Button className="mt-ds-3 gap-1.5" onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4" /> New report campaign
+          </Button>
+        </div>
       ) : (
-        <div className="grid gap-3">
+        /* A card per report drew an edge around every row of a list whose rows are all the
+           same kind of thing. Rows now, separated by a hairline, with the report's name and
+           the line under it carrying the hierarchy the card was carrying. */
+        <div className="divide-y divide-black/[0.06] border-y border-black/[0.06] dark:divide-white/[0.07] dark:border-white/[0.07]">
           {rows.map((r) => (
-            <Card key={r.id} className="transition-colors hover:bg-accent/40">
-              <CardContent className="flex flex-wrap items-center gap-4 p-4">
+            <div key={r.id} className="transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.04]">
+              <div className="flex flex-wrap items-center gap-ds-3 py-ds-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     {/* Opens the REPORT, not the generic campaign screen. Clicking a
@@ -196,15 +218,23 @@ export default function ReportCampaignsPage() {
                       {r.name}
                     </Link>
                     <Badge variant="secondary" className="font-normal">{r.brand_name}</Badge>
+                    {/* text-emerald-600 was a raw palette step; "shared" is the console's
+                        good tone, decided once. */}
                     {r.share_token ? (
-                      <Badge variant="outline" className="gap-1 font-normal text-emerald-600 dark:text-emerald-400">
-                        <Eye className="h-3 w-3" /> Shared · {r.share_views} view{r.share_views === 1 ? "" : "s"}
+                      <Badge variant="outline" className="gap-1 font-normal text-[var(--tone-good-ink)]">
+                        <Eye className="h-3 w-3" /> Shared
+                        {typeof r.share_views === "number"
+                          ? ` · ${r.share_views} view${r.share_views === 1 ? "" : "s"}`
+                          : ""}
                       </Badge>
                     ) : null}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {r.posts} post{r.posts === 1 ? "" : "s"}
-                    {r.created_at ? ` · created ${new Date(r.created_at).toLocaleDateString()}` : ""}
+                  <p className="mt-ds-1 text-ds-caption text-muted-foreground">
+                    {/* A summary row that came back without a post count said "0 posts",
+                        which on this list means "this report is empty, go and add links" —
+                        advice on a report that may be full. */}
+                    {typeof r.posts === "number" ? `${r.posts} post${r.posts === 1 ? "" : "s"}` : "post count unknown"}
+                    {r.created_at ? ` · created ${new Date(r.created_at).toLocaleDateString("en-GB")}` : ""}
                   </p>
                 </div>
 
@@ -247,8 +277,8 @@ export default function ReportCampaignsPage() {
                     </Button>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}

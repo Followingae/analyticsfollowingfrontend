@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { CARD, PageHead } from "@/components/console/primitives"
+import { FaPage, Nothing, Section, Step, TONE_BADGE, TONE_TEXT } from "../../_ui"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -61,11 +62,15 @@ interface PoolOption { id: string; pool_name: string; brand_user_id: string; ava
 interface MerchantOption { id: string; name: string; category?: string; brand_user_id?: string | null; brand_name?: string | null; logo_url?: string; location_address?: string; gradient_start?: string; gradient_end?: string; status: string }
 
 const TIERS = ["NANO", "MICRO", "MACRO", "MEGA"] as const
-const TIER_CONFIG: Record<string, { icon: typeof Medal; color: string; bg: string; border: string; ring: string; gradient: string; label: string; range: string; description: string }> = {
-  NANO:  { icon: Medal, color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/50", border: "border-emerald-200 dark:border-emerald-800", ring: "ring-emerald-400", gradient: "from-emerald-500/10 to-emerald-600/5", label: "Nano",  range: "1K – 10K followers",   description: "Niche creators with highly authentic, close-knit audiences." },
-  MICRO: { icon: Award, color: "text-blue-600 dark:text-blue-400",       bg: "bg-blue-50 dark:bg-blue-950/50",       border: "border-blue-200 dark:border-blue-800",       ring: "ring-blue-400",    gradient: "from-blue-500/10 to-blue-600/5",       label: "Micro", range: "10K – 100K followers", description: "Trusted voices with strong engagement and loyal communities." },
-  MACRO: { icon: Star,  color: "text-amber-600 dark:text-amber-400",     bg: "bg-amber-50 dark:bg-amber-950/50",     border: "border-amber-200 dark:border-amber-800",     ring: "ring-amber-400",   gradient: "from-amber-500/10 to-amber-600/5",     label: "Macro", range: "100K – 1M followers",  description: "Professional creators offering broad reach across segments." },
-  MEGA:  { icon: Crown, color: "text-purple-600 dark:text-purple-400",   bg: "bg-purple-50 dark:bg-purple-950/50",   border: "border-purple-200 dark:border-purple-800",   ring: "ring-purple-400",  gradient: "from-purple-500/10 to-purple-600/5",   label: "Mega",  range: "1M+ followers",        description: "Celebrity-level influencers with mass-market reach." },
+/* The four tiers carried five colour fields each — a border, a wash, a ring, an ink and a
+   gradient, in four unrelated palette families. Nothing here is a state: a tier is a band
+   of follower counts, and colouring it green or purple was decoration that also made the
+   card look like it was warning about something. The icon and the range carry it. */
+const TIER_CONFIG: Record<string, { icon: typeof Medal; label: string; range: string; description: string }> = {
+  NANO:  { icon: Medal, label: "Nano",  range: "1K to 10K followers",   description: "Niche creators with small, close-knit audiences that actually listen." },
+  MICRO: { icon: Award, label: "Micro", range: "10K to 100K followers", description: "Trusted voices with strong engagement and a loyal community." },
+  MACRO: { icon: Star,  label: "Macro", range: "100K to 1M followers",  description: "Professional creators with broad reach across segments." },
+  MEGA:  { icon: Crown, label: "Mega",  range: "1M or more followers",  description: "Household names with mass-market reach." },
 }
 
 export default function CreateCashbackCampaignPage() {
@@ -227,41 +232,31 @@ export default function CreateCashbackCampaignPage() {
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <TooltipProvider>
-          <div className="max-w-4xl mx-auto space-y-8 pb-16">
+          <FaPage className="mx-auto max-w-4xl pb-16">
             {/* ─── Header ──────────────────────────────────────── */}
             <div>
-              <Link href="/superadmin/fa/campaigns" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
-                <ArrowLeft className="h-4 w-4" />Back to Campaigns
+              <Link href="/superadmin/fa/campaigns" className="mb-ds-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                <ArrowLeft className="h-4 w-4" />Back to campaigns
               </Link>
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/20">
-                      <QrCode className="h-5 w-5 text-white" />
-                    </div>
-                    Create Cashback Campaign
-                  </h1>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    Set up a new cashback campaign with tiered rates for influencers
-                  </p>
-                </div>
-                <div className="hidden sm:flex items-center gap-3 text-sm">
-                  <span className="text-muted-foreground">{completedSteps}/{totalSteps} complete</span>
-                  <Progress value={progressPct} className="w-32 h-2" />
-                </div>
-              </div>
+              <PageHead
+                title="New cashback campaign"
+                sub="Creators send people to the venue. A buyer scans the QR on their receipt and the pool pays the creator's cut on its own. Step 2 of 2."
+                action={
+                  <div className="hidden items-center gap-3 text-sm sm:flex">
+                    <span className="text-muted-foreground tabular-nums">{completedSteps} of {totalSteps} done</span>
+                    <Progress value={progressPct} className="h-2 w-32" />
+                  </div>
+                }
+              />
             </div>
 
             {/* ─── Step 1: Merchant Selection ────────────────────── */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">1</div>
-                <h2 className="text-lg font-semibold">Select Merchant</h2>
-                {selectedMerchantId && <Check className="h-5 w-5 text-green-500" />}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Cashback is redeemed at a specific merchant location. Pick the merchant this campaign applies to.
-              </p>
+            <Step
+              n={1}
+              title="Where it is redeemed"
+              done={!!selectedMerchantId}
+              description="Cashback is claimed off a receipt from one merchant. Pick the one this campaign runs at."
+            >
               <SelfManagedToggle
                 selfManaged={selfManaged}
                 onSelfManagedChange={setSelfManaged}
@@ -276,50 +271,41 @@ export default function CreateCashbackCampaignPage() {
                   onHeroImageChange={setHeroImageUrl}
                 />
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-ds-2 sm:grid-cols-2 lg:grid-cols-3">
                 {loadingData ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <Card key={i} className="animate-pulse">
-                      <CardContent className="p-5">
-                        <div className="h-4 bg-muted rounded w-3/4 mb-2" />
-                        <div className="h-3 bg-muted rounded w-1/2" />
-                      </CardContent>
-                    </Card>
+                    <div key={i} className={`${CARD} animate-pulse bg-[var(--tone-neutral-wash)] p-ds-3`}>
+                      <div className="mb-2 h-4 w-3/4 rounded bg-black/[0.06] dark:bg-white/[0.08]" />
+                      <div className="h-3 w-1/2 rounded bg-black/[0.06] dark:bg-white/[0.08]" />
+                    </div>
                   ))
                 ) : merchants.length === 0 ? (
-                  <Card className="sm:col-span-2 lg:col-span-3 border-dashed">
-                    <CardContent className="p-8 text-center space-y-3">
-                      <Building2 className="h-8 w-8 text-muted-foreground mx-auto" />
-                      <div>
-                        <p className="font-medium">No merchants yet</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Create one before launching a cashback campaign.
-                        </p>
-                      </div>
-                      <Link href="/superadmin/fa/merchants">
-                        <Button variant="outline" size="sm">
-                          <Plus className="h-4 w-4 mr-1.5" />
-                          Manage Merchants
-                        </Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
+                  <div className="space-y-ds-2 sm:col-span-2 lg:col-span-3">
+                    <Nothing>No merchants exist yet, and cashback has to be redeemed at one.</Nothing>
+                    <Link href="/superadmin/fa/merchants">
+                      <Button variant="outline" size="sm">
+                        <Plus className="mr-1.5 h-4 w-4" />
+                        Add a merchant first
+                      </Button>
+                    </Link>
+                  </div>
                 ) : (
-                  merchants.map((m) => (
-                    <Card
+                  merchants.map((m) => {
+                    const on = selectedMerchantId === m.id
+                    return (
+                    <button
                       key={m.id}
-                      className={`cursor-pointer transition-all hover:shadow-md ${
-                        selectedMerchantId === m.id
-                          ? "ring-2 ring-primary shadow-md border-primary/50"
-                          : "hover:border-primary/30"
+                      type="button"
+                      aria-pressed={on}
+                      className={`${CARD} flex items-center gap-3 bg-[var(--tone-neutral-wash)] p-ds-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                        on
+                          ? "ring-2 ring-foreground/50"
+                          : "hover:bg-black/[0.02] dark:hover:bg-white/[0.04]"
                       }`}
                       onClick={() => setSelectedMerchantId(m.id)}
                     >
-                      <CardContent className="p-4 flex items-center gap-3">
                         <div
-                          className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ${
-                            selectedMerchantId === m.id ? "ring-2 ring-primary" : ""
-                          }`}
+                          className="h-10 w-10 shrink-0 overflow-hidden rounded-ds-md flex items-center justify-center bg-black/[0.06] dark:bg-white/[0.08]"
                           style={
                             m.gradient_start && m.gradient_end
                               ? { background: `linear-gradient(135deg, ${m.gradient_start}, ${m.gradient_end})` }
@@ -336,149 +322,131 @@ export default function CreateCashbackCampaignPage() {
                         <div className="min-w-0 flex-1">
                           <p className="font-medium truncate">{m.name}</p>
                           {(m as any).brand_name && (
-                            <p className="text-[11px] font-medium truncate">{(m as any).brand_name}</p>
+                            <p className="text-ds-caption font-medium truncate">{(m as any).brand_name}</p>
                           )}
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            {m.category || "-"}
-                            {m.location_address ? ` • ${m.location_address}` : ""}
+                          <p className="truncate text-ds-caption text-muted-foreground">
+                            {m.category || "—"}
+                            {m.location_address ? ` · ${m.location_address}` : ""}
                           </p>
                           {!(m as any).brand_user_id && (
-                            <Badge variant="destructive" className="text-[9px] mt-1">No brand linked</Badge>
+                            <Badge variant="outline" className={`mt-1 text-[9px] ${TONE_BADGE.bad}`}>No brand linked</Badge>
                           )}
                         </div>
-                        {selectedMerchantId === m.id && (
-                          <Check className="h-5 w-5 text-primary ml-auto shrink-0" />
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* ─── Step 2: Pool Selection ───────────────────────── */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">2</div>
-                <h2 className="text-lg font-semibold">Funding Pool</h2>
-                {selectedPoolId && <Check className="h-5 w-5 text-green-500" />}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {filteredPools.length === 0 && !loadingData ? (
-                  <Card className="sm:col-span-2 border-dashed">
-                    <CardContent className="p-8 text-center">
-                      <Wallet className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-muted-foreground text-sm">No pools found for this client</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  filteredPools.map((p) => {
-                    const bal = p.available_cents || 0
-                    const isEmpty = bal <= 0
-                    return (
-                      <Card
-                        key={p.id}
-                        className={`cursor-pointer transition-all hover:shadow-md ${
-                          selectedPoolId === p.id
-                            ? "ring-2 ring-primary shadow-md border-primary/50"
-                            : "hover:border-primary/30"
-                        }`}
-                        onClick={() => setSelectedPoolId(p.id)}
-                      >
-                        <CardContent className="p-5">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className={`h-11 w-11 rounded-xl flex items-center justify-center ${
-                              selectedPoolId === p.id ? "bg-primary text-primary-foreground" : isEmpty ? "bg-red-100 dark:bg-red-950" : "bg-green-100 dark:bg-green-950"
-                            }`}>
-                              <Wallet className="h-5 w-5" />
-                            </div>
-                            {selectedPoolId === p.id && <Check className="h-5 w-5 text-primary" />}
-                          </div>
-                          <p className="font-medium">{p.pool_name || "Default Pool"}</p>
-                          <p className={`text-2xl font-bold mt-1 ${isEmpty ? "text-red-500" : "text-green-600 dark:text-green-400"}`}>
-                            {fmtAed(bal)}
-                          </p>
-                          {isEmpty && (
-                            <Badge variant="destructive" className="mt-2 text-[10px]">Empty - needs top-up</Badge>
-                          )}
-                        </CardContent>
-                      </Card>
+                        {on && <Check className={`ml-auto h-5 w-5 shrink-0 ${TONE_TEXT.good}`} />}
+                    </button>
                     )
                   })
                 )}
               </div>
-            </div>
+            </Step>
+
+            {/* ─── Step 2: Pool Selection ───────────────────────── */}
+            <Step
+              n={2}
+              title="What funds it"
+              done={!!selectedPoolId}
+              description="The client's pool the cashback is paid out of. An empty pool cannot pay anybody."
+            >
+              <div className="grid grid-cols-1 gap-ds-2 sm:grid-cols-2">
+                {filteredPools.length === 0 && !loadingData ? (
+                  <div className="sm:col-span-2">
+                    <Nothing>This client has no funding pool yet.</Nothing>
+                  </div>
+                ) : (
+                  filteredPools.map((p) => {
+                    const bal = p.available_cents || 0
+                    const isEmpty = bal <= 0
+                    const on = selectedPoolId === p.id
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        aria-pressed={on}
+                        className={`${CARD} bg-[var(--tone-neutral-wash)] p-ds-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                          on ? "ring-2 ring-foreground/50" : "hover:bg-black/[0.02] dark:hover:bg-white/[0.04]"
+                        }`}
+                        onClick={() => setSelectedPoolId(p.id)}
+                      >
+                          <div className="mb-ds-2 flex items-start justify-between">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-ds-lg bg-black/[0.04] dark:bg-white/[0.07]">
+                              <Wallet className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            {on && <Check className={`h-5 w-5 ${TONE_TEXT.good}`} />}
+                          </div>
+                          <p className="font-medium">{p.pool_name || "Default pool"}</p>
+                          {/* The balance is the state here, and it is the only thing on the
+                              card that gets colour: empty is a problem, funded is not. */}
+                          <p className={`mt-1 text-2xl font-semibold tabular-nums ${isEmpty ? TONE_TEXT.bad : ""}`}>
+                            {fmtAed(bal)}
+                          </p>
+                          {isEmpty && (
+                            <Badge variant="outline" className={`mt-2 text-[10px] ${TONE_BADGE.bad}`}>Empty, needs a top-up</Badge>
+                          )}
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            </Step>
 
             <Separator />
 
             {/* ─── Campaign Details ──────────────────────────────── */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">3</div>
-                <h2 className="text-lg font-semibold">Campaign Details</h2>
-              </div>
-              <Card>
-                <CardContent className="p-6 space-y-5">
+            <Step n={3} title="The campaign" description="The name creators see in the app, when it runs, and how many can join.">
+              <div className="space-y-5">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Campaign Name *</Label>
+                    <Label>Campaign name *</Label>
                     <Input
                       placeholder="e.g. Summer Fashion Cashback"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="text-base h-11"
+                      className="h-11 text-base"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Description</Label>
+                    <Label>What are we promoting</Label>
                     <Textarea
-                      placeholder="What's this campaign about? (optional)"
+                      placeholder="A line or two creators will read in the app"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={3}
                     />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />Start Date
+                      <Label className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />Starts
                       </Label>
                       <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />End Date
+                      <Label className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />Ends
                       </Label>
                       <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium flex items-center gap-1.5">
-                        <Users className="h-3.5 w-3.5 text-muted-foreground" />Max Participants
+                      <Label className="flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-muted-foreground" />How many creators at most
                       </Label>
-                      <Input type="number" min={1} placeholder="Unlimited" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} />
+                      <Input type="number" min={1} placeholder="No cap" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+              </div>
+            </Step>
 
             {/* ─── Cashback Rates ────────────────────────────────── */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">4</div>
-                <h2 className="text-lg font-semibold">Cashback Rates</h2>
-              </div>
-
+            <Step n={4} title="The rate" description="What share of a receipt goes back to the creator.">
               {/* Default rate with big slider */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-1">
-                    <Label className="text-sm font-medium">Default Cashback Rate</Label>
+              <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <Label>The rate everybody gets</Label>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold tabular-nums">{cashbackPercentage}</span>
+                      <span className="text-3xl font-semibold tabular-nums">{cashbackPercentage}</span>
                       <span className="text-lg text-muted-foreground">%</span>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-4">Applied to all tiers unless overridden below</p>
+                  <p className="mb-4 text-ds-caption text-muted-foreground">Applies to every tier unless you override it below</p>
                   <Slider
                     value={[cashbackPercentage]}
                     onValueChange={([v]: number[]) => setCashbackPercentage(v)}
@@ -487,48 +455,44 @@ export default function CreateCashbackCampaignPage() {
                     step={0.5}
                     className="mb-2"
                   />
-                  <div className="flex justify-between text-[10px] text-muted-foreground px-1">
+                  <div className="flex justify-between px-1 text-[10px] text-muted-foreground">
                     <span>1%</span>
                     <span>10%</span>
                     <span>25%</span>
                     <span>50%</span>
                   </div>
-                </CardContent>
-              </Card>
+              </div>
 
               {/* Pre-approval required toggle (intent_only) */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
+              <div>
+                  <div className="flex items-center justify-between gap-ds-3">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-sky-500/20 to-indigo-500/20 flex items-center justify-center">
-                        <Shield className="h-4.5 w-4.5 text-primary" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-ds-md bg-black/[0.04] dark:bg-white/[0.07]">
+                        <Shield className="h-4.5 w-4.5 text-muted-foreground" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">Require pre-approval before visit</p>
-                        <p className="text-xs text-muted-foreground leading-snug mt-0.5">
-                          Creators must apply and get brand approval before their visit is eligible
-                          for cashback. Recommended for hotels, restaurants, or campaigns where
-                          content must be captured during the visit.
+                        <p className="text-ds-label">Creators must be approved before they visit</p>
+                        <p className="mt-0.5 text-ds-caption leading-snug text-muted-foreground">
+                          They apply, the brand approves, and only then does their visit earn
+                          cashback. Use it for hotels and restaurants, or anywhere the content
+                          has to be shot during the visit.
                         </p>
                       </div>
                     </div>
                     <Switch checked={intentOnly} onCheckedChange={setIntentOnly} />
                   </div>
-                </CardContent>
-              </Card>
+              </div>
 
               {/* Tiered rates */}
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
+              <div>
+                  <div className="mb-4 flex items-center justify-between gap-ds-3">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-purple-500/20 to-yellow-500/20 flex items-center justify-center">
-                        <TrendingUp className="h-4.5 w-4.5 text-primary" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-ds-md bg-black/[0.04] dark:bg-white/[0.07]">
+                        <TrendingUp className="h-4.5 w-4.5 text-muted-foreground" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">Tiered Cashback Rates</p>
-                        <p className="text-xs text-muted-foreground">Different rates for each influencer tier</p>
+                        <p className="text-ds-label">Pay bigger creators a different rate</p>
+                        <p className="text-ds-caption text-muted-foreground">One rate per tier instead of one rate for all</p>
                       </div>
                     </div>
                     <Switch checked={useTieredRates} onCheckedChange={setUseTieredRates} />
@@ -542,19 +506,19 @@ export default function CreateCashbackCampaignPage() {
                         return (
                           <div
                             key={tier}
-                            className={`relative rounded-xl border p-4 ${cfg.border} ${cfg.bg} bg-gradient-to-br ${cfg.gradient}`}
+                            className="relative rounded-ds-lg border border-black/[0.06] p-4 dark:border-white/[0.07]"
                           >
-                            <div className="flex items-start gap-2.5 mb-3">
-                              <div className={`h-9 w-9 rounded-lg flex items-center justify-center bg-white dark:bg-black/20 shadow-sm shrink-0`}>
-                                <TierIcon className={`h-4 w-4 ${cfg.color}`} />
+                            <div className="mb-3 flex items-start gap-2.5">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-ds-md bg-black/[0.04] dark:bg-white/[0.07]">
+                                <TierIcon className="h-4 w-4 text-muted-foreground" />
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className={`font-semibold text-sm ${cfg.color}`}>{cfg.label}</span>
-                                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{tier}</span>
+                                  <span className="text-sm font-semibold">{cfg.label}</span>
+                                  <span className="text-ds-overline uppercase text-muted-foreground">{tier}</span>
                                 </div>
-                                <p className="text-[11px] font-medium text-foreground/80 mt-0.5">{cfg.range}</p>
-                                <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">{cfg.description}</p>
+                                <p className="mt-0.5 text-ds-caption font-medium">{cfg.range}</p>
+                                <p className="mt-0.5 text-ds-caption leading-snug text-muted-foreground">{cfg.description}</p>
                               </div>
                             </div>
                             <div className="flex items-end gap-2">
@@ -566,8 +530,8 @@ export default function CreateCashbackCampaignPage() {
                                 step={0.5}
                                 className="flex-1"
                               />
-                              <div className="flex items-baseline gap-0.5 min-w-[52px] justify-end">
-                                <span className="text-xl font-bold tabular-nums">{cashbackTiers[tier]}</span>
+                              <div className="flex min-w-[52px] items-baseline justify-end gap-0.5">
+                                <span className="text-xl font-semibold tabular-nums">{cashbackTiers[tier]}</span>
                                 <span className="text-xs text-muted-foreground">%</span>
                               </div>
                             </div>
@@ -576,56 +540,49 @@ export default function CreateCashbackCampaignPage() {
                       })}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
+              </div>
+            </Step>
 
             {/* ─── Deliverables (platform-specific) ──────────────── */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">5</div>
-                <h2 className="text-lg font-semibold">Deliverable Requirements</h2>
-              </div>
+            <Step n={5} title="What the creator posts" description="Pick the formats and how many of each.">
               <DeliverablePicker value={deliverables} onChange={setDeliverables} />
-            </div>
+            </Step>
 
             {/* ─── Creative brief, tags, audience, visit, coupon ─── */}
             <CampaignBriefSection value={brief} onChange={setBrief} />
 
             {/* ─── Submit Bar ────────────────────────────────────── */}
-            <Card className="sticky bottom-4 shadow-lg border-primary/20">
-              <CardContent className="p-4 flex items-center justify-between">
+            <div className={`${CARD} sticky bottom-4 flex items-center justify-between bg-[var(--tone-neutral-wash)] p-ds-3`}>
                 <Button variant="ghost" asChild>
                   <Link href="/superadmin/fa/campaigns" className="gap-1.5">
                     <ArrowLeft className="h-4 w-4" />Cancel
                   </Link>
                 </Button>
                 <div className="flex items-center gap-4">
-                  <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-                    <Progress value={progressPct} className="w-24 h-2" />
-                    <span>{progressPct}%</span>
+                  <div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
+                    <Progress value={progressPct} className="h-2 w-24" />
+                    <span className="tabular-nums">{progressPct}%</span>
                   </div>
                   <Button
                     onClick={handleSubmit}
                     disabled={submitting || progressPct < 100}
                     size="lg"
-                    className="gap-2 min-w-[200px]"
+                    className="min-w-[200px] gap-2"
                   >
                     {submitting ? (
                       <>
-                        <Clock className="h-4 w-4 animate-spin" />Creating...
+                        <Clock className="h-4 w-4 animate-spin" />Creating
                       </>
                     ) : (
                       <>
-                        <Sparkles className="h-4 w-4" />Create Campaign
+                        <Sparkles className="h-4 w-4" />Create the campaign
                         <ArrowRight className="h-4 w-4" />
                       </>
                     )}
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+            </div>
+          </FaPage>
 
           <CouponManagerDialog
             campaignId={couponCampaignId}

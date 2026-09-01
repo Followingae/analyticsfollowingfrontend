@@ -188,7 +188,8 @@ export function Panel({
   title, description, action, children, flush, className,
 }: {
   title: string
-  description?: string
+  /** A sentence, or a sentence with a link in it. Widened from `string`; nothing else changes. */
+  description?: React.ReactNode
   action?: React.ReactNode
   children: React.ReactNode
   flush?: boolean
@@ -216,20 +217,31 @@ export function Panel({
  * who cannot separate the colours, and for anyone reading a print-out.
  */
 export function Row({
-  tone = 'neutral', title, meta, right, onClick,
+  tone = 'neutral', title, meta, right, actions, onClick,
 }: {
   tone?: Tone
   title: React.ReactNode
   meta?: React.ReactNode
+  /** Passive trim: a badge, a count, an arrow. Sits inside the clickable area. */
   right?: React.ReactNode
+  /**
+   * Buttons of their own, for a row that has a second and third thing you can do with it.
+   *
+   * They cannot live in `right`: a clickable Row *is* a button, and a button inside a button
+   * is invalid markup that React will not hydrate. So they render as siblings of the
+   * clickable area rather than children of it. Purely additive — a Row without `actions` is
+   * laid out exactly as it was.
+   */
+  actions?: React.ReactNode
   onClick?: () => void
 }) {
   const Tag = onClick ? 'button' : 'div'
-  return (
+  const body = (
     <Tag
       {...(onClick ? { type: 'button' as const, onClick } : {})}
       className={cn(
-        'mx-3 flex w-[calc(100%-1.5rem)] items-center gap-3 rounded-2xl px-3 py-3 text-left',
+        'flex items-center gap-3 rounded-2xl px-3 py-3 text-left',
+        actions ? 'min-w-0 flex-1' : 'mx-3 w-[calc(100%-1.5rem)]',
         onClick && 'transition-colors hover:bg-black/[0.035] dark:hover:bg-white/[0.05]',
       )}
     >
@@ -240,6 +252,15 @@ export function Row({
       </div>
       {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}
     </Tag>
+  )
+
+  if (!actions) return body
+
+  return (
+    <div className="mx-3 flex w-[calc(100%-1.5rem)] items-center gap-2">
+      {body}
+      <div className="flex shrink-0 items-center gap-1.5 pr-1">{actions}</div>
+    </div>
   )
 }
 

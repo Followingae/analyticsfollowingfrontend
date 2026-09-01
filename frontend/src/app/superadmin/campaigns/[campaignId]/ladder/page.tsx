@@ -33,11 +33,23 @@ import { toast } from "sonner"
 import { ladderApi, STAGES, type LadderCreator, type Stage } from "@/services/ladderApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { cdnAvatar } from "@/lib/avatar"
-import { CARD } from "@/components/console/primitives"
+import { Aed, CARD } from "@/components/console/primitives"
 import { SettleCosts } from "@/components/superadmin/proposals/SettleCosts"
 
-const aed = (cents?: number | null) =>
-  cents == null ? null : `⃃ ${(cents / 100).toLocaleString("en-AE")}`
+/**
+ * The figure only.
+ *
+ * The mark was a bare U+20C3 inside a template string. No system font carries that
+ * codepoint, and only the `Aed` primitive names the face that does, so every rate on this
+ * board was rendering the mark as an empty box.
+ */
+const aedNum = (cents?: number | null) =>
+  cents == null ? null : (cents / 100).toLocaleString("en-AE")
+const Money = ({ cents }: { cents?: number | null }) => {
+  const n = aedNum(cents)
+  return n === null ? null : <Aed>{n}</Aed>
+}
+
 
 const compact = (n?: number | null) =>
   n == null ? "" : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : String(n)
@@ -60,7 +72,11 @@ function dueState(c: LadderCreator): { text: string; tone: "calm" | "warn" | "la
 
 export default function LadderPage() {
   const campaignId = useParams().campaignId as string
-  const { canDestroy } = useAdminAccess()
+  // `canSeeCost` is leadership plus talent, exactly the two scopes the backend's field
+  // policy lets see a cost. It is NOT "is this person an admin": the co-founder is
+  // role='user' with staff_role='cofounder', and an admin check has locked her out of her
+  // own numbers before. The hook resolves her as full-access staff.
+  const { canDestroy, canSeeCost } = useAdminAccess()
   const [creators, setCreators] = useState<LadderCreator[]>([])
   const [campaign, setCampaign] = useState<{ ships?: boolean; dine_in?: boolean; fulfilment_mode?: string | null } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -78,13 +94,25 @@ export default function LadderPage() {
   const [courier, setCourier] = useState("")
   const [dropWhy, setDropWhy] = useState("")
 
+  /**
+   * "Nobody is booked on this campaign yet" was what a failed read said.
+   *
+   * The catch toasted and left `creators` at [], which drew the empty state — an all clear
+   * on a chasing board, with a line explaining that creators arrive when a proposal is
+   * approved. The failure is held so the board can say the read failed instead.
+   */
+  const [failure, setFailure] = useState<string | null>(null)
+
   const load = useCallback(async () => {
+    setFailure(null)
     try {
       const res = await ladderApi.get(campaignId)
       setCreators(res.data.creators)
       setCampaign(res.data.campaign ?? null)
     } catch (e) {
-      toast.error((e as Error).message || "Could not load the board")
+      const msg = (e as Error).message || "Could not load the board"
+      setFailure(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -248,6 +276,16 @@ export default function LadderPage() {
 
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : failure ? (
+            <div className="space-y-3 py-ds-4">
+              <p className="text-sm font-medium">Could not load the board.</p>
+              <p className="text-sm text-muted-foreground">
+                {failure}. This is not an empty campaign, and nothing here is known: there may
+                be content due today that is not on screen.
+              </p>
+              <Button variant="outline" size="sm"
+                      onClick={() => { setLoading(true); load() }}>Try again</Button>
+            </div>
           ) : creators.length === 0 ? (
             <div className="px-ds-4 py-ds-6 text-center">
               <p className="font-medium">Nobody is booked on this campaign yet</p>
@@ -299,11 +337,20 @@ export default function LadderPage() {
                                   state keeps a coloured dot so it is still scannable, and the
                                   word beside it carries the same meaning without the colour. */}
                               <div className="mt-ds-2 flex flex-wrap items-center gap-x-ds-3 gap-y-ds-1 text-ds-caption">
-                                {c.agreed_rate_cents != null && (
+                                {/* The rate is a COST, and cost belongs to leadership and
+                                    talent. It arrives on the wire regardless, so the card
+                                    leaves it out entirely rather than printing a dash: a
+                                    dash tells an account manager the number exists and is
+                                    being kept from them. Whether the rate still needs
+                                    confirming is not money, so that still shows. */}
+                                {c.agreed_rate_cents != null && canSeeCost && (
                                   <span className="tabular-nums text-muted-foreground">
-                                    {aed(c.agreed_rate_cents)}
+                                    <Money cents={c.agreed_rate_cents} />
                                     {!c.rate_agreed_at && " · to confirm"}
                                   </span>
+                                )}
+                                {c.agreed_rate_cents != null && !canSeeCost && !c.rate_agreed_at && (
+                                  <span className="text-muted-foreground">Rate to confirm</span>
                                 )}
                                 {d && (
                                   <span
@@ -385,12 +432,17 @@ export default function LadderPage() {
                       inside a sheet that already has an edge and a title above it — six
                       short facts behind two more edges. It is a plain list now. */}
                   <div className="space-y-ds-2 text-ds-caption">
+                    {/* Cost, so leadership and talent only. Where it is out of scope the
+                        row still says whether the rate is settled, because that is a state,
+                        not a number, and everyone chasing this creator needs it. */}
                     {open.agreed_rate_cents != null && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Rate</span>
                         <span className="font-medium">
-                          {aed(open.agreed_rate_cents)}
-                          {open.rate_agreed_at ? " · confirmed" : " · waiting on a founder"}
+                          {canSeeCost && <Money cents={open.agreed_rate_cents} />}
+                          {open.rate_agreed_at
+                            ? (canSeeCost ? " · confirmed" : "Confirmed")
+                            : (canSeeCost ? " · waiting on a founder" : "Waiting on a founder")}
                         </span>
                       </div>
                     )}
@@ -515,7 +567,7 @@ export default function LadderPage() {
                   {open.stage === "enrolled" && open.agreed_rate_cents != null && canDestroy && (
                     <Button variant="outline" className="w-full gap-2" disabled={busy}
                             onClick={() => act(() => ladderApi.confirmRate(open.id), "Rate confirmed")}>
-                      <CheckCircle2 className="h-4 w-4" />Confirm {aed(open.agreed_rate_cents)}
+                      <CheckCircle2 className="h-4 w-4" />Confirm <Money cents={open.agreed_rate_cents} />
                     </Button>
                   )}
 
@@ -613,7 +665,7 @@ export default function LadderPage() {
                                value={payRef} onChange={(e) => setPayRef(e.target.value)} />
                         <Button className="w-full gap-2" disabled={busy}
                                 onClick={() => act(() => ladderApi.paid(open.id, payRef), "Marked paid")}>
-                          <Banknote className="h-4 w-4" />Pay {aed(open.agreed_rate_cents)}
+                          <Banknote className="h-4 w-4" />Pay <Money cents={open.agreed_rate_cents} />
                         </Button>
                         <p className="text-xs text-muted-foreground">
                           Written to the payables book from the confirmed rate, not typed again.

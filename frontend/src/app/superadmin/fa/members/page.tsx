@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { FirstPartyAudienceAnalytics } from "@/components/analytics/FirstPartyAudienceAnalytics"
-import { Card, CardContent } from "@/components/ui/card"
+import { CARD, PageHead } from "@/components/console/primitives"
+import {
+  FaPage, Failed, Loading, Nothing, TIER_BADGE, TONE_BADGE, TONE_TEXT, figure, type Tone,
+} from "../_ui"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -144,33 +147,22 @@ type SortOption = "followers" | "engagement" | "newest" | "fraud"
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const TIER_STYLES: Record<string, string> = {
-  MEGA:  "bg-violet-500/10 text-violet-600 border-violet-300",
-  MACRO: "bg-amber-500/10 text-amber-600 border-amber-300",
-  MICRO: "bg-blue-500/10 text-blue-600 border-blue-300",
-  NANO:  "bg-emerald-500/10 text-emerald-600 border-emerald-300",
-}
+/* Tier was violet / amber / blue / emerald: four unrelated hues for four points on one
+   scale, which read as four states rather than four sizes. TIER_BADGE is that scale in
+   one neutral, shading up as the tier goes up. */
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function formatNumber(n: number | null | undefined): string {
-  if (n == null) return "-"
+  if (n == null) return "—"
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "K"
   return n.toLocaleString()
 }
 
-function scoreColor(score: number): string {
-  if (score > 0.7) return "text-emerald-600"
-  if (score > 0.4) return "text-amber-600"
-  return "text-red-600"
-}
-
-function scoreBg(score: number): string {
-  if (score > 0.7) return "bg-emerald-500/10 border-emerald-500/20"
-  if (score > 0.4) return "bg-amber-500/10 border-amber-500/20"
-  return "bg-red-500/10 border-red-500/20"
-}
+// scoreColor / scoreBg removed with the fraud panel they used to paint. Both were
+// unreferenced, and both were another set of hand-picked reds and greens for a number
+// (fraud_score) that is 0.0 for every member on the platform.
 
 // getFraudRiskLevel / getAudienceQualityLabel removed. Both read profiles.ai_* columns
 // that no longer have a writer — the analyzers behind them were deleted in July after
@@ -191,11 +183,11 @@ function tokenDaysLeft(iso?: string | null): number | null {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000)
 }
 
-const ANALYTICS_STATUS_STYLES: Record<string, string> = {
-  complete:   "bg-emerald-500/10 text-emerald-600 border-emerald-300",
-  processing: "bg-blue-500/10 text-blue-600 border-blue-300",
-  pending:    "bg-amber-500/10 text-amber-600 border-amber-300",
-  failed:     "bg-red-500/10 text-red-600 border-red-300",
+const ANALYTICS_STATUS_TONE: Record<string, Tone> = {
+  complete: "good",
+  processing: "info",
+  pending: "warn",
+  failed: "bad",
 }
 
 /** Instagram OAuth health badges. An admin must see token validity before approving. */
@@ -205,76 +197,45 @@ function OAuthHealthBadges({ m }: { m: Partial<FAMember> }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {m.instagram_oauth_verified && !m.needs_reconnect ? (
-        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-300 text-[10px] px-1.5">
-          <ShieldCheck className="h-3 w-3 mr-1" />IG verified
+        <Badge variant="outline" className={`px-1.5 text-[10px] ${TONE_BADGE.good}`}>
+          <ShieldCheck className="mr-1 h-3 w-3" />Instagram connected
         </Badge>
       ) : (
-        <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-red-300 text-[10px] px-1.5">
-          <ShieldX className="h-3 w-3 mr-1" />{m.needs_reconnect ? "Reconnect needed" : "Not verified"}
+        <Badge variant="outline" className={`px-1.5 text-[10px] ${TONE_BADGE.bad}`}>
+          <ShieldX className="mr-1 h-3 w-3" />{m.needs_reconnect ? "Needs to reconnect" : "Not connected"}
         </Badge>
       )}
       {m.instagram_account_type && (
-        <Badge variant="outline" className="text-[10px] px-1.5 capitalize">
+        <Badge variant="outline" className={`px-1.5 text-[10px] capitalize ${TONE_BADGE.neutral}`}>
           {m.instagram_account_type.toLowerCase()}
         </Badge>
       )}
       {days != null && (
         <Badge
           variant="outline"
-          className={`text-[10px] px-1.5 ${tokenWarn ? "bg-amber-500/10 text-amber-600 border-amber-300" : "text-muted-foreground"}`}
+          className={`px-1.5 text-[10px] ${tokenWarn ? TONE_BADGE.warn : TONE_BADGE.neutral}`}
         >
-          <Clock className="h-3 w-3 mr-1" />
+          <Clock className="mr-1 h-3 w-3" />
           {days < 0 ? `Token expired ${Math.abs(days)}d ago` : `Token expires in ${days}d`}
         </Badge>
       )}
       {(m.instagram_refresh_failures ?? 0) > 0 && (
-        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-300 text-[10px] px-1.5">
-          <RefreshCcw className="h-3 w-3 mr-1" />{m.instagram_refresh_failures} refresh fails
+        <Badge variant="outline" className={`px-1.5 text-[10px] ${TONE_BADGE.warn}`}>
+          <RefreshCcw className="mr-1 h-3 w-3" />{m.instagram_refresh_failures} failed refreshes
         </Badge>
       )}
       {m.analytics_status && (
-        <Badge variant="outline" className={`text-[10px] px-1.5 capitalize ${ANALYTICS_STATUS_STYLES[m.analytics_status] || ""}`}>
-          <Sparkles className="h-3 w-3 mr-1" />Analytics {m.analytics_status}
+        <Badge variant="outline" className={`px-1.5 text-[10px] capitalize ${TONE_BADGE[ANALYTICS_STATUS_TONE[m.analytics_status] ?? "neutral"]}`}>
+          <Sparkles className="mr-1 h-3 w-3" />Analytics {m.analytics_status}
         </Badge>
       )}
     </div>
   )
 }
 
-function pct(v: number) {
-  return `${Math.round((v || 0) * 100)}%`
-}
-
-/** Horizontal distribution bars for first-party demographics (values are 0-1). */
-function DistroBars({
-  data,
-  max = 5,
-  labelMap,
-}: {
-  data?: Record<string, number> | null
-  max?: number
-  labelMap?: (k: string) => string
-}) {
-  const entries = Object.entries(data || {})
-    .filter(([, v]) => typeof v === "number" && v > 0)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, max)
-  if (!entries.length) return <p className="text-xs text-muted-foreground">Not available yet</p>
-  const top = entries[0][1] || 1
-  return (
-    <div className="space-y-1.5">
-      {entries.map(([k, v]) => (
-        <div key={k} className="flex items-center gap-2">
-          <span className="w-24 shrink-0 truncate text-xs text-muted-foreground">{labelMap ? labelMap(k) : k}</span>
-          <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted">
-            <div className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: `${Math.max(4, (v / top) * 100)}%` }} />
-          </div>
-          <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums">{pct(v)}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
+// DistroBars and its pct() helper removed: neither was ever rendered. The demographics
+// they were written for are drawn by FirstPartyAudienceAnalytics, which is what both the
+// member card and the detail sheet actually call.
 
 // ─── Member campaigns (per-member participation) ─────────────────────────────
 
@@ -291,20 +252,21 @@ interface MemberCampaign {
   last_event_at: string | null
 }
 
-const CAMPAIGN_TYPE_META: Record<string, { label: string; icon: any; color: string }> = {
-  cashback:  { label: "Cashback",  icon: QrCode, color: "bg-green-500/10 text-green-600 border-green-300" },
-  paid_deal: { label: "Paid Deal", icon: Coins,  color: "bg-purple-500/10 text-purple-600 border-purple-300" },
-  barter:    { label: "Barter",    icon: Gift,   color: "bg-blue-500/10 text-blue-600 border-blue-300" },
+/* Type is a fact, not a state, so it is neutral and its icon does the telling. */
+const CAMPAIGN_TYPE_META: Record<string, { label: string; icon: any }> = {
+  cashback:  { label: "Cashback",  icon: QrCode },
+  paid_deal: { label: "Paid deal", icon: Coins },
+  barter:    { label: "Barter",    icon: Gift },
 }
 
-const PARTICIPANT_STATUS_STYLES: Record<string, string> = {
-  pending_brand_approval: "bg-amber-500/10 text-amber-600 border-amber-300",
-  brand_rejected:         "bg-red-500/10 text-red-600 border-red-300",
-  accepted:               "bg-emerald-500/10 text-emerald-600 border-emerald-300",
-  active:                 "bg-emerald-500/10 text-emerald-600 border-emerald-300",
-  completed:              "bg-blue-500/10 text-blue-600 border-blue-300",
-  declined_by_creator:    "bg-muted text-muted-foreground",
-  cancelled:              "bg-muted text-muted-foreground",
+const PARTICIPANT_STATUS_TONE: Record<string, Tone> = {
+  pending_brand_approval: "warn",
+  brand_rejected: "bad",
+  accepted: "good",
+  active: "good",
+  completed: "info",
+  declined_by_creator: "neutral",
+  cancelled: "neutral",
 }
 
 function prettyStatus(s?: string | null): string {
@@ -344,10 +306,10 @@ function MemberCampaignsSection({ memberId, fallbackCount }: { memberId: string;
       {data && data.types.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-1.5">
           {data.types.map((t) => {
-            const cfg = CAMPAIGN_TYPE_META[t] || { label: t, icon: Megaphone, color: "" }
+            const cfg = CAMPAIGN_TYPE_META[t] || { label: t, icon: Megaphone }
             const Icon = cfg.icon
             return (
-              <Badge key={t} variant="outline" className={`text-[10px] ${cfg.color}`}>
+              <Badge key={t} variant="outline" className={`text-[10px] ${TONE_BADGE.neutral}`}>
                 <Icon className="h-3 w-3 mr-1" />{cfg.label}
               </Badge>
             )
@@ -370,12 +332,12 @@ function MemberCampaignsSection({ memberId, fallbackCount }: { memberId: string;
       ) : (
         <div className="space-y-2">
           {data.campaigns.map((c, i) => {
-            const cfg = CAMPAIGN_TYPE_META[c.campaign_type || ""] || { label: c.campaign_type || "Campaign", icon: Megaphone, color: "" }
+            const cfg = CAMPAIGN_TYPE_META[c.campaign_type || ""] || { label: c.campaign_type || "Campaign", icon: Megaphone }
             const Icon = cfg.icon
             const row = (
-              <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                  <Icon className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-3 rounded-ds-md border border-black/[0.06] px-3 py-2 dark:border-white/[0.07]">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-ds-sm bg-black/[0.04] dark:bg-white/[0.07]">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{c.campaign_name || "Untitled campaign"}</p>
@@ -385,7 +347,7 @@ function MemberCampaignsSection({ memberId, fallbackCount }: { memberId: string;
                 </div>
                 <Badge
                   variant="outline"
-                  className={`shrink-0 text-[10px] capitalize ${PARTICIPANT_STATUS_STYLES[c.participant_status || ""] || ""}`}
+                  className={`shrink-0 text-[10px] capitalize ${TONE_BADGE[PARTICIPANT_STATUS_TONE[c.participant_status || ""] ?? "neutral"]}`}
                 >
                   {prettyStatus(c.participant_status)}
                 </Badge>
@@ -587,8 +549,8 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
   }
 
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md">
-      <CardContent className="p-0">
+    <div className={`${CARD} overflow-hidden bg-[var(--tone-neutral-wash)]`}>
+      <div>
         <div className="p-5 space-y-4">
           {/* ─── Row 1: Avatar + Identity + Actions ─── */}
           <div className="flex items-start justify-between gap-4">
@@ -612,14 +574,14 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-semibold text-base leading-tight">{member.full_name}</h3>
-                  <Badge variant="outline" className={`text-[11px] px-2 ${TIER_STYLES[member.tier] || ""}`}>
+                  <Badge variant="outline" className={`px-2 text-[11px] ${TIER_BADGE[member.tier] || TONE_BADGE.neutral}`}>
                     {member.tier}
                   </Badge>
                   {member.verified && (
-                    <Badge className="bg-blue-500/10 text-blue-600 border-blue-300 text-[10px] px-1.5">Verified</Badge>
+                    <Badge variant="outline" className={`px-1.5 text-[10px] ${TONE_BADGE.neutral}`}>Verified on Instagram</Badge>
                   )}
                   {!isEligible && (
-                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Ineligible</Badge>
+                    <Badge variant="outline" className={`px-1.5 py-0 text-[10px] ${TONE_BADGE.warn}`}>Below our bar</Badge>
                   )}
                 </div>
                 <a
@@ -649,7 +611,7 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
                     variant="outline"
                     onClick={() => setRejectMode(true)}
                     disabled={acting}
-                    className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                    className={TONE_TEXT.bad}
                   >
                     <X className="h-4 w-4 mr-1" />
                     Reject
@@ -658,7 +620,7 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
                     size="sm"
                     onClick={handleApprove}
                     disabled={acting}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    
                   >
                     <Check className="h-4 w-4 mr-1" />
                     Approve
@@ -667,7 +629,7 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
               )}
               {approvalStatus === "approved" && !deleteConfirm && (
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-300">
+                  <Badge variant="outline" className={TONE_BADGE.good}>
                     <ShieldCheck className="h-3 w-3 mr-1" />Approved
                   </Badge>
                   <Button
@@ -685,7 +647,7 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
                     size="sm"
                     variant="ghost"
                     onClick={() => setDeleteConfirm(true)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 px-2"
+                    className={`h-7 px-2 ${TONE_TEXT.bad}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -693,7 +655,7 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
               )}
               {approvalStatus === "approved" && deleteConfirm && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-red-600 font-medium">Permanently delete?</span>
+                  <span className={`text-xs font-medium ${TONE_TEXT.bad}`}>Delete them for good?</span>
                   <Button
                     size="sm"
                     variant="destructive"
@@ -715,14 +677,14 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
               )}
               {approvalStatus === "rejected" && !deleteConfirm && (
                 <div className="flex items-center gap-2">
-                  <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-red-300">
+                  <Badge variant="outline" className={TONE_BADGE.bad}>
                     <ShieldX className="h-3 w-3 mr-1" />Rejected
                   </Badge>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => setDeleteConfirm(true)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 px-2"
+                    className={`h-7 px-2 ${TONE_TEXT.bad}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -730,7 +692,7 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
               )}
               {approvalStatus === "rejected" && deleteConfirm && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-red-600 font-medium">Permanently delete?</span>
+                  <span className={`text-xs font-medium ${TONE_TEXT.bad}`}>Delete them for good?</span>
                   <Button
                     size="sm"
                     variant="destructive"
@@ -761,12 +723,12 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
 
           {/* ─── Rejection reason input (inline) ─── */}
           {rejectMode && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
+            <div className={`flex items-center gap-2 rounded-ds-md p-3 ${TONE_BADGE.bad}`}>
               <Input
                 placeholder="Rejection reason (optional)..."
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="h-8 flex-1 text-sm border-red-200 focus-visible:ring-red-400"
+                className="h-8 flex-1 bg-background text-sm"
                 autoFocus
               />
               <Button
@@ -790,24 +752,34 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
           )}
 
           {/* ─── Row 2: Core Stats ─── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-muted/50 rounded-lg px-3 py-2.5">
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Followers</p>
-              <p className="text-lg font-bold mt-0.5">{formatNumber(member.followers_count)}</p>
-              <p className="text-[11px] text-muted-foreground">{member.followers_range}</p>
+          {/* Four figures that were four tinted tiles. The tiles said nothing the row had
+              not already said; the gap between them does the grouping now.
+
+              Engagement read `member.engagement_rate ?? 0`, so a creator whose scrape
+              never produced a rate was shown a confident "0%" — which on this screen is a
+              reason to reject somebody. A rate we do not hold is a dash. */}
+          <div className="grid grid-cols-2 gap-x-ds-4 gap-y-ds-3 sm:grid-cols-4">
+            <div>
+              <p className="text-ds-overline uppercase text-muted-foreground">Followers</p>
+              <p className="mt-0.5 text-lg font-semibold tabular-nums">{formatNumber(member.followers_count)}</p>
+              <p className="text-ds-caption text-muted-foreground">{member.followers_range}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg px-3 py-2.5">
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Engagement</p>
-              <p className="text-lg font-bold mt-0.5">{member.engagement_rate ?? 0}%</p>
-              <p className="text-[11px] text-muted-foreground">{member.engagement_range}</p>
+            <div>
+              <p className="text-ds-overline uppercase text-muted-foreground">Engagement</p>
+              <p className="mt-0.5 text-lg font-semibold tabular-nums">
+                {member.engagement_rate == null ? "—" : `${member.engagement_rate}%`}
+              </p>
+              <p className="text-ds-caption text-muted-foreground">
+                {member.engagement_rate == null ? "Not measured yet" : member.engagement_range}
+              </p>
             </div>
-            <div className="bg-muted/50 rounded-lg px-3 py-2.5">
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Posts</p>
-              <p className="text-lg font-bold mt-0.5">{formatNumber(member.posts_count || analytics?.posts_count)}</p>
+            <div>
+              <p className="text-ds-overline uppercase text-muted-foreground">Posts</p>
+              <p className="mt-0.5 text-lg font-semibold tabular-nums">{formatNumber(member.posts_count || analytics?.posts_count)}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg px-3 py-2.5">
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Following</p>
-              <p className="text-lg font-bold mt-0.5">{formatNumber(member.following_count || analytics?.following_count)}</p>
+            <div>
+              <p className="text-ds-overline uppercase text-muted-foreground">Following</p>
+              <p className="mt-0.5 text-lg font-semibold tabular-nums">{formatNumber(member.following_count || analytics?.following_count)}</p>
             </div>
           </div>
 
@@ -861,8 +833,8 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
             </span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
@@ -872,15 +844,25 @@ export default function FAMembersPage() {
   const [tab, setTab] = useState<"pending" | "approved" | "rejected" | "incomplete">("pending")
   const [members, setMembers] = useState<FAMember[]>([])
   const [loading, setLoading] = useState(true)
+  /* Whether the roster actually answered. Without it a failed request emptied the list and
+     the screen said "No pending creators" over a 500 — an approval queue reporting itself
+     clear. */
+  const [error, setError] = useState(false)
   // Multi-select bulk approve (only meaningful for not-yet-approved members).
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkApproving, setBulkApproving] = useState(false)
-  const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, incomplete: 0 })
+  /* Counts start unknown, not zero. `getTotal` read `r.data?.total ?? 0`, and the whole
+     Promise.all rejects if any one of the five calls fails, so a broken tab counter left
+     the header saying "0 total" and every tab showing a confident nought. */
+  const [counts, setCounts] = useState<{
+    pending: number | null; approved: number | null; rejected: number | null; incomplete: number | null
+  }>({ pending: null, approved: null, rejected: null, incomplete: null })
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<SortOption>("newest")
 
   const load = useCallback(async () => {
     setLoading(true)
+    setError(false)
     try {
       // "pending" review = only COMPLETE signups (IG + niches + profile all done).
       // In-progress / abandoned signups live in their own "Incomplete" tab so they
@@ -908,7 +890,7 @@ export default function FAMembersPage() {
             : []
       setMembers(list)
 
-      const getTotal = (r: any) => r.data?.total ?? 0
+      const getTotal = (r: any) => r.data?.total ?? null
       setCounts({
         pending: getTotal(pendingRes),
         approved: getTotal(approvedRes),
@@ -916,7 +898,9 @@ export default function FAMembersPage() {
         incomplete: getTotal(incompleteRes),
       })
     } catch {
-      toast.error("Failed to load members")
+      setError(true)
+      setCounts({ pending: null, approved: null, rejected: null, incomplete: null })
+      toast.error("Could not load creators")
     } finally {
       setLoading(false)
     }
@@ -991,134 +975,104 @@ export default function FAMembersPage() {
     return result
   }, [members, searchQuery, sortBy])
 
-  const totalCount = counts.pending + counts.approved + counts.rejected
+  /* Null unless all three answered: adding a known figure to an unknown one produces a
+     number that looks measured and is not. */
+  const totalCount =
+    counts.pending == null || counts.approved == null || counts.rejected == null
+      ? null
+      : counts.pending + counts.approved + counts.rejected
 
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="space-y-6">
+        <FaPage>
           {/* ─── Header ─── */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight">Creator Review</h1>
-                <Badge variant="secondary" className="text-xs font-medium">
-                  {totalCount} total
-                </Badge>
-              </div>
-              <p className="text-muted-foreground text-sm mt-0.5">
-                Review, analyze, and approve influencer applications
-              </p>
-            </div>
-
-            {/* Search + Sort */}
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search name, username, niche..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-64 h-9"
-                />
-              </div>
-              <Select value={sortBy} onValueChange={(v: string) => setSortBy(v as SortOption)}>
-                <SelectTrigger className="w-44 h-9">
-                  <ArrowDownUp className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                  <SelectValue placeholder="Sort by..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="followers">Most Followers</SelectItem>
-                  <SelectItem value="engagement">Highest Engagement</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <PageHead
+            title="Creators"
+            sub={
+              totalCount == null
+                ? "Everyone who has signed up to the Following App. Approving somebody lets them apply to campaigns."
+                : `${totalCount} creators have signed up to the Following App. Approving somebody lets them apply to campaigns.`
+            }
+            action={
+              <>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search a name, a handle or a niche"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-9 w-64 pl-9"
+                  />
+                </div>
+                <Select value={sortBy} onValueChange={(v: string) => setSortBy(v as SortOption)}>
+                  <SelectTrigger className="h-9 w-44">
+                    <ArrowDownUp className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest first</SelectItem>
+                    <SelectItem value="followers">Most followers</SelectItem>
+                    <SelectItem value="engagement">Highest engagement</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
+            }
+          />
 
           {/* ─── Filter Tabs ─── */}
-          <div className="flex gap-2">
-            <Button
-              variant={tab === "pending" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTab("pending")}
-              className="gap-1.5"
-            >
-              <Clock className="h-3.5 w-3.5" />
-              Edge-Case Review
-              {counts.pending > 0 && (
-                <Badge
-                  variant={tab === "pending" ? "secondary" : "destructive"}
-                  className="ml-1 h-5 px-1.5 text-[11px] font-semibold"
+          {/* Each count is a dash until its request answers. A queue counter that shows a
+              nought when it could not ask is the difference between "nobody is waiting"
+              and "we do not know", and only one of those means you can go home. */}
+          <div className="flex flex-wrap gap-2">
+            {([
+              { key: "pending" as const, icon: Clock, label: "Waiting on us", count: counts.pending,
+                title: "Signups that finished but still need a decision" },
+              { key: "approved" as const, icon: ShieldCheck, label: "Approved", count: counts.approved, title: undefined },
+              { key: "rejected" as const, icon: ShieldX, label: "Rejected", count: counts.rejected, title: undefined },
+              { key: "incomplete" as const, icon: Hourglass, label: "Never finished signing up", count: counts.incomplete,
+                title: "Signed up but never connected Instagram or picked their niches" },
+            ]).map((t) => {
+              const Icon = t.icon
+              return (
+                <Button
+                  key={t.key}
+                  variant={tab === t.key ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTab(t.key)}
+                  className="gap-1.5"
+                  title={t.title}
                 >
-                  {counts.pending}
-                </Badge>
-              )}
-            </Button>
-            <Button
-              variant={tab === "approved" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTab("approved")}
-              className="gap-1.5"
-            >
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Approved
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[11px]">{counts.approved}</Badge>
-            </Button>
-            <Button
-              variant={tab === "rejected" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTab("rejected")}
-              className="gap-1.5"
-            >
-              <ShieldX className="h-3.5 w-3.5" />
-              Rejected
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[11px]">{counts.rejected}</Badge>
-            </Button>
-            <Button
-              variant={tab === "incomplete" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTab("incomplete")}
-              className="gap-1.5"
-              title="Signed up but haven't finished — no Instagram, niches, or profile yet"
-            >
-              <Hourglass className="h-3.5 w-3.5" />
-              Incomplete
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[11px]">{counts.incomplete}</Badge>
-            </Button>
+                  <Icon className="h-3.5 w-3.5" />
+                  {t.label}
+                  <span className="ml-1 tabular-nums opacity-70">{figure(t.count)}</span>
+                </Button>
+              )
+            })}
           </div>
 
           {/* ─── Member List ─── */}
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <Loader2 className="h-8 w-8 animate-spin mb-3" />
-              <p className="text-sm">Loading creators...</p>
-            </div>
+            <Loading label="Loading creators" />
+          ) : error ? (
+            <Failed what="creators" onRetry={load} />
           ) : filteredMembers.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-16">
-                <Users className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-                <p className="text-muted-foreground font-medium">
-                  {searchQuery
-                    ? `No creators matching "${searchQuery}"`
-                    : `No ${tab} creators`}
-                </p>
-                {searchQuery && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => setSearchQuery("")}
-                  >
-                    Clear search
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+            <div className="space-y-ds-2">
+              <Nothing>
+                {searchQuery
+                  ? `No creator matches “${searchQuery}”.`
+                  : "Nobody is in this list."}
+              </Nothing>
+              {searchQuery && (
+                <Button variant="outline" size="sm" onClick={() => setSearchQuery("")}>
+                  Clear the search
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="space-y-3">
               {selectable && filteredMembers.length > 0 && (
-                <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/30 px-4 py-2.5">
+                <div className="flex flex-wrap items-center gap-3 rounded-ds-md border border-black/[0.06] px-4 py-2.5 dark:border-white/[0.07]">
                   <Checkbox
                     checked={selected.size > 0 && selected.size === filteredMembers.length}
                     onCheckedChange={(v) =>
@@ -1140,7 +1094,7 @@ export default function FAMembersPage() {
                         size="sm"
                         disabled={bulkApproving}
                         onClick={bulkApprove}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        
                       >
                         {bulkApproving
                           ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Approving…</>
@@ -1161,7 +1115,7 @@ export default function FAMembersPage() {
               ))}
             </div>
           )}
-        </div>
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

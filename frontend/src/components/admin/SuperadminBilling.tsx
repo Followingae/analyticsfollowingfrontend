@@ -29,6 +29,20 @@ import {
 } from 'lucide-react';
 import { superadminService } from '@/utils/superadminApi';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { Aed, PageHead, Stat, StatGrid } from '@/components/console/primitives';
+
+/**
+ * Money on screen.
+ *
+ * Every figure here was written as a bare U+20C3 in JSX. No system font carries that
+ * codepoint, and only the `Aed` primitive names the face that does, so the mark rendered as
+ * an empty box beside every revenue number on the screen leadership reads first.
+ *
+ * Absent is a dash. These all read `x?.toLocaleString() || 0` before, so a response that did
+ * not carry `mrr` printed a confident zero MRR. A real zero still prints 0.
+ */
+const Aed2 = ({ value }: { value: number | null | undefined }) =>
+  value == null ? <>—</> : <Aed>{Number(value).toLocaleString('en-AE')}</Aed>;
 
 interface Transaction {
   id: string;
@@ -133,9 +147,9 @@ Revenue Report - ${format(new Date(), 'MMMM yyyy')}
 =====================================
 
 Key Metrics:
-- Total Revenue: ⃃${revenueStats?.total_revenue?.toLocaleString() || 0}
-- MRR: ⃃${revenueStats?.mrr?.toLocaleString() || 0}
-- ARR: ⃃${revenueStats?.arr?.toLocaleString() || 0}
+- Total Revenue: AED ${revenueStats?.total_revenue?.toLocaleString() ?? "not reported"}
+- MRR: AED ${revenueStats?.mrr?.toLocaleString() ?? "not reported"}
+- ARR: AED ${revenueStats?.arr?.toLocaleString() ?? "not reported"}
 - Growth Rate: ${revenueStats?.growth_rate?.toFixed(2) || 0}%
 
 Subscriptions:
@@ -144,8 +158,8 @@ Subscriptions:
 - Trial Users: ${revenueStats?.trial_users || 0}
 
 MRR Movement:
-- New MRR: ⃃${revenueStats?.new_mrr?.toLocaleString() || 0}
-- Churn MRR: ⃃${revenueStats?.churn_mrr?.toLocaleString() || 0}
+- New MRR: AED ${revenueStats?.new_mrr?.toLocaleString() ?? "not reported"}
+- Churn MRR: AED ${revenueStats?.churn_mrr?.toLocaleString() ?? "not reported"}
 `;
 
     const blob = new Blob([report], { type: 'text/plain' });
@@ -190,114 +204,79 @@ MRR Movement:
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Billing & Revenue</h1>
-          <p className="text-muted-foreground">Manage transactions and revenue analytics</p>
+    <div className="space-y-ds-5">
+      {/* The money hub's own header sits directly above this, carrying the destination's
+          name. This is the screen's name inside it, which is how the restyled hubs pair a
+          header with a tab. */}
+      <PageHead
+        title="Client invoices"
+        sub="What we invoiced against what landed, and every transaction behind it."
+        action={
+          <>
+            <Button onClick={handleExportRevenue} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export report
+            </Button>
+            <Button onClick={loadBillingData} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </>
+        }
+      />
+
+      {/* An error is not a month with no revenue.
+          The alert used to sit above the figures and the figures still rendered — every one
+          of them `|| 0`, so a failed read printed "0 revenue, 0 MRR, 0 subscriptions" on the
+          screen that answers how the business is doing. The error replaces the rest. */}
+      {error ? (
+        <div className="space-y-3">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <p className="text-sm text-muted-foreground">
+            Nothing below could be read, so no figure is shown. This is not a month with no
+            revenue.
+          </p>
+          <Button variant="outline" size="sm" onClick={loadBillingData}>Try again</Button>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={handleExportRevenue} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
-          <Button onClick={loadBillingData} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+      ) : (
+      <>
+      {/* Four bordered cards became four figures with room around them. Each read `|| 0`,
+          which turned a missing field into a confident zero; absent is a dash now. */}
+      <StatGrid>
+        <Stat
+          label="Total revenue"
+          value={<Aed2 value={revenueStats?.total_revenue} />}
+          icon={Coins}
+          hint={revenueStats?.growth_rate == null
+            ? 'Growth against last month did not come back'
+            : `${revenueStats.growth_rate > 0 ? '+' : ''}${revenueStats.growth_rate.toFixed(1)}% against last month`}
+          tone={revenueStats?.growth_rate == null ? 'neutral'
+            : revenueStats.growth_rate > 0 ? 'good' : 'bad'} />
 
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+        <Stat
+          label="MRR"
+          value={<Aed2 value={revenueStats?.mrr} />}
+          icon={CreditCard}
+          hint={<>ARR <Aed2 value={revenueStats?.arr} /></>} />
 
-      {/* Revenue Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <Coins className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ⃃{revenueStats?.total_revenue?.toLocaleString() || 0}
-            </div>
-            <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-              {revenueStats?.growth_rate && revenueStats.growth_rate > 0 ? (
-                <>
-                  <TrendingUp className="h-3 w-3 text-green-600" />
-                  <span className="text-green-600">+{revenueStats.growth_rate.toFixed(1)}%</span>
-                </>
-              ) : (
-                <>
-                  <TrendingDown className="h-3 w-3 text-red-600" />
-                  <span className="text-red-600">{revenueStats?.growth_rate?.toFixed(1)}%</span>
-                </>
-              )}
-              <span>vs last month</span>
-            </div>
-          </CardContent>
-        </Card>
+        <Stat
+          label="Active subscriptions"
+          value={revenueStats?.active_subscriptions ?? '—'}
+          icon={Package}
+          hint={revenueStats?.paying_users == null
+            ? 'How many are paying did not come back'
+            : `${revenueStats.paying_users.toLocaleString()} paying`} />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">MRR</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ⃃{revenueStats?.mrr?.toLocaleString() || 0}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              ARR: ⃃{revenueStats?.arr?.toLocaleString() || 0}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {revenueStats?.active_subscriptions || 0}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {revenueStats?.paying_users || 0} paying users
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">MRR Movement</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">New:</span>
-                <span className="text-green-600 font-medium">
-                  +⃃{revenueStats?.new_mrr?.toLocaleString() || 0}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Churn:</span>
-                <span className="text-red-600 font-medium">
-                  -⃃{revenueStats?.churn_mrr?.toLocaleString() || 0}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        <Stat
+          label="MRR movement"
+          value={<Aed2 value={revenueStats?.new_mrr} />}
+          icon={Users}
+          tone={revenueStats?.new_mrr ? 'good' : 'neutral'}
+          hint={<>new this month, <Aed2 value={revenueStats?.churn_mrr} /> churned</>} />
+      </StatGrid>
 
       {/* Tabs for Different Views */}
       <Tabs defaultValue="transactions" className="space-y-4">
@@ -361,14 +340,14 @@ MRR Movement:
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Revenue</p>
-                  <p className="text-lg font-bold text-green-600">
-                    ⃃{summaryStats.revenue.toLocaleString()}
+                  <p className="text-lg font-bold text-[var(--tone-good-ink)]">
+                    <Aed2 value={summaryStats.revenue} />
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Refunds</p>
-                  <p className="text-lg font-bold text-red-600">
-                    ⃃{summaryStats.refunds.toLocaleString()}
+                  <p className="text-lg font-bold text-[var(--tone-bad-ink)]">
+                    <Aed2 value={summaryStats.refunds} />
                   </p>
                 </div>
                 <div>
@@ -408,11 +387,11 @@ MRR Movement:
                       <TableCell>
                         <div className="flex items-center">
                           {transaction.type === 'refund' ? (
-                            <ArrowDownRight className="h-4 w-4 mr-1 text-red-500" />
+                            <ArrowDownRight className="h-4 w-4 mr-1 text-[var(--tone-bad-dot)]" />
                           ) : (
-                            <ArrowUpRight className="h-4 w-4 mr-1 text-green-500" />
+                            <ArrowUpRight className="h-4 w-4 mr-1 text-[var(--tone-good-dot)]" />
                           )}
-                          <span className={transaction.type === 'refund' ? 'text-red-600' : ''}>
+                          <span className={transaction.type === 'refund' ? 'text-[var(--tone-bad-ink)]' : ''}>
                             {transaction.currency} {transaction.amount.toFixed(2)}
                           </span>
                         </div>
@@ -500,11 +479,11 @@ MRR Movement:
                     {chartData.map((data) => (
                       <TableRow key={data.date}>
                         <TableCell className="font-medium">{data.date}</TableCell>
-                        <TableCell>⃃{data.revenue.toLocaleString()}</TableCell>
+                        <TableCell className="tabular-nums"><Aed2 value={data.revenue} /></TableCell>
                         <TableCell>{data.subscriptions}</TableCell>
-                        <TableCell className="text-red-600">-{data.churn}</TableCell>
+                        <TableCell className="tabular-nums text-[var(--tone-bad-ink)]">-{data.churn}</TableCell>
                         <TableCell>
-                          <span className={data.subscriptions - data.churn >= 0 ? 'text-green-600' : 'text-red-600'}>
+                          <span className={data.subscriptions - data.churn >= 0 ? 'text-[var(--tone-good-ink)]' : 'text-[var(--tone-bad-ink)]'}>
                             {data.subscriptions - data.churn >= 0 ? '+' : ''}{data.subscriptions - data.churn}
                           </span>
                         </TableCell>
@@ -571,8 +550,9 @@ MRR Movement:
                     <div className="flex justify-between">
                       <span>Avg. Revenue/User:</span>
                       <span className="font-medium">
-                        ⃃{revenueStats?.paying_users ?
-                          (revenueStats.mrr / revenueStats.paying_users).toFixed(2) : 0}
+                        {revenueStats?.paying_users
+                          ? <Aed2 value={Number((revenueStats.mrr / revenueStats.paying_users).toFixed(2))} />
+                          : "—"}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -589,6 +569,8 @@ MRR Movement:
           </Card>
         </TabsContent>
       </Tabs>
+      </>
+      )}
     </div>
   );
 }

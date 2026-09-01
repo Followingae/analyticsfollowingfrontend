@@ -14,28 +14,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { FieldStrip, PageHead, Panel } from "@/components/console/primitives"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -114,6 +101,21 @@ export default function UserEditPage() {
   const [newPassword, setNewPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [transactions, setTransactions] = useState<CreditTxn[]>([])
+  /**
+   * "User Not Found. The requested user could not be found."
+   *
+   * That was the screen for every outcome except a successful read. `loadUserData` caught the
+   * throw, toasted, and left `user` null; a `success: false` response did not even toast. So a
+   * 500, a dropped connection and an expired session all rendered as a statement that this
+   * account does not exist — on the screen an operator opens when a client says they cannot
+   * log in. Deleted and unreachable now read differently, and the error carries what went
+   * wrong plus a way to ask again.
+   */
+  const [failure, setFailure] = useState<{ missing: boolean; detail: string } | null>(null)
+  // The transaction fetch swallowed every non-2xx into `console.error`, so a failed read of
+  // the credit history rendered as no history: the section is simply not drawn when the list
+  // is empty, and empty was also what a failure produced.
+  const [txnFailed, setTxnFailed] = useState(false)
 
   // Form states
   const [basicInfo, setBasicInfo] = useState({
@@ -154,9 +156,17 @@ export default function UserEditPage() {
       setLoading(true)
 
       const userResult = await superadminApiService.getUserDetails(userId)
-      if (userResult.success && userResult.data) {
+      if (!userResult.success || !userResult.data) {
+        const detail = userResult.error || 'The request did not complete'
+        setUser(null)
+        // Only an explicit "not found" is allowed to say the account does not exist.
+        setFailure({ missing: /not found|404/i.test(detail), detail })
+        return
+      }
+      {
         const userData = userResult.data
         setUser(userData)
+        setFailure(null)
 
         setBasicInfo({
           email: userData.email || '',
@@ -176,7 +186,7 @@ export default function UserEditPage() {
         setTeamSettings({
           team_name: userData.team_name || '',
           team_role: userData.team_role || '',
-          monthly_profile_limit: userData.monthly_profile_limit || 0,
+          monthly_profile_limit: userData.monthly_profile_limit ?? 0,
         })
 
         setSecurityOverrides({
@@ -186,7 +196,9 @@ export default function UserEditPage() {
       }
 
     } catch (error) {
-      toast.error('Failed to load user data')
+      setUser(null)
+      setFailure({ missing: false, detail: error instanceof Error && error.message ? error.message : 'The request did not complete' })
+      toast.error('Could not load this account')
     } finally {
       setLoading(false)
     }
@@ -204,9 +216,14 @@ export default function UserEditPage() {
       if (res.ok) {
         const data = await res.json()
         setTransactions(data.transactions || [])
+        setTxnFailed(false)
+      } else {
+        setTransactions([])
+        setTxnFailed(true)
       }
     } catch (error) {
-      console.error('Failed to load user transactions:', error)
+      setTransactions([])
+      setTxnFailed(true)
     }
   }
 
@@ -349,10 +366,10 @@ export default function UserEditPage() {
   if (loading) {
     return (
       <SuperadminLayout>
-        <div className="flex flex-1 flex-col items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <p className="text-muted-foreground">Loading user details...</p>
+        <div className="space-y-ds-5">
+          <Skeleton className="h-9 w-64 rounded-ds-lg" />
+          <div className="grid gap-ds-4 lg:grid-cols-2">
+            {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-[260px] rounded-ds-2xl" />)}
           </div>
         </div>
       </SuperadminLayout>
@@ -362,15 +379,43 @@ export default function UserEditPage() {
   if (!user) {
     return (
       <SuperadminLayout>
-        <div className="flex flex-1 flex-col items-center justify-center">
-          <div className="text-center space-y-4">
-            <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto" />
-            <h2 className="text-2xl font-semibold">User Not Found</h2>
-            <p className="text-muted-foreground">The requested user could not be found.</p>
-            <Button onClick={() => router.push('/superadmin/users')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Users
-            </Button>
+        <div className="space-y-ds-5">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground"
+                  onClick={() => router.push('/superadmin/users')}>
+            <ArrowLeft className="h-4 w-4" /> Users
+          </Button>
+          <div className="py-ds-6 text-center">
+            <AlertTriangle className="mx-auto h-8 w-8 text-muted-foreground" />
+            {failure?.missing ? (
+              <>
+                <p className="mt-ds-3 text-ds-subheading">No account with this id</p>
+                <p className="mt-ds-2 text-ds-body text-muted-foreground">
+                  The server looked and found nothing. Either the account was deleted, or the
+                  link you followed carries an id that never existed.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-ds-3 text-ds-subheading">Could not load this account</p>
+                <p className="mt-ds-2 text-ds-body text-muted-foreground">
+                  This does not mean the account is gone. The request failed, so nothing about
+                  it is known from here.
+                </p>
+              </>
+            )}
+            {failure?.detail && (
+              <p className="mt-ds-2 text-ds-caption text-muted-foreground">{failure.detail}</p>
+            )}
+            <div className="mt-ds-3 flex justify-center gap-ds-2">
+              {!failure?.missing && (
+                <Button variant="outline" size="sm" onClick={() => { loadUserData(); loadTransactions() }}>
+                  <RefreshCw className="mr-1.5 h-4 w-4" /> Try again
+                </Button>
+              )}
+              <Button size="sm" onClick={() => router.push('/superadmin/users')}>
+                Back to the user list
+              </Button>
+            </div>
           </div>
         </div>
       </SuperadminLayout>
@@ -379,10 +424,10 @@ export default function UserEditPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-6">
+      <div className="space-y-ds-5">
 
         {/* Header */}
-        <div className="space-y-4">
+        <div className="space-y-ds-3">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -398,41 +443,28 @@ export default function UserEditPage() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">{user.full_name}</h1>
-                <p className="text-muted-foreground">{user.email}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={user.status === 'active' ? 'default' : 'destructive'}>
-                {user.status}
-              </Badge>
-              <Badge variant="outline">
-                {user.role}
-              </Badge>
-            </div>
-          </div>
+          {/* The tinted circle holding a person icon beside a name told you the row was
+              about a person, which the name already did. The console page head instead, so
+              this title weighs what every other title weighs. */}
+          <PageHead
+            title={user.full_name || user.email}
+            sub={user.full_name ? user.email : undefined}
+            action={
+              <>
+                <Badge variant={user.status === 'active' ? 'default' : 'destructive'} className="capitalize">
+                  {user.status}
+                </Badge>
+                <Badge variant="outline">{user.role}</Badge>
+              </>
+            }
+          />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-ds-4 lg:grid-cols-2">
 
           {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Basic Information
-              </CardTitle>
-              <CardDescription>
-                User profile and contact information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Panel title="Basic information" description="Profile and contact details. The email is their login.">
+              <div className="space-y-ds-3">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -489,23 +521,13 @@ export default function UserEditPage() {
                 <Save className="h-4 w-4 mr-2" />
                 Save Basic Information
               </Button>
-            </CardContent>
-          </Card>
+              </div>
+            </Panel>
 
           {/* Password — lives in Supabase Auth, not the users table, which is why it is its
               own card with its own save rather than part of Basic Information. */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5" />
-                Password
-              </CardTitle>
-              <CardDescription>
-                Set this account&apos;s password directly. It takes effect immediately and no
-                email is sent — you have to pass it to them yourself.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Panel title="Password" description="Sets the password immediately. No email is sent, so you have to pass it to them yourself.">
+              <div className="space-y-ds-3">
               <div className="space-y-2">
                 <Label htmlFor="new_password">New password</Label>
                 <div className="flex gap-2">
@@ -530,21 +552,12 @@ export default function UserEditPage() {
                 <KeyRound className="h-4 w-4 mr-2" />
                 {savingPassword ? 'Setting…' : 'Set password'}
               </Button>
-            </CardContent>
-          </Card>
+              </div>
+            </Panel>
 
           {/* Account Control */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Account Control
-              </CardTitle>
-              <CardDescription>
-                Role, status, and subscription management
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Panel title="Account control" description="Role, status and subscription.">
+              <div className="space-y-ds-3">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
@@ -608,36 +621,33 @@ export default function UserEditPage() {
                 <Save className="h-4 w-4 mr-2" />
                 Save Account Settings
               </Button>
-            </CardContent>
-          </Card>
+              </div>
+            </Panel>
 
           {/* Credits Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Credits Management
-              </CardTitle>
-              <CardDescription>
-                Current balance: {(user.current_balance || 0).toLocaleString()} credits
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Current Balance:</span>
-                  <span className="font-semibold text-base">{(user.current_balance || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Used This Month:</span>
-                  <span className="font-medium">{(user.credits_used_this_month || 0).toLocaleString()}</span>
-                </div>
-              </div>
+          <Panel title="Credits" description="Add or remove credits, and read the last ten movements on this wallet.">
+              <div className="space-y-ds-3">
+              {/* `|| 0` made a wallet we failed to read look like a wallet with nothing in
+                  it, which is the one distinction someone opens this panel to check. */}
+              <FieldStrip
+                fields={[
+                  { label: 'Balance', value: (
+                    <span className="tabular-nums">
+                      {user.current_balance == null ? '—' : user.current_balance.toLocaleString()}
+                    </span>
+                  ) },
+                  { label: 'Used this month', value: (
+                    <span className="tabular-nums">
+                      {user.credits_used_this_month == null ? '—' : user.credits_used_this_month.toLocaleString()}
+                    </span>
+                  ) },
+                ]}
+              />
 
               <Separator />
 
               <div className="space-y-4">
-                <h4 className="font-medium">Adjust Credits</h4>
+                <h4 className="text-ds-label">Adjust the balance</h4>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Action</Label>
@@ -646,8 +656,8 @@ export default function UserEditPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="add">Add Credits</SelectItem>
-                        <SelectItem value="remove">Remove Credits</SelectItem>
+                        <SelectItem value="add">Add credits</SelectItem>
+                        <SelectItem value="remove">Remove credits</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -664,7 +674,7 @@ export default function UserEditPage() {
                 <div className="space-y-2">
                   <Label>Reason</Label>
                   <Textarea
-                    placeholder="Reason for credit adjustment..."
+                    placeholder="Why the balance is changing. This is written to the ledger."
                     value={creditsAdjustment.reason}
                     onChange={(e) => setCreditsAdjustment(prev => ({ ...prev, reason: e.target.value }))}
                   />
@@ -675,27 +685,38 @@ export default function UserEditPage() {
                   variant={creditsAdjustment.action === 'remove' ? 'destructive' : 'default'}
                 >
                   <Coins className="h-4 w-4 mr-2" />
-                  {creditsAdjustment.action === 'add' ? 'Add' : 'Remove'} Credits
+                  {creditsAdjustment.action === 'add' ? 'Add' : 'Remove'} credits
                 </Button>
               </div>
 
               {/* Transaction History */}
-              {transactions.length > 0 && (
+              {/* The section was gated on `transactions.length > 0`, and a failed fetch also
+                  produced an empty array — so a wallet whose history could not be read looked
+                  exactly like a wallet that has never moved. A failure says so instead. */}
+              {txnFailed && (
                 <>
                   <Separator />
-                  <div className="space-y-3">
-                    <h4 className="font-medium flex items-center gap-2">
+                  <p className="text-ds-body-sm text-muted-foreground">
+                    The credit history did not load. This is not a wallet with no movements on it.
+                  </p>
+                </>
+              )}
+              {!txnFailed && transactions.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-ds-2">
+                    <h4 className="flex items-center gap-2 text-ds-label">
                       <History className="h-4 w-4" />
-                      Recent Transactions
+                      Recent movements
                     </h4>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {transactions.map((txn) => (
-                        <div key={txn.id} className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/50 text-sm">
+                        <div key={txn.id} className="flex items-center justify-between py-ds-2 text-sm">
                           <div className="flex items-center gap-2 min-w-0">
                             {txn.amount > 0 ? (
-                              <TrendingUp className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                              <TrendingUp className="h-3.5 w-3.5 shrink-0 text-[var(--tone-good-ink)]" />
                             ) : (
-                              <TrendingDown className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                              <TrendingDown className="h-3.5 w-3.5 shrink-0 text-[var(--tone-bad-ink)]" />
                             )}
                             <div className="min-w-0">
                               <span className="truncate block">{txn.description || txn.transaction_type}</span>
@@ -703,11 +724,11 @@ export default function UserEditPage() {
                             </div>
                           </div>
                           <div className="text-right shrink-0 ml-4">
-                            <span className={`font-medium ${txn.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <span className={`font-medium tabular-nums ${txn.amount > 0 ? 'text-[var(--tone-good-ink)]' : 'text-[var(--tone-bad-ink)]'}`}>
                               {txn.amount > 0 ? '+' : ''}{txn.amount.toLocaleString()}
                             </span>
                             <div className="text-xs text-muted-foreground">
-                              bal: {(txn.balance_after || 0).toLocaleString()}
+                              bal: {txn.balance_after == null ? '—' : txn.balance_after.toLocaleString()}
                             </div>
                           </div>
                         </div>
@@ -716,21 +737,12 @@ export default function UserEditPage() {
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
+              </div>
+            </Panel>
 
           {/* Team Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Team Management
-              </CardTitle>
-              <CardDescription>
-                Team settings and limits
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Panel title="Team" description="Which team this account sits in, and its monthly profile limit.">
+              <div className="space-y-ds-3">
               <div className="grid gap-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Team Name:</span>
@@ -742,24 +754,15 @@ export default function UserEditPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Profile Limit:</span>
-                  <span className="font-medium">{user.monthly_profile_limit}</span>
+                  <span className="font-medium tabular-nums">{user.monthly_profile_limit == null ? '—' : user.monthly_profile_limit.toLocaleString()}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              </div>
+            </Panel>
 
           {/* Security Override */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Security Override
-              </CardTitle>
-              <CardDescription>
-                Security settings and overrides
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Panel title="Security and sign-in" description="Verification state and sign-in history. Read-only here.">
+              <div className="space-y-ds-3">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -792,7 +795,7 @@ export default function UserEditPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Login Count:</span>
-                    <span>{user.login_count}</span>
+                    <span className="tabular-nums">{user.login_count == null ? '—' : user.login_count.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Account Created:</span>
@@ -800,47 +803,39 @@ export default function UserEditPage() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              </div>
+            </Panel>
 
         </div>
 
-        {/* Danger Zone */}
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Danger Zone
-            </CardTitle>
-            <CardDescription>
-              Irreversible actions that permanently affect the user account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete User Account
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Delete User Account</DialogTitle>
-                  <DialogDescription>
-                    This action cannot be undone. This will permanently delete the user account and all associated data.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline">Cancel</Button>
-                  <Button variant="destructive">
-                    Delete Account
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </CardContent>
-        </Card>
+        {/*
+          Delete account: a control that has never done anything.
+
+          The red "Delete Account" button inside this dialog carries no onClick and no
+          handler exists anywhere in the file, so pressing it closed nothing, called nothing
+          and deleted nothing. An operator who used it would reasonably believe the account
+          was gone, and would say so to the client. There is no delete endpoint wired here to
+          call, so this is NOT quietly implemented: the control is disabled and says plainly
+          that deletion is not available from this screen, and what to do instead. Suspending
+          from the user list is the reversible action that actually works today.
+        */}
+        <div className="space-y-ds-2 border-t border-black/[0.06] pt-ds-4 dark:border-white/[0.07]">
+          <p className="flex items-center gap-ds-2 text-ds-label text-destructive">
+            <AlertTriangle className="h-4 w-4" /> Deleting an account
+          </p>
+          <p className="max-w-2xl text-ds-body-sm text-muted-foreground">
+            Accounts cannot be deleted from here. This screen has never been able to delete
+            one: the button that used to sit here was not connected to anything, so pressing
+            it looked like it worked and did nothing at all. To cut someone&apos;s access,
+            suspend them from the user list, which is reversible and takes effect at once. A
+            permanent deletion has to be done by an engineer, because it touches billing
+            records and the audit trail.
+          </p>
+          <Button variant="destructive" disabled className="mt-ds-1">
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete account (not available here)
+          </Button>
+        </div>
 
       </div>
     </SuperadminLayout>
