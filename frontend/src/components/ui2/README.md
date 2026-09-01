@@ -91,6 +91,25 @@ moves the whole set. Reach for the semantic aliases first:
 with `rounded-ds-none|xs|sm|md|lg|xl|2xl|full` underneath when you genuinely
 need a size rather than a role.
 
+**Spacing — six steps, named for the relationship they express.** Usable
+anywhere Tailwind takes a spacing value: `gap-ds-4`, `p-ds-3`, `mt-ds-5`,
+`space-y-ds-2`.
+
+| Step | Size | Means |
+| --- | --- | --- |
+| `ds-1` | 4px | Glued — an icon to its label. |
+| `ds-2` | 8px | Paired — a figure and the caption naming it. |
+| `ds-3` | 16px | Grouped — rows in one list, fields in one set. |
+| `ds-4` | 24px | Separated — one stat from the next. |
+| `ds-5` | 40px | Sectioned — a genuinely different subject. |
+| `ds-6` | 64px | Banded — page-level bands. |
+
+Six, not nine, because two adjacent steps have to be *visibly* different or
+the reader cannot use the gap to tell grouping from separation. On internal
+screens whitespace is the grouping mechanism: stepping up this scale is
+almost always better than drawing a border, because a border is an extra
+edge the eye must cross to reach the number inside it.
+
 **These scales are not retrofitted to existing pages.** They are defined so new
 work has something to reach for. Rewriting a live page's type to use them is a
 separate, deliberate change.

@@ -97,4 +97,39 @@
   --radius-ds-field: calc(var(--radius) - 2px);
   --radius-ds-surface: var(--radius);
   --radius-ds-overlay: calc(var(--radius) + 4px);
+
+  /* --------------------------------------------------------------------
+     SPACING SCALE — six steps
+     The audit found nine ad-hoc spacing values on a single page. Nine
+     values is not a rhythm, it is noise: the reader cannot tell which gaps
+     mean "these belong together" and which mean "a new subject starts
+     here", because every gap is slightly different from every other one.
+
+     Six steps, each roughly 1.5x the last above the base pair, so two
+     adjacent steps are always visibly different. Named for the
+     RELATIONSHIP they express rather than the pixel count, so picking one
+     is a decision about meaning instead of a decision about taste.
+
+     Whitespace is the grouping mechanism on internal screens. A border
+     drawn around a number is a second edge the eye must cross to read it;
+     a gap costs nothing. Prefer stepping up this scale over drawing a box.
+     -------------------------------------------------------------------- */
+
+  /* Glued — an icon to its label, a currency symbol to its figure. */
+  --spacing-ds-1: 0.25rem;   /* 4px  */
+
+  /* Paired — a figure and the caption that names it. */
+  --spacing-ds-2: 0.5rem;    /* 8px  */
+
+  /* Grouped — rows within one list, fields within one fieldset. */
+  --spacing-ds-3: 1rem;      /* 16px */
+
+  /* Separated — one stat from the next, one card from the next. */
+  --spacing-ds-4: 1.5rem;    /* 24px */
+
+  /* Sectioned — where a genuinely different subject begins. */
+  --spacing-ds-5: 2.5rem;    /* 40px */
+
+  /* Banded — page-level bands, the gap under a page header. */
+  --spacing-ds-6: 4rem;      /* 64px */
 }
