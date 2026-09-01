@@ -387,8 +387,8 @@ export default function ImdListDetailPage() {
                   client sees, which is what lets the talent team keep adding all week
                   behind a link that is already open. */}
               {canDestroy && canStock && markedIds.length > 0 && (
-                {/* The one edge that earns itself on this screen: a bar that floats over the
-                    list needs to say where it ends. Radius from the token scale. */}
+                /* The one edge that earns itself on this screen: a bar that floats over the
+                   list needs to say where it ends. Radius from the token scale. */
                 <div className="sticky top-2 z-10 flex flex-wrap items-center gap-ds-2 rounded-ds-lg border bg-background/95 p-ds-2 shadow-sm backdrop-blur">
                   <span className="text-sm font-medium">{markedIds.length} selected</span>
                   <span className="text-xs text-muted-foreground">
