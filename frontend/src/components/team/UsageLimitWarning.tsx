@@ -106,7 +106,7 @@ export function UsageLimitWarning({
 
   const handleUpgrade = () => {
     // Navigate to subscription upgrade page
-    window.location.href = '/subscription/upgrade'
+    window.location.href = '/billing?tab=plan'
   }
 
   if (!teamContext || warnings.length === 0) {

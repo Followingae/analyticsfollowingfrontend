@@ -230,7 +230,7 @@ export function TeamUsageGate({
             {/* Action Button */}
             {teamContext.user_role === 'owner' ? (
               <Button 
-                onClick={() => window.location.href = '/subscription/upgrade'}
+                onClick={() => window.location.href = '/billing?tab=plan'}
                 disabled={disabled}
                 className="w-full"
                 variant="default"
