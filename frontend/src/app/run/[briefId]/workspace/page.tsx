@@ -214,7 +214,7 @@ function WorkspaceScreen({ briefId, campaignId }: { briefId: string; campaignId:
 
   const approve = async (item: WorkItem) => {
     try {
-      await runApi.approve(item.id)
+      await runApi.approve(campaignId, item.id)
       toast.success(`Approved @${item.username}`)
       reload()
     } catch (error) {
@@ -228,7 +228,7 @@ function WorkspaceScreen({ briefId, campaignId }: { briefId: string; campaignId:
     if (!changeFor || !reason.trim()) return
     setBusy(true)
     try {
-      await runApi.requestChange(changeFor.id, reason.trim())
+      await runApi.requestChange(campaignId, changeFor.id, reason.trim())
       toast.success("Sent back", { description: "The creator has your reason." })
       setChangeFor(null)
       setReason("")
