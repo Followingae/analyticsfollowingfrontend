@@ -90,10 +90,13 @@ export function AddCreatorsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
+        <div className="space-y-ds-4">
           <div>
             <Label className="text-xs">Instagram handles</Label>
-            <div className="mt-1.5 rounded-lg border bg-muted/40 p-2.5">
+            {/* This border stays: it is not decoration around a group, it is the field
+                itself — a tag input whose chips and textarea have to read as one control.
+                Radius from the token scale rather than a Tailwind default. */}
+            <div className="mt-1.5 rounded-ds-field border bg-muted/40 p-2.5">
               {handles.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {handles.map((h) => (

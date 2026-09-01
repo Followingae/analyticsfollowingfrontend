@@ -78,7 +78,7 @@ export function NewOpportunityDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-ds-3">
           <div>
             <Label className="text-xs">Brand</Label>
             <Input className="mt-1.5" autoFocus value={form.name}
@@ -86,7 +86,7 @@ export function NewOpportunityDialog({
                    onChange={e => set('name', e.target.value)} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-ds-3">
             <div>
               <Label className="text-xs">Contact</Label>
               <Input className="mt-1.5" value={form.primary_contact_name}
@@ -124,7 +124,10 @@ export function NewOpportunityDialog({
                       onChange={e => set('notes', e.target.value)} />
           </div>
 
-          <p className="rounded-lg border border-dashed p-3 text-xs leading-relaxed text-muted-foreground">
+          {/* This note was inside a dashed box, inside a dialog, which is already a surface —
+              an edge spent on one sentence of explanation. The hairline above it is enough
+              to say the form has ended and an aside has begun. */}
+          <p className="border-t pt-ds-3 text-xs leading-relaxed text-muted-foreground">
             No budget field on purpose. Nobody knows it on day one, and a guess recorded now
             gets quoted back as fact three months later.
           </p>

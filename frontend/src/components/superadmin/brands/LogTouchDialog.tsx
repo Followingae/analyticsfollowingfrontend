@@ -114,7 +114,7 @@ export function LogTouchDialog({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-ds-3">
           <div>
             <Label className="text-xs">What happens next (optional)</Label>
             <Input
