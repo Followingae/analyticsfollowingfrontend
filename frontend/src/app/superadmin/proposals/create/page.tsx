@@ -1,5 +1,30 @@
 "use client"
 
+/**
+ * The proposal builder.
+ *
+ * Three modes on one screen, as before:
+ *   - create   (no query string)  — a new proposal
+ *   - edit     (?edit=<id>)       — change a proposal's details, add creators
+ *   - add-more (?addMore=<id>)    — attach creators to a proposal already sent
+ *
+ * The page owns every piece of state and every network call. The drawing is
+ * split into three files under `components/superadmin/proposals/builder/` so
+ * this one stays readable:
+ *
+ *   ProposalDetailsCard  the deal    (brand, budget, terms, cover, visibility)
+ *   CreatorSourcePicker  where creators come from (master DB / FA / handle)
+ *   RosterPanel          the list being assembled, priced and ordered
+ *
+ * The picker and the roster now sit side by side. Assembling a roster is the
+ * whole job of this screen and it was impossible to see the list and the search
+ * results at the same time.
+ *
+ * MONEY: this builder handles SELL prices only. Cost and margin are leadership
+ * scope, decided server-side in `app/core/field_policy.py`, and no cost field is
+ * fetched or rendered anywhere on this page. Do not add one.
+ */
+
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
@@ -8,35 +33,29 @@ import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select"
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table"
-import { Separator } from "@/components/ui/separator"
-import { Label } from "@/components/ui/label"
-import {
-  ArrowLeft, ArrowRight, Plus, Search, Trash2, Send, Save, Users, Calendar, Image, Loader2, Upload, X,
-} from "lucide-react"
-import { ImageCropper } from "@/components/ui/image-cropper"
-import { DatePicker } from "@/components/ui/date-picker"
+import { ArrowLeft, ArrowRight, Plus, Save, Users, Loader2 } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
-import { formatCount, proposalMotion, STOCK_IMAGES } from "@/components/proposals/proposal-utils"
-import { motion, AnimatePresence } from "motion/react"
-import { PaymentStructure, DEFAULT_TERMS, type PaymentTerms } from '@/components/superadmin/proposals/PaymentStructure'
+import { proposalMotion } from "@/components/proposals/proposal-utils"
+import { motion } from "motion/react"
+import { DEFAULT_TERMS, type PaymentTerms } from "@/components/superadmin/proposals/PaymentStructure"
+import {
+  ProposalDetailsCard,
+  type CampaignTypeTarget,
+  type VisibilityFlags,
+} from "@/components/superadmin/proposals/builder/ProposalDetailsCard"
+import {
+  CreatorSourcePicker,
+  type PickerTab,
+} from "@/components/superadmin/proposals/builder/CreatorSourcePicker"
+import { RosterPanel } from "@/components/superadmin/proposals/builder/RosterPanel"
+import {
+  unitSellPrice,
+  type DeliverableAssignmentMap,
+  type MasterInfluencer,
+} from "@/components/superadmin/proposals/builder/types"
 
 export const dynamic = "force-dynamic"
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 
 interface BrandUser {
   id: string
@@ -45,40 +64,6 @@ interface BrandUser {
   company?: string
   role?: string
 }
-
-interface MasterInfluencer {
-  id: string
-  username: string
-  full_name?: string
-  profile_image_url?: string
-  followers_count: number
-  engagement_rate: number
-  categories: string[]
-  tier?: string
-  sell_post_aed_cents?: number | null
-  sell_story_aed_cents?: number | null
-  sell_reel_aed_cents?: number | null
-  sell_carousel_aed_cents?: number | null
-  sell_video_aed_cents?: number | null
-  sell_bundle_aed_cents?: number | null
-  sell_monthly_aed_cents?: number | null
-}
-
-const DELIVERABLE_TYPES = [
-  { key: "post", label: "Post", priceField: "sell_post_aed_cents" },
-  { key: "story", label: "Story", priceField: "sell_story_aed_cents" },
-  { key: "reel", label: "Reel", priceField: "sell_reel_aed_cents" },
-  { key: "carousel", label: "Carousel", priceField: "sell_carousel_aed_cents" },
-  { key: "video", label: "Video", priceField: "sell_video_aed_cents" },
-  { key: "bundle", label: "Bundle", priceField: "sell_bundle_aed_cents" },
-  { key: "monthly", label: "Monthly", priceField: "sell_monthly_aed_cents" },
-] as const
-
-const TIER_OPTIONS = ["all", "nano", "micro", "mid", "macro", "mega"]
-const CATEGORY_OPTIONS = [
-  "all", "Fashion", "Beauty", "Fitness", "Food", "Travel",
-  "Tech", "Lifestyle", "Entertainment", "Sports", "Business",
-]
 
 // ===========================================================================
 // Page Component
@@ -107,7 +92,7 @@ function CreateProposalContent() {
   // How the deal is paid for. The old percentages list stays in the payload for older
   // readers of a proposal; this is the shape that can also describe a retainer.
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerms>(DEFAULT_TERMS)
-  const [paymentSchedule, setPaymentSchedule] = useState<{ label: string; pct: string }[]>([
+  const [paymentSchedule] = useState<{ label: string; pct: string }[]>([
     { label: "Advance", pct: "50" },
     { label: "On completion", pct: "50" },
   ])
@@ -118,7 +103,7 @@ function CreateProposalContent() {
   const [coverUploading, setCoverUploading] = useState(false)
   const [cropperOpen, setCropperOpen] = useState(false)
   const [showStockPicker, setShowStockPicker] = useState(false)
-  const [visibility, setVisibility] = useState({
+  const [visibility, setVisibility] = useState<VisibilityFlags>({
     show_sell_pricing: true,
     show_analytics: true,
     show_engagement: true,
@@ -127,12 +112,10 @@ function CreateProposalContent() {
   })
 
   // Target campaign type once the proposal is approved by the brand.
-  const [campaignTypeTarget, setCampaignTypeTarget] = useState<
-    "influencer" | "cashback" | "paid_deal" | "barter"
-  >("influencer")
+  const [campaignTypeTarget, setCampaignTypeTarget] = useState<CampaignTypeTarget>("influencer")
 
   // Unified picker tab: master DB | FA members | add by Instagram handle
-  const [pickerTab, setPickerTab] = useState<"master" | "fa" | "handle">("master")
+  const [pickerTab, setPickerTab] = useState<PickerTab>("master")
   // FA members results
   const [faSearch, setFaSearch] = useState("")
   const [faResults, setFaResults] = useState<any[]>([])
@@ -154,15 +137,14 @@ function CreateProposalContent() {
   // -- Added influencers ----------------------------------------------------
   const [addedInfluencers, setAddedInfluencers] = useState<MasterInfluencer[]>([])
   // Per-influencer deliverable assignments: { influencer_id: [{ type: "reel", quantity: 2 }] }
-  const [deliverableAssignments, setDeliverableAssignments] = useState<
-    Record<string, Array<{ type: string; quantity: number }>>
-  >({})
+  const [deliverableAssignments, setDeliverableAssignments] =
+    useState<DeliverableAssignmentMap>({})
 
   // =========================================================================
   // Data fetching
   // =========================================================================
 
-  // Load brand users from /api/v1/admin/users
+  // Load brand users from the clients list
   useEffect(() => {
     async function loadUsers() {
       setUsersLoading(true)
@@ -277,7 +259,8 @@ function CreateProposalContent() {
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -301,6 +284,18 @@ function CreateProposalContent() {
     setDeliverableAssignments((prev) => {
       const next = { ...prev }
       delete next[id]
+      return next
+    })
+  }
+
+  /** Roster order is the order the ids are submitted in, so it is worth arranging. */
+  function moveInRoster(index: number, direction: -1 | 1) {
+    setAddedInfluencers((prev) => {
+      const target = index + direction
+      if (target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      const [moved] = next.splice(index, 1)
+      next.splice(target, 0, moved)
       return next
     })
   }
@@ -426,28 +421,54 @@ function CreateProposalContent() {
       const current = prev[influencerId] || []
       return {
         ...prev,
-        [influencerId]: current.map((d) =>
-          d.type === type ? { ...d, quantity } : d
-        ),
+        [influencerId]: current.map((d) => (d.type === type ? { ...d, quantity } : d)),
       }
     })
   }
 
-  function getInfluencerDeliverableTotal(inf: MasterInfluencer): number {
-    const assignments = deliverableAssignments[inf.id] || []
-    return assignments.reduce((sum, d) => {
-      const priceField = DELIVERABLE_TYPES.find((dt) => dt.key === d.type)?.priceField
-      if (!priceField) return sum
-      const cents = (inf as any)[priceField]
-      if (cents == null) return sum
-      return sum + (cents / 100) * d.quantity
-    }, 0)
+  /**
+   * Set one deliverable across every creator priced for it. If they all already
+   * have it, the same click takes it off again — so it is never a one-way door.
+   * Quantities that were already set are left alone.
+   */
+  function applyDeliverableToAll(type: string) {
+    const eligible = addedInfluencers.filter((inf) => unitSellPrice(inf, type) != null)
+    if (!eligible.length) return
+
+    const everyoneHasIt = eligible.every((inf) =>
+      (deliverableAssignments[inf.id] || []).some((d) => d.type === type)
+    )
+
+    setDeliverableAssignments((prev) => {
+      const next = { ...prev }
+      for (const inf of eligible) {
+        const current = next[inf.id] || []
+        if (everyoneHasIt) {
+          next[inf.id] = current.filter((d) => d.type !== type)
+        } else if (!current.some((d) => d.type === type)) {
+          next[inf.id] = [...current, { type, quantity: 1 }]
+        }
+      }
+      return next
+    })
+
+    const label = type.charAt(0).toUpperCase() + type.slice(1)
+    toast.success(
+      everyoneHasIt
+        ? `${label} removed from ${eligible.length} creator(s)`
+        : `${label} added to ${eligible.length} creator(s)`
+    )
   }
 
-  const proposalDeliverableTotal = addedInfluencers.reduce(
-    (sum, inf) => sum + getInfluencerDeliverableTotal(inf),
-    0
-  )
+  /** The assignments payload, in the roster's current order. */
+  function deliverablePayload() {
+    return addedInfluencers
+      .filter((inf) => (deliverableAssignments[inf.id] || []).length > 0)
+      .map((inf) => ({
+        influencer_db_id: inf.id,
+        deliverables: deliverableAssignments[inf.id],
+      }))
+  }
 
   // -- Submit: Add-more mode ------------------------------------------------
   async function handleAddMore() {
@@ -457,9 +478,7 @@ function CreateProposalContent() {
     }
     setSubmitting(true)
     try {
-      const delAssignments = Object.entries(deliverableAssignments)
-        .filter(([id, dels]) => dels.length > 0)
-        .map(([influencer_db_id, deliverables]) => ({ influencer_db_id, deliverables }))
+      const delAssignments = deliverablePayload()
 
       await adminProposalApi.addMoreInfluencers(addMoreId!, {
         influencer_ids: addedInfluencers.map((i) => i.id),
@@ -492,10 +511,7 @@ function CreateProposalContent() {
 
       // Add any new influencers
       if (addedInfluencers.length) {
-        const delAssignments = Object.entries(deliverableAssignments)
-          .filter(([id, dels]) => dels.length > 0)
-          .map(([influencer_db_id, deliverables]) => ({ influencer_db_id, deliverables }))
-
+        const delAssignments = deliverablePayload()
         await adminProposalApi.addInfluencers(editId!, {
           influencer_ids: addedInfluencers.map((i) => i.id),
           deliverable_assignments: delAssignments.length > 0 ? delAssignments : undefined,
@@ -533,15 +549,15 @@ function CreateProposalContent() {
         cover_image_url: coverImageUrl.trim() || undefined,
         campaign_type_target: campaignTypeTarget,
         total_budget: totalBudget ? Number(totalBudget) : undefined,
-        payment_schedule: paymentSchedule.filter((m) => m.label.trim()).map((m) => ({ label: m.label.trim(), pct: Number(m.pct) || 0 })),
+        payment_schedule: paymentSchedule
+          .filter((m) => m.label.trim())
+          .map((m) => ({ label: m.label.trim(), pct: Number(m.pct) || 0 })),
         payment_terms: paymentTerms,
       } as any)
 
       // Optionally pre-attach influencers if the operator added any (not required).
       if (addedInfluencers.length) {
-        const delAssignments = Object.entries(deliverableAssignments)
-          .filter(([id, dels]) => dels.length > 0)
-          .map(([influencer_db_id, deliverables]) => ({ influencer_db_id, deliverables }))
+        const delAssignments = deliverablePayload()
         await adminProposalApi.addInfluencers(proposal.id, {
           influencer_ids: addedInfluencers.map((i) => i.id),
           deliverable_assignments: delAssignments.length > 0 ? delAssignments : undefined,
@@ -607,7 +623,7 @@ function CreateProposalContent() {
         variants={proposalMotion.staggerContainer}
         initial="hidden"
         animate="visible"
-        className="space-y-6"
+        className="space-y-6 pb-24"
       >
         {/* Header */}
         <motion.div variants={proposalMotion.staggerItem} className="flex items-center gap-4">
@@ -630,776 +646,125 @@ function CreateProposalContent() {
           </div>
         </motion.div>
 
-        {/* =============================================================== */}
-        {/* Section 1 - Proposal Details (hidden in addMore mode)          */}
-        {/* =============================================================== */}
+        {/* ================================================================ */}
+        {/* Section 1 - Proposal Details (hidden in addMore mode)            */}
+        {/* ================================================================ */}
         {!isAddMoreMode && (
           <motion.div variants={proposalMotion.staggerItem}>
+            <ProposalDetailsCard
+              isEditMode={isEditMode}
+              campaignTypeTarget={campaignTypeTarget}
+              onCampaignTypeTarget={setCampaignTypeTarget}
+              brandUsers={brandUsers}
+              usersLoading={usersLoading}
+              selectedUserId={selectedUserId}
+              onSelectedUserId={setSelectedUserId}
+              title={title}
+              onTitle={setTitle}
+              campaignName={campaignName}
+              onCampaignName={setCampaignName}
+              totalBudget={totalBudget}
+              onTotalBudget={setTotalBudget}
+              paymentTerms={paymentTerms}
+              onPaymentTerms={setPaymentTerms}
+              description={description}
+              onDescription={setDescription}
+              proposalNotes={proposalNotes}
+              onProposalNotes={setProposalNotes}
+              deadline={deadline}
+              onDeadline={setDeadline}
+              coverImageUrl={coverImageUrl}
+              onCoverImageUrl={setCoverImageUrl}
+              coverUploading={coverUploading}
+              cropperOpen={cropperOpen}
+              onCropperOpen={setCropperOpen}
+              onCoverCropped={handleCoverCropped}
+              showStockPicker={showStockPicker}
+              onShowStockPicker={setShowStockPicker}
+              visibility={visibility}
+              onVisibility={setVisibility}
+            />
+          </motion.div>
+        )}
+
+        {/* ================================================================ */}
+        {/* Section 2 - The roster workbench                                 */}
+        {/* ================================================================ */}
+        <motion.div variants={proposalMotion.staggerItem}>
           <Card>
             <CardHeader>
-              <CardTitle>Proposal Details</CardTitle>
-              <CardDescription>Core information about the proposal</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                {isAddMoreMode ? "Select Additional Influencers" : "Add Influencers (optional)"}
+              </CardTitle>
+              <CardDescription>
+                {isAddMoreMode
+                  ? "Search master DB, pick FA members, or add by Instagram handle"
+                  : "Optional - you can leave this empty and assign a talent manager to add creators in the approval workflow. Add here only if you want to pre-fill the list."}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Campaign type target */}
-              <div>
-                <Label>Campaign Type *</Label>
-                <p className="text-xs text-muted-foreground mt-1 mb-2">
-                  The type of campaign this proposal becomes when the brand approves it.
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {([
-                    { key: "influencer", label: "Influencer", hint: "Paid posts via brand portal" },
-                    { key: "cashback",   label: "Cashback",   hint: "QR scan earnings at merchant" },
-                    { key: "paid_deal",  label: "Paid Deal",  hint: "Flat payout per creator" },
-                    { key: "barter",     label: "Barter",     hint: "Product-for-content" },
-                  ] as const).map((opt) => {
-                    const active = campaignTypeTarget === opt.key
-                    return (
-                      <button
-                        key={opt.key}
-                        type="button"
-                        disabled={isEditMode}
-                        onClick={() => setCampaignTypeTarget(opt.key)}
-                        className={`text-left rounded-lg border px-3 py-2 transition-colors ${
-                          active
-                            ? "border-primary bg-primary/5 ring-1 ring-primary"
-                            : "border-border hover:border-primary/40 hover:bg-muted/40"
-                        } ${isEditMode ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
-                      >
-                        <div className="text-sm font-medium">{opt.label}</div>
-                        <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                          {opt.hint}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-                {campaignTypeTarget !== "influencer" && (
-                  <p className="text-[11px] text-muted-foreground mt-2 leading-snug">
-                    Note: for {campaignTypeTarget.replace("_", " ")} campaigns, creators must already be FA-app members. Use the <span className="font-medium">FA Members</span> tab in the picker below.
-                  </p>
-                )}
-              </div>
 
-              {/* Brand user */}
-              <div>
-                <Label>Brand User *</Label>
-                <Select
-                  value={selectedUserId}
-                  onValueChange={setSelectedUserId}
-                  disabled={isEditMode}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue
-                      placeholder={
-                        usersLoading ? "Loading users..." : "Select brand user..."
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brandUsers.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.full_name
-                          ? `${u.full_name}${u.company ? ` - ${u.company}` : ""} (${u.email})`
-                          : u.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Title *</Label>
-                  <Input
-                    className="mt-1"
-                    placeholder="Q2 Campaign Proposal"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Campaign Name *</Label>
-                  <Input
-                    className="mt-1"
-                    placeholder="Summer 2026 Launch"
-                    value={campaignName}
-                    onChange={(e) => setCampaignName(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Total Budget (AED)</Label>
-                  <Input
-                    className="mt-1"
-                    type="number"
-                    placeholder="e.g. 50000"
-                    value={totalBudget}
-                    onChange={(e) => setTotalBudget(e.target.value)}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">Hidden from talent managers; visible to approvers + the client.</p>
-                </div>
-              </div>
-
-              <div>
-                <PaymentStructure
-                  terms={paymentTerms}
-                  onChange={setPaymentTerms}
-                  total={Number(totalBudget) || 0}
+            <CardContent>
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
+                <CreatorSourcePicker
+                  pickerTab={pickerTab}
+                  onPickerTab={setPickerTab}
+                  search={search}
+                  onSearch={setSearch}
+                  categoryFilter={categoryFilter}
+                  onCategoryFilter={setCategoryFilter}
+                  tierFilter={tierFilter}
+                  onTierFilter={setTierFilter}
+                  masterResults={masterResults}
+                  searching={searching}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  onAddSelected={addSelected}
+                  faSearch={faSearch}
+                  onFaSearch={setFaSearch}
+                  faResults={faResults}
+                  faSearching={faSearching}
+                  onSearchFaMembers={searchFaMembers}
+                  onAddFaMember={(m) => addFaMemberSelection([m])}
+                  newHandle={newHandle}
+                  onNewHandle={setNewHandle}
+                  addingHandle={addingHandle}
+                  onAddHandle={addHandle}
+                  addedInfluencers={addedInfluencers}
+                  onOpenAnalytics={setAnalyticsUsername}
                 />
-              </div>
 
-              <div>
-                <Label>Description</Label>
-                <Textarea
-                  className="mt-1"
-                  rows={3}
-                  placeholder="Brief description of the campaign..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Admin Notes for Brand</Label>
-                <Textarea
-                  className="mt-1"
-                  rows={2}
-                  placeholder="Notes visible to the brand..."
-                  value={proposalNotes}
-                  onChange={(e) => setProposalNotes(e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5" /> Deadline
-                  </Label>
-                  <div className="mt-1">
-                    <DatePicker
-                      date={deadline}
-                      onSelect={setDeadline}
-                      placeholder="Select deadline"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="flex items-center gap-1">
-                    <Image className="h-3.5 w-3.5" /> Cover Image
-                  </Label>
-                  {coverImageUrl ? (
-                    <div className="mt-2 relative group">
-                      <img
-                        src={coverImageUrl}
-                        alt="Cover preview"
-                        className="h-32 w-full rounded-md border object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex items-center justify-center gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setCropperOpen(true)}
-                        >
-                          Upload New
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setShowStockPicker(true)}
-                        >
-                          Stock
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setCoverImageUrl("")}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-1 flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => setCropperOpen(true)}
-                        disabled={coverUploading}
-                      >
-                        {coverUploading ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <Upload className="h-4 w-4 mr-2" />
-                        )}
-                        {coverUploading ? "Uploading..." : "Upload"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => setShowStockPicker(true)}
-                      >
-                        <Image className="h-4 w-4 mr-2" />
-                        Stock photos
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Stock image picker */}
-                  <AnimatePresence>
-                    {showStockPicker && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="mt-2 rounded-md border p-2">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-muted-foreground">Choose a stock image</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={() => setShowStockPicker(false)}
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
-                            {STOCK_IMAGES.map((url, i) => (
-                              <button
-                                key={i}
-                                type="button"
-                                className={`relative h-14 rounded overflow-hidden border-2 transition-all hover:opacity-100 ${
-                                  coverImageUrl === url
-                                    ? "border-primary ring-1 ring-primary"
-                                    : "border-transparent opacity-75"
-                                }`}
-                                onClick={() => {
-                                  setCoverImageUrl(url)
-                                  setShowStockPicker(false)
-                                }}
-                              >
-                                <img
-                                  src={url.replace("w=1920", "w=200").replace("h=600", "h=80")}
-                                  alt={`Stock ${i + 1}`}
-                                  className="h-full w-full object-cover"
-                                />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-
-              <ImageCropper
-                open={cropperOpen}
-                onOpenChange={setCropperOpen}
-                onImageCropped={handleCoverCropped}
-                title="Crop Cover Image"
-                aspect={16 / 5}
-                outputWidth={1200}
-                cropHint="Drag to select the banner area. The image will be cropped to a 16:5 wide banner."
-              />
-
-              <Separator />
-
-              <div>
-                <Label className="mb-2 block">Visibility Settings</Label>
-                <div className="flex flex-wrap gap-x-6 gap-y-3">
-                  {Object.entries(visibility).map(([key, val]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <Checkbox
-                        id={key}
-                        checked={val}
-                        onCheckedChange={(c) =>
-                          setVisibility((v) => ({ ...v, [key]: c === true }))
-                        }
-                      />
-                      <label htmlFor={key} className="text-sm cursor-pointer capitalize">
-                        {key.replace("show_", "").replace(/_/g, " ")}
-                      </label>
-                    </div>
-                  ))}
+                <div className="lg:sticky lg:top-6">
+                  <RosterPanel
+                    addedInfluencers={addedInfluencers}
+                    deliverableAssignments={deliverableAssignments}
+                    onToggleDeliverable={toggleDeliverable}
+                    onUpdateQuantity={updateDeliverableQuantity}
+                    onApplyToAll={applyDeliverableToAll}
+                    onRemove={removeAdded}
+                    onMove={moveInRoster}
+                    onOpenAnalytics={setAnalyticsUsername}
+                  />
                 </div>
               </div>
             </CardContent>
           </Card>
-          </motion.div>
-        )}
+        </motion.div>
+      </motion.div>
 
-        {/* =============================================================== */}
-        {/* Section 2 - Add Influencers from Master DB                      */}
-        {/* =============================================================== */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              {isAddMoreMode ? "Select Additional Influencers" : "Add Influencers (optional)"}
-            </CardTitle>
-            <CardDescription>
-              {isAddMoreMode
-                ? "Search master DB, pick FA members, or add by Instagram handle"
-                : "Optional - you can leave this empty and assign a talent manager to add creators in the approval workflow. Add here only if you want to pre-fill the list."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Source tabs */}
-            <div className="flex gap-1 rounded-lg bg-muted/40 p-1 w-fit">
-              {([
-                { key: "master", label: "Master DB" },
-                { key: "fa",     label: "FA Members" },
-                { key: "handle", label: "Add by Handle" },
-              ] as const).map((t) => {
-                const active = pickerTab === t.key
-                return (
-                  <button
-                    key={t.key}
-                    type="button"
-                    onClick={() => setPickerTab(t.key)}
-                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                      active
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* FA Members panel */}
-            {pickerTab === "fa" && (
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      className="pl-9"
-                      placeholder="Search FA members by name or @username..."
-                      value={faSearch}
-                      onChange={(e) => setFaSearch(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") searchFaMembers() }}
-                    />
-                  </div>
-                  <Button onClick={searchFaMembers} disabled={faSearching} variant="secondary">
-                    {faSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
-                  </Button>
-                </div>
-                <div className="border rounded-lg max-h-[380px] overflow-auto">
-                  {faResults.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Users className="h-6 w-6 mx-auto text-muted-foreground/60 mb-2" />
-                      <p className="text-sm text-muted-foreground">
-                        {faSearching ? "Searching…" : "No FA members yet. Try a search."}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="divide-y">
-                      {faResults.map((m) => {
-                        const already = addedInfluencers.some(
-                          (a) => a.username?.toLowerCase() === m.instagram_username?.toLowerCase()
-                        )
-                        return (
-                          <div key={m.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-muted/40">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={m.avatar_url} />
-                                <AvatarFallback className="text-xs">
-                                  {(m.instagram_username?.[0] ?? m.full_name?.[0] ?? "?").toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="leading-tight min-w-0">
-                                <p className="font-medium text-sm truncate">
-                                  @{m.instagram_username ?? "-"}
-                                </p>
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  {m.full_name && <span className="truncate">{m.full_name}</span>}
-                                  {m.tier && <Badge variant="outline" className="text-[10px] uppercase">{m.tier}</Badge>}
-                                  {m.followers_count != null && <span className="tabular-nums">{formatCount(m.followers_count)} followers</span>}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {m.instagram_username && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setAnalyticsUsername(m.instagram_username)}
-                                >
-                                  View analytics
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                disabled={already}
-                                onClick={() => addFaMemberSelection([m])}
-                              >
-                                {already ? "Added" : "Add"}
-                              </Button>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Add-by-handle panel */}
-            {pickerTab === "handle" && (
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter Instagram handle (e.g. @huda)"
-                    value={newHandle}
-                    onChange={(e) => setNewHandle(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") addHandle() }}
-                  />
-                  <Button onClick={addHandle} disabled={addingHandle || !newHandle.trim()}>
-                    {addingHandle ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-2" />Add</>}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  If this handle isn&apos;t in the master database yet, it will be created automatically.
-                </p>
-              </div>
-            )}
-
-            {/* Master DB filters - only when master tab is active */}
-            {pickerTab === "master" && (
-            <>
-            <div className="flex flex-wrap gap-3">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  placeholder="Search username or name..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORY_OPTIONS.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c === "all" ? "All Categories" : c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={tierFilter} onValueChange={setTierFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Tier" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIER_OPTIONS.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t === "all"
-                        ? "All Tiers"
-                        : t.charAt(0).toUpperCase() + t.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Results table */}
-            <div className="border rounded-lg max-h-[380px] overflow-auto overflow-x-auto">
-              <Table className="min-w-[500px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10" />
-                    <TableHead className="min-w-[180px]">Influencer</TableHead>
-                    <TableHead className="text-right">Followers</TableHead>
-                    <TableHead className="text-right">Eng %</TableHead>
-                    <TableHead>Tier</TableHead>
-                    <TableHead>Categories</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {searching ? (
-                    Array.from({ length: 4 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><div className="h-4 w-4 bg-muted animate-pulse rounded" /></TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />
-                            <div className="space-y-1">
-                              <div className="h-3.5 w-24 bg-muted animate-pulse rounded" />
-                              <div className="h-3 w-16 bg-muted animate-pulse rounded" />
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right"><div className="h-4 w-12 bg-muted animate-pulse rounded ml-auto" /></TableCell>
-                        <TableCell className="text-right"><div className="h-4 w-10 bg-muted animate-pulse rounded ml-auto" /></TableCell>
-                        <TableCell><div className="h-5 w-14 bg-muted animate-pulse rounded-full" /></TableCell>
-                        <TableCell><div className="h-5 w-20 bg-muted animate-pulse rounded-full" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : masterResults.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-12">
-                        <Search className="h-6 w-6 mx-auto text-muted-foreground/60 mb-2" />
-                        <p className="text-sm text-muted-foreground">No influencers found. Try a different search.</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    masterResults.map((inf) => {
-                      const alreadyAdded = addedInfluencers.some(
-                        (a) => a.id === inf.id
-                      )
-                      return (
-                        <TableRow
-                          key={inf.id}
-                          className={`transition-colors duration-150 ${alreadyAdded ? "opacity-40" : "hover:bg-muted/50 cursor-pointer"}`}
-                          onClick={!alreadyAdded ? () => toggleSelect(inf.id) : undefined}
-                        >
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              disabled={alreadyAdded}
-                              checked={selectedIds.has(inf.id)}
-                              onCheckedChange={() => toggleSelect(inf.id)}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2.5">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={inf.profile_image_url} />
-                                <AvatarFallback className="text-xs">
-                                  {(inf.username?.[0] ?? "?").toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="leading-tight">
-                                <p className="font-medium text-sm">
-                                  @{inf.username}
-                                </p>
-                                {inf.full_name && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {inf.full_name}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums text-sm font-medium">
-                            {formatCount(inf.followers_count ?? 0)}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums text-sm">
-                            {(inf.engagement_rate ?? 0).toFixed(2)}%
-                          </TableCell>
-                          <TableCell>
-                            {inf.tier && (
-                              <Badge variant="outline" className="capitalize text-xs">
-                                {inf.tier}
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {(inf.categories ?? []).slice(0, 3).map((c) => (
-                                <Badge
-                                  key={c}
-                                  variant="secondary"
-                                  className="text-xs"
-                                >
-                                  {c}
-                                </Badge>
-                              ))}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-
-            <Button onClick={addSelected} disabled={selectedIds.size === 0} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Selected
-              {selectedIds.size > 0 && (
-                <span className="ml-1 tabular-nums">({selectedIds.size})</span>
-              )}
-            </Button>
-            </>
-            )}
-
-            {/* Already-added list */}
-            {addedInfluencers.length > 0 && (
-              <>
-                <Separator />
-                <div>
-                  <Label className="mb-2 block">
-                    Added Influencers ({addedInfluencers.length})
-                  </Label>
-                  <div className="space-y-3">
-                    {addedInfluencers.map((inf) => (
-                      <div key={inf.id} className="rounded-lg border transition-colors duration-150 hover:border-border/80">
-                        <div
-                          className="flex items-center justify-between px-3 py-2.5"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <Avatar className="h-7 w-7">
-                              <AvatarImage src={inf.profile_image_url} />
-                              <AvatarFallback className="text-xs">
-                                {(inf.username?.[0] ?? "?").toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm font-medium">
-                              @{inf.username}
-                            </span>
-                            <span className="text-xs text-muted-foreground tabular-nums">
-                              {formatCount(inf.followers_count ?? 0)} followers
-                            </span>
-                            {inf.tier && (
-                              <Badge variant="outline" className="text-xs capitalize">
-                                {inf.tier}
-                              </Badge>
-                            )}
-                            {(inf.categories ?? []).slice(0, 2).map((c) => (
-                              <Badge key={c} variant="secondary" className="text-xs">
-                                {c}
-                              </Badge>
-                            ))}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 text-xs"
-                              onClick={() => setAnalyticsUsername(inf.username)}
-                            >
-                              Analytics
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors duration-150"
-                              onClick={() => removeAdded(inf.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        {/* Deliverable Assignments */}
-                        <div className="mx-3 mb-3 p-3 rounded-lg bg-muted/30 border-t">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">
-                            Deliverables
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {DELIVERABLE_TYPES.map((dt) => {
-                              const cents = (inf as any)[dt.priceField]
-                              if (cents == null) return null
-                              const price = cents / 100
-                              const assignment = (deliverableAssignments[inf.id] || []).find(
-                                (d) => d.type === dt.key
-                              )
-                              const isActive = Boolean(assignment)
-                              return (
-                                <div key={dt.key} className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleDeliverable(inf.id, dt.key)}
-                                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all duration-150 ${
-                                      isActive
-                                        ? "bg-primary text-primary-foreground border-primary"
-                                        : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                                    }`}
-                                  >
-                                    {dt.label}
-                                    <span className="text-[10px] opacity-70">
-                                      ⃃{price}
-                                    </span>
-                                  </button>
-                                  {isActive && (
-                                    <div className="flex items-center border rounded-md overflow-hidden">
-                                      <button
-                                        type="button"
-                                        className="px-1.5 py-0.5 text-xs hover:bg-muted transition-colors duration-150"
-                                        onClick={() =>
-                                          updateDeliverableQuantity(
-                                            inf.id,
-                                            dt.key,
-                                            (assignment?.quantity || 1) - 1
-                                          )
-                                        }
-                                      >
-                                        -
-                                      </button>
-                                      <span className="px-1.5 py-0.5 text-xs font-medium tabular-nums min-w-[20px] text-center border-x">
-                                        {assignment?.quantity || 1}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        className="px-1.5 py-0.5 text-xs hover:bg-muted transition-colors duration-150"
-                                        onClick={() =>
-                                          updateDeliverableQuantity(
-                                            inf.id,
-                                            dt.key,
-                                            (assignment?.quantity || 1) + 1
-                                          )
-                                        }
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                          {getInfluencerDeliverableTotal(inf) > 0 && (
-                            <p className="text-xs text-foreground font-medium mt-2">
-                              Subtotal: ⃃{getInfluencerDeliverableTotal(inf).toLocaleString()}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {addedInfluencers.length > 0 && proposalDeliverableTotal > 0 && (
-                    <div className="mt-4 flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          Total across {addedInfluencers.length} creator{addedInfluencers.length !== 1 ? "s" : ""}
-                        </p>
-                        <p className="text-lg font-semibold tabular-nums mt-0.5">
-                          ⃃{proposalDeliverableTotal.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* =============================================================== */}
-        {/* Section 3 - Actions                                             */}
-        {/* =============================================================== */}
-        <div className="flex justify-end gap-3 pb-8 border-t pt-6">
+      {/* ================================================================== */}
+      {/* Section 3 - Actions. Pinned, because the roster is long and the     */}
+      {/* thing you came to do should not be at the bottom of a scroll.       */}
+      {/* ================================================================== */}
+      <div className="sticky bottom-0 z-20 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:-mx-6 sm:px-6">
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {addedInfluencers.length > 0 && (
+            <p className="mr-auto text-sm text-muted-foreground tabular-nums">
+              {addedInfluencers.length} creator{addedInfluencers.length !== 1 ? "s" : ""} in the roster
+            </p>
+          )}
           {isAddMoreMode ? (
-            <Button
-              disabled={submitting || !addedInfluencers.length}
-              onClick={handleAddMore}
-            >
+            <Button disabled={submitting || !addedInfluencers.length} onClick={handleAddMore}>
               {submitting ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
@@ -1418,18 +783,11 @@ function CreateProposalContent() {
             </Button>
           ) : (
             <>
-              <Button
-                variant="outline"
-                disabled={submitting}
-                onClick={() => handleCreate(false)}
-              >
+              <Button variant="outline" disabled={submitting} onClick={() => handleCreate(false)}>
                 <Save className="h-4 w-4 mr-2" />
                 Save as Draft
               </Button>
-              <Button
-                disabled={submitting}
-                onClick={() => handleCreate(true)}
-              >
+              <Button disabled={submitting} onClick={() => handleCreate(true)}>
                 {submitting ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
@@ -1440,7 +798,7 @@ function CreateProposalContent() {
             </>
           )}
         </div>
-      </motion.div>
+      </div>
 
       {/* Inline creator analytics drawer - opens /creator-analytics/[username] in a side sheet */}
       <Sheet
