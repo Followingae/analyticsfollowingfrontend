@@ -211,7 +211,7 @@ export default function CreateBrandAccountPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-ds-lg bg-primary/10">
                   <Check className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -221,12 +221,16 @@ export default function CreateBrandAccountPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Credentials Display */}
-              <div className="bg-muted rounded-lg p-6 space-y-4">
+              {/* The two credentials were a tinted panel inside the card, and inside that
+                  panel each value sat in a second box of its own. Three edges around a string
+                  you are meant to read once and copy. The panel is gone; the value keeps the
+                  one quiet chip that says "this is the literal text", and the labels and the
+                  gap do the grouping. */}
+              <div className="space-y-ds-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Email</label>
-                  <div className="flex items-center gap-2 mt-2">
-                    <code className="flex-1 bg-background px-4 py-3 rounded text-base font-mono">
+                  <label className="text-ds-label text-muted-foreground">Email</label>
+                  <div className="mt-ds-2 flex items-center gap-ds-2">
+                    <code className="flex-1 rounded-ds-md bg-black/[0.05] px-ds-3 py-ds-2 font-mono text-base dark:bg-white/[0.07]">
                       {createdCredentials.email}
                     </code>
                     <Button
@@ -241,9 +245,9 @@ export default function CreateBrandAccountPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Password</label>
-                  <div className="flex items-center gap-2 mt-2">
-                    <code className="flex-1 bg-background px-4 py-3 rounded text-base font-mono">
+                  <label className="text-ds-label text-muted-foreground">Password</label>
+                  <div className="mt-ds-2 flex items-center gap-ds-2">
+                    <code className="flex-1 rounded-ds-md bg-black/[0.05] px-ds-3 py-ds-2 font-mono text-base dark:bg-white/[0.07]">
                       {createdCredentials.password}
                     </code>
                     <Button
@@ -259,10 +263,11 @@ export default function CreateBrandAccountPage() {
                 </div>
               </div>
 
-              {/* Important Notice */}
-              <div className="rounded-lg border bg-muted/50 p-4">
-                <p className="text-sm font-medium mb-2">Important</p>
-                <ul className="text-sm text-muted-foreground space-y-1">
+              {/* Important Notice — a second bordered, tinted box inside the same card, for
+                  three lines of prose. The heading is the fence. */}
+              <div>
+                <p className="mb-ds-2 text-ds-label">Important</p>
+                <ul className="space-y-ds-1 text-ds-body text-muted-foreground">
                   <li>Save these credentials securely</li>
                   <li>No email confirmation required -- user can log in immediately</li>
                   <li>Email has been auto-verified</li>
@@ -317,7 +322,7 @@ export default function CreateBrandAccountPage() {
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold">
+            <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">
               {accountType === 'admin' ? 'Create Admin' : accountType === 'staff' ? 'Create Staff Member' : 'Create Brand Account'}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -328,7 +333,7 @@ export default function CreateBrandAccountPage() {
                 : 'Set up a brand account with subscription, credits, and team'}
             </p>
           </div>
-          <div className="ml-auto inline-flex rounded-lg border p-0.5">
+          <div className="ml-auto inline-flex rounded-ds-lg border border-black/[0.06] p-0.5 dark:border-white/[0.07]">
             <Button type="button" size="sm" variant={accountType === 'brand' ? 'default' : 'ghost'} onClick={() => setAccountType('brand')}>
               Brand User
             </Button>
@@ -342,7 +347,7 @@ export default function CreateBrandAccountPage() {
         </div>
 
         {formError && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <div className="rounded-ds-lg bg-[var(--tone-bad-wash)] px-ds-3 py-ds-2 text-ds-body text-[var(--tone-bad-ink)]">
             {formError}
           </div>
         )}
@@ -475,7 +480,7 @@ export default function CreateBrandAccountPage() {
             {ADMIN_MODULES.map((m) => {
               const checked = adminModules.includes(m.key)
               return (
-                <label key={m.key} className="flex items-center gap-2 rounded-md border p-2.5 cursor-pointer hover:bg-accent/40">
+                <label key={m.key} className="flex cursor-pointer items-center gap-ds-2 rounded-ds-md border border-black/[0.06] p-2.5 hover:bg-accent/40 dark:border-white/[0.07]">
                   <Checkbox
                     checked={checked}
                     onCheckedChange={(c: boolean) =>

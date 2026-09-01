@@ -20,7 +20,7 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { UnauthorizedAccess } from "@/components/UnauthorizedAccess"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent } from "@/components/ui/card"
+import { CARD } from "@/components/console/primitives"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -200,10 +200,10 @@ export default function DisplaysPage() {
   return (
     <AuthGuard requireAuth={true} requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="mx-auto max-w-5xl space-y-6 p-6">
+        <div className="mx-auto max-w-5xl space-y-ds-5 p-ds-4">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Office screens</h1>
+              <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">Office screens</h1>
               <p className="mt-1 max-w-2xl text-muted-foreground">
                 The wall in the office and anything else we hang. A screen link stays open until
                 you turn it off — it runs unattended, and an expiry nobody watches is a blank wall.
@@ -227,11 +227,17 @@ export default function DisplaysPage() {
                     <Input value={label} onChange={(e) => setLabel(e.target.value)}
                            placeholder="e.g. Office wall — main" />
                   </div>
+                  {/* These two settings each sat in a bordered box inside a dialog that
+                      already has an edge and a title — four edges around two switches. They
+                      are separated by the gap now, and the end-date block, which only appears
+                      once Show money is on, hangs off it by indentation rather than by a box
+                      of its own. The gate is unchanged: canExport is the frontend mirror of
+                      the leadership scope, and only it can point a screen at money. */}
                   {canExport && (
-                    <div className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="flex items-center justify-between gap-ds-3">
                       <div>
-                        <p className="text-sm font-medium">Show money</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-ds-label">Show money</p>
+                        <p className="text-ds-caption text-muted-foreground">
                           Invoiced, collected and unpaid. Founders&apos; screens only.
                         </p>
                       </div>
@@ -240,11 +246,11 @@ export default function DisplaysPage() {
                     </div>
                   )}
                   {canExport && scope === "leadership" && (
-                    <div className="space-y-3 rounded-lg border p-3">
-                      <div className="flex items-center justify-between">
+                    <div className="space-y-ds-2 border-l border-black/[0.08] pl-ds-3 dark:border-white/[0.1]">
+                      <div className="flex items-center justify-between gap-ds-3">
                         <div>
-                          <p className="text-sm font-medium">Give the link an end date</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-ds-label">Give the link an end date</p>
+                          <p className="text-ds-caption text-muted-foreground">
                             Anyone with this URL reads our revenue without logging in. You can
                             extend it any time from the list, and turning this off keeps the
                             link permanent.
@@ -298,21 +304,22 @@ export default function DisplaysPage() {
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : items.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="p-12 text-center">
-                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full border">
-                  <Monitor className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <p className="mt-4 font-medium">No screens yet</p>
-              </CardContent>
-            </Card>
+            <div className="py-ds-6 text-center">
+              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full border border-black/[0.08] dark:border-white/[0.1]">
+                <Monitor className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="mt-ds-3 font-medium">No screens yet</p>
+            </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-ds-2">
               {items.map((d) => {
                 const off = !!d.revoked_at
                 return (
-                  <Card key={d.id} className={off ? "opacity-60" : undefined}>
-                    <CardContent className="flex flex-wrap items-center gap-4 p-4">
+                  /* One card per screen is right — each is a different physical object. It
+                     moves to the console shell so its radius and shadow match the rest. */
+                  <div key={d.id}
+                       className={`${CARD} bg-[var(--tone-neutral-wash)] ${off ? "opacity-60" : ""}`}>
+                    <div className="flex flex-wrap items-center gap-ds-3 p-ds-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{d.label}</span>
@@ -325,7 +332,7 @@ export default function DisplaysPage() {
                             </Badge>
                           )}
                           {!off && d.last_seen_at && (
-                            <Badge variant="outline" className="gap-1 text-emerald-600 dark:text-emerald-400">
+                            <Badge variant="outline" className="gap-1 text-[var(--tone-good-ink)]">
                               <Eye className="h-3 w-3" />
                               seen {new Date(d.last_seen_at).toLocaleString("en-GB",
                                 { timeZone: DUBAI_TZ, day: "numeric", month: "short",
@@ -390,8 +397,8 @@ export default function DisplaysPage() {
                           <Power className="h-3.5 w-3.5" />Turn off
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 )
               })}
             </div>
