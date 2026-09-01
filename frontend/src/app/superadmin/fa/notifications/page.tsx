@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent } from "@/components/ui/card"
+import { CARD, PageHead, Stat, StatGrid } from "@/components/console/primitives"
+import { FaPage, Failed, Loading, Nothing, TONE_BADGE, type Tone } from "../_ui"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -82,13 +83,9 @@ const TYPE_OPTIONS = ["cashback", "deliverable", "withdrawal", "merchant", "syst
 const TIER_OPTIONS = ["NANO", "MICRO", "MACRO", "MEGA"] as const
 const STATUS_OPTIONS = ["active", "suspended", "pending", "inactive"] as const
 
-const TYPE_STYLES: Record<string, string> = {
-  cashback:    "bg-emerald-500/10 text-emerald-600 border-emerald-300",
-  deliverable: "bg-blue-500/10 text-blue-600 border-blue-300",
-  withdrawal:  "bg-amber-500/10 text-amber-600 border-amber-300",
-  merchant:    "bg-violet-500/10 text-violet-600 border-violet-300",
-  system:      "bg-slate-500/10 text-slate-600 border-slate-300",
-}
+/* Five notification kinds in five palette families: emerald, blue, amber, violet, slate.
+   A kind is not a state, nothing here is going wrong, so the colour was saying something
+   untrue. They are neutral now and the word does the telling. */
 
 const PAGE_SIZE = 25
 
@@ -113,7 +110,7 @@ function formatDate(iso: string): string {
 
 function TypeBadge({ type }: { type: string }) {
   return (
-    <Badge variant="outline" className={`text-[11px] px-2 capitalize ${TYPE_STYLES[type] || ""}`}>
+    <Badge variant="outline" className={`px-2 text-[11px] capitalize ${TONE_BADGE.neutral}`}>
       {type}
     </Badge>
   )
@@ -121,31 +118,9 @@ function TypeBadge({ type }: { type: string }) {
 
 // ─── Analytics Cards ───────────────────────────────────────────────────────────
 
-function StatCard({
-  label,
-  value,
-  Icon,
-}: {
-  label: string
-  value: string
-  Icon: React.ComponentType<{ className?: string }>
-}) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</p>
-            <p className="text-2xl font-bold mt-1 tabular-nums">{value}</p>
-          </div>
-          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Icon className="h-4.5 w-4.5 text-primary" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
+/* Four figures that were four cards, each with the icon in a second tinted tile inside it -
+   eight edges to compare "total sent" with "last 7 days". They are the console's Stat now,
+   the same band every other converted screen uses. */
 
 // ─── Compose Dialog ────────────────────────────────────────────────────────────
 
@@ -305,10 +280,11 @@ function ComposeDialog({ onSent }: { onSent: () => void }) {
           </div>
 
           {/* Actionable */}
-          <div className="flex items-center justify-between rounded-lg border p-3">
+          {/* One switch in a box, in a dialog that already has one. */}
+          <div className="flex items-center justify-between gap-ds-3">
             <div>
               <Label className="cursor-pointer">Actionable</Label>
-              <p className="text-xs text-muted-foreground mt-0.5">Add a tappable action with a target URL.</p>
+              <p className="mt-ds-1 text-ds-caption text-muted-foreground">Add a tappable action with a target URL.</p>
             </div>
             <Switch checked={actionable} onCheckedChange={setActionable} />
           </div>
@@ -341,8 +317,15 @@ function ComposeDialog({ onSent }: { onSent: () => void }) {
 export default function FANotificationsPage() {
   const [analytics, setAnalytics] = useState<FANotificationAnalytics | null>(null)
   const [items, setItems] = useState<FANotification[]>([])
-  const [total, setTotal] = useState(0)
+  // Not a number until the list answers. It was `useState(0)`, and the failure path below
+  // left it at 0 — so a list request that never came back put "0 sent" in the page header,
+  // which reads as "we have never notified anyone" rather than "we could not check".
+  const [total, setTotal] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  /* Whether the sent log answered. Without it a failed request emptied the table and the
+     page said "No notifications sent yet", which is a claim about what creators have and
+     have not been told. */
+  const [error, setError] = useState(false)
 
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [search, setSearch] = useState("")
@@ -354,12 +337,13 @@ export default function FANotificationsPage() {
       const res = await faNotificationApi.analytics()
       setAnalytics(res?.data ?? null)
     } catch {
-      toast.error("Failed to load notification analytics")
+      toast.error("Could not load the notification figures")
     }
   }, [])
 
   const loadList = useCallback(async () => {
     setLoading(true)
+    setError(false)
     try {
       const res = await faNotificationApi.list({
         type: typeFilter === "all" ? undefined : typeFilter,
@@ -368,9 +352,11 @@ export default function FANotificationsPage() {
         offset,
       })
       setItems(res?.data?.items ?? [])
-      setTotal(res?.data?.total ?? 0)
+      setTotal(res?.data?.total ?? null)
     } catch {
-      toast.error("Failed to load notifications")
+      setError(true)
+      setTotal(null)
+      toast.error("Could not load the sent log")
     } finally {
       setLoading(false)
     }
@@ -391,59 +377,64 @@ export default function FANotificationsPage() {
   }
 
   const page = Math.floor(offset / PAGE_SIZE) + 1
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil((total ?? 0) / PAGE_SIZE))
 
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="space-y-6">
+        <FaPage>
           {/* ─── Header ─── */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight">Notifications Manager</h1>
-                <Badge variant="secondary" className="text-xs font-medium">{formatNumber(total)} sent</Badge>
-              </div>
-              <p className="text-muted-foreground text-sm mt-0.5">
-                Compose and broadcast push notifications to Following App creators
-              </p>
-            </div>
-            <ComposeDialog onSent={refresh} />
-          </div>
+          <PageHead
+            title="Notifications"
+            sub={
+              total == null
+                ? "Push notifications to creators in the Following App. Send to everybody, to one tier, or to a single person."
+                : `${formatNumber(total)} notifications sent so far. Send to everybody, to one tier, or to a single person.`
+            }
+            action={<ComposeDialog onSent={refresh} />}
+          />
 
           {/* ─── Analytics Row ─── */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard label="Total sent" value={formatNumber(analytics?.total_sent)} Icon={Megaphone} />
-            <StatCard
+          <StatGrid>
+            <Stat label="Total sent" value={formatNumber(analytics?.total_sent)} icon={Megaphone} />
+            <Stat
               label="Read rate"
-              value={analytics ? `${Math.round((analytics.read_rate || 0) * 100)}%` : "-"}
-              Icon={CheckCheck}
+              /* `analytics.read_rate || 0` printed a confident 0% whenever the rate came
+                 back null — a delivery problem and a genuine nobody-opened-it read the
+                 same. A missing rate is a dash. */
+              value={analytics?.read_rate == null ? "—" : `${Math.round(analytics.read_rate * 100)}%`}
+              icon={CheckCheck}
             />
-            <StatCard label="Unique recipients" value={formatNumber(analytics?.unique_recipients)} Icon={UserCheck} />
-            <StatCard label="Last 7 days" value={formatNumber(analytics?.last_7_days)} Icon={CalendarDays} />
-          </div>
+            <Stat label="Unique recipients" value={formatNumber(analytics?.unique_recipients)} icon={UserCheck} />
+            <Stat label="Last 7 days" value={formatNumber(analytics?.last_7_days)} icon={CalendarDays} />
+          </StatGrid>
 
           {/* ─── By-type breakdown ─── */}
           {analytics?.by_type && analytics.by_type.length > 0 && (
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-3">
+            /* A card holding one bordered tile per type: two layers of box around a badge
+               and two numbers. The heading fences the group, and the gap between entries is
+               wider than the gap inside one, which is what the tiles were drawing. */
+            <div>
+                <p className="mb-ds-3 text-ds-overline uppercase text-muted-foreground">
                   By type
                 </p>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-x-ds-5 gap-y-ds-3">
                   {analytics.by_type.map((b) => {
-                    const rate = b.total > 0 ? Math.round((b.read / b.total) * 100) : 0
+                    /* `b.total > 0 ? ... : 0` printed "0% read" for a type nothing has been
+                       sent under. Nothing sent has no read rate; it is not a rate of zero. */
+                    const rate = b.total > 0 ? Math.round((b.read / b.total) * 100) : null
                     return (
-                      <div key={b.type} className="flex items-center gap-2 rounded-lg border px-3 py-2">
+                      <div key={b.type} className="flex items-center gap-ds-2">
                         <TypeBadge type={b.type} />
-                        <span className="text-sm font-semibold tabular-nums">{formatNumber(b.total)}</span>
-                        <span className="text-xs text-muted-foreground">{rate}% read</span>
+                        <span className="text-ds-body font-semibold tabular-nums">{formatNumber(b.total)}</span>
+                        <span className="text-ds-caption text-muted-foreground">
+                          {rate == null ? "no reads to rate" : `${rate}% read`}
+                        </span>
                       </div>
                     )
                   })}
                 </div>
-              </CardContent>
-            </Card>
+            </div>
           )}
 
           {/* ─── Filters ─── */}
@@ -475,19 +466,19 @@ export default function FANotificationsPage() {
           </div>
 
           {/* ─── Sent Log Table ─── */}
-          <Card>
-            <CardContent className="p-0">
+          <div className={`${CARD} overflow-hidden bg-[var(--tone-neutral-wash)]`}>
+            <div>
               {loading ? (
-                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <Loader2 className="h-8 w-8 animate-spin mb-3" />
-                  <p className="text-sm">Loading notifications...</p>
-                </div>
+                <Loading label="Loading what has been sent" />
+              ) : error ? (
+                <Failed what="the sent log" onRetry={loadList} />
               ) : items.length === 0 ? (
-                <div className="text-center py-16">
-                  <Bell className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-                  <p className="text-muted-foreground font-medium">
-                    {search || typeFilter !== "all" ? "No notifications match your filters" : "No notifications sent yet"}
-                  </p>
+                <div className="px-ds-3">
+                  <Nothing>
+                    {search || typeFilter !== "all"
+                      ? "Nothing matches those filters."
+                      : "Nothing has been sent yet."}
+                  </Nothing>
                 </div>
               ) : (
                 <Table>
@@ -527,7 +518,7 @@ export default function FANotificationsPage() {
                         <TableCell className="text-muted-foreground max-w-[280px] truncate">{n.message}</TableCell>
                         <TableCell>
                           {n.read ? (
-                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-300 text-[11px]">Read</Badge>
+                            <Badge className="bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)] border-0 text-[11px]">Read</Badge>
                           ) : (
                             <Badge variant="outline" className="text-[11px] text-muted-foreground">Unread</Badge>
                           )}
@@ -540,11 +531,11 @@ export default function FANotificationsPage() {
                   </TableBody>
                 </Table>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* ─── Pagination ─── */}
-          {!loading && total > PAGE_SIZE && (
+          {!loading && (total ?? 0) > PAGE_SIZE && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Page {page} of {totalPages} · {formatNumber(total)} total
@@ -569,7 +560,7 @@ export default function FANotificationsPage() {
               </div>
             </div>
           )}
-        </div>
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

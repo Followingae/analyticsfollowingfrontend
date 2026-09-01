@@ -173,7 +173,7 @@ export function ProductionTab({
                   {mode === 'payouts' ? (
                     <>
                       <TableCell className="font-medium">{r.creator_name}</TableCell>
-                      <TableCell className="tabular-nums">⃃ {Number(r.amount || 0).toLocaleString()}</TableCell>
+                      <TableCell className="tabular-nums">{isInternal ? <>⃃ {Number(r.amount || 0).toLocaleString()}</> : "—"}</TableCell>
                       <TableCell><Badge variant={r.status === 'paid' ? 'default' : 'secondary'} className="capitalize">{r.status}</Badge></TableCell>
                       <TableCell className="text-right">
                         {isInternal && r.status !== 'paid' && (

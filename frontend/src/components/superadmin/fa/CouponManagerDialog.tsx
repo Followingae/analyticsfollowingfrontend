@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, Upload, Trash2, Ticket, Sparkles, UtensilsCrossed } from "lucide-react"
 import { faCampaignApi } from "@/services/faAdminApi"
+import { TONE_BADGE, TONE_TEXT } from "@/app/superadmin/fa/_ui"
 import { toast } from "sonner"
 
 interface Coupon {
@@ -110,11 +111,11 @@ export function CouponManagerDialog({ campaignId, campaignName, open, onOpenChan
         </DialogHeader>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{stats.total} total</Badge>
-          <Badge className="bg-green-500/10 text-green-600">{stats.available} available</Badge>
-          <Badge className="bg-blue-500/10 text-blue-600">{stats.assigned} issued</Badge>
+          <Badge variant="outline" className={TONE_BADGE.neutral}>{stats.total} in the pool</Badge>
+          <Badge variant="outline" className={TONE_BADGE.good}>{stats.available} still free</Badge>
+          <Badge variant="outline" className={TONE_BADGE.info}>{stats.assigned} issued</Badge>
           {stats.redeemed > 0 && (
-            <Badge className="bg-purple-500/10 text-purple-600">{stats.redeemed} visited</Badge>
+            <Badge variant="outline" className={TONE_BADGE.good}>{stats.redeemed} used</Badge>
           )}
         </div>
 
@@ -172,10 +173,10 @@ export function CouponManagerDialog({ campaignId, campaignName, open, onOpenChan
           {loading ? (
             <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
           ) : coupons.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-6">No codes yet</p>
+            <p className="py-6 text-sm text-muted-foreground">No codes in the pool yet.</p>
           ) : (
             coupons.map((c) => (
-              <div key={c.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+              <div key={c.id} className="flex items-center justify-between rounded-ds-md border border-black/[0.06] px-3 py-2 dark:border-white/[0.07]">
                 <div className="min-w-0">
                   <p className="font-mono text-sm truncate">{c.code}</p>
                   {c.status !== "available" && (
@@ -187,11 +188,11 @@ export function CouponManagerDialog({ campaignId, campaignName, open, onOpenChan
                   )}
                 </div>
                 {c.status === "redeemed" ? (
-                  <Badge className="bg-purple-500/10 text-purple-600 shrink-0">visited</Badge>
+                  <Badge variant="outline" className={`shrink-0 ${TONE_BADGE.good}`}>used</Badge>
                 ) : c.status === "assigned" ? (
-                  <Badge className="bg-blue-500/10 text-blue-600 shrink-0">issued</Badge>
+                  <Badge variant="outline" className={`shrink-0 ${TONE_BADGE.info}`}>issued</Badge>
                 ) : (
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 shrink-0" onClick={() => remove(c.id)}><Trash2 className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className={`h-7 w-7 shrink-0 ${TONE_TEXT.bad}`} onClick={() => remove(c.id)}><Trash2 className="h-4 w-4" /></Button>
                 )}
               </div>
             ))

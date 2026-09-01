@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Bell, Loader2, Send, MailCheck, Search, Users, ShieldAlert } from "lucide-react"
+import { Loader2, Send, MailCheck, Search, Users, ShieldAlert, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { CARD, PageHead } from "@/components/console/primitives"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -27,10 +27,12 @@ import {
 function EventRow({
   event,
   recipients,
+  recipientsFailed,
   onSaved,
 }: {
   event: NotificationEvent
   recipients: RecipientCandidate[]
+  recipientsFailed: boolean
   onSaved: (e: NotificationEvent) => void
 }) {
   const [emailEnabled, setEmailEnabled] = useState(event.email_enabled)
@@ -110,8 +112,12 @@ function EventRow({
   }
 
   return (
-    <div className="rounded-lg border p-4">
-      <div className="flex items-start justify-between gap-4">
+    /* One box per event, and now the ONLY box: these rows used to sit inside a card per
+       domain, so reading one event's settings meant crossing the domain card's edge, the
+       row's edge, and then the edge of whichever setting you were looking at. The domain
+       card is gone; its title is a heading over the group. */
+    <div className={`${CARD} bg-[var(--tone-neutral-wash)] p-ds-3`}>
+      <div className="flex items-start justify-between gap-ds-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium">{event.label}</span>
@@ -120,8 +126,8 @@ function EventRow({
             </Badge>
             {emailEnabled ? (
               <Badge className={mode === 'immediate'
-                ? "bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 text-[10px]"
-                : "bg-blue-500/15 text-blue-600 hover:bg-blue-500/15 text-[10px]"}>
+                ? "bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)] hover:bg-[var(--tone-good-wash)] text-[10px]"
+                : "bg-[var(--tone-info-wash)] text-[var(--tone-info-ink)] hover:bg-[var(--tone-info-wash)] text-[10px]"}>
                 {mode === 'immediate' ? 'Sends straight away' : 'In the digest'}
               </Badge>
             ) : (
@@ -161,18 +167,22 @@ function EventRow({
               </span>
             </button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex items-center justify-between gap-3 rounded-md border p-3 cursor-pointer">
-              <span className="text-sm">
+          {/* Two switches, each in its own bordered box, inside a bordered row, inside what
+              used to be a bordered card. The boxes said nothing the label did not. The two
+              mode buttons above KEEP their borders: those are a choice between two options,
+              and the border is what shows which one is picked. */}
+          <div className="grid gap-x-ds-5 gap-y-ds-3 sm:grid-cols-2">
+            <label className="flex cursor-pointer items-center justify-between gap-ds-3">
+              <span className="text-ds-body">
                 Notify natural recipient
-                <span className="block text-xs text-muted-foreground">The brand/user the notification is about</span>
+                <span className="block text-ds-caption text-muted-foreground">The brand/user the notification is about</span>
               </span>
               <Switch checked={sendToPrimary} onCheckedChange={setSendToPrimary} />
             </label>
-            <label className="flex items-center justify-between gap-3 rounded-md border p-3 cursor-pointer">
-              <span className="text-sm">
+            <label className="flex cursor-pointer items-center justify-between gap-ds-3">
+              <span className="text-ds-body">
                 All superadmins
-                <span className="block text-xs text-muted-foreground">Every operator account</span>
+                <span className="block text-ds-caption text-muted-foreground">Every operator account</span>
               </span>
               <Switch checked={notifyAllSuperadmins} onCheckedChange={setNotifyAllSuperadmins} />
             </label>
@@ -182,9 +192,15 @@ function EventRow({
             <Label className="text-xs flex items-center gap-1.5 mb-2">
               <Users className="h-3.5 w-3.5" /> Specific team recipients
             </Label>
-            <div className="rounded-md border max-h-44 overflow-auto divide-y">
+            <div className="max-h-44 divide-y divide-black/[0.06] overflow-auto rounded-ds-md border border-black/[0.06] dark:divide-white/[0.07] dark:border-white/[0.07]">
               {recipients.length === 0 && (
-                <div className="p-3 text-xs text-muted-foreground">No admin/staff users found.</div>
+                /* "No admin/staff users found" over a failed read invites someone to type
+                   addresses into the box below to work around a list that is actually fine. */
+                <div className="p-3 text-ds-caption text-muted-foreground">
+                  {recipientsFailed
+                    ? "The team list did not load, so nobody can be ticked here. Whoever is already selected on this event is unaffected."
+                    : "No admin or staff users to choose from."}
+                </div>
               )}
               {recipients.map((r) => (
                 <label key={r.id} className="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-muted/40">
@@ -263,10 +279,17 @@ function EventRow({
 /** The digest, in one place: what is queued, and a way to look at a real one. */
 function DigestPanel() {
   const [preview, setPreview] = useState<DigestPreview | null>(null)
+  // The preview request used to fail into `.catch(() => undefined)`, leaving `preview` null
+  // for good — and null is the state this panel renders as "Checking what is queued…". So a
+  // failed read sat there claiming to still be working, forever, on a screen whose whole job
+  // is to tell you whether anything is about to go out. A failure now says so.
+  const [previewFailed, setPreviewFailed] = useState(false)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    notificationSettingsApi.previewDigest(12).then(setPreview).catch(() => undefined)
+    notificationSettingsApi.previewDigest(12)
+      .then(setPreview)
+      .catch(() => setPreviewFailed(true))
   }, [])
 
   const sendToMe = async () => {
@@ -282,12 +305,13 @@ function DigestPanel() {
   }
 
   return (
-    <Card>
-      <CardContent className="flex flex-wrap items-center gap-4 p-4">
+    <div className={`${CARD} flex flex-wrap items-center gap-ds-3 bg-[var(--tone-neutral-wash)] p-ds-3`}>
         <div className="min-w-0">
-          <div className="text-sm font-medium">Digest — 08:30 and 17:30, Dubai</div>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {preview === null
+          <div className="text-ds-label">Digest — 08:30 and 17:30, Dubai</div>
+          <p className="mt-ds-1 text-ds-body text-muted-foreground">
+            {previewFailed
+              ? "We could not read what is queued. This is not a count of zero — try again."
+              : preview === null
               ? "Checking what is queued…"
               : preview.recipients === 0
                 ? "Nothing queued. An empty digest is not sent."
@@ -300,8 +324,7 @@ function DigestPanel() {
         <Button size="sm" variant="outline" className="ml-auto" onClick={sendToMe} disabled={busy}>
           {busy ? "Sending…" : "Send me one now"}
         </Button>
-      </CardContent>
-    </Card>
+    </div>
   )
 }
 
@@ -311,20 +334,35 @@ export default function SuperadminNotificationsPage() {
   const [recipients, setRecipients] = useState<RecipientCandidate[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  /**
+   * The two counts in the header were derived from `events`, and the catch set `events` to
+   * an empty array. So a failed load rendered "0 of the 0 live events are in the digest" and
+   * a badge reading "0 events enabled" — a confident statement that every alert on the
+   * platform is switched off, made by a screen that never got an answer. Both are dashes now,
+   * and the page says which of the two reads failed.
+   */
+  const [failure, setFailure] = useState<string | null>(null)
+  // The recipient list failed into `.catch(() => [])`, which the picker renders as "No
+  // admin/staff users found" — an empty roster where the real one could not be read.
+  const [recipientsFailed, setRecipientsFailed] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const [ev, rc] = await Promise.all([
         notificationSettingsApi.listEvents(),
-        notificationSettingsApi.listRecipients().catch(() => []),
+        notificationSettingsApi.listRecipients()
+          .catch(() => { setRecipientsFailed(true); return [] as RecipientCandidate[] }),
       ])
       setEvents(ev.events)
       setDomains(ev.domains)
       setRecipients(rc)
+      setFailure(null)
     } catch (e: any) {
-      toast.error(e?.message || "Failed to load notification settings")
+      toast.error(e?.message || "Could not load the alert settings")
       setEvents([])
+      setDomains([])
+      setFailure(e?.message || "The request did not complete")
     } finally {
       setLoading(false)
     }
@@ -361,39 +399,51 @@ export default function SuperadminNotificationsPage() {
 
   return (
     <SuperadminLayout>
-      <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto w-full">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2">
-              <Bell className="h-6 w-6" /> Email Alerts
-            </h1>
-            <p className="text-muted-foreground mt-1 max-w-2xl">
-              Control which platform events send email, how it arrives, and who receives it. An
-              event either interrupts someone straight away, or waits and arrives as one line in
-              the twice-daily digest. {digestCount} of the {enabledCount} live events are in the
-              digest, which is what stops a busy day turning into thirty emails.
-            </p>
+      <div className="mx-auto w-full max-w-5xl space-y-ds-5 p-ds-3 md:p-ds-4">
+        <PageHead
+          title="Email alerts"
+          sub={
+            failure
+              ? "Control which platform events send email, how it arrives, and who receives it. An event either interrupts someone straight away, or waits and arrives as one line in the twice-daily digest."
+              : `Control which platform events send email, how it arrives, and who receives it. An event either interrupts someone straight away, or waits and arrives as one line in the twice-daily digest. ${digestCount} of the ${enabledCount} live events are in the digest, which is what stops a busy day turning into thirty emails.`
+          }
+          action={
+            <Badge variant="outline" className="gap-1.5 py-1.5 px-3">
+              <MailCheck className="h-4 w-4" />
+              {failure
+                ? "count unknown"
+                : `${enabledCount} event${enabledCount === 1 ? "" : "s"} enabled`}
+            </Badge>
+          }
+        />
+
+        {failure && (
+          <div className="flex flex-wrap items-center gap-ds-3">
+            <div className="min-w-0">
+              <p className="text-ds-label">Could not load the alert settings</p>
+              <p className="mt-ds-1 text-ds-body-sm text-muted-foreground">
+                Every rule is still in force exactly as it was: this screen failed to read them,
+                it did not switch anything off. {failure}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" className="ml-auto" onClick={load}>
+              <RefreshCw className="mr-1.5 h-4 w-4" />Try again
+            </Button>
           </div>
-          <Badge variant="outline" className="gap-1.5 py-1.5 px-3">
-            <MailCheck className="h-4 w-4" /> {enabledCount} event{enabledCount === 1 ? "" : "s"} enabled
-          </Badge>
-        </div>
+        )}
 
         <DigestPanel />
 
         {/* Intro / how it works */}
-        <Card className="bg-muted/30">
-          <CardContent className="p-4 text-sm text-muted-foreground flex gap-3">
-            <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
+        <div className="flex gap-ds-3 text-ds-body text-muted-foreground">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
               Emails are sent via Resend and always CC <span className="font-mono">zain@following.ae</span>. For team
               events that already fan out to every operator, prefer <span className="font-medium">Notify natural
               recipient</span> rather than <span className="font-medium">All superadmins</span> to avoid duplicate
               emails. Creators (mobile app) are never emailed here — they receive push notifications.
             </div>
-          </CardContent>
-        </Card>
+        </div>
 
         {/* Search */}
         <div className="relative">
@@ -410,20 +460,23 @@ export default function SuperadminNotificationsPage() {
           <div className="flex items-center justify-center py-24 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
-        ) : grouped.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">No events match your search.</div>
+        ) : failure ? null : grouped.length === 0 ? (
+          <p className="py-ds-6 text-center text-ds-body text-muted-foreground">
+            {search ? `No event matches "${search}".` : "No events are configured."}
+          </p>
         ) : (
           grouped.map((g) => (
-            <Card key={g.domain}>
-              <CardHeader>
-                <CardTitle className="text-base">{g.domain}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+            /* The domain was a card wrapped around cards. It is a heading now: the domain
+               name over its events, with the section gap doing the separating. */
+            <section key={g.domain} className="space-y-ds-2">
+              <h2 className="text-ds-overline uppercase text-muted-foreground">{g.domain}</h2>
+              <div className="space-y-ds-2">
                 {g.items.map((e) => (
-                  <EventRow key={e.event_key} event={e} recipients={recipients} onSaved={onSaved} />
+                  <EventRow key={e.event_key} event={e} recipients={recipients}
+                            recipientsFailed={recipientsFailed} onSaved={onSaved} />
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           ))
         )}
       </div>

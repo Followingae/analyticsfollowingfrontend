@@ -53,6 +53,8 @@ export function TeamMembersManagement({
   const [inviteMessage, setInviteMessage] = useState('')
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
+  // The accept link, shown only when the email could not be delivered.
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
 
   // Confirmation states
   const [removeMemberConfirm, setRemoveMemberConfirm] = useState(false)
@@ -60,7 +62,20 @@ export function TeamMembersManagement({
   const [cancelInviteConfirm, setCancelInviteConfirm] = useState(false)
   const [inviteToCancel, setInviteToCancel] = useState<{id: string, email: string} | null>(null)
 
-  const isOwner = teamContext?.user_role === 'owner'
+  // Who this user is on the team, and how many seats the plan has. Read from the backend
+  // rather than inferred: the stored context reports everybody as a 'member', so an owner
+  // opening this panel never saw the invite button that the whole panel exists for.
+  const [seats, setSeats] = useState<{
+    user_role: string
+    subscription_tier: string
+    active_members: number
+    max_members: number
+    pending_invitations: number
+    available_slots: number
+  } | null>(null)
+
+  const isOwner = seats ? seats.user_role === 'owner' : teamContext?.user_role === 'owner'
+  const seatsFull = !!seats && seats.available_slots <= 0
 
   useEffect(() => {
     if (propTeamContext) {
@@ -72,6 +87,10 @@ export function TeamMembersManagement({
         setTeamContext(storedContext)
       }
     }
+
+    teamApiService.getSeatContext().then((res) => {
+      if (res.success && res.data) setSeats(res.data)
+    })
 
     fetchTeamData()
 
@@ -91,9 +110,12 @@ export function TeamMembersManagement({
       setLoading(true)
       setError(null)
 
+      // Always ask for the invitations. Gating this on isOwner raced the role lookup, so
+      // an owner's pending invitations were fetched only if the role happened to arrive
+      // first; a non-owner simply gets a failed result here, which is ignored below.
       const [membersResult, invitationsResult] = await Promise.all([
         teamApiService.getTeamMembers(),
-        isOwner ? teamApiService.getTeamInvitations('pending') : Promise.resolve({ success: true, data: [] })
+        teamApiService.getTeamInvitations('pending')
       ])
 
       if (membersResult.success) {
@@ -131,8 +153,18 @@ export function TeamMembersManagement({
       )
 
       if (result.success) {
+        // The seat exists whether or not the email left. If it did not, hold the dialog
+        // open with the link, because a silent failure here is a seat nobody ever fills.
+        if (result.data && result.data.email_sent === false) {
+          setInviteLink(result.data.invitation_url || null)
+          setInviteError(result.data.email_error || 'The invitation was created, but the email did not send.')
+          await fetchTeamData()
+          return
+        }
+
         setInviteEmail('')
         setInviteMessage('')
+        setInviteLink(null)
         setShowInviteDialog(false)
         await fetchTeamData() // Refresh data
       } else {
@@ -271,6 +303,13 @@ export function TeamMembersManagement({
                       <AlertDescription>{inviteError}</AlertDescription>
                     </Alert>
                   )}
+
+                  {inviteLink && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Send them this link</label>
+                      <Input readOnly value={inviteLink} onFocus={(e) => e.currentTarget.select()} />
+                    </div>
+                  )}
                 </div>
 
                 <DialogFooter>
@@ -395,21 +434,30 @@ export function TeamMembersManagement({
           </>
         )}
 
-        {/* Team Capacity Info */}
-        {teamContext && (
+        {/* Team Capacity Info. The cap comes from the plan, not from a hardcoded 5:
+            a Standard team has two seats and was being told it had five. */}
+        {(seats || teamContext) && (
           <>
             <Separator />
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Team Capacity:</span>
+              <span className="text-muted-foreground">Seats used:</span>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-xs">
-                  {members.length + invitations.length}/5 members
+                  {seats
+                    ? `${seats.active_members + seats.pending_invitations}/${seats.max_members} seats`
+                    : `${members.length + invitations.length} seats`}
                 </Badge>
                 <Badge variant="outline" className="text-xs">
-                  {teamContext.subscription_tier} plan
+                  {(seats?.subscription_tier || teamContext?.subscription_tier)} plan
                 </Badge>
               </div>
             </div>
+            {isOwner && seatsFull && (
+              <div className="text-xs text-muted-foreground">
+                Every seat on this plan is taken. Cancel a pending invitation to free one,
+                or upgrade the plan to add more people.
+              </div>
+            )}
           </>
         )}
 

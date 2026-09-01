@@ -57,6 +57,8 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface";
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext";
 import { CampaignCard, type CampaignCardData } from "@/components/campaigns/CampaignCard";
+import { LockedModuleCard } from "@/components/commercial/LockedModuleCard";
+import { useCommercialAccount } from "@/hooks/useCommercialAccount";
 // CampaignAnalyticsCards removed — aggregating KPIs across campaigns is not industry practice
 import { GeneratedCover } from "@/components/campaigns/GeneratedCover";
 import { unifiedCampaignApi, type ScopeCampaign } from "@/services/clientManagementApi";
@@ -1149,6 +1151,9 @@ function ArchiveTabContent({ searchQuery }: { searchQuery: string }) {
 // ============================================================================
 export default function UnifiedCampaignsDashboard() {
   const router = useRouter();
+  // Campaigns is the Run module. An account without Run gets a real page at
+  // this address instead - see the early return below.
+  const account = useCommercialAccount();
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -1169,6 +1174,32 @@ export default function UnifiedCampaignsDashboard() {
     };
     fetchPendingCount();
   }, []);
+
+  // Run is off: show what they were about to do and what it costs, at the
+  // address they clicked. Only when we positively know the answer - if the
+  // billing call failed we let them through, because losing access to a page
+  // you pay for is worse than showing a page you might not.
+  if (account.state === 'loaded' && !account.owns.run) {
+    return (
+      <AuthGuard>
+        <BrandUserInterface>
+          <div className="flex flex-col min-h-screen bg-background">
+            <div className="border-b bg-background/95">
+              <div className="p-4 md:p-6">
+                <h1 className="text-2xl font-bold tracking-tight">Campaigns</h1>
+                <p className="text-sm text-muted-foreground">
+                  Run a shortlist as a campaign, from brief to posted content
+                </p>
+              </div>
+            </div>
+            <div className="p-4 md:p-6">
+              <LockedModuleCard module="run" />
+            </div>
+          </div>
+        </BrandUserInterface>
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard>

@@ -11,7 +11,7 @@ import { teamApiService, TeamContext } from "@/services/teamApi"
 import { Progress } from "@/components/ui/progress"
 
 interface TeamUsageGateProps {
-  usageType: 'profiles' | 'emails' | 'posts'
+  usageType: 'profiles' | 'posts'
   children: React.ReactNode
   onUsageApproved?: () => void
   disabled?: boolean
@@ -85,7 +85,6 @@ export function TeamUsageGate({
   const checkUsagePermission = (context: TeamContext): boolean => {
     // Check if user has permission for this action type
     const permissionKey = usageType === 'profiles' ? 'can_analyze_profiles' :
-                         usageType === 'emails' ? 'can_unlock_emails' :
                          'can_analyze_posts'
     
     if (!context.user_permissions[permissionKey]) {
@@ -98,13 +97,11 @@ export function TeamUsageGate({
 
   const getUsageTypeLabel = (): string => {
     return usageType === 'profiles' ? 'Profile Analysis' :
-           usageType === 'emails' ? 'Email Unlock' :
            'Posts Analysis'
   }
 
   const getUsageIcon = (): string => {
     return usageType === 'profiles' ? '👤' :
-           usageType === 'emails' ? '📧' :
            '📊'
   }
 
@@ -233,7 +230,7 @@ export function TeamUsageGate({
             {/* Action Button */}
             {teamContext.user_role === 'owner' ? (
               <Button 
-                onClick={() => window.location.href = '/subscription/upgrade'}
+                onClick={() => window.location.href = '/billing?tab=plan'}
                 disabled={disabled}
                 className="w-full"
                 variant="default"

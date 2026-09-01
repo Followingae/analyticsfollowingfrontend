@@ -27,6 +27,7 @@ export const ENDPOINTS = {
     searchHistory: '/api/v1/auth/search-history', // GET - User search history
     unlockedProfiles: '/api/v1/auth/unlocked-profiles', // GET - Unlocked profiles
     forgotPassword: '/api/v1/auth/forgot-password', // POST - Forgot password
+    oauthSession: '/api/v1/auth/oauth/session', // POST - Exchange a Supabase OAuth session (Google) for an app session
     verifyEmail: (token: string) => `/api/v1/auth/verify-email/${token}`, // GET - Verify email
     adminCreateManagedUser: '/api/v1/auth/admin/create-managed-user', // POST - Admin creates managed user
   },
@@ -42,6 +43,7 @@ export const ENDPOINTS = {
     canPerform: (actionType: string) => `/api/v1/credits/can-perform/${actionType}`, // GET - Check permissions
     pricing: '/api/v1/credits/pricing', // GET - Pricing info
     topUpEstimate: '/api/v1/credits/top-up/estimate', // POST - Estimate top-up cost
+    topupOptions: '/api/v1/credits/topup/options', // GET - Top-up packages (credits + price + tier discount)
   },
 
   // Creator Search (/api/v1/search/ & /api/v1/simple/)
@@ -72,6 +74,9 @@ export const ENDPOINTS = {
     invite: '/api/v1/teams/invite', // POST - Invite member
     invitations: '/api/v1/teams/invitations', // GET - Team invitations
     acceptInvitation: (token: string) => `/api/v1/teams/invitations/${token}/accept`, // PUT - Accept invitation
+    previewInvitation: (token: string) => `/api/v1/teams/invitations/${token}/preview`, // GET - Public, powers the accept page
+    registerFromInvitation: (token: string) => `/api/v1/teams/invitations/${token}/register`, // POST - Public, creates the invited account
+    myTeam: '/api/v1/teams/my-team', // GET - Current user's team and role
     removeMember: (userId: string) => `/api/v1/teams/members/${userId}`, // DELETE - Remove member
     cancelInvitation: (id: string) => `/api/v1/teams/invitations/${id}`, // DELETE - Cancel invitation
     overview: '/api/v1/teams/overview', // GET - Team overview
@@ -207,7 +212,12 @@ export const ENDPOINTS = {
     trialDailyUsage: '/api/v1/billing/trial/daily-usage', // GET - Trial daily usage summary
 
     // Invoices
-    invoices: '/api/v1/billing/invoices', // GET - User's Stripe invoices
+    invoices: '/api/v1/billing/invoices', // GET - User's Stripe subscription invoices
+    // GET - The invoices WE raise against this client (campaign_invoices),
+    // brand-scoped: the team is resolved server-side from the caller. The admin
+    // read at /api/v1/admin/clients/{team_id}/invoices is staff-only and stays
+    // that way; this is the same rows, allow-listed, with no cost or margin.
+    accountInvoices: '/api/v1/billing/account-invoices',
 
     // Webhooks
     webhook: '/api/v1/billing/webhook', // POST - Stripe webhook for existing subscriptions

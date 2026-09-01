@@ -6,7 +6,7 @@
  * surfaced to creators in the mobile app. Controlled via `value` / `onChange`.
  */
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Section, TONE_TEXT } from "@/app/superadmin/fa/_ui"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -202,12 +202,8 @@ export function DeliverablePicker({ value, onChange }: { value: DeliverableSpec[
   }
   const setQty = (key: string, q: number) => onChange(value.map((d) => d.key === key ? { ...d, quantity: Math.max(1, q) } : d))
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Deliverables *</CardTitle>
-        <CardDescription>What the creator must post. Stories are verified by screenshot; Reels/Posts/Videos by link.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <Section title="Deliverables *" description="What the creator has to post. A story is checked by screenshot; a reel, post or video by its link.">
+      <div className="space-y-ds-2">
         <div className="flex flex-wrap gap-2">
           {DELIVERABLE_OPTIONS.map((opt) => {
             const on = !!value.find((d) => d.key === opt.key)
@@ -236,14 +232,14 @@ export function DeliverablePicker({ value, onChange }: { value: DeliverableSpec[
                     <span className="w-6 text-center text-sm font-semibold tabular-nums">{d.quantity}</span>
                     <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => setQty(d.key, d.quantity + 1)}>+</Button>
                   </div>
-                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => toggle(d)}><Trash2 className="h-4 w-4" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className={`h-7 w-7 ${TONE_TEXT.bad}`} onClick={() => toggle(d)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               )
             })}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   )
 }
 
@@ -265,9 +261,8 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
   return (
     <>
       {/* Brand */}
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" />Brand</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
+      <Section title="The brand" description="Who the creator is posting about, and where to find them.">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label>Brand description</Label>
             <Textarea value={value.brand_description} onChange={(e) => set({ brand_description: e.target.value })} placeholder="Who is the brand? What do they stand for?" />
@@ -290,13 +285,12 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
               <Input value={value.brand_snapchat} onChange={(e) => set({ brand_snapchat: e.target.value })} placeholder="@mandarinoak" />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
 
       {/* Brief */}
-      <Card>
-        <CardHeader><CardTitle>Creative Brief</CardTitle><CardDescription>The story creators should tell. Shown in the app before they apply.</CardDescription></CardHeader>
-        <CardContent className="space-y-4">
+      <Section title="The brief" description="The story creators should tell. They read this in the app before they apply.">
+        <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Objective</Label><Input value={value.objective} onChange={(e) => set({ objective: e.target.value })} placeholder="Awareness" /></div>
             <div className="space-y-2"><Label>Occasion</Label><Input value={value.occasion} onChange={(e) => set({ occasion: e.target.value })} placeholder="New Product Launch" /></div>
@@ -308,22 +302,20 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
             onChange={(urls) => set({ reference_links: urls.map((u) => value.reference_links.find((r) => r.url === u) || { url: u, note: "" }) })} />
           <ChipInput label="Content requirements (do's / must-mention)" placeholder="e.g. Shoot in daylight - press Enter" items={value.content_requirements} onChange={(v) => set({ content_requirements: v })} />
           <ChipInput label="Things to avoid (don'ts)" placeholder="e.g. No soiled packaging - press Enter" items={value.things_to_avoid} onChange={(v) => set({ things_to_avoid: v })} />
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
 
       {/* Mandatory tags */}
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Hash className="h-5 w-5" />Tags &amp; Hashtags</CardTitle><CardDescription>Creators can copy these directly in the app.</CardDescription></CardHeader>
-        <CardContent className="space-y-4">
+      <Section title="Tags and hashtags" description="Creators copy these straight out of the app, so type them exactly as they must appear.">
+        <div className="space-y-4">
           <ChipInput label="Mandatory @tags" prefix="@" placeholder="mandarinoak_uae - press Enter" items={value.mandatory_tags} onChange={(v) => set({ mandatory_tags: v })} />
           <ChipInput label="Mandatory #hashtags" prefix="#" placeholder="ThaiFireEdit - press Enter" items={value.mandatory_hashtags} onChange={(v) => set({ mandatory_hashtags: v })} />
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
 
       {/* Audience context (informational, not a filter) */}
-      <Card>
-        <CardHeader><CardTitle>Audience Context</CardTitle><CardDescription>Shown to creators as guidance - these do not filter who can apply.</CardDescription></CardHeader>
-        <CardContent className="space-y-4">
+      <Section title="Who it is for" description="Guidance the creator reads. It does not stop anybody applying.">
+        <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="space-y-2"><Label>Age from</Label><Input type="number" value={value.age_min} onChange={(e) => set({ age_min: e.target.value })} placeholder="18" /></div>
             <div className="space-y-2"><Label>Age to</Label><Input type="number" value={value.age_max} onChange={(e) => set({ age_max: e.target.value })} placeholder="55" /></div>
@@ -341,15 +333,15 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
             <div className="space-y-2"><Label>Languages</Label><Input value={value.languages} onChange={(e) => set({ languages: e.target.value })} placeholder="English, Arabic, Hindi" /></div>
           </div>
           <div className="space-y-2"><Label>Interests / lifestyle</Label><Textarea value={value.interests} onChange={(e) => set({ interests: e.target.value })} placeholder="Food lovers into bold, craveable Asian cuisine…" /></div>
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
 
       {/* Visit */}
-      <Card>
-        <CardContent className="p-6">
+      <Section>
+        <div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center"><MapPin className="h-4.5 w-4.5 text-muted-foreground" /></div>
+              <div className="h-9 w-9 rounded-ds-md bg-black/[0.04] dark:bg-white/[0.07] flex items-center justify-center"><MapPin className="h-4.5 w-4.5 text-muted-foreground" /></div>
               <div>
                 <p className="font-medium text-sm">Visit required to shoot content?</p>
                 <p className="text-xs text-muted-foreground">Turn on if the creator must visit a location.</p>
@@ -363,15 +355,15 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
               <Input value={value.visit_location} onChange={(e) => set({ visit_location: e.target.value })} placeholder="Dubai Mall, Dubai" />
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
 
       {/* Coupon fulfilment */}
-      <Card>
-        <CardContent className="p-6">
+      <Section>
+        <div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center"><Ticket className="h-4.5 w-4.5 text-muted-foreground" /></div>
+              <div className="h-9 w-9 rounded-ds-md bg-black/[0.04] dark:bg-white/[0.07] flex items-center justify-center"><Ticket className="h-4.5 w-4.5 text-muted-foreground" /></div>
               <div>
                 <p className="font-medium text-sm">Coupon-code fulfilment</p>
                 <p className="text-xs text-muted-foreground">Creators receive a unique code once approved. Upload the codes after creating the campaign.</p>
@@ -394,7 +386,7 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
                     onClick={() => set({ fulfilment_mode: opt.key })}
                     className={`rounded-lg border p-3 text-left transition-colors ${
                       value.fulfilment_mode === opt.key
-                        ? "border-primary bg-primary/5"
+                        ? "border-foreground/40 bg-black/[0.04] dark:bg-white/[0.07]"
                         : "border-border hover:bg-muted/50"
                     }`}
                   >
@@ -432,8 +424,8 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
               )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
     </>
   )
 }

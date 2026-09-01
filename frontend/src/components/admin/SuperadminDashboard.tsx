@@ -1,52 +1,66 @@
 'use client';
 
+/**
+ * The console's front door.
+ *
+ * Four ways in, and three figures about the platform. It was eight bordered cards: four with
+ * an icon in a tinted rounded tile inside them, four more holding one number each. The tiles
+ * and the borders said nothing the gap between them does not, so they are gone and the
+ * figures take the room the padding was using.
+ *
+ * The numbers themselves were the bigger problem. Every one of them read `x || 0`, so a
+ * response that arrived without its `user_metrics` block — or with one field missing —
+ * printed a confident "0 users, 0 active, 0 profiles" on the screen a founder glances at.
+ * A figure we were not given is a dash now. A real zero still prints 0.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { superadminService } from '@/utils/superadminApi';
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MetricCard } from "@/components/analytics-cards";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 import {
   Users,
   Briefcase,
-  BarChart3,
-  UserPlus,
   Activity,
   Target,
-  AlertCircle,
   RefreshCw,
   Building2
 } from "lucide-react";
-import { cn } from '@/lib/utils';
+import { PageHead, Stat, StatGrid } from "@/components/console/primitives";
 
 interface DashboardStats {
   users: {
-    total: number;
-    active: number;
-    premium: number;
-    new_this_month: number;
+    total: number | null;
+    active: number | null;
+    premium: number | null;
+    new_this_month: number | null;
   };
   revenue: {
-    total_mrr: number;
-    new_mrr_this_month: number;
+    total_mrr: number | null;
+    new_mrr_this_month: number | null;
   };
   content: {
-    total_profiles: number;
-    profiles_analyzed_today: number;
+    total_profiles: number | null;
+    profiles_analyzed_today: number | null;
   };
 }
+
+/** First figure that actually is one. Absent stays absent rather than falling through to 0. */
+const pick = (...vals: unknown[]): number | null => {
+  for (const v of vals) {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+  }
+  return null;
+};
+
+const show = (v: number | null) => (v == null ? '—' : v.toLocaleString());
 
 export default function SuperadminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-
-  // PERF FIX: No artificial delays - show content immediately when data is ready
-  const showHeader = !loading && !!stats;
-  const showCards = !loading && !!stats;
-  const showMetrics = !loading && !!stats;
 
   useEffect(() => {
     loadDashboardData();
@@ -67,18 +81,18 @@ export default function SuperadminDashboard() {
 
       const transformedStats: DashboardStats = {
         users: {
-          total: userMetrics?.total_users || flat?.total_users || 0,
-          active: userMetrics?.active_users || flat?.active_users || 0,
-          premium: userMetrics?.premium_users || flat?.premium_users || 0,
-          new_this_month: userMetrics?.new_users_this_month || flat?.new_users_this_month || 0
+          total: pick(userMetrics?.total_users, flat?.total_users),
+          active: pick(userMetrics?.active_users, flat?.active_users),
+          premium: pick(userMetrics?.premium_users, flat?.premium_users),
+          new_this_month: pick(userMetrics?.new_users_this_month, flat?.new_users_this_month)
         },
         revenue: {
-          total_mrr: revenueData?.total_mrr || flat?.total_revenue_this_month || 0,
-          new_mrr_this_month: revenueData?.new_mrr_this_month || flat?.total_revenue_this_month || 0
+          total_mrr: pick(revenueData?.total_mrr, flat?.total_revenue_this_month),
+          new_mrr_this_month: pick(revenueData?.new_mrr_this_month, flat?.total_revenue_this_month)
         },
         content: {
-          total_profiles: flat?.total_profiles || 0,
-          profiles_analyzed_today: flat?.profiles_analyzed_today || 0
+          total_profiles: pick(flat?.total_profiles),
+          profiles_analyzed_today: pick(flat?.profiles_analyzed_today)
         }
       };
 
@@ -93,36 +107,34 @@ export default function SuperadminDashboard() {
 
   const navigationCards = [
     {
-      label: 'User Management',
+      label: 'Users',
       path: '/superadmin/users',
       icon: Users,
-      metric: (stats?.users?.total || 0).toLocaleString(),
-      subMetric: `${stats?.users?.active || 0} active users`,
-      description: 'Manage users and permissions'
+      metric: show(stats?.users?.total ?? null),
+      subMetric: stats?.users?.active == null
+        ? 'How many are active did not come back'
+        : `${stats.users.active.toLocaleString()} active`,
     },
     {
       label: 'Proposals',
       path: '/superadmin/proposals',
       icon: Briefcase,
-      metric: 'Manage',
-      subMetric: 'Campaign proposals',
-      description: 'Create and manage proposals'
+      metric: 'Open',
+      subMetric: 'Quotes out with a client',
     },
     {
       label: 'Clients',
       path: '/superadmin/clients',
       icon: Building2,
-      metric: 'Manage',
-      subMetric: 'Client cockpits & scope',
-      description: 'Clients, campaigns, commercial & approvals'
+      metric: 'Open',
+      subMetric: 'Scope, commercial and approvals',
     },
     {
-      label: 'Influencer Database',
+      label: 'Creators',
       path: '/superadmin/influencers',
       icon: Target,
-      metric: 'Browse',
-      subMetric: 'Master CRM',
-      description: 'Roster, rates, tiers & analytics'
+      metric: 'Open',
+      subMetric: 'The master database, rates and tiers',
     },
   ];
 
@@ -130,117 +142,59 @@ export default function SuperadminDashboard() {
     return <DashboardSkeleton />;
   }
 
+  /* An error is not an empty platform: nothing below it is drawn, so the only claim on
+     screen is the one we can stand behind. */
   if (error) {
     return (
-      <div className="bg-background p-6">
-        <div className="max-w-[1600px] mx-auto">
-          <Card className="border-destructive/50">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="h-14 w-14 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
-                <AlertCircle className="h-7 w-7 text-destructive" />
-              </div>
-              <h2 className="text-xl font-semibold tracking-tight mb-2">
-                Failed to load dashboard
-              </h2>
-              <p className="text-sm text-muted-foreground max-w-md mb-6">
-                {error}
-              </p>
-              <Button variant="outline" onClick={loadDashboardData}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="p-4 md:p-7">
+        <div className="mx-auto max-w-[1600px] space-y-3">
+          <p className="text-sm font-medium">Could not load the dashboard.</p>
+          <p className="text-sm text-muted-foreground">
+            {error}. Nothing here is known: these are not real figures of zero.
+          </p>
+          <Button variant="outline" size="sm" onClick={loadDashboardData}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Try again
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-background p-6">
-      <div className="max-w-[1600px] mx-auto space-y-8">
+    <div className="p-4 md:p-7">
+      <div className="mx-auto max-w-[1600px] space-y-ds-5">
+        <PageHead title="Dashboard" sub="Where the platform stands, and the four places you go most." />
 
-        {/* Header */}
-        <div className={cn(
-          "transition-all duration-500 ease-out",
-          showHeader ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-        )}>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Dashboard
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Platform overview and quick actions
-          </p>
-        </div>
+        {/* The four ways in. Same shape as every other figure band on the console. */}
+        <StatGrid>
+          {navigationCards.map((card) => (
+            <Stat
+              key={card.path}
+              label={card.label}
+              value={card.metric}
+              icon={card.icon}
+              hint={card.subMetric}
+              onClick={() => router.push(card.path)}
+            />
+          ))}
+        </StatGrid>
 
-        {/* Navigation Cards - Primary Actions */}
-        <div className={cn(
-          "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4",
-          "transition-all duration-500 ease-out",
-          showCards ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-        )}>
-          {navigationCards.map((card, index) => {
-            const Icon = card.icon;
-            return (
-              <Card
-                key={index}
-                onClick={() => router.push(card.path)}
-                className={cn(
-                  "cursor-pointer group",
-                  "hover:shadow-md transition-all duration-200",
-                  "border border-border hover:border-primary/30"
-                )}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors duration-200">
-                      <Icon className="h-5 w-5 text-primary" />
-                    </div>
-                  </div>
-
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {card.label}
-                  </p>
-                  <p className="text-2xl font-semibold tracking-tight">
-                    {card.metric}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {card.subMetric}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Key Metrics Row */}
         {stats && (
-          <div className={cn(
-            "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4",
-            "transition-all duration-500 ease-out",
-            showMetrics ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-          )}>
-            <MetricCard
-              title="Total Users"
-              value={stats.users?.total?.toLocaleString() || "0"}
-              icon={<Users className="h-4 w-4 text-muted-foreground" />}
-              change={stats.users?.new_this_month > 0 ? stats.users.new_this_month : undefined}
-            />
-
-            <MetricCard
-              title="Active Users"
-              value={stats.users?.active?.toLocaleString() || "0"}
-              icon={<Activity className="h-4 w-4 text-muted-foreground" />}
-            />
-
-            <MetricCard
-              title="Profiles Analyzed"
-              value={stats.content?.total_profiles?.toLocaleString() || "0"}
-              icon={<Target className="h-4 w-4 text-muted-foreground" />}
-            />
-          </div>
+          <StatGrid cols={3}>
+            <Stat label="Users in total" value={show(stats.users.total)} icon={Users}
+                  hint={stats.users.new_this_month == null
+                    ? 'New this month did not come back'
+                    : `${stats.users.new_this_month.toLocaleString()} joined this month`} />
+            <Stat label="Active users" value={show(stats.users.active)} icon={Activity}
+                  tone={stats.users.active ? 'good' : 'neutral'}
+                  hint="Signed in recently" />
+            <Stat label="Profiles analysed" value={show(stats.content.total_profiles)} icon={Target}
+                  hint={stats.content.profiles_analyzed_today == null
+                    ? 'Today’s count did not come back'
+                    : `${stats.content.profiles_analyzed_today.toLocaleString()} today`} />
+          </StatGrid>
         )}
-
       </div>
     </div>
   );

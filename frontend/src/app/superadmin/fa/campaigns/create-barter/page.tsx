@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { PageHead } from "@/components/console/primitives"
+import { FaPage, Section } from "../../_ui"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Plus, Trash2, Gift, Calendar, Users } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Calendar } from "lucide-react"
 import { toast } from "sonner"
 import { faCampaignApi, faMerchantApi } from "@/services/faAdminApi"
 import {
@@ -134,19 +135,20 @@ export default function CreateBarterPage() {
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="max-w-4xl mx-auto space-y-8 pb-16">
+        <FaPage className="mx-auto max-w-4xl space-y-ds-5 pb-16">
           <div>
-            <Link href="/superadmin/fa/campaigns" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
-              <ArrowLeft className="h-4 w-4" /> Back to Campaigns
+            <Link href="/superadmin/fa/campaigns" className="mb-ds-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" />Back to campaigns
             </Link>
-            <h1 className="text-3xl font-bold">Create Barter Campaign</h1>
-            <p className="text-muted-foreground mt-1">Set up a campaign where influencers receive products/services (or a discount code) in exchange for content</p>
+            <PageHead
+              title="New barter campaign"
+              sub="Creators get a product, a service or a discount code instead of a fee. Step 2 of 2."
+            />
           </div>
 
           {/* Merchant Selection */}
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Select Merchant</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+          <Section title="Who it is for" description="The merchant is the place a creator actually walks into. If the client is not on the platform, run it team-managed and give it a name instead.">
+            <div className="space-y-4">
               <SelfManagedToggle
                 selfManaged={selfManaged}
                 onSelfManagedChange={setSelfManaged}
@@ -170,20 +172,19 @@ export default function CreateBarterPage() {
                   onHeroImageChange={setHeroImageUrl}
                 />
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
 
           {/* Campaign Details */}
-          <Card>
-            <CardHeader><CardTitle>Campaign Details</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+          <Section title="The campaign" description="The name creators see in the app, when it runs, and how many people can join.">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Campaign Name *</Label>
+                <Label>Campaign name *</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Thai Fire Edit" />
               </div>
               <div className="space-y-2">
-                <Label>What are we promoting?</Label>
-                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Campaign description..." />
+                <Label>What are we promoting</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A line or two creators will read in the app" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -196,21 +197,20 @@ export default function CreateBarterPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Max Participants</Label>
-                <Input type="number" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} placeholder="Leave empty for unlimited" />
+                <Label>How many creators at most</Label>
+                <Input type="number" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} placeholder="Leave empty for no cap" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
 
-          {/* Barter Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5" /> Barter Items</CardTitle>
-              <CardDescription>Products, services, or a discount value offered in exchange for content. Total value: ⃃ {totalBarterValue.toLocaleString()}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          {/* What the creator gets */}
+          <Section
+            title="What the creator gets"
+            description="Products, a service, or a discount, in exchange for the content."
+          >
+            <div className="space-y-4">
               {barterItems.map((item, i) => (
-                <div key={i} className="border rounded-lg p-4 space-y-3">
+                <div key={i} className="space-y-3 rounded-ds-lg border border-black/[0.06] p-4 dark:border-white/[0.07]">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Item {i + 1}</span>
                     <Button variant="ghost" size="icon" onClick={() => removeBarterItem(i)} disabled={barterItems.length <= 1}><Trash2 className="h-4 w-4" /></Button>
@@ -231,9 +231,14 @@ export default function CreateBarterPage() {
                   </div>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={addBarterItem}><Plus className="h-4 w-4 mr-1" /> Add Item</Button>
-            </CardContent>
-          </Card>
+              <div className="flex flex-wrap items-center justify-between gap-ds-2">
+                <Button variant="outline" size="sm" onClick={addBarterItem}><Plus className="h-4 w-4 mr-1" />Add another item</Button>
+                <p className="text-ds-body-sm text-muted-foreground">
+                  Worth <span className="font-medium text-foreground tabular-nums">&#x20C3; {totalBarterValue.toLocaleString()}</span> in total
+                </p>
+              </div>
+            </div>
+          </Section>
 
           {/* Deliverables (platform-specific) */}
           <DeliverablePicker value={deliverables} onChange={setDeliverables} />
@@ -245,10 +250,10 @@ export default function CreateBarterPage() {
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => router.push("/superadmin/fa/campaigns")}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={submitting || !name.trim() || (!selfManaged && !selectedMerchantId) || (selfManaged && !selectedMerchantId && !clientName.trim()) || barterItems.every((i) => !i.name.trim())}>
-              {submitting ? "Creating..." : "Create Barter Campaign"}
+              {submitting ? "Creating" : "Create the campaign"}
             </Button>
           </div>
-        </div>
+        </FaPage>
 
         {/* Coupon upload prompt after a coupon-enabled campaign is created */}
         <CouponManagerDialog

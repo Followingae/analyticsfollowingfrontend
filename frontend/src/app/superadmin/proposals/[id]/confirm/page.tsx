@@ -225,6 +225,31 @@ export default function ConfirmForClientPage() {
 
   if (!detail) return null
 
+  // Every row on this screen is a cost and a margin, and the endpoint that saves them is
+  // leadership-only. There is nothing left to show once the rule is applied, so the screen
+  // is not offered rather than served with its numbers stripped out.
+  if (detail.scope !== "leadership") {
+    return (
+      <AuthGuard>
+        <SuperAdminInterface>
+          <div className="p-6">
+            <Link href={`/superadmin/proposals/${id}`}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-3.5 w-3.5" />Back to the proposal
+            </Link>
+            <h1 className="mt-2 text-[30px] font-semibold leading-[1.1] tracking-[-0.02em]">
+              Confirm for the client
+            </h1>
+            <p className="mt-2 max-w-prose text-sm text-muted-foreground">
+              Confirming a deal settles what we pay each creator, so it sits with the
+              founders. Ask them to lock this one.
+            </p>
+          </div>
+        </SuperAdminInterface>
+      </AuthGuard>
+    )
+  }
+
   return (
     <AuthGuard>
       <SuperAdminInterface>

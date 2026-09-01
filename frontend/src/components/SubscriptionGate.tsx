@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Crown, Lock, Check, Zap, Star } from 'lucide-react'
+import { formatMonthlyPlanPrice } from '@/config/planPricing'
 
 interface SubscriptionGateProps {
   requiredTier: UserRole
@@ -62,21 +63,21 @@ function SubscriptionUpgradePrompt({ requiredTier, currentTier, feature }: Subsc
           name: 'Free',
           color: 'bg-muted',
           description: 'Basic features for getting started',
-          price: '$0/month'
+          price: formatMonthlyPlanPrice('free')
         }
       case 'brand_standard':
         return {
           name: 'Standard',
           color: 'bg-blue-500',
           description: 'Enhanced features for growing brands',
-          price: '$199/month'
+          price: formatMonthlyPlanPrice('standard')
         }
       case 'brand_premium':
         return {
           name: 'Premium',
           color: 'bg-gradient-to-r from-orange-500 to-pink-600',
           description: 'Advanced features for professional teams',
-          price: '$499/month'
+          price: formatMonthlyPlanPrice('premium')
         }
       case 'brand_enterprise':
         return {

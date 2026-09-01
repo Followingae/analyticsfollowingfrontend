@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -13,7 +12,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Check, X, ExternalLink, ClipboardCheck, Camera, ImageIcon, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react"
+import { Check, X, ExternalLink, Camera, ImageIcon, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react"
+import { PageHead } from "@/components/console/primitives"
+import { FaPage, Failed, Loading, Nothing, TONE_BADGE, TONE_TEXT, type Tone } from "../_ui"
 import { faDeliverableApi, faCampaignApi } from "@/services/faAdminApi"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
@@ -57,14 +58,18 @@ const FILTERS: { value: string; label: string }[] = [
   { value: "all", label: "All" },
 ]
 
-const STAGE_META: Record<string, { label: string; cls: string }> = {
-  pending: { label: "Pending", cls: "bg-slate-500/10 text-slate-600 border-slate-300/40" },
-  content_review: { label: "Content review", cls: "bg-amber-500/15 text-amber-700 border-amber-300/40" },
-  revision_requested: { label: "Edit requested", cls: "bg-orange-500/15 text-orange-700 border-orange-300/40" },
-  content_approved: { label: "Approved · awaiting post", cls: "bg-sky-500/15 text-sky-700 border-sky-300/40" },
-  proof_submitted: { label: "Proof submitted", cls: "bg-violet-500/15 text-violet-700 border-violet-300/40" },
-  verified: { label: "Verified", cls: "bg-emerald-500/15 text-emerald-700 border-emerald-300/40" },
-  rejected: { label: "Rejected", cls: "bg-rose-500/15 text-rose-700 border-rose-300/40" },
+/* Seven stages in seven unrelated palette families — slate, amber, orange, sky, violet,
+   emerald, rose — which made the pipeline look like seven different kinds of thing rather
+   than one thing at seven points. Tone carries it now: amber while it is waiting on us,
+   green once it is done, rose when it is refused, neutral before anything has happened. */
+const STAGE_META: Record<string, { label: string; tone: Tone }> = {
+  pending: { label: "Pending", tone: "neutral" },
+  content_review: { label: "Content review", tone: "warn" },
+  revision_requested: { label: "Edit requested", tone: "warn" },
+  content_approved: { label: "Approved, awaiting the post", tone: "info" },
+  proof_submitted: { label: "Proof submitted", tone: "warn" },
+  verified: { label: "Verified", tone: "good" },
+  rejected: { label: "Rejected", tone: "bad" },
 }
 
 const fmtDate = (iso?: string | null) =>
@@ -89,6 +94,10 @@ const mediaKind = (url: string): "image" | "video" | "other" => {
 export default function FADeliverablesPage() {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
   const [loading, setLoading] = useState(true)
+  /* Whether the list actually answered. It did not track this, so a failed request left
+     the array empty and the screen said "No deliverables in this view" — which on a
+     review queue reads as "nothing is waiting on you". */
+  const [error, setError] = useState(false)
   const [filter, setFilter] = useState("active")
   const [busy, setBusy] = useState<string | null>(null)
   const [editNote, setEditNote] = useState("")
@@ -101,13 +110,17 @@ export default function FADeliverablesPage() {
 
   const load = useCallback(async (stage: string, campaign: string) => {
     setLoading(true)
+    setError(false)
     try {
       const res = await faDeliverableApi.listAll({
         stage, limit: 100, ...(campaign !== "all" ? { campaign_id: campaign } : {}),
       })
       const list = res?.data?.deliverables || []
       setDeliverables(Array.isArray(list) ? list : [])
-    } catch { toast.error("Failed to load deliverables") }
+    } catch {
+      setError(true)
+      toast.error("Could not load deliverables")
+    }
     finally { setLoading(false) }
   }, [])
 
@@ -155,13 +168,11 @@ export default function FADeliverablesPage() {
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold">FA Deliverables</h1>
-            <p className="text-muted-foreground text-sm">
-              Oversight across every campaign — content review, proof of posting, and verification.
-            </p>
-          </div>
+        <FaPage>
+          <PageHead
+            title="Deliverables"
+            sub="Every piece of content creators owe us, across every campaign: what is waiting on a review, what has been posted, and what still needs verifying before a payout is released."
+          />
 
           <div className="flex flex-wrap items-center gap-3">
             <Tabs value={filter} onValueChange={setFilter} className="flex-1 min-w-[280px]">
@@ -185,26 +196,27 @@ export default function FADeliverablesPage() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted-foreground text-center py-12">Loading...</p>
+            <Loading label="Loading deliverables" />
+          ) : error ? (
+            <Failed what="deliverables" onRetry={() => load(filter, campaignId)} />
           ) : deliverables.length === 0 ? (
-            <Card><CardContent className="text-center py-12">
-              <ClipboardCheck className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">No deliverables in this view</p>
-            </CardContent></Card>
+            <Nothing>Nothing sits in this view right now.</Nothing>
           ) : (
-            <div className="space-y-3">
+            /* Was a Card per deliverable: forty rows, forty borders, forty shadows, and two
+               edges to cross to get from one creator's name to the next. It is a queue, so
+               it is drawn as a list. Every control the card carried is still on the row. */
+            <div className="divide-y divide-black/[0.06] dark:divide-white/[0.07]">
               {deliverables.map((d) => {
                 const meta = STAGE_META[d.stage] ?? STAGE_META.pending
                 const isContentReview = d.stage === "content_review"
                 const isProofSubmitted = d.stage === "proof_submitted"
                 const editsLeft = Math.max(0, (d.revision_limit ?? 2) - (d.revision_count ?? 0))
                 return (
-                  <Card key={d.id}>
-                    <CardContent className="p-4">
+                  <div key={d.id} className="py-ds-3">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-4 min-w-0">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <Camera className="h-5 w-5 text-primary" />
+                          <div className="h-10 w-10 rounded-ds-md bg-black/[0.04] flex items-center justify-center shrink-0 dark:bg-white/[0.07]">
+                            <Camera className="h-4.5 w-4.5 text-muted-foreground" />
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium truncate">
@@ -220,18 +232,18 @@ export default function FADeliverablesPage() {
                               {d.cashback_linked > 0 && <><span>·</span><span className="font-medium">⃃ {d.cashback_linked} linked</span></>}
                             </div>
                             <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <Badge variant="outline" className={`text-[10px] ${meta.cls}`}>{meta.label}</Badge>
+                              <Badge variant="outline" className={`text-[10px] ${TONE_BADGE[meta.tone]}`}>{meta.label}</Badge>
                               {(d.revision_count ?? 0) > 0 && (
-                                <span className="text-[11px] text-muted-foreground">
-                                  {d.revision_count}/{d.revision_limit} edits used
+                                <span className="text-ds-caption text-muted-foreground">
+                                  {d.revision_count} of {d.revision_limit} edits used
                                 </span>
                               )}
                               {d.rejection_reason && (
-                                <span className="text-[11px] text-orange-600 italic truncate max-w-[280px]">“{d.rejection_reason}”</span>
+                                <span className={`text-ds-caption italic truncate max-w-[280px] ${TONE_TEXT.warn}`}>“{d.rejection_reason}”</span>
                               )}
                               {d.content_url && !isHttpUrl(d.content_url) && (
-                                <span className="text-[11px] text-amber-700 italic truncate max-w-[320px]" title={d.content_url}>
-                                  Creator note: “{d.content_url}”
+                                <span className={`text-ds-caption italic truncate max-w-[320px] ${TONE_TEXT.warn}`} title={d.content_url}>
+                                  Creator wrote: “{d.content_url}”
                                 </span>
                               )}
                             </div>
@@ -303,8 +315,7 @@ export default function FADeliverablesPage() {
                           )}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                  </div>
                 )
               })}
             </div>
@@ -366,7 +377,7 @@ export default function FADeliverablesPage() {
               })()}
             </DialogContent>
           </Dialog>
-        </div>
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

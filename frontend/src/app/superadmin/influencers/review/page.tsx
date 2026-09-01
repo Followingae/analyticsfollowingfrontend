@@ -15,7 +15,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -34,7 +33,7 @@ import { toast } from 'sonner'
 import { creatorIntakeApi, type PendingCreator } from '@/services/creatorIntakeApi'
 import { AddCreatorsDialog } from '@/components/superadmin/influencer-database/AddCreatorsDialog'
 import { CreatorsHubHeader } from '@/components/console/CreatorsHubHeader'
-import { Aed } from '@/components/console/primitives'
+import { Aed, CARD } from '@/components/console/primitives'
 
 const DELIVERABLES = ['reel', 'post', 'story', 'carousel'] as const
 type Lane = 'needs_cost' | 'needs_sell'
@@ -223,10 +222,10 @@ export default function ReviewQueuePage() {
   return (
     <SuperadminLayout>
       <CreatorsHubHeader />
-      <div className="space-y-6">
+      <div className="space-y-ds-5">
         <div className="flex flex-wrap items-start gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Creators needing a price</h1>
+            <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">Creators needing a price</h1>
             <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
               We cannot quote these creators yet. First someone adds what the creator charges
               us, then a founder sets our price and adds them to the database. Analytics only
@@ -234,7 +233,7 @@ export default function ReviewQueuePage() {
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <div data-tour="waiting-view" className="flex rounded-lg border p-0.5">
+            <div data-tour="waiting-view" className="flex rounded-ds-lg border border-black/[0.06] p-0.5 dark:border-white/[0.07]">
               <Button size="sm" variant={view === 'grid' ? 'secondary' : 'ghost'}
                       className="h-8 gap-1.5 px-2.5" onClick={() => setView('grid')}>
                 <LayoutGrid className="h-4 w-4" />Grid
@@ -272,21 +271,19 @@ export default function ReviewQueuePage() {
             <Loader2 className="h-4 w-4 animate-spin" />Loading…
           </div>
         ) : shown.length === 0 ? (
-          <Card>
-            <CardContent className="py-16 text-center">
-              <p className="text-sm font-medium">Nothing waiting here</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {lane === 'needs_cost'
-                  ? 'Every creator here has a cost recorded.'
-                  : 'Every creator with a cost has been priced and added to the database.'}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="py-ds-6 text-center">
+            <p className="text-ds-label">Nothing waiting here</p>
+            <p className="mt-ds-1 text-ds-body text-muted-foreground">
+              {lane === 'needs_cost'
+                ? 'Every creator here has a cost recorded.'
+                : 'Every creator with a cost has been priced and added to the database.'}
+            </p>
+          </div>
         ) : view === 'grid' ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-ds-3 sm:grid-cols-2 xl:grid-cols-3">
             {shown.map((c) => (
-              <Card key={c.id} className="overflow-hidden">
-                <CardContent className="space-y-3 p-4">
+              <div key={c.id}
+                   className={`${CARD} space-y-ds-2 overflow-hidden bg-[var(--tone-neutral-wash)] p-ds-3`}>
                   <div className="flex items-start gap-3">
                     <Face c={c} />
                     <div className="min-w-0 flex-1">
@@ -306,8 +303,12 @@ export default function ReviewQueuePage() {
                     {c.country && <Badge variant="outline" className="text-xs">{c.country}</Badge>}
                   </div>
 
-                  <div className="rounded-lg border bg-muted/40 px-3 py-2">
-                    <div className="mb-1.5 flex items-center justify-between text-xs">
+                  {/* The rates were fenced in a tinted bordered box inside a card that
+                      already has an edge — and the rates are the reason this card exists,
+                      so the box was fencing off the very thing you came to read. A single
+                      rule marks where the creator ends and their money begins. */}
+                  <div className="border-t border-black/[0.06] pt-ds-2 dark:border-white/[0.07]">
+                    <div className="mb-ds-2 flex items-center justify-between text-ds-caption">
                       <span className="font-medium">
                         {c.lane === 'needs_cost' ? 'No cost recorded' : 'They charge us'}
                       </span>
@@ -335,31 +336,28 @@ export default function ReviewQueuePage() {
                   )}
 
                   <Actions c={c} />
-                </CardContent>
-              </Card>
+              </div>
             ))}
           </div>
         ) : (
           /* one at a time — for working a long backlog without reading a wall of cards */
           <div className="mx-auto w-full max-w-xl">
             {!top ? (
-              <Card>
-                <CardContent className="space-y-3 py-16 text-center">
-                  <p className="text-sm font-medium">You have been through the stack</p>
-                  {passed.length > 0 && (
-                    <Button size="sm" variant="outline" onClick={() => { setPassed([]); setAt(0) }}>
-                      <Undo2 className="mr-1.5 h-4 w-4" />Bring back the {passed.length} you skipped
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
+              <div className="space-y-ds-2 py-ds-6 text-center">
+                <p className="text-ds-label">You have been through the stack</p>
+                {passed.length > 0 && (
+                  <Button size="sm" variant="outline" onClick={() => { setPassed([]); setAt(0) }}>
+                    <Undo2 className="mr-1.5 h-4 w-4" />Bring back the {passed.length} you skipped
+                  </Button>
+                )}
+              </div>
             ) : (
               <>
                 <div className="relative h-[30rem]">
                   {/* the cards behind, so the stack looks like a stack */}
                   {deck.slice(at + 1, at + 3).map((c, i) => (
                     <div key={c.id}
-                         className="absolute inset-x-0 top-0 rounded-xl border bg-card"
+                         className="absolute inset-x-0 top-0 rounded-ds-2xl border border-black/[0.06] bg-card dark:border-white/[0.07]"
                          style={{ height: '100%', transform: `translateY(${(i + 1) * 10}px) scale(${1 - (i + 1) * 0.03})`, opacity: 0.5 - i * 0.2 }} />
                   ))}
                   <AnimatePresence initial={false} custom={dir} mode="popLayout">
@@ -372,8 +370,7 @@ export default function ReviewQueuePage() {
                       transition={{ type: 'spring', stiffness: 260, damping: 28 }}
                       className="absolute inset-0"
                     >
-                      <Card className="h-full overflow-hidden">
-                        <CardContent className="flex h-full flex-col gap-4 p-6">
+                      <div className={`${CARD} flex h-full flex-col gap-ds-3 overflow-hidden bg-[var(--tone-neutral-wash)] p-ds-4`}>
                           <div className="flex items-start gap-4">
                             <Face c={top} size="h-16 w-16" />
                             <div className="min-w-0 flex-1">
@@ -396,8 +393,8 @@ export default function ReviewQueuePage() {
                             {top.country && <Badge variant="outline" className="text-xs">{top.country}</Badge>}
                           </div>
 
-                          <div className="rounded-lg border bg-muted/40 p-4">
-                            <p className="mb-2 text-sm font-medium">
+                          <div className="border-t border-black/[0.06] pt-ds-3 dark:border-white/[0.07]">
+                            <p className="mb-ds-2 text-ds-label">
                               {top.lane === 'needs_cost' ? 'No cost recorded yet' : 'They charge us'}
                             </p>
                             {top.lane === 'needs_cost'
@@ -431,8 +428,7 @@ export default function ReviewQueuePage() {
                               </button>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
+                      </div>
                     </motion.div>
                   </AnimatePresence>
                 </div>

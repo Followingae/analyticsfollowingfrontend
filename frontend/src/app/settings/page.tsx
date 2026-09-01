@@ -33,6 +33,7 @@ import {
   type MyTeam,
   type MyTeamUsage,
 } from "@/services/userSettingsService"
+import { TeamMembersManagement } from "@/components/team/TeamMembersManagement"
 import { UserAvatar } from "@/components/UserAvatar"
 import { AvatarSelectionDialog } from "@/components/AvatarSelectionDialog"
 import { Badge } from "@/components/ui/badge"
@@ -975,10 +976,6 @@ function SettingsPageContent() {
                           <span className="text-muted-foreground">Monthly Profile Limit:</span>
                           <span>{myTeam.monthly_limits.profile_limit}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Monthly Email Limit:</span>
-                          <span>{myTeam.monthly_limits.email_limit}</span>
-                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -1002,16 +999,15 @@ function SettingsPageContent() {
                               {myTeamUsage.usage_this_month.profiles_unlocked} / {myTeam.monthly_limits.profile_limit}
                             </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Emails Sent:</span>
-                            <span className="font-medium">
-                              {myTeamUsage.usage_this_month.emails_sent} / {myTeam.monthly_limits.email_limit}
-                            </span>
-                          </div>
                         </div>
                       </CardContent>
                     </Card>
                   )}
+
+                  {/* Seats are sold on Standard and Premium, so the screen that sells them
+                      is also the screen that fills them. This panel already existed and was
+                      never mounted anywhere, which is part of why no paid seat was ever used. */}
+                  {!isFreeTier && <TeamMembersManagement />}
 
                   {isFreeTier && (
                     <Card className="border-primary/20 bg-gradient-to-b from-background to-primary/5">

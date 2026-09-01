@@ -72,12 +72,21 @@ export default function CoveragePage() {
   if (loading) {
     return (
       <SuperadminLayout>
-        <div className="space-y-8">
-          <Skeleton className="h-9 w-48" />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-[116px]" />)}
+        {/* The band this stands in for no longer draws a box per figure, so neither does the
+            skeleton: label, number and hint at the gap the real StatGrid uses, rather than
+            four filled tiles promising an edge the loaded screen never draws. */}
+        <div className="space-y-ds-5">
+          <Skeleton className="h-9 w-48 rounded-ds-lg" />
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
+                <Skeleton className="h-3 w-24 rounded-ds-sm" />
+                <Skeleton className="h-9 w-20 rounded-ds-sm" />
+                <Skeleton className="h-3 w-32 rounded-ds-sm" />
+              </div>
+            ))}
           </div>
-          <Skeleton className="h-[320px]" />
+          <Skeleton className="h-[320px] rounded-ds-2xl" />
         </div>
       </SuperadminLayout>
     )
@@ -93,15 +102,24 @@ export default function CoveragePage() {
 
   const uncategorised = cells.filter(c => c.category === 'uncategorised').reduce((a, c) => a + c.held, 0)
   const noMarket = cells.filter(c => c.market === 'unknown').reduce((a, c) => a + c.held, 0)
-  const held = data.totals?.held ?? 0
-  const costed = data.totals?.costed ?? 0
-  const stale = data.totals?.stale ?? 0
-  const quotablePct = held ? Math.round((costed / held) * 100) : 0
+  /**
+   * A total that never arrived is a dash, not a zero.
+   *
+   * These read `data.totals?.x ?? 0`, so a response missing its totals block printed "0 in
+   * the database, 0 quotable today" — a page-wide claim that we hold nothing, made on the
+   * strength of a request that did not answer. The grid below is computed from `cells` and
+   * is unaffected; only the four headline figures were guessing.
+   */
+  const held = data.totals?.held ?? null
+  const costed = data.totals?.costed ?? null
+  const stale = data.totals?.stale ?? null
+  const quotablePct = held == null || costed == null ? null
+    : held ? Math.round((costed / held) * 100) : 0
 
   return (
     <SuperadminLayout>
       <CreatorsHubHeader />
-      <div className="space-y-8">
+      <div className="space-y-ds-5">
         <PageHead
           title="Where we're thin"
           sub="Where we are strong, and where to research next. A creator counts only once we hold a cost for them — a name with no rate cannot be quoted."
@@ -110,13 +128,17 @@ export default function CoveragePage() {
         />
 
         <StatGrid>
-          <Stat label="In the database" value={held} icon={Database}
+          <Stat label="In the database" value={held ?? '—'} icon={Database}
                 hint={`${categories.length} categories · ${markets.length} markets`}
                 onClick={() => router.push('/work/influencers')} />
-          <Stat label="Quotable today" value={costed} tone="good" icon={Coins}
-                hint={`${quotablePct}% of the database has a usable cost`}
+          <Stat label="Quotable today" value={costed ?? '—'}
+                tone={costed == null ? 'neutral' : 'good'} icon={Coins}
+                hint={quotablePct == null
+                  ? 'The share with a usable cost did not come back'
+                  : `${quotablePct}% of the database has a usable cost`}
                 onClick={() => router.push('/work/influencers?has_pricing=true')} />
-          <Stat label="Rates over six months old" value={stale} tone={stale ? 'warn' : 'neutral'}
+          <Stat label="Rates over six months old" value={stale ?? '—'}
+                tone={stale == null ? 'neutral' : stale ? 'warn' : 'neutral'}
                 icon={TimerReset} hint="Worth re-checking before they go in a proposal"
                 onClick={() => router.push('/work/influencers?has_pricing=true')} />
           <Stat label="Missing a market" value={noMarket} tone={noMarket ? 'warn' : 'neutral'}
@@ -180,7 +202,7 @@ export default function CoveragePage() {
                           <div
                             onMouseEnter={() => c && setHover(c)}
                             onMouseLeave={() => setHover(null)}
-                            className={`flex h-14 w-28 cursor-pointer flex-col items-center justify-center rounded-xl text-sm font-semibold tabular-nums transition-all ${
+                            className={`flex h-14 w-28 cursor-pointer flex-col items-center justify-center rounded-ds-lg text-sm font-semibold tabular-nums transition-all ${
                               on ? 'ring-2 ring-ring ring-offset-2 ring-offset-background' : ''}`}
                             style={{
                               backgroundColor: n === 0
@@ -197,7 +219,8 @@ export default function CoveragePage() {
                           >
                             {n || '—'}
                             {!!c?.stale && (
-                              <span className={`text-[10px] font-medium ${a > 0.55 ? 'opacity-80' : 'text-amber-600'}`}>
+                              <span className={`text-[10px] font-medium ${
+                                a > 0.55 ? 'opacity-80' : 'text-[var(--tone-warn-ink)]'}`}>
                                 {c.stale} stale
                               </span>
                             )}
@@ -211,7 +234,7 @@ export default function CoveragePage() {
             </table>
           </div>
 
-          <div className="mt-4 flex min-h-[1.25rem] items-center gap-3 border-t pt-4 text-xs text-muted-foreground">
+          <div className="mt-ds-3 flex min-h-[1.25rem] items-center gap-ds-3 border-t pt-ds-3 text-xs text-muted-foreground">
             {hover ? (
               <span>
                 <span className="font-medium capitalize text-foreground">{hover.category} · {hover.market}</span>
@@ -224,7 +247,7 @@ export default function CoveragePage() {
           </div>
         </Panel>
 
-        <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="grid items-start gap-ds-4 lg:grid-cols-2">
           <Panel title="Research next" description="The thinnest cells, weakest first" flush>
             {(data.gaps || []).map((g: any, i: number) => (
               <Row
@@ -256,11 +279,17 @@ export default function CoveragePage() {
               right={<Badge variant="outline">{noMarket ? 'Fix' : 'Clear'}</Badge>}
               onClick={() => router.push('/work/influencers?countries=unknown')}
             />
+            {/* "Clear" is a claim, and an absent figure cannot make it — so when the count
+                did not come back the row says that instead of reporting all-clear. */}
             <Row
-              tone={stale ? 'warn' : 'good'}
-              title={`${stale} rates are over six months old`}
+              tone={stale == null ? 'neutral' : stale ? 'warn' : 'good'}
+              title={stale == null
+                ? 'How many rates are going stale did not come back'
+                : `${stale} rates are over six months old`}
               meta="Worth re-checking before quoting"
-              right={<Badge variant="outline">{stale ? 'Refresh' : 'Clear'}</Badge>}
+              right={<Badge variant="outline">
+                {stale == null ? 'Unknown' : stale ? 'Refresh' : 'Clear'}
+              </Badge>}
               onClick={() => router.push('/work/influencers?has_pricing=true')}
             />
           </Panel>

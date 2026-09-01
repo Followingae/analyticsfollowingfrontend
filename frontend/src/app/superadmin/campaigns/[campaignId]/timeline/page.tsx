@@ -10,12 +10,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CARD, FieldStrip, StageBar } from '@/components/console/primitives'
+import { Aed, CARD, FieldStrip, Panel, StageBar, Stat, StatGrid } from '@/components/console/primitives'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+
 import { ArrowLeft, Loader2, FileText, Users, Search, ScrollText,
          Receipt, Camera, Wallet, PackageCheck, Truck, Paperclip, Check,
          Mail, ExternalLink } from 'lucide-react'
@@ -61,8 +60,16 @@ const ICON: Record<string, typeof FileText> = {
   agreement: ScrollText, invoice: Receipt, content: Camera, payout: Wallet,
 }
 
+/** The figure only. The dirham mark is the `Aed` primitive's job, in the font that carries it. */
+const aedNum = (n: number | null | undefined) =>
+  n == null ? null : Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })
+const Money = ({ value }: { value: number | null | undefined }) => {
+  const n = aedNum(value)
+  return n === null ? <>—</> : <Aed>{n}</Aed>
+}
+/** Where a plain string is needed: a dialog description, a card sub-line. */
 const aed = (n: number | null | undefined) =>
-  n == null ? '—' : `⃃ ${Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
+  n == null ? '—' : `AED ${aedNum(n)}`
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 
@@ -80,14 +87,26 @@ export default function CampaignTimelinePage() {
   const [payAmount, setPayAmount] = useState('')
   const [payDue, setPayDue] = useState('')
 
+  /**
+   * "Campaign not found." was what a failed read said.
+   *
+   * The catch toasted and left `t` at null, and null rendered the not-found line — so a 500
+   * or an expired session told an account manager that a live campaign has been deleted.
+   * Failure is held apart from absence.
+   */
+  const [failure, setFailure] = useState<string | null>(null)
+
   const load = async () => {
+    setFailure(null)
     try {
       const res = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/admin/campaigns/${campaignId}/timeline`)
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed to load')
       setT((await res.json()).data)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not load the timeline')
+      const msg = e instanceof Error ? e.message : 'Could not load the timeline'
+      setFailure(msg)
+      toast.error(msg)
     } finally { setLoading(false) }
   }
 
@@ -118,7 +137,26 @@ export default function CampaignTimelinePage() {
     return <SuperadminLayout><div className="flex items-center gap-2 text-sm text-muted-foreground">
       <Loader2 className="h-4 w-4 animate-spin" />Loading…</div></SuperadminLayout>
   }
-  if (!t) return <SuperadminLayout><p className="text-sm">Campaign not found.</p></SuperadminLayout>
+  if (failure) {
+    return (
+      <SuperadminLayout>
+        <div className="space-y-3">
+          <Button variant="ghost" size="sm" className="-ml-2"
+                  onClick={() => router.push('/superadmin/campaigns')}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />All campaigns
+          </Button>
+          <p className="text-sm font-medium">Could not open this campaign.</p>
+          <p className="text-sm text-muted-foreground">
+            {failure}. The campaign may well be fine: this says the read failed, not that it
+            is gone.
+          </p>
+          <Button variant="outline" size="sm"
+                  onClick={() => { setLoading(true); load() }}>Try again</Button>
+        </div>
+      </SuperadminLayout>
+    )
+  }
+  if (!t) return <SuperadminLayout><p className="text-sm">There is no campaign at this address.</p></SuperadminLayout>
 
   const c = t.campaign
   const confirmed = t.roster.filter(r => r.selected_by_user).length
@@ -128,7 +166,23 @@ export default function CampaignTimelinePage() {
     .reduce((a, [, v]) => a + (v as number), 0)
   const totalDeliv = Object.values(t.content.deliverables || {})
     .reduce((a: number, v) => a + (v as number), 0)
+  /**
+   * The two money scopes, on the frontend.
+   *
+   * The server already NULLs whatever this viewer may not see, so out-of-scope numbers never
+   * reach the browser. What it cannot do is remove a COLUMN, and a column headed "Cost" full
+   * of dashes is worse than no column: it tells an account manager that a cost exists, that
+   * it is a number, and that somebody is keeping it from them. The rule is absent, not blank.
+   *
+   * `scope` is the string the backend's own field policy resolved (leadership / talent /
+   * account / none). It is deliberately NOT re-derived from "is this person an admin": the
+   * co-founder is `role='user'` with `staff_role='cofounder'`, an admin check locks her out
+   * of her own numbers, and that has happened here before. The backend maps her to
+   * leadership, so reading its answer is the only gate that cannot drift.
+   */
   const showMoney = t.scope === 'leadership'
+  const showCost = t.scope === 'leadership' || t.scope === 'talent'
+  const showSell = t.scope === 'leadership' || t.scope === 'account'
 
   // Getting the product there. Read off the roster, which is the campaign's own creators.
   const live = t.roster.filter(r => r.stage !== 'dropped')
@@ -156,8 +210,11 @@ export default function CampaignTimelinePage() {
           <div className={cn(CARD, 'relative overflow-hidden bg-white dark:bg-neutral-900/70')}>
             {/* A pane of glass over a soft wash, the way the reference opens a record. */}
             <div className="relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#F1F7DC] via-[#FAFBF4] to-[#EFF4FA]
-                              dark:from-lime-950/40 dark:via-neutral-900 dark:to-sky-950/30" />
+              {/* The wash was three hex literals with a second set for dark, which is a
+                  palette nobody else on the console shares. It names the tone tokens now, so
+                  it follows the theme and flips after dark without a second declaration. */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[var(--tone-info-wash)]
+                              via-[var(--tone-neutral-wash)] to-[var(--tone-good-wash)]" />
               <div className="absolute inset-0 backdrop-blur-2xl" />
               <div className="relative flex flex-wrap items-start justify-between gap-4 px-6 py-5">
                 <div className="min-w-0">
@@ -218,51 +275,31 @@ export default function CampaignTimelinePage() {
           </div>
         </div>
 
-        {/* headline numbers — delivery for everyone, money for leadership */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card><CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Creators confirmed</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">{confirmed}
-              <span className="text-base font-normal text-muted-foreground"> of {target}</span></p>
-            <Progress className="mt-3 h-2" value={target ? (confirmed / target) * 100 : 0} />
-          </CardContent></Card>
-
-          <Card><CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Content delivered</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">{delivered}
-              <span className="text-base font-normal text-muted-foreground"> of {totalDeliv || '—'}</span></p>
-            <Progress className="mt-3 h-2" value={totalDeliv ? (delivered / totalDeliv) * 100 : 0} />
-          </CardContent></Card>
-
-          <Card><CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Posts tracked</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">{t.content.posts}</p>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Report: {c.report_status || 'not sent'}
-            </p>
-          </CardContent></Card>
-
-          <Card><CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">{showMoney ? 'Invoiced' : 'Payment'}</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {showMoney ? aed(t.money.invoiced) : (c.payment_status || 'not paid')}
-            </p>
-            {showMoney && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                {aed(t.money.collected)} collected
-              </p>
-            )}
-          </CardContent></Card>
-        </div>
+        {/* The headline numbers — delivery for everyone, money for leadership.
+            Four bordered cards became four figures with room around them: they are always
+            the same four things in a row, which is the whole message a border was carrying,
+            and the numbers grow into the padding the cards were using. */}
+        <StatGrid>
+          <Stat label="Creators confirmed" value={confirmed} icon={Users}
+                tone={target && confirmed >= target ? 'good' : confirmed ? 'info' : 'neutral'}
+                hint={`of ${target} on the roster`} />
+          <Stat label="Content delivered" value={delivered} icon={Camera}
+                tone={totalDeliv && delivered >= totalDeliv ? 'good' : delivered ? 'info' : 'neutral'}
+                hint={totalDeliv ? `of ${totalDeliv} expected` : 'Nothing expected yet'} />
+          <Stat label="Posts tracked" value={t.content.posts} icon={FileText}
+                hint={`Report: ${c.report_status || 'not sent'}`} />
+          <Stat
+            label={showMoney ? 'Invoiced' : 'Payment'}
+            value={showMoney ? <Money value={t.money.invoiced} /> : (c.payment_status || 'not paid')}
+            icon={Receipt}
+            hint={showMoney
+              ? <><Money value={t.money.collected} /> collected</>
+              : 'What the client has settled'} />
+        </StatGrid>
 
         <div className="grid gap-6 lg:grid-cols-[340px_1fr] items-start">
           {/* the spine */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">The whole story</CardTitle>
-              <CardDescription>Nothing lives in an inbox</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <Panel title="The whole story" description="Nothing lives in an inbox">
               <ol className="relative space-y-5 pl-6">
                 <span className="absolute left-[7px] top-2 bottom-2 w-px bg-border" aria-hidden />
                 {t.events.map((e, i) => {
@@ -270,7 +307,9 @@ export default function CampaignTimelinePage() {
                   return (
                     <li key={i} className="relative">
                       <span className={`absolute -left-6 top-0.5 flex h-4 w-4 items-center justify-center rounded-full ring-4 ring-background ${
-                        e.state === 'active' ? 'bg-primary' : 'bg-emerald-500'}`} />
+                        e.state === 'active'
+                          ? 'bg-[var(--tone-info-dot)]'
+                          : 'bg-[var(--tone-good-dot)]'}`} />
                       <div className="flex items-start gap-2">
                         <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <div className="min-w-0">
@@ -288,21 +327,15 @@ export default function CampaignTimelinePage() {
                   <li className="text-sm text-muted-foreground">Nothing recorded yet.</li>
                 )}
               </ol>
-            </CardContent>
-          </Card>
+          </Panel>
 
           <div className="space-y-6">
             {t.rounds.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Sourcing</CardTitle>
-                  <CardDescription>How this roster was found</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-0">
+              <Panel title="Sourcing" description="How this roster was found">
                   {t.rounds.map(r => (
                     <button key={r.id}
                       onClick={() => router.push(`/work/sourcing/${r.id}`)}
-                      className="flex w-full items-center gap-3 border-t py-3 text-left first:border-t-0 hover:bg-muted/40">
+                      className="-mx-3 flex w-[calc(100%+1.5rem)] items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-black/[0.035] dark:hover:bg-white/[0.05]">
                       <Badge variant="outline">Round {r.round_no}</Badge>
                       <span className="min-w-0 flex-1 truncate text-sm">{r.title}</span>
                       <span className="text-xs tabular-nums text-muted-foreground">
@@ -313,8 +346,7 @@ export default function CampaignTimelinePage() {
                       </Badge>
                     </button>
                   ))}
-                </CardContent>
-              </Card>
+              </Panel>
             )}
 
             {/* ── Products ────────────────────────────────────────────────────────────
@@ -322,30 +354,28 @@ export default function CampaignTimelinePage() {
                 client most of all — and it belongs on the page people actually open. */}
             {!dineIn && (
               ships ? (
-                <Card>
-                  <CardHeader className="flex flex-row items-start justify-between">
-                    <div>
-                      <CardTitle className="text-base">Products</CardTitle>
-                      <CardDescription>
-                        {ship.got === ship.total && ship.total > 0
-                          ? 'Every creator has their product.'
-                          : ship.sent
-                            ? `${ship.sent} sent, ${ship.got} received of ${ship.total}.`
-                            : ship.packed
-                              ? `${ship.packed} packed and waiting on a courier.`
-                              : 'Nothing packed yet.'}
-                      </CardDescription>
-                    </div>
-                    <PackageCheck className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-3 gap-3">
+                <Panel
+                  title="Products"
+                  description={
+                    ship.got === ship.total && ship.total > 0
+                      ? 'Every creator has their product.'
+                      : ship.sent
+                        ? `${ship.sent} sent, ${ship.got} received of ${ship.total}.`
+                        : ship.packed
+                          ? `${ship.packed} packed and waiting on a courier.`
+                          : 'Nothing packed yet.'}
+                  action={<PackageCheck className="h-4 w-4 text-muted-foreground" />}
+                >
+                  <div className="space-y-4">
+                    {/* Three tinted boxes inside a card that already has an edge. The tint
+                        was the only thing grouping them, and the gap does that for free. */}
+                    <div className="grid grid-cols-3 gap-x-ds-5">
                       {[['Packed', ship.packed], ['Sent', ship.sent], ['Received', ship.got]].map(
                         ([label, n]) => (
-                          <div key={label as string} className="rounded-xl bg-muted/50 px-3 py-2.5">
-                            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-                            <div className="text-lg font-semibold tabular-nums">{n as number}
-                              <span className="text-sm font-normal text-muted-foreground"> / {ship.total}</span>
+                          <div key={label as string}>
+                            <div className="text-ds-caption font-medium text-muted-foreground">{label}</div>
+                            <div className="mt-ds-2 text-[26px] font-semibold leading-none tracking-[-0.02em] tabular-nums">{n as number}
+                              <span className="text-base font-normal text-muted-foreground"> / {ship.total}</span>
                             </div>
                           </div>
                         ))}
@@ -366,15 +396,16 @@ export default function CampaignTimelinePage() {
                       Dispatch and receipt are per creator, on the delivery board. Everything
                       marked here is what the client sees on their own campaign page.
                     </p>
-                  </CardContent>
-                </Card>
+                  </div>
+                </Panel>
               ) : !shipsAnswered ? (
-                <Card className="border-dashed">
-                  <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+                /* A question, not a card. It is one sentence and two buttons, and the dashed
+                   box around it read as a placeholder for something missing. */
+                <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <div className="font-medium">Does this campaign send product to the creators?</div>
                       <p className="mt-0.5 text-sm text-muted-foreground">
-                        If it does, we track it per creator — packed, sent, received.
+                        If it does, we track it per creator: packed, sent, received.
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -389,8 +420,7 @@ export default function CampaignTimelinePage() {
                         No
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                </div>
               ) : null
             )}
 
@@ -399,28 +429,24 @@ export default function CampaignTimelinePage() {
                 is due nobody goes back there — the deal is a campaign now. Same controls,
                 where the work is. */}
             {showMoney && (
-              <Card>
-                <CardHeader className="flex flex-row items-start justify-between">
-                  <div>
-                    <CardTitle className="text-base">Payments</CardTitle>
-                    <CardDescription>
-                      {instalments.length === 0
-                        ? 'No payment plan on this deal — add the invoices as they go out.'
-                        : nextDue
-                          ? `Next: ${nextDue.period_label || nextDue.label} · ${aed(nextDue.amount_aed)}`
-                          : 'Everything on this plan is paid.'}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
+              <Panel
+                title="Payments"
+                description={
+                  instalments.length === 0
+                    ? 'No payment plan on this deal. Add the invoices as they go out.'
+                    : nextDue
+                      ? `Next: ${nextDue.period_label || nextDue.label} · ${aed(nextDue.amount_aed)}`
+                      : 'Everything on this plan is paid.'}
+                action={
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-xs"
                             disabled={!t.roster_note?.proposal_id}
                             onClick={() => { setPayLabel(''); setPayAmount(''); setPayDue('')
                                              setAddingPayment(true) }}>
                       <Receipt className="h-3 w-3" />Add a payment
                     </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="px-0">
+                }
+                flush
+              >
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -450,7 +476,7 @@ export default function CampaignTimelinePage() {
                             <td className="px-3 py-2.5 text-muted-foreground">
                               {i.due_date ? when(i.due_date) : '—'}
                             </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums">{aed(i.amount_aed)}</td>
+                            <td className="px-3 py-2.5 text-right tabular-nums"><Money value={i.amount_aed} /></td>
                             <td className="px-3 py-2.5">
                               {i.invoice_file_url || i.invoice_number ? (
                                 <div className="flex items-center gap-2">
@@ -471,7 +497,7 @@ export default function CampaignTimelinePage() {
                             <td className="px-6 py-2.5">
                               <div className="flex flex-wrap justify-end gap-1.5">
                                 {i.paid_at ? (
-                                  <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                                  <Badge variant="outline" className="border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
                                     Paid {when(i.paid_at)}
                                   </Badge>
                                 ) : (
@@ -508,16 +534,13 @@ export default function CampaignTimelinePage() {
                       </tbody>
                     </table>
                   </div>
-                </CardContent>
-              </Card>
+              </Panel>
             )}
 
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                  <CardTitle className="text-base">Roster</CardTitle>
-                  <CardDescription>
-                    {t.roster_note && t.roster_note.pitched > t.roster_note.booked ? (
+            <Panel
+              title="Roster"
+              description={
+                    t.roster_note && t.roster_note.pitched > t.roster_note.booked ? (
                       <>
                         The {t.roster_note.booked} the client locked.{' '}
                         <button type="button" className="underline underline-offset-2 hover:text-foreground"
@@ -526,19 +549,18 @@ export default function CampaignTimelinePage() {
                         </button>
                       </>
                     ) : 'Everyone on this campaign'}
-                  </CardDescription>
-                </div>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent className="px-0">
+              action={<Users className="h-4 w-4 text-muted-foreground" />}
+              flush
+            >
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
                         <th className="px-6 pb-2 text-left font-medium">Creator</th>
                         <th className="px-3 pb-2 text-left font-medium">Followers</th>
-                        <th className="px-3 pb-2 text-left font-medium">Cost</th>
-                        <th className="px-3 pb-2 text-left font-medium">Sell</th>
+                        {/* Absent, not blank. See the note on showCost/showSell above. */}
+                        {showCost && <th className="px-3 pb-2 text-left font-medium">Cost</th>}
+                        {showSell && <th className="px-3 pb-2 text-left font-medium">Sell</th>}
                         {ships && <th className="px-3 pb-2 text-left font-medium">Product</th>}
                         <th className="px-6 pb-2 text-left font-medium">Where they are</th>
                       </tr>
@@ -565,23 +587,27 @@ export default function CampaignTimelinePage() {
                           <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
                             {r.followers_count?.toLocaleString() ?? '—'}
                           </td>
-                          <td className="px-3 py-2.5 tabular-nums">
-                            {/* What we actually pay once it is confirmed; the quote until then. */}
-                            {r.agreed_rate_cents != null
-                              ? <span className={r.rate_agreed_at ? '' : 'text-muted-foreground'}>
-                                  {aed(r.agreed_rate_cents / 100)}{!r.rate_agreed_at && ' ·'}
-                                </span>
-                              : r.deliverable_total_cost != null ? aed(r.deliverable_total_cost) : '—'}
-                          </td>
-                          <td className="px-3 py-2.5 tabular-nums">
-                            {r.deliverable_total_sell != null ? aed(r.deliverable_total_sell) : '—'}
-                          </td>
+                          {showCost && (
+                            <td className="px-3 py-2.5 tabular-nums">
+                              {/* What we actually pay once it is confirmed; the quote until then. */}
+                              {r.agreed_rate_cents != null
+                                ? <span className={r.rate_agreed_at ? '' : 'text-muted-foreground'}>
+                                    <Money value={r.agreed_rate_cents / 100} />{!r.rate_agreed_at && ' ·'}
+                                  </span>
+                                : <Money value={r.deliverable_total_cost} />}
+                            </td>
+                          )}
+                          {showSell && (
+                            <td className="px-3 py-2.5 tabular-nums">
+                              <Money value={r.deliverable_total_sell} />
+                            </td>
+                          )}
                           {ships && (
                             <td className="px-3 py-2.5">
                               {r.received_at
-                                ? <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Received</Badge>
+                                ? <Badge variant="outline" className="border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">Received</Badge>
                                 : r.dispatched_at
-                                  ? <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">On its way</Badge>
+                                  ? <Badge variant="outline" className="border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]">On its way</Badge>
                                   : r.product_ready_at
                                     ? <Badge variant="secondary">Packed</Badge>
                                     : <Badge variant="outline" className="text-muted-foreground">Not packed</Badge>}
@@ -600,15 +626,15 @@ export default function CampaignTimelinePage() {
                         </tr>
                       ))}
                       {t.roster.length === 0 && (
-                        <tr><td colSpan={ships ? 6 : 5} className="px-6 py-8 text-center text-muted-foreground">
+                        <tr><td colSpan={3 + (showCost ? 1 : 0) + (showSell ? 1 : 0) + (ships ? 1 : 0)}
+                                className="px-6 py-8 text-center text-muted-foreground">
                           No creators on this campaign yet.
                         </td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
-              </CardContent>
-            </Card>
+            </Panel>
           </div>
         </div>
       </div>

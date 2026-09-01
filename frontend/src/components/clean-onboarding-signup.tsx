@@ -19,6 +19,7 @@ import {
 import { Sun } from '@/components/animate-ui/icons/sun'
 import { Moon } from '@/components/animate-ui/icons/moon'
 import { Button } from '@/components/ui/button'
+import { GoogleSignInButton, AuthDivider } from '@/components/google-sign-in-button'
 import { Label } from '@/components/ui/label'
 import { AnimatedInput } from '@/components/ui/animated-input'
 import { Slider } from '@/components/ui/slider'
@@ -26,6 +27,7 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { ENDPOINTS, API_CONFIG } from '@/config/api'
 import { motion, AnimatePresence } from 'motion/react'
+import { formatPlanPrice, getPlanAmount } from '@/config/planPricing'
 
 // Step definitions
 const STEPS = [
@@ -109,8 +111,8 @@ const PLANS: PlanDetails[] = [
   {
     id: 'standard',
     name: 'Standard',
-    price: '⃃199',
-    priceMonthly: 199,
+    price: formatPlanPrice(getPlanAmount('standard')),
+    priceMonthly: getPlanAmount('standard'),
     profiles: '500 profile unlocks',
     emails: '250 email reveals',
     posts: '125 post analytics',
@@ -128,8 +130,8 @@ const PLANS: PlanDetails[] = [
   {
     id: 'premium',
     name: 'Premium',
-    price: '⃃499',
-    priceMonthly: 499,
+    price: formatPlanPrice(getPlanAmount('premium')),
+    priceMonthly: getPlanAmount('premium'),
     profiles: '2,000 profile unlocks',
     emails: '800 email reveals',
     posts: '300 post analytics',
@@ -433,7 +435,7 @@ export function CleanOnboardingSignup() {
         use_case: formData.useCases.join(',') || '', // Join array for API
         marketing_budget: formData.marketingBudget || '',
         success_url: `${window.location.origin}/welcome?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${window.location.origin}/signup?payment=cancelled`
+        cancel_url: `${window.location.origin}/auth/register?payment=cancelled`
       })
     })
 
@@ -678,6 +680,14 @@ function StepAccount({
       <div>
         <h1 className="text-2xl font-semibold mb-2">Create your account</h1>
         <p className="text-muted-foreground text-sm">Enter your details to get started</p>
+      </div>
+
+      {/* Google skips the rest of this wizard. It creates the same Free account the
+          email path creates: team, credit wallet and all. The plan can be upgraded
+          from Billing afterwards. */}
+      <div className="space-y-5">
+        <GoogleSignInButton label="Sign up with Google" className="rounded-lg" />
+        <AuthDivider label="or sign up with email" />
       </div>
 
       <div className="space-y-5">

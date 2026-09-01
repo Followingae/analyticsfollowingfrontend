@@ -5,7 +5,7 @@ import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { AdminLayout } from '@/components/admin/AdminLayout'
 import { AdminDashboard } from '@/components/admin/AdminDashboard'
 import { UserManagementDashboard } from '@/components/admin/UserManagementDashboard'
-import { AdminView } from './SuperAdminInterface'
+import type { AdminView } from '@/components/admin/AdminLayout'
 
 export function AdminInterface() {
   const { user, hasPermission } = useEnhancedAuth()

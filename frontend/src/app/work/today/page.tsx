@@ -156,34 +156,57 @@ function IconButton({ icon: Icon, label, onClick }: { icon: any; label: string; 
   )
 }
 
+/* The four tones were spelled out here as hex pairs, again, a third set of slightly
+   different greens and ambers. They are now the console tone tokens, defined once in the
+   .console-shell block and therefore unreachable from a client page. */
 const TONE_BADGE: Record<string, string> = {
-  good: 'border-transparent bg-[#E9F5E5] text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300',
-  warn: 'border-transparent bg-[#FCEFDC] text-amber-800 dark:bg-amber-950/50 dark:text-amber-300',
-  bad: 'border-transparent bg-[#FBE4E1] text-rose-700 dark:bg-rose-950/50 dark:text-rose-300',
+  good: 'border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]',
+  warn: 'border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
+  bad: 'border-transparent bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]',
   neutral: 'border-transparent bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]',
 }
 
-/** A number with a wash behind it — the dashboard tile, back where it belongs. */
+const TILE_DOT: Record<string, string> = {
+  good: 'bg-[var(--tone-good-dot)]',
+  warn: 'bg-[var(--tone-warn-dot)]',
+  bad: 'bg-[var(--tone-bad-dot)]',
+  neutral: 'bg-[var(--tone-info-dot)]',
+}
+
+/**
+ * One number from the day's headline.
+ *
+ * It used to be a card: the CARD hairline and shadow, plus a two-stop gradient wash, plus
+ * its own padding. Four of them stacked two-by-two in the side column put a grid of edges
+ * beside a panel that already has one, and the numbers inside them were 26px — smaller than
+ * the borders were wide, in effect.
+ *
+ * The shell and the gradient come off. Tone survives as the dot beside the label, which is
+ * how every other surface in this console marks state, and the figure grows into the room
+ * the padding and border were using.
+ */
 function Tile({ label, value, hint, tone = 'neutral', money, onClick }: {
   label: string; value: React.ReactNode; hint?: string; tone?: string
   money?: boolean; onClick?: () => void
 }) {
-  const wash =
-    tone === 'good' ? 'from-[#EEF7EA] to-[#F8FBF5] dark:from-emerald-950/50 dark:to-emerald-950/15'
-    : tone === 'warn' ? 'from-[#FDF1E0] to-[#FEF9F2] dark:from-amber-950/50 dark:to-amber-950/15'
-    : tone === 'bad' ? 'from-[#FCE9E7] to-[#FEF6F5] dark:from-rose-950/50 dark:to-rose-950/15'
-    : 'from-[#F1F7DC] to-[#FBFCF2] dark:from-lime-950/40 dark:to-lime-950/10'
   return (
     <button
       type="button" onClick={onClick} disabled={!onClick}
-      className={cn(CARD, 'bg-gradient-to-br p-4 text-left transition-all', wash,
-                    onClick && 'hover:-translate-y-0.5')}
+      className={cn(
+        'rounded-ds-lg px-ds-2 py-ds-2 text-left transition-colors',
+        onClick && 'hover:bg-black/[0.035] focus-visible:outline-none focus-visible:ring-2 ' +
+                   'focus-visible:ring-ring focus-visible:ring-offset-2 dark:hover:bg-white/[0.05]',
+      )}
     >
-      <p className="text-[12px] font-medium text-muted-foreground">{label}</p>
-      <p className="mt-2 text-[26px] font-semibold leading-none tracking-[-0.02em] tabular-nums">
+      <span className="flex items-center gap-ds-2">
+        <span className={cn('h-1.5 w-1.5 flex-none rounded-full', TILE_DOT[tone] ?? TILE_DOT.neutral)}
+              aria-hidden />
+        <span className="text-ds-caption font-medium text-muted-foreground">{label}</span>
+      </span>
+      <p className="mt-ds-2 text-[32px] font-semibold leading-none tracking-[-0.025em] tabular-nums">
         {money ? <Aed>{value}</Aed> : value}
       </p>
-      {hint && <p className="mt-2 line-clamp-2 text-[11.5px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="mt-ds-2 line-clamp-2 text-ds-caption text-muted-foreground">{hint}</p>}
     </button>
   )
 }
@@ -236,8 +259,8 @@ export default function Today() {
         <div className="space-y-5">
           <Skeleton className="h-12 w-72 rounded-2xl" />
           <div className="grid gap-5 lg:grid-cols-12">
-            <Skeleton className="h-[380px] rounded-[22px] lg:col-span-8" />
-            <Skeleton className="h-[380px] rounded-[22px] lg:col-span-4" />
+            <Skeleton className="h-[380px] rounded-ds-2xl lg:col-span-8" />
+            <Skeleton className="h-[380px] rounded-ds-2xl lg:col-span-4" />
           </div>
         </div>
       </SuperadminLayout>
@@ -333,7 +356,7 @@ export default function Today() {
                           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.10]">
                             <div
                               className={cn('h-full rounded-full transition-all duration-700',
-                                            r.wants_more ? 'bg-[#A6C520]' : 'bg-neutral-800 dark:bg-neutral-200')}
+                                            r.wants_more ? 'bg-[var(--console-lime)]' : 'bg-neutral-800 dark:bg-neutral-200')}
                               style={{ width: `${Math.max(3, ((r.value ?? 0) / widest) * 100)}%` }}
                             />
                           </div>
@@ -378,15 +401,24 @@ export default function Today() {
 
           {/* the side column: the numbers, then the places */}
           <div className={cn('space-y-5', rows.length > 0 ? 'lg:col-span-4' : 'lg:col-span-12')}>
+            {/* -mx cancels the tile's own hover padding so the first column still lines up
+                with the panel below it. The gap is what now says "these are two separate
+                figures", the job the border used to do. */}
             {(money.length > 0 || counts.length > 0) && (
-              <div data-tour="today-numbers" className="grid grid-cols-2 gap-3">
+              <div data-tour="today-numbers" className="-mx-ds-2 grid grid-cols-2 gap-x-ds-4 gap-y-ds-4">
                 {money.map((h: any) => (
-                  <Tile key={h.label} label={h.label} value={aed(Number(h.value) || 0)} money
+                  /* Was aed(Number(h.value) || 0), so a headline the API did not return
+                     rendered as a confident AED 0. A zero that is really an absence is a
+                     lie about money, which is the one thing on this screen nobody should
+                     have to double-check. */
+                  <Tile key={h.label} label={h.label}
+                        value={h.value == null ? '—' : aed(Number(h.value) || 0)}
+                        money={h.value != null}
                         hint={h.hint} tone={h.tone}
                         onClick={h.href ? () => router.push(h.href) : undefined} />
                 ))}
                 {counts.map((h: any) => (
-                  <Tile key={h.label} label={h.label} value={h.value ?? 0} hint={h.hint} tone={h.tone}
+                  <Tile key={h.label} label={h.label} value={h.value ?? '—'} hint={h.hint} tone={h.tone}
                         onClick={h.href ? () => router.push(h.href) : undefined} />
                 ))}
               </div>
@@ -407,8 +439,8 @@ export default function Today() {
                                transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
                   >
                     <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-black/[0.05]
-                                     transition-colors group-hover:bg-[#EAF3C8]
-                                     dark:bg-white/[0.08] dark:group-hover:bg-lime-950/50">
+                                     transition-colors group-hover:bg-[var(--tone-info-wash)]
+                                     dark:bg-white/[0.08] dark:group-hover:bg-[var(--tone-info-wash)]">
                       <s.icon className="h-3.5 w-3.5 text-muted-foreground" />
                     </span>
                     <span className="min-w-0 truncate">{s.label}</span>
@@ -442,7 +474,7 @@ export default function Today() {
                         <div className={cn(
                           'flex items-center gap-2 rounded-2xl border pr-2.5 transition-colors',
                           open === key
-                            ? 'border-[#C7DE55] bg-[#F4FADF] dark:border-lime-500/40 dark:bg-lime-950/30'
+                            ? 'border-[var(--tone-info-dot)]/50 bg-[var(--tone-info-wash)]'
                             : 'border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.05]',
                         )}>
                           <CollapsibleTrigger asChild>

@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
-  MessageCircle, Loader2, Send, Upload, Users, UserX, FileText,
+  Loader2, Send, Upload, Users, UserX, FileText,
   Plus, Search, Megaphone, CheckCircle2, XCircle, Archive, RefreshCw, Clock,
 } from "lucide-react"
 import { toast } from "sonner"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -22,33 +22,36 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import {
   whatsappApi, type WhatsAppOverview, type WhatsAppContact,
   type WhatsAppTemplate, type WhatsAppBroadcast, type AudienceSpec,
 } from "@/services/whatsappApi"
+import { PageHead, Panel, Stat } from "@/components/console/primitives"
 
-function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: number | string }) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-2xl font-bold leading-none">{value}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{label}</p>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
+/* The five headline figures used to be five cards, and inside each card the icon sat in a
+   rounded, tinted box of its own — so eleven edges stood between "how many contacts" and
+   "how many templates". They are the console's Stat now: caption, figure, and the icon as a
+   mark rather than as a tile. */
 
 export default function SuperadminWhatsAppPage() {
   const [overview, setOverview] = useState<WhatsAppOverview | null>(null)
   const [templates, setTemplates] = useState<WhatsAppTemplate[]>([])
   const [broadcasts, setBroadcasts] = useState<WhatsAppBroadcast[]>([])
+  /**
+   * A failed load left `templates` and `broadcasts` as empty arrays, and both lists render an
+   * empty array as a sentence of advice: "No broadcasts yet", "No templates yet. Create one in
+   * Twilio, then click Sync." So an outage read as a fresh, unconfigured account, and the
+   * suggested fix was to go and build things that already exist. The five headline figures
+   * were already honest, because `overview` stays null and each Stat falls back to a dash;
+   * the two lists under them were not.
+   */
+  const [failure, setFailure] = useState<string | null>(null)
 
   const loadTop = useCallback(async () => {
     try {
@@ -60,8 +63,13 @@ export default function SuperadminWhatsAppPage() {
       setOverview(ov)
       setTemplates(tp.templates)
       setBroadcasts(bc.broadcasts)
+      setFailure(null)
     } catch (e: any) {
-      toast.error(e?.message || "Failed to load WhatsApp data")
+      setOverview(null)
+      setTemplates([])
+      setBroadcasts([])
+      setFailure(e?.message || "The request did not complete")
+      toast.error(e?.message || "Could not load the WhatsApp data")
     }
   }, [])
 
@@ -69,25 +77,36 @@ export default function SuperadminWhatsAppPage() {
 
   return (
     <SuperadminLayout>
-      <div className="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#25D366]/15">
-            <MessageCircle className="h-6 w-6 text-[#25D366]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">WhatsApp Marketing</h1>
-            <p className="text-sm text-muted-foreground">
-              Broadcast to your network influencers — the app launch, campaigns & updates.
-            </p>
-          </div>
-        </div>
+      <div className="mx-auto w-full max-w-6xl space-y-ds-5 p-ds-3 md:p-ds-4">
+        {/* The title sat beside a rounded tile tinted with #25D366, WhatsApp's own green:
+            a raw hex the theme does not know, carrying no state, on a page whose name
+            already says which channel this is. */}
+        <PageHead
+          title="WhatsApp marketing"
+          sub="Broadcast to the influencers in our network: the app launch, campaigns and updates. Opt-outs are honoured automatically."
+        />
 
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <StatCard icon={Users} label="Contacts" value={overview?.total_contacts ?? "—"} />
-          <StatCard icon={CheckCircle2} label="Sendable" value={overview?.sendable ?? "—"} />
-          <StatCard icon={UserX} label="Opted out" value={overview?.opted_out ?? "—"} />
-          <StatCard icon={Megaphone} label="Broadcasts" value={overview?.broadcasts ?? "—"} />
-          <StatCard icon={FileText} label="Templates" value={overview?.templates ?? "—"} />
+        {failure && (
+          <div className="flex flex-wrap items-center gap-ds-3">
+            <div className="min-w-0">
+              <p className="text-ds-label">Could not load the WhatsApp data</p>
+              <p className="mt-ds-1 text-ds-body-sm text-muted-foreground">
+                Nothing below is a count. Contacts, broadcasts and templates may all be there,
+                this page just could not read them. {failure}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" className="ml-auto" onClick={loadTop}>
+              <RefreshCw className="mr-1.5 h-4 w-4" />Try again
+            </Button>
+          </div>
+        )}
+
+        <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-3 xl:grid-cols-5">
+          <Stat icon={Users} label="Contacts" value={overview?.total_contacts ?? "—"} />
+          <Stat icon={CheckCircle2} label="Sendable" value={overview?.sendable ?? "—"} />
+          <Stat icon={UserX} label="Opted out" value={overview?.opted_out ?? "—"} />
+          <Stat icon={Megaphone} label="Broadcasts" value={overview?.broadcasts ?? "—"} />
+          <Stat icon={FileText} label="Templates" value={overview?.templates ?? "—"} />
         </div>
 
         <Tabs defaultValue="broadcasts">
@@ -97,20 +116,21 @@ export default function SuperadminWhatsAppPage() {
             <TabsTrigger value="templates">Templates</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="broadcasts" className="mt-4">
+          <TabsContent value="broadcasts" className="mt-ds-3">
             <BroadcastsTab
               templates={templates}
               broadcasts={broadcasts}
+              failed={!!failure}
               onChange={loadTop}
             />
           </TabsContent>
 
-          <TabsContent value="contacts" className="mt-4">
+          <TabsContent value="contacts" className="mt-ds-3">
             <ContactsTab onChange={loadTop} />
           </TabsContent>
 
-          <TabsContent value="templates" className="mt-4">
-            <TemplatesTab templates={templates} onChange={loadTop} />
+          <TabsContent value="templates" className="mt-ds-3">
+            <TemplatesTab templates={templates} failed={!!failure} onChange={loadTop} />
           </TabsContent>
         </Tabs>
       </div>
@@ -122,10 +142,11 @@ export default function SuperadminWhatsAppPage() {
 /*  Broadcasts                                                             */
 /* ======================================================================= */
 function BroadcastsTab({
-  templates, broadcasts, onChange,
+  templates, broadcasts, failed, onChange,
 }: {
   templates: WhatsAppTemplate[]
   broadcasts: WhatsAppBroadcast[]
+  failed: boolean
   onChange: () => void
 }) {
   const active = templates.filter(t => t.status === "active")
@@ -174,11 +195,10 @@ function BroadcastsTab({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+    <div className="grid gap-ds-4 lg:grid-cols-[1fr_1fr]">
       {/* composer */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">New broadcast</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
+      <Panel title="New broadcast">
+        <div className="space-y-ds-3">
           <div className="space-y-1.5">
             <Label>Name (internal)</Label>
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="App launch announcement" />
@@ -201,8 +221,10 @@ function BroadcastsTab({
 
           {/* template variables */}
           {template && template.variables?.length > 0 && (
-            <div className="space-y-2 rounded-lg border p-3">
-              <p className="text-xs font-medium text-muted-foreground">
+            /* The variable fields were fenced in their own bordered box inside a card that
+               already has one. The caption above them does the fencing. */
+            <div className="space-y-ds-2">
+              <p className="text-ds-caption font-medium text-muted-foreground">
                 Variables — use {"{{first_name}}"} to personalise
               </p>
               {template.variables.map(v => (
@@ -277,13 +299,12 @@ function BroadcastsTab({
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </CardContent>
-      </Card>
+        </div>
+      </Panel>
 
       {/* history */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Recent broadcasts</CardTitle></CardHeader>
-        <CardContent className="p-0">
+      <Panel title="Recent broadcasts" flush>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -296,7 +317,11 @@ function BroadcastsTab({
             </TableHeader>
             <TableBody>
               {broadcasts.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">No broadcasts yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center text-ds-body-sm text-muted-foreground">
+                  {failed
+                    ? "The broadcast history did not load. This is not a record of nothing being sent."
+                    : "No broadcast has been sent yet."}
+                </TableCell></TableRow>
               )}
               {broadcasts.map(b => (
                 <TableRow key={b.id} className="cursor-pointer" onClick={() => setDetailId(b.id)}>
@@ -310,10 +335,10 @@ function BroadcastsTab({
             </TableBody>
           </Table>
           {broadcasts.length > 0 && (
-            <p className="px-4 py-2 text-[11px] text-muted-foreground">Tap a broadcast for full delivery analytics.</p>
+            <p className="px-6 py-ds-2 text-ds-overline text-muted-foreground">Tap a broadcast for full delivery analytics.</p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Panel>
 
       {detailId && (
         <BroadcastDetail
@@ -329,12 +354,24 @@ function BroadcastsTab({
 /* ======================================================================= */
 /*  Broadcast detail — delivery funnel + recipients                       */
 /* ======================================================================= */
-function Funnel({ label, value, sub, color }: { label: string; value: number | string; sub?: string; color?: string }) {
+/**
+ * One step of the delivery funnel.
+ *
+ * These were five bordered, padded boxes in a row inside a dialog that already has an edge —
+ * ten edges between "recipients" and "failed", when the whole point is to read them as one
+ * sequence. The boxes are gone and the gap between them went up instead, so the figures can
+ * take the room the padding was holding. Colour moves from raw hex to the console tone
+ * tokens, and it arrives with the label beside it rather than as the only signal.
+ */
+function Funnel({ label, value, sub, tone }: { label: string; value: number | string; sub?: string; tone?: "good" | "info" | "bad" }) {
+  const ink = tone === "good" ? "text-[var(--tone-good-ink)]"
+    : tone === "info" ? "text-[var(--tone-info-ink)]"
+      : tone === "bad" ? "text-[var(--tone-bad-ink)]" : ""
   return (
-    <div className="rounded-lg border p-3">
-      <p className="text-2xl font-bold leading-none" style={color ? { color } : undefined}>{value}</p>
-      <p className="mt-1 text-xs font-medium">{label}</p>
-      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+    <div>
+      <p className={`text-[28px] font-semibold leading-none tracking-[-0.025em] tabular-nums ${ink}`}>{value}</p>
+      <p className="mt-ds-2 text-ds-caption font-medium">{label}</p>
+      {sub && <p className="text-ds-overline text-muted-foreground">{sub}</p>}
     </div>
   )
 }
@@ -388,37 +425,39 @@ function BroadcastDetail({
         ) : a ? (
           <div className="space-y-4">
             {/* funnel tiles */}
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+            <div className="grid grid-cols-3 gap-x-ds-4 gap-y-ds-3 sm:grid-cols-5">
               <Funnel label="Recipients" value={a.total} />
               <Funnel label="Sent" value={a.sent} />
-              <Funnel label="Delivered" value={a.delivered} sub={`${a.delivery_rate}%`} color="#16a34a" />
-              <Funnel label="Read" value={a.read} sub={`${a.read_rate}%`} color="#2563eb" />
-              <Funnel label="Failed" value={a.failed} sub={`${a.fail_rate}%`} color="#dc2626" />
+              <Funnel label="Delivered" value={a.delivered} sub={`${a.delivery_rate}%`} tone="good" />
+              <Funnel label="Read" value={a.read} sub={`${a.read_rate}%`} tone="info" />
+              <Funnel label="Failed" value={a.failed} sub={`${a.fail_rate}%`} tone="bad" />
             </div>
 
             {/* delivery bar */}
             <div>
-              <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
-                {seg(a.read, "#2563eb")}
-                {seg(a.delivered - a.read, "#16a34a")}
-                {seg(a.sent - a.delivered, "#84cc16")}
-                {seg(a.failed, "#dc2626")}
-                {seg(a.queued, "#d1d5db")}
+              {/* The bar and its legend were six hex literals with no dark-mode answer; they
+                  are the console tone dots now, so blue means the same here as everywhere. */}
+              <div className="flex h-3 w-full overflow-hidden rounded-ds-full bg-black/[0.07] dark:bg-white/10">
+                {seg(a.read, "var(--tone-info-dot)")}
+                {seg(a.delivered - a.read, "var(--tone-good-dot)")}
+                {seg(a.sent - a.delivered, "var(--console-lime)")}
+                {seg(a.failed, "var(--tone-bad-dot)")}
+                {seg(a.queued, "var(--tone-neutral-dot)")}
               </div>
-              <div className="mt-1.5 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#2563eb]" />Read</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#16a34a]" />Delivered</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#84cc16]" />Sent</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#dc2626]" />Failed</span>
-                {a.queued > 0 && <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#d1d5db]" />Queued</span>}
+              <div className="mt-ds-2 flex flex-wrap gap-ds-3 text-ds-overline text-muted-foreground">
+                <span className="flex items-center gap-ds-1"><span className="h-2 w-2 rounded-full bg-[var(--tone-info-dot)]" />Read</span>
+                <span className="flex items-center gap-ds-1"><span className="h-2 w-2 rounded-full bg-[var(--tone-good-dot)]" />Delivered</span>
+                <span className="flex items-center gap-ds-1"><span className="h-2 w-2 rounded-full bg-[var(--console-lime)]" />Sent</span>
+                <span className="flex items-center gap-ds-1"><span className="h-2 w-2 rounded-full bg-[var(--tone-bad-dot)]" />Failed</span>
+                {a.queued > 0 && <span className="flex items-center gap-ds-1"><span className="h-2 w-2 rounded-full bg-[var(--tone-neutral-dot)]" />Queued</span>}
               </div>
             </div>
 
             {/* failure reasons */}
             {a.failures.length > 0 && (
-              <div className="rounded-lg border p-3">
-                <p className="mb-2 text-xs font-semibold text-red-600">Failure reasons</p>
-                <div className="space-y-1">
+              <div>
+                <p className="mb-ds-2 text-ds-caption font-semibold text-[var(--tone-bad-ink)]">Failure reasons</p>
+                <div className="space-y-ds-1">
                   {a.failures.map((f, i) => (
                     <div key={i} className="flex items-start justify-between gap-3 text-[12px]">
                       <span className="text-muted-foreground">{f.reason}{f.error_code ? ` (${f.error_code})` : ""}</span>
@@ -443,7 +482,7 @@ function BroadcastDetail({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="max-h-64 overflow-auto rounded-lg border">
+              <div className="max-h-64 overflow-auto rounded-ds-lg border border-black/[0.06] dark:border-white/[0.07]">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -462,7 +501,7 @@ function BroadcastDetail({
                         <TableCell className="text-xs">{r.full_name || (r.instagram_handle ? `@${r.instagram_handle}` : "—")}</TableCell>
                         <TableCell className="font-mono text-[11px]">{r.phone}</TableCell>
                         <TableCell><StatusBadge status={r.status} /></TableCell>
-                        <TableCell className="text-[11px] text-red-600">{r.error_message || ""}</TableCell>
+                        <TableCell className="text-[11px] text-[var(--tone-bad-ink)]">{r.error_message || ""}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -477,16 +516,22 @@ function BroadcastDetail({
 }
 
 function StatusBadge({ status }: { status: string }) {
+  /* These were nine light-mode-only literals — bg-blue-100 with no dark answer, so in dark
+     mode the chips stayed paper-white. They are the console tone washes now, which carry a
+     value for both modes and mean the same thing on every other screen. */
+  const good = "bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]"
+  const info = "bg-[var(--tone-info-wash)] text-[var(--tone-info-ink)]"
+  const bad = "bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]"
   const map: Record<string, string> = {
-    sending: "bg-blue-100 text-blue-700",
-    sent: "bg-lime-100 text-lime-700",
-    delivered: "bg-green-100 text-green-700",
-    read: "bg-blue-100 text-blue-700",
-    draft: "bg-gray-100 text-gray-700",
-    failed: "bg-red-100 text-red-700",
-    undelivered: "bg-red-100 text-red-700",
-    queued: "bg-amber-100 text-amber-700",
-    cancelled: "bg-gray-100 text-gray-500",
+    sending: info,
+    sent: "bg-[var(--tone-neutral-wash)] text-foreground",
+    delivered: good,
+    read: info,
+    draft: "bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]",
+    failed: bad,
+    undelivered: bad,
+    queued: "bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]",
+    cancelled: "bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]",
   }
   return <Badge className={`${map[status] || ""} border-0`} variant="secondary">{status}</Badge>
 }
@@ -500,14 +545,21 @@ function ContactsTab({ onChange }: { onChange: () => void }) {
   const [search, setSearch] = useState("")
   const [sendableOnly, setSendableOnly] = useState(false)
   const [loading, setLoading] = useState(true)
+  // "No contacts. Import a CSV/Excel of your network influencers to begin." over a failed
+  // read told an operator with two thousand contacts to go and import them again.
+  const [failure, setFailure] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const res = await whatsappApi.listContacts({ search, only_sendable: sendableOnly, limit: 200 })
-      setContacts(res.contacts); setTotal(res.total)
-    } catch (e: any) { toast.error(e?.message || "Failed to load contacts") }
+      setContacts(res.contacts); setTotal(res.total); setFailure(null)
+    } catch (e: any) {
+      setContacts([]); setTotal(0)
+      setFailure(e?.message || "The request did not complete")
+      toast.error(e?.message || "Could not load the contacts")
+    }
     finally { setLoading(false) }
   }, [search, sendableOnly])
 
@@ -531,10 +583,10 @@ function ContactsTab({ onChange }: { onChange: () => void }) {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-        <CardTitle className="text-base">Contacts ({total.toLocaleString()})</CardTitle>
-        <div className="flex items-center gap-2">
+    <Panel
+      title={failure ? "Contacts" : `Contacts (${total.toLocaleString()})`}
+      action={
+        <div className="flex items-center gap-ds-2">
           <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
             onChange={e => onFile(e.target.files?.[0])} />
           <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
@@ -542,9 +594,10 @@ function ContactsTab({ onChange }: { onChange: () => void }) {
           </Button>
           <AddContactDialog onDone={() => { load(); onChange() }} />
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-3">
+      }
+    >
+      <div className="space-y-ds-3">
+        <div className="flex items-center gap-ds-3">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-8" placeholder="Search name, phone, handle" value={search} onChange={e => setSearch(e.target.value)} />
@@ -569,8 +622,20 @@ function ContactsTab({ onChange }: { onChange: () => void }) {
           <TableBody>
             {loading && <TableRow><TableCell colSpan={6} className="text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></TableCell></TableRow>}
             {!loading && contacts.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
-                No contacts. Import a CSV/Excel of your network influencers to begin.
+              <TableRow><TableCell colSpan={6} className="text-center text-ds-body-sm text-muted-foreground">
+                {failure ? (
+                  <>
+                    The contact list did not load, so this is not an empty address book.
+                    <span className="block text-ds-caption">{failure}</span>
+                    <Button variant="outline" size="sm" className="mt-ds-2" onClick={load}>
+                      <RefreshCw className="mr-1.5 h-4 w-4" />Try again
+                    </Button>
+                  </>
+                ) : search || sendableOnly ? (
+                  "No contact matches these filters."
+                ) : (
+                  "No contacts yet. Import a CSV or Excel of the influencers in our network to begin."
+                )}
               </TableCell></TableRow>
             )}
             {contacts.map(c => (
@@ -585,8 +650,8 @@ function ContactsTab({ onChange }: { onChange: () => void }) {
                 </TableCell>
                 <TableCell>
                   {c.opted_out_at
-                    ? <span className="inline-flex items-center gap-1 text-xs text-red-600"><XCircle className="h-3 w-3" /> Opted out</span>
-                    : <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 className="h-3 w-3" /> Consented</span>}
+                    ? <span className="inline-flex items-center gap-1 text-ds-caption text-[var(--tone-bad-ink)]"><XCircle className="h-3 w-3" /> Opted out</span>
+                    : <span className="inline-flex items-center gap-1 text-ds-caption text-[var(--tone-good-ink)]"><CheckCircle2 className="h-3 w-3" /> Consented</span>}
                 </TableCell>
                 <TableCell className="text-right">
                   <Switch checked={!!c.opted_out_at} onCheckedChange={() => toggleOptOut(c)} />
@@ -595,8 +660,8 @@ function ContactsTab({ onChange }: { onChange: () => void }) {
             ))}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   )
 }
 
@@ -641,18 +706,32 @@ function AddContactDialog({ onDone }: { onDone: () => void }) {
 /* ======================================================================= */
 /*  Templates                                                              */
 /* ======================================================================= */
-function TemplatesTab({ templates, onChange }: { templates: WhatsAppTemplate[]; onChange: () => void }) {
+function TemplatesTab({ templates, failed, onChange }: {
+  templates: WhatsAppTemplate[]; failed: boolean; onChange: () => void
+}) {
+  // Archiving takes a template out of the composer's picker, so a broadcast that was going
+  // out on it cannot be built until someone un-archives it in Twilio. It was a bare icon
+  // button with no label and no confirmation, sitting at the end of the row.
+  const [confirmArchive, setConfirmArchive] = useState<WhatsAppTemplate | null>(null)
+
+  const archive = async (t: WhatsAppTemplate) => {
+    setConfirmArchive(null)
+    try { await whatsappApi.archiveTemplate(t.id); toast.success(`"${t.name}" archived`); onChange() }
+    catch (e: any) { toast.error(e?.message || "Could not archive the template") }
+  }
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-        <CardTitle className="text-base">Templates</CardTitle>
-        <div className="flex items-center gap-2">
+    <Panel
+      title="Templates"
+      action={
+        <div className="flex items-center gap-ds-2">
           <SyncButton onDone={onChange} />
           <TemplateDialog onDone={onChange} />
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">
+      }
+    >
+      <div className="space-y-ds-3">
+        <p className="text-ds-body text-muted-foreground">
           Create templates in Twilio&apos;s Content Template Builder (they submit to Meta
           for approval). Click <b>Sync from Twilio</b> to pull them in automatically with
           their approval status — or add one manually by pasting its <code className="font-mono">HX</code> Content SID.
@@ -671,8 +750,10 @@ function TemplatesTab({ templates, onChange }: { templates: WhatsAppTemplate[]; 
           </TableHeader>
           <TableBody>
             {templates.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
-                No templates yet. Create one in Twilio, then click Sync from Twilio.
+              <TableRow><TableCell colSpan={7} className="text-center text-ds-body-sm text-muted-foreground">
+                {failed
+                  ? "The template list did not load. Templates you already have in Twilio are unaffected, this page just could not read them."
+                  : "No templates yet. Create one in Twilio, then click Sync from Twilio."}
               </TableCell></TableRow>
             )}
             {templates.map(t => (
@@ -680,16 +761,18 @@ function TemplatesTab({ templates, onChange }: { templates: WhatsAppTemplate[]; 
                 <TableCell className="font-medium">{t.name}</TableCell>
                 <TableCell><Badge variant="secondary">{t.category}</Badge></TableCell>
                 <TableCell className="font-mono text-xs">{t.twilio_content_sid}</TableCell>
-                <TableCell>{t.variables?.length || 0}</TableCell>
+                {/* `t.variables?.length || 0` printed a confident 0 for a template whose
+                    variables the payload did not carry — indistinguishable from a template
+                    that genuinely takes none, which is the difference between "safe to send
+                    as is" and "we do not know what this needs". Absent is a dash. */}
+                <TableCell>{t.variables ? t.variables.length : "—"}</TableCell>
                 <TableCell><ApprovalBadge status={t.approval_status} /></TableCell>
                 <TableCell>{t.status}</TableCell>
                 <TableCell className="text-right">
                   {t.status === "active" && (
-                    <Button variant="ghost" size="sm" onClick={async () => {
-                      try { await whatsappApi.archiveTemplate(t.id); toast.success("Archived"); onChange() }
-                      catch (e: any) { toast.error(e?.message || "Failed") }
-                    }}>
-                      <Archive className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" className="gap-1.5"
+                            onClick={() => setConfirmArchive(t)}>
+                      <Archive className="h-4 w-4" />Archive
                     </Button>
                   )}
                 </TableCell>
@@ -697,17 +780,36 @@ function TemplatesTab({ templates, onChange }: { templates: WhatsAppTemplate[]; 
             ))}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+
+        <AlertDialog open={!!confirmArchive} onOpenChange={(o: boolean) => !o && setConfirmArchive(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Archive &ldquo;{confirmArchive?.name}&rdquo;?</AlertDialogTitle>
+              <AlertDialogDescription>
+                It disappears from the template picker, so no new broadcast can be built on it.
+                Broadcasts already sent on this template keep their delivery figures. Meta&apos;s
+                approval is not withdrawn, and syncing from Twilio will bring it back.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep it active</AlertDialogCancel>
+              <AlertDialogAction onClick={() => confirmArchive && archive(confirmArchive)}>
+                Archive it
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </Panel>
   )
 }
 
 function ApprovalBadge({ status }: { status?: string }) {
   const s = (status || "unknown").toLowerCase()
-  if (s === "approved") return <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 className="h-3 w-3" />Approved</span>
-  if (s === "rejected") return <span className="inline-flex items-center gap-1 text-xs text-red-600"><XCircle className="h-3 w-3" />Rejected</span>
+  if (s === "approved") return <span className="inline-flex items-center gap-1 text-ds-caption text-[var(--tone-good-ink)]"><CheckCircle2 className="h-3 w-3" />Approved</span>
+  if (s === "rejected") return <span className="inline-flex items-center gap-1 text-ds-caption text-[var(--tone-bad-ink)]"><XCircle className="h-3 w-3" />Rejected</span>
   if (s === "pending" || s === "received" || s === "unsubmitted")
-    return <span className="inline-flex items-center gap-1 text-xs text-amber-600"><Clock className="h-3 w-3" />{s}</span>
+    return <span className="inline-flex items-center gap-1 text-ds-caption text-[var(--tone-warn-ink)]"><Clock className="h-3 w-3" />{s}</span>
   return <span className="text-xs text-muted-foreground">—</span>
 }
 

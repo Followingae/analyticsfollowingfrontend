@@ -40,11 +40,55 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/clientManagementApi';
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab';
+import { Aed, Panel, Stat, StatGrid } from '@/components/console/primitives';
 
-const formatAED = (amount: number | null) => {
-  if (!amount) return 'AED 0';
-  return `⃃ ${Number(amount).toLocaleString('en-AE', { minimumFractionDigits: 0 })}`;
+/**
+ * A figure we were never given is a dash, not a zero.
+ *
+ * This read `if (!amount) return 'AED 0'`, which catches null and undefined alongside a
+ * genuine zero, so a client whose budget the endpoint did not carry read as a client who has
+ * never spent anything, on the record their account manager quotes from. It also spelled that
+ * case "AED 0" in Latin while every real figure used the dirham mark, so the absent case was
+ * formatted differently as well as meaning something different.
+ *
+ * The number only; the mark is the `Aed` primitive's job, in the one font that carries it.
+ */
+const formatAED = (amount: number | null | undefined) =>
+  amount == null ? null : Number(amount).toLocaleString('en-AE', { minimumFractionDigits: 0 });
+
+/** Money on screen: the mark and the figure, or a dash where we were told nothing. */
+const Money = ({ value }: { value: number | null | undefined }) => {
+  const n = formatAED(value);
+  return n === null ? <>—</> : <Aed>{n}</Aed>;
 };
+
+/**
+ * One figure in a summary strip: a caption, and the number under it.
+ *
+ * Smaller than a `Stat` because these sit inside a tab rather than at the top of a page, but
+ * built the same way — grouped by the gap, tone carried by a dot beside the caption so the
+ * state reads without the colour.
+ */
+const SCOPE_DOT: Record<string, string> = {
+  good: 'bg-[var(--tone-good-dot)]',
+  warn: 'bg-[var(--tone-warn-dot)]',
+  bad: 'bg-[var(--tone-bad-dot)]',
+  info: 'bg-[var(--tone-info-dot)]',
+};
+const ScopeFigure = ({ label, value, tone, money }: {
+  label: string; value: number | null | undefined; tone?: keyof typeof SCOPE_DOT; money?: boolean
+}) => (
+  <div className="px-ds-2 py-ds-2">
+    <div className="flex items-center gap-ds-2">
+      {tone && value ? <span className={`h-1.5 w-1.5 flex-none rounded-full ${SCOPE_DOT[tone]}`} aria-hidden /> : null}
+      <p className="text-ds-caption font-medium text-muted-foreground">{label}</p>
+    </div>
+    <p className="mt-ds-2 text-[26px] font-semibold leading-none tracking-[-0.02em] tabular-nums">
+      {value == null ? '—' : money ? <Money value={value} /> : value}
+    </p>
+  </div>
+);
+
 
 const statusBadge = (status: string) => {
   const map: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
@@ -60,34 +104,39 @@ const statusBadge = (status: string) => {
   return <Badge variant={m.variant}>{m.label}</Badge>;
 };
 
+/* The skins below were hand-picked Tailwind palette steps — emerald-500/10 for paid,
+   amber-500/10 for partial, and five more for the campaign types. That is a fifth set of
+   greens and ambers beside the ones the console decides once, which is how "paid" here ends
+   up a different green from "healthy" two screens away. They name the console tone tokens
+   now. Campaign type is not a state, so it carries no colour at all: colour is status. */
+const TONE_BADGE = {
+  good: 'border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]',
+  warn: 'border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
+  bad: 'border-transparent bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]',
+  info: 'border-transparent bg-[var(--tone-info-wash)] text-[var(--tone-info-ink)]',
+} as const;
+
 const paymentBadge = (status: string) => {
   switch (status) {
-    case 'complete': return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Paid</Badge>;
-    case 'partial': return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Partial</Badge>;
-    case 'not_paid': return <Badge variant="destructive">Unpaid</Badge>;
+    case 'complete': return <Badge variant="outline" className={TONE_BADGE.good}>Paid</Badge>;
+    case 'partial': return <Badge variant="outline" className={TONE_BADGE.warn}>Partial</Badge>;
+    case 'not_paid': return <Badge variant="outline" className={TONE_BADGE.bad}>Unpaid</Badge>;
     default: return <Badge variant="outline">{status}</Badge>;
   }
 };
 
 const reportBadge = (status: string) => {
   switch (status) {
-    case 'received': return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><CheckCircle2 className="mr-1 h-3 w-3" />Received</Badge>;
-    case 'sent': return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Sent</Badge>;
+    case 'received': return <Badge variant="outline" className={TONE_BADGE.good}><CheckCircle2 className="mr-1 h-3 w-3" />Received</Badge>;
+    case 'sent': return <Badge variant="outline" className={TONE_BADGE.info}>Sent</Badge>;
     case 'not_sent': return <Badge variant="outline"><Clock className="mr-1 h-3 w-3" />Not Sent</Badge>;
     default: return <Badge variant="outline">{status}</Badge>;
   }
 };
 
-const typeBadge = (type: string) => {
-  const colors: Record<string, string> = {
-    influencer: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-    ugc: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-    cashback: 'bg-green-500/10 text-green-600 border-green-500/20',
-    paid_deal: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-    barter: 'bg-pink-500/10 text-pink-600 border-pink-500/20',
-  };
-  return <Badge className={colors[type] || ''}>{type.replace('_', ' ')}</Badge>;
-};
+const typeBadge = (type: string) => (
+  <Badge variant="outline" className="capitalize">{type.replace('_', ' ')}</Badge>
+);
 
 /** Reading the query needs a boundary in Next 15; the record itself is unchanged. */
 export default function ClientDetailPageWrapper() {
@@ -155,10 +204,23 @@ function ClientDetailPage() {
     }
   };
 
+  /**
+   * "Client not found" was what a failed read said.
+   *
+   * The catch logged to the console and left `client` at null, and null rendered the
+   * not-found screen. So a 500, an expired token or a dropped connection all told an
+   * account manager that the client they were looking at does not exist. Failure is held
+   * separately from absence.
+   */
+  const [failure, setFailure] = useState<string | null>(null);
+  /** Bumped by "Try again", so a retry re-runs the same read without changing the filters. */
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     if (!teamId) return;
     const load = async () => {
       setLoading(true);
+      setFailure(null);
       try {
         const [detailRes, scopeRes, financeRes, staffRes] = await Promise.all([
           clientApi.getDetail(teamId),
@@ -173,12 +235,13 @@ function ClientDetailPage() {
         setStaff(staffRes.data || []);
       } catch (err) {
         console.error('Failed to load client:', err);
+        setFailure(err instanceof Error ? err.message : 'The client record could not be read');
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [teamId, scopeYear]);
+  }, [teamId, scopeYear, reloadKey]);
 
   const loadTabData = async (tab: string) => {
     setActiveTab(tab);
@@ -211,12 +274,40 @@ function ClientDetailPage() {
   if (loading) {
     return (
       <SuperadminLayout>
-        <div className="flex-1 space-y-6">
-          <Skeleton className="h-8 w-48" />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
+        <div className="flex-1 space-y-ds-5">
+          <Skeleton className="h-9 w-48 rounded-ds-lg" />
+          {/* The band this stands in for no longer draws a box per figure, so neither does
+              the skeleton: label, number and hint at the gap the real StatGrid uses. */}
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
+                <Skeleton className="h-3 w-24 rounded-ds-sm" />
+                <Skeleton className="h-9 w-28 rounded-ds-sm" />
+              </div>
+            ))}
           </div>
-          <Skeleton className="h-[400px]" />
+          <Skeleton className="h-[400px] rounded-ds-2xl" />
+        </div>
+      </SuperadminLayout>
+    );
+  }
+
+  /* A read that failed and a client that does not exist are different facts and must not
+     render the same sentence. Only the second one is "not found". */
+  if (failure) {
+    return (
+      <SuperadminLayout>
+        <div className="flex-1 space-y-3">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5"
+                  onClick={() => router.push('/superadmin/clients')}>
+            <ArrowLeft className="h-4 w-4" />Back to clients
+          </Button>
+          <p className="text-sm font-medium">Could not open this client.</p>
+          <p className="text-sm text-muted-foreground">
+            {failure}. The record may well be fine: this says the read failed, not that the
+            client is gone.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => setReloadKey(k => k + 1)}>Try again</Button>
         </div>
       </SuperadminLayout>
     );
@@ -225,8 +316,14 @@ function ClientDetailPage() {
   if (!client) {
     return (
       <SuperadminLayout>
-        <div className="flex-1 flex items-center justify-center p-6">
-          <p className="text-muted-foreground">Client not found</p>
+        <div className="flex-1 space-y-3">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5"
+                  onClick={() => router.push('/superadmin/clients')}>
+            <ArrowLeft className="h-4 w-4" />Back to clients
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            There is no client with this address.
+          </p>
         </div>
       </SuperadminLayout>
     );
@@ -314,38 +411,28 @@ function ClientDetailPage() {
         defaultName={(client.owner_name || '').split(' ')[0]}
       />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Total Budget</p>
-            <p className="text-2xl font-bold">{formatAED(client.total_budget)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Total Spent</p>
-            <p className="text-2xl font-bold">{formatAED(client.total_spent)}</p>
-            {client.total_budget > 0 && (
-              <Progress value={(client.total_spent / client.total_budget) * 100} className="mt-2 h-1.5" />
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Active Campaigns</p>
-            <p className="text-2xl font-bold">{client.active_campaigns}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Outstanding</p>
-            <p className="text-2xl font-bold text-destructive">
-              {formatAED(finance?.outstanding_amount || 0)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* The four figures that open the record. They were four bordered cards; the border
+          said only "these are four of the same kind of thing in a row", which is what the
+          gap already says. The numbers take the room the padding was using. */}
+      <StatGrid>
+        <Stat label="Total budget" value={<Money value={client.total_budget} />} icon={Coins}
+              hint="What they have committed with us" />
+        <Stat label="Total spent" value={<Money value={client.total_spent} />} icon={TrendingUp}
+              hint={client.total_budget > 0 && client.total_spent != null
+                ? `${Math.round((client.total_spent / client.total_budget) * 100)}% of the budget`
+                : 'Against the budget above'} />
+        <Stat label="Live campaigns" value={client.active_campaigns ?? '—'} icon={Activity}
+              tone={client.active_campaigns ? 'good' : 'neutral'}
+              hint="Running for them right now" />
+        {/* Outstanding was `finance?.outstanding_amount || 0`, so a finance read that did not
+            answer printed a confident "nothing owed" on the client's own record. */}
+        <Stat label="Outstanding" value={<Money value={finance?.outstanding_amount} />}
+              icon={AlertCircle}
+              tone={finance?.outstanding_amount ? 'bad' : 'neutral'}
+              hint={finance == null
+                ? 'The finance read did not answer, so this is unknown'
+                : 'Invoiced and not yet paid'} />
+      </StatGrid>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={loadTabData}>
@@ -366,7 +453,7 @@ function ClientDetailPage() {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold">Project Scope</h2>
+              <h2 className="text-ds-subheading">Project Scope</h2>
               <Badge variant="outline">{scope.length} projects</Badge>
             </div>
             <div className="flex items-center gap-2">
@@ -398,17 +485,22 @@ function ClientDetailPage() {
             </div>
           </div>
 
-          {/* Summary Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Total</p><p className="font-bold">{scopeSummary.total_campaigns || 0}</p></CardContent></Card>
-            <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Active</p><p className="font-bold text-blue-600">{scopeSummary.active_count || 0}</p></CardContent></Card>
-            <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Complete</p><p className="font-bold text-emerald-600">{scopeSummary.complete_count || 0}</p></CardContent></Card>
-            <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Budget</p><p className="font-bold">{formatAED(scopeSummary.total_budget || 0)}</p></CardContent></Card>
-            <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Unpaid</p><p className="font-bold text-destructive">{scopeSummary.not_paid_count || 0}</p></CardContent></Card>
+          {/* Five figures for the year in view. Each was a centred box the width of a
+              two-digit number; the boxes are gone and the figures reflect what the year
+              filter has selected, not a blanket total.
+
+              They also read `x || 0`: a summary block the endpoint did not send printed
+              five confident zeroes over a table that might have twenty rows in it. */}
+          <div className="-mx-ds-2 grid grid-cols-2 gap-x-ds-5 gap-y-ds-4 sm:grid-cols-3 lg:grid-cols-5">
+            <ScopeFigure label="Projects" value={scopeSummary.total_campaigns} />
+            <ScopeFigure label="Active" value={scopeSummary.active_count} tone="info" />
+            <ScopeFigure label="Complete" value={scopeSummary.complete_count} tone="good" />
+            <ScopeFigure label="Budget" value={scopeSummary.total_budget} money />
+            <ScopeFigure label="Unpaid" value={scopeSummary.not_paid_count} tone="bad" />
           </div>
 
           {/* Scope Table */}
-          <Card>
+          <Card className="overflow-hidden">
             <ScrollArea className="w-full">
               <Table>
                 <TableHeader>
@@ -442,7 +534,7 @@ function ClientDetailPage() {
                         <TableCell className="font-medium">{c.name}</TableCell>
                         <TableCell>{typeBadge(c.campaign_type)}</TableCell>
                         <TableCell>{statusBadge(c.status)}</TableCell>
-                        <TableCell className="text-right font-mono">{formatAED(c.budget)}</TableCell>
+                        <TableCell className="text-right tabular-nums"><Money value={c.budget} /></TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <Select
                             value={c.payment_status}
@@ -520,7 +612,7 @@ function ClientDetailPage() {
 
         {/* CAMPAIGNS TAB */}
         <TabsContent value="campaigns" className="space-y-4">
-          <h2 className="text-lg font-semibold">All Campaigns</h2>
+          <h2 className="text-ds-subheading">All Campaigns</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {scope.map((c) => (
               <Card key={c.id} className="hover:shadow-md transition-shadow">
@@ -535,7 +627,7 @@ function ClientDetailPage() {
                   <h3 className="font-semibold truncate">{c.name}</h3>
                   <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
                     <span>{c.total_creators} creators</span>
-                    <span>{formatAED(c.budget)}</span>
+                    <span className="tabular-nums"><Money value={c.budget} /></span>
                   </div>
                   {c.budget && c.spent ? (
                     <Progress value={(Number(c.spent) / Number(c.budget)) * 100} className="mt-2 h-1.5" />
@@ -555,18 +647,13 @@ function ClientDetailPage() {
         {/* PROPOSALS TAB */}
         <TabsContent value="proposals" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Proposals</h2>
+            <h2 className="text-ds-subheading">Proposals</h2>
             <Button variant="outline" size="sm" onClick={() => router.push('/superadmin/proposals/create')}>
               Create Proposal
             </Button>
           </div>
           {proposals.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Users className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                <p className="mt-3 text-muted-foreground">No proposals for this client yet.</p>
-              </CardContent>
-            </Card>
+            <p className="text-sm text-muted-foreground">No proposals for this client yet.</p>
           ) : (
             <Card>
               <CardContent className="p-0">
@@ -587,7 +674,7 @@ function ClientDetailPage() {
                         <TableCell className="font-medium">{p.campaign_name || p.title}</TableCell>
                         <TableCell><Badge variant="outline">{String(p.status).replace(/_/g, ' ')}</Badge></TableCell>
                         <TableCell>{p.influencer_count}</TableCell>
-                        <TableCell>{formatAED(p.total_sell_amount ?? p.total_budget)}</TableCell>
+                        <TableCell className="tabular-nums"><Money value={p.total_sell_amount ?? p.total_budget} /></TableCell>
                         <TableCell className="text-right">
                           <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); router.push(`/superadmin/proposals/${p.id}/approval`); }}>
                             Workflow <ChevronRight className="ml-1 h-3.5 w-3.5" />
@@ -605,16 +692,11 @@ function ClientDetailPage() {
         {/* BARTER & EVENTS TAB */}
         <TabsContent value="barter" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Barter & Events</h2>
+            <h2 className="text-ds-subheading">Barter & Events</h2>
             <Badge variant="outline">{events.length} events</Badge>
           </div>
           {events.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Calendar className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                <p className="mt-3 text-muted-foreground">No events yet. Create events from the Operations module.</p>
-              </CardContent>
-            </Card>
+            <p className="text-sm text-muted-foreground">No events yet. Events are created in Operations.</p>
           ) : (
             <Card>
               <ScrollArea className="w-full">
@@ -653,16 +735,17 @@ function ClientDetailPage() {
 
         {/* UGC TAB */}
         <TabsContent value="ugc" className="space-y-4">
-          <h2 className="text-lg font-semibold">UGC Overview</h2>
+          <h2 className="text-ds-subheading">UGC Overview</h2>
           {ugcData ? (
             <>
-              {/* UGC Summary Cards */}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-                <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Concepts</p><p className="font-bold">{ugcData.summary.total_concepts}</p></CardContent></Card>
-                <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Consumed</p><p className="font-bold text-emerald-600">{ugcData.summary.consumed_concepts}</p></CardContent></Card>
-                <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Videos</p><p className="font-bold">{ugcData.summary.total_videos}</p></CardContent></Card>
-                <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Ready</p><p className="font-bold text-blue-600">{ugcData.summary.ready_videos}</p></CardContent></Card>
-                <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Budget Used</p><p className="font-bold">{formatAED(ugcData.summary.total_budget_consumed)}</p></CardContent></Card>
+              {/* The same five-figure strip as the scope tab, so the two tabs read as one
+                  record rather than two dashboards. */}
+              <div className="-mx-ds-2 grid grid-cols-2 gap-x-ds-5 gap-y-ds-4 sm:grid-cols-3 lg:grid-cols-5">
+                <ScopeFigure label="Concepts" value={ugcData.summary.total_concepts} />
+                <ScopeFigure label="Consumed" value={ugcData.summary.consumed_concepts} tone="good" />
+                <ScopeFigure label="Videos" value={ugcData.summary.total_videos} />
+                <ScopeFigure label="Ready" value={ugcData.summary.ready_videos} tone="info" />
+                <ScopeFigure label="Budget used" value={ugcData.summary.total_budget_consumed} money />
               </div>
 
               {/* Concepts Table */}
@@ -712,40 +795,44 @@ function ClientDetailPage() {
 
         {/* FINANCE TAB */}
         <TabsContent value="finance" className="space-y-4">
-          <h2 className="text-lg font-semibold">Financial Summary</h2>
-          {finance && (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader><CardTitle className="text-base">Budget Overview</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Total Budget</span><span className="font-bold">{formatAED(finance.total_budget)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Total Spent</span><span className="font-bold">{formatAED(finance.total_spent)}</span></div>
+          {/* No finance figures means the section is not drawn at all: no placeholder card,
+              no row of zeroes standing in for money nobody has told us about. */}
+          {finance ? (
+            <div className="grid grid-cols-1 items-start gap-ds-4 md:grid-cols-2">
+              <Panel title="Budget" description="Committed against spent">
+                <div className="space-y-ds-3">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Total budget</span><span className="font-semibold tabular-nums"><Money value={finance.total_budget} /></span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Total spent</span><span className="font-semibold tabular-nums"><Money value={finance.total_spent} /></span></div>
                   <Separator />
-                  <div className="flex justify-between"><span className="text-muted-foreground">Outstanding</span><span className="font-bold text-destructive">{formatAED(finance.outstanding_amount)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Outstanding</span><span className="font-semibold tabular-nums text-[var(--tone-bad-ink)]"><Money value={finance.outstanding_amount} /></span></div>
                   {finance.carry_forward_value_cents > 0 && (
-                    <div className="flex justify-between"><span className="text-muted-foreground">Carry Forward Value</span><span className="font-bold">{formatAED(finance.carry_forward_value_cents / 100)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Carried forward</span><span className="font-semibold tabular-nums"><Money value={finance.carry_forward_value_cents / 100} /></span></div>
                   )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle className="text-base">Payment Status</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center"><span className="text-muted-foreground">Paid</span><Badge className="bg-emerald-500/10 text-emerald-600">{finance.paid_campaigns}</Badge></div>
-                  <div className="flex justify-between items-center"><span className="text-muted-foreground">Partial</span><Badge className="bg-amber-500/10 text-amber-600">{finance.partial_campaigns}</Badge></div>
-                  <div className="flex justify-between items-center"><span className="text-muted-foreground">Unpaid</span><Badge variant="destructive">{finance.unpaid_campaigns}</Badge></div>
+                </div>
+              </Panel>
+              <Panel title="Payment" description="Where each campaign stands">
+                <div className="space-y-ds-3">
+                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Paid</span><Badge variant="outline" className={TONE_BADGE.good}>{finance.paid_campaigns}</Badge></div>
+                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Partial</span><Badge variant="outline" className={TONE_BADGE.warn}>{finance.partial_campaigns}</Badge></div>
+                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Unpaid</span><Badge variant="outline" className={TONE_BADGE.bad}>{finance.unpaid_campaigns}</Badge></div>
                   <Separator />
-                  <div className="flex justify-between"><span className="text-muted-foreground">Total Campaigns</span><span className="font-bold">{finance.total_campaigns}</span></div>
-                </CardContent>
-              </Card>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Campaigns in total</span><span className="font-semibold tabular-nums">{finance.total_campaigns}</span></div>
+                </div>
+              </Panel>
             </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              The finance figures did not come back. Nothing here is known, including whether
+              anything is owed.
+            </p>
           )}
         </TabsContent>
 
         {/* ACTIVITY TAB */}
         <TabsContent value="activity" className="space-y-4">
-          <h2 className="text-lg font-semibold">Activity Timeline</h2>
+          <h2 className="text-ds-subheading">Activity Timeline</h2>
           {activity.length === 0 ? (
-            <p className="text-muted-foreground py-8 text-center">No activity recorded yet</p>
+            <p className="text-sm text-muted-foreground">Nothing has happened on this client yet.</p>
           ) : (
             <Card>
               <ScrollArea className="h-[500px]">

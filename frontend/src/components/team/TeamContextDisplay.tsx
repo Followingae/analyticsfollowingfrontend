@@ -211,17 +211,7 @@ export function TeamContextDisplay({
               used={teamContext.current_usage.profiles}
               limit={teamContext.monthly_limits.profiles}
               remaining={teamContext.remaining_capacity.profiles}
-            />
-            
-            {teamContext.monthly_limits.emails > 0 && (
-              <UsageBar
-                label="Email Unlocks"
-                used={teamContext.current_usage.emails}
-                limit={teamContext.monthly_limits.emails}
-                remaining={teamContext.remaining_capacity.emails}
-              />
-            )}
-            
+            />            
             {teamContext.monthly_limits.posts > 0 && (
               <UsageBar
                 label="Post Analyses"
@@ -249,17 +239,7 @@ export function TeamContextDisplay({
             }`}>
               <CheckCircle className="h-3 w-3" />
               <span>Analyze Profiles</span>
-            </div>
-            
-            <div className={`flex items-center gap-2 p-2 rounded-md ${
-              teamContext.user_permissions.can_unlock_emails 
-                ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
-                : 'bg-muted/50 text-muted-foreground dark:bg-gray-900 dark:text-gray-400'
-            }`}>
-              <CheckCircle className="h-3 w-3" />
-              <span>Unlock Emails</span>
-            </div>
-            
+            </div>            
             <div className={`flex items-center gap-2 p-2 rounded-md ${
               teamContext.user_permissions.can_analyze_posts 
                 ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'

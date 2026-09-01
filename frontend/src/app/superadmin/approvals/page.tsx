@@ -7,18 +7,25 @@
  * people who answer them are on a phone between meetings. The cost of that is that nobody
  * could see the state of them — an approval sent four days ago and never opened looked
  * exactly like one that was never raised. This is that view.
+ *
+ * Each request was a bordered card holding one sentence and a row of badges, stacked. That
+ * is one edge per decision, and the edges said nothing the gap between rows did not. They
+ * are list rows in one panel now, and the state a row is in carries a dot as well as a
+ * word, so it survives a print-out and reads for anyone who cannot separate the colours.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Check, X, Clock, MailQuestion } from "lucide-react"
+import { Check, X, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { API_CONFIG } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
+import { Empty, PageHead, Panel, Row, type Tone } from "@/components/console/primitives"
 
 interface ApprovalRow {
   id: string
@@ -57,14 +64,26 @@ export default function ApprovalsPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<"waiting" | "answered">("waiting")
 
+  /**
+   * A refused read is not "nothing is waiting on a founder".
+   *
+   * The catch toasted and left `items` at [], so a 500 drew the empty state: an all clear,
+   * on the screen whose only job is to say what a founder still owes an answer to. The
+   * failure is held so the page can say the list did not come back.
+   */
+  const [failure, setFailure] = useState<string | null>(null)
+
   const load = useCallback(async () => {
+    setFailure(null)
     try {
       const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/approvals`)
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Could not load")
       const j = await res.json()
       setItems(j?.data?.items ?? [])
     } catch (e) {
-      toast.error((e as Error).message || "Could not load approvals")
+      const msg = (e as Error).message || "Could not load approvals"
+      setFailure(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -78,77 +97,103 @@ export default function ApprovalsPage() {
   return (
     <AuthGuard>
       <SuperAdminInterface>
-        <div className="mx-auto max-w-4xl space-y-6 p-6">
-          <div>
-            <h1 className="text-3xl font-bold">Approvals</h1>
-            <p className="mt-1 max-w-2xl text-muted-foreground">
-              Decisions we have asked a founder for. Each one goes out as a link they can answer
-              from their phone without logging in — this is where you see whether they have.
-            </p>
-          </div>
+        <div className="mx-auto max-w-4xl space-y-ds-5 p-4 md:p-7">
+          <PageHead
+            title="Approvals"
+            sub="Decisions we have asked a founder for. Each one goes out as a link they can answer from their phone without logging in, so this is where you see whether they have."
+          />
 
-          <Tabs value={tab} onValueChange={(v: string) => setTab(v as "waiting" | "answered")}>
-            <TabsList>
-              <TabsTrigger value="waiting">Waiting ({waiting.length})</TabsTrigger>
-              <TabsTrigger value="answered">Answered ({answered.length})</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {loading ? (
-            <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          ) : shown.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="p-12 text-center">
-                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full border">
-                  <MailQuestion className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <p className="mt-4 font-medium">
-                  {tab === "waiting" ? "Nothing is waiting on a founder" : "Nothing answered yet"}
-                </p>
-              </CardContent>
-            </Card>
+          {failure ? (
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Could not load the approvals.</p>
+              <p className="text-sm text-muted-foreground">
+                {failure}. This is not an all clear: something may still be waiting on a founder.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => { setLoading(true); load() }}>
+                Try again
+              </Button>
+            </div>
+          ) : loading ? (
+            <Skeleton className="h-[320px] rounded-ds-2xl" />
           ) : (
-            <div className="space-y-2">
-              {shown.map((a) => {
-                const expired = !a.decided_at && a.expires_at && new Date(a.expires_at) < new Date()
-                return (
-                  <Card key={a.id}>
-                    <CardContent className="flex flex-wrap items-start gap-3 p-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
+            <>
+              <Tabs value={tab} onValueChange={(v: string) => setTab(v as "waiting" | "answered")}>
+                <TabsList>
+                  <TabsTrigger value="waiting">Waiting ({waiting.length})</TabsTrigger>
+                  <TabsTrigger value="answered">Answered ({answered.length})</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <Panel
+                title={tab === "waiting" ? "Waiting on a founder" : "Answered"}
+                description={tab === "waiting"
+                  ? "How long each one has sat there"
+                  : "What came back, and who sent it"}
+                flush
+              >
+                {shown.map((a) => {
+                  const expired = !a.decided_at && a.expires_at && new Date(a.expires_at) < new Date()
+                  const tone: Tone =
+                    a.decision === "approved" ? "good"
+                    : a.decision === "rejected" ? "neutral"
+                    : expired ? "bad"
+                    : "warn"
+                  return (
+                    <Row
+                      key={a.id}
+                      tone={tone}
+                      title={
+                        <span className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline">{ACTION_LABEL[a.action] ?? a.action}</Badge>
+                          <span className="min-w-0 truncate font-normal">{a.summary}</span>
+                        </span>
+                      }
+                      meta={
+                        <>
+                          {a.approver_email}
+                          {a.requested_by_email ? ` · asked by ${a.requested_by_email}` : ""}
+                          {a.decided_at
+                            ? ` · answered ${ago(a.decided_at)}${a.decision_source ? ` by ${a.decision_source}` : ""}`
+                            : ""}
+                          {a.decision_note ? ` · “${a.decision_note}”` : ""}
+                        </>
+                      }
+                      right={
+                        <>
                           {a.decision === "approved" && (
-                            <Badge className="gap-1"><Check className="h-3 w-3" />Approved</Badge>
+                            <Badge variant="outline" className="gap-1 border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
+                              <Check className="h-3 w-3" />Approved
+                            </Badge>
                           )}
                           {a.decision === "rejected" && (
                             <Badge variant="outline" className="gap-1 text-muted-foreground">
                               <X className="h-3 w-3" />Turned down
                             </Badge>
                           )}
-                          {expired && <Badge variant="outline" className="text-muted-foreground">Expired</Badge>}
+                          {expired && (
+                            <Badge variant="outline" className="border-transparent bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]">
+                              Expired
+                            </Badge>
+                          )}
                           {!a.decided_at && !expired && (
-                            <Badge variant="outline" className="gap-1 text-amber-600 dark:text-amber-400">
+                            /* The wait was a hand-picked amber-600, a fourth amber beside the
+                               three the console decides once. It names the tone token now. */
+                            <Badge variant="outline" className="gap-1 border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]">
                               <Clock className="h-3 w-3" />{ago(a.created_at)}
                             </Badge>
                           )}
-                        </div>
-                        <p className="mt-2 text-sm">{a.summary}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {a.approver_email}
-                          {a.requested_by_email ? ` · asked by ${a.requested_by_email}` : ""}
-                          {a.decided_at
-                            ? ` · answered ${ago(a.decided_at)}${a.decision_source ? ` by ${a.decision_source}` : ""}`
-                            : ""}
-                        </p>
-                        {a.decision_note && (
-                          <p className="mt-1 text-xs italic text-muted-foreground">“{a.decision_note}”</p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
+                        </>
+                      }
+                    />
+                  )
+                })}
+                {shown.length === 0 && (
+                  <Empty>
+                    {tab === "waiting" ? "Nothing is waiting on a founder." : "Nothing answered yet."}
+                  </Empty>
+                )}
+              </Panel>
+            </>
           )}
         </div>
       </SuperAdminInterface>

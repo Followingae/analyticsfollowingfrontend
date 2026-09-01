@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -11,6 +10,8 @@ import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, ImageIcon, Pencil, Trash2, Upload, Loader2, X, ExternalLink, Link2 } from "lucide-react"
+import { CARD, PageHead } from "@/components/console/primitives"
+import { FaPage, Failed, Loading, Nothing, TONE_BADGE } from "../_ui"
 import { faAdBannerApi, type AdBanner } from "@/services/faAdminApi"
 import { toast } from "sonner"
 
@@ -44,7 +45,7 @@ function BannerForm({ banner, onSave, onCancel }: { banner?: AdBanner | null; on
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-sm font-medium">Banner Image *</label>
+        <label className="text-ds-label">Banner image *</label>
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageFile} className="hidden" />
         <div className="mt-1 space-y-2">
           <div className="aspect-[2.4/1] w-full rounded-xl border bg-muted/40 flex items-center justify-center overflow-hidden">
@@ -71,12 +72,12 @@ function BannerForm({ banner, onSave, onCancel }: { banner?: AdBanner | null; on
         <p className="text-[11px] text-muted-foreground mt-1">Recommended ~2.4:1 ratio. JPEG, PNG, or WebP · max 5MB</p>
       </div>
       <div>
-        <label className="text-sm font-medium">Title</label>
+        <label className="text-ds-label">Title</label>
         <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Internal label (not shown on the banner)" />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-sm font-medium">Link Type</label>
+          <label className="text-ds-label">Where it goes</label>
           <Select value={form.link_type} onValueChange={(v: string) => setForm({ ...form, link_type: v as "internal" | "external" })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -86,12 +87,12 @@ function BannerForm({ banner, onSave, onCancel }: { banner?: AdBanner | null; on
           </Select>
         </div>
         <div>
-          <label className="text-sm font-medium">Sort Order</label>
+          <label className="text-ds-label">Order in the carousel</label>
           <Input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: parseInt(e.target.value || "0", 10) })} />
         </div>
       </div>
       <div>
-        <label className="text-sm font-medium">Link URL</label>
+        <label className="text-ds-label">Link</label>
         <Input value={form.link_url} onChange={(e) => setForm({ ...form, link_url: e.target.value })} placeholder={form.link_type === "external" ? "https://example.com/promo" : "/campaigns or /campaigns/123"} />
         <p className="text-[11px] text-muted-foreground mt-1">
           {form.link_type === "external" ? "Opens in the device browser." : "In-app route path the carousel navigates to on tap."}
@@ -99,8 +100,8 @@ function BannerForm({ banner, onSave, onCancel }: { banner?: AdBanner | null; on
       </div>
       <div className="flex items-center justify-between rounded-lg border px-3 py-2">
         <div>
-          <p className="text-sm font-medium">Active</p>
-          <p className="text-[11px] text-muted-foreground">Only active banners appear in the creator app</p>
+          <p className="text-ds-label">Show it in the app</p>
+          <p className="text-[11px] text-muted-foreground">Creators only see banners that are switched on</p>
         </div>
         <Switch checked={form.is_active} onCheckedChange={(v: boolean) => setForm({ ...form, is_active: v })} />
       </div>
@@ -115,16 +116,24 @@ function BannerForm({ banner, onSave, onCancel }: { banner?: AdBanner | null; on
 export default function FAAdBannersPage() {
   const [banners, setBanners] = useState<AdBanner[]>([])
   const [loading, setLoading] = useState(true)
+  /* Whether the list actually answered. Without it a failed request emptied the grid and
+     the page said "No banners yet", which reads as "the carousel is empty in the app" —
+     a claim about what creators are seeing, made out of a broken fetch. */
+  const [error, setError] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<AdBanner | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
+    setError(false)
     try {
       const res = await faAdBannerApi.list()
       const list = res?.data?.items || res?.data || []
       setBanners(Array.isArray(list) ? list : [])
-    } catch { toast.error("Failed to load banners") }
+    } catch {
+      setError(true)
+      toast.error("Could not load banners")
+    }
     finally { setLoading(false) }
   }, [])
 
@@ -164,40 +173,44 @@ export default function FAAdBannersPage() {
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Ad Banners</h1>
-              <p className="text-muted-foreground text-sm">Promo banners shown in the creator app home carousel</p>
-            </div>
-            <Dialog open={dialogOpen} onOpenChange={(o: boolean) => { setDialogOpen(o); if (!o) setEditing(null) }}>
-              <DialogTrigger asChild>
-                <Button size="sm"><Plus className="h-4 w-4 mr-2" />Add Banner</Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>{editing ? "Edit Banner" : "Add Banner"}</DialogTitle>
-                </DialogHeader>
-                <BannerForm banner={editing} onSave={handleSave} onCancel={() => { setDialogOpen(false); setEditing(null) }} />
-              </DialogContent>
-            </Dialog>
-          </div>
+        <FaPage>
+          <PageHead
+            title="Ad banners"
+            sub="The promo cards in the creator app's home carousel. Only active banners are shown to creators, and the sort order is the order they scroll past."
+            action={
+              <Dialog open={dialogOpen} onOpenChange={(o: boolean) => { setDialogOpen(o); if (!o) setEditing(null) }}>
+                <DialogTrigger asChild>
+                  <Button size="sm"><Plus className="h-4 w-4 mr-2" />Add a banner</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>{editing ? "Edit this banner" : "Add a banner"}</DialogTitle>
+                  </DialogHeader>
+                  <BannerForm banner={editing} onSave={handleSave} onCancel={() => { setDialogOpen(false); setEditing(null) }} />
+                </DialogContent>
+              </Dialog>
+            }
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* The banner image is the object, so each one keeps a card. It is the console
+              card shell now, so the radius and the shadow match every other panel. */}
+          <div className="grid grid-cols-1 gap-ds-3 md:grid-cols-2">
             {banners.map((b) => (
-              <Card key={b.id} className="overflow-hidden">
-                <div className="aspect-[2.4/1] w-full bg-muted/40 overflow-hidden">
+              <div key={b.id} className={`${CARD} overflow-hidden bg-[var(--tone-neutral-wash)]`}>
+                <div className="aspect-[2.4/1] w-full overflow-hidden bg-black/[0.03] dark:bg-white/[0.05]">
                   {b.image_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={b.image_url} alt={b.title || "Banner"} className="h-full w-full object-cover" />
                   )}
                 </div>
-                <CardContent className="pt-4">
-                  <div className="flex items-center justify-between mb-2 gap-2">
-                    <h3 className="font-semibold truncate">{b.title || "Untitled banner"}</h3>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Badge variant="outline" className="text-[10px]">#{b.sort_order}</Badge>
-                      <Badge variant={b.is_active ? "default" : "secondary"} className="text-[10px]">{b.is_active ? "Active" : "Hidden"}</Badge>
+                <div className="p-ds-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <h3 className="truncate font-semibold">{b.title || "Untitled banner"}</h3>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Badge variant="outline" className={`text-[10px] ${TONE_BADGE.neutral}`}>#{b.sort_order}</Badge>
+                      <Badge variant="outline" className={`text-[10px] ${b.is_active ? TONE_BADGE.good : TONE_BADGE.neutral}`}>
+                        {b.is_active ? "Live in the app" : "Hidden"}
+                      </Badge>
                     </div>
                   </div>
                   {b.link_url && (
@@ -214,19 +227,21 @@ export default function FAAdBannersPage() {
                       <Trash2 className="h-3 w-3 mr-1" />Delete
                     </Button>
                     <div className="ml-auto flex items-center gap-2">
-                      <span className="text-[11px] text-muted-foreground">Active</span>
+                      <span className="text-ds-caption text-muted-foreground">Show it</span>
                       <Switch checked={b.is_active} onCheckedChange={() => toggleActive(b)} />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
 
-          {!loading && banners.length === 0 && (
-            <Card><CardContent className="text-center py-12"><ImageIcon className="h-10 w-10 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">No banners yet</p></CardContent></Card>
+          {loading && banners.length === 0 && <Loading label="Loading banners" />}
+          {!loading && error && <Failed what="ad banners" onRetry={load} />}
+          {!loading && !error && banners.length === 0 && (
+            <Nothing>No banners yet. The home carousel in the creator app is empty until you add one.</Nothing>
           )}
-        </div>
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

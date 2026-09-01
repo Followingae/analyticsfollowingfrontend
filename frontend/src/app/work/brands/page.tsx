@@ -22,12 +22,27 @@ import { Empty, Panel, Row, Stat, StatGrid, type Tone } from '@/components/conso
 import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
 import { NewOpportunityDialog } from '@/components/superadmin/brands/NewOpportunityDialog'
 
+/* The badge skins were a fourth set of hand-picked palette steps — emerald-500/10 here,
+   #E9F5E5 on Today, emerald-950/50 elsewhere — so "healthy" was three slightly different
+   greens depending which screen you were standing on. They now name the console tone
+   tokens, which are decided once and are scoped to the console shell by construction. */
 const HEALTH: Record<string, { label: string; cls: string; tone: Tone }> = {
-  healthy: { label: 'Healthy', cls: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600', tone: 'good' },
-  quiet:   { label: 'Going quiet', cls: 'border-amber-500/20 bg-amber-500/10 text-amber-600', tone: 'warn' },
-  at_risk: { label: 'At risk', cls: 'border-destructive/20 bg-destructive/10 text-destructive', tone: 'bad' },
-  unknown: { label: 'No activity', cls: 'bg-muted text-muted-foreground', tone: 'neutral' },
+  healthy: { label: 'Healthy', cls: 'border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]', tone: 'good' },
+  quiet:   { label: 'Going quiet', cls: 'border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]', tone: 'warn' },
+  at_risk: { label: 'At risk', cls: 'border-transparent bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]', tone: 'bad' },
+  unknown: { label: 'No activity', cls: 'border-transparent bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]', tone: 'neutral' },
 }
+
+/**
+ * A summary figure that never arrived is a dash, not a zero.
+ *
+ * The four tiles read `s.total ?? 0`, and `s` is `data.summary || {}`. So a response that
+ * came back without a summary block — or missing one field of it — printed confident
+ * zeroes: no active clients, none healthy, none at risk. "Nothing is wrong" and "we never
+ * managed to ask" looked identical, on a screen whose entire job is to be glanced at and
+ * believed. A real zero still prints 0.
+ */
+const num = (v: number | null | undefined) => (v == null ? '—' : v)
 
 const quiet = (d: number | null) =>
   d === null ? 'never' : d === 0 ? 'today' : d === 1 ? '1 day' : `${d} days`
@@ -47,13 +62,22 @@ function BrandsPage() {
   const params = useSearchParams()
   const [newOpen, setNewOpen] = useState(params?.get('new') === '1')
 
+  // A refused request and an empty client list are different facts and must not
+  // render the same. Failure is held here so the page can say the read failed,
+  // rather than falling through to "Nothing to show." — which would report an
+  // agency with no clients every time the endpoint 500s.
+  const [failure, setFailure] = useState<string | null>(null)
+
   const load = async () => {
+    setFailure(null)
     try {
       const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/brands/heartbeat`)
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed')
       setData((await res.json()).data)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not load brands')
+      const msg = e instanceof Error ? e.message : 'Could not load brands'
+      setFailure(msg)
+      toast.error(msg)
     } finally { setLoading(false) }
   }
 
@@ -67,18 +91,42 @@ function BrandsPage() {
   if (loading) {
     return (
       <SuperadminLayout>
-        <div className="space-y-8">
-          <Skeleton className="h-9 w-40" />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-[116px]" />)}
+        <div className="space-y-ds-5">
+          <Skeleton className="h-9 w-40 rounded-ds-lg" />
+          {/* The band this stands in for no longer draws a box per figure, so neither does
+              the skeleton: label, number and hint at the gap the real StatGrid uses, rather
+              than four filled tiles promising an edge the loaded screen never draws. */}
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
+                <Skeleton className="h-3 w-24 rounded-ds-sm" />
+                <Skeleton className="h-9 w-20 rounded-ds-sm" />
+                <Skeleton className="h-3 w-32 rounded-ds-sm" />
+              </div>
+            ))}
           </div>
-          <Skeleton className="h-[340px]" />
+          <Skeleton className="h-[340px] rounded-ds-2xl" />
+        </div>
+      </SuperadminLayout>
+    )
+  }
+  if (failure) {
+    return (
+      <SuperadminLayout>
+        <div className="space-y-3">
+          <p className="text-sm font-medium">Could not load the client list.</p>
+          <p className="text-sm text-muted-foreground">
+            {failure}. This is not an all clear, and nothing below is known.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => { setLoading(true); load() }}>
+            Try again
+          </Button>
         </div>
       </SuperadminLayout>
     )
   }
   if (!data) {
-    return <SuperadminLayout><p className="text-sm text-muted-foreground">Nothing to show.</p></SuperadminLayout>
+    return <SuperadminLayout><p className="text-sm text-muted-foreground">No clients yet.</p></SuperadminLayout>
   }
 
   const s = data.summary || {}
@@ -86,7 +134,7 @@ function BrandsPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-8">
+      <div className="space-y-ds-5">
         <ClientsHubHeader
           note="How long since anything moved, and who owes the next step. Silence is measured from real activity in the platform, so a conversation you had off-platform has to be logged to count."
           action={
@@ -97,14 +145,14 @@ function BrandsPage() {
         />
 
         <StatGrid>
-          <Stat label="Active clients" value={s.total ?? 0} icon={Building2}
+          <Stat label="Active clients" value={num(s.total)} icon={Building2}
                 hint={`${ours} waiting on us`} onClick={() => setTab('all')} />
-          <Stat label="Healthy" value={s.healthy ?? 0} tone="good" icon={HeartPulse}
+          <Stat label="Healthy" value={num(s.healthy)} tone="good" icon={HeartPulse}
                 hint="Something moved in the last week" />
-          <Stat label="Going quiet" value={s.quiet ?? 0} tone={s.quiet ? 'warn' : 'neutral'}
+          <Stat label="Going quiet" value={num(s.quiet)} tone={s.quiet ? 'warn' : 'neutral'}
                 icon={PhoneOff} hint="One to two weeks of silence"
                 onClick={() => setTab('attention')} />
-          <Stat label="At risk" value={s.at_risk ?? 0} tone={s.at_risk ? 'bad' : 'neutral'}
+          <Stat label="At risk" value={num(s.at_risk)} tone={s.at_risk ? 'bad' : 'neutral'}
                 icon={TriangleAlert} hint="Over a fortnight — call, do not email"
                 onClick={() => setTab('attention')} />
         </StatGrid>

@@ -11,6 +11,11 @@ import { fetchWithAuth } from '@/utils/apiInterceptor'
 // TYPE DEFINITIONS
 // =============================================================================
 
+/** The caller's money scope, decided server-side by `app/core/field_policy.py`.
+ *  Only 'leadership' (superadmin/admin/ceo/cofounder) is served cost and margin; the
+ *  other scopes get null in those fields and the screens leave the columns out. */
+export type MoneyScope = 'leadership' | 'talent' | 'account' | 'none'
+
 export interface AdminProposal {
   id: string
   title: string
@@ -130,11 +135,15 @@ export interface AdminProposalDetail {
     } | null
   }
   influencers: AdminProposalInfluencer[]
+  /** The caller's money scope, from the backend's `app/core/field_policy.py`. Only
+   *  'leadership' is served cost and margin — for everyone else those fields come back
+   *  null and the screen leaves the columns out rather than showing empty ones. */
+  scope?: MoneyScope
   financials: {
-    total_sell: number
-    total_cost: number
-    margin_percentage: number
-    margin_amount: number
+    total_sell: number | null
+    total_cost: number | null
+    margin_percentage: number | null
+    margin_amount: number | null
   }
   timeline: Array<{
     event: string
@@ -288,8 +297,10 @@ export interface AdminProposalStats {
   active_proposals: number
   approved_proposals: number
   approval_rate: number
-  total_margin: number
-  avg_margin_percentage: number
+  /** Null for anyone the backend's field policy does not serve margin to. */
+  total_margin: number | null
+  avg_margin_percentage: number | null
+  scope?: MoneyScope
 }
 
 export interface AISnapshotResponse {
@@ -380,6 +391,7 @@ export class AdminProposalApiService {
   }): Promise<{
     proposals: AdminProposal[]
     pagination: { limit: number; offset: number; total: number }
+    scope?: MoneyScope
   }> {
     const params = new URLSearchParams()
     if (filters) {

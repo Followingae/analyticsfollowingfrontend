@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { PageHead } from "@/components/console/primitives"
+import { FaPage, Section } from "../../_ui"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Coins, Calendar, Users } from "lucide-react"
+import { ArrowLeft, Calendar } from "lucide-react"
 import { toast } from "sonner"
 import { faCampaignApi, faMerchantApi } from "@/services/faAdminApi"
 import {
@@ -130,19 +131,20 @@ export default function CreatePaidDealPage() {
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="max-w-4xl mx-auto space-y-8 pb-16">
+        <FaPage className="mx-auto max-w-4xl pb-16">
           <div>
-            <Link href="/superadmin/fa/campaigns" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
-              <ArrowLeft className="h-4 w-4" /> Back to Campaigns
+            <Link href="/superadmin/fa/campaigns" className="mb-ds-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" />Back to campaigns
             </Link>
-            <h1 className="text-3xl font-bold">Create Paid Deal Campaign</h1>
-            <p className="text-muted-foreground mt-1">Set up a fixed-payout influencer campaign</p>
+            <PageHead
+              title="New paid deal"
+              sub="Every creator is paid the same fixed fee, out of the client's funded pool, once their deliverables are verified. Step 2 of 2."
+            />
           </div>
 
           {/* Merchant Selection */}
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Select Merchant</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+          <Section title="Who it is for" description="The merchant is the place a creator actually walks into. If the client is not on the platform, run it team-managed and give it a name instead.">
+            <div className="space-y-4">
               <SelfManagedToggle
                 selfManaged={selfManaged}
                 onSelfManagedChange={(v: boolean) => { setSelfManaged(v); setSelectedPoolId("") }}
@@ -163,7 +165,7 @@ export default function CreatePaidDealPage() {
                   pool it never offered. */}
               {(selectedMerchantId || selfManaged) && merchantPools.length > 0 && (
                 <div className="mt-4">
-                  <Label>Funding Pool (optional)</Label>
+                  <Label>Funding pool (optional)</Label>
                   <Select value={selectedPoolId} onValueChange={setSelectedPoolId}>
                     <SelectTrigger><SelectValue placeholder="Select pool..." /></SelectTrigger>
                     <SelectContent>
@@ -183,20 +185,19 @@ export default function CreatePaidDealPage() {
                   onHeroImageChange={setHeroImageUrl}
                 />
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
 
           {/* Campaign Details */}
-          <Card>
-            <CardHeader><CardTitle>Campaign Details</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+          <Section title="The campaign" description="The name creators see in the app, when it runs, and how many people can join.">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Campaign Name *</Label>
+                <Label>Campaign name *</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Summer Paid Collab 2026" />
               </div>
               <div className="space-y-2">
-                <Label>What are we promoting?</Label>
-                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Campaign description..." />
+                <Label>What are we promoting</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A line or two creators will read in the app" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -209,28 +210,28 @@ export default function CreatePaidDealPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Max Participants</Label>
-                <Input type="number" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} placeholder="Leave empty for unlimited" />
+                <Label>How many creators at most</Label>
+                <Input type="number" value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} placeholder="Leave empty for no cap" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Section>
 
           {/* Payout Amount */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Coins className="h-5 w-5" /> Payout per Participant</CardTitle>
-              <CardDescription>Fixed AED amount paid to each participating influencer</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Label>Payout Amount (AED) *</Label>
-                <Input type="number" min={1} value={payoutAed || ""} onChange={(e) => setPayoutAed(parseFloat(e.target.value) || 0)} placeholder="e.g., 500" />
-                {payoutAed > 0 && (
-                  <p className="text-sm text-muted-foreground">Each participant receives ⃃ {payoutAed.toLocaleString()} upon completion</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <Section
+            title="What each creator is paid"
+            description="One fixed amount per creator, released once their deliverables are verified."
+          >
+            <div className="space-y-2">
+              <Label>Fee per creator (AED) *</Label>
+              <Input type="number" min={1} value={payoutAed || ""} onChange={(e) => setPayoutAed(parseFloat(e.target.value) || 0)} placeholder="e.g. 500" />
+              {payoutAed > 0 && (
+                <p className="text-ds-body-sm text-muted-foreground">
+                  Each creator receives &#x20C3; {payoutAed.toLocaleString()} once everything is delivered and verified.
+                </p>
+              )}
+            </div>
+          </Section>
+
 
           {/* Deliverables (platform-specific) */}
           <DeliverablePicker value={deliverables} onChange={setDeliverables} />
@@ -242,10 +243,10 @@ export default function CreatePaidDealPage() {
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => router.push("/superadmin/fa/campaigns")}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={submitting || !name.trim() || (!selfManaged && !selectedMerchantId) || (selfManaged && !selectedMerchantId && !clientName.trim()) || payoutAed <= 0}>
-              {submitting ? "Creating..." : "Create Paid Deal Campaign"}
+              {submitting ? "Creating" : "Create the campaign"}
             </Button>
           </div>
-        </div>
+        </FaPage>
 
         <CouponManagerDialog
           campaignId={couponCampaignId}

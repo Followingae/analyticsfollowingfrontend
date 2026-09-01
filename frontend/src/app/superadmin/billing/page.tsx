@@ -11,7 +11,7 @@ import { MoneyHubHeader } from "@/components/console/MoneyHubHeader"
 export default function SuperadminBillingPage() {
   return (
     <SuperadminLayout>
-      <div className="space-y-6">
+      <div className="space-y-ds-5">
         <MoneyHubHeader />
         <SuperadminBilling />
       </div>

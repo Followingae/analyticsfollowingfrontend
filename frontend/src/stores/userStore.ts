@@ -32,12 +32,10 @@ export interface Subscription {
   tier: 'free' | 'standard' | 'premium' | 'enterprise'
   limits: {
     profiles: number
-    emails: number
     posts: number
   }
   usage: {
     profiles: number
-    emails: number
     posts: number
   }
   is_team_subscription: boolean
@@ -47,12 +45,10 @@ export interface Team {
   subscription_tier: string
   monthly_limits: {
     profiles: number
-    emails: number
     posts: number
   }
   monthly_usage: {
     profiles: number
-    emails: number
     posts: number
   }
 }
@@ -293,10 +289,6 @@ export const useSubscriptionTier = () => useUserStore((state) => state.subscript
 export const useProfilesRemaining = () => useUserStore((state) => {
   if (!state.subscription) return 0
   return Math.max(0, state.subscription.limits.profiles - state.subscription.usage.profiles)
-})
-export const useEmailsRemaining = () => useUserStore((state) => {
-  if (!state.subscription) return 0
-  return Math.max(0, state.subscription.limits.emails - state.subscription.usage.emails)
 })
 export const usePostsRemaining = () => useUserStore((state) => {
   if (!state.subscription) return 0

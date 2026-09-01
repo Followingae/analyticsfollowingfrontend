@@ -11,6 +11,7 @@ import {
   Check,
   LucideIcon,
 } from "lucide-react"
+import { formatMonthlyPlanPrice } from '@/config/planPricing'
 
 interface FeatureHighlight {
   icon: LucideIcon
@@ -109,7 +110,7 @@ export function PremiumFeatureGate({
           </div>
 
           <p className="text-[11px] text-muted-foreground/60 mt-3">
-            Plans start at ⃃199/month with full agency features
+            Plans start at {formatMonthlyPlanPrice('standard')} with full agency features
           </p>
         </div>
       </div>

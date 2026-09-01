@@ -9,8 +9,8 @@
 import Link from "next/link"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { CARD, PageHead } from "@/components/console/primitives"
+import { FaPage } from "../../_ui"
 import { ArrowLeft, ArrowRight, QrCode, Coins, Gift } from "lucide-react"
 
 const TYPES = [
@@ -19,27 +19,27 @@ const TYPES = [
     href: "/superadmin/fa/campaigns/create",
     icon: QrCode,
     title: "Cashback",
-    badge: "QR-driven",
+    badge: "Driven by a QR receipt",
     description:
-      "Creators drive purchases at the client's venue; buyers scan QR receipts and the pool pays creator commissions automatically.",
+      "Creators drive purchases at the client's venue. Buyers scan the QR on the receipt and the pool pays the creator's commission on its own.",
   },
   {
     key: "paid_deal",
     href: "/superadmin/fa/campaigns/create-paid-deal",
     icon: Coins,
-    title: "Paid Deal",
-    badge: "Fixed payout",
+    title: "Paid deal",
+    badge: "One fixed fee",
     description:
-      "Creators complete agreed deliverables for a fixed AED payout per participant, funded from the client's pool.",
+      "Creators do the agreed deliverables for a fixed AED fee each, paid out of the client's funded pool.",
   },
   {
     key: "barter",
     href: "/superadmin/fa/campaigns/create-barter",
     icon: Gift,
     title: "Barter",
-    badge: "Product exchange",
+    badge: "Product, not money",
     description:
-      "Creators receive products or services in exchange for deliverables - no cash payout involved.",
+      "Creators get products or a service in exchange for the content. No cash changes hands.",
   },
 ]
 
@@ -47,46 +47,46 @@ export default function FaCampaignTypePickerPage() {
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="space-y-6 max-w-5xl">
+        <FaPage className="max-w-5xl">
           <div>
             <Link
               href="/superadmin/fa/campaigns"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
+              className="mb-ds-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to FA Campaigns
+              Back to campaigns
             </Link>
-            <h1 className="text-2xl font-bold">Create FA Campaign</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Step 1 of 2 - choose the campaign type. You&apos;ll fill in the details next.
-            </p>
+            <PageHead
+              title="Create a campaign"
+              sub="Step 1 of 2. Pick what kind of deal this is; the details come next. The type decides how the creator gets paid, so it cannot be changed afterwards."
+            />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-ds-3 md:grid-cols-3">
             {TYPES.map((t) => (
-              <Link key={t.key} href={t.href} className="group">
-                <Card className="h-full transition-all duration-150 group-hover:border-primary/50 group-hover:shadow-md cursor-pointer">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                        <t.icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <Badge variant="outline" className="text-xs">{t.badge}</Badge>
-                    </div>
-                    <CardTitle className="text-lg mt-3">{t.title}</CardTitle>
-                    <CardDescription>{t.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <span className="inline-flex items-center text-sm font-medium text-primary">
-                      Continue
-                      <ArrowRight className="h-4 w-4 ml-1 transition-transform duration-150 group-hover:translate-x-0.5" />
-                    </span>
-                  </CardContent>
-                </Card>
+              <Link
+                key={t.key}
+                href={t.href}
+                className={`${CARD} group flex flex-col gap-ds-3 bg-[var(--tone-neutral-wash)] p-ds-3 transition-colors hover:bg-black/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:hover:bg-white/[0.04]`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-ds-md bg-black/[0.04] dark:bg-white/[0.07]">
+                    <t.icon className="h-4.5 w-4.5 text-muted-foreground" />
+                  </div>
+                  <span className="text-ds-caption text-muted-foreground">{t.badge}</span>
+                </div>
+                <div className="space-y-ds-1">
+                  <h2 className="text-ds-subheading">{t.title}</h2>
+                  <p className="text-ds-body-sm text-muted-foreground">{t.description}</p>
+                </div>
+                <span className="mt-auto inline-flex items-center text-sm font-medium">
+                  Set this one up
+                  <ArrowRight className="ml-1 h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+                </span>
               </Link>
             ))}
           </div>
-        </div>
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

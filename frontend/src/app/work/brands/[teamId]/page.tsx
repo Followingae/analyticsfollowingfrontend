@@ -29,7 +29,9 @@ const aed = (n: number | null | undefined) =>
 const when = (iso: string | null) =>
   !iso ? '—' : new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 
-const LIVE = ['active', 'in_progress', 'live']
+// campaigns_status_check permits draft|active|completed|paused|cancelled only; 'in_progress'
+// and 'live' were dead values that could never match a row.
+const LIVE = ['active']
 
 export default function BrandBrowsePage() {
   const { teamId } = useParams<{ teamId: string }>()
@@ -41,6 +43,11 @@ export default function BrandBrowsePage() {
   const [loading, setLoading] = useState(true)
   const [touchOpen, setTouchOpen] = useState(false)
   const [touches, setTouches] = useState<any[]>([])
+  // A refused request and a client with nothing on them are different facts and must not
+  // render the same sentence. Failure is held here so the screen can say the read failed,
+  // rather than falling through to "Nothing to show." — which reads as a verdict on the
+  // client every time the endpoint 500s.
+  const [failure, setFailure] = useState<string | null>(null)
 
   const loadTouches = async () => {
     try {
@@ -59,7 +66,9 @@ export default function BrandBrowsePage() {
         if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed')
         setData((await res.json()).data)
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Could not load this client')
+        const msg = e instanceof Error ? e.message : 'Could not load this client'
+        setFailure(msg)
+        toast.error(msg)
       } finally { setLoading(false) }
     })()
   }, [teamId])
@@ -67,12 +76,35 @@ export default function BrandBrowsePage() {
   if (loading) {
     return (
       <SuperadminLayout>
-        <div className="space-y-8">
-          <Skeleton className="h-9 w-56" />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-[116px]" />)}
+        {/* The loaded band draws no box per figure, so the skeleton does not promise one. */}
+        <div className="space-y-ds-5">
+          <Skeleton className="h-9 w-56 rounded-ds-lg" />
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
+                <Skeleton className="h-3 w-24 rounded-ds-sm" />
+                <Skeleton className="h-9 w-20 rounded-ds-sm" />
+                <Skeleton className="h-3 w-32 rounded-ds-sm" />
+              </div>
+            ))}
           </div>
-          <Skeleton className="h-[300px]" />
+          <Skeleton className="h-[300px] rounded-ds-2xl" />
+        </div>
+      </SuperadminLayout>
+    )
+  }
+  if (failure) {
+    return (
+      <SuperadminLayout>
+        <div className="space-y-ds-2">
+          <p className="text-sm font-medium">Could not load this client.</p>
+          <p className="text-sm text-muted-foreground">
+            {failure}. This is not an all clear — no campaign, round, proposal or invoice
+            below is known.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            Try again
+          </Button>
         </div>
       </SuperadminLayout>
     )
@@ -89,7 +121,7 @@ export default function BrandBrowsePage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-8">
+      <div className="space-y-ds-5">
         <div>
           <Button variant="ghost" size="sm" className="mb-3 -ml-2"
                   onClick={() => router.push('/work/brands')}>
@@ -159,7 +191,7 @@ export default function BrandBrowsePage() {
                       : unpaid.length ? `${unpaid.length} unpaid` : 'All settled'} />
         </StatGrid>
 
-        <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="grid items-start gap-ds-4 lg:grid-cols-2">
           {/* Conversations first: on most brands, most days, the last thing that happened
               was somebody talking to them — and until now that was the one thing the record
               could not show. Absent when there are none, like every other section here. */}

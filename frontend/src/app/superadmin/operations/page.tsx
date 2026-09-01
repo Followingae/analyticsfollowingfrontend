@@ -1,42 +1,50 @@
 "use client"
 
 /**
- * Agency Operations - superadmin command center.
+ * Operations — everything in flight and everything waiting on us.
  *
- * One screen for "everything in flight and awaiting the agency's action":
- *  - KPIs across the live operational surfaces
- *  - a unified Action Queue (deliverables, receipt claims, withdrawals, member
- *    reviews) with inline approve/reject - the real pending items, wired to live
- *    FA admin endpoints
- *  - campaigns currently in flight
+ * One screen for the agency's own queue:
+ *  - the figures across the live operational surfaces
+ *  - a single action queue (deliverables, receipt claims, withdrawals, member reviews)
+ *    with approve and reject in the row, wired to the live FA admin endpoints
+ *  - the campaigns currently running
  *
- * This is the spine of the Operations OS (Phase B1). Deeper per-campaign
- * workstreams/deliverables build on top of this in later phases.
+ * Two things were wrong with it beyond the look.
+ *
+ * The five reads are settled independently, which is right — one refused endpoint must not
+ * take the screen down. But a rejected read left its list at `[]`, and `[]` rendered as a
+ * green tick and the words "You're all caught up here". On the screen whose entire job is
+ * to say what is waiting on us, a failed request was reporting an all clear, and the figure
+ * above it printed a confident zero. A source that did not answer now has no number and its
+ * tab says the read failed.
+ *
+ * The rest is presentation: six metric cards, two bordered cards and a bordered line per
+ * queue item put an edge around every single thing on the page. The figures are figures now,
+ * grouped by the space around them, and the items are rows in one panel.
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
-import { StandardMetricCard } from "@/components/ui/standard-metric-card"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
-import { EmptyState } from "@/components/ui/empty-state"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import {
   ClipboardCheck, Receipt, Banknote, UserCheck, Megaphone, ListChecks,
-  Check, X, ArrowRight, Inbox, CheckCircle2, ChevronRight,
+  Check, X, ArrowRight, ChevronRight,
 } from "lucide-react"
 import {
   faDeliverableApi, faWithdrawalApi, faReceiptClaimApi, faMemberApi,
 } from "@/services/faAdminApi"
 import { operationsApi } from "@/services/operationsApi"
+import { Aed, Empty, PageHead, Panel, Row, Stat, StatGrid } from "@/components/console/primitives"
 
 // ── helpers ───────────────────────────────────────────────────────────
 const unwrap = (res: any, ...keys: string[]) => {
@@ -48,12 +56,23 @@ const unwrap = (res: any, ...keys: string[]) => {
 }
 const fmtDate = (v?: string) =>
   v ? new Date(v).toLocaleDateString("en-AE", { month: "short", day: "numeric" }) : "-"
+/** The figure only. The dirham mark is the `Aed` primitive's job, in the one font that has it. */
 const fmtAED = (v: any) =>
-  `⃃ ${parseFloat(v || 0).toLocaleString("en-AE", { minimumFractionDigits: 0 })}`
+  parseFloat(v || 0).toLocaleString("en-AE", { minimumFractionDigits: 0 })
+
+/** A number we were never given is a dash. A real zero still prints 0. */
+const num = (v: number | null) => (v == null ? "—" : v)
 
 type QueueKind = "deliverable" | "receipt" | "withdrawal" | "member"
 
+/** Which of the five reads did not answer this time. */
+type Failed = Record<"deliverables" | "receipts" | "withdrawals" | "members" | "dash", boolean>
+const NONE_FAILED: Failed = {
+  deliverables: false, receipts: false, withdrawals: false, members: false, dash: false,
+}
+
 export default function AgencyOperationsPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [deliverables, setDeliverables] = useState<any[]>([])
   const [receipts, setReceipts] = useState<any[]>([])
@@ -61,6 +80,7 @@ export default function AgencyOperationsPage() {
   const [members, setMembers] = useState<any[]>([])
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [queues, setQueues] = useState<any | null>(null)
+  const [failed, setFailed] = useState<Failed>(NONE_FAILED)
   const [busyId, setBusyId] = useState<string | null>(null)
 
   // reject dialog
@@ -85,6 +105,15 @@ export default function AgencyOperationsPage() {
       setCampaigns(Array.isArray(dd?.campaigns) ? dd.campaigns : [])
       setQueues(dd?.queues ?? null)
     }
+    // Which sources are silent this time. Kept so a queue with no answer can say so
+    // instead of drawing the same green tick as a queue that is genuinely clear.
+    setFailed({
+      deliverables: d.status === "rejected",
+      receipts: r.status === "rejected",
+      withdrawals: w.status === "rejected",
+      members: m.status === "rejected",
+      dash: dash.status === "rejected",
+    })
     setLoading(false)
   }, [])
 
@@ -96,18 +125,25 @@ export default function AgencyOperationsPage() {
   }, [load])
 
   // Authoritative counts from the backend dashboard (cross-campaign, includes
-  // participant brand-approvals); fall back to the loaded item-list lengths.
+  // participant brand-approvals); fall back to the loaded item-list lengths — but only
+  // where that list actually arrived. Where neither answered the count is null, not zero.
   const cnt = {
-    deliverables: queues?.pending_deliverables ?? deliverables.length,
-    participants: queues?.pending_participant_approvals ?? 0,
-    withdrawals: queues?.pending_withdrawals ?? withdrawals.length,
-    members: queues?.pending_member_reviews ?? members.length,
-    receipts: receipts.length, // no backend receipt count yet - use the live list
+    deliverables: queues?.pending_deliverables ?? (failed.deliverables ? null : deliverables.length),
+    participants: queues?.pending_participant_approvals ?? (failed.dash ? null : 0),
+    withdrawals: queues?.pending_withdrawals ?? (failed.withdrawals ? null : withdrawals.length),
+    members: queues?.pending_member_reviews ?? (failed.members ? null : members.length),
+    receipts: failed.receipts ? null : receipts.length, // no backend receipt count yet
   }
   // Items actionable in the queue tabs below (participant approvals are handled
-  // per-campaign, surfaced as a KPI here until the B3 per-campaign bridge lands).
+  // per-campaign, surfaced as a figure here until the per-campaign bridge lands).
   const queueItemsTotal = deliverables.length + receipts.length + withdrawals.length + members.length
-  const totalPending = cnt.deliverables + cnt.participants + cnt.withdrawals + cnt.members + cnt.receipts
+  // A total is only a total when every part of it answered. One missing part and the sum
+  // is a smaller number presented as the whole truth, which is worse than no number.
+  const parts = [cnt.deliverables, cnt.participants, cnt.withdrawals, cnt.members, cnt.receipts]
+  const totalPending = parts.some(p => p == null)
+    ? null
+    : parts.reduce((a, b) => (a as number) + (b as number), 0)
+  const anyFailed = Object.values(failed).some(Boolean)
 
   // ── actions ─────────────────────────────────────────────────────────
   const removeFrom = (kind: QueueKind, id: string) => {
@@ -155,197 +191,250 @@ export default function AgencyOperationsPage() {
   }
 
   const kpis = useMemo(() => ([
-    { icon: Megaphone, label: "Campaigns in flight", value: campaigns.length, subtitle: "live across all types" },
-    { icon: ListChecks, label: "Pending Approvals", value: totalPending, subtitle: "across all queues" },
-    { icon: ClipboardCheck, label: "Deliverables", value: cnt.deliverables, subtitle: "awaiting verification" },
-    { icon: UserCheck, label: "Participant Approvals", value: cnt.participants, subtitle: "brand sign-off" },
-    { icon: Receipt, label: "Receipt Claims", value: cnt.receipts, subtitle: "awaiting review" },
-    { icon: Banknote, label: "Withdrawals", value: cnt.withdrawals, subtitle: "awaiting payout" },
-  ]), [totalPending, cnt, campaigns])
+    { icon: Megaphone, label: "Campaigns in flight", tone: "info" as const,
+      value: failed.dash ? null : campaigns.length, hint: "Live across all types" },
+    { icon: ListChecks, label: "Waiting on us", value: totalPending, tone: "warn" as const,
+      hint: totalPending == null ? "One of the queues did not answer" : "Across every queue" },
+    { icon: ClipboardCheck, label: "Deliverables", value: cnt.deliverables, tone: "warn" as const,
+      hint: "Content to verify" },
+    { icon: UserCheck, label: "Participant approvals", value: cnt.participants, tone: "warn" as const,
+      hint: "Waiting on the brand to sign off" },
+    { icon: Receipt, label: "Receipt claims", value: cnt.receipts, tone: "warn" as const,
+      hint: "Sent in, not yet read" },
+    { icon: Banknote, label: "Withdrawals", value: cnt.withdrawals, tone: "warn" as const,
+      hint: "Money creators have asked for" },
+  ]), [totalPending, cnt.deliverables, cnt.participants, cnt.receipts, cnt.withdrawals,
+       campaigns.length, failed.dash])
 
   // ── row renderers ───────────────────────────────────────────────────
   const ActionRow = ({ kind, id, title, meta, right }: {
     kind: QueueKind; id: string; title: string; meta: string; right?: React.ReactNode
   }) => (
-    <div className="flex items-center justify-between gap-4 rounded-lg border bg-card px-4 py-3 transition-colors hover:bg-accent/40">
-      <div className="min-w-0">
-        <p className="truncate font-medium text-sm">{title}</p>
-        <p className="truncate text-xs text-muted-foreground">{meta}</p>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        {right}
-        <Button size="sm" variant="outline" className="gap-1.5" disabled={busyId === id}
-          onClick={() => approve(kind, id)}>
-          <Check className="h-3.5 w-3.5" /> Approve
-        </Button>
-        <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground hover:text-destructive"
-          disabled={busyId === id}
-          onClick={() => setReject({ kind, id, label: title })}>
-          <X className="h-3.5 w-3.5" /> Reject
-        </Button>
-      </div>
-    </div>
+    <Row
+      tone="warn"
+      title={title}
+      meta={meta}
+      right={right}
+      actions={
+        <>
+          <Button size="sm" variant="outline" className="gap-1.5 rounded-full" disabled={busyId === id}
+            onClick={() => approve(kind, id)}>
+            <Check className="h-3.5 w-3.5" /> Approve
+          </Button>
+          <Button size="sm" variant="ghost" className="gap-1.5 rounded-full text-muted-foreground hover:text-destructive"
+            disabled={busyId === id}
+            onClick={() => setReject({ kind, id, label: title })}>
+            <X className="h-3.5 w-3.5" /> Reject
+          </Button>
+        </>
+      }
+    />
   )
 
-  const QueueEmpty = ({ label }: { label: string }) => (
-    <div className="py-10">
-      <EmptyState title={`No ${label} pending`} description="You're all caught up here." icons={[CheckCircle2]} />
-    </div>
-  )
+  /**
+   * Clear and unknown are not the same sentence.
+   *
+   * This said "No X pending. You're all caught up here." under a green tick regardless of
+   * why the list was empty. A queue whose read was refused now says so, and says what it
+   * means: there may be work here that nobody can see.
+   */
+  const QueueEmpty = ({ label, failed: didFail }: { label: string; failed: boolean }) =>
+    didFail ? (
+      <div className="space-y-3 px-6 py-10 text-center">
+        <p className="text-sm font-medium">The {label} queue did not load.</p>
+        <p className="text-sm text-muted-foreground">
+          This is not an all clear: there may be {label} waiting that nobody can see.
+        </p>
+        <Button variant="outline" size="sm" onClick={load}>Try again</Button>
+      </div>
+    ) : (
+      <Empty>Nothing waiting: every one of the {label} has been dealt with.</Empty>
+    )
 
-  const TabCount = ({ n }: { n: number }) =>
-    n > 0 ? <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 tabular-nums">{n}</Badge> : null
+  const TabCount = ({ n, failed: didFail }: { n: number; failed: boolean }) =>
+    didFail ? <Badge variant="outline" className="ml-1.5 h-5 px-1.5">—</Badge>
+    : n > 0 ? <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 tabular-nums">{n}</Badge>
+    : null
 
   return (
     <SuperadminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Operations</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Agency command center - everything in flight and awaiting your action.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>Refresh</Button>
-        </div>
+      <div className="space-y-ds-5">
+        <PageHead
+          title="Operations"
+          sub="Everything in flight, and everything waiting on us. Approve or turn down an item without leaving this screen."
+          action={
+            <Button variant="outline" size="sm" onClick={load} disabled={loading}>Refresh</Button>
+          }
+        />
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-          {loading
-            ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[88px] rounded-xl" />)
-            : kpis.map((k) => <StandardMetricCard key={k.label} {...k} />)}
-        </div>
-
-        {/* Action Queue */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Inbox className="h-4 w-4 text-muted-foreground" />
-              Action Queue
-              {queueItemsTotal > 0 && (
-                <Badge variant="secondary" className="tabular-nums">{queueItemsTotal}</Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
+        {loading ? (
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
+                <Skeleton className="h-3 w-28 rounded-ds-sm" />
+                <Skeleton className="h-9 w-16 rounded-ds-sm" />
+                <Skeleton className="h-3 w-32 rounded-ds-sm" />
               </div>
-            ) : (
-              <Tabs defaultValue="deliverables">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="deliverables">Deliverables<TabCount n={deliverables.length} /></TabsTrigger>
-                  <TabsTrigger value="receipts">Receipts<TabCount n={receipts.length} /></TabsTrigger>
-                  <TabsTrigger value="withdrawals">Withdrawals<TabCount n={withdrawals.length} /></TabsTrigger>
-                  <TabsTrigger value="members">Member Reviews<TabCount n={members.length} /></TabsTrigger>
-                </TabsList>
+            ))}
+          </div>
+        ) : (
+          <>
+            {anyFailed && (
+              /* Said once, at the top, so nobody has to notice a dash to know the screen is
+                 incomplete. The dashes below say which parts. */
+              <p className="text-sm text-muted-foreground">
+                Some of this screen did not load, so the figures with a dash are unknown rather
+                than zero. <button type="button" onClick={load}
+                  className="font-medium text-foreground underline underline-offset-4">Try again</button>
+              </p>
+            )}
 
-                <TabsContent value="deliverables" className="space-y-2">
-                  {deliverables.length === 0 ? <QueueEmpty label="deliverables" /> : deliverables.map((d) => (
+            <StatGrid cols={3}>
+              {kpis.map((k) => (
+                <Stat key={k.label} label={k.label} value={num(k.value)} icon={k.icon}
+                      tone={k.value ? k.tone : "neutral"} hint={k.hint} />
+              ))}
+            </StatGrid>
+          </>
+        )}
+
+        <Panel
+          title="Waiting on us"
+          description="Approve it or turn it down, here"
+          action={queueItemsTotal > 0
+            ? <Badge variant="secondary" className="tabular-nums">{queueItemsTotal}</Badge>
+            : undefined}
+          flush
+        >
+          {loading ? (
+            <div className="space-y-2 px-6 pb-4">
+              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-ds-lg" />)}
+            </div>
+          ) : (
+            <Tabs defaultValue="deliverables">
+              <TabsList className="mx-6 mb-2">
+                <TabsTrigger value="deliverables">Deliverables<TabCount n={deliverables.length} failed={failed.deliverables} /></TabsTrigger>
+                <TabsTrigger value="receipts">Receipts<TabCount n={receipts.length} failed={failed.receipts} /></TabsTrigger>
+                <TabsTrigger value="withdrawals">Withdrawals<TabCount n={withdrawals.length} failed={failed.withdrawals} /></TabsTrigger>
+                <TabsTrigger value="members">Member reviews<TabCount n={members.length} failed={failed.members} /></TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="deliverables">
+                {deliverables.length === 0
+                  ? <QueueEmpty label="deliverables" failed={failed.deliverables} />
+                  : deliverables.map((d) => (
                     <ActionRow key={d.id} kind="deliverable" id={d.id}
                       title={d.member_name || "Influencer"}
                       meta={`${d.type || "deliverable"}${d.quantity ? ` ×${d.quantity}` : ""} · due ${fmtDate(d.deadline)}`}
-                      right={d.cashback_linked ? <Badge variant="outline" className="font-mono text-xs">{fmtAED(d.cashback_linked)}</Badge> : null}
+                      right={d.cashback_linked
+                        ? <Badge variant="outline" className="tabular-nums"><Aed>{fmtAED(d.cashback_linked)}</Aed></Badge>
+                        : null}
                     />
                   ))}
-                  {deliverables.length > 0 && (
-                    <FullPageLink href="/superadmin/fa/deliverables" label="Open Deliverables" />
-                  )}
-                </TabsContent>
+                {deliverables.length > 0 && (
+                  <FullPageLink href="/superadmin/fa/deliverables" label="Open Deliverables" />
+                )}
+              </TabsContent>
 
-                <TabsContent value="receipts" className="space-y-2">
-                  {receipts.length === 0 ? <QueueEmpty label="receipt claims" /> : receipts.map((c) => (
+              <TabsContent value="receipts">
+                {receipts.length === 0
+                  ? <QueueEmpty label="receipt claims" failed={failed.receipts} />
+                  : receipts.map((c) => (
                     <ActionRow key={c.id} kind="receipt" id={c.id}
                       title={c.member?.full_name || c.member?.instagram_username || "Member"}
                       meta={`${c.ai_extracted_merchant || "Receipt"} · ${fmtDate(c.created_at)}`}
                     />
                   ))}
-                  {receipts.length > 0 && (
-                    <FullPageLink href="/superadmin/fa/receipt-claims" label="Open Receipt Claims" />
-                  )}
-                </TabsContent>
+                {receipts.length > 0 && (
+                  <FullPageLink href="/superadmin/fa/receipt-claims" label="Open Receipt Claims" />
+                )}
+              </TabsContent>
 
-                <TabsContent value="withdrawals" className="space-y-2">
-                  {withdrawals.length === 0 ? <QueueEmpty label="withdrawals" /> : withdrawals.map((w) => (
+              <TabsContent value="withdrawals">
+                {withdrawals.length === 0
+                  ? <QueueEmpty label="withdrawals" failed={failed.withdrawals} />
+                  : withdrawals.map((w) => (
                     <ActionRow key={w.id} kind="withdrawal" id={w.id}
                       title={w.member_name || w.account_holder || "Member"}
                       meta={`${w.iban || ""}${w.bank_name ? ` · ${w.bank_name}` : ""} · ${fmtDate(w.requested_at)}`}
-                      right={<Badge variant="outline" className="font-mono text-xs">{fmtAED(w.amount)}</Badge>}
+                      right={<Badge variant="outline" className="tabular-nums"><Aed>{fmtAED(w.amount)}</Aed></Badge>}
                     />
                   ))}
-                  {withdrawals.length > 0 && (
-                    <FullPageLink href="/superadmin/fa/withdrawals" label="Open Withdrawals" />
-                  )}
-                </TabsContent>
+                {withdrawals.length > 0 && (
+                  <FullPageLink href="/superadmin/fa/withdrawals" label="Open Withdrawals" />
+                )}
+              </TabsContent>
 
-                <TabsContent value="members" className="space-y-2">
-                  {members.length === 0 ? <QueueEmpty label="member reviews" /> : members.map((m) => (
+              <TabsContent value="members">
+                {members.length === 0
+                  ? <QueueEmpty label="member reviews" failed={failed.members} />
+                  : members.map((m) => (
                     <ActionRow key={m.id} kind="member" id={m.id}
                       title={m.full_name || `@${m.instagram_username || "member"}`}
                       meta={`${m.tier ? `${m.tier} · ` : ""}${(m.followers_count || 0).toLocaleString()} followers`}
                     />
                   ))}
-                  {members.length > 0 && (
-                    <FullPageLink href="/superadmin/fa/members" label="Open Members" />
-                  )}
-                </TabsContent>
-              </Tabs>
-            )}
-          </CardContent>
-        </Card>
+                {members.length > 0 && (
+                  <FullPageLink href="/superadmin/fa/members" label="Open Members" />
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
+        </Panel>
 
-        {/* Campaigns in flight */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between text-base">
-              <span className="flex items-center gap-2">
-                <Megaphone className="h-4 w-4 text-muted-foreground" />
-                Campaigns in flight
-              </span>
-              <Link href="/superadmin/fa/campaigns" className="text-xs font-normal text-muted-foreground hover:text-foreground">
-                View all
-              </Link>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
-            ) : campaigns.length === 0 ? (
-              <div className="py-8"><EmptyState title="No active campaigns" description="Active campaigns will appear here as they launch." icons={[Megaphone]} /></div>
-            ) : (
-              <div className="space-y-2">
-                {campaigns.map((c) => (
-                  <Link
-                    key={c.id}
-                    href={`/ops/campaigns/${c.id}`}
-                    className="flex items-center justify-between gap-4 rounded-lg border px-4 py-2.5 transition-colors hover:bg-accent/40"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-sm">{c.name || c.campaign_name || "Campaign"}</p>
-                      <p className="truncate text-xs text-muted-foreground">{c.brand_name || "-"}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {c.type && <Badge variant="outline" className="capitalize text-xs">{String(c.type).replace(/_/g, " ")}</Badge>}
-                      <Badge variant="secondary" className="capitalize text-xs">{c.status || "active"}</Badge>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <Panel
+          title="Campaigns in flight"
+          description="Running now, across every type"
+          action={
+            <Link href="/superadmin/fa/campaigns"
+                  className="text-[13px] text-muted-foreground transition-colors hover:text-foreground">
+              View all
+            </Link>
+          }
+          flush
+        >
+          {loading ? (
+            <div className="space-y-2 px-6 pb-4">
+              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-ds-lg" />)}
+            </div>
+          ) : failed.dash ? (
+            <div className="space-y-3 px-6 py-10 text-center">
+              <p className="text-sm font-medium">The campaign list did not load.</p>
+              <p className="text-sm text-muted-foreground">
+                Campaigns may be running that are not shown here.
+              </p>
+              <Button variant="outline" size="sm" onClick={load}>Try again</Button>
+            </div>
+          ) : campaigns.length === 0 ? (
+            <Empty>Nothing is running right now.</Empty>
+          ) : (
+            campaigns.map((c) => (
+              <Row
+                key={c.id}
+                tone="info"
+                title={c.name || c.campaign_name || "Campaign"}
+                meta={c.brand_name || "No client on it"}
+                right={
+                  <>
+                    {c.type && <Badge variant="outline" className="capitalize">{String(c.type).replace(/_/g, " ")}</Badge>}
+                    <Badge variant="secondary" className="capitalize">{c.status || "active"}</Badge>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </>
+                }
+                onClick={() => router.push(`/ops/campaigns/${c.id}`)}
+              />
+            ))
+          )}
+        </Panel>
       </div>
 
       {/* Reject dialog */}
       <Dialog open={!!reject} onOpenChange={(o: boolean) => { if (!o) { setReject(null); setRejectReason("") } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject - {reject?.label}</DialogTitle>
+            <DialogTitle>Turn down: {reject?.label}</DialogTitle>
             <DialogDescription>
-              Add an optional reason. The member is notified where applicable.
+              Say why, if it helps them fix it. The member is told where that applies.
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -356,7 +445,7 @@ export default function AgencyOperationsPage() {
           />
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setReject(null); setRejectReason("") }}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmReject} disabled={!!busyId}>Confirm reject</Button>
+            <Button variant="destructive" onClick={confirmReject} disabled={!!busyId}>Turn it down</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -367,7 +456,7 @@ export default function AgencyOperationsPage() {
 function FullPageLink({ href, label }: { href: string; label: string }) {
   return (
     <Link href={href}
-      className="mt-1 flex items-center justify-center gap-1.5 rounded-lg border border-dashed py-2 text-xs text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground">
+      className="mx-6 mb-4 mt-2 flex items-center justify-center gap-1.5 rounded-ds-lg py-2 text-xs text-muted-foreground transition-colors hover:bg-black/[0.035] hover:text-foreground dark:hover:bg-white/[0.05]">
       {label} <ArrowRight className="h-3.5 w-3.5" />
     </Link>
   )

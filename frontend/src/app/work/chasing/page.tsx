@@ -13,12 +13,11 @@ import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cdnAvatar } from '@/lib/avatar'
-import { CARD, ScoreDot, RoundButton, GroupLabel } from '@/components/console/primitives'
+import { PageHead, ScoreDot, RoundButton, GroupLabel } from '@/components/console/primitives'
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
-import { cn } from '@/lib/utils'
 
 interface Row {
   id: string
@@ -75,37 +74,48 @@ export default function ChasingPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Creators to chase</h1>
-          <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-            Everyone we have booked who is waiting on something — a rate, a guide, or the
-            content itself. {late > 0
-              ? `${late} ${late === 1 ? 'is' : 'are'} past their content date.`
-              : 'Nobody is late.'}
-          </p>
-        </div>
+      <div className="space-y-ds-5">
+        {/* The title was hand-set here at a size no other console screen uses. PageHead is
+            the same decision made once, and it carries the tour's page anchor with it. */}
+        <PageHead
+          title="Creators to chase"
+          sub={'Everyone we have booked who is waiting on something — a rate, a guide, or the ' +
+               'content itself. ' + (late > 0
+                 ? `${late} ${late === 1 ? 'is' : 'are'} past their content date.`
+                 : 'Nobody is late.')}
+        />
 
         {loading ? (
-          <div className="space-y-3">
-            {[0, 1, 2].map(i => <Skeleton key={i} className="h-40 rounded-[22px]" />)}
+          <div className="space-y-ds-5">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="space-y-ds-3">
+                <Skeleton className="h-4 w-40 rounded-ds-sm" />
+                <Skeleton className="h-24 rounded-ds-lg" />
+              </div>
+            ))}
           </div>
         ) : rows.length === 0 ? (
-          <div className={cn(CARD, 'bg-white py-16 text-center dark:bg-neutral-900/70')}>
-            <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500/70" />
-            <p className="mt-3 text-sm font-medium">Nobody to chase</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+          <div className="py-16 text-center">
+            <CheckCircle2 className="mx-auto h-8 w-8 text-[var(--tone-good-dot)]" />
+            <p className="mt-ds-3 text-sm font-medium">Nobody to chase</p>
+            <p className="mt-ds-1 text-sm text-muted-foreground">
               Every booked creator has a rate and has delivered on time.
             </p>
           </div>
         ) : (
-          <div className="space-y-5">
+          /* Each campaign used to be a full card: a hairline, a wash and a shadow drawn
+             around a list of people, with a second rounded row drawn around each person
+             inside it. Two edges to cross to read a handle. The cards come off — a campaign
+             is still a genuinely different subject, so it keeps one hairline above its name
+             and nothing else, and the gap between campaigns goes up to ds-5 to carry the
+             separation the border was drawing. */
+          <div className="space-y-ds-5">
             {byCampaign.map(g => (
-              <section key={g.id} className={cn(CARD, 'bg-white dark:bg-neutral-900/70')}>
-                <header className="flex items-center justify-between gap-3 px-5 pb-3 pt-5">
+              <section key={g.id} className="border-t pt-ds-4 first:border-t-0 first:pt-0">
+                <header className="flex items-center justify-between gap-ds-3 pb-ds-2">
                   <div>
-                    <h2 className="text-[15.5px] font-semibold tracking-[-0.01em]">{g.name}</h2>
-                    <p className="text-[12.5px] text-muted-foreground">
+                    <h2 className="text-ds-subheading">{g.name}</h2>
+                    <p className="text-ds-caption text-muted-foreground">
                       {g.rows.length} waiting
                       {g.rows.filter(r => r.late).length
                         ? ` · ${g.rows.filter(r => r.late).length} late`
@@ -119,19 +129,19 @@ export default function ChasingPage() {
                   />
                 </header>
 
-                <div className="space-y-1.5 px-3 pb-4">
+                <div className="-mx-ds-2 space-y-ds-1">
                   {g.rows.map((r, i) => {
                     const band = r.late ? 'Late' : r.waiting_for
                     const prev = i > 0 ? (g.rows[i - 1].late ? 'Late' : g.rows[i - 1].waiting_for) : null
                     return (
                       <div key={r.id}>
                         {band !== prev && <GroupLabel>{band}</GroupLabel>}
-                        <div className="flex items-center gap-2 rounded-2xl border border-transparent pr-2.5
+                        <div className="flex items-center gap-ds-2 rounded-ds-lg pr-2.5
                                         transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.05]">
                           <button
                             type="button"
                             onClick={() => router.push(`/work/campaigns/${r.campaign_id}/ladder`)}
-                            className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-2.5 text-left"
+                            className="flex min-w-0 flex-1 items-center gap-ds-3 rounded-ds-lg px-ds-2 py-ds-2 text-left"
                           >
                             <Avatar className="h-9 w-9">
                               {/* Instagram blocks hotlinks, so this always goes via our CDN. */}

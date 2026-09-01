@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, type ReactNode } from "react"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { CARD, PageHead, Stat, StatGrid, type Tone } from "@/components/console/primitives"
+import { FaPage, Failed, Loading, Nothing, TONE_BADGE } from "../_ui"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -36,19 +37,23 @@ type Summary = {
 }
 
 // kind → presentation. Keep in sync with backend `add(kind, ...)` calls.
-const KIND_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-  signup:                { label: "Signup",        icon: UserPlus,    color: "text-blue-600",    bg: "bg-blue-500/10" },
-  application:           { label: "Application",   icon: Send,        color: "text-indigo-600",  bg: "bg-indigo-500/10" },
-  brand_approved:        { label: "Approved",      icon: CheckCircle2,color: "text-emerald-600", bg: "bg-emerald-500/10" },
-  brand_rejected:        { label: "Rejected",      icon: XCircle,     color: "text-red-600",     bg: "bg-red-500/10" },
-  content_submitted:     { label: "Content",       icon: FileImage,   color: "text-amber-600",   bg: "bg-amber-500/10" },
-  content_edit_requested:{ label: "Edit asked",    icon: PenLine,     color: "text-orange-600",  bg: "bg-orange-500/10" },
-  content_approved:      { label: "Content OK",    icon: ThumbsUp,    color: "text-emerald-600", bg: "bg-emerald-500/10" },
-  proof_submitted:       { label: "Proof",         icon: Camera,      color: "text-purple-600",  bg: "bg-purple-500/10" },
-  deliverable_verified:  { label: "Verified",      icon: ShieldCheck, color: "text-green-600",   bg: "bg-green-500/10" },
-  withdrawal_requested:  { label: "Withdrawal",    icon: Banknote,    color: "text-rose-600",    bg: "bg-rose-500/10" },
-  withdrawal_processed:  { label: "Paid out",      icon: Banknote,    color: "text-teal-600",    bg: "bg-teal-500/10" },
-  receipt_claim:         { label: "Receipt",       icon: Receipt,     color: "text-cyan-600",    bg: "bg-cyan-500/10" },
+/* Twelve kinds in twelve hues — blue, indigo, emerald, red, amber, orange, purple, green,
+   rose, teal, cyan — is a rainbow, not a signal. None of them meant anything, and they were
+   the loudest thing on a screen whose figures above carry real state in the same palette.
+   The icon tells the kinds apart; the mark behind it is one neutral. */
+const KIND_META: Record<string, { label: string; icon: any }> = {
+  signup:                { label: "Signup",      icon: UserPlus },
+  application:           { label: "Application", icon: Send },
+  brand_approved:        { label: "Approved",    icon: CheckCircle2 },
+  brand_rejected:        { label: "Rejected",    icon: XCircle },
+  content_submitted:     { label: "Content in",  icon: FileImage },
+  content_edit_requested:{ label: "Edit asked",  icon: PenLine },
+  content_approved:      { label: "Content ok",  icon: ThumbsUp },
+  proof_submitted:       { label: "Proof in",    icon: Camera },
+  deliverable_verified:  { label: "Verified",    icon: ShieldCheck },
+  withdrawal_requested:  { label: "Withdrawal",  icon: Banknote },
+  withdrawal_processed:  { label: "Paid out",    icon: Banknote },
+  receipt_claim:         { label: "Receipt",     icon: Receipt },
 }
 
 const FILTERS: { key: string; label: string }[] = [
@@ -101,20 +106,20 @@ export function activityHref(item: ActivityItem): string {
 }
 
 export function ActivityRow({ item }: { item: ActivityItem }) {
-  const meta = KIND_META[item.kind] || { label: item.kind, icon: ActivityIcon, color: "text-muted-foreground", bg: "bg-muted" }
+  const meta = KIND_META[item.kind] || { label: item.kind, icon: ActivityIcon }
   const Icon = meta.icon
   return (
     <Link
       href={activityHref(item)}
-      className="-mx-2 flex items-start gap-3 rounded-md px-2 py-3 transition-colors hover:bg-muted/60"
+      className="-mx-2 flex items-start gap-3 rounded-ds-md px-2 py-3 transition-colors hover:bg-black/[0.035] dark:hover:bg-white/[0.05]"
     >
-      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${meta.bg}`}>
-        <Icon className={`h-4 w-4 ${meta.color}`} />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-ds-md bg-black/[0.04] dark:bg-white/[0.07]">
+        <Icon className="h-4 w-4 text-muted-foreground" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <p className="font-medium text-sm leading-tight">{item.title}</p>
-          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${meta.color}`}>{meta.label}</Badge>
+          <Badge variant="outline" className={`px-1.5 py-0 text-[10px] ${TONE_BADGE.neutral}`}>{meta.label}</Badge>
         </div>
         <p className="text-xs text-muted-foreground mt-0.5 truncate">
           {[item.subtitle, item.campaign_name].filter(Boolean).join(" · ")}
@@ -130,6 +135,10 @@ export default function FAActivityPage() {
   const [items, setItems] = useState<ActivityItem[]>([])
   const [filter, setFilter] = useState("all")
   const [loading, setLoading] = useState(true)
+  /* Whether the feed answered. Without it a failed request left `items` empty and the
+     panel said "No recent activity" — the platform reported quiet because we could not
+     ask it. */
+  const [error, setError] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const PAGE = 30
@@ -142,6 +151,7 @@ export default function FAActivityPage() {
 
   const load = useCallback(async (reset = true) => {
     if (reset) setLoading(true); else setLoadingMore(true)
+    if (reset) setError(false)
     try {
       const offset = reset ? 0 : items.length
       const res = await faActivityApi.feed({
@@ -153,7 +163,8 @@ export default function FAActivityPage() {
       setItems(reset ? list : [...items, ...list])
       setHasMore(!!res?.data?.has_more)
     } catch {
-      toast.error("Failed to load activity")
+      if (reset) setError(true)
+      toast.error("Could not load the activity feed")
     } finally {
       setLoading(false); setLoadingMore(false)
     }
@@ -167,39 +178,60 @@ export default function FAActivityPage() {
 
   const refresh = () => { loadSummary(); load(true) }
 
-  const cards = [
-    { label: "New Applications (today)", value: summary?.new_applications ?? 0, icon: Send, color: "text-indigo-500" },
-    { label: "Deliverables Awaiting Review", value: summary?.deliverables_awaiting_review ?? 0, icon: FileImage, color: "text-amber-500" },
-    { label: "Pending Withdrawals", value: summary?.pending_withdrawals ?? 0, icon: Banknote, color: "text-rose-500" },
-    { label: "New Signups (today)", value: summary?.new_signups ?? 0, icon: UserPlus, color: "text-blue-500" },
+  /**
+   * The four headline figures.
+   *
+   * They read `summary?.x ?? 0`, and `loadSummary` swallows its own failure as
+   * "non-fatal" — so when the summary call did not answer, the band printed four
+   * confident zeroes: no applications, nothing awaiting review, no withdrawals
+   * pending. On a live-operations screen that is the most expensive lie available,
+   * because zero waiting is exactly the state that means "go and do something else".
+   * Absent is a dash now. A real zero still prints 0.
+   *
+   * The colours were decoration — indigo, amber, rose, blue, one per tile, meaning
+   * nothing. Tone now carries only state: the two queues turn amber while somebody is
+   * actually waiting in them, and the two counters stay neutral because a signup is
+   * news, not a problem.
+   */
+  const n = (v: number | undefined) => (v == null ? "—" : v)
+  const queue = (v: number | undefined): Tone => (v ? "warn" : "neutral")
+  const cards: { label: string; value: ReactNode; icon: any; tone?: Tone }[] = [
+    { label: "Applications today", value: n(summary?.new_applications), icon: Send },
+    { label: "Deliverables to review", value: n(summary?.deliverables_awaiting_review),
+      icon: FileImage, tone: queue(summary?.deliverables_awaiting_review) },
+    { label: "Withdrawals to approve", value: n(summary?.pending_withdrawals),
+      icon: Banknote, tone: queue(summary?.pending_withdrawals) },
+    { label: "Signed up today", value: n(summary?.new_signups), icon: UserPlus },
   ]
 
   return (
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
-        <div className="space-y-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold">Platform Activity</h1>
-              <p className="text-muted-foreground text-sm">Live feed of everything happening across the Following App</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={refresh}>
-              <RefreshCw className="h-4 w-4 mr-1.5" />Refresh
-            </Button>
-          </div>
+        <FaPage>
+          <PageHead
+            title="Activity"
+            sub="Everything that has happened across the Following App, newest first. Click a line to go to the screen where you can act on it."
+            action={
+              <Button variant="outline" size="sm" onClick={refresh}>
+                <RefreshCw className="h-4 w-4 mr-1.5" />Refresh
+              </Button>
+            }
+          />
 
-          {/* Headline stat cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* The four headline figures.
+
+              They were four Cards: a border, a background, a shadow and its own padding
+              each, laid out in a row — eight edges to cross to compare the first number
+              with the last, and every one of those edges saying only "this is a tile",
+              which the row already said. The borders come off and the gap goes up a step
+              instead, which separates them more clearly than the hairlines did because
+              nothing else in the band carries either. The figures take the room the
+              padding was holding: 30px to 40px. */}
+          <StatGrid>
             {cards.map((c) => (
-              <Card key={c.label}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">{c.label}</CardTitle>
-                  <c.icon className={`h-5 w-5 ${c.color}`} />
-                </CardHeader>
-                <CardContent><p className="text-3xl font-bold">{c.value}</p></CardContent>
-              </Card>
+              <Stat key={c.label} label={c.label} value={c.value} icon={c.icon} tone={c.tone} />
             ))}
-          </div>
+          </StatGrid>
 
           {/* Filters */}
           <Tabs value={filter} onValueChange={setFilter}>
@@ -210,37 +242,35 @@ export default function FAActivityPage() {
             </TabsList>
           </Tabs>
 
-          {/* Feed */}
-          <Card>
-            <CardContent className="p-4">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <Loader2 className="h-8 w-8 animate-spin mb-3" />
-                  <p className="text-sm">Loading activity...</p>
+          {/* Feed. This box stays: it is the one place on the screen where the subject
+              genuinely changes, from "how much is waiting" to "what happened". It moves to
+              the console card shell so its radius and shadow match every other panel. */}
+          <div className={`${CARD} bg-[var(--tone-neutral-wash)] p-ds-3`}>
+            {loading ? (
+              <Loading label="Loading activity" />
+            ) : error ? (
+              <Failed what="the activity feed" onRetry={() => load(true)} />
+            ) : items.length === 0 ? (
+              /* The illustration came off with the apology. Nothing happened, and that is
+                 the whole sentence. */
+              <Nothing>Nothing has happened here yet.</Nothing>
+            ) : (
+              <>
+                <div className="divide-y divide-black/[0.06] dark:divide-white/[0.07]">
+                  {items.map((it) => <ActivityRow key={it.id} item={it} />)}
                 </div>
-              ) : items.length === 0 ? (
-                <div className="text-center py-12">
-                  <ActivityIcon className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">No recent activity</p>
-                </div>
-              ) : (
-                <>
-                  <div className="divide-y">
-                    {items.map((it) => <ActivityRow key={it.id} item={it} />)}
+                {hasMore && (
+                  <div className="flex justify-center pt-ds-3">
+                    <Button variant="outline" size="sm" disabled={loadingMore} onClick={() => load(false)}>
+                      {loadingMore ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null}
+                      Load more
+                    </Button>
                   </div>
-                  {hasMore && (
-                    <div className="flex justify-center pt-4">
-                      <Button variant="outline" size="sm" disabled={loadingMore} onClick={() => load(false)}>
-                        {loadingMore ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null}
-                        Load more
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                )}
+              </>
+            )}
+          </div>
+        </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
   )

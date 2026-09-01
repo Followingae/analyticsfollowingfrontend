@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Panel } from "@/components/console/primitives"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, Loader2, Target, Check, X } from "lucide-react"
+import { Pencil, Loader2, Check, X } from "lucide-react"
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { toast } from "sonner"
@@ -42,8 +43,19 @@ export function QuotaProgressCard({ teamId, editable = false }: Props) {
   const [draft, setDraft] = useState("")
   const [saving, setSaving] = useState(false)
 
+  /**
+   * A failed read used to make this section disappear.
+   *
+   * `data` stayed null after a 500 and the component returned null, so the panel that says
+   * how much of a client's contract we have delivered simply was not on the page. "No quota
+   * on this client" is what an account manager concluded. Absence and failure are separate
+   * now: no quota still renders nothing, a failure says so.
+   */
+  const [failure, setFailure] = useState<string | null>(null)
+
   const load = async () => {
     setLoading(true)
+    setFailure(null)
     try {
       const res = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/admin/clients/${teamId}/quota-progress`,
@@ -53,7 +65,9 @@ export function QuotaProgressCard({ teamId, editable = false }: Props) {
       const body = await res.json()
       setData(body?.data ?? null)
     } catch (e: any) {
-      toast.error(e.message || "Failed to load quota")
+      const msg = e.message || "Failed to load quota"
+      setFailure(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -88,12 +102,17 @@ export function QuotaProgressCard({ teamId, editable = false }: Props) {
   }
 
   if (loading) {
+    return <Skeleton className="h-[160px] rounded-ds-2xl" />
+  }
+  if (failure) {
     return (
-      <Card>
-        <CardContent className="p-6 flex items-center justify-center min-h-[120px]">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        <p className="text-sm font-medium">Could not read this client's contract delivery.</p>
+        <p className="text-sm text-muted-foreground">
+          {failure}. This does not mean there is no quota on this client.
+        </p>
+        <Button variant="outline" size="sm" onClick={load}>Try again</Button>
+      </div>
     )
   }
   if (!data) return null
@@ -103,28 +122,19 @@ export function QuotaProgressCard({ teamId, editable = false }: Props) {
   const pct = contracted && contracted > 0 ? Math.min(100, Math.round((delivered / contracted) * 100)) : 0
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Target className="h-4 w-4 text-primary" />
-              Contract Delivery
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Influencers locked in this month ·{" "}
-              {new Date(data.month_start).toLocaleDateString("en-AE", { month: "long", year: "numeric" })}
-            </CardDescription>
-          </div>
-          {editable && !editing && (
+    <Panel
+      title="Contract delivery"
+      description={`Creators locked in this month · ${new Date(data.month_start).toLocaleDateString("en-AE", { month: "long", year: "numeric" })}`}
+      action={
+        editable && !editing ? (
             <Button variant="outline" size="sm" onClick={() => { setEditing(true); setDraft(contracted ? String(contracted) : "") }}>
               <Pencil className="h-3.5 w-3.5 mr-1.5" />
               {contracted ? "Edit quota" : "Set quota"}
             </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        ) : undefined
+      }
+    >
+      <div className="space-y-4">
         {editing ? (
           <div className="flex items-end gap-2">
             <div className="flex-1">
@@ -167,14 +177,9 @@ export function QuotaProgressCard({ teamId, editable = false }: Props) {
             <Progress value={pct} className="h-2" />
           </>
         ) : (
-          <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground mb-2">No monthly quota set for this client.</p>
-            {editable && (
-              <Button size="sm" variant="outline" onClick={() => { setEditing(true); setDraft("") }}>
-                Set quota
-              </Button>
-            )}
-          </div>
+          <p className="text-sm text-muted-foreground">
+            No monthly quota set for this client. The button above sets one.
+          </p>
         )}
 
         {/* Per-campaign breakdown */}
@@ -212,7 +217,7 @@ export function QuotaProgressCard({ teamId, editable = false }: Props) {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   )
 }

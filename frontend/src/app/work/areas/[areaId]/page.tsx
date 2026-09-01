@@ -5,7 +5,6 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -287,7 +286,7 @@ export default function ImdListDetailPage() {
   return (
     <AuthGuard>
       <SuperAdminInterface>
-        <div className="mx-auto max-w-5xl space-y-6 p-6">
+        <div className="mx-auto max-w-5xl space-y-ds-4 p-ds-4">
           <Link href="/work/areas" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-3.5 w-3.5" />All areas
           </Link>
@@ -308,7 +307,7 @@ export default function ImdListDetailPage() {
                   {/* The brief travels with the area, so whoever opens it knows what to look
                       for without asking the person who released it. */}
                   {briefLine(list.brief) && (
-                    <p className="mt-2 max-w-xl rounded-md bg-muted px-3 py-2 text-sm">
+                    <p className="mt-ds-2 max-w-xl rounded-ds-md bg-muted px-3 py-2 text-sm">
                       {briefLine(list.brief)}
                       {list.due_at && (
                         <span className="text-muted-foreground">
@@ -388,7 +387,9 @@ export default function ImdListDetailPage() {
                   client sees, which is what lets the talent team keep adding all week
                   behind a link that is already open. */}
               {canDestroy && canStock && markedIds.length > 0 && (
-                <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur">
+                /* The one edge that earns itself on this screen: a bar that floats over the
+                   list needs to say where it ends. Radius from the token scale. */
+                <div className="sticky top-2 z-10 flex flex-wrap items-center gap-ds-2 rounded-ds-lg border bg-background/95 p-ds-2 shadow-sm backdrop-blur">
                   <span className="text-sm font-medium">{markedIds.length} selected</span>
                   <span className="text-xs text-muted-foreground">
                     Cleared creators are the only ones a share link shows.
@@ -409,19 +410,26 @@ export default function ImdListDetailPage() {
               )}
 
               {list.items.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="p-12 text-center">
-                    <p className="font-medium">Nobody in this area yet</p>
-                    <p className="mt-1 text-sm text-muted-foreground">Add creators from the master database, or source new ones by handle.</p>
-                  </CardContent>
-                </Card>
+                /* A dashed card round the sentence "there is nobody here" — box comes off. */
+                <div className="py-16 text-center">
+                  <p className="font-medium">Nobody in this area yet</p>
+                  <p className="mt-ds-1 text-sm text-muted-foreground">Add creators from the master database, or source new ones by handle.</p>
+                </div>
               ) : (
-                <div className="space-y-1.5">
+                /* Every creator was a bordered, rounded tile. Twenty creators put twenty
+                   boxes on a page that is itself inside a page — and the box was carrying
+                   nothing the list order was not already carrying. The borders come off and
+                   the row groups by whitespace and a hover wash. Selection kept a visible
+                   mark: it was a border plus a grey, it is now the console's info wash, which
+                   reads at a glance and does not add an edge. */
+                <div className="-mx-ds-2 space-y-ds-1">
                   {list.items.map((c) => (
                     <div key={c.item_id}
-                         className={`group flex items-center gap-3 rounded-xl border p-3 ${
+                         className={`group flex items-center gap-ds-3 rounded-ds-lg px-ds-2 py-ds-2 transition-colors ${
                            c.struck_at ? "opacity-55" : ""
-                         } ${marked[c.id] ? "border-foreground/40 bg-muted/40" : ""}`}>
+                         } ${marked[c.id]
+                           ? "bg-[var(--tone-info-wash)]"
+                           : "hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"}`}>
                       {canDestroy && canStock && (
                         <Checkbox
                           checked={!!marked[c.id]}
@@ -465,7 +473,7 @@ export default function ImdListDetailPage() {
                           <Ban className="h-3 w-3" />Struck
                         </Badge>
                       ) : c.cleared_at ? (
-                        <Badge variant="outline" className="shrink-0 gap-1 text-emerald-600 dark:text-emerald-400">
+                        <Badge variant="outline" className="shrink-0 gap-1 border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
                           <ShieldCheck className="h-3 w-3" />Cleared
                         </Badge>
                       ) : (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { GoogleSignInButton, AuthDivider } from '@/components/google-sign-in-button';
 
 // --- TYPE DEFINITIONS ---
 
@@ -20,6 +21,8 @@ interface SignInPageProps {
   onSignIn?: (event: React.FormEvent<HTMLFormElement>) => void;
   onResetPassword?: () => void;
   onCreateAccount?: () => void;
+  /** Deep link to return to after a Google round trip, when the user arrived with one. */
+  googleNext?: string | null;
 }
 
 // --- SUB-COMPONENTS ---
@@ -41,6 +44,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   onSignIn,
   onResetPassword,
   onCreateAccount,
+  googleNext,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -153,6 +157,14 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                 {isLoading ? "Signing in..." : "Sign In"}
               </button>
             </form>
+
+            <AuthDivider className="animate-element animate-delay-600" />
+
+            <GoogleSignInButton
+              next={googleNext}
+              disabled={isLoading}
+              className="animate-element animate-delay-700"
+            />
 
             <p className="animate-element animate-delay-700 text-center text-sm text-muted-foreground">
               New to our platform? <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-foreground hover:underline transition-colors">Create Account</a>

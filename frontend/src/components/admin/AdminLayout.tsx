@@ -2,7 +2,6 @@
 
 import { ReactNode } from 'react'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
-import { AdminView } from './SuperAdminInterface'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -29,6 +28,19 @@ import {
   ChevronDown,
   Activity
 } from 'lucide-react'
+
+// AdminView was imported from './SuperAdminInterface', which has never exported it.
+// Nothing renders this tree (no account holds role='admin'), so the broken import went
+// unnoticed. It is declared here now, from the nav items below, and re-exported for
+// AdminInterface. Behaviour is unchanged.
+export type AdminView =
+  | 'dashboard'
+  | 'users'
+  | 'finance'
+  | 'proposals'
+  | 'system'
+  | 'influencers'
+  | 'analytics'
 
 interface AdminLayoutProps {
   children: ReactNode

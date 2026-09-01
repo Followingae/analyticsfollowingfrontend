@@ -20,7 +20,6 @@ import {
   reportCampaignApi, shareUrlFor, type CampaignReport,
 } from "@/services/reportCampaignApi"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -43,15 +42,17 @@ function Stat({ label, value, sub, icon }: {
   // A figure we cannot measure renders nothing — never a zero that reads as measured.
   if (value == null) return null
   return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          {icon}{label}
-        </div>
-        <div className="mt-1.5 text-2xl font-semibold tabular-nums">{value}</div>
-        {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
-      </CardContent>
-    </Card>
+    /* This was a card each. Six of them put twelve edges between the first number a client
+       asks about and the last, and every one of these tiles is the same kind of thing laid
+       out in a row — which is the whole message a border was carrying. The figure takes the
+       room the padding was using: 24px to 34px. */
+    <div className="px-ds-2 py-ds-2">
+      <div className="flex items-center gap-ds-1 text-ds-caption font-medium text-muted-foreground">
+        {icon}{label}
+      </div>
+      <div className="mt-ds-2 text-[34px] font-semibold leading-none tracking-[-0.025em] tabular-nums">{value}</div>
+      {sub && <div className="mt-ds-2 text-ds-caption leading-relaxed text-muted-foreground">{sub}</div>}
+    </div>
   )
 }
 
@@ -124,13 +125,13 @@ export default function ReportCampaignDetail() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-ds-5 p-ds-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <Button asChild variant="ghost" size="sm" className="-ml-2 mb-1 gap-1.5 text-muted-foreground">
               <Link href="/superadmin/report-campaigns"><ArrowLeft className="h-3.5 w-3.5" /> Report campaigns</Link>
             </Button>
-            <h1 className="truncate text-2xl font-semibold tracking-tight">{campaign.name}</h1>
+            <h1 className="truncate text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">{campaign.name}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{campaign.brand_name}</p>
           </div>
 
@@ -165,8 +166,7 @@ export default function ReportCampaignDetail() {
         </div>
 
         {totals.posts === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
+          <div className="flex flex-col items-center gap-ds-3 py-ds-6 text-center">
               <FileImage className="h-8 w-8 text-muted-foreground" />
               <div>
                 <p className="font-medium">No posts yet</p>
@@ -177,11 +177,10 @@ export default function ReportCampaignDetail() {
               <Button asChild className="mt-2 gap-1.5">
                 <Link href={`/campaigns/${campaign.id}/posts`}><Plus className="h-4 w-4" /> Add posts</Link>
               </Button>
-            </CardContent>
-          </Card>
+            </div>
         ) : (
           <>
-            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <section className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 lg:grid-cols-4">
               <Stat label="Posts" value={full(totals.posts)} icon={<FileImage className="h-3.5 w-3.5" />}
                     sub={totals.video_posts ? `${totals.video_posts} video` : null} />
               <Stat label="Creators" value={full(totals.creators)} icon={<Users className="h-3.5 w-3.5" />}
@@ -193,7 +192,7 @@ export default function ReportCampaignDetail() {
             </section>
 
             {(totals.engagement_rate_by_followers != null || totals.engagement_rate_by_views != null) && (
-              <section className="grid gap-3 sm:grid-cols-2">
+              <section className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2">
                 {totals.engagement_rate_by_followers != null && (
                   <Stat label="Engagement rate (of followers)"
                         value={`${totals.engagement_rate_by_followers.toFixed(2)}%`}
@@ -211,9 +210,9 @@ export default function ReportCampaignDetail() {
             {hasTagging && (
               <section className="space-y-3">
                 <h2 className="text-sm font-semibold">What ran</h2>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-3">
                   {tagging.hashtags.length > 0 && (
-                    <Card><CardContent className="p-5">
+                    <div>
                       <div className="text-xs font-medium text-muted-foreground">Hashtags used</div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {tagging.hashtags.slice(0, 12).map((h) => (
@@ -222,10 +221,10 @@ export default function ReportCampaignDetail() {
                           </Badge>
                         ))}
                       </div>
-                    </CardContent></Card>
+                    </div>
                   )}
                   {tagging.tagged_accounts.length > 0 && (
-                    <Card><CardContent className="p-5">
+                    <div>
                       <div className="text-xs font-medium text-muted-foreground">Accounts tagged</div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {tagging.tagged_accounts.slice(0, 12).map((t) => (
@@ -234,10 +233,10 @@ export default function ReportCampaignDetail() {
                           </Badge>
                         ))}
                       </div>
-                    </CardContent></Card>
+                    </div>
                   )}
                   {tagging.mentions.length > 0 && (
-                    <Card><CardContent className="p-5">
+                    <div>
                       <div className="text-xs font-medium text-muted-foreground">Mentioned in caption</div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {tagging.mentions.slice(0, 12).map((m) => (
@@ -246,7 +245,7 @@ export default function ReportCampaignDetail() {
                           </Badge>
                         ))}
                       </div>
-                    </CardContent></Card>
+                    </div>
                   )}
                 </div>
               </section>
@@ -255,7 +254,7 @@ export default function ReportCampaignDetail() {
             {creators.length > 0 && (
               <section className="space-y-3">
                 <h2 className="text-sm font-semibold">Creators</h2>
-                <div className="overflow-x-auto rounded-lg border">
+                <div className="overflow-x-auto rounded-ds-lg border border-black/[0.06] dark:border-white/[0.07]">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50 text-xs text-muted-foreground">
                       <tr>
@@ -305,7 +304,7 @@ export default function ReportCampaignDetail() {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {posts.map((p) => (
                     <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer"
-                       className="group overflow-hidden rounded-lg border transition-colors hover:bg-accent/40">
+                       className="group overflow-hidden rounded-ds-lg border border-black/[0.06] transition-colors hover:bg-accent/40 dark:border-white/[0.07]">
                       {p.thumbnail && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={p.thumbnail} alt="" loading="lazy" className="aspect-square w-full object-cover" />
@@ -342,7 +341,7 @@ export default function ReportCampaignDetail() {
               </section>
             )}
 
-            <section className="flex gap-2.5 rounded-lg border bg-muted/30 p-4">
+            <section className="flex gap-ds-2 border-t border-black/[0.06] pt-ds-3 dark:border-white/[0.07]">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <p className="text-xs leading-relaxed text-muted-foreground">{measurement.note}</p>
             </section>

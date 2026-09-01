@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { superadminApiService } from "@/services/superadminApi"
-import { ArrowLeft, UserPlus, Check } from "lucide-react"
+import { ArrowLeft, UserPlus } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -17,13 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { PageHead, Panel } from "@/components/console/primitives"
+import { formatMonthlyPlanPrice } from '@/config/planPricing'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,7 +57,6 @@ export default function CreateBrandAccountPage() {
     team_name: '',
     max_team_members: 1,
     monthly_profile_limit: 5,
-    monthly_email_limit: 0,
     monthly_posts_limit: 0,
   })
 
@@ -71,23 +65,20 @@ export default function CreateBrandAccountPage() {
     free: {
       initial_credits: 125,       // 5 profiles × 25 credits
       monthly_profile_limit: 5,
-      monthly_email_limit: 0,
       monthly_posts_limit: 0,
       max_team_members: 1,
       create_team: true,          // Always create team - required for platform
     },
     standard: {
-      initial_credits: 8750,      // ⃃199 tier canonical credits
+      initial_credits: 8750,      // Standard tier canonical credits
       monthly_profile_limit: 350,
-      monthly_email_limit: 200,
       monthly_posts_limit: 100,
       max_team_members: 2,
       create_team: true,
     },
     premium: {
-      initial_credits: 25000,     // ⃃499 tier canonical credits
+      initial_credits: 25000,     // Premium tier canonical credits
       monthly_profile_limit: 1000,
-      monthly_email_limit: 500,
       monthly_posts_limit: 250,
       max_team_members: 5,
       create_team: true,
@@ -185,7 +176,7 @@ export default function CreateBrandAccountPage() {
           password: formData.password,
         })
         setShowSuccess(true)
-        toast.success("Brand account created successfully!")
+        toast.success("Account created")
       } else {
         const errorMsg = result.error || 'Failed to create user'
         setFormError(errorMsg)
@@ -201,42 +192,36 @@ export default function CreateBrandAccountPage() {
   if (showSuccess && createdCredentials) {
     return (
       <SuperadminLayout>
-        <div className="space-y-6">
-          {/* Success Header */}
-          <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => router.push('/superadmin/users')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Users
-            </Button>
-          </div>
+        <div className="space-y-ds-5">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground"
+                  onClick={() => router.push('/superadmin/users')}>
+            <ArrowLeft className="h-4 w-4" /> Users
+          </Button>
 
-          {/* Success Card */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Check className="h-5 w-5 text-primary" />
-                </div>
+          {/* The tinted circle around a tick was the only thing carrying "this worked", and
+              it carried it in colour alone. The heading says it in words. */}
+          <Panel
+            title="Account created"
+            description="They can sign in with these straight away. Nothing is emailed, so you have to send them across yourself."
+          >
+            <div className="space-y-ds-4">
+              {/* The two credentials were a tinted panel inside the card, and inside that
+                  panel each value sat in a second box of its own. Three edges around a string
+                  you are meant to read once and copy. The panel is gone; the value keeps the
+                  one quiet chip that says "this is the literal text", and the labels and the
+                  gap do the grouping. */}
+              <div className="space-y-ds-4">
                 <div>
-                  <CardTitle>Brand Account Created</CardTitle>
-                  <CardDescription>The user can log in immediately with these credentials</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Credentials Display */}
-              <div className="bg-muted rounded-lg p-6 space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Email</label>
-                  <div className="flex items-center gap-2 mt-2">
-                    <code className="flex-1 bg-background px-4 py-3 rounded text-base font-mono">
+                  <label className="text-ds-label text-muted-foreground">Email</label>
+                  <div className="mt-ds-2 flex items-center gap-ds-2">
+                    <code className="flex-1 rounded-ds-md bg-black/[0.05] px-ds-3 py-ds-2 font-mono text-base dark:bg-white/[0.07]">
                       {createdCredentials.email}
                     </code>
                     <Button
                       variant="outline"
                       onClick={() => {
                         navigator.clipboard.writeText(createdCredentials.email)
-                        toast.success("Email copied!")
+                        toast.success("Email copied")
                       }}
                     >
                       Copy
@@ -244,16 +229,16 @@ export default function CreateBrandAccountPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Password</label>
-                  <div className="flex items-center gap-2 mt-2">
-                    <code className="flex-1 bg-background px-4 py-3 rounded text-base font-mono">
+                  <label className="text-ds-label text-muted-foreground">Password</label>
+                  <div className="mt-ds-2 flex items-center gap-ds-2">
+                    <code className="flex-1 rounded-ds-md bg-black/[0.05] px-ds-3 py-ds-2 font-mono text-base dark:bg-white/[0.07]">
                       {createdCredentials.password}
                     </code>
                     <Button
                       variant="outline"
                       onClick={() => {
                         navigator.clipboard.writeText(createdCredentials.password)
-                        toast.success("Password copied!")
+                        toast.success("Password copied")
                       }}
                     >
                       Copy
@@ -262,13 +247,14 @@ export default function CreateBrandAccountPage() {
                 </div>
               </div>
 
-              {/* Important Notice */}
-              <div className="rounded-lg border bg-muted/50 p-4">
-                <p className="text-sm font-medium mb-2">Important</p>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>Save these credentials securely</li>
-                  <li>No email confirmation required -- user can log in immediately</li>
-                  <li>Email has been auto-verified</li>
+              {/* Important Notice — a second bordered, tinted box inside the same card, for
+                  three lines of prose. The heading is the fence. */}
+              <div>
+                <p className="mb-ds-2 text-ds-label">Important</p>
+                <ul className="space-y-ds-1 text-ds-body text-muted-foreground">
+                  <li>Save these somewhere safe. This screen is the only place the password is shown.</li>
+                  <li>No email confirmation is needed. They can log in right now.</li>
+                  <li>The email address is already marked verified.</li>
                 </ul>
               </div>
 
@@ -277,7 +263,7 @@ export default function CreateBrandAccountPage() {
                 <Button
                   onClick={() => router.push('/superadmin/users')}
                 >
-                  View All Users
+                  Back to the user list
                 </Button>
                 <Button
                   variant="outline"
@@ -296,16 +282,15 @@ export default function CreateBrandAccountPage() {
                       team_name: '',
                       max_team_members: 1,
                       monthly_profile_limit: 5,
-                      monthly_email_limit: 0,
                       monthly_posts_limit: 0,
                     })
                   }}
                 >
-                  Create Another Account
+                  Create another account
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Panel>
         </div>
       </SuperadminLayout>
     )
@@ -313,55 +298,50 @@ export default function CreateBrandAccountPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button type="button" variant="outline" onClick={() => router.push('/superadmin/users')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+      <div className="space-y-ds-5">
+        <div>
+          <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-ds-3 gap-1.5 text-muted-foreground"
+                  onClick={() => router.push('/superadmin/users')}>
+            <ArrowLeft className="h-4 w-4" /> Users
           </Button>
-          <div>
-            <h1 className="text-2xl font-semibold">
-              {accountType === 'admin' ? 'Create Admin' : accountType === 'staff' ? 'Create Staff Member' : 'Create Brand Account'}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {accountType === 'admin'
-                ? 'Create a module-scoped admin - they can only access the areas you tick'
-                : accountType === 'staff'
-                ? 'Create an internal agency team member (talent manager, account manager, cofounder, CEO)'
-                : 'Set up a brand account with subscription, credits, and team'}
-            </p>
-          </div>
-          <div className="ml-auto inline-flex rounded-lg border p-0.5">
-            <Button type="button" size="sm" variant={accountType === 'brand' ? 'default' : 'ghost'} onClick={() => setAccountType('brand')}>
-              Brand User
-            </Button>
-            <Button type="button" size="sm" variant={accountType === 'staff' ? 'default' : 'ghost'} onClick={() => setAccountType('staff')}>
-              Staff
-            </Button>
-            <Button type="button" size="sm" variant={accountType === 'admin' ? 'default' : 'ghost'} onClick={() => setAccountType('admin')}>
-              Admin
-            </Button>
-          </div>
+          <PageHead
+            title={accountType === 'admin' ? 'New admin'
+              : accountType === 'staff' ? 'New staff member'
+              : 'New brand account'}
+            sub={accountType === 'admin'
+              ? 'An admin who can only open the modules you tick below. Everything else stays hidden from them.'
+              : accountType === 'staff'
+              ? 'Someone on our own team: talent manager, account manager, business development, cofounder or CEO.'
+              : 'A client account, with its subscription, its credits and the team the platform needs to attach them to.'}
+            action={
+              <div className="inline-flex rounded-ds-lg border border-black/[0.06] p-0.5 dark:border-white/[0.07]">
+                <Button type="button" size="sm" variant={accountType === 'brand' ? 'default' : 'ghost'} onClick={() => setAccountType('brand')}>
+                  Brand
+                </Button>
+                <Button type="button" size="sm" variant={accountType === 'staff' ? 'default' : 'ghost'} onClick={() => setAccountType('staff')}>
+                  Staff
+                </Button>
+                <Button type="button" size="sm" variant={accountType === 'admin' ? 'default' : 'ghost'} onClick={() => setAccountType('admin')}>
+                  Admin
+                </Button>
+              </div>
+            }
+          />
         </div>
 
         {formError && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <div className="rounded-ds-lg bg-[var(--tone-bad-wash)] px-ds-3 py-ds-2 text-ds-body text-[var(--tone-bad-ink)]">
             {formError}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-ds-4 lg:grid-cols-2">
 
         {/* Left Column */}
-        <div className="space-y-6">
+        <div className="space-y-ds-4">
         {/* Required Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Required Information</CardTitle>
-            <CardDescription>Basic account details for the new user</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Panel title="Required information" description="The details this account cannot be created without.">
+            <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Email *</label>
@@ -422,17 +402,13 @@ export default function CreateBrandAccountPage() {
                 />
               </div>
             )}
-          </CardContent>
-        </Card>
+            </div>
+          </Panel>
 
         {/* Credits & Monthly Limits (brand accounts only) */}
         {accountType === 'brand' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Credits & Monthly Limits</CardTitle>
-            <CardDescription>Configure initial credits and usage limits (auto-filled based on tier)</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Panel title="Credits and monthly limits" description="Filled in from the tier you pick. Change them here if this account is an exception.">
+            <div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Initial Credits</label>
@@ -453,15 +429,6 @@ export default function CreateBrandAccountPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Monthly Email Limit</label>
-                <Input
-                  type="number"
-                  value={formData.monthly_email_limit}
-                  onChange={(e) => setFormData(prev => ({ ...prev, monthly_email_limit: parseInt(e.target.value) || 0 }))}
-                  className="mt-1"
-                />
-              </div>
-              <div>
                 <label className="text-sm font-medium">Monthly Posts Limit</label>
                 <Input
                   type="number"
@@ -471,24 +438,20 @@ export default function CreateBrandAccountPage() {
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+            </div>
+          </Panel>
         )}
         </div>
 
         {/* Right Column */}
-        <div className="space-y-6">
+        <div className="space-y-ds-4">
         {accountType === 'admin' ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Admin Modules</CardTitle>
-            <CardDescription>Tick the areas this admin can access. They won't see anything else.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-2">
+        <Panel title="Admin modules" description="Tick the areas this admin can open. Everything else stays hidden from them.">
+            <div className="grid grid-cols-2 gap-2">
             {ADMIN_MODULES.map((m) => {
               const checked = adminModules.includes(m.key)
               return (
-                <label key={m.key} className="flex items-center gap-2 rounded-md border p-2.5 cursor-pointer hover:bg-accent/40">
+                <label key={m.key} className="flex cursor-pointer items-center gap-ds-2 rounded-ds-md border border-black/[0.06] p-2.5 hover:bg-accent/40 dark:border-white/[0.07]">
                   <Checkbox
                     checked={checked}
                     onCheckedChange={(c: boolean) =>
@@ -499,15 +462,11 @@ export default function CreateBrandAccountPage() {
                 </label>
               )
             })}
-          </CardContent>
-        </Card>
+            </div>
+          </Panel>
         ) : accountType === 'staff' ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Staff Role</CardTitle>
-            <CardDescription>The internal role for this team member - governs what they can access and approve.</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Panel title="Staff role" description="What this person does here. It decides what they can open and what they can approve.">
+            <div>
             <Select value={staffRole} onValueChange={(v) => setStaffRole(v as any)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -518,17 +477,13 @@ export default function CreateBrandAccountPage() {
                 <SelectItem value="ceo">CEO</SelectItem>
               </SelectContent>
             </Select>
-          </CardContent>
-        </Card>
+            </div>
+          </Panel>
         ) : (
         <>
         {/* Subscription Tier */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Subscription Tier</CardTitle>
-            <CardDescription>Select a subscription plan with automatic credit and limit configuration</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Panel title="Subscription tier" description="Picking a plan fills in the credits and limits below.">
+            <div>
             <Select value={formData.subscription_tier} onValueChange={(value) => handleTierChange(value as any)}>
               <SelectTrigger>
                 <SelectValue />
@@ -542,28 +497,24 @@ export default function CreateBrandAccountPage() {
                 </SelectItem>
                 <SelectItem value="standard">
                   <div className="flex flex-col">
-                    <span className="font-medium">Standard - ⃃199/month</span>
+                    <span className="font-medium">Standard - {formatMonthlyPlanPrice('standard')}</span>
                     <span className="text-xs text-muted-foreground">350 profiles • 8,750 credits • 2 members</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="premium">
                   <div className="flex flex-col">
-                    <span className="font-medium">Premium - ⃃499/month</span>
+                    <span className="font-medium">Premium - {formatMonthlyPlanPrice('premium')}</span>
                     <span className="text-xs text-muted-foreground">1,000 profiles • 25,000 credits • 5 members</span>
                   </div>
                 </SelectItem>
               </SelectContent>
             </Select>
-          </CardContent>
-        </Card>
+            </div>
+          </Panel>
 
         {/* Team Setup */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Team Setup</CardTitle>
-            <CardDescription>A team is always created for platform features to work. Customize the team name below.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Panel title="Team" description="A team is always created, because the platform needs one for credits and access to work. Name it here.">
+            <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Team Name</label>
@@ -587,16 +538,12 @@ export default function CreateBrandAccountPage() {
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+            </div>
+          </Panel>
 
         {/* Account Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Summary</CardTitle>
-            <CardDescription>Review the account configuration</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Panel title="What you are about to create" description="Check this before you press create.">
+            <div>
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subscription:</span>
@@ -611,10 +558,6 @@ export default function CreateBrandAccountPage() {
                 <span className="font-medium">{formData.monthly_profile_limit}/month</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Email Limit:</span>
-                <span className="font-medium">{formData.monthly_email_limit}/month</span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-muted-foreground">Posts Limit:</span>
                 <span className="font-medium">{formData.monthly_posts_limit}/month</span>
               </div>
@@ -625,8 +568,8 @@ export default function CreateBrandAccountPage() {
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+            </div>
+          </Panel>
         </>
         )}
         </div>

@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Download, FileText, Inbox, Loader2, Plus, Send, StickyNote, Table2, Trash2, Upload,
+  FileText, Loader2, Plus, Send, StickyNote, Table2, Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -22,7 +22,7 @@ import { AuthGuard } from '@/components/AuthGuard'
 import { SuperAdminInterface } from '@/components/admin/SuperAdminInterface'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -36,6 +36,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { cn } from '@/lib/utils'
+import { Empty, PageHead, Panel, Row } from '@/components/console/primitives'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,12 +66,27 @@ export default function ShareCenterPage() {
   const [client, setClient] = useState<string>('all')
   const [composing, setComposing] = useState(false)
 
+  /**
+   * A refused read is not an empty share list.
+   *
+   * Both reads swallowed their failure into `{ data: [] }`, so a 500 rendered "Nothing has
+   * been shared yet" with a button offering to start — telling an account manager that a
+   * client they sent addresses to yesterday has never been sent anything. The failure is
+   * held so the page can say the list did not come back.
+   */
+  const [failure, setFailure] = useState<string | null>(null)
+
   const load = useCallback(async () => {
+    setFailure(null)
     const [a, b] = await Promise.all([
-      fetchWithAuth(BASE).then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
+      fetchWithAuth(BASE).then(async r => {
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `The server answered ${r.status}`)
+        return r.json()
+      }).catch(e => ({ error: e instanceof Error ? e.message : 'Could not load what has been shared' })),
       fetchWithAuth(`${BASE}/targets`).then(r => r.ok ? r.json() : null).catch(() => null),
     ])
-    setItems(a.data)
+    if ((a as any).error) setFailure((a as any).error)
+    else setItems((a as any).data)
     if (b) setTargets(b.data)
   }, [])
 
@@ -94,18 +110,16 @@ export default function ShareCenterPage() {
   return (
     <AuthGuard requireAdmin>
       <SuperAdminInterface>
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Share Center</h1>
-              <p className="text-sm text-muted-foreground">
-                Anything a client needs that is not a proposal, an invoice or a campaign.
-              </p>
-            </div>
-            <Button onClick={() => setComposing(true)}>
-              <Plus className="mr-1.5 size-4" />Share something
-            </Button>
-          </div>
+        <div className="space-y-ds-5 p-4 md:p-7">
+          <PageHead
+            title="Share Center"
+            sub="Anything a client needs that is not a proposal, an invoice or a campaign. The list leads on whether they have opened it, because sending is the half we already know about."
+            action={
+              <Button onClick={() => setComposing(true)}>
+                <Plus className="mr-1.5 size-4" />Share something
+              </Button>
+            }
+          />
 
           {targets && targets.teams.length > 0 && (
             <Select value={client} onValueChange={setClient}>
@@ -119,34 +133,36 @@ export default function ShareCenterPage() {
             </Select>
           )}
 
-          {items === null ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : shown.length === 0 ? (
-            <Card><CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-              <Inbox className="size-10 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                {client === 'all' ? 'Nothing has been shared yet.' : 'Nothing shared with this client yet.'}
+          {failure ? (
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Could not load what has been shared.</p>
+              <p className="text-sm text-muted-foreground">
+                {failure}. Nothing here is known: this is not an empty list.
               </p>
-              <Button variant="outline" onClick={() => setComposing(true)}>
-                <Plus className="mr-1.5 size-4" />Share something
-              </Button>
-            </CardContent></Card>
+              <Button variant="outline" size="sm" onClick={load}>Try again</Button>
+            </div>
+          ) : items === null ? (
+            <Skeleton className="h-[320px] rounded-ds-2xl" />
           ) : (
-            <Card className="overflow-hidden p-0">
-              <div className="divide-y">
-                {shown.map(s => {
-                  const Icon = ICON[s.kind]
-                  return (
-                    <div key={s.id} className={cn('flex items-start gap-3.5 p-4',
-                      s.archived && 'opacity-50')}>
-                      <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-muted">
-                        <Icon className="size-4 text-muted-foreground" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">{s.title}</p>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <Panel title="Shared with clients" description="Who has it, and whether they have opened it" flush>
+              {shown.map(s => {
+                const Icon = ICON[s.kind]
+                return (
+                  <div key={s.id} className={cn(s.archived && 'opacity-50')}>
+                    <Row
+                      /* Green once somebody has opened it. It was a hand-picked emerald-600,
+                         a fourth green beside the three the console decides once; it names
+                         the tone tokens now, and the dot carries the same state so it reads
+                         without the colour. */
+                      tone={s.read_by > 0 ? 'good' : 'neutral'}
+                      title={
+                        <span className="flex items-center gap-2">
+                          <Icon className="size-3.5 flex-none text-muted-foreground" />
+                          <span className="truncate">{s.title}</span>
+                        </span>
+                      }
+                      meta={
+                        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span className="font-medium text-foreground">{s.client}</span>
                           {(s.campaign_name || s.proposal_name) && (
                             <Badge variant="outline" className="text-[10px]">
@@ -155,27 +171,36 @@ export default function ShareCenterPage() {
                           )}
                           <span>{when(s.created_at)}</span>
                           {s.created_by && <span>· {s.created_by}</span>}
-                        </p>
-                      </div>
-                      {/* Opened, not sent. Sending is the half we already know about. */}
-                      <Badge
-                        variant={s.read_by > 0 ? 'default' : 'outline'}
-                        className={cn('shrink-0 text-[10px]',
-                          s.read_by > 0 && 'bg-emerald-600 hover:bg-emerald-600')}
-                      >
-                        {s.read_by > 0 ? `Opened by ${s.read_by}` : 'Not opened'}
-                      </Badge>
-                      {!s.archived && (
-                        <Button variant="ghost" size="icon" className="size-8 shrink-0"
-                                onClick={() => withdraw(s)} title="Withdraw">
-                          <Trash2 className="size-3.5 text-muted-foreground" />
-                        </Button>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </Card>
+                        </span>
+                      }
+                      right={
+                        /* Opened, not sent. Sending is the half we already know about. */
+                        <Badge
+                          variant="outline"
+                          className={cn('shrink-0',
+                            s.read_by > 0
+                              ? 'border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]'
+                              : 'text-muted-foreground')}
+                        >
+                          {s.read_by > 0 ? `Opened by ${s.read_by}` : 'Not opened'}
+                        </Badge>
+                      }
+                      actions={!s.archived
+                        ? <Button variant="ghost" size="icon" className="size-8 shrink-0"
+                                  onClick={() => withdraw(s)} title="Withdraw">
+                            <Trash2 className="size-3.5 text-muted-foreground" />
+                          </Button>
+                        : undefined}
+                    />
+                  </div>
+                )
+              })}
+              {shown.length === 0 && (
+                <Empty>
+                  {client === 'all' ? 'Nothing has been shared yet.' : 'Nothing shared with this client yet.'}
+                </Empty>
+              )}
+            </Panel>
           )}
         </div>
 

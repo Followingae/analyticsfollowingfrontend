@@ -291,7 +291,6 @@ export class SuperadminApiService {
     team_name?: string
     max_team_members?: number
     monthly_profile_limit?: number
-    monthly_email_limit?: number
     monthly_posts_limit?: number
     admin_modules?: string[]
   }): Promise<ApiResponse<any>> {
