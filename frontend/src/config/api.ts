@@ -27,6 +27,7 @@ export const ENDPOINTS = {
     searchHistory: '/api/v1/auth/search-history', // GET - User search history
     unlockedProfiles: '/api/v1/auth/unlocked-profiles', // GET - Unlocked profiles
     forgotPassword: '/api/v1/auth/forgot-password', // POST - Forgot password
+    oauthSession: '/api/v1/auth/oauth/session', // POST - Exchange a Supabase OAuth session (Google) for an app session
     verifyEmail: (token: string) => `/api/v1/auth/verify-email/${token}`, // GET - Verify email
     adminCreateManagedUser: '/api/v1/auth/admin/create-managed-user', // POST - Admin creates managed user
   },

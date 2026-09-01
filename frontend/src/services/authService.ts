@@ -395,6 +395,73 @@ class AuthService {
     }
   }
 
+  /**
+   * Finish a Google sign-in.
+   *
+   * The browser has already completed the OAuth dance with Supabase and holds a
+   * Supabase session. The backend verifies it, provisions the account the same way a
+   * password signup does (users row, team, credit wallet) and hands back the same
+   * payload as /auth/login. From here on the session is stored and refreshed exactly
+   * like a password session, because the tokens are the same Supabase tokens.
+   */
+  async completeOAuthSession(params: {
+    access_token: string
+    refresh_token?: string
+    expires_in?: number
+  }): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}${ENDPOINTS.auth.oauthSession}`, {
+        method: 'POST',
+        headers: REQUEST_HEADERS,
+        body: JSON.stringify({
+          access_token: params.access_token,
+          refresh_token: params.refresh_token || '',
+          expires_in: params.expires_in || 0
+        })
+      })
+
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        const detail = data?.detail
+        const errorMessage =
+          (typeof detail === 'object' && detail?.message) ||
+          (typeof detail === 'string' && detail) ||
+          data?.message ||
+          `Google sign-in failed (${response.status})`
+        return { success: false, error: errorMessage }
+      }
+
+      if (!data?.access_token || !data?.user) {
+        return { success: false, error: 'Invalid response format' }
+      }
+
+      const expiresIn = data.expires_in || 86400
+      const tokenData: TokenData = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token || '',
+        token_type: data.token_type || 'bearer',
+        expires_at: Date.now() + expiresIn * 1000
+      }
+
+      tokenManager.setTokenData(tokenData)
+      this.tokenData = tokenData
+
+      if (typeof data.user === 'object') {
+        localStorage.setItem('user_data', JSON.stringify(data.user))
+      }
+
+      this.lastLoginTime = Date.now()
+
+      return { success: true, data: data }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Google sign-in failed'
+      }
+    }
+  }
+
   // Register user
   // Logout user
   logout(): void {

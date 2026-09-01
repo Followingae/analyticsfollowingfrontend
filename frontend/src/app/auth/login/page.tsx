@@ -113,6 +113,7 @@ function LoginPageInner() {
       onSignIn={handleSubmit}
       onResetPassword={handleResetPassword}
       onCreateAccount={handleCreateAccount}
+      googleNext={nextPath}
     />
   )
 }
