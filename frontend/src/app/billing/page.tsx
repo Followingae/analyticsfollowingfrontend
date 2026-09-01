@@ -65,6 +65,8 @@ import { brandPoolApi } from '@/services/faAdminApi'
 import { PlanScreen } from '@/components/commercial/PlanScreen'
 import { SubscriptionLines } from '@/components/commercial/SubscriptionLines'
 import { resolveModules, isManagedAccount } from '@/hooks/useCommercialAccount'
+import { InvoicesPanel } from '@/components/billing/InvoicesPanel'
+import { useAccountInvoices, money } from '@/components/billing/useAccountInvoices'
 
 export default function BillingPage() {
   return (
@@ -124,6 +126,11 @@ function BillingContent() {
   const [confirmAction, setConfirmAction] = useState<
     { type: 'upgrade'; tier: string } | { type: 'manage' } | null
   >(null)
+
+  // Both invoice sources, merged, fetched once for the whole page: the "what I
+  // owe" figure in the header and the Invoices tab are the same numbers, so
+  // they are the same request. Hooks run before the early returns below.
+  const invoiceData = useAccountInvoices(!!user)
 
   // Prices come from the single source of truth (src/config/planPricing.ts),
   // which mirrors the backend. Never hardcode a plan price here.
@@ -378,9 +385,30 @@ function BillingContent() {
     <div className="flex-1 p-6 max-w-6xl mx-auto">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Billing & Subscription</h1>
-          <p className="text-muted-foreground mt-2">Manage your subscription, invoices, and cashback pool</p>
+          <h1 className="text-ds-title">Billing</h1>
+          <p className="text-ds-body text-muted-foreground mt-ds-2">
+            What you pay, what you owe, and what you have.
+          </p>
         </div>
+
+        {/* The page is long. This is the answer to the three questions someone
+            opens it with, before they have to choose a tab. */}
+        <AtAGlance
+          payLabel={
+            isAdminManaged
+              ? `${(status.plan?.tier ?? 'free').charAt(0).toUpperCase()}${(status.plan?.tier ?? 'free').slice(1)} · invoiced`
+              : formatPlanLabel(status.plan?.tier ?? 'free', '')
+          }
+          paySub={isAdminManaged ? 'Billed by arrangement, not by card' : 'Current plan'}
+          owe={invoiceData}
+          onSeeInvoices={() => router.replace('/billing?tab=invoices', { scroll: false })}
+          haveValue={
+            status.usage.profiles_limit > 0
+              ? `${Math.max(status.usage.profiles_limit - status.usage.profiles_used, 0).toLocaleString()}`
+              : '—'
+          }
+          haveSub="Profile unlocks left this month"
+        />
 
         <Tabs
           value={activeTab}
@@ -390,7 +418,13 @@ function BillingContent() {
           <TabsList>
             <TabsTrigger value="subscription">Subscription</TabsTrigger>
             <TabsTrigger value="plan">Plan &amp; modules</TabsTrigger>
-            {!isAdminManaged && <TabsTrigger value="invoices">Invoices</TabsTrigger>}
+            {/* Invoices is for EVERYONE. It used to be hidden behind
+                !isAdminManaged, which meant the only clients we actually
+                invoice were the only ones who could not see their invoices.
+                A managed account still sees no card form and no checkout
+                button — that distinction is made per control, below, not by
+                removing the record of what they have been billed. */}
+            <TabsTrigger value="invoices">Invoices</TabsTrigger>
             {!isAdminManaged && <TabsTrigger value="cashback-pool">Cashback Pool</TabsTrigger>}
           </TabsList>
 
@@ -759,12 +793,10 @@ function BillingContent() {
             <PlanScreen />
           </TabsContent>
 
-          {/* Invoices Tab — hidden for admin-managed clients (billing handled offline) */}
-          {!isAdminManaged && (
-            <TabsContent value="invoices" className="space-y-6">
-              <InvoicesTab />
-            </TabsContent>
-          )}
+          {/* Invoices — one list, both sources, every account type. */}
+          <TabsContent value="invoices" className="space-y-6">
+            <InvoicesPanel data={invoiceData} />
+          </TabsContent>
 
           {/* Cashback Pool Tab — hidden for admin-managed clients */}
           {!isAdminManaged && (
@@ -779,177 +811,86 @@ function BillingContent() {
   )
 }
 
-// ─── Invoices Tab ───────────────────────────────────────────────────────────
+// ─── At a glance ────────────────────────────────────────────────────────────
+//
+// Three questions, answered above the tabs, so the page can be read without
+// being navigated: what I pay, what I owe, what I have.
+//
+// "What I owe" is the only one that can fail, and it says so. While the two
+// invoice sources are still loading it shows a skeleton; if a source did not
+// answer it shows an em dash and the word "unavailable", never 0 — a zero here
+// would read as "you owe us nothing", which is a thing we cannot claim on
+// behalf of a request that never came back.
 
-interface Invoice {
-  id: string
-  number: string | null
-  status: 'draft' | 'open' | 'paid' | 'void' | 'uncollectible'
-  amount_due: number
-  amount_paid: number
-  currency: string
-  created: number
-  period_start: number
-  period_end: number
-  invoice_pdf: string | null
-  hosted_invoice_url: string | null
-  description: string | null
-  lines_description: string | null
-  subscription: string | null
+function GlanceCell({ label, children, sub }: { label: string; children: React.ReactNode; sub?: string }) {
+  return (
+    <div className="space-y-ds-1 px-ds-4 py-ds-3">
+      <p className="text-ds-overline text-muted-foreground">{label}</p>
+      <div className="text-ds-heading">{children}</div>
+      {sub && <p className="text-ds-caption text-muted-foreground">{sub}</p>}
+    </div>
+  )
 }
 
-function InvoicesTab() {
-  const { user } = useEnhancedAuth()
-  const [loading, setLoading] = useState(true)
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-
-  useEffect(() => {
-    if (user) fetchInvoices()
-  }, [user])
-
-  const fetchInvoices = async () => {
-    try {
-      setLoading(true)
-      const headers = getAuthHeaders()
-      if (!headers.Authorization) { setInvoices([]); return }
-
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}${ENDPOINTS.billing.invoices}`,
-        { headers }
-      )
-      if (!response.ok) throw new Error('Failed to fetch invoices')
-      const data = await response.json()
-      setInvoices(data.invoices || [])
-    } catch (error) {
-      console.error('Failed to load invoices:', error)
-      toast.error('Failed to load invoice history')
-      setInvoices([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fmtCurrency = (cents: number, currency: string = 'usd') =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100)
-
-  const fmtDate = (ts: number) =>
-    new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-
-  const fmtPeriod = (start: number, end: number) => {
-    const s = new Date(start * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    const e = new Date(end * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    return `${s} - ${e}`
-  }
-
-  const statusBadge = (s: Invoice['status']) => {
-    const map: Record<string, { className: string; label: string }> = {
-      paid: { className: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 border-0', label: 'Paid' },
-      open: { className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-0', label: 'Open' },
-      draft: { className: 'bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300 border-0', label: 'Draft' },
-      void: { className: 'bg-slate-100 text-slate-500 dark:bg-slate-800/40 dark:text-slate-400 border-0', label: 'Void' },
-      uncollectible: { className: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border-0', label: 'Uncollectible' },
-    }
-    const entry = map[s]
-    return entry ? <Badge className={entry.className}>{entry.label}</Badge> : <Badge variant="outline">{s}</Badge>
-  }
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-0">
-          <div className="divide-y">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 px-4 py-4">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-48 flex-1" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-6 w-14 rounded-full" />
-                <Skeleton className="h-8 w-8 rounded" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (invoices.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-16 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Receipt className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <h3 className="mt-4 text-base font-medium">No invoices yet</h3>
-          <p className="mt-1.5 text-sm text-muted-foreground max-w-sm mx-auto">
-            Your billing history will appear here once you have an active subscription.
-          </p>
-        </CardContent>
-      </Card>
-    )
-  }
+function AtAGlance({
+  payLabel,
+  paySub,
+  owe,
+  onSeeInvoices,
+  haveValue,
+  haveSub,
+}: {
+  payLabel: string
+  paySub: string
+  owe: ReturnType<typeof useAccountInvoices>
+  onSeeInvoices: () => void
+  haveValue: string
+  haveSub: string
+}) {
+  const totals = owe.outstandingByCurrency
+  const entries = totals ? Object.entries(totals) : []
+  const overdueCount = owe.invoices.filter((i) => i.status === 'overdue').length
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Receipt className="h-5 w-5" />
-          Invoice History
-        </CardTitle>
-        <CardDescription>View and download your past invoices</CardDescription>
-      </CardHeader>
-      <CardContent className="p-0 overflow-x-auto">
-        <Table className="min-w-[600px]">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Period</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {invoices.map((inv) => (
-              <TableRow key={inv.id}>
-                <TableCell className="whitespace-nowrap text-sm">{fmtDate(inv.created)}</TableCell>
-                <TableCell className="text-sm max-w-[240px] truncate">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="truncate">{inv.lines_description || inv.description || 'Subscription'}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                  {fmtPeriod(inv.period_start, inv.period_end)}
-                </TableCell>
-                <TableCell className="text-right text-sm font-medium whitespace-nowrap">
-                  {fmtCurrency(inv.status === 'paid' ? inv.amount_paid : inv.amount_due, inv.currency)}
-                </TableCell>
-                <TableCell>{statusBadge(inv.status)}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    {inv.invoice_pdf && (
-                      <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                        <a href={inv.invoice_pdf} target="_blank" rel="noopener noreferrer" title="Download PDF">
-                          <Download className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    {inv.hosted_invoice_url && (
-                      <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                        <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer" title="View online">
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    <Card className="overflow-hidden">
+      <CardContent className="grid grid-cols-1 divide-y p-0 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <GlanceCell label="What you pay" sub={paySub}>
+          {payLabel}
+        </GlanceCell>
+
+        <GlanceCell
+          label="What you owe"
+          sub={
+            owe.loading ? undefined
+            : totals === null ? 'Some invoices did not load'
+            : overdueCount > 0 ? `${overdueCount} overdue`
+            : entries.length === 0 ? 'Nothing outstanding'
+            : 'Across your open invoices'
+          }
+        >
+          {owe.loading ? (
+            <Skeleton className="h-6 w-28" />
+          ) : totals === null ? (
+            <span className="text-muted-foreground">—</span>
+          ) : entries.length === 0 ? (
+            <span>{money(0, 'AED')}</span>
+          ) : (
+            <span className={overdueCount > 0 ? 'text-red-600 dark:text-red-400' : undefined}>
+              {entries.map(([ccy, amount]) => money(amount, ccy)).join(' · ')}
+            </span>
+          )}
+        </GlanceCell>
+
+        <GlanceCell label="What you have" sub={haveSub}>
+          {haveValue}
+        </GlanceCell>
       </CardContent>
+      <div className="border-t px-ds-4 py-ds-2">
+        <Button variant="link" size="sm" className="h-auto p-0 text-ds-body-sm" onClick={onSeeInvoices}>
+          See every invoice
+          <ArrowUpRight className="ml-ds-1 h-3.5 w-3.5" />
+        </Button>
+      </div>
     </Card>
   )
 }

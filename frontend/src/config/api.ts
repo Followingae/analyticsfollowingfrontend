@@ -212,7 +212,12 @@ export const ENDPOINTS = {
     trialDailyUsage: '/api/v1/billing/trial/daily-usage', // GET - Trial daily usage summary
 
     // Invoices
-    invoices: '/api/v1/billing/invoices', // GET - User's Stripe invoices
+    invoices: '/api/v1/billing/invoices', // GET - User's Stripe subscription invoices
+    // GET - The invoices WE raise against this client (campaign_invoices),
+    // brand-scoped: the team is resolved server-side from the caller. The admin
+    // read at /api/v1/admin/clients/{team_id}/invoices is staff-only and stays
+    // that way; this is the same rows, allow-listed, with no cost or margin.
+    accountInvoices: '/api/v1/billing/account-invoices',
 
     // Webhooks
     webhook: '/api/v1/billing/webhook', // POST - Stripe webhook for existing subscriptions
