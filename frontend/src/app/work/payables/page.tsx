@@ -10,7 +10,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BadgeCheck, CircleDollarSign, Wallet } from 'lucide-react'
 import { Stat, StatGrid } from '@/components/console/primitives'
@@ -43,11 +42,14 @@ async function api(path = '', init?: RequestInit) {
 const aed = (n: any) => n == null ? '—'
   : `⃃ ${Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
 
+/* These were a fifth set of hand-picked palette steps, so "owed" was a slightly different
+   amber here than the amber on Today. They now name the console tone tokens: decided once,
+   and scoped to the console shell by construction. */
 const TONE: Record<string, string> = {
-  owed: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  approved: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  paid: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  cancelled: 'bg-muted text-muted-foreground',
+  owed: 'border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
+  approved: 'border-transparent bg-[var(--tone-info-wash)] text-[var(--tone-info-ink)]',
+  paid: 'border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]',
+  cancelled: 'border-transparent bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]',
 }
 
 const TABS = ['all', 'owed', 'approved', 'paid'] as const
@@ -125,13 +127,22 @@ export default function PayablesPage() {
     a.click(); URL.revokeObjectURL(url)
   }
 
-  const owed = totals.owed?.amount ?? 0
-  const approved = totals.approved?.amount ?? 0
-  const paid = totals.paid?.amount ?? 0
+  /**
+   * A total that never arrived is a dash, not a zero.
+   *
+   * These three read `?? 0`, and `totals` is `res.data?.totals || {}`. A response that came
+   * back without its totals block therefore printed a confident nought against Owed — on the
+   * one screen whose whole job is to say how much we still owe creators. "We owe nobody
+   * anything" and "we never managed to ask" must not look the same. A real zero still prints
+   * as zero, because in that case the API sent the number.
+   */
+  const owed = totals.owed?.amount ?? null
+  const approved = totals.approved?.amount ?? null
+  const paid = totals.paid?.amount ?? null
 
   return (
     <SuperadminLayout>
-      <div className="space-y-8">
+      <div className="space-y-ds-5">
         <MoneyHubHeader
           title="Creator payments"
           sub="Record what we owe a creator and follow it through to paid. Recording is not paying — a founder marks a payment paid."
@@ -147,12 +158,17 @@ export default function PayablesPage() {
           }
         />
 
+        {/* A tone is a claim about the state of the money. With the figure unknown there is no
+            claim to make, so an absent total is neutral rather than green. */}
         <StatGrid cols={3}>
-          <Stat label="Owed" value={aed(owed)} tone={owed ? 'warn' : 'good'} icon={CircleDollarSign}
+          <Stat label="Owed" value={aed(owed)} icon={CircleDollarSign}
+                tone={owed == null ? 'neutral' : owed ? 'warn' : 'good'}
                 hint="Recorded, not yet approved" onClick={() => setTab('owed')} />
-          <Stat label="Approved" value={aed(approved)} tone="info" icon={BadgeCheck}
+          <Stat label="Approved" value={aed(approved)} icon={BadgeCheck}
+                tone={approved == null ? 'neutral' : 'info'}
                 hint="Cleared, waiting to be paid" onClick={() => setTab('approved')} />
-          <Stat label="Paid" value={aed(paid)} tone="good" icon={Wallet}
+          <Stat label="Paid" value={aed(paid)} icon={Wallet}
+                tone={paid == null ? 'neutral' : 'good'}
                 hint="Money that has left the company" onClick={() => setTab('paid')} />
         </StatGrid>
 
@@ -164,26 +180,30 @@ export default function PayablesPage() {
           </TabsList>
         </Tabs>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">All payments</CardTitle>
-            <CardDescription>
+        {/* The table used to sit inside a Card, which drew a rounded edge around a grid that
+            already has rules of its own — a box around a box. The card comes off; the title
+            and the row rule carry the same structure with two fewer edges, and the figures
+            get the room the padding was using. */}
+        <section data-tour="panel-all-payments" className="space-y-ds-3">
+          <div className="space-y-ds-1">
+            <h2 className="text-ds-subheading">All payments</h2>
+            <p className="text-ds-body-sm text-muted-foreground">
               Where an agreed amount differs from the rate we hold, both are shown.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-0">
+            </p>
+          </div>
+          <div>
             {loading ? (
-              <p className="px-6 py-8 text-sm text-muted-foreground">Loading…</p>
+              <p className="py-8 text-sm text-muted-foreground">Loading…</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-6 pb-2 text-left font-medium">Payment</th>
+                      <th className="pb-2 pr-3 text-left font-medium">Payment</th>
                       <th className="px-3 pb-2 text-left font-medium">Creator</th>
                       <th className="px-3 pb-2 text-left font-medium">Agreed</th>
                       <th className="px-3 pb-2 text-left font-medium">Status</th>
-                      <th className="px-6 pb-2 text-right font-medium"></th>
+                      <th className="pb-2 pl-3 text-right font-medium"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -191,8 +211,8 @@ export default function PayablesPage() {
                       const cat = i.catalogue_cost_aed
                       const diff = cat != null && Number(cat) !== Number(i.agreed_amount_aed)
                       return (
-                        <tr key={i.id} className="border-b last:border-0 hover:bg-muted/40">
-                          <td className="px-6 py-3">
+                        <tr key={i.id} className="border-b last:border-0 hover:bg-black/[0.02] dark:hover:bg-white/[0.04]">
+                          <td className="py-ds-3 pr-3">
                             <p className="font-medium">{i.title}</p>
                             <p className="text-xs text-muted-foreground">
                               {i.what_for}
@@ -208,7 +228,7 @@ export default function PayablesPage() {
                               {!i.what_for && !i.campaign_name ? '—' : ''}
                             </p>
                           </td>
-                          <td className="px-3 py-3">
+                          <td className="px-3 py-ds-3">
                             {i.creator_username ? (
                               <button type="button" className="underline underline-offset-2 hover:text-foreground"
                                       onClick={() => router.push(
@@ -217,7 +237,7 @@ export default function PayablesPage() {
                               </button>
                             ) : '—'}
                           </td>
-                          <td className="px-3 py-3">
+                          <td className="px-3 py-ds-3">
                             <span className="font-medium tabular-nums">{aed(i.agreed_amount_aed)}</span>
                             {diff && (
                               <p className="text-xs text-muted-foreground">
@@ -225,10 +245,10 @@ export default function PayablesPage() {
                               </p>
                             )}
                           </td>
-                          <td className="px-3 py-3">
+                          <td className="px-3 py-ds-3">
                             <Badge variant="outline" className={TONE[i.status]}>{i.status}</Badge>
                           </td>
-                          <td className="px-6 py-3 text-right">
+                          <td className="py-ds-3 pl-3 text-right">
                             {i.status === 'owed' && (
                               <Button size="sm" variant="outline" disabled={busy}
                                       onClick={() => move(i.id, 'approved')}>Approve</Button>
@@ -246,7 +266,7 @@ export default function PayablesPage() {
                       )
                     })}
                     {items.length === 0 && (
-                      <tr><td colSpan={5} className="px-6 py-10 text-center text-muted-foreground">
+                      <tr><td colSpan={5} className="py-10 text-center text-muted-foreground">
                         Nothing recorded here yet.
                       </td></tr>
                     )}
@@ -254,8 +274,8 @@ export default function PayablesPage() {
                 </table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
