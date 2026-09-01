@@ -25,28 +25,34 @@ import { cn } from '@/lib/utils'
 
 export type Tone = 'neutral' | 'good' | 'warn' | 'bad' | 'info'
 
+/* The three maps below used to hold hex literals and Tailwind palette steps, one set per
+   tone per mode. They now name a token defined once in the `.console-shell` block in
+   globals.css, so "amber" is a single decision rather than the same guess written out in
+   twenty places. The tokens are scoped to the console shell by construction and cannot be
+   reached from a client-facing page. */
+
 const DOT: Record<Tone, string> = {
-  neutral: 'bg-neutral-400 dark:bg-neutral-500',
-  good: 'bg-emerald-500',
-  warn: 'bg-amber-500',
-  bad: 'bg-rose-500',
-  info: 'bg-[#A6C520] dark:bg-[#C7E63F]',
+  neutral: 'bg-[var(--tone-neutral-dot)]',
+  good: 'bg-[var(--tone-good-dot)]',
+  warn: 'bg-[var(--tone-warn-dot)]',
+  bad: 'bg-[var(--tone-bad-dot)]',
+  info: 'bg-[var(--tone-info-dot)]',
 }
 
 /** The card surface for a tone. Pastel in light, a deep tint in dark. */
 const WASH: Record<Tone, string> = {
-  neutral: 'bg-white dark:bg-neutral-900/70',
-  good: 'bg-[#EDF6EC] dark:bg-emerald-950/40',
-  warn: 'bg-[#FDF0DF] dark:bg-amber-950/40',
-  bad: 'bg-[#FBE7E5] dark:bg-rose-950/40',
-  info: 'bg-[#F2F8DA] dark:bg-lime-950/30',
+  neutral: 'bg-[var(--tone-neutral-wash)]',
+  good: 'bg-[var(--tone-good-wash)]',
+  warn: 'bg-[var(--tone-warn-wash)]',
+  bad: 'bg-[var(--tone-bad-wash)]',
+  info: 'bg-[var(--tone-info-wash)]',
 }
 
 const TEXT: Record<Tone, string> = {
   neutral: 'text-foreground',
-  good: 'text-emerald-700 dark:text-emerald-400',
-  warn: 'text-amber-700 dark:text-amber-400',
-  bad: 'text-rose-700 dark:text-rose-400',
+  good: 'text-[var(--tone-good-ink)]',
+  warn: 'text-[var(--tone-warn-ink)]',
+  bad: 'text-[var(--tone-bad-ink)]',
   info: 'text-foreground',
 }
 
@@ -72,9 +78,11 @@ export function Aed({ children }: { children: React.ReactNode }) {
   )
 }
 
-/** The shared card shell: generous radius, hairline edge, a shadow you feel more than see. */
+/** The shared card shell: generous radius, hairline edge, a shadow you feel more than see.
+ *  The radius was the literal `rounded-[22px]`; it is now the `ds-2xl` step, which is
+ *  derived from the theme's --radius, so retuning the theme moves the cards with it. */
 export const CARD =
-  'rounded-[22px] border border-black/[0.06] shadow-[0_1px_2px_rgba(16,20,12,0.04),0_12px_28px_-16px_rgba(16,20,12,0.18)] ' +
+  'rounded-ds-2xl border border-black/[0.06] shadow-[0_1px_2px_rgba(16,20,12,0.04),0_12px_28px_-16px_rgba(16,20,12,0.18)] ' +
   'dark:border-white/[0.07] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_12px_28px_-16px_rgba(0,0,0,0.7)]'
 
 /** Page title, one line of what the screen is for, and the screen's single main action. */
@@ -115,30 +123,58 @@ export function Stat({
     <Tag
       {...(onClick ? { type: 'button' as const, onClick } : {})}
       className={cn(
-        CARD, WASH[tone], 'w-full p-5 text-left transition-all',
-        onClick && 'hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgba(16,20,12,0.05),0_18px_36px_-18px_rgba(16,20,12,0.25)]',
+        'w-full rounded-ds-lg px-ds-2 py-ds-2 text-left transition-colors',
+        onClick &&
+          'cursor-pointer hover:bg-black/[0.035] focus-visible:outline-none focus-visible:ring-2 ' +
+          'focus-visible:ring-ring focus-visible:ring-offset-2 dark:hover:bg-white/[0.05]',
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[12.5px] font-medium text-muted-foreground">{label}</p>
-        {Icon && (
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-black/[0.04] dark:bg-white/[0.06]">
-            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-          </span>
+      <div className="flex items-center gap-ds-2">
+        {/* Tone was a wash across the whole tile, which only worked while the tile was a
+            box. Without the box it becomes the same mark the list rows use: a dot, with the
+            label as the word beside it, so the state survives for anyone who cannot
+            separate the colours and for anyone reading this printed. */}
+        {tone !== 'neutral' && (
+          <span className={cn('h-1.5 w-1.5 flex-none rounded-full', DOT[tone])} aria-hidden />
         )}
+        <p className="text-ds-caption font-medium text-muted-foreground">{label}</p>
+        {Icon && <Icon className="ml-auto h-3.5 w-3.5 flex-none text-muted-foreground/70" />}
       </div>
-      <p className={cn('mt-3 text-[34px] font-semibold leading-none tracking-[-0.02em] tabular-nums', TEXT[tone])}>
+      <p
+        className={cn(
+          'mt-ds-2 text-[40px] font-semibold leading-none tracking-[-0.025em] tabular-nums',
+          TEXT[tone],
+        )}
+      >
         {value}
       </p>
-      {hint && <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">{hint}</p>}
+      {hint && <p className="mt-ds-2 text-ds-caption leading-relaxed text-muted-foreground">{hint}</p>}
     </Tag>
   )
 }
 
+/**
+ * A band of figures, grouped by the space around them rather than by a border each.
+ *
+ * Before, every Stat carried the CARD shell — a hairline, a wash and a shadow. Four of them
+ * put eight edges between the first number and the last; a screen with eight put sixteen.
+ * None of those edges said anything: the tiles were always the same kind of thing, laid out
+ * in a row, which is already the entire message a border was carrying.
+ *
+ * So the borders come off and the gap goes up a step instead — ds-5 (40px) between columns,
+ * which is wider than any gap inside a tile and therefore reads as the separation the border
+ * used to draw. The figures take the room the padding was using: 34px to 40px.
+ *
+ * The negative inline margin cancels the padding Stat needs for its hover target, so the
+ * first column's label still lines up with the page's left edge.
+ */
 export function StatGrid({ children, cols = 4 }: { children: React.ReactNode; cols?: 3 | 4 }) {
   return (
     <div data-tour="stats"
-         className={cn('grid gap-4 sm:grid-cols-2', cols === 4 ? 'xl:grid-cols-4' : 'xl:grid-cols-3')}>
+         className={cn(
+           '-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2',
+           cols === 4 ? 'xl:grid-cols-4' : 'xl:grid-cols-3',
+         )}>
       {children}
     </div>
   )
@@ -161,7 +197,7 @@ export function Panel({
   return (
     <section
       data-tour={`panel-${slug(title)}`}
-      className={cn(CARD, 'flex flex-col bg-white dark:bg-neutral-900/70', className)}
+      className={cn(CARD, 'flex flex-col', WASH.neutral, className)}
     >
       <header className="flex items-start justify-between gap-4 px-6 pb-4 pt-5">
         <div className="space-y-1">
@@ -245,7 +281,7 @@ export function Ring({
           {v > 0 && (
             <circle
               cx="60" cy="60" r={r} fill="none" strokeWidth="8" strokeLinecap="round"
-              className="stroke-[#A6C520] dark:stroke-[#C7E63F]"
+              className="stroke-[var(--console-lime)]"
               strokeDasharray={`${(v / 100) * c} ${c}`}
               style={{ transition: 'stroke-dasharray 900ms cubic-bezier(0.22,1,0.36,1)' }}
             />
@@ -298,10 +334,10 @@ export function ScoreDot({
 }: { value: number | string; suffix?: string; tone?: Tone; title?: string }) {
   const skin: Record<Tone, string> = {
     neutral: 'bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]',
-    good: 'bg-[#E9F5E5] text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300',
-    warn: 'bg-[#FCEFDC] text-amber-800 dark:bg-amber-950/50 dark:text-amber-300',
-    bad: 'bg-[#FBE3E0] text-rose-700 dark:bg-rose-950/50 dark:text-rose-300',
-    info: 'bg-[#EFF7D4] text-[#5C7211] dark:bg-lime-950/40 dark:text-lime-300',
+    good: 'bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]',
+    warn: 'bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
+    bad: 'bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]',
+    info: 'bg-[var(--tone-info-wash)] text-[var(--tone-info-ink)]',
   }
   const text = `${value}${suffix ?? ''}`
   // A circle only holds a character or two. "14d" in a fixed circle wrapped onto a second
