@@ -38,6 +38,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { FieldStrip, PageHead } from "@/components/console/primitives"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,7 +126,10 @@ export default function SuperadminUsersPage() {
       ...users.map(u => [
         esc(u.full_name), esc(u.email), esc(u.role),
         esc(u.teams?.[0]?.name || 'Individual'), esc(u.status),
-        esc(u.credits?.balance ?? 0), esc(u.created_at), esc(u.updated_at),
+        // `?? 0` wrote a zero balance into the export for any row whose credits block was
+        // missing, which is worse in a spreadsheet than on screen: it gets summed. Absent
+        // exports as an empty cell; a real zero still exports as 0.
+        esc(u.credits?.balance), esc(u.created_at), esc(u.updated_at),
       ].join(',')),
     ]
     const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' })
@@ -245,31 +249,33 @@ export default function SuperadminUsersPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-6">
-              
-              {/* Header */}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h1 className="text-2xl font-semibold">User Management</h1>
-                  <p className="text-sm text-muted-foreground mt-1">Create, manage, and monitor platform users</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={loadUsers} disabled={loading}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                  <Button
-                    onClick={() => router.push('/superadmin/users/create')}
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Create Brand Account
-                  </Button>
-                </div>
-              </div>
+      <div className="space-y-ds-5">
+
+              {/* Header. Same title, same line under it, same two buttons - it just uses
+                  the console's shared page head, so this screen's title is the size every
+                  other console title is instead of a fourth guess at it. */}
+              <PageHead
+                title="User Management"
+                sub="Create, manage, and monitor platform users"
+                action={
+                  <>
+                    <Button variant="outline" size="sm" onClick={loadUsers} disabled={loading}>
+                      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                    <Button
+                      onClick={() => router.push('/superadmin/users/create')}
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Create Brand Account
+                    </Button>
+                  </>
+                }
+              />
 
               {/* Filters */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-ds-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-ds-2">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
@@ -373,7 +379,9 @@ export default function SuperadminUsersPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right tabular-nums font-medium text-sm">
-                            {formatNumber(user.credits?.balance || 0)}
+                            {/* `|| 0` made a row whose credits block did not come back
+                                indistinguishable from a row with an empty wallet. */}
+                            {user.credits?.balance == null ? '—' : formatNumber(user.credits.balance)}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {user.updated_at ? formatDate(user.updated_at) : '--'}
@@ -453,39 +461,46 @@ export default function SuperadminUsersPage() {
             <DialogDescription>{selectedUser?.email}</DialogDescription>
           </DialogHeader>
           {selectedUser && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Role</p>
-                  <p className="font-medium capitalize mt-0.5">{selectedUser.role}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Status</p>
-                  <Badge variant={getStatusVariant(selectedUser.status)} className="capitalize mt-0.5">
-                    {selectedUser.status}
-                  </Badge>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Credits balance</p>
-                  <p className="font-medium tabular-nums mt-0.5">{formatNumber(selectedUser.credits?.balance || 0)}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Credits spent</p>
-                  <p className="font-medium tabular-nums mt-0.5">{formatNumber(selectedUser.credits?.spent || 0)}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Created</p>
-                  <p className="font-medium mt-0.5">{selectedUser.created_at ? formatDate(selectedUser.created_at) : '--'}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Last updated</p>
-                  <p className="font-medium mt-0.5">{selectedUser.updated_at ? formatDate(selectedUser.updated_at) : '--'}</p>
-                </div>
-              </div>
+            <div className="space-y-ds-4">
+              {/* Six facts about one person, each of which had its own border and padding,
+                  inside a dialog that already has an edge and a title. Fourteen edges to
+                  read six short values, none of which was a different subject from any
+                  other. They are a labelled field strip now - the console's standard way of
+                  putting a record's facts under its name - so the eye runs along one row
+                  instead of stepping in and out of six frames.
+
+                  Credits read `?? balance || 0`, so a user record that came back without a
+                  credits block showed a balance of zero: an account with money in it and an
+                  account we failed to read looked identical. Absent is an em dash; a real
+                  zero still reads 0. */}
+              <FieldStrip
+                fields={[
+                  { label: 'Role', value: <span className="capitalize">{selectedUser.role}</span> },
+                  { label: 'Status', value: (
+                    <Badge variant={getStatusVariant(selectedUser.status)} className="capitalize">
+                      {selectedUser.status}
+                    </Badge>
+                  ) },
+                  { label: 'Credits balance', value: (
+                    <span className="tabular-nums">
+                      {selectedUser.credits?.balance == null ? '—' : formatNumber(selectedUser.credits.balance)}
+                    </span>
+                  ) },
+                  { label: 'Credits spent', value: (
+                    <span className="tabular-nums">
+                      {selectedUser.credits?.spent == null ? '—' : formatNumber(selectedUser.credits.spent)}
+                    </span>
+                  ) },
+                  { label: 'Created', value: selectedUser.created_at ? formatDate(selectedUser.created_at) : '--' },
+                  { label: 'Last updated', value: selectedUser.updated_at ? formatDate(selectedUser.updated_at) : '--' },
+                ]}
+              />
               {selectedUser.teams?.length > 0 && (
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground mb-2">Teams</p>
-                  <div className="flex flex-wrap gap-2">
+                /* The one hairline in the dialog, and it earns it: teams are a different
+                   subject from the account's own facts. */
+                <div className="border-t border-black/[0.06] pt-ds-3 dark:border-white/[0.07]">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground mb-ds-2">Teams</p>
+                  <div className="flex flex-wrap gap-ds-2">
                     {selectedUser.teams.map((t, i) => (
                       <Badge key={i} variant="secondary">{t.name} · {t.role}</Badge>
                     ))}
