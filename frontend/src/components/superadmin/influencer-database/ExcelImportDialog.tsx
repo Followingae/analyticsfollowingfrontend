@@ -127,7 +127,7 @@ export function ExcelImportDialog({ open, onOpenChange, onImportComplete }: Exce
                   <span className="font-medium">Pricing:</span> cost_reel_aed + sell_reel_aed
                   (plus post / story / carousel / video / bundle / monthly), in whole AED
                 </p>
-                <p className="pt-1 text-[11px]">Columns are matched by header name — order does not matter.</p>
+                <p className="pt-1 text-[11px]">Columns are matched by header name, so order does not matter.</p>
               </div>
             </>
           )}
@@ -240,7 +240,7 @@ export function ExcelImportDialog({ open, onOpenChange, onImportComplete }: Exce
           )}
           {step === "review" && (
             <p className="mr-auto text-xs text-muted-foreground">
-              Nothing has been saved yet — edit any price above, then import.
+              Nothing has been saved yet. Edit any price above, then import.
             </p>
           )}
           {step === "result" && <Button onClick={handleClose}>Done</Button>}

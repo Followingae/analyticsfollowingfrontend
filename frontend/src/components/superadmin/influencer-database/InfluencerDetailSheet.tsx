@@ -1,5 +1,12 @@
 "use client"
 
+/**
+ * One creator's record, in a sheet. Density tier: WORKING.
+ *
+ * The Rates tab is not rendered at all for anyone whose scope covers neither side of the
+ * money. A disabled tab is an advertisement: it tells a business developer that rates exist
+ * on this record and that they are the one being kept out.
+ */
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +18,7 @@ import { InfluencerAnalyticsTab } from "./InfluencerAnalyticsTab"
 import { InfluencerPricingTab } from "./InfluencerPricingTab"
 import { InfluencerPostsTab } from "./InfluencerPostsTab"
 import { InfluencerAccessTab } from "./InfluencerAccessTab"
+import { useMoneyColumns } from "./useMoneyColumns"
 
 interface InfluencerDetailSheetProps {
   influencer: MasterInfluencer | null
@@ -20,11 +28,13 @@ interface InfluencerDetailSheetProps {
   onRefresh: (id: string) => void
 }
 
+/* The console's tones, named once in globals.css, rather than a seventh set of palette
+   steps picked by eye on this one sheet. */
 const statusColors: Record<string, string> = {
-  active: "bg-green-100 text-green-700",
-  inactive: "bg-gray-100 text-gray-600",
-  blacklisted: "bg-red-100 text-red-700",
-  pending: "bg-yellow-100 text-yellow-700",
+  active: "border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]",
+  inactive: "border-transparent bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]",
+  blacklisted: "border-transparent bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]",
+  pending: "border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]",
 }
 
 export function InfluencerDetailSheet({
@@ -34,7 +44,10 @@ export function InfluencerDetailSheet({
   onSave,
   onRefresh,
 }: InfluencerDetailSheetProps) {
+  const { canSeeCost, canSeeSell } = useMoneyColumns()
   if (!influencer) return null
+
+  const showRates = canSeeCost || canSeeSell
 
   const initials = influencer.full_name
     ? influencer.full_name
@@ -49,18 +62,18 @@ export function InfluencerDetailSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:w-[700px] sm:max-w-[700px] overflow-y-auto p-0">
         <SheetHeader className="p-6 pb-4 border-b">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-ds-3">
             <Avatar className="h-14 w-14">
               <AvatarImage src={influencer.profile_image_url || undefined} alt={influencer.username} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <SheetTitle className="text-lg truncate">
+              <div className="flex items-center gap-ds-2">
+                <SheetTitle className="truncate text-ds-heading">
                   @{influencer.username}
                 </SheetTitle>
                 {influencer.is_verified && (
-                  <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 shrink-0 text-[var(--tone-info-dot)]" />
                 )}
                 <Badge
                   variant="secondary"
@@ -70,7 +83,7 @@ export function InfluencerDetailSheet({
                 </Badge>
               </div>
               {influencer.full_name && (
-                <p className="text-sm text-muted-foreground truncate">
+                <p className="truncate text-ds-caption text-muted-foreground">
                   {influencer.full_name}
                 </p>
               )}
@@ -79,40 +92,42 @@ export function InfluencerDetailSheet({
         </SheetHeader>
 
         <Tabs defaultValue="overview" className="flex flex-col">
-          <TabsList className="mx-6 mt-4 grid w-auto grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          <TabsList className="mx-6 mt-ds-3 flex w-auto flex-wrap">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="pricing">Pricing</TabsTrigger>
+            {showRates && <TabsTrigger value="pricing">Rates</TabsTrigger>}
             <TabsTrigger value="posts">Posts</TabsTrigger>
-            <TabsTrigger value="access">Access</TabsTrigger>
+            <TabsTrigger value="access">Sharing</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="p-6 pt-4">
+          <TabsContent value="overview" className="p-6 pt-ds-3">
             <InfluencerOverviewTab
               influencer={influencer}
               onSave={(data) => onSave(influencer.id, data)}
             />
           </TabsContent>
 
-          <TabsContent value="analytics" className="p-6 pt-4">
+          <TabsContent value="analytics" className="p-6 pt-ds-3">
             <InfluencerAnalyticsTab
               influencer={influencer}
               onRefresh={() => onRefresh(influencer.id)}
             />
           </TabsContent>
 
-          <TabsContent value="pricing" className="p-6 pt-4">
-            <InfluencerPricingTab
-              influencer={influencer}
-              onSave={(data) => onSave(influencer.id, data)}
-            />
-          </TabsContent>
+          {showRates && (
+            <TabsContent value="pricing" className="p-6 pt-ds-3">
+              <InfluencerPricingTab
+                influencer={influencer}
+                onSave={(data) => onSave(influencer.id, data)}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="posts" className="p-6 pt-4">
+          <TabsContent value="posts" className="p-6 pt-ds-3">
             <InfluencerPostsTab influencer={influencer} />
           </TabsContent>
 
-          <TabsContent value="access" className="p-6 pt-4">
+          <TabsContent value="access" className="p-6 pt-ds-3">
             <InfluencerAccessTab influencer={influencer} />
           </TabsContent>
         </Tabs>

@@ -1,6 +1,17 @@
 /**
- * Operations OS - Campaigns List Page
- * Entry point to operations management system
+ * Operations — the campaign list.
+ *
+ * Density tier: SCANNING. This is the screen an operator opens twenty times a day to find
+ * one campaign, so the rows stay at the table floor and the air goes around the table, not
+ * inside it. The page used to wrap the whole thing in a card, put the filters in a second
+ * card inside it, and finish with four metric cards; that is three boxes to cross before
+ * the first row. The boxes are gone and nothing else changed.
+ *
+ * The figures are a band, not four tiles: a count is not an object you can click, move or
+ * delete, so it does not get a card.
+ *
+ * And "no campaigns" now means no campaigns. A failed read says so and offers the retry,
+ * because an empty list over a 500 tells an operator their work has disappeared.
  */
 
 'use client';
@@ -8,13 +19,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useOperations } from '@/contexts/OperationsContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { StandardMetricCard } from '@/components/ui/standard-metric-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -23,37 +29,49 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import {
-  Search,
-  Calendar,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  ChevronRight,
-  Filter,
-  RefreshCcw,
-  Briefcase
-} from 'lucide-react';
+  Page, Sections, Group, PageHead, SectionHead,
+  Figure, Figures, Ledger, LedgerHead, Cell, State, Failed, Empty, Waiting, DASH,
+  type StateTone,
+} from '@/components/campaigns/surface';
+import { Search, ChevronRight, Filter, RefreshCcw, Briefcase } from 'lucide-react';
 import { format, isValid } from 'date-fns';
 
-/** Format a date defensively — "—" for null/invalid instead of throwing
- *  `RangeError: Invalid time value` (FA campaigns can have null dates). */
+/** Format a date defensively. A date we do not have is a dash, never a guess. */
 const safeDate = (value?: string | null, fmt = 'MMM d, yyyy'): string => {
-  if (!value) return '—';
+  if (!value) return DASH;
   const d = new Date(value);
-  return isValid(d) ? format(d, fmt) : '—';
+  return isValid(d) ? format(d, fmt) : DASH;
 };
+
+const STATUS_TONE: Record<string, StateTone> = {
+  planning: 'info',
+  active: 'good',
+  completed: 'neutral',
+  archived: 'neutral',
+};
+
+/** A count we were given, or a dash. `undefined` is not zero. */
+function Count({ n, tone }: { n: unknown; tone?: 'warn' | 'bad' }) {
+  if (typeof n !== 'number' || Number.isNaN(n)) {
+    return <span className="text-muted-foreground/70">{DASH}</span>;
+  }
+  if (n === 0) return <span className="text-muted-foreground/70">0</span>;
+  return (
+    <span
+      className={
+        tone === 'bad' ? 'font-medium text-red-600 dark:text-red-400'
+        : tone === 'warn' ? 'font-medium text-amber-700 dark:text-amber-400'
+        : 'font-medium'
+      }
+    >
+      {n}
+    </span>
+  );
+}
 
 export default function OperationsCampaignsPage() {
   const router = useRouter();
-  const { campaigns, loadCampaigns, uiState, userAccess } = useOperations();
+  const { campaigns, loadCampaigns, uiState, loadErrors } = useOperations();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -62,6 +80,8 @@ export default function OperationsCampaignsPage() {
     loadCampaigns().finally(() => setIsInitialLoad(false));
   }, [loadCampaigns]);
 
+  const failed = loadErrors.campaigns;
+
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = campaign.campaign_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -69,80 +89,72 @@ export default function OperationsCampaignsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; icon: any }> = {
-      planning: { variant: 'secondary', icon: Calendar },
-      active: { variant: 'default', icon: CheckCircle },
-      completed: { variant: 'outline', icon: CheckCircle },
-      archived: { variant: 'secondary', icon: Clock }
-    };
-
-    const config = variants[status] || variants.active;
-    const Icon = config.icon;
-
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
-
   const navigateToCampaign = (campaignId: string) => {
     router.push(`/ops/campaigns/${campaignId}`);
   };
 
+  /* A total built from a list we could not read is not a total. When the read failed every
+     figure is a dash, rather than the zero a `.reduce` would happily produce. */
+  const sum = (get: (c: any) => unknown) =>
+    failed ? null : campaigns.reduce((acc, c) => acc + (typeof get(c) === 'number' ? (get(c) as number) : 0), 0);
+
   if (isInitialLoad && uiState.isLoading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Skeleton className="h-12 w-64" />
-        <div className="grid gap-4">
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-32 w-full" />
-          ))}
-        </div>
-      </div>
+      <Page width="wide">
+        <Sections>
+          <PageHead title="Operations" sub="Campaign execution and deliverables." />
+          <Waiting lines={6} />
+        </Sections>
+      </Page>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Operations</h1>
-          <p className="text-muted-foreground mt-1">
-            Campaign execution and deliverables management
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="px-3 py-1">
-            {userAccess.viewMode === 'internal' ? 'Internal View' : 'Client View'}
-          </Badge>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => loadCampaigns()}
-            disabled={uiState.isLoading}
-          >
-            <RefreshCcw className={`h-4 w-4 mr-2 ${uiState.isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
-      </div>
+    <Page width="wide">
+      <Sections>
+        <PageHead
+          title="Operations"
+          sub="Campaign execution and deliverables."
+          action={
+            <>
+              {/* This read `userAccess.viewMode`, which does not exist on UserAccess, so the
+                  badge said "Client View" to everyone including an operator sitting in
+                  internal mode. The mode lives on `uiState`. */}
+              <State tone="neutral">
+                {uiState.viewMode === 'internal' ? 'Internal view' : 'Client view'}
+              </State>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadCampaigns()}
+                disabled={uiState.isLoading}
+              >
+                <RefreshCcw className={`h-4 w-4 mr-2 ${uiState.isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </>
+          }
+        />
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Campaigns</CardTitle>
-          <CardDescription>
-            Select a campaign to manage workstreams and deliverables
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground -translate-y-1/2" />
+        <Figures cols={4}>
+          <Figure label="Campaigns" value={failed ? null : campaigns.length} />
+          <Figure
+            label="Active"
+            value={failed ? null : campaigns.filter(c => c.status === 'active').length}
+          />
+          <Figure label="Deliverables" value={sum((c: any) => c.total_deliverables)} />
+          <Figure label="Pending approval" value={sum((c: any) => c.pending_approvals)} />
+        </Figures>
+
+        <Group>
+          <SectionHead
+            title="Campaigns"
+            sub="Open one to manage its workstreams and deliverables."
+          />
+
+          <div className="flex flex-wrap items-center gap-ds-3">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search campaigns or brands..."
                 value={searchTerm}
@@ -165,90 +177,67 @@ export default function OperationsCampaignsPage() {
             </Select>
           </div>
 
-          {/* Campaigns Table */}
-          {filteredCampaigns.length === 0 ? (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {campaigns.length === 0
-                  ? 'No campaigns available. Contact your administrator to get started.'
-                  : 'No campaigns match your search criteria.'}
-              </AlertDescription>
-            </Alert>
+          {failed ? (
+            <Failed
+              what="The campaign list did not load"
+              detail={`${failed} Nothing has changed on the campaigns themselves, we just could not read them.`}
+              onRetry={() => loadCampaigns()}
+            />
+          ) : filteredCampaigns.length === 0 ? (
+            <Empty>
+              {campaigns.length === 0
+                ? 'No campaigns have been set up yet. An administrator adds the first one.'
+                : 'No campaign matches this search.'}
+            </Empty>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Campaign</TableHead>
-                    <TableHead>Brand</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-center">Deliverables</TableHead>
-                    <TableHead className="text-center">Pending</TableHead>
-                    <TableHead className="text-center">Overdue</TableHead>
-                    <TableHead>Period</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCampaigns.map((campaign) => (
-                    <TableRow
-                      key={campaign.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigateToCampaign(campaign.id)}
-                    >
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Briefcase className="h-4 w-4 text-muted-foreground" />
-                          {campaign.campaign_name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{campaign.brand_name}</TableCell>
-                      <TableCell>{getStatusBadge(campaign.status)}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="secondary">
-                          {(campaign as any).total_deliverables || 0}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {(campaign as any).pending_approvals > 0 && (
-                          <Badge variant="outline" className="bg-yellow-50">
-                            {(campaign as any).pending_approvals}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {(campaign as any).overdue_posts > 0 && (
-                          <Badge variant="destructive">
-                            {(campaign as any).overdue_posts}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {safeDate(campaign.start_date, 'MMM d')} -{' '}
-                        {safeDate(campaign.end_date)}
-                      </TableCell>
-                      <TableCell>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <Ledger>
+              <LedgerHead
+                cols={[
+                  { key: 'campaign', label: 'Campaign' },
+                  { key: 'brand', label: 'Brand' },
+                  { key: 'status', label: 'Status' },
+                  { key: 'deliverables', label: 'Deliverables', align: 'right' },
+                  { key: 'pending', label: 'Pending', align: 'right' },
+                  { key: 'overdue', label: 'Overdue', align: 'right' },
+                  { key: 'period', label: 'Period' },
+                  { key: 'go', label: '' },
+                ]}
+              />
+              <tbody>
+                {filteredCampaigns.map((campaign) => (
+                  <tr
+                    key={campaign.id}
+                    className="cursor-pointer border-b border-border/70 transition-colors last:border-b-0 hover:bg-muted/50"
+                    onClick={() => navigateToCampaign(campaign.id)}
+                  >
+                    <Cell className="font-medium">
+                      <span className="flex items-center gap-ds-2">
+                        <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        {campaign.campaign_name}
+                      </span>
+                    </Cell>
+                    <Cell>{campaign.brand_name}</Cell>
+                    <Cell>
+                      <State tone={STATUS_TONE[campaign.status] || 'neutral'}>
+                        {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                      </State>
+                    </Cell>
+                    <Cell align="right"><Count n={(campaign as any).total_deliverables} /></Cell>
+                    <Cell align="right"><Count n={(campaign as any).pending_approvals} tone="warn" /></Cell>
+                    <Cell align="right"><Count n={(campaign as any).overdue_posts} tone="bad" /></Cell>
+                    <Cell className="whitespace-nowrap text-muted-foreground">
+                      {safeDate(campaign.start_date, 'MMM d')} to {safeDate(campaign.end_date)}
+                    </Cell>
+                    <Cell className="w-10">
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </Cell>
+                  </tr>
+                ))}
+              </tbody>
+            </Ledger>
           )}
-
-          {/* Quick Stats */}
-          {campaigns.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-              <StandardMetricCard icon={Briefcase} label="Total Campaigns" value={campaigns.length} />
-              <StandardMetricCard icon={CheckCircle} label="Active Campaigns" value={campaigns.filter(c => c.status === 'active').length} />
-              <StandardMetricCard icon={Calendar} label="Total Deliverables" value={campaigns.reduce((sum, c) => sum + ((c as any).total_deliverables || 0), 0)} />
-              <StandardMetricCard icon={Clock} label="Pending Approvals" value={campaigns.reduce((sum, c) => sum + ((c as any).pending_approvals || 0), 0)} />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        </Group>
+      </Sections>
+    </Page>
   );
 }

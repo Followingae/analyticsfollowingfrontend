@@ -85,7 +85,7 @@ export function ExcelImportPanel() {
                   (and post / story / carousel / video / bundle / monthly if needed), in whole AED
                 </p>
                 <p className="pt-1 text-[11px]">
-                  Columns are matched by header name, so order does not matter — keep row 1 as the header row.
+                  Columns are matched by header name, so order does not matter. Keep row 1 as the header row.
                 </p>
               </div>
             </CardContent>
@@ -221,7 +221,7 @@ export function ExcelImportPanel() {
                   <AlertDescription className="text-xs">
                     {result.skipped_existing_count} creator
                     {result.skipped_existing_count === 1 ? " was" : "s were"} already in the
-                    database and left untouched — their stored pricing, tags and notes are
+                    database and left untouched: their stored pricing, tags and notes are
                     unchanged.
                     <span className="mt-1 block break-words font-mono text-[11px] text-muted-foreground">
                       {result.skipped_existing.map((u) => `@${u}`).join(", ")}

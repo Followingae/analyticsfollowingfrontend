@@ -46,7 +46,7 @@ export function AddToListDialog({ open, onOpenChange, influencerIds, onDone }: {
     try {
       const res = await imdListsApi.addItems(list.id, influencerIds)
       const { added = 0, skipped = 0 } = res?.data ?? {}
-      toast.success(`Added ${added} to "${list.name}"${skipped > 0 ? ` — ${skipped} already in it` : ""}`)
+      toast.success(`Added ${added} to "${list.name}"${skipped > 0 ? `, ${skipped} already in it` : ""}`)
       onOpenChange(false)
       onDone?.()
     } catch (e) {
@@ -96,7 +96,7 @@ export function AddToListDialog({ open, onOpenChange, influencerIds, onDone }: {
         ) : (
           <div className="max-h-[45vh] space-y-1.5 overflow-y-auto">
             {lists.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No lists yet — create the first one.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">No lists yet. Create the first one.</p>
             ) : lists.map((l) => (
               <button
                 key={l.id} type="button" disabled={saving} onClick={() => addTo(l)}

@@ -47,6 +47,9 @@ import {
   Wallet,
   Image as ImageIcon,
   Activity,
+  Send,
+  Layers,
+  Map,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -143,6 +146,10 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         { title: "Creators needing a price", url: "/work/influencers/review", icon: Coins,
           badge: badges["needs-price"] },
         { title: "Brand rosters", url: "/work/areas", icon: Database },
+        // The other two halves of the supply job, and neither had an entry anywhere: what a
+        // client has asked us to source, and the category and market cells we cannot serve.
+        { title: "Sourcing rounds", url: "/work/sourcing", icon: Layers },
+        { title: "Where we're thin", url: "/work/coverage", icon: Map },
         { title: "Campaigns", url: "/work/campaigns", icon: Megaphone },
         { title: "Creators to chase", url: "/work/chasing", icon: ClipboardCheck,
           badge: badges["chasing"] },
@@ -154,12 +161,15 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     ? [
         { title: "Brands", url: "/work/brands", icon: Building2, badge: badges["brands"] },
         { title: "Quotes", url: "/work/proposals", icon: FileText, badge: badges["proposals"] },
+        // Everything we hand a client that is not a proposal or an invoice.
+        { title: "Share Center", url: "/work/share", icon: Send },
         { title: "Sample packs", url: "/work/areas?kind=sample", icon: Database },
       ]
     : accountOnly
     ? [
         { title: "My clients", url: "/work/clients", icon: Building2 },
         { title: "Quotes", url: "/work/proposals", icon: FileText },
+        { title: "Share Center", url: "/work/share", icon: Send },
         { title: "Campaigns", url: "/work/campaigns", icon: Megaphone },
         { title: "Late & chasing", url: "/work/chasing", icon: ClipboardCheck,
           badge: badges["chasing"] },
@@ -172,11 +182,25 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         ...(can("clients") || can("proposals") ? [{
           title: "Clients", url: "/work/clients", icon: Building2,
         }] : []),
+        // Everything we have handed a client that is not a proposal or an invoice. It sits
+        // with the client work because that is what it is; until now it was reachable only
+        // by typing the address.
+        ...(can("clients") ? [{
+          title: "Share Center", url: "/work/share", icon: Send,
+        }] : []),
         ...(can("campaigns") || can("operations") || can("fa") ? [{
           title: "Campaigns", url: "/work/campaigns", icon: Megaphone,
         }] : []),
         ...(can("influencers") || can("fa") ? [{
           title: "Creators", url: "/work/creators", icon: Users2,
+        }] : []),
+        // The supply side of Creators: what a client has asked us to source, and the
+        // category and market cells we cannot serve yet.
+        ...(can("influencers") ? [{
+          title: "Sourcing rounds", url: "/work/sourcing", icon: Layers,
+        }] : []),
+        ...(can("influencers") ? [{
+          title: "Where we're thin", url: "/work/coverage", icon: Map,
         }] : []),
         ...(can("billing") || can("influencers") ? [{
           title: "Money", url: "/work/money", icon: Banknote,
@@ -209,6 +233,9 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       ? [
           { title: "Merchants", url: "/work/fa/merchants", icon: Store },
           { title: "App activity", url: "/work/fa/activity", icon: Activity },
+          // Who is late, who has defaulted, who to reach before it escalates. It belongs to
+          // the app group because it only ever covers creators with in-app deliverables.
+          { title: "Creator reliability", url: "/work/fa/reliability", icon: ShieldCheck },
           { title: "Ad banners", url: "/work/fa/ad-banners", icon: ImageIcon },
           { title: "App notifications", url: "/work/fa/notifications", icon: Bell },
         ]

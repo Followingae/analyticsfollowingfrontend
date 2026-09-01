@@ -1,10 +1,22 @@
 "use client"
 
+/**
+ * The master database. Density tier: SCANNING.
+ *
+ * This is the screen an operator opens to work down two hundred creators, so the air goes
+ * around the table and never inside it: rows stay near 34px, cells keep 8 to 10 vertical and
+ * 12 to 16 horizontal, and the separation between the page's parts is space rather than a
+ * border. The table used to sit in a rounded box; a grid that already has rules of its own
+ * does not need a fourth edge drawn around it.
+ *
+ * Three states, not one. A read that failed is not an empty database: "no creators found"
+ * over a 500 has had people re-import a spreadsheet we already held.
+ */
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { Loader2, RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { superadminApiService } from "@/services/superadminApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import {
@@ -27,6 +39,7 @@ import { BulkPricingDialog } from "./BulkPricingDialog"
 import { BulkTagDialog } from "./BulkTagDialog"
 import { AddToListDialog } from "./AddToListDialog"
 import { AddToProposalDialog } from "./AddToProposalDialog"
+import { useMoneyColumns } from "./useMoneyColumns"
 
 export function InfluencerDatabasePage() {
   const router = useRouter()
@@ -66,6 +79,9 @@ export function InfluencerDatabasePage() {
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [loading, setLoading] = useState(true)
+  /* Loading, loaded and failed are three different screens. Held separately from `loading`
+     so a failed read can refuse to draw a table at all rather than drawing an empty one. */
+  const [error, setError] = useState<string | null>(null)
 
   // Dialog / Sheet state
   const [detailInfluencer, setDetailInfluencer] = useState<MasterInfluencer | null>(null)
@@ -86,7 +102,10 @@ export function InfluencerDatabasePage() {
     if (filters.page > 1) params.set("page", String(filters.page))
     if (filters.page_size !== DEFAULT_FILTERS.page_size) params.set("page_size", String(filters.page_size))
     const qs = params.toString()
-    const path = `/superadmin/influencers${qs ? `?${qs}` : ""}`
+    // /work is the console's address for this screen and the one every link in the nav uses.
+    // Rewriting the bar to /superadmin on first render told a talent manager, on the screen
+    // they live in, that they were somewhere they are not. Same page either way.
+    const path = `/work/influencers${qs ? `?${qs}` : ""}`
     router.replace(path, { scroll: false })
   }, [filters, router])
 
@@ -94,6 +113,7 @@ export function InfluencerDatabasePage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null)
       const result = await superadminApiService.getInfluencerDatabase(filters)
       if (result.success && result.data) {
         const data = result.data as InfluencerDatabaseResponse
@@ -101,11 +121,16 @@ export function InfluencerDatabasePage() {
         setTotalCount(data.total_count || 0)
         setTotalPages(data.total_pages || 0)
       } else {
-
+        // This branch was empty, so a refusal left the last good page on screen and said
+        // nothing. A read that did not succeed is an error, not a database with nothing in it.
+        throw new Error((result as any)?.error || "The database did not answer")
       }
-    } catch (error) {
-      toast.error("Failed to load influencer database")
-
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The database did not answer")
+      setInfluencers([])
+      setTotalCount(0)
+      setTotalPages(0)
+      toast.error("Could not load the creator database")
     } finally {
       setLoading(false)
     }
@@ -161,6 +186,10 @@ export function InfluencerDatabasePage() {
   }, [fetchData])
 
   const { isSuperAdmin } = useAdminAccess()
+  /* Cost, sell and margin are three different secrets and this list carries all of them.
+     The columns a viewer may not read are removed from the definition list rather than
+     blanked, so the table never lays them out and the picker never offers them. */
+  const money = useMoneyColumns()
   const [refreshingSelected, setRefreshingSelected] = useState(false)
 
   /** Re-run analytics for the creators that are ticked, and nobody else.
@@ -220,7 +249,7 @@ export function InfluencerDatabasePage() {
   }, [])
 
   const onAddClick = useCallback(() => {
-    router.push("/superadmin/influencers/add")
+    router.push("/work/influencers/add")
   }, [router])
 
   const onExportClick = useCallback(() => {
@@ -326,47 +355,56 @@ export function InfluencerDatabasePage() {
 
   const selectedIdsArray = useMemo(() => Array.from(selectedIds), [selectedIds])
 
+  /* The stored preference is what the operator ticked; this is what they may be shown. The
+     intersection is taken at render, so a rate column cannot reach the DOM through a
+     preference set before we knew who was looking. */
+  const shownColumns = useMemo(
+    () => visibleColumns.filter(money.allows),
+    [visibleColumns, money],
+  )
+
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-ds-5">
+      {/* Work in progress is a state, so it is a tinted surface rather than a card, and the
+          tint is the console's info tone rather than a fifth hand-picked blue. */}
       {hasActiveJobs && activeJobCount > 0 && (
-        <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <AlertTitle>
+        <section className="flex flex-col gap-ds-2 rounded-ds-surface bg-[var(--tone-info-wash)] px-ds-4 py-ds-3">
+          <p className="flex items-center gap-ds-2 text-ds-label">
+            <Loader2 className="h-4 w-4 animate-spin" />
             Analysing {activeJobCount} creator{activeJobCount === 1 ? "" : "s"}
-          </AlertTitle>
-          <AlertDescription>
-            <div className="mt-2 space-y-1.5">
-              {activeJobs.map((j) => (
-                <div key={j.id} className="flex flex-wrap items-center gap-2 text-[13px]">
-                  <span className="font-medium">@{j.username}</span>
-                  <span className="text-muted-foreground">
-                    {j.message || j.status}
-                    {j.progress ? ` · ${j.progress}%` : ""}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={!isSuperAdmin}
-                    onClick={() => triggerRetry(j.id)}
-                    className="underline underline-offset-2 hover:text-foreground"
-                  >
-                    Start again
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => stopAnalytics(j.id)}
-                    className="underline underline-offset-2 hover:text-foreground"
-                  >
-                    Stop
-                  </button>
-                </div>
-              ))}
-            </div>
-          </AlertDescription>
-        </Alert>
+          </p>
+          <div className="flex flex-col gap-ds-1">
+            {activeJobs.map((j) => (
+              <div key={j.id} className="flex flex-wrap items-center gap-ds-2 text-ds-caption">
+                <span className="font-medium">@{j.username}</span>
+                <span className="text-muted-foreground">
+                  {j.message || j.status}
+                  {j.progress ? ` · ${j.progress}%` : ""}
+                </span>
+                <button
+                  type="button"
+                  disabled={!isSuperAdmin}
+                  onClick={() => triggerRetry(j.id)}
+                  className="underline underline-offset-2 hover:text-foreground disabled:no-underline disabled:opacity-50"
+                >
+                  Start again
+                </button>
+                <button
+                  type="button"
+                  onClick={() => stopAnalytics(j.id)}
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  Stop
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       <DatabaseHeader
         totalCount={totalCount}
+        countKnown={!loading && !error}
         loading={loading}
         selectedCount={isSuperAdmin ? selectedIds.size : 0}
         canRefresh={isSuperAdmin}
@@ -376,59 +414,77 @@ export function InfluencerDatabasePage() {
         onRefreshSelected={onRefreshSelected}
       />
 
-      <DatabaseToolbar
-        filters={filters}
-        onFiltersChange={setFilters}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        visibleColumns={visibleColumns}
-        onVisibleColumnsChange={setVisibleColumns}
-        selectedCount={selectedIds.size}
-        onExportClick={onExportClick}
-        onBulkPricingClick={onBulkPricingClick}
-        onBulkTagClick={onBulkTagClick}
-        onAddToListClick={() => setAddToListOpen(true)}
-        onAddToProposalClick={() => setAddToProposalOpen(true)}
-      />
-
-      {viewMode === "table" ? (
-        <InfluencerTableView
-          influencers={influencers}
-          loading={loading}
+      {/* The toolbar belongs to the list it filters, so they are one group with a sibling's
+          gap between them, not two subjects a section apart. */}
+      <div className="flex flex-col gap-ds-3">
+        <DatabaseToolbar
+          filters={filters}
+          onFiltersChange={setFilters}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
           visibleColumns={visibleColumns}
-          selectedIds={selectedIds}
-          onSelectionChange={onSelectionChange}
-          onSort={onSort}
-          sortBy={filters.sort_by}
-          sortOrder={filters.sort_order}
-          onViewDetails={onViewDetails}
-          onEditDetails={onEditDetails}
-          onDelete={onDelete}
-          onInlineEdit={onInlineEdit}
-          totalCount={totalCount}
-          page={filters.page}
-          pageSize={filters.page_size}
-          totalPages={totalPages}
-          onPageChange={onPageChange}
-          analyticsStatusMap={statusMap}
-          completedSinceMount={completedSinceMount}
-          onTriggerAnalytics={isSuperAdmin ? triggerRetry : undefined}
+          onVisibleColumnsChange={setVisibleColumns}
+          selectedCount={selectedIds.size}
+          onExportClick={onExportClick}
+          onBulkPricingClick={onBulkPricingClick}
+          onBulkTagClick={onBulkTagClick}
+          onAddToListClick={() => setAddToListOpen(true)}
+          onAddToProposalClick={() => setAddToProposalOpen(true)}
         />
-      ) : (
-        <InfluencerCardView
-          influencers={influencers}
-          loading={loading}
-          selectedIds={selectedIds}
-          onSelectionChange={onSelectionChange}
-          onViewDetails={onViewDetails}
-          onEditDetails={onEditDetails}
-          totalCount={totalCount}
-          page={filters.page}
-          pageSize={filters.page_size}
-          totalPages={totalPages}
-          onPageChange={onPageChange}
-        />
-      )}
+
+        {/* An error draws no list. "No creators found" over a failed read has had people
+            re-import a spreadsheet we were already holding. */}
+        {error ? (
+          <section className="flex max-w-[65ch] flex-col items-start gap-ds-2 py-ds-5">
+            <p className="text-ds-label">The creator database did not load.</p>
+            <p className="text-ds-body text-muted-foreground">
+              {error}. Nothing is being shown because nothing is known: this is not an empty
+              database.
+            </p>
+            <Button variant="outline" size="sm" onClick={fetchData}>
+              <RefreshCw className="mr-1.5 h-4 w-4" />
+              Try again
+            </Button>
+          </section>
+        ) : viewMode === "table" ? (
+          <InfluencerTableView
+            influencers={influencers}
+            loading={loading}
+            visibleColumns={shownColumns}
+            selectedIds={selectedIds}
+            onSelectionChange={onSelectionChange}
+            onSort={onSort}
+            sortBy={filters.sort_by}
+            sortOrder={filters.sort_order}
+            onViewDetails={onViewDetails}
+            onEditDetails={onEditDetails}
+            onDelete={onDelete}
+            onInlineEdit={onInlineEdit}
+            totalCount={totalCount}
+            page={filters.page}
+            pageSize={filters.page_size}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+            analyticsStatusMap={statusMap}
+            completedSinceMount={completedSinceMount}
+            onTriggerAnalytics={isSuperAdmin ? triggerRetry : undefined}
+          />
+        ) : (
+          <InfluencerCardView
+            influencers={influencers}
+            loading={loading}
+            selectedIds={selectedIds}
+            onSelectionChange={onSelectionChange}
+            onViewDetails={onViewDetails}
+            onEditDetails={onEditDetails}
+            totalCount={totalCount}
+            page={filters.page}
+            pageSize={filters.page_size}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+          />
+        )}
+      </div>
 
       <InfluencerDetailSheet
         influencer={detailInfluencer}

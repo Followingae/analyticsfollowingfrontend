@@ -1,8 +1,16 @@
 "use client"
 
+/**
+ * Who this creator is, and the handful of things we record about them. Tier: WORKING.
+ *
+ * The four figures at the top were four cards. Four numbers of the same kind, laid out in a
+ * row, is already the entire message a border was carrying, so they are a band separated by
+ * space instead. An engagement rate we do not hold is a dash: it read `?.toFixed(2) || "0"`,
+ * which printed a confident 0% for every creator we have never measured, and 0% engagement
+ * is what a failed scrape looks like as much as a dead account.
+ */
 import { useEffect, useState } from "react"
 import { proposalApprovalApi } from "@/services/proposalApprovalApi"
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,9 +28,10 @@ import type { MasterInfluencer, InfluencerCategory } from "@/types/influencerDat
 import {
   CATEGORY_OPTIONS,
   STATUS_OPTIONS,
-  formatCount,
   getEngagementColor,
 } from "@/types/influencerDatabase"
+import { count } from "./Money"
+import { cn } from "@/lib/utils"
 
 interface InfluencerOverviewTabProps {
   influencer: MasterInfluencer
@@ -55,14 +64,20 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
   }
 
   const metrics = [
-    { label: "Followers", value: formatCount(influencer.followers_count), icon: Users },
-    { label: "Following", value: formatCount(influencer.following_count), icon: UserCheck },
-    { label: "Posts", value: formatCount(influencer.posts_count), icon: ImageIcon },
+    { label: "Followers", value: count(influencer.followers_count), icon: Users },
+    { label: "Following", value: count(influencer.following_count), icon: UserCheck },
+    { label: "Posts", value: count(influencer.posts_count), icon: ImageIcon },
     {
-      label: "Engagement Rate",
-      value: `${influencer.engagement_rate?.toFixed(2) || "0"}%`,
+      label: "Engagement",
+      // A rate we hold, or a dash. Never 0%: we have never measured most of this database,
+      // and a fabricated zero here reads as a creator nobody engages with.
+      value: influencer.engagement_rate != null
+        ? `${influencer.engagement_rate.toFixed(2)}%`
+        : "–",
       icon: TrendingUp,
-      className: getEngagementColor(influencer.engagement_rate || 0),
+      className: influencer.engagement_rate != null
+        ? getEngagementColor(influencer.engagement_rate)
+        : "text-muted-foreground",
     },
   ]
 
@@ -102,36 +117,35 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
   }
 
   return (
-    <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid grid-cols-2 gap-3">
+    <div className="flex max-w-[640px] flex-col gap-ds-5">
+      {/* Four figures of the same kind, grouped by the space around them. A metric is not
+          an object, so none of them is a card. */}
+      <div className="grid grid-cols-2 gap-x-ds-5 gap-y-ds-3 sm:grid-cols-4">
         {metrics.map((m) => (
-          <Card key={m.label} className="p-4 flex items-center gap-3">
-            <div className="rounded-lg bg-muted p-2">
-              <m.icon className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{m.label}</p>
-              <p className={`text-lg font-semibold ${m.className || ""}`}>{m.value}</p>
-            </div>
-          </Card>
+          <div key={m.label}>
+            <p className="flex items-center gap-ds-1 text-ds-caption text-muted-foreground">
+              <m.icon className="h-3.5 w-3.5" />
+              {m.label}
+            </p>
+            <p className={cn("mt-ds-1 text-ds-heading tabular-nums", m.className || "")}>{m.value}</p>
+          </div>
         ))}
       </div>
 
       {/* Biography */}
       {influencer.biography && (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-ds-2">
           <Label>Biography</Label>
-          <p className="text-sm text-muted-foreground whitespace-pre-line">
+          <p className="max-w-[65ch] whitespace-pre-line text-ds-body text-muted-foreground">
             {influencer.biography}
           </p>
         </div>
       )}
 
       {/* Tags */}
-      <div className="space-y-2">
+      <div className="flex flex-col gap-ds-2">
         <Label>Tags</Label>
-        <div className="flex flex-wrap gap-1.5 mb-2">
+        <div className="flex flex-wrap gap-1.5">
           {tags.map((tag) => (
             <Badge key={tag} variant="secondary" className="gap-1">
               {tag}
@@ -141,12 +155,12 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
             </Badge>
           ))}
           {tags.length === 0 && (
-            <p className="text-sm text-muted-foreground">No tags added</p>
+            <p className="text-ds-caption text-muted-foreground">No tags yet</p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-ds-2">
           <Input
-            placeholder="Add a tag..."
+            placeholder="Add a tag"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
@@ -159,7 +173,7 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
       </div>
 
       {/* Categories */}
-      <div className="space-y-2">
+      <div className="flex flex-col gap-ds-2">
         <Label>Categories</Label>
         <div className="flex flex-wrap gap-1.5">
           {CATEGORY_OPTIONS.map((cat) => (
@@ -176,10 +190,10 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
       </div>
 
       {/* Internal Notes */}
-      <div className="space-y-2">
-        <Label>Internal Notes</Label>
+      <div className="flex flex-col gap-ds-2">
+        <Label>Internal notes</Label>
         <Textarea
-          placeholder="Add internal notes about this influencer..."
+          placeholder="Anything the team should know before booking them"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           onBlur={handleNotesBlur}
@@ -188,7 +202,7 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
       </div>
 
       {/* Country — where they are OPEN TO WORK */}
-      <div className="space-y-2">
+      <div className="flex flex-col gap-ds-2">
         <Label>Country</Label>
         {/* Free text with existing values suggested, not a fixed dropdown: the real spread
             is not known yet, and an enum would reject a country nobody thought to list.
@@ -204,22 +218,24 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
         <datalist id="imd-country-options">
           {countryOptions.map((c) => <option key={c} value={c} />)}
         </datalist>
-        <p className="text-xs text-muted-foreground">
-          Where this creator is open to <em>work</em> — our record, not where they live. Leave blank if unknown.
+        <p className="max-w-[65ch] text-ds-caption text-muted-foreground">
+          Where this creator is open to <em>work</em>: our record, not where they live. Leave blank if unknown.
         </p>
       </div>
 
       {/* Status */}
-      <div className="space-y-2">
+      <div className="flex flex-col gap-ds-2">
         <Label>Status</Label>
         <Select value={status} onValueChange={handleStatusChange}>
           <SelectTrigger className="w-[200px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            {/* The word is the status. The old palette step on each option was decoration:
+                the label already says which one it is. */}
             {STATUS_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
-                <span className={opt.color}>{opt.label}</span>
+                {opt.label}
               </SelectItem>
             ))}
           </SelectContent>

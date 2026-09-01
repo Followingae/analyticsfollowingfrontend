@@ -1,11 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+/**
+ * A staff member's home: what is waiting on them, and the brands they look after.
+ *
+ * WORKING tier. 40px between subjects, 16px between siblings, and no box around a number.
+ *
+ * The honesty fix here was not cosmetic. Both fetches ended in `.catch(() => [])`, so a 500
+ * on either one rendered as "You're all caught up" and "No brands assigned yet", the two
+ * most reassuring sentences on the screen, produced by the server being down. Failures are
+ * now held separately from emptiness and said out loud, with the retry.
+ *
+ * The staff shell is its own chrome rather than `.console-shell`, so the console's scoped
+ * `--tone-*` tokens do not exist on this page. It uses the brand primitives, which take
+ * their status colour from the global semantic tokens instead.
+ */
+
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Inbox, Users2, ChevronRight, CheckCircle2, PencilRuler, Building2, Megaphone, FileText, ListTodo } from "lucide-react";
+import { Inbox, Users2, ChevronRight, CheckCircle2, PencilRuler, Building2, Megaphone } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { staffApi, type StaffTask, type StaffClient } from "@/services/staffApi";
+import {
+  Figure, ListRow, LoadFailed, Loading, Nothing, Stat, StatBand,
+} from "@/components/brand/primitives";
 
 function relTime(iso?: string | null): string {
   if (!iso) return "no activity yet";
@@ -18,22 +36,17 @@ function relTime(iso?: string | null): string {
   return new Date(iso).toLocaleDateString();
 }
 
-function StatTile({ icon: Icon, label, value, tone = "default" }: { icon: any; label: string; value: number; tone?: "default" | "amber" | "purple" }) {
-  const toneCls = tone === "amber" ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
-    : tone === "purple" ? "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
-    : "bg-primary/10 text-primary";
+/** The small square that says which kind of task a row is. Colour always has a word by it. */
+function TaskMark({ kind }: { kind: "curate" | "upload" | "approval" }) {
+  const skin =
+    kind === "curate" ? "bg-info/12 text-info"
+    : kind === "upload" ? "bg-primary/10 text-primary"
+    : "bg-warning/15 text-warning";
+  const Icon = kind === "curate" ? PencilRuler : kind === "upload" ? Megaphone : CheckCircle2;
   return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-4">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${toneCls}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <div className="text-2xl font-bold leading-none">{value}</div>
-          <div className="mt-1 text-xs text-muted-foreground">{label}</div>
-        </div>
-      </CardContent>
-    </Card>
+    <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-ds-md ${skin}`}>
+      <Icon className="h-4 w-4" />
+    </span>
   );
 }
 
@@ -42,143 +55,187 @@ export default function StaffHome() {
   const [tasks, setTasks] = useState<StaffTask[]>([]);
   const [clients, setClients] = useState<StaffClient[]>([]);
   const [loading, setLoading] = useState(true);
+  // Two calls, two failures. Folding them together would let one working half be reported
+  // as broken, and one broken half be reported as empty.
+  const [tasksFailed, setTasksFailed] = useState(false);
+  const [clientsFailed, setClientsFailed] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [t, c] = await Promise.all([
-          staffApi.myTasks().catch(() => ({ tasks: [], count: 0 })),
-          staffApi.myClients().catch(() => []),
-        ]);
-        setTasks(t.tasks || []);
-        setClients(c || []);
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const load = useCallback(async () => {
+    setLoading(true);
+    setTasksFailed(false);
+    setClientsFailed(false);
+    const [t, c] = await Promise.all([
+      staffApi.myTasks().then(
+        (r) => ({ ok: true as const, tasks: r.tasks || [] }),
+        () => ({ ok: false as const, tasks: [] as StaffTask[] }),
+      ),
+      staffApi.myClients().then(
+        (r) => ({ ok: true as const, clients: r || [] }),
+        () => ({ ok: false as const, clients: [] as StaffClient[] }),
+      ),
+    ]);
+    setTasks(t.tasks);
+    setTasksFailed(!t.ok);
+    setClients(c.clients);
+    setClientsFailed(!c.ok);
+    setLoading(false);
   }, []);
 
-  if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
-  }
+  useEffect(() => { void load(); }, [load]);
 
   const activeCampaigns = clients.reduce((n, c) => n + (c.active_campaigns || 0), 0);
   const openProposals = clients.reduce((n, c) => n + (c.open_proposals || 0), 0);
 
   return (
-    <div className="space-y-8">
-      {/* Summary strip */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile icon={ListTodo} label="Tasks awaiting you" value={tasks.length} tone="amber" />
-        <StatTile icon={Building2} label={`Brand${clients.length === 1 ? "" : "s"} you manage`} value={clients.length} />
-        <StatTile icon={Megaphone} label="Active campaigns" value={activeCampaigns} />
-        <StatTile icon={FileText} label="Proposals in flight" value={openProposals} tone="purple" />
-      </section>
+    <div data-density="working" className="flex flex-col gap-ds-5">
+      {/* Four readings, grouped by the space around them. Eight borders and four icon tiles
+          came off: they were decoration around numbers the reader is meant to compare. */}
+      <StatBand cols={4}>
+        <Stat
+          label="Tasks awaiting you"
+          value={tasks.length}
+          tone={tasks.length > 0 ? "warn" : "neutral"}
+          loading={loading}
+          error={tasksFailed}
+        />
+        <Stat
+          label={`Brand${clients.length === 1 ? "" : "s"} you manage`}
+          value={clients.length}
+          loading={loading}
+          error={clientsFailed}
+        />
+        <Stat
+          label="Active campaigns"
+          value={activeCampaigns}
+          loading={loading}
+          error={clientsFailed}
+        />
+        <Stat
+          label="Proposals in flight"
+          value={openProposals}
+          loading={loading}
+          error={clientsFailed}
+        />
+      </StatBand>
 
-      {/* Inbox */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
+      {/* Your tasks */}
+      <section className="flex flex-col gap-ds-3">
+        <div className="flex items-center gap-ds-2">
           <Inbox className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Your tasks</h2>
-          {tasks.length > 0 && <Badge>{tasks.length}</Badge>}
+          <h2 className="text-ds-heading">Your tasks</h2>
+          {!loading && !tasksFailed && tasks.length > 0 && <Badge>{tasks.length}</Badge>}
         </div>
-        {tasks.length === 0 ? (
-          <Card><CardContent className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 text-green-500" /> You&apos;re all caught up — nothing needs your action right now.
-          </CardContent></Card>
+
+        {loading ? (
+          <Loading rows={3} />
+        ) : tasksFailed ? (
+          <LoadFailed
+            what="Your tasks"
+            detail="We could not reach the task list, so this is not a clear inbox. Try again in a moment."
+            onRetry={() => void load()}
+          />
+        ) : tasks.length === 0 ? (
+          <Nothing>You are all caught up. Nothing needs your action right now.</Nothing>
         ) : (
-          <div className="space-y-2">
+          <div className="flex flex-col">
             {tasks.map((t, i) => {
               const isUpload = t.task_type === "upload_content";
+              const kind = t.task_type === "curate" ? "curate" : isUpload ? "upload" : "approval";
               const go = () => router.push(
                 isUpload ? `/campaigns/${t.campaign_id}/posts` : `/superadmin/proposals/${t.proposal_id}/approval`
               );
               return (
-              <button key={`${t.proposal_id ?? t.campaign_id ?? i}-${t.task_type}`} type="button"
-                onClick={go}
-                className="group w-full text-left">
-                <Card className="transition-all hover:-translate-y-0.5 hover:shadow-md">
-                  <CardContent className="flex items-center gap-3 p-4">
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${t.task_type === "curate" ? "bg-purple-100 dark:bg-purple-900/30" : isUpload ? "bg-sky-100 dark:bg-sky-900/30" : "bg-amber-100 dark:bg-amber-900/30"}`}>
-                      {t.task_type === "curate"
-                        ? <PencilRuler className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                        : isUpload
-                        ? <Megaphone className="h-5 w-5 text-sky-600 dark:text-sky-400" />
-                        : <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">{t.campaign_name || t.title || "Proposal"}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {t.task_type === "curate" ? "Curation" : isUpload ? "Content upload" : "Approval"} · {t.label}
-                      </div>
-                    </div>
-                    {isUpload
-                      ? <Badge className="shrink-0 bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 text-[10px]">{t.creator_count} to upload</Badge>
-                      : <Badge variant="outline" className="shrink-0 text-[10px] capitalize">{(t.status || "").replace(/_/g, " ")}</Badge>}
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-                  </CardContent>
-                </Card>
-              </button>
+                <ListRow key={`${t.proposal_id ?? t.campaign_id ?? i}-${t.task_type}`} onClick={go}>
+                  <TaskMark kind={kind as "curate" | "upload" | "approval"} />
+                  <div className="flex min-w-0 flex-1 flex-col gap-ds-1">
+                    <span className="truncate text-ds-label">{t.campaign_name || t.title || "Proposal"}</span>
+                    <span className="truncate text-ds-caption text-muted-foreground">
+                      {kind === "curate" ? "Curation" : isUpload ? "Content upload" : "Approval"} · {t.label}
+                    </span>
+                  </div>
+                  {isUpload
+                    ? <Badge variant="secondary" className="shrink-0">{t.creator_count} to upload</Badge>
+                    : <Badge variant="outline" className="shrink-0 capitalize">{(t.status || "").replace(/_/g, " ")}</Badge>}
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                </ListRow>
               );
             })}
           </div>
         )}
       </section>
 
-      {/* Brands */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
+      {/* Your brands */}
+      <section className="flex flex-col gap-ds-3">
+        <div className="flex items-center gap-ds-2">
           <Users2 className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Your brands</h2>
-          {clients.length > 0 && <Badge variant="secondary">{clients.length}</Badge>}
+          <h2 className="text-ds-heading">Your brands</h2>
+          {!loading && !clientsFailed && clients.length > 0 && (
+            <Badge variant="secondary">{clients.length}</Badge>
+          )}
         </div>
-        {clients.length === 0 ? (
-          <Card><CardContent className="py-8 text-sm text-muted-foreground">
-            No brands assigned yet. A superadmin grants you access to specific clients.
-          </CardContent></Card>
+
+        {loading ? (
+          <Loading rows={2} />
+        ) : clientsFailed ? (
+          <LoadFailed
+            what="Your brands"
+            detail="We could not reach your client list. You may well have brands assigned; we just cannot read them right now."
+            onRetry={() => void load()}
+          />
+        ) : clients.length === 0 ? (
+          <Nothing>No brands assigned yet. A superadmin grants you access to specific clients.</Nothing>
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          /* A brand IS a real object you open, so it keeps its card. The card keeps the
+             24px it ships with, and the inner rule between the name and the three figures
+             is gone: space says the same thing without a second edge. */
+          <div className="grid grid-cols-1 gap-ds-3 md:grid-cols-2">
             {clients.map((c) => (
-              <button key={c.team_id} type="button"
+              <Card
+                key={c.team_id}
+                role="button"
+                tabIndex={0}
                 onClick={() => router.push(`/staff/clients/${c.team_id}`)}
-                className="group text-left">
-                <Card className="h-full transition-all hover:-translate-y-0.5 hover:shadow-md">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted">
-                        {c.logo_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={c.logo_url} alt="" className="h-full w-full object-cover" />
-                        ) : <Building2 className="h-5 w-5 text-muted-foreground" />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-semibold">{c.name}</div>
-                        <div className="text-xs text-muted-foreground">Updated {relTime(c.last_activity)}</div>
-                      </div>
-                      {(c.open_proposals || 0) > 0 && (
-                        <Badge className="shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                          {c.open_proposals} proposal{c.open_proposals === 1 ? "" : "s"}
-                        </Badge>
-                      )}
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/staff/clients/${c.team_id}`); }
+                }}
+                className="cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <CardContent className="flex flex-col gap-ds-4 p-6">
+                  <div className="flex items-center gap-ds-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-ds-lg bg-muted">
+                      {c.logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={c.logo_url} alt="" className="h-full w-full object-cover" />
+                      ) : <Building2 className="h-5 w-5 text-muted-foreground" />}
                     </div>
-                    <div className="mt-3 grid grid-cols-3 gap-2 border-t pt-3">
-                      <div>
-                        <div className="text-lg font-semibold leading-none">{c.active_campaigns ?? 0}</div>
-                        <div className="text-[11px] text-muted-foreground">Active</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-semibold leading-none">{c.campaigns}</div>
-                        <div className="text-[11px] text-muted-foreground">Campaigns</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-semibold leading-none">{c.open_proposals ?? 0}</div>
-                        <div className="text-[11px] text-muted-foreground">Proposals</div>
-                      </div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-ds-1">
+                      <span className="truncate text-ds-label">{c.name}</span>
+                      <span className="text-ds-caption text-muted-foreground">Updated {relTime(c.last_activity)}</span>
                     </div>
-                  </CardContent>
-                </Card>
-              </button>
+                    {(c.open_proposals || 0) > 0 && (
+                      <Badge variant="secondary" className="shrink-0">
+                        {c.open_proposals} proposal{c.open_proposals === 1 ? "" : "s"}
+                      </Badge>
+                    )}
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                  </div>
+
+                  <dl className="grid grid-cols-3 gap-ds-3">
+                    {([
+                      ["Active", c.active_campaigns],
+                      ["Campaigns", c.campaigns],
+                      ["Proposals", c.open_proposals],
+                    ] as const).map(([label, n]) => (
+                      <div key={label} className="flex flex-col gap-ds-1">
+                        <dd className="text-ds-heading leading-none tabular-nums">
+                          <Figure value={n ?? 0} />
+                        </dd>
+                        <dt className="text-ds-overline uppercase text-muted-foreground">{label}</dt>
+                      </div>
+                    ))}
+                  </dl>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

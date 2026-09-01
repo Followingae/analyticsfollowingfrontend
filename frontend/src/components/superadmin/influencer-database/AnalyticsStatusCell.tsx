@@ -21,7 +21,7 @@ export function AnalyticsStatusCell({ status, justCompleted, onRetry }: Analytic
   switch (status.status) {
     case "pending":
       return (
-        <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+        <div className="flex items-center gap-1.5 text-ds-caption text-muted-foreground">
           <Clock className="h-3.5 w-3.5" />
           <span>Pending</span>
         </div>
@@ -29,7 +29,7 @@ export function AnalyticsStatusCell({ status, justCompleted, onRetry }: Analytic
 
     case "queued":
       return (
-        <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 text-xs">
+        <div className="flex items-center gap-1.5 text-ds-caption text-[var(--tone-info-ink)]">
           <CircleDot className="h-3.5 w-3.5" />
           <span>Queued</span>
         </div>
@@ -38,7 +38,7 @@ export function AnalyticsStatusCell({ status, justCompleted, onRetry }: Analytic
     case "processing":
       return (
         <div className="flex flex-col gap-1 min-w-[120px]">
-          <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 text-xs">
+          <div className="flex items-center gap-1.5 text-ds-caption text-[var(--tone-info-ink)]">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             <span>{status.progress}%</span>
           </div>
@@ -54,7 +54,7 @@ export function AnalyticsStatusCell({ status, justCompleted, onRetry }: Analytic
     case "completed":
       return (
         <div
-          className={`flex items-center gap-1.5 text-green-600 dark:text-green-400 text-xs ${
+          className={`flex items-center gap-1.5 text-ds-caption text-[var(--tone-good-ink)] ${
             justCompleted ? "animate-pulse" : ""
           }`}
         >
@@ -69,7 +69,7 @@ export function AnalyticsStatusCell({ status, justCompleted, onRetry }: Analytic
           <div className="flex items-center gap-1.5">
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs cursor-help">
+                <div className="flex items-center gap-1 text-ds-caption text-[var(--tone-bad-ink)] cursor-help">
                   <XCircle className="h-3.5 w-3.5" />
                   <span className="truncate max-w-[80px]">Failed</span>
                 </div>
@@ -97,7 +97,7 @@ export function AnalyticsStatusCell({ status, justCompleted, onRetry }: Analytic
 
     case "skipped":
       return (
-        <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+        <div className="flex items-center gap-1.5 text-ds-caption text-muted-foreground">
           <CheckCircle2 className="h-3.5 w-3.5" />
           <span>Existing data</span>
         </div>
@@ -111,7 +111,7 @@ export function AnalyticsStatusCell({ status, justCompleted, onRetry }: Analytic
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs cursor-help">
+              <div className="flex items-center gap-1.5 text-ds-caption text-muted-foreground cursor-help">
                 <EyeOff className="h-3.5 w-3.5" />
                 <span className="truncate max-w-[110px]">Not measurable</span>
               </div>

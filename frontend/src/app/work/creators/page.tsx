@@ -27,7 +27,9 @@ export default function CreatorsHubPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-6">
+      {/* A waypoint, not a screen: the shape of what is about to load, on the same rhythm
+          as the screen that replaces it. */}
+      <div className="flex flex-col gap-ds-5">
         <Skeleton className="h-9 w-40" />
         <Skeleton className="h-[320px]" />
       </div>

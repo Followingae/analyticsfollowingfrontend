@@ -14,6 +14,13 @@
  * them aloud to your own team makes an argument out of a floor plan.
  *
  * Arrow keys move it.
+ *
+ * Density tier: READING, and the one screen in the console that is projected rather than
+ * worked in. So the type is fluid (clamped against the viewport) rather than drawn from the
+ * six-step scale, which tops out at a size nobody can read from the back of a room, and the
+ * lime is a literal because the deck sits on its own dark ground outside `.console-shell`
+ * where the tone tokens are not defined. Everything else follows the spec: 65 characters of
+ * measure, one action per slide, and space rather than boxes doing the separating.
  */
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -95,29 +102,29 @@ const DESKS = [
 
 const RULES = [
   'Nothing you research is ever lost. A creator turned down keeps every rate you found.',
-  'Adding and researching creators costs us nothing — we only spend once one is approved.',
+  'Adding and researching creators costs us nothing: we only spend once one is approved.',
   'Prices freeze when a proposal is built, so no client conversation is undercut by a later change.',
   'What a creator is paid is the rate that was agreed, written straight from the board.',
-  'The platform does the chasing — creators, deadlines, dates — so you can spend the day on the work.',
+  'The platform does the chasing: creators, deadlines and dates, so you can spend the day on the work.',
   'Every screen shows you your own day. Nobody has to read around somebody else\u2019s.',
 ]
 
 const SLIDES: Slide[] = [
   { id: 'start', kind: 'title', title: 'How work moves at Following',
-    lede: 'One brand, end to end — from the first conversation to the money leaving for a creator. Ten stops, each one somebody’s job, in the order they happen.' },
+    lede: 'One brand, end to end, from the first conversation to the money leaving for a creator. Ten stops, each one somebody’s job, in the order they happen.' },
 
   {
     id: 'logged', kind: 'stop', who: 'Aisha', role: 'Business development', icon: Building2,
     title: 'A brand says maybe',
-    lede: 'Everything starts with a conversation, and the platform wants it the day it happens — not the day it turns into money.',
+    lede: 'Everything starts with a conversation, and the platform wants it the day it happens, not the day it turns into money.',
     does: [
       'Log the brand the day you speak to them. A name and a line about what they want is enough.',
-      'Keep them warm — a brand nobody has touched for two weeks shows on your Today as gone quiet.',
+      'Keep them warm. A brand nobody has touched for two weeks shows on your Today as gone quiet.',
       'Send a sample pack while they are deciding: a ready-made list of creators in their world.',
     ],
     where: [{ label: 'Brands', href: '/work/brands' }, { label: 'Sample packs', href: '/work/areas' }],
     helps: [
-      'Logging the brand is what asks a founder to open the area — you do not have to chase anyone for it.',
+      'Logging the brand is what asks a founder to open the area, so you do not have to chase anyone for it.',
       'A brand nobody has touched in two weeks resurfaces on your Today, so none of your work goes cold quietly.',
     ],
     handover: 'It lands on the founders’ Today as “Start sourcing for {brand}”, and turns urgent after three days.',
@@ -127,7 +134,7 @@ const SLIDES: Slide[] = [
     title: 'The founder opens the area',
     lede: 'An area is one brand’s working roster: the brief, an owner, a number and a date. It is the only place creators are gathered for that brand.',
     does: [
-      'Write the brief in fields, not prose — categories, market, follower band, deliverables, budget each.',
+      'Write the brief in fields, not prose: categories, market, follower band, deliverables, budget each.',
       'Give it a number and a date, and name who is stocking it.',
       'One area per brand. It grows over months instead of being rebuilt per campaign.',
     ],
@@ -141,11 +148,11 @@ const SLIDES: Slide[] = [
   {
     id: 'stock', kind: 'stop', who: 'Aqsa', role: 'Talent', icon: Users,
     title: 'Stocking the area',
-    lede: 'Find people the day you find them. Adding costs nothing — we only spend on a creator once a founder releases them.',
+    lede: 'Find people the day you find them. Adding costs nothing: we only spend on a creator once a founder releases them.',
     does: [
       'Add creators against the area you found them for. Paste a whole list if you have one.',
       'Ring them, and record what they charge us per deliverable, with a note if the rate has conditions.',
-      'Work the “Needs a cost” lane — one creator at a time when the list is long.',
+      'Work the “Needs a cost” lane, one creator at a time when the list is long.',
     ],
     where: [
       { label: 'Waiting room', href: '/work/influencers/review' },
@@ -153,7 +160,7 @@ const SLIDES: Slide[] = [
       { label: 'Coverage', href: '/work/coverage' },
     ],
     helps: [
-      'Adding is free — analytics only run once a creator is approved, so nothing you research costs us.',
+      'Adding is free: analytics only run once a creator is approved, so nothing you research costs us.',
       'A rate you record is kept forever, even if this brand goes quiet. Next time it is a week you do not repeat.',
     ],
     handover: 'Saving a cost moves that creator into the founders’ lane and tells them a price is waiting.',
@@ -164,15 +171,15 @@ const SLIDES: Slide[] = [
     lede: 'The waiting room is two lists because it is two jobs. The second is the founders’: turn what a creator charges us into what we charge a client.',
     does: [
       'Open “Needs a sell price”. Each card carries their cost and who got it.',
-      'Type our price — the margin appears beside it as you type.',
+      'Type our price and the margin appears beside it as you type.',
       'Approve, and they are in the master database, ready for a proposal.',
     ],
     where: [{ label: 'Waiting room', href: '/work/influencers/review' }],
     helps: [
       'The margin appears as you type, so the decision is made with the number in front of you.',
-      'Turning someone down keeps the row and every rate on it — right for the next brand, often.',
+      'Turning someone down keeps the row and every rate on it, right for the next brand, often.',
     ],
-    handover: 'Approving starts their analytics — the first money we spend on them — and drops them back into the brand’s area.',
+    handover: 'Approving starts their analytics, the first money we spend on them, and drops them back into the brand’s area.',
   },
   {
     id: 'clear', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: ShieldCheck,
@@ -197,7 +204,7 @@ const SLIDES: Slide[] = [
     does: [
       'Send the link. Opens are counted, so “they haven’t looked” is a fact rather than a feeling.',
       'They pick or pass on each creator, and can leave a note.',
-      'Answers come back onto the same rows — nothing is retyped.',
+      'Answers come back onto the same rows. Nothing is retyped.',
     ],
     where: [{ label: 'Areas', href: '/work/areas' }],
     handover: 'Their picks land on the account manager’s Today the same day.',
@@ -218,7 +225,7 @@ const SLIDES: Slide[] = [
       'A client staring at twenty equal faces picks slowly. Two of them wearing our name, with a reason, is the advice they asked us for.',
       'The client\u2019s answer comes back as a job on your Today rather than an email you have to spot.',
     ],
-    handover: 'Yes, no, or “show me more” — all three arrive on the account manager’s Today.',
+    handover: 'Yes, no, or “show me more”: all three arrive on the account manager’s Today.',
   },
   {
     id: 'confirm', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: ShieldCheck,
@@ -234,21 +241,21 @@ const SLIDES: Slide[] = [
       'A proposal stops sitting at “sent” while the work has already started.',
       'The margin on the campaign becomes a real number rather than a guess built on quotes.',
     ],
-    handover: 'Their copy of the proposal keeps the roster and the agreed total — the per-creator prices come off once it is locked.',
+    handover: 'Their copy of the proposal keeps the roster and the agreed total. The per-creator prices come off once it is locked.',
   },
   {
     id: 'partial', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: RotateCcw,
     title: 'They only took some of them',
-    lede: 'Clients read a proposal as a menu. They take the two they are sure about, see how it goes, and come back for the rest — which is not a rejection of the other nineteen, and their budget has not gone anywhere.',
+    lede: 'Clients read a proposal as a menu. They take the two they are sure about, see how it goes, and come back for the rest, which is not a rejection of the other nineteen, and their budget has not gone anywhere.',
     does: [
       'Re-open the proposal. The ones they confirmed stay booked on the running campaign.',
       'Everyone else goes back on the table at the price they were quoted, with the rest of the budget still to spend.',
-      'Add more names first if you have them, or send it straight back — both are fine.',
+      'Add more names first if you have them, or send it straight back. Both are fine.',
     ],
     where: [{ label: 'Proposals', href: '/work/proposals' }],
     helps: [
       'A partial yes stops closing the conversation and stranding the rest of the budget.',
-      'Confirmed creators cannot be unticked by the client or removed by us — nobody who is already briefed quietly falls off.',
+      'Confirmed creators cannot be unticked by the client or removed by us. Nobody who is already briefed quietly falls off.',
       'The second round joins the same campaign, so there is one campaign and one invoice trail, not two.',
     ],
     handover: 'The client is told the proposal is open again, and their budget bar starts part-full with what they have already spent.',
@@ -260,7 +267,7 @@ const SLIDES: Slide[] = [
     does: [
       'Send the agreement, or record one signed elsewhere.',
       'Raise the invoice against the agreed total, with terms.',
-      'Chase it — an unsigned agreement and an overdue invoice are jobs, not states.',
+      'Chase it. An unsigned agreement and an overdue invoice are jobs, not states.',
     ],
     where: [{ label: 'Clients', href: '/work/clients' }, { label: 'Money', href: '/work/money' }],
     handover: 'Anything overdue shows as “Owed to us” on the founders’ Today, oldest first.',
@@ -268,7 +275,7 @@ const SLIDES: Slide[] = [
   {
     id: 'ladder', kind: 'stop', who: 'Aqsa, with founder confirmations', role: 'Talent + Founder', icon: Sparkles,
     title: 'Delivering the campaign',
-    lede: 'Eight rungs in order, one row per creator. The board is the truth — a creator is wherever the platform says they are.',
+    lede: 'Eight rungs in order, one row per creator. The board is the truth: a creator is wherever the platform says they are.',
     does: [
       'Booked → rate agreed → a founder confirms it → agreement back → guide sent → content in → approved → posted.',
       'If anything ships: mark the batch packed, then per creator when it goes out and when they have it.',

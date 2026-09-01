@@ -91,7 +91,7 @@ export function AddToProposalDialog({
       const bits = [`${d.added} added to ${label} · ${qty} ${dType}${qty > 1 ? "s" : ""} each`]
       if (d.already_on_proposal) bits.push(`${d.already_on_proposal} already there`)
       if (d.without_deliverable?.length)
-        bits.push(`${d.without_deliverable.length} have no ${dType} price — set one by hand`)
+        bits.push(`${d.without_deliverable.length} have no ${dType} price, set one by hand`)
       if (d.no_cost?.length) bits.push(`${d.no_cost.length} with no cost recorded`)
       toast.success(bits.join(" · "), {
         action: { label: "Open proposal", onClick: () => router.push(`/work/proposals/${proposalId}`) },
@@ -119,7 +119,7 @@ export function AddToProposalDialog({
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
             <div className="min-w-0 text-xs leading-relaxed">
               <p className="font-medium text-amber-700 dark:text-amber-500">
-                {unpriced.length} will be left out — no sell price yet
+                {unpriced.length} will be left out, they have no sell price yet
               </p>
               <p className="mt-0.5 truncate text-muted-foreground">
                 {unpriced.slice(0, 6).map(i => `@${i.username}`).join(", ")}

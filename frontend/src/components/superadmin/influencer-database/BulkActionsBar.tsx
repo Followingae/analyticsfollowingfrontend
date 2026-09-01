@@ -25,11 +25,13 @@ export function BulkActionsBar({
   // showing the team a button that always fails. See app/core/field_policy.py.
   const { canExport } = useAdminAccess()
   return (
-    <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2">
-      <span className="text-sm font-medium">
+    // A selection is a state, so it is a tint rather than a bordered box: the surface says
+    // "something is set apart here" without drawing a fourth edge across the toolbar.
+    <div className="flex flex-wrap items-center gap-ds-2 rounded-ds-surface bg-[var(--tone-info-wash)] px-ds-3 py-ds-2">
+      <span className="text-ds-label">
         {selectedCount} selected
       </span>
-      <div className="h-4 w-px bg-border" />
+      <div className="h-4 w-px bg-black/10 dark:bg-white/15" />
       {onAddToProposal && (
         <Button variant="ghost" size="sm" onClick={onAddToProposal}>
           <FileText className="size-4" />
@@ -54,7 +56,7 @@ export function BulkActionsBar({
       </Button>
       <Button variant="ghost" size="sm" onClick={onPricing}>
         <Coins className="size-4" />
-        Update Pricing
+        Set their rates
       </Button>
     </div>
   )

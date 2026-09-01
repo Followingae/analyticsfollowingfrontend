@@ -38,6 +38,14 @@ interface OperationsContextType {
   selectedDeliverables: string[];
   uiState: OperationsUIState;
   userAccess: UserAccess;
+  /**
+   * What failed to read, so a screen can say so instead of drawing an empty list.
+   *
+   * Every load here used to end in a toast and an empty array, and the pages then
+   * rendered that array as "No campaigns available" — a failed fetch shown as a fact.
+   * The toast still fires; this is what a page reads to tell the two apart.
+   */
+  loadErrors: { campaigns: string | null; campaign: string | null; workstream: string | null };
 
   // Actions
   loadCampaigns: () => Promise<void>;
@@ -74,6 +82,9 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [currentWorkstream, setCurrentWorkstream] = useState<Workstream | null>(null);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [selectedDeliverables, setSelectedDeliverables] = useState<string[]>([]);
+  const [loadErrors, setLoadErrors] = useState<{
+    campaigns: string | null; campaign: string | null; workstream: string | null;
+  }>({ campaigns: null, campaign: null, workstream: null });
   const [uiState, setUiState] = useState<OperationsUIState>({
     selectedDeliverables: [],
     filters: {},
@@ -154,8 +165,13 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // Belt as well as braces: whatever comes back, this state stays an array. Everything
       // downstream calls .filter and .reduce on it.
       setCampaigns(Array.isArray(response?.campaigns) ? response.campaigns : []);
-    } catch (error) {
+      setLoadErrors(prev => ({ ...prev, campaigns: null }));
+    } catch (error: any) {
       console.error('Failed to load campaigns:', error)
+      setLoadErrors(prev => ({
+        ...prev,
+        campaigns: error?.message || 'The campaign list could not be read.',
+      }));
       toast.error('Failed to load campaigns');
     } finally {
       setUiState(prev => ({ ...prev, isLoading: false }));
@@ -175,8 +191,13 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setCurrentWorkstream(null);
       setDeliverables([]);
       setSelectedDeliverables([]);
-    } catch (error) {
+      setLoadErrors(prev => ({ ...prev, campaign: null }));
+    } catch (error: any) {
       console.error('Failed to load campaign details:', error)
+      setLoadErrors(prev => ({
+        ...prev,
+        campaign: error?.message || 'This campaign could not be read.',
+      }));
       toast.error('Failed to load campaign details');
     } finally {
       setUiState(prev => ({ ...prev, isLoading: false }));
@@ -198,8 +219,13 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       setDeliverables(Array.isArray(deliverablesData?.deliverables) ? deliverablesData.deliverables : []);
       setSelectedDeliverables([]);
-    } catch (error) {
+      setLoadErrors(prev => ({ ...prev, workstream: null }));
+    } catch (error: any) {
       console.error('Failed to load workstream details:', error)
+      setLoadErrors(prev => ({
+        ...prev,
+        workstream: error?.message || 'This workstream could not be read.',
+      }));
       toast.error('Failed to load workstream details');
     } finally {
       setUiState(prev => ({ ...prev, isLoading: false }));
@@ -342,6 +368,7 @@ export const OperationsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     selectedDeliverables,
     uiState,
     userAccess,
+    loadErrors,
 
     // Actions
     loadCampaigns,

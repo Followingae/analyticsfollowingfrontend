@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Input } from "@/components/ui/input"
-import { formatCents, parseToCents } from "@/types/influencerDatabase"
+import { parseToCents } from "@/types/influencerDatabase"
+import { Money } from "./Money"
 
 interface InlineEditCellProps {
   value: number | null
@@ -14,8 +15,8 @@ interface InlineEditCellProps {
 export function InlineEditCell({
   value,
   onSave,
-  prefix = "⃃",
-  placeholder = "Set price",
+  prefix = "AED",
+  placeholder = "Set a price",
 }: InlineEditCellProps) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState("")
@@ -51,8 +52,8 @@ export function InlineEditCell({
 
   if (editing) {
     return (
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-muted-foreground">{prefix}</span>
+      <div className="flex items-center justify-end gap-ds-1">
+        <span className="text-ds-caption text-muted-foreground">{prefix}</span>
         <Input
           ref={inputRef}
           type="number"
@@ -73,10 +74,10 @@ export function InlineEditCell({
     <button
       type="button"
       onClick={handleStartEdit}
-      className="cursor-pointer rounded px-1.5 py-0.5 text-left text-sm hover:bg-muted transition-colors"
+      className="cursor-pointer rounded-ds-sm px-1.5 py-0.5 text-right text-sm tabular-nums transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
     >
       {value !== null ? (
-        <span className="font-medium">{formatCents(value)}</span>
+        <span className="font-medium"><Money cents={value} /></span>
       ) : (
         <span className="text-muted-foreground">{placeholder}</span>
       )}

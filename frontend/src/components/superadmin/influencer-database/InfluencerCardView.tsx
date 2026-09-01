@@ -24,8 +24,8 @@ interface InfluencerCardViewProps {
 function SkeletonCard() {
   return (
     <Card className="gap-0 py-0">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-3">
+      <CardContent className="flex flex-col gap-ds-3 p-ds-4">
+        <div className="flex items-center gap-ds-2">
           <Skeleton className="size-10 rounded-full" />
           <div className="flex-1 space-y-1.5">
             <Skeleton className="h-4 w-24" />
@@ -61,7 +61,7 @@ export function InfluencerCardView({
 }: InfluencerCardViewProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-ds-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: 8 }).map((_, i) => (
           <SkeletonCard key={`skeleton-${i}`} />
         ))}
@@ -72,14 +72,14 @@ export function InfluencerCardView({
   if (influencers.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-muted-foreground">
-        No influencers found
+        No creator here matches what you asked for.
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="flex flex-col gap-ds-3">
+      <div className="grid grid-cols-1 gap-ds-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {influencers.map((inf) => (
           <InfluencerCard
             key={inf.id}
@@ -92,11 +92,11 @@ export function InfluencerCardView({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-2">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-ds-2">
+          <p className="text-ds-caption text-muted-foreground">
             Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-ds-2">
             <Button
               variant="outline"
               size="sm"
@@ -105,7 +105,7 @@ export function InfluencerCardView({
             >
               <ChevronLeft className="size-4" />
             </Button>
-            <span className="text-sm">
+            <span className="text-ds-caption text-muted-foreground">
               Page {page} of {totalPages}
             </span>
             <Button

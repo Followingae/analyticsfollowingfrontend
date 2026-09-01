@@ -1,19 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+/**
+ * One brand, as the staff member who looks after it sees it.
+ *
+ * WORKING tier. 40px between subjects, 16px between siblings, and the two lists are lists:
+ * a shared hairline down the side rather than a border drawn around every row. Rows as
+ * cards fitted four where eight belong, and told the reader each row was a separate object.
+ *
+ * Status colour comes from the global semantic tokens rather than the six hand-picked
+ * Tailwind palettes it used before, so "approved" here is the same green as approved
+ * anywhere else, and the word is always beside the colour.
+ */
+
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, Building2, Megaphone, FileText, ChevronRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, Building2, Megaphone, FileText, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { staffApi, type StaffBrandDetail } from "@/services/staffApi";
+import { ListRow, LoadFailed, Loading, Nothing } from "@/components/brand/primitives";
 
+/** One decision about what a status means, in the tokens the rest of the app uses. */
 function statusTone(s: string): string {
   const v = (s || "").toLowerCase();
-  if (/(active|approved|internally_approved|sent|live)/.test(v)) return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
-  if (/(reject|cancel|archiv)/.test(v)) return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
-  if (/(draft|building|pending|review|more_requested)/.test(v)) return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
-  return "bg-muted text-muted-foreground";
+  if (/(active|approved|internally_approved|sent|live)/.test(v)) return "bg-success/12 text-success border-success/25";
+  if (/(reject|cancel|archiv)/.test(v)) return "bg-danger/12 text-danger border-danger/25";
+  if (/(draft|building|pending|review|more_requested)/.test(v)) return "bg-warning/15 text-warning border-warning/25";
+  return "bg-muted text-muted-foreground border-transparent";
 }
 
 export default function StaffClientDetail() {
@@ -24,24 +37,42 @@ export default function StaffClientDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setData(await staffApi.clientDetail(teamId));
-      } catch (e) {
-        setError((e as Error).message || "Failed to load");
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setData(await staffApi.clientDetail(teamId));
+    } catch (e) {
+      setData(null);
+      setError((e as Error).message || null);
+    } finally {
+      setLoading(false);
+    }
   }, [teamId]);
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  useEffect(() => { void load(); }, [load]);
+
+  const back = (
+    <Button variant="ghost" size="sm" onClick={() => router.push("/staff")}
+            className="-ml-2 gap-ds-2 self-start">
+      <ArrowLeft className="h-4 w-4" /> Your brands
+    </Button>
+  );
+
+  if (loading) {
+    return (
+      <div data-density="working" className="flex flex-col gap-ds-4">
+        {back}
+        <Loading rows={4} />
+      </div>
+    );
+  }
+
   if (error || !data) {
     return (
-      <div className="space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => router.push("/staff")} className="gap-1.5"><ArrowLeft className="h-4 w-4" /> Back</Button>
-        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">{error || "Not found"}</CardContent></Card>
+      <div data-density="working" className="flex flex-col gap-ds-4">
+        {back}
+        <LoadFailed what="This brand" detail={error} onRetry={() => void load()} />
       </div>
     );
   }
@@ -50,77 +81,79 @@ export default function StaffClientDetail() {
   const activeCount = campaigns.filter((c) => (c.status || "").toLowerCase() === "active").length;
 
   return (
-    <div className="space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => router.push("/staff")} className="gap-1.5"><ArrowLeft className="h-4 w-4" /> Your brands</Button>
+    <div data-density="working" className="flex flex-col gap-ds-5">
+      {back}
 
-      {/* Brand header */}
-      <div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-muted">
+      <header className="flex items-center gap-ds-3">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-ds-xl bg-muted">
           {brand.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={brand.logo_url} alt="" className="h-full w-full object-cover" />
           ) : <Building2 className="h-7 w-7 text-muted-foreground" />}
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">{brand.name}</h1>
-          <p className="text-sm text-muted-foreground">{activeCount} active · {campaigns.length} campaigns · {proposals.length} proposals</p>
+        <div className="flex min-w-0 flex-col gap-ds-2">
+          <h1 className="truncate text-ds-title text-foreground">{brand.name}</h1>
+          <p className="text-ds-caption text-muted-foreground">
+            {activeCount} active · {campaigns.length} campaigns · {proposals.length} proposals
+          </p>
         </div>
-      </div>
+      </header>
 
       {/* Proposals */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
+      <section className="flex flex-col gap-ds-3">
+        <div className="flex items-center gap-ds-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Proposals</h2>
+          <h2 className="text-ds-heading">Proposals</h2>
           {proposals.length > 0 && <Badge variant="secondary">{proposals.length}</Badge>}
         </div>
         {proposals.length === 0 ? (
-          <Card><CardContent className="py-6 text-sm text-muted-foreground">No proposals yet.</CardContent></Card>
+          <Nothing>No proposals yet.</Nothing>
         ) : (
-          <div className="space-y-2">
+          <div className="flex flex-col">
             {proposals.map((p) => (
-              <button key={p.id} type="button" onClick={() => router.push(`/superadmin/proposals/${p.id}/approval`)} className="w-full text-left">
-                <Card className="transition-all hover:-translate-y-0.5 hover:shadow-md">
-                  <CardContent className="flex items-center gap-3 p-4">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30"><FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" /></div>
-                    <div className="min-w-0 flex-1"><div className="truncate font-medium">{p.name || "Proposal"}</div></div>
-                    <Badge className={`shrink-0 capitalize ${statusTone(p.status)}`}>{(p.status || "").replace(/_/g, " ")}</Badge>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-                  </CardContent>
-                </Card>
-              </button>
+              <ListRow key={p.id}
+                       onClick={() => router.push(`/superadmin/proposals/${p.id}/approval`)}>
+                <FileText className="h-4 w-4 flex-none text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate text-ds-label">{p.name || "Proposal"}</span>
+                <Badge variant="outline" className={`shrink-0 capitalize ${statusTone(p.status)}`}>
+                  {(p.status || "").replace(/_/g, " ")}
+                </Badge>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+              </ListRow>
             ))}
           </div>
         )}
       </section>
 
       {/* Campaigns */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
+      <section className="flex flex-col gap-ds-3">
+        <div className="flex items-center gap-ds-2">
           <Megaphone className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Campaigns</h2>
+          <h2 className="text-ds-heading">Campaigns</h2>
           {campaigns.length > 0 && <Badge variant="secondary">{campaigns.length}</Badge>}
         </div>
         {campaigns.length === 0 ? (
-          <Card><CardContent className="py-6 text-sm text-muted-foreground">No campaigns yet.</CardContent></Card>
+          <Nothing>No campaigns yet.</Nothing>
         ) : (
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+          <div className="flex flex-col">
             {campaigns.map((c) => {
               const href = c.campaign_type === "ugc" ? `/campaigns/${c.id}/ugc` : `/campaigns/${c.id}`;
               return (
-                <button key={c.id} type="button" onClick={() => router.push(href)} className="w-full text-left">
-                  <Card className="transition-all hover:-translate-y-0.5 hover:shadow-md">
-                    <CardContent className="flex items-center gap-3 p-4">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10"><Megaphone className="h-4 w-4 text-primary" /></div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium">{c.name}</div>
-                        {c.campaign_type && <div className="text-xs capitalize text-muted-foreground">{c.campaign_type.replace(/_/g, " ")}</div>}
-                      </div>
-                      <Badge className={`shrink-0 capitalize ${statusTone(c.status)}`}>{(c.status || "").replace(/_/g, " ")}</Badge>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-                    </CardContent>
-                  </Card>
-                </button>
+                <ListRow key={c.id} onClick={() => router.push(href)}>
+                  <Megaphone className="h-4 w-4 flex-none text-muted-foreground" />
+                  <div className="flex min-w-0 flex-1 flex-col gap-ds-1">
+                    <span className="truncate text-ds-label">{c.name}</span>
+                    {c.campaign_type && (
+                      <span className="text-ds-caption capitalize text-muted-foreground">
+                        {c.campaign_type.replace(/_/g, " ")}
+                      </span>
+                    )}
+                  </div>
+                  <Badge variant="outline" className={`shrink-0 capitalize ${statusTone(c.status)}`}>
+                    {(c.status || "").replace(/_/g, " ")}
+                  </Badge>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                </ListRow>
               );
             })}
           </div>

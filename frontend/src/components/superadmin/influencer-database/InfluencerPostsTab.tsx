@@ -1,8 +1,14 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
-import { ImageIcon } from "lucide-react"
+/**
+ * Their posts, or rather the fact that this panel does not load any.
+ *
+ * It was an illustration in a circle over a card promising that posts "will be available".
+ * They will not: nothing here fetches them, and the post-level analysis lives on the creator
+ * analytics page. A sentence saying where to go beats a card promising a feature.
+ */
 import type { MasterInfluencer } from "@/types/influencerDatabase"
+import { count } from "./Money"
 
 interface InfluencerPostsTabProps {
   influencer: MasterInfluencer
@@ -10,24 +16,14 @@ interface InfluencerPostsTabProps {
 
 export function InfluencerPostsTab({ influencer }: InfluencerPostsTabProps) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-medium text-sm">Posts</h3>
-        <p className="text-xs text-muted-foreground">
-          {influencer.posts_count} total posts
-        </p>
-      </div>
-
-      <Card className="p-8 flex flex-col items-center justify-center text-center">
-        <div className="rounded-full bg-muted p-4 mb-3">
-          <ImageIcon className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h4 className="font-medium text-sm">Posts data will load from analytics</h4>
-        <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-          Post content and engagement metrics will be available once the analytics
-          data is fetched for @{influencer.username}.
-        </p>
-      </Card>
+    <div className="flex max-w-[65ch] flex-col gap-ds-2">
+      <p className="text-ds-body">
+        {count(influencer.posts_count)} posts on the account.
+      </p>
+      <p className="text-ds-body text-muted-foreground">
+        The posts themselves are not loaded here. Open @{influencer.username} in creator
+        analytics to read them.
+      </p>
     </div>
   )
 }

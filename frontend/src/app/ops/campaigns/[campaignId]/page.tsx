@@ -1,6 +1,24 @@
 /**
- * Operations OS - Campaign Operations Home
- * Central dashboard for campaign execution management
+ * Operations — one campaign, where it has got to.
+ *
+ * Density tier: WORKING. Groups sit 40px apart, a panel keeps its 24px, and the figures
+ * lose their borders: a count of workstreams is not an object you could click, move or
+ * delete, so it never was a card.
+ *
+ * Three dishonest states lived on this screen and all three are fixed:
+ *
+ *   1. `!currentCampaign` rendered "Campaign not found" for every failure, including a 500
+ *      and a 403. A campaign that could not be read has not been deleted, and telling an
+ *      operator it does not exist is the worst answer available.
+ *   2. The whole page waited on `overview`, then drew the tabs and the blockers panel from
+ *      `overview?.…`, so a failed overview fetch produced a calm, empty, entirely wrong
+ *      screen: no shoots, no deadlines, no blockers.
+ *   3. Every blocker was gated on `x && x > 0`, which is the case the plan calls the worst
+ *      one: when the number does not arrive, no warning shows at all. The blockers panel now
+ *      says it could not read them rather than saying there are none.
+ *
+ * The progress bar also divided by `total_deliverables` with no guard, so a campaign with
+ * nothing in it yet rendered NaN.
  */
 
 'use client';
@@ -8,50 +26,39 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useOperations } from '@/contexts/OperationsContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { StandardMetricCard } from '@/components/ui/standard-metric-card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { InternalOnly, ClientSafe } from '@/components/operations/RoleBasedContent';
+import { InternalOnly } from '@/components/operations/RoleBasedContent';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import {
+  Page, Sections, Group, PageHead, SectionHead,
+  Figure, Figures, State, Failed, Empty, Waiting, Note, DASH,
+} from '@/components/campaigns/surface';
 import {
   Calendar,
   AlertCircle,
   CheckCircle2,
   Clock,
   FileVideo,
-  Users,
   Package,
   Activity,
   ChevronRight,
-  Briefcase,
   Target,
-  AlertTriangle,
   Film,
-  CalendarDays,
   Link2,
-  Coins,
   Eye,
   EyeOff
 } from 'lucide-react';
-import { format, isValid, isAfter, isBefore, startOfDay } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { operationsApi } from '@/services/operationsApi';
 import { getFilteredActivity } from '@/utils/operationsAccess';
 import { useUserStore } from '@/stores/userStore';
 
-/**
- * Format a date string defensively. Returns "—" for null/undefined/invalid
- * values instead of throwing `RangeError: Invalid time value` — FA campaign
- * types (cashback/paid_deal/barter) and empty ops shadows can surface
- * null dates.
- */
+/** A date we do not have is a dash, not a guess and not today. */
 const safeDate = (value?: string | null, fmt = 'MMM d, yyyy'): string => {
-  if (!value) return '—';
+  if (!value) return DASH;
   const d = new Date(value);
-  return isValid(d) ? format(d, fmt) : '—';
+  return isValid(d) ? format(d, fmt) : DASH;
 };
 
 interface CampaignOverview {
@@ -84,6 +91,24 @@ interface CampaignOverview {
   }>;
 }
 
+/** One line in the week: a hairline between siblings, not a border around each. */
+function WeekRow({
+  icon: Icon, title, meta, trailing,
+}: { icon: any; title: string; meta?: string; trailing?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-ds-3 border-b border-border/70 py-ds-3 last:border-b-0">
+      <div className="flex min-w-0 items-center gap-ds-3">
+        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <p className="truncate text-ds-label">{title}</p>
+          {meta && <p className="text-ds-caption text-muted-foreground">{meta}</p>}
+        </div>
+      </div>
+      {trailing}
+    </div>
+  );
+}
+
 export default function CampaignOperationsHome() {
   const params = useParams();
   const router = useRouter();
@@ -96,11 +121,13 @@ export default function CampaignOperationsHome() {
     selectCampaign,
     uiState,
     userAccess,
-    setViewMode
+    setViewMode,
+    loadErrors,
   } = useOperations();
 
   const [overview, setOverview] = useState<CampaignOverview | null>(null);
   const [loadingOverview, setLoadingOverview] = useState(true);
+  const [overviewError, setOverviewError] = useState<string | null>(null);
 
   useEffect(() => {
     if (campaignId) {
@@ -114,8 +141,10 @@ export default function CampaignOperationsHome() {
     try {
       const data = await operationsApi.getCampaignOverview(campaignId);
       setOverview(data);
-    } catch (error) {
+      setOverviewError(null);
+    } catch (error: any) {
       console.error('Failed to load campaign overview:', error)
+      setOverviewError(error?.message || 'The campaign summary could not be read.');
     } finally {
       setLoadingOverview(false);
     }
@@ -130,409 +159,394 @@ export default function CampaignOperationsHome() {
 
   if (uiState.isLoading || loadingOverview) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Skeleton className="h-12 w-96" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Skeleton className="h-48 lg:col-span-2" />
-          <Skeleton className="h-48" />
-        </div>
-        <Skeleton className="h-96" />
-      </div>
+      <Page>
+        <Sections>
+          <Waiting lines={2} />
+          <Waiting lines={4} />
+        </Sections>
+      </Page>
     );
   }
 
+  /* A read that failed and a campaign that is not there are two different answers. */
   if (!currentCampaign) {
     return (
-      <div className="container mx-auto p-6">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Campaign not found</AlertTitle>
-          <AlertDescription>
-            The requested campaign could not be loaded.
-          </AlertDescription>
-        </Alert>
-      </div>
+      <Page width="form">
+        {loadErrors.campaign ? (
+          <Failed
+            what="This campaign did not load"
+            detail={`${loadErrors.campaign} It has not gone anywhere, we could not read it just now.`}
+            onRetry={() => selectCampaign(campaignId)}
+          />
+        ) : (
+          <Sections>
+            <PageHead
+              title="This campaign is not here"
+              sub="The link may be out of date, or the campaign may have been archived."
+              action={
+                <Button variant="outline" onClick={() => router.push('/ops/campaigns')}>
+                  All campaigns
+                </Button>
+              }
+            />
+          </Sections>
+        )}
+      </Page>
     );
   }
 
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <Briefcase className="h-4 w-4" />
-            <span>{currentCampaign.brand_name}</span>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">{currentCampaign.campaign_name}</h1>
-          <p className="text-muted-foreground mt-1">
-            {safeDate(currentCampaign.start_date)} -{' '}
-            {safeDate(currentCampaign.end_date)}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isInternal && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setViewMode(isClientView ? 'internal' : 'client')}
-            >
-              {isClientView ? (
-                <>
-                  <Eye className="h-4 w-4 mr-2" />
-                  Switch to Internal
-                </>
-              ) : (
-                <>
-                  <EyeOff className="h-4 w-4 mr-2" />
-                  Switch to Client
-                </>
-              )}
-            </Button>
-          )}
-          <Badge variant={currentCampaign.status === 'active' ? 'default' : 'secondary'}>
-            {currentCampaign.status}
-          </Badge>
-        </div>
-      </div>
+  const summary = overview?.summary;
+  const totalDeliverables = summary?.total_deliverables;
+  const completed = summary?.completed_deliverables;
+  /* Guarded: this divided by zero on a campaign with nothing in it yet and rendered NaN. */
+  const progressPct =
+    typeof totalDeliverables === 'number' && totalDeliverables > 0 && typeof completed === 'number'
+      ? Math.round((completed / totalDeliverables) * 100)
+      : null;
 
-      {/* Progress Overview */}
-      {overview && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Campaign Progress</CardTitle>
-            <CardDescription>
-              Overall completion and deliverable status
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Overall Progress</span>
-                  <span className="text-sm text-muted-foreground">
-                    {overview.summary.completed_deliverables} / {overview.summary.total_deliverables} completed
+  const blockers = overview?.blockers;
+  const blockerLines: { key: string; icon: any; label: string; detail: string; bad?: boolean }[] = [];
+  if (blockers) {
+    if (isClientView) {
+      if ((blockers.pending_your_approval ?? 0) > 0) {
+        blockerLines.push({
+          key: 'pending_your_approval', icon: AlertCircle, label: 'Waiting on you',
+          detail: `${blockers.pending_your_approval} concepts need your approval`,
+        });
+      }
+    } else {
+      if ((blockers.missing_scripts ?? 0) > 0) {
+        blockerLines.push({
+          key: 'missing_scripts', icon: AlertCircle, label: 'Missing scripts',
+          detail: `${blockers.missing_scripts} deliverables need scripts`,
+        });
+      }
+      if ((blockers.pending_approvals ?? 0) > 0) {
+        blockerLines.push({
+          key: 'pending_approvals', icon: Clock, label: 'Pending approvals',
+          detail: `${blockers.pending_approvals} items awaiting approval`,
+        });
+      }
+      if ((blockers.missing_frameio ?? 0) > 0) {
+        blockerLines.push({
+          key: 'missing_frameio', icon: Link2, label: 'Missing Frame.io links',
+          detail: `${blockers.missing_frameio} deliverables missing assets`,
+        });
+      }
+      if ((blockers.overdue_deliverables ?? 0) > 0) {
+        blockerLines.push({
+          key: 'overdue_deliverables', icon: AlertCircle, label: 'Overdue deliverables',
+          detail: `${blockers.overdue_deliverables} deliverables past deadline`, bad: true,
+        });
+      }
+    }
+  }
+
+  const activity = getFilteredActivity(overview?.recent_activity || [], user);
+
+  return (
+    <Page>
+      <Sections>
+        <PageHead
+          eyebrow={currentCampaign.brand_name}
+          title={currentCampaign.campaign_name}
+          sub={`${safeDate(currentCampaign.start_date)} to ${safeDate(currentCampaign.end_date)}`}
+          action={
+            <>
+              {isInternal && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewMode(isClientView ? 'internal' : 'client')}
+                >
+                  {isClientView ? (
+                    <>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Switch to Internal
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="h-4 w-4 mr-2" />
+                      Switch to Client
+                    </>
+                  )}
+                </Button>
+              )}
+              <State tone={currentCampaign.status === 'active' ? 'good' : 'neutral'}>
+                {currentCampaign.status}
+              </State>
+            </>
+          }
+        />
+
+        {/* ── where the campaign has got to ─────────────────────────────────────────── */}
+        <Group>
+          <SectionHead
+            title="Progress"
+            sub="Deliverables completed, and where the rest of them are."
+          />
+
+          {overviewError ? (
+            <Failed
+              what="The campaign summary did not load"
+              detail={`${overviewError} These figures are missing, not zero.`}
+              onRetry={loadOverview}
+            />
+          ) : (
+            <div className="flex flex-col gap-ds-4">
+              <div className="flex flex-col gap-ds-2">
+                <div className="flex items-baseline justify-between gap-ds-3">
+                  <span className="text-ds-label">
+                    {progressPct == null ? DASH : `${progressPct}%`} complete
+                  </span>
+                  <span className="text-ds-caption text-muted-foreground">
+                    {completed ?? DASH} of {totalDeliverables ?? DASH} deliverables
                   </span>
                 </div>
-                <Progress
-                  value={(overview.summary.completed_deliverables / overview.summary.total_deliverables) * 100}
-                  className="h-2"
-                />
+                <Progress value={progressPct ?? 0} className="h-2" />
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-                <StandardMetricCard icon={Package} label="Workstreams" value={overview.summary.total_workstreams} />
-                <StandardMetricCard icon={Activity} label="In Production" value={overview.summary.in_production} />
-                <StandardMetricCard icon={Clock} label="Pending Approval" value={overview.summary.pending_approval} />
-                <StandardMetricCard icon={AlertTriangle} label="Overdue" value={overview.summary.overdue} />
-              </div>
+              <Figures cols={4}>
+                <Figure label="Workstreams" value={summary?.total_workstreams ?? null} emphasis="quiet" />
+                <Figure label="In production" value={summary?.in_production ?? null} emphasis="quiet" />
+                <Figure label="Pending approval" value={summary?.pending_approval ?? null} emphasis="quiet" />
+                <Figure label="Overdue" value={summary?.overdue ?? null} emphasis="quiet" />
+              </Figures>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </Group>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* This Week */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5" />
-              This Week
-            </CardTitle>
-            <CardDescription>Upcoming shoots, deadlines, and events</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="shoots" className="w-full">
-              <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-3">
-                <TabsTrigger value="shoots">
-                  Shoots ({overview?.this_week.shoots.length || 0})
-                </TabsTrigger>
-                <TabsTrigger value="deadlines">
-                  Deadlines ({overview?.this_week.deadlines.length || 0})
-                </TabsTrigger>
-                <TabsTrigger value="events">
-                  Events ({overview?.this_week.events.length || 0})
-                </TabsTrigger>
-              </TabsList>
+        {/* ── the week, and what is in the way ──────────────────────────────────────── */}
+        <div className="grid gap-ds-5 lg:grid-cols-3">
+          <Group className="lg:col-span-2">
+            <SectionHead title="This week" sub="Shoots, deadlines and events in the next seven days." />
 
-              <TabsContent value="shoots" className="space-y-2">
-                {overview?.this_week.shoots.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
-                    No shoots scheduled this week
-                  </p>
-                ) : (
-                  overview?.this_week.shoots.map((shoot, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Film className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{shoot.location}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {safeDate(shoot.date)}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="secondary">
-                        {shoot.deliverables_count} deliverables
-                      </Badge>
-                    </div>
-                  ))
-                )}
-              </TabsContent>
+            {overviewError ? (
+              <Failed
+                what="This week did not load"
+                detail="An empty week here would be a guess, so nothing is shown."
+                onRetry={loadOverview}
+              />
+            ) : (
+              <Tabs defaultValue="shoots" className="w-full">
+                <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-3">
+                  <TabsTrigger value="shoots">
+                    Shoots ({overview?.this_week.shoots.length ?? 0})
+                  </TabsTrigger>
+                  <TabsTrigger value="deadlines">
+                    Deadlines ({overview?.this_week.deadlines.length ?? 0})
+                  </TabsTrigger>
+                  <TabsTrigger value="events">
+                    Events ({overview?.this_week.events.length ?? 0})
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="deadlines" className="space-y-2">
-                {overview?.this_week.deadlines.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
-                    No deadlines this week
-                  </p>
-                ) : (
-                  overview?.this_week.deadlines.map((deadline, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{deadline.deliverable}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {deadline.creator} • {safeDate(deadline.date, 'MMM d')}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </TabsContent>
+                <TabsContent value="shoots" className="mt-ds-3">
+                  {!overview?.this_week.shoots.length ? (
+                    <Empty>No shoots are scheduled this week.</Empty>
+                  ) : (
+                    overview.this_week.shoots.map((shoot, idx) => (
+                      <WeekRow
+                        key={idx}
+                        icon={Film}
+                        title={shoot.location}
+                        meta={safeDate(shoot.date)}
+                        trailing={
+                          <span className="shrink-0 text-ds-caption text-muted-foreground">
+                            {shoot.deliverables_count} deliverables
+                          </span>
+                        }
+                      />
+                    ))
+                  )}
+                </TabsContent>
 
-              <TabsContent value="events" className="space-y-2">
-                {overview?.this_week.events.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
-                    No events this week
-                  </p>
-                ) : (
-                  overview?.this_week.events.map((event, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{event.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {safeDate(event.date)}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="outline">{event.type}</Badge>
-                    </div>
-                  ))
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                <TabsContent value="deadlines" className="mt-ds-3">
+                  {!overview?.this_week.deadlines.length ? (
+                    <Empty>Nothing is due this week.</Empty>
+                  ) : (
+                    overview.this_week.deadlines.map((deadline, idx) => (
+                      <WeekRow
+                        key={idx}
+                        icon={Clock}
+                        title={deadline.deliverable}
+                        meta={`${deadline.creator} · ${safeDate(deadline.date, 'MMM d')}`}
+                      />
+                    ))
+                  )}
+                </TabsContent>
 
-        {/* Blockers */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-600" />
-              Blockers
-            </CardTitle>
-            <CardDescription>
-              {isClientView ? 'Items requiring your attention' : 'Issues requiring resolution'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {overview?.blockers && (
-              <div className="space-y-3">
-                {isClientView ? (
-                  <>
-                    {overview.blockers.pending_your_approval && overview.blockers.pending_your_approval > 0 && (
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle className="text-sm">Pending Your Approval</AlertTitle>
-                        <AlertDescription className="text-xs">
-                          {overview.blockers.pending_your_approval} concepts awaiting approval
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {overview.blockers.missing_scripts && overview.blockers.missing_scripts > 0 && (
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle className="text-sm">Missing Scripts</AlertTitle>
-                        <AlertDescription className="text-xs">
-                          {overview.blockers.missing_scripts} deliverables need scripts
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    {overview.blockers.pending_approvals && overview.blockers.pending_approvals > 0 && (
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle className="text-sm">Pending Approvals</AlertTitle>
-                        <AlertDescription className="text-xs">
-                          {overview.blockers.pending_approvals} items awaiting approval
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    {overview.blockers.missing_frameio && overview.blockers.missing_frameio > 0 && (
-                      <Alert>
-                        <Link2 className="h-4 w-4" />
-                        <AlertTitle className="text-sm">Missing Frame.io Links</AlertTitle>
-                        <AlertDescription className="text-xs">
-                          {overview.blockers.missing_frameio} deliverables missing assets
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    {overview.blockers.overdue_deliverables && overview.blockers.overdue_deliverables > 0 && (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle className="text-sm">Overdue Deliverables</AlertTitle>
-                        <AlertDescription className="text-xs">
-                          {overview.blockers.overdue_deliverables} deliverables past deadline
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </>
-                )}
+                <TabsContent value="events" className="mt-ds-3">
+                  {!overview?.this_week.events.length ? (
+                    <Empty>No events are scheduled this week.</Empty>
+                  ) : (
+                    overview.this_week.events.map((event, idx) => (
+                      <WeekRow
+                        key={idx}
+                        icon={Calendar}
+                        title={event.name}
+                        meta={safeDate(event.date)}
+                        trailing={<State tone="neutral">{event.type}</State>}
+                      />
+                    ))
+                  )}
+                </TabsContent>
+              </Tabs>
+            )}
+          </Group>
 
-                {Object.values(overview.blockers).every(v => !v || v === 0) && (
-                  <div className="flex items-center gap-2 text-green-600">
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span className="text-sm">No blockers</span>
-                  </div>
-                )}
+          <Group>
+            <SectionHead
+              title="Blockers"
+              sub={isClientView ? 'Waiting on you.' : 'Waiting on someone.'}
+            />
+
+            {/* The old version showed "No blockers" whenever the numbers were missing,
+                which is the one case where an operator most needs to be told otherwise. */}
+            {overviewError || !blockers ? (
+              <Note tone="warn">
+                We could not read the blockers for this campaign. There may well be some, so
+                this is not an all clear.
+              </Note>
+            ) : blockerLines.length === 0 ? (
+              <div className="flex items-center gap-ds-2 py-ds-3 text-ds-body text-muted-foreground">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                Nothing is blocked.
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                {blockerLines.map(b => (
+                  <WeekRow
+                    key={b.key}
+                    icon={b.icon}
+                    title={b.label}
+                    meta={b.detail}
+                    trailing={b.bad ? <State tone="bad">Overdue</State> : undefined}
+                  />
+                ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </Group>
+        </div>
 
-      {/* Workstreams Quick Access */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Workstreams</CardTitle>
-              <CardDescription>Quick access to campaign workstreams</CardDescription>
-            </div>
-            <Button onClick={() => navigateToSection('workstreams')}>
-              View All
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {workstreams.slice(0, 6).map(workstream => (
-              <Card
-                key={workstream.id}
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigateToSection(`workstreams/${workstream.id}`)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <Badge variant="outline">{workstream.type.replace('_', ' ')}</Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {workstream.completion_percentage}%
+        {/* ── workstreams ───────────────────────────────────────────────────────────── */}
+        <Group>
+          <SectionHead
+            title="Workstreams"
+            sub="How the work is split up."
+            action={
+              <Button variant="outline" size="sm" onClick={() => navigateToSection('workstreams')}>
+                View all
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            }
+          />
+
+          {loadErrors.campaign ? (
+            <Failed
+              what="The workstreams did not load"
+              detail={loadErrors.campaign}
+              onRetry={() => selectCampaign(campaignId)}
+            />
+          ) : workstreams.length === 0 ? (
+            <Empty>No workstreams have been set up on this campaign yet.</Empty>
+          ) : (
+            <div className="grid gap-ds-3 md:grid-cols-2 lg:grid-cols-3">
+              {/* A workstream IS an object you can open, so it keeps its card. */}
+              {workstreams.slice(0, 6).map(workstream => (
+                <button
+                  key={workstream.id}
+                  type="button"
+                  onClick={() => navigateToSection(`workstreams/${workstream.id}`)}
+                  className="flex flex-col gap-ds-2 rounded-ds-surface border border-border bg-card p-ds-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <div className="flex items-start justify-between gap-ds-2">
+                    <State tone="neutral">{workstream.type.replace('_', ' ')}</State>
+                    <span className="text-ds-caption tabular-nums text-muted-foreground">
+                      {workstream.completion_percentage ?? DASH}%
                     </span>
                   </div>
-                  <p className="font-medium text-sm mb-1">{workstream.name}</p>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>{workstream.deliverables_count} deliverables</span>
-                    {workstream.pending_approvals > 0 && (
-                      <span className="text-yellow-600">
+                  <p className="text-ds-label">{workstream.name}</p>
+                  <div className="flex items-center gap-ds-3 text-ds-caption text-muted-foreground">
+                    <span>{workstream.deliverables_count ?? DASH} deliverables</span>
+                    {(workstream.pending_approvals ?? 0) > 0 && (
+                      <span className="text-amber-700 dark:text-amber-400">
                         {workstream.pending_approvals} pending
                       </span>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Activity Feed */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Recent Activity
-              </CardTitle>
-              <CardDescription>Latest updates and changes</CardDescription>
+                </button>
+              ))}
             </div>
-            {/* "View All" removed — the activity route was retired (May 2026)
-                and the inline feed below already shows recent activity. */}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {getFilteredActivity(overview?.recent_activity || [], user)
-              .slice(0, 5)
-              .map(activity => (
-                <div key={activity.id} className="flex items-start gap-3 pb-3 border-b last:border-0">
-                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+          )}
+        </Group>
+
+        {/* ── activity ──────────────────────────────────────────────────────────────── */}
+        <Group>
+          <SectionHead title="Recent activity" sub="The last few things that happened." />
+          {/* "View All" removed — the activity route was retired (May 2026)
+              and the inline feed below already shows recent activity. */}
+
+          {overviewError ? (
+            <Failed
+              what="The activity feed did not load"
+              detail="This is a display problem. Nothing has been undone."
+              onRetry={loadOverview}
+            />
+          ) : activity.length === 0 ? (
+            <Empty>Nothing has happened on this campaign yet.</Empty>
+          ) : (
+            <div className="flex flex-col">
+              {activity.slice(0, 5).map(item => (
+                <div
+                  key={item.id}
+                  className="flex items-start gap-ds-3 border-b border-border/70 py-ds-3 last:border-b-0"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-ds-full bg-muted">
                     <Activity className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm">
-                      <span className="font-medium">{activity.actor_name}</span>{' '}
-                      {activity.action}
+                  <div className="flex min-w-0 flex-col gap-ds-1">
+                    <p className="text-ds-body">
+                      <span className="font-medium">{item.actor_name}</span> {item.action}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {safeDate(activity.timestamp, 'MMM d, h:mm a')}
+                    <p className="text-ds-caption text-muted-foreground">
+                      {safeDate(item.timestamp, 'MMM d, h:mm a')}
                     </p>
                     <InternalOnly>
-                      {activity.type && (
-                        <Badge variant="outline" className="mt-1 text-xs">
-                          {activity.type}
-                        </Badge>
+                      {item.type && (
+                        <span className="text-ds-overline uppercase text-muted-foreground">
+                          {item.type}
+                        </span>
                       )}
                     </InternalOnly>
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </Group>
 
-            {(!overview?.recent_activity || getFilteredActivity(overview.recent_activity, user).length === 0) && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No recent activity
-              </p>
+        {/* ── where to go next ──────────────────────────────────────────────────────── */}
+        <Group>
+          <SectionHead title="Go to" rule={false} />
+          <div className="flex flex-wrap gap-ds-3">
+            <Button variant="outline" onClick={() => navigateToSection('workstreams')}>
+              <Package className="h-4 w-4 mr-2" />
+              Workstreams
+            </Button>
+            <Button variant="outline" onClick={() => navigateToSection('deliverables')}>
+              <FileVideo className="h-4 w-4 mr-2" />
+              Deliverables
+            </Button>
+            {!isClientView && isInternal && (
+              <Button variant="outline" onClick={() => navigateToSection('settings')}>
+                <Target className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Navigation */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col items-center justify-center gap-2"
-          onClick={() => navigateToSection('workstreams')}
-        >
-          <Package className="h-6 w-6" />
-          <span>Workstreams</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-24 flex flex-col items-center justify-center gap-2"
-          onClick={() => navigateToSection('deliverables')}
-        >
-          <FileVideo className="h-6 w-6" />
-          <span>Deliverables</span>
-        </Button>
-        {!isClientView && isInternal && (
-          <Button
-            variant="outline"
-            className="h-24 flex flex-col items-center justify-center gap-2"
-            onClick={() => navigateToSection('settings')}
-          >
-            <Target className="h-6 w-6" />
-            <span>Settings</span>
-          </Button>
-        )}
-      </div>
-    </div>
+        </Group>
+      </Sections>
+    </Page>
   );
 }

@@ -131,7 +131,7 @@ export default function SuperadminDashboard() {
     },
     {
       label: 'Creators',
-      path: '/superadmin/influencers',
+      path: '/work/influencers',
       icon: Target,
       metric: 'Open',
       subMetric: 'The master database, rates and tiers',

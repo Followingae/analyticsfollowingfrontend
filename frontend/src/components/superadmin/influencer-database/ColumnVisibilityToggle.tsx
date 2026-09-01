@@ -9,8 +9,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { COLUMN_DEFINITIONS, type ColumnKey } from "@/types/influencerDatabase"
+import { type ColumnKey } from "@/types/influencerDatabase"
 import { Columns3 } from "lucide-react"
+import { useMoneyColumns } from "./useMoneyColumns"
 
 interface ColumnVisibilityToggleProps {
   visibleColumns: ColumnKey[]
@@ -23,7 +24,11 @@ export function ColumnVisibilityToggle({
   visibleColumns,
   onVisibleColumnsChange,
 }: ColumnVisibilityToggleProps) {
-  const toggleableColumns = COLUMN_DEFINITIONS.filter(
+  // Starts from the columns this viewer is entitled to, not from every column that exists:
+  // offering "Reel Cost" to somebody who may not read it advertises the number as much as
+  // showing it would.
+  const { columns } = useMoneyColumns()
+  const toggleableColumns = columns.filter(
     (col) => !ALWAYS_VISIBLE.includes(col.key)
   )
 
@@ -44,7 +49,7 @@ export function ColumnVisibilityToggle({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+        <DropdownMenuLabel>Columns</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {toggleableColumns.map((col) => (
           <DropdownMenuCheckboxItem

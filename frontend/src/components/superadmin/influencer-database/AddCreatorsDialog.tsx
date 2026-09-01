@@ -83,7 +83,7 @@ export function AddCreatorsDialog({
         <DialogHeader>
           <DialogTitle>Add creators</DialogTitle>
           <DialogDescription>
-            Paste handles — one per line, or comma separated.
+            Paste handles, one per line or comma separated.
             {areaName
               ? ` They come back into ${areaName} once they are priced and approved.`
               : ' Pricing and approval happen in the waiting room.'}
@@ -165,7 +165,7 @@ export function AddCreatorsDialog({
             <Label className="text-xs">Note (optional)</Label>
             <Input
               className="mt-1.5" value={note} onChange={(e) => setNote(e.target.value)}
-              placeholder="e.g. met at MEFCC — open to barter"
+              placeholder="e.g. met at MEFCC, open to barter"
             />
           </div>
         </div>

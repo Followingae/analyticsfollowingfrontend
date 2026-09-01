@@ -1,5 +1,17 @@
 "use client"
 
+/**
+ * The database as a table. Density tier: SCANNING.
+ *
+ * Rows sit at 34px, cells at 8 vertical and 12 horizontal, and figures are right-aligned and
+ * tabular so two rates can be compared down a column. The rounded border that used to be
+ * drawn around the whole grid is gone: a table already has rules, and a box around it is a
+ * fourth edge that carries nothing. The air moved to the page margin, which is where it
+ * belongs on a screen whose job is to hold two hundred creators at once.
+ *
+ * Rate columns are filtered through the viewer's money scope a second time here, so a stale
+ * preference cannot put cost in front of somebody who may not read it.
+ */
 import {
   Table,
   TableHeader,
@@ -25,22 +37,21 @@ import { AnalyticsStatusCell } from "./AnalyticsStatusCell"
 import type { AnalyticsStatusMap } from "@/hooks/useAnalyticsStatusPoller"
 import {
   COLUMN_DEFINITIONS,
-  TIER_OPTIONS,
   STATUS_OPTIONS,
-  formatCents,
-  formatCount,
   getEngagementColor,
   computeMarginPercent,
   type MasterInfluencer,
   type ColumnKey,
 } from "@/types/influencerDatabase"
+import { count } from "./Money"
+import { useMoneyColumns } from "./useMoneyColumns"
+import { cn } from "@/lib/utils"
 import {
   ArrowUp,
   ArrowDown,
   MoreHorizontal,
   Eye,
   Pencil,
-  Coins,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -92,9 +103,16 @@ export function InfluencerTableView({
   completedSinceMount,
   onTriggerAnalytics,
 }: InfluencerTableViewProps) {
-  const columns = COLUMN_DEFINITIONS.filter((col) =>
-    visibleColumns.includes(col.key)
+  const money = useMoneyColumns()
+  const columns = COLUMN_DEFINITIONS.filter(
+    (col) => visibleColumns.includes(col.key) && money.allows(col.key)
   )
+
+  /** Figures compare down a column, so they sit right and the words sit left. */
+  const NUMERIC: ColumnKey[] = [
+    "followers", "engagement", "ig_post_cost", "ig_post_sell", "ig_reel_cost",
+    "ig_reel_sell", "ig_story_cost", "video_cost", "video_sell", "margin",
+  ]
 
   const allSelected =
     influencers.length > 0 &&
@@ -169,17 +187,20 @@ export function InfluencerTableView({
         )
       case "followers":
         return (
-          <span className="font-medium">
-            {formatCount(inf.followers_count)}
+          <span className="font-medium tabular-nums">
+            {count(inf.followers_count)}
           </span>
         )
       case "engagement":
-        return inf.engagement_rate ? (
-          <span className={`font-medium ${getEngagementColor(inf.engagement_rate)}`}>
+        // An engagement rate we were never given is a dash. A measured 0% is a real,
+        // alarming figure and still prints as 0.00%, which is why this tests for null
+        // rather than for falsiness.
+        return inf.engagement_rate != null ? (
+          <span className={`font-medium tabular-nums ${getEngagementColor(inf.engagement_rate)}`}>
             {inf.engagement_rate.toFixed(2)}%
           </span>
         ) : (
-          <span className="text-muted-foreground">--</span>
+          <span className="text-muted-foreground">–</span>
         )
       case "categories": {
         /* What somebody tagged them as, or failing that what the analytics decided they
@@ -187,7 +208,7 @@ export function InfluencerTableView({
            nothing about whether we simply never got round to them. */
         const cats: string[] =
           (inf.categories?.length ? inf.categories : (inf as any).ai_content_categories) || []
-        if (!cats.length) return <span className="text-muted-foreground">--</span>
+        if (!cats.length) return <span className="text-muted-foreground">–</span>
         return (
           <div className="flex max-w-[200px] flex-wrap gap-1">
             {cats.slice(0, 2).map((cat) => (
@@ -214,7 +235,7 @@ export function InfluencerTableView({
          * arithmetic. */
         const band = (inf as any).band_label as string | undefined
         const derived = (inf as any).band_derived as boolean | undefined
-        if (!band) return <span className="text-muted-foreground">--</span>
+        if (!band) return <span className="text-muted-foreground">–</span>
         return (
           <span
             title={derived ? "From their follower count" : "Set by hand"}
@@ -232,7 +253,7 @@ export function InfluencerTableView({
         // here would make an unset creator look filterable when they are not.
         return inf.country
           ? <span className="text-xs">{inf.country}</span>
-          : <span className="text-muted-foreground">--</span>
+          : <span className="text-muted-foreground">–</span>
       case "ig_post_cost":
         return (
           <InlineEditCell
@@ -288,19 +309,34 @@ export function InfluencerTableView({
           inf.sell_post_aed_cents
         )
         if (margin === null)
-          return <span className="text-muted-foreground">--</span>
-        const color =
+          return <span className="text-muted-foreground">–</span>
+        /* Colour is the state of the margin, from the console's tones rather than a sixth
+           set of hand-picked palette steps, and it never carries the meaning alone: the
+           word is there for anyone who cannot separate the two greens and for anyone
+           reading this printed. */
+        const tone =
           margin >= 30
-            ? "text-green-600"
+            ? { ink: "text-[var(--tone-good-ink)]", word: "healthy" }
             : margin >= 15
-              ? "text-yellow-600"
-              : "text-red-600"
-        return <span className={`font-medium ${color}`}>{margin.toFixed(1)}%</span>
+              ? { ink: "text-[var(--tone-warn-ink)]", word: "thin" }
+              : { ink: "text-[var(--tone-bad-ink)]", word: "poor" }
+        return (
+          <span className={cn("font-medium tabular-nums", tone.ink)}>
+            {margin.toFixed(1)}%
+            <span className="ml-1 text-[11px] font-normal">{tone.word}</span>
+          </span>
+        )
       }
       case "status": {
         const opt = STATUS_OPTIONS.find((s) => s.value === inf.status)
+        const ink: Record<string, string> = {
+          active: "text-[var(--tone-good-ink)]",
+          inactive: "text-muted-foreground",
+          blacklisted: "text-[var(--tone-bad-ink)]",
+          pending: "text-[var(--tone-warn-ink)]",
+        }
         return (
-          <span className={`text-sm font-medium ${opt?.color ?? ""}`}>
+          <span className={cn("text-sm font-medium", ink[inf.status] ?? "")}>
             {opt?.label ?? inf.status}
           </span>
         )
@@ -309,21 +345,21 @@ export function InfluencerTableView({
         return inf.is_verified ? (
           <BadgeCheck className="size-4 text-blue-500" />
         ) : (
-          <span className="text-muted-foreground">--</span>
+          <span className="text-muted-foreground">–</span>
         )
       case "added":
         return (
           <span className="text-xs text-muted-foreground">
             {inf.created_at
-              ? new Date(inf.created_at).toLocaleDateString()
-              : "--"}
+              ? new Date(inf.created_at).toLocaleDateString("en-GB")
+              : "–"}
           </span>
         )
       case "last_refresh":
         return (
           <span className="text-xs text-muted-foreground">
             {inf.last_analytics_refresh
-              ? new Date(inf.last_analytics_refresh).toLocaleDateString()
+              ? new Date(inf.last_analytics_refresh).toLocaleDateString("en-GB")
               : "Never"}
           </span>
         )
@@ -360,19 +396,19 @@ export function InfluencerTableView({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onViewDetails(inf)}>
                 <Eye className="size-4" />
-                View Analytics
+                Open their analytics
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onEditDetails(inf)}>
                 <Pencil className="size-4" />
-                Edit Details
+                Edit their record
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="text-red-600 focus:text-red-600"
+                className="text-[var(--tone-bad-ink)] focus:text-[var(--tone-bad-ink)]"
                 onClick={() => onDelete?.(inf.id)}
               >
                 <Trash2 className="size-4" />
-                Remove
+                Remove from the database
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -383,17 +419,19 @@ export function InfluencerTableView({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border">
+    <div className="flex flex-col gap-ds-3">
+      <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               {columns.map((col) => (
                 <TableHead
                   key={col.key}
-                  className={
-                    col.sortable ? "cursor-pointer select-none" : undefined
-                  }
+                  className={cn(
+                    "h-9 px-3 text-ds-overline text-muted-foreground uppercase",
+                    NUMERIC.includes(col.key) && "text-right",
+                    col.sortable && "cursor-pointer select-none",
+                  )}
                   onClick={() => {
                     if (col.sortable && col.sortKey) {
                       onSort(col.sortKey)
@@ -407,7 +445,10 @@ export function InfluencerTableView({
                       onCheckedChange={toggleAll}
                     />
                   ) : (
-                    <div className="flex items-center gap-1">
+                    <div className={cn(
+                      "flex items-center gap-1",
+                      NUMERIC.includes(col.key) && "justify-end",
+                    )}>
                       {col.label}
                       {renderSortIcon(col)}
                     </div>
@@ -421,7 +462,7 @@ export function InfluencerTableView({
               ? Array.from({ length: 10 }).map((_, i) => (
                   <TableRow key={`skeleton-${i}`}>
                     {columns.map((col) => (
-                      <TableCell key={col.key}>
+                      <TableCell key={col.key} className="px-3 py-ds-2">
                         <Skeleton className="h-5 w-full" />
                       </TableCell>
                     ))}
@@ -433,7 +474,13 @@ export function InfluencerTableView({
                     data-state={selectedIds.has(inf.id) ? "selected" : undefined}
                   >
                     {columns.map((col) => (
-                      <TableCell key={col.key}>
+                      <TableCell
+                        key={col.key}
+                        className={cn(
+                          "px-3 py-ds-2 align-middle",
+                          NUMERIC.includes(col.key) && "text-right",
+                        )}
+                      >
                         {renderCell(inf, col.key)}
                       </TableCell>
                     ))}
@@ -445,7 +492,7 @@ export function InfluencerTableView({
                   colSpan={columns.length}
                   className="h-32 text-center text-muted-foreground"
                 >
-                  No influencers found
+                  No creator here matches what you asked for.
                 </TableCell>
               </TableRow>
             )}
@@ -454,12 +501,12 @@ export function InfluencerTableView({
       </div>
 
       {totalCount > 0 && (
-        <div className="flex items-center justify-between px-2">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-ds-2">
+          <p className="text-ds-caption text-muted-foreground">
             Showing {offset + 1}–{Math.min(offset + pageSize, totalCount)} of{" "}
             {totalCount.toLocaleString()}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-ds-2">
             <Button
               variant="outline"
               size="sm"
@@ -469,7 +516,7 @@ export function InfluencerTableView({
               <ChevronLeft className="size-4" />
               Previous
             </Button>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-ds-caption text-muted-foreground">
               Page {page} of {totalPages}
             </span>
             <Button

@@ -12,22 +12,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   AlertTriangle, ArrowLeft, BadgeCheck, ChevronDown, ChevronRight, Coins,
-  Loader2, Plus, RefreshCw, ShieldCheck, SkipForward, Upload, XCircle,
+  Loader2, RefreshCw, SkipForward, Upload, XCircle,
 } from "lucide-react"
 import type {
   ExistingRowMode, ImportPreviewRow, ImportPreviewSummary,
 } from "@/types/influencerDatabase"
+import { Aed } from "@/components/console/primitives"
+import { useAdminAccess } from "@/hooks/useAdminAccess"
 
 // Reel first — it is the rate quoted in the overwhelming majority of deals, so it gets
 // dedicated columns. The rest live behind the per-row expander.
 const PRIMARY = "reel" as const
 const SECONDARY = ["post", "story", "carousel", "video", "bundle", "monthly"] as const
 
-const fmtAed = (n: number | null | undefined) =>
-  n == null ? "—" : `⃃ ${Number(n).toLocaleString("en-AE", { maximumFractionDigits: 2 })}`
+/** A figure in dirhams, through the primitive that carries the glyph. The old helper
+ *  built its own string around a raw U+20C3, which no system font has a glyph for: outside
+ *  the one element that loads the Dirham face it came out as an empty box. */
+function Dh({ n }: { n: number | null | undefined }) {
+  if (n == null) return <span className="text-muted-foreground">–</span>
+  return <Aed>{Number(n).toLocaleString("en-AE", { maximumFractionDigits: 2 })}</Aed>
+}
 
 const fmtNum = (n: number | null | undefined) =>
-  n == null ? "—" : Number(n).toLocaleString("en-AE")
+  n == null ? "–" : Number(n).toLocaleString("en-AE")
 
 /** Margin on what we charge: (sell - cost) / sell. Null unless both sides are known. */
 function marginPct(cost: number | null | undefined, sell: number | null | undefined): number | null {
@@ -35,19 +42,29 @@ function marginPct(cost: number | null | undefined, sell: number | null | undefi
   return ((sell - cost) / sell) * 100
 }
 
+/**
+ * The margin on a row, for the people allowed to know it.
+ *
+ * Margin is leadership only. Everyone else gets nothing here rather than a blank badge: cost
+ * and sell are both on screen because the operator is typing them straight off their own
+ * spreadsheet, but what we make on the difference is not theirs to read. Gated on the
+ * resolved scope, never on an is-admin test, so the co-founder keeps it.
+ */
 function MarginBadge({ cost, sell }: { cost?: number | null; sell?: number | null }) {
+  const { canSeeMargin } = useAdminAccess()
   const m = marginPct(cost, sell)
+  if (!canSeeMargin) return null
   if (m == null) {
-    return <span className="text-xs text-muted-foreground">—</span>
+    return <span className="text-ds-caption text-muted-foreground">–</span>
   }
   const tone =
     m < 0
-      ? "bg-red-500/10 text-red-600 border-red-500/20"
+      ? { skin: "border-transparent bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]", word: "at a loss" }
       : m < 15
-        ? "bg-orange-500/10 text-orange-600 border-orange-500/20"
-        : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+        ? { skin: "border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]", word: "thin" }
+        : { skin: "border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]", word: "healthy" }
   return (
-    <Badge variant="outline" className={`tabular-nums font-semibold ${tone}`}>
+    <Badge variant="outline" className={`font-semibold tabular-nums ${tone.skin}`} title={tone.word}>
       {m >= 0 ? "+" : ""}{m.toFixed(1)}%
     </Badge>
   )
@@ -95,6 +112,8 @@ export function ExcelImportReview({
   rows: initialRows, summary, unknownColumns, fileName, committing,
   existingMode, previewing, onExistingModeChange, onCommit, onBack,
 }: Props) {
+  // Which sides of the money this operator may read. Same rule as the database table.
+  const { canSeeCost, canSeeSell, canSeeMargin } = useAdminAccess()
   const [rows, setRows] = useState<ImportPreviewRow[]>(initialRows)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [onlyProblems, setOnlyProblems] = useState(false)
@@ -248,7 +267,7 @@ export function ExcelImportReview({
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="text-xs">
                   {summary.will_update} existing record{summary.will_update === 1 ? "" : "s"} will be
-                  overwritten from this file — including any price that was negotiated after the
+                  overwritten from this file, including any price that was negotiated after the
                   sheet was exported. There is no undo.
                 </AlertDescription>
               </Alert>
@@ -257,57 +276,80 @@ export function ExcelImportReview({
 
           <Separator className="my-4" />
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <div className="rounded-lg bg-emerald-50 p-3 text-center dark:bg-emerald-950/30">
-              <Plus className="mx-auto mb-1 h-4 w-4 text-emerald-600" />
-              <div className="text-xl font-bold tabular-nums text-emerald-600">{summary.will_create}</div>
-              <p className="text-[11px] text-muted-foreground">New</p>
+          {/* Six counts, six boxes, six borders. They are all the same kind of thing laid
+              out in a row, which is already everything a border was saying, so the boxes
+              come off and the gap goes up a step instead. Cost, sell and margin appear only
+              for the scope allowed to read them. */}
+          <div className="flex flex-wrap gap-x-ds-5 gap-y-ds-3">
+            <div>
+              <p className="flex items-center gap-ds-1 text-ds-caption text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--tone-good-dot)]" aria-hidden />
+                New
+              </p>
+              <div className="mt-ds-1 text-ds-heading tabular-nums">{summary.will_create}</div>
             </div>
             {existingMode === "skip" ? (
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <ShieldCheck className="mx-auto mb-1 h-4 w-4 text-muted-foreground" />
-                <div className="text-xl font-bold tabular-nums">{summary.will_skip}</div>
-                <p className="text-[11px] text-muted-foreground">Left untouched</p>
+              <div>
+                <p className="text-ds-caption text-muted-foreground">Left untouched</p>
+                <div className="mt-ds-1 text-ds-heading tabular-nums">{summary.will_skip}</div>
               </div>
             ) : (
-              <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-950/30">
-                <RefreshCw className="mx-auto mb-1 h-4 w-4 text-blue-600" />
-                <div className="text-xl font-bold tabular-nums text-blue-600">{summary.will_update}</div>
-                <p className="text-[11px] text-muted-foreground">Update existing</p>
+              <div>
+                <p className="flex items-center gap-ds-1 text-ds-caption text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--tone-warn-dot)]" aria-hidden />
+                  Overwritten
+                </p>
+                <div className="mt-ds-1 text-ds-heading tabular-nums">{summary.will_update}</div>
               </div>
             )}
-            <div className="rounded-lg bg-muted/50 p-3 text-center">
-              <Coins className="mx-auto mb-1 h-4 w-4 text-muted-foreground" />
-              <div className="text-xl font-bold tabular-nums">{fmtAed(totals.cost)}</div>
-              <p className="text-[11px] text-muted-foreground">Total cost</p>
-            </div>
-            <div className="rounded-lg bg-muted/50 p-3 text-center">
-              <Coins className="mx-auto mb-1 h-4 w-4 text-muted-foreground" />
-              <div className="text-xl font-bold tabular-nums">{fmtAed(totals.sell)}</div>
-              <p className="text-[11px] text-muted-foreground">Total sell</p>
-            </div>
-            <div className="rounded-lg bg-muted/50 p-3 text-center">
-              <div className="mb-1 flex h-4 items-center justify-center text-[11px] font-bold text-muted-foreground">%</div>
-              <div
-                className={`text-xl font-bold tabular-nums ${
-                  totals.margin == null
-                    ? ""
-                    : totals.margin < 0
-                      ? "text-red-600"
-                      : totals.margin < 15
-                        ? "text-orange-600"
-                        : "text-emerald-600"
-                }`}
-              >
-                {totals.margin == null ? "—" : `${totals.margin >= 0 ? "+" : ""}${totals.margin.toFixed(1)}%`}
+            {canSeeCost && (
+              <div>
+                <p className="text-ds-caption text-muted-foreground">What it all costs</p>
+                <div className="mt-ds-1 text-ds-heading tabular-nums"><Dh n={totals.cost} /></div>
               </div>
-              <p className="text-[11px] text-muted-foreground">Blended margin</p>
-            </div>
-            <div className="rounded-lg bg-red-50 p-3 text-center dark:bg-red-950/30">
-              <XCircle className="mx-auto mb-1 h-4 w-4 text-red-600" />
-              <div className="text-xl font-bold tabular-nums text-red-600">{summary.blocked}</div>
-              <p className="text-[11px] text-muted-foreground">Blocked</p>
-            </div>
+            )}
+            {canSeeSell && (
+              <div>
+                <p className="text-ds-caption text-muted-foreground">What it all sells for</p>
+                <div className="mt-ds-1 text-ds-heading tabular-nums"><Dh n={totals.sell} /></div>
+              </div>
+            )}
+            {canSeeMargin && (
+              <div>
+                <p className="text-ds-caption text-muted-foreground">Blended margin</p>
+                <div
+                  className={`mt-ds-1 text-ds-heading tabular-nums ${
+                    totals.margin == null
+                      ? "text-muted-foreground"
+                      : totals.margin < 0
+                        ? "text-[var(--tone-bad-ink)]"
+                        : totals.margin < 15
+                          ? "text-[var(--tone-warn-ink)]"
+                          : "text-[var(--tone-good-ink)]"
+                  }`}
+                >
+                  {totals.margin == null
+                    ? "–"
+                    : `${totals.margin >= 0 ? "+" : ""}${totals.margin.toFixed(1)}%`}
+                  {totals.margin != null && (
+                    <span className="ml-1 text-ds-caption font-normal">
+                      {totals.margin < 0 ? "at a loss" : totals.margin < 15 ? "thin" : "healthy"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            {summary.blocked > 0 && (
+              <div>
+                <p className="flex items-center gap-ds-1 text-ds-caption text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--tone-bad-dot)]" aria-hidden />
+                  Blocked
+                </p>
+                <div className="mt-ds-1 text-ds-heading tabular-nums text-[var(--tone-bad-ink)]">
+                  {summary.blocked}
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -409,9 +451,9 @@ export function ExcelImportReview({
                               </Avatar>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1 font-medium">
-                                  <span className="truncate">@{r.username ?? "—"}</span>
+                                  <span className="truncate">@{r.username ?? "–"}</span>
                                   {r.known_profile?.is_verified && (
-                                    <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                                    <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[var(--tone-info-dot)]" />
                                   )}
                                 </div>
                                 <div className="truncate text-xs text-muted-foreground">
@@ -429,7 +471,7 @@ export function ExcelImportReview({
                           <TableCell>
                             <div className="flex flex-col items-start gap-1">
                               {r.action === "create" ? (
-                                <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-600">
+                                <Badge variant="outline" className="border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
                                   New
                                 </Badge>
                               ) : r.action === "skip" ? (
@@ -437,7 +479,7 @@ export function ExcelImportReview({
                                   Skipped
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="border-blue-500/20 bg-blue-500/10 text-blue-600">
+                                <Badge variant="outline" className="border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]">
                                   Update
                                 </Badge>
                               )}
@@ -485,7 +527,7 @@ export function ExcelImportReview({
                                   <TooltipTrigger asChild>
                                     <Badge
                                       variant="outline"
-                                      className="cursor-help gap-1 border-orange-500/20 bg-orange-500/10 text-orange-600"
+                                      className="cursor-help gap-1 border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]"
                                     >
                                       <AlertTriangle className="h-3 w-3" />
                                       {warns.length}
@@ -512,7 +554,7 @@ export function ExcelImportReview({
                             <TableCell colSpan={6} className="pb-4">
                               <div className="rounded-lg border bg-muted/30 p-3">
                                 <p className="mb-3 text-xs font-medium text-muted-foreground">
-                                  Other deliverables — leave blank if not booked
+                                  Other deliverables, blank if not booked
                                 </p>
                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                                   {SECONDARY.map((d) => {

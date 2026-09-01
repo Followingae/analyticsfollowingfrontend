@@ -1,6 +1,15 @@
 /**
- * Operations OS - Workstreams Management Page
- * Manage and organize campaign workstreams by type
+ * Operations — the workstreams on one campaign.
+ *
+ * Density tier: WORKING. A workstream genuinely is an object you can open, so it keeps its
+ * card; the type filter above it was a card wrapped around a row of buttons, which is a box
+ * around a control, and it is now just the row of buttons. The summary at the bottom was
+ * four numbers in a card and is now a band with no borders at all.
+ *
+ * Honesty: "No workstreams found. Create your first one" was shown over a failed campaign
+ * read as well as over a genuinely empty campaign, which invites an operator to build a
+ * second copy of work that already exists. The two now read differently, and the average
+ * completion figure no longer divides by a length that can be zero.
  */
 
 'use client';
@@ -8,13 +17,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useOperations } from '@/contexts/OperationsContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
@@ -34,21 +39,20 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  Page, Sections, Group, PageHead, SectionHead,
+  Figure, Figures, State, Failed, Empty, Waiting, Note, DASH,
+  type StateTone,
+} from '@/components/campaigns/surface';
+import {
   Plus,
-  Package,
   Video,
   Camera,
   Calendar,
-  Users,
   Coins,
   Gift,
   Layers,
   ChevronRight,
-  AlertCircle,
-  Target,
-  Clock,
-  CheckCircle2,
-  Archive
+  Target
 } from 'lucide-react';
 import { WorkstreamType, Workstream } from '@/types/operations';
 import { toast } from 'sonner';
@@ -76,13 +80,20 @@ const WORKSTREAM_LABELS: Record<WorkstreamType, string> = {
 // Per-type guidance shown in the create flow so operators know what each
 // workstream models (UGC is just one of several execution types).
 const WORKSTREAM_DESCRIPTIONS: Record<WorkstreamType, string> = {
-  ugc: 'Creator-produced content: concepts → scripts → videos → client review.',
+  ugc: 'Creator-produced content: concepts, scripts, videos, client review.',
   influencer_paid: 'Paid influencer deliverables with fees, briefs and posting deadlines.',
-  influencer_barter: 'Gifted/barter collaborations exchanged for content deliverables.',
+  influencer_barter: 'Gifted collaborations exchanged for content deliverables.',
   video_shoot: 'In-house or studio video production days, call sheets and edits.',
   photo_shoot: 'Photography production days, shot lists and asset delivery.',
-  event_activation: 'On-ground activations/events: invites, attendance and coverage.',
+  event_activation: 'On-ground activations and events: invites, attendance and coverage.',
   hybrid: 'A mix of execution types managed under one workstream.'
+};
+
+const STATUS_TONE: Record<string, StateTone> = {
+  draft: 'neutral',
+  active: 'good',
+  completed: 'info',
+  archived: 'neutral',
 };
 
 export default function WorkstreamsPage() {
@@ -96,7 +107,8 @@ export default function WorkstreamsPage() {
     selectCampaign,
     createWorkstream,
     uiState,
-    userAccess
+    userAccess,
+    loadErrors,
   } = useOperations();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -117,6 +129,7 @@ export default function WorkstreamsPage() {
 
   const isInternal = userAccess.permissions.view_internal_notes;
   const canCreate = userAccess.permissions.create_workstreams;
+  const failed = loadErrors.campaign;
 
   const filteredWorkstreams = workstreams.filter(ws =>
     filterType === 'all' || ws.type === filterType
@@ -148,196 +161,194 @@ export default function WorkstreamsPage() {
     router.push(`/ops/campaigns/${campaignId}/workstreams/${workstreamId}`);
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; icon: any }> = {
-      draft: { variant: 'secondary', icon: Clock },
-      active: { variant: 'default', icon: CheckCircle2 },
-      completed: { variant: 'outline', icon: CheckCircle2 },
-      archived: { variant: 'secondary', icon: Archive }
-    };
-
-    const config = variants[status] || variants.active;
-    const Icon = config.icon;
-
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {status}
-      </Badge>
-    );
-  };
+  /* An average over a list we could not read is not an average. */
+  const totalDeliverables = failed
+    ? null
+    : workstreams.reduce((sum, ws) => sum + (ws.deliverables_count || 0), 0);
+  const totalPending = failed
+    ? null
+    : workstreams.reduce((sum, ws) => sum + (ws.pending_approvals || 0), 0);
+  const averageCompletion =
+    failed || workstreams.length === 0
+      ? null
+      : Math.round(
+          workstreams.reduce((sum, ws) => sum + (ws.completion_percentage || 0), 0) /
+          workstreams.length
+        );
 
   if (uiState.isLoading && workstreams.length === 0) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Skeleton className="h-12 w-64" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-48" />
-          ))}
-        </div>
-      </div>
+      <Page width="wide">
+        <Sections>
+          <PageHead title="Workstreams" sub="Deliverables, organised by how they get made." />
+          <Waiting lines={4} />
+        </Sections>
+      </Page>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+    <Page width="wide">
+      <Sections>
+        <PageHead
+          back={
             <button
               onClick={() => router.push(`/ops/campaigns/${campaignId}`)}
-              className="hover:underline"
+              className="flex w-fit items-center gap-ds-1 text-ds-caption text-muted-foreground hover:text-foreground"
             >
               {currentCampaign?.campaign_name || 'Campaign'}
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
-            <ChevronRight className="h-4 w-4" />
-            <span>Workstreams</span>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">Workstreams</h1>
-          <p className="text-muted-foreground mt-1">
-            Organize deliverables by execution type
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* UGC is one of the workstream types but keeps its dedicated rich studio. */}
-          <Button variant="outline" onClick={() => router.push(`/campaigns/${campaignId}/ugc`)}>
-            <Video className="h-4 w-4 mr-2" />
-            UGC Studio
-          </Button>
-          {canCreate && (
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Workstream
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create Workstream</DialogTitle>
-                  <DialogDescription>
-                    Create a new workstream to organize deliverables
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div>
-                    <Label htmlFor="type">Type</Label>
-                    <Select
-                      value={newWorkstream.type}
-                      onValueChange={(value) => setNewWorkstream(prev => ({
-                        ...prev,
-                        type: value as WorkstreamType
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(WORKSTREAM_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {newWorkstream.type && (
-                      <p className="text-xs text-muted-foreground mt-1.5">
-                        {WORKSTREAM_DESCRIPTIONS[newWorkstream.type as WorkstreamType]}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      value={newWorkstream.name}
-                      onChange={(e) => setNewWorkstream(prev => ({
-                        ...prev,
-                        name: e.target.value
-                      }))}
-                      placeholder="e.g., Q1 UGC Campaign"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="description">Description (Optional)</Label>
-                    <Textarea
-                      id="description"
-                      value={newWorkstream.description}
-                      onChange={(e) => setNewWorkstream(prev => ({
-                        ...prev,
-                        description: e.target.value
-                      }))}
-                      placeholder="Brief description of this workstream..."
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="status">Initial Status</Label>
-                    <Select
-                      value={newWorkstream.status}
-                      onValueChange={(value) => setNewWorkstream(prev => ({
-                        ...prev,
-                        status: value as 'draft' | 'active'
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {isInternal && (
-                    <div>
-                      <Label htmlFor="internal_notes">Internal Notes (Optional)</Label>
-                      <Textarea
-                        id="internal_notes"
-                        value={newWorkstream.internal_notes || ''}
-                        onChange={(e) => setNewWorkstream(prev => ({
-                          ...prev,
-                          internal_notes: e.target.value
-                        }))}
-                        placeholder="Internal-only context (not shown to clients)…"
-                        rows={2}
-                      />
+          }
+          title="Workstreams"
+          sub="Deliverables, organised by how they get made."
+          action={
+            <>
+              {/* UGC is one of the workstream types but keeps its dedicated rich studio. */}
+              <Button variant="outline" onClick={() => router.push(`/campaigns/${campaignId}/ugc`)}>
+                <Video className="h-4 w-4 mr-2" />
+                UGC Studio
+              </Button>
+              {canCreate && (
+                <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Workstream
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create workstream</DialogTitle>
+                      <DialogDescription>
+                        A workstream groups deliverables that get made the same way.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-ds-4 py-ds-3">
+                      <div className="flex flex-col gap-ds-2">
+                        <Label htmlFor="type">Type</Label>
+                        <Select
+                          value={newWorkstream.type}
+                          onValueChange={(value: string) => setNewWorkstream(prev => ({
+                            ...prev,
+                            type: value as WorkstreamType
+                          }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(WORKSTREAM_LABELS).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {newWorkstream.type && (
+                          <p className="max-w-prose text-ds-caption text-muted-foreground">
+                            {WORKSTREAM_DESCRIPTIONS[newWorkstream.type as WorkstreamType]}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-ds-2">
+                        <Label htmlFor="name">Name</Label>
+                        <Input
+                          id="name"
+                          value={newWorkstream.name}
+                          onChange={(e) => setNewWorkstream(prev => ({
+                            ...prev,
+                            name: e.target.value
+                          }))}
+                          placeholder="e.g., Q1 UGC Campaign"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-ds-2">
+                        <Label htmlFor="description">Description (optional)</Label>
+                        <Textarea
+                          id="description"
+                          value={newWorkstream.description}
+                          onChange={(e) => setNewWorkstream(prev => ({
+                            ...prev,
+                            description: e.target.value
+                          }))}
+                          placeholder="Brief description of this workstream..."
+                          rows={3}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-ds-2">
+                        <Label htmlFor="status">Initial status</Label>
+                        <Select
+                          value={newWorkstream.status}
+                          onValueChange={(value: string) => setNewWorkstream(prev => ({
+                            ...prev,
+                            status: value as 'draft' | 'active'
+                          }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {isInternal && (
+                        <div className="flex flex-col gap-ds-2">
+                          <Label htmlFor="internal_notes">Internal notes (optional)</Label>
+                          <Textarea
+                            id="internal_notes"
+                            value={newWorkstream.internal_notes || ''}
+                            onChange={(e) => setNewWorkstream(prev => ({
+                              ...prev,
+                              internal_notes: e.target.value
+                            }))}
+                            placeholder="Internal context, never shown to clients..."
+                            rows={2}
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreateWorkstream} disabled={creating}>
-                    {creating ? 'Creating...' : 'Create Workstream'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
-      </div>
+                    <DialogFooter>
+                      <Button variant="ghost" onClick={() => setCreateDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleCreateWorkstream} disabled={creating}>
+                        {creating ? 'Creating...' : 'Create workstream'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </>
+          }
+        />
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filter by Type</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
+        {workstreams.length > 0 && !failed && (
+          <Figures cols={4}>
+            <Figure label="Workstreams" value={workstreams.length} emphasis="quiet" />
+            <Figure label="Deliverables" value={totalDeliverables} emphasis="quiet" />
+            <Figure label="Pending approval" value={totalPending} emphasis="quiet" />
+            <Figure
+              label="Average completion"
+              value={averageCompletion == null ? null : `${averageCompletion}%`}
+              emphasis="quiet"
+            />
+          </Figures>
+        )}
+
+        <Group>
+          <SectionHead title="By type" sub="Filter the list below." rule={false} />
+          <div className="flex flex-wrap gap-ds-2">
             <Button
               variant={filterType === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilterType('all')}
             >
-              All Types
+              All types
               {filterType === 'all' && (
-                <Badge variant="secondary" className="ml-2">
-                  {workstreams.length}
-                </Badge>
+                <span className="ml-ds-2 tabular-nums opacity-70">{workstreams.length}</span>
               )}
             </Button>
             {Object.entries(WORKSTREAM_LABELS).map(([value, label]) => {
@@ -353,165 +364,123 @@ export default function WorkstreamsPage() {
                 >
                   <Icon className="h-4 w-4 mr-2" />
                   {label}
-                  {count > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {count}
-                    </Badge>
-                  )}
+                  {count > 0 && <span className="ml-ds-2 tabular-nums opacity-70">{count}</span>}
                 </Button>
               );
             })}
           </div>
-        </CardContent>
-      </Card>
+        </Group>
 
-      {/* Workstreams Grid */}
-      {filteredWorkstreams.length === 0 ? (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center space-y-3">
-              <Package className="h-12 w-12 text-muted-foreground mx-auto" />
-              <h3 className="font-semibold">No workstreams found</h3>
-              <p className="text-sm text-muted-foreground">
-                {workstreams.length === 0
-                  ? 'Create your first workstream to organize deliverables'
-                  : 'No workstreams match your current filter'}
-              </p>
-              {canCreate && workstreams.length === 0 && (
-                <Button onClick={() => setCreateDialogOpen(true)} className="mt-4">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create First Workstream
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredWorkstreams.map((workstream) => {
-            const Icon = WORKSTREAM_ICONS[workstream.type];
-            return (
-              <Card
-                key={workstream.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => navigateToWorkstream(workstream.id)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">{workstream.name}</CardTitle>
-                        <CardDescription className="text-xs mt-1">
+        {failed ? (
+          <Failed
+            what="The workstreams did not load"
+            detail={`${failed} This campaign has not been emptied, we could not read it.`}
+            onRetry={() => selectCampaign(campaignId)}
+          />
+        ) : filteredWorkstreams.length === 0 ? (
+          <div className="flex flex-col items-start gap-ds-3">
+            <Empty>
+              {workstreams.length === 0
+                ? 'No workstreams on this campaign yet. The first one is how the work gets organised.'
+                : 'No workstream of that type on this campaign.'}
+            </Empty>
+            {canCreate && workstreams.length === 0 && (
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create first workstream
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-ds-3 md:grid-cols-2 lg:grid-cols-3">
+            {filteredWorkstreams.map((workstream) => {
+              const Icon = WORKSTREAM_ICONS[workstream.type];
+              return (
+                <button
+                  key={workstream.id}
+                  type="button"
+                  onClick={() => navigateToWorkstream(workstream.id)}
+                  className="flex flex-col gap-ds-3 rounded-ds-surface border border-border bg-card p-ds-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <div className="flex items-start justify-between gap-ds-3">
+                    <div className="flex min-w-0 items-center gap-ds-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-ds-md bg-primary/10">
+                        <Icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-ds-label">{workstream.name}</p>
+                        <p className="text-ds-caption text-muted-foreground">
                           {WORKSTREAM_LABELS[workstream.type]}
-                        </CardDescription>
+                        </p>
                       </div>
                     </div>
-                    {getStatusBadge(workstream.status)}
+                    <State tone={STATUS_TONE[workstream.status] || 'neutral'}>
+                      {workstream.status}
+                    </State>
                   </div>
-                </CardHeader>
-                <CardContent>
+
                   {workstream.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                    <p className="line-clamp-2 text-ds-caption text-muted-foreground">
                       {workstream.description}
                     </p>
                   )}
 
-                  {/* Progress Bar */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Progress</span>
-                      <span className="font-medium">{workstream.completion_percentage}%</span>
+                  <div className="flex flex-col gap-ds-2">
+                    <div className="flex items-baseline justify-between text-ds-caption">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="font-medium tabular-nums">
+                        {workstream.completion_percentage == null
+                          ? DASH
+                          : `${workstream.completion_percentage}%`}
+                      </span>
                     </div>
-                    <Progress value={workstream.completion_percentage} className="h-2" />
+                    <Progress value={workstream.completion_percentage ?? 0} className="h-1.5" />
                   </div>
 
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Deliverables</p>
-                      <p className="font-semibold">{workstream.deliverables_count}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Pending</p>
-                      <p className="font-semibold text-yellow-600">
-                        {workstream.pending_approvals}
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-ds-5 text-ds-caption">
+                    <span className="text-muted-foreground">
+                      <span className="font-medium text-foreground tabular-nums">
+                        {workstream.deliverables_count ?? DASH}
+                      </span>{' '}
+                      deliverables
+                    </span>
+                    <span className="text-muted-foreground">
+                      <span
+                        className={
+                          (workstream.pending_approvals ?? 0) > 0
+                            ? 'font-medium tabular-nums text-amber-700 dark:text-amber-400'
+                            : 'font-medium tabular-nums text-foreground'
+                        }
+                      >
+                        {workstream.pending_approvals ?? DASH}
+                      </span>{' '}
+                      pending
+                    </span>
                   </div>
 
-                  {/* Next Milestone */}
                   {workstream.next_milestone && (
-                    <div className="mt-4 pt-4 border-t">
-                      <div className="flex items-center gap-2">
-                        <Target className="h-4 w-4 text-muted-foreground" />
-                        <div className="text-xs">
-                          <p className="font-medium">
-                            Next: {workstream.next_milestone.description}
-                          </p>
-                          <p className="text-muted-foreground">
-                            {new Date(workstream.next_milestone.date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-ds-2 border-t border-border/70 pt-ds-3 text-ds-caption">
+                      <Target className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 truncate">
+                        <span className="font-medium">
+                          Next: {workstream.next_milestone.description}
+                        </span>{' '}
+                        <span className="text-muted-foreground">
+                          {new Date(workstream.next_milestone.date).toLocaleDateString()}
+                        </span>
+                      </span>
                     </div>
                   )}
 
-                  {/* Hybrid Badge */}
                   {workstream.type === 'hybrid' && (
-                    <Alert className="mt-4">
-                      <Layers className="h-4 w-4" />
-                      <AlertDescription className="text-xs">
-                        Contains multiple execution types
-                      </AlertDescription>
-                    </Alert>
+                    <Note>Contains more than one execution type.</Note>
                   )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Summary Stats */}
-      {workstreams.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Campaign Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-2xl font-bold">{workstreams.length}</p>
-                <p className="text-sm text-muted-foreground">Total Workstreams</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {workstreams.reduce((sum, ws) => sum + ws.deliverables_count, 0)}
-                </p>
-                <p className="text-sm text-muted-foreground">Total Deliverables</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {workstreams.reduce((sum, ws) => sum + ws.pending_approvals, 0)}
-                </p>
-                <p className="text-sm text-muted-foreground">Pending Approvals</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {Math.round(
-                    workstreams.reduce((sum, ws) => sum + ws.completion_percentage, 0) /
-                    workstreams.length
-                  )}%
-                </p>
-                <p className="text-sm text-muted-foreground">Average Completion</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </Sections>
+    </Page>
   );
 }

@@ -88,16 +88,20 @@ export default function ShowMeHowPage() {
 
   return (
     <Shell>
-    <div className="mx-auto w-full max-w-5xl px-6 py-10 lg:py-14">
-      <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-xl space-y-3">
-          <Badge variant="secondary" className="gap-1.5">
+    {/* READING tier. This is a curriculum you work through, not a dashboard you scan, so
+        the page runs on 64px bands, prose is capped near 65 characters, and the only boxes
+        left are the two kinds of thing you can actually open: the manual, and a lesson. */}
+    <div data-density="reading"
+         className="mx-auto flex w-full max-w-5xl flex-col gap-ds-6 px-6 py-10 lg:py-14">
+      <header className="flex flex-col gap-ds-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex max-w-[65ch] flex-col items-start gap-ds-3">
+          <Badge variant="secondary" className="gap-ds-1">
             <Sparkles className="h-3 w-3" />Show me how
           </Badge>
-          <h1 className="text-3xl font-semibold tracking-tight lg:text-4xl">
+          <h1 className="text-ds-title text-foreground">
             Learn by doing it
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-ds-body text-muted-foreground">
             Each one opens the real screen and shows you what to do, step by step. Start at the
             top. You can stop any time, and watch any of them again.
           </p>
@@ -111,16 +115,16 @@ export default function ShowMeHowPage() {
         )}
       </header>
 
-      {/* The whole picture, before the individual lessons — this is the one we present. */}
-      <Card className="mt-8 overflow-hidden border-0 bg-gradient-to-br from-[#0F1A12] to-[#16241A] text-white">
-        <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="max-w-xl">
-            <p className="text-[11.5px] font-semibold uppercase tracking-[0.2em] text-[#D3FF02]">
+      {/* The whole picture, before the individual lessons. This one we present. */}
+      <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#0F1A12] to-[#16241A] text-white">
+        <CardContent className="flex flex-col gap-ds-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex max-w-[65ch] flex-col gap-ds-2">
+            <p className="text-ds-overline uppercase text-[#D3FF02]">
               The team manual
             </p>
-            <p className="mt-2 text-lg font-semibold">How work moves at Following</p>
-            <p className="mt-1 text-sm text-white/70">
-              One brand end to end, stop by stop — who does what, and what happens next. Built
+            <p className="text-ds-heading">How work moves at Following</p>
+            <p className="text-ds-body text-white/70">
+              One brand end to end, stop by stop: who does what, and what happens next. Built
               to be walked through together.
             </p>
           </div>
@@ -134,34 +138,34 @@ export default function ShowMeHowPage() {
         </CardContent>
       </Card>
 
-      <Card className="mt-6">
-        <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-semibold tabular-nums">{doneCount}</span>
-            <span className="text-sm text-muted-foreground">of {tours.length} done</span>
-          </div>
-          <Progress value={pct} className="h-2 sm:max-w-md sm:flex-1" />
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" />
-            <span className="tabular-nums">{minutes} min</span>
-            <span>in total</span>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Progress is a reading, not an object. The card came off it: a figure, a bar and a
+          total do not become one thing by being fenced in together. */}
+      <div className="flex flex-col gap-ds-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="flex items-baseline gap-ds-2">
+          <span className="text-ds-title tabular-nums">{doneCount}</span>
+          <span className="text-ds-body text-muted-foreground">of {tours.length} done</span>
+        </p>
+        <Progress value={pct} className="h-1.5 sm:max-w-md sm:flex-1" />
+        <p className="flex items-center gap-ds-1 text-ds-caption text-muted-foreground">
+          <Clock className="h-3.5 w-3.5" />
+          <span className="tabular-nums">{minutes} min</span>
+          <span>in total</span>
+        </p>
+      </div>
 
-      <div className="mt-10 space-y-10">
+      <div className="flex flex-col gap-ds-6">
         {groups.map(({ track, tours: list }) => (
-          <section key={track}>
-            <div className="flex items-baseline gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          <section key={track} className="flex flex-col gap-ds-3">
+            <div className="flex items-baseline gap-ds-2">
+              <h2 className="text-ds-overline uppercase text-muted-foreground">
                 {track}
               </h2>
-              <span className="text-xs tabular-nums text-muted-foreground/70">
+              <span className="text-ds-overline tabular-nums text-muted-foreground/70">
                 {list.filter(t => done.includes(t.id)).length}/{list.length}
               </span>
             </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-ds-3 sm:grid-cols-2">
               {list.map(t => {
                 const finished = done.includes(t.id)
                 return (
@@ -173,15 +177,15 @@ export default function ShowMeHowPage() {
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); start(t) } }}
                     className="group cursor-pointer transition-colors hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
-                    <CardContent className="flex gap-4 py-5">
+                    <CardContent className="flex gap-ds-3 p-6">
                       <span className={`mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full ${
-                        finished ? 'bg-emerald-500/12 text-emerald-600' : 'bg-primary/10 text-primary'}`}>
+                        finished ? 'bg-success/15 text-success' : 'bg-primary/10 text-primary'}`}>
                         {finished ? <Check className="h-4 w-4" /> : <Play className="h-3.5 w-3.5" />}
                       </span>
-                      <div className="min-w-0 space-y-1.5">
-                        <h3 className="font-medium leading-snug">{t.title}</h3>
-                        <p className="text-sm leading-relaxed text-muted-foreground">{t.blurb}</p>
-                        <p className="text-xs tabular-nums text-muted-foreground/80">
+                      <div className="flex min-w-0 flex-col gap-ds-2">
+                        <h3 className="text-ds-label leading-snug">{t.title}</h3>
+                        <p className="max-w-[65ch] text-ds-body text-muted-foreground">{t.blurb}</p>
+                        <p className="text-ds-caption tabular-nums text-muted-foreground/80">
                           {t.minutes} min · {t.steps.length} steps{finished ? ' · done' : ''}
                         </p>
                       </div>

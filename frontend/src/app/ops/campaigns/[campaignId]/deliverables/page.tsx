@@ -1,18 +1,25 @@
 /**
- * Operations OS - Global Deliverables Page
- * Cross-workstream deliverables management
+ * Operations — every deliverable on the campaign, in one list.
+ *
+ * Density tier: SCANNING, and this is the screen the tier was written for. It had a card
+ * around the filters, a card around the table, a border inside that card around the table
+ * again, and a strip of small cards for the status counts. Four boxes, none of which carried
+ * information. The rows now sit on hairlines at the table floor, and the air is at the page
+ * margin where it belongs.
+ *
+ * Honesty: the deliverables are fetched workstream by workstream in a loop, and one failed
+ * request abandoned the whole loop, kept whatever had been collected, and rendered it as the
+ * complete list. A partial answer is now said out loud rather than presented as the truth,
+ * and a total failure is a failure rather than "no deliverables found".
  */
 
 'use client';
 
+import type * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -22,37 +29,44 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
+  Page, Sections, Group, PageHead, SectionHead,
+  Figure, Ledger, Cell, State, Failed, Empty, Waiting, Note, DASH,
+  type StateTone,
+} from '@/components/campaigns/surface';
 import {
-  FileVideo,
   Filter,
   Search,
-  Calendar,
-  User,
-  AlertCircle,
-  CheckCircle,
-  Clock,
   ChevronRight,
-  Package,
   Download,
-  BarChart3
 } from 'lucide-react';
-import { Deliverable, DeliverableStatus, WorkstreamType } from '@/types/operations';
+import { Deliverable, DeliverableStatus } from '@/types/operations';
 import { operationsApi } from '@/services/operationsApi';
 import { useOperations } from '@/contexts/OperationsContext';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 const DELIVERABLE_STATUSES: DeliverableStatus[] = [
   'IDEA', 'DRAFTING', 'AWAITING_APPROVAL', 'APPROVED', 'SCHEDULED', 'IN_PRODUCTION',
   'EDITING', 'IN_REVIEW', 'REVISION_REQUIRED', 'READY_TO_POST', 'POSTED', 'ARCHIVED',
 ];
+
+/** Status colour, said as a word first and a tone second. */
+const STATUS_TONE: Record<string, StateTone> = {
+  IDEA: 'neutral',
+  DRAFTING: 'info',
+  AWAITING_APPROVAL: 'warn',
+  APPROVED: 'good',
+  SCHEDULED: 'info',
+  IN_PRODUCTION: 'info',
+  EDITING: 'info',
+  IN_REVIEW: 'warn',
+  REVISION_REQUIRED: 'bad',
+  READY_TO_POST: 'info',
+  POSTED: 'good',
+  ARCHIVED: 'neutral',
+};
+
+const say = (status: string) => status.replace(/_/g, ' ').toLowerCase();
 
 export default function GlobalDeliverablesPage() {
   const params = useParams();
@@ -63,12 +77,14 @@ export default function GlobalDeliverablesPage() {
     currentCampaign,
     workstreams,
     selectCampaign,
-    uiState,
-    userAccess
+    userAccess,
+    loadErrors,
   } = useOperations();
 
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [loading, setLoading] = useState(true);
+  /** How many workstreams we asked for, and how many answered. */
+  const [readFailure, setReadFailure] = useState<{ failed: number; total: number } | null>(null);
   const [filterStatus, setFilterStatus] = useState<DeliverableStatus | 'all'>('all');
   const [filterWorkstream, setFilterWorkstream] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,14 +105,27 @@ export default function GlobalDeliverablesPage() {
   const loadAllDeliverables = async () => {
     setLoading(true);
     try {
-      // Load deliverables from all workstreams
-      const allDeliverables: Deliverable[] = [];
-      for (const ws of workstreams) {
-        const data = await operationsApi.getDeliverables(ws.id);
-        allDeliverables.push(...(data.deliverables || []));
-      }
-      setDeliverables(allDeliverables);
+      /* One workstream throwing used to abandon the loop and leave whatever had been
+         collected on screen as if it were the whole campaign. Each is now asked for
+         separately and the ones that failed are counted, so the page can say the list is
+         incomplete instead of quietly being wrong. */
+      const results = await Promise.allSettled(
+        workstreams.map(ws => operationsApi.getDeliverables(ws.id))
+      );
+      const collected: Deliverable[] = [];
+      let failedCount = 0;
+      results.forEach(r => {
+        if (r.status === 'fulfilled') {
+          collected.push(...((r.value?.deliverables as Deliverable[]) || []));
+        } else {
+          failedCount += 1;
+        }
+      });
+      setDeliverables(collected);
+      setReadFailure(failedCount > 0 ? { failed: failedCount, total: workstreams.length } : null);
+      if (failedCount > 0) toast.error('Some deliverables failed to load');
     } catch (error) {
+      setReadFailure({ failed: workstreams.length || 1, total: workstreams.length || 1 });
       toast.error('Failed to load deliverables');
     } finally {
       setLoading(false);
@@ -118,6 +147,9 @@ export default function GlobalDeliverablesPage() {
 
   const allFilteredIds = filteredDeliverables.map(d => d.id);
   const allSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedDeliverables.includes(id));
+
+  const everythingFailed = readFailure != null && readFailure.failed >= readFailure.total && readFailure.total > 0;
+  const partlyFailed = readFailure != null && !everythingFailed;
 
   const handleExport = () => {
     const header = ['Title', 'Workstream', 'Status', 'Due Date', 'Type', 'Assigned'];
@@ -157,113 +189,104 @@ export default function GlobalDeliverablesPage() {
     }
   };
 
-  const getStatusColor = (status: DeliverableStatus) => {
-    const colors: Record<string, string> = {
-      IDEA: 'bg-gray-100',
-      DRAFTING: 'bg-blue-100',
-      AWAITING_APPROVAL: 'bg-yellow-100',
-      APPROVED: 'bg-green-100',
-      IN_PRODUCTION: 'bg-purple-100',
-      POSTED: 'bg-green-200'
-    };
-    return colors[status] || 'bg-gray-100';
+  const dueCell = (due?: string | null) => {
+    if (!due) return <span className="text-muted-foreground/70">{DASH}</span>;
+    const d = new Date(due);
+    if (!isValid(d)) return <span className="text-muted-foreground/70">{DASH}</span>;
+    const overdue = d < new Date();
+    return (
+      <span className={overdue ? 'font-medium text-red-600 dark:text-red-400' : undefined}>
+        {format(d, 'MMM d')}
+      </span>
+    );
   };
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Skeleton className="h-12 w-64" />
-        <Skeleton className="h-96" />
-      </div>
+      <Page width="wide">
+        <Sections>
+          <PageHead title="All deliverables" sub="Everything being made on this campaign." />
+          <Waiting lines={8} />
+        </Sections>
+      </Page>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+    <Page width="wide">
+      <Sections>
+        <PageHead
+          back={
             <button
               onClick={() => router.push(`/ops/campaigns/${campaignId}`)}
-              className="hover:underline"
+              className="flex w-fit items-center gap-ds-1 text-ds-caption text-muted-foreground hover:text-foreground"
             >
-              {currentCampaign?.campaign_name}
+              {currentCampaign?.campaign_name || 'Campaign'}
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
-            <ChevronRight className="h-4 w-4" />
-            <span>All Deliverables</span>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">All Deliverables</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage deliverables across all workstreams
-          </p>
-        </div>
-        {/* Bulk extraction is internal-only: a CSV cannot enforce field visibility once it
-            has left the screen, and there is no server endpoint to refuse it — the file is
-            built here, so this gate IS the access control.
-            It deliberately rides on `isInternal` (view_internal_notes) rather than the
-            `export_campaigns` permission it should read, because that permission is declared
-            and never enforced — see the header of utils/operationsAccess.ts. Both resolve to
-            super_admin today, so this is correct now; move it to a real `export_campaigns`
-            check when the matrix is wired up. */}
-        {isInternal && (
-          <Button variant="outline" onClick={handleExport} disabled={filteredDeliverables.length === 0}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          }
+          title="All deliverables"
+          sub="Everything being made on this campaign, across every workstream."
+          action={
+            /* Bulk extraction is internal-only: a CSV cannot enforce field visibility once it
+               has left the screen, and there is no server endpoint to refuse it — the file is
+               built here, so this gate IS the access control.
+               It deliberately rides on `isInternal` (view_internal_notes) rather than the
+               `export_campaigns` permission it should read, because that permission is
+               declared and never enforced — see the header of utils/operationsAccess.ts. Both
+               resolve to super_admin today, so this is correct now; move it to a real
+               `export_campaigns` check when the matrix is wired up. */
+            isInternal ? (
+              <Button variant="outline" onClick={handleExport} disabled={filteredDeliverables.length === 0}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            ) : undefined
+          }
+        />
+
+        {partlyFailed && (
+          <Note tone="warn">
+            {readFailure!.failed} of {readFailure!.total} workstreams did not answer, so this
+            list is incomplete. The counts below cover only what loaded.
+          </Note>
         )}
-      </div>
 
-      {/* Bulk action bar */}
-      {isInternal && selectedDeliverables.length > 0 && (
-        <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-4 py-2">
-          <span className="text-sm font-medium">{selectedDeliverables.length} selected</span>
-          <div className="ml-auto flex items-center gap-2">
-            <Select value={bulkStatus} onValueChange={setBulkStatus}>
-              <SelectTrigger className="h-8 w-44"><SelectValue placeholder="Set status…" /></SelectTrigger>
-              <SelectContent>
-                {DELIVERABLE_STATUSES.map(s => (
-                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button size="sm" disabled={busy || !bulkStatus} onClick={() => handleBulk('status_change')}>Apply</Button>
-            <Button size="sm" variant="ghost" className="text-destructive" disabled={busy} onClick={() => handleBulk('delete')}>Delete</Button>
-            <Button size="sm" variant="ghost" onClick={() => setSelectedDeliverables([])}>Clear</Button>
+        {/* Status counts: a count is not an object, so it is a row of figures on one
+            hairline rather than a strip of little cards. */}
+        {!everythingFailed && Object.keys(statusCounts).length > 0 && (
+          <div className="flex flex-wrap gap-x-ds-5 gap-y-ds-3 border-b pb-ds-4">
+            {(Object.entries(statusCounts) as [string, number][]).map(([status, count]) => (
+              <button
+                key={status}
+                type="button"
+                aria-label={`Show only ${say(status)}`}
+                onClick={() => setFilterStatus(status as DeliverableStatus)}
+                className="min-w-[92px] text-left transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="capitalize">
+                  <Figure label={say(status)} value={count} emphasis="quiet" />
+                </span>
+              </button>
+            ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Status Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-        {Object.entries(statusCounts).map(([status, count]) => (
-          <Card key={status} className="cursor-pointer hover:shadow-md">
-            <CardContent className="p-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold">{count}</p>
-                <p className="text-xs text-muted-foreground">
-                  {status.replace('_', ' ')}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+        <Group>
+          <SectionHead
+            title="Deliverables"
+            sub="Open one to work on it inside its workstream."
+          />
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground -translate-y-1/2" />
-                <Input
-                  placeholder="Search deliverables..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <div className="flex flex-wrap items-center gap-ds-3">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search deliverables..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
             <Select value={filterStatus} onValueChange={(v: any) => setFilterStatus(v)}>
               <SelectTrigger className="w-48">
@@ -293,59 +316,94 @@ export default function GlobalDeliverablesPage() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Deliverables Table */}
-      {filteredDeliverables.length === 0 ? (
-        <Alert>
-          <Package className="h-4 w-4" />
-          <AlertDescription>
-            No deliverables found matching your filters
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {/* Selection only exists to feed the internal-only bulk bar. */}
-                    {isInternal && (
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={allSelected}
-                          onCheckedChange={(checked: boolean) =>
-                            setSelectedDeliverables(checked ? allFilteredIds : [])
-                          }
-                        />
-                      </TableHead>
-                    )}
-                    <TableHead>Title</TableHead>
-                    <TableHead>Workstream</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead>Creator</TableHead>
-                    <TableHead>Type</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDeliverables.map(deliverable => {
-                    const ws = workstreams.find(w => w.id === deliverable.workstream_id);
-                    return (
-                      <TableRow
-                        key={deliverable.id}
-                        className="cursor-pointer"
-                        onClick={() => router.push(
-                          `/ops/campaigns/${campaignId}/workstreams/${deliverable.workstream_id}`
-                        )}
-                      >
-                        {isInternal && (
-                        <TableCell>
+          {/* The bulk bar is a tint, the third rung of the ladder: set apart, not boxed. */}
+          {isInternal && selectedDeliverables.length > 0 && (
+            <div className="flex flex-wrap items-center gap-ds-2 rounded-ds-lg bg-muted px-ds-3 py-ds-2">
+              <span className="text-ds-label">{selectedDeliverables.length} selected</span>
+              <div className="ml-auto flex flex-wrap items-center gap-ds-2">
+                <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                  <SelectTrigger className="h-8 w-44"><SelectValue placeholder="Set status…" /></SelectTrigger>
+                  <SelectContent>
+                    {DELIVERABLE_STATUSES.map(s => (
+                      <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" disabled={busy || !bulkStatus} onClick={() => handleBulk('status_change')}>Apply</Button>
+                <Button size="sm" variant="ghost" className="text-destructive" disabled={busy} onClick={() => handleBulk('delete')}>Delete</Button>
+                <Button size="sm" variant="ghost" onClick={() => setSelectedDeliverables([])}>Clear</Button>
+              </div>
+            </div>
+          )}
+
+          {everythingFailed || (loadErrors.campaign && deliverables.length === 0) ? (
+            <Failed
+              what="The deliverables did not load"
+              detail="Nothing has been deleted. We could not read this campaign's workstreams just now."
+              onRetry={loadAllDeliverables}
+            />
+          ) : filteredDeliverables.length === 0 ? (
+            <Empty>
+              {deliverables.length === 0
+                ? 'Nothing has been added to this campaign yet.'
+                : 'No deliverable matches these filters.'}
+            </Empty>
+          ) : (
+            <Ledger>
+              {/* Written out rather than using `LedgerHead`, because the select-all control
+                  belongs in the header cell it has always been in. The classes are that
+                  component's, so the two tables still read as one table. */}
+              <thead>
+                <tr className="border-b">
+                  {isInternal && (
+                    <th scope="col" className="w-10 px-ds-3 pb-ds-2 text-left">
+                      <Checkbox
+                        aria-label="Select every deliverable shown"
+                        checked={allSelected}
+                        onCheckedChange={(checked: boolean) =>
+                          setSelectedDeliverables(checked ? allFilteredIds : [])
+                        }
+                      />
+                    </th>
+                  )}
+                  {[
+                    { key: 'title', label: 'Deliverable', align: 'left' },
+                    { key: 'workstream', label: 'Workstream', align: 'left' },
+                    { key: 'status', label: 'Status', align: 'left' },
+                    { key: 'due', label: 'Due', align: 'right' },
+                    { key: 'creator', label: 'Creator', align: 'left' },
+                    { key: 'type', label: 'Type', align: 'left' },
+                  ].map(c => (
+                    <th
+                      key={c.key}
+                      scope="col"
+                      className={`px-ds-3 pb-ds-2 text-ds-overline font-semibold uppercase text-muted-foreground ${
+                        c.align === 'right' ? 'text-right' : 'text-left'
+                      }`}
+                    >
+                      {c.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredDeliverables.map(deliverable => {
+                  const ws = workstreams.find(w => w.id === deliverable.workstream_id);
+                  return (
+                    <tr
+                      key={deliverable.id}
+                      className="cursor-pointer border-b border-border/70 transition-colors last:border-b-0 hover:bg-muted/50"
+                      onClick={() => router.push(
+                        `/ops/campaigns/${campaignId}/workstreams/${deliverable.workstream_id}`
+                      )}
+                    >
+                      {/* Selection only exists to feed the internal-only bulk bar. */}
+                      {isInternal && (
+                        <Cell className="w-10">
                           <Checkbox
                             checked={selectedDeliverables.includes(deliverable.id)}
-                            onCheckedChange={(checked) => {
+                            onCheckedChange={(checked: boolean) => {
                               if (checked) {
                                 setSelectedDeliverables(prev => [...prev, deliverable.id]);
                               } else {
@@ -354,51 +412,34 @@ export default function GlobalDeliverablesPage() {
                                 );
                               }
                             }}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
                           />
-                        </TableCell>
-                        )}
-                        <TableCell className="font-medium">
-                          {deliverable.title}
-                        </TableCell>
-                        <TableCell>
-                          {ws?.name || 'Unknown'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(deliverable.status)}>
-                            {deliverable.status.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {deliverable.due_date ? (
-                            <span className={
-                              new Date(deliverable.due_date) < new Date() ? 'text-red-600' : ''
-                            }>
-                              {format(new Date(deliverable.due_date), 'MMM d')}
-                            </span>
-                          ) : (
-                            '-'
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {deliverable.assignment_id ? (
-                            <Badge variant="secondary">Assigned</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{deliverable.type}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+                        </Cell>
+                      )}
+                      <Cell className="font-medium">{deliverable.title}</Cell>
+                      <Cell className="text-muted-foreground">
+                        {ws?.name || DASH}
+                      </Cell>
+                      <Cell>
+                        <State tone={STATUS_TONE[deliverable.status] || 'neutral'}>
+                          <span className="capitalize">{say(deliverable.status)}</span>
+                        </State>
+                      </Cell>
+                      <Cell align="right">{dueCell(deliverable.due_date)}</Cell>
+                      <Cell>
+                        {deliverable.assignment_id
+                          ? <State tone="neutral">Assigned</State>
+                          : <span className="text-muted-foreground/70">Unassigned</span>}
+                      </Cell>
+                      <Cell className="capitalize text-muted-foreground">{deliverable.type}</Cell>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Ledger>
+          )}
+        </Group>
+      </Sections>
+    </Page>
   );
 }

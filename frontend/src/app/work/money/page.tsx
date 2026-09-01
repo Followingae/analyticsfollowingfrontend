@@ -33,9 +33,11 @@ export default function MoneyHubPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-6">
+      {/* Density tier: reading. One sentence, capped at a readable measure, a band below
+          the heading rather than a paragraph pressed against it. */}
+      <div className="flex flex-col gap-ds-5">
         <PageHead title="Money" sub="What comes in, and what goes out." />
-        <p className="text-sm text-muted-foreground">
+        <p className="max-w-[65ch] text-ds-body text-muted-foreground">
           Nothing here for your role. Revenue is for the people who handle billing, and what we
           pay creators is kept to leadership and talent.
         </p>

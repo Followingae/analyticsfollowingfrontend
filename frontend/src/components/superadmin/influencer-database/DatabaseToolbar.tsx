@@ -77,19 +77,19 @@ export function DatabaseToolbar({
   }, [filters.search])
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+    <div className="flex flex-col gap-ds-3">
+      <div className="flex flex-wrap items-center gap-ds-2">
+        <div className="relative min-w-[220px] max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search influencers..."
+            placeholder="Search creators"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             className="pl-9 h-9"
           />
         </div>
         <FilterBar filters={filters} onFiltersChange={onFiltersChange} />
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-ds-2">
           <Select
             value={`${filters.sort_by}:${filters.sort_order}`}
             onValueChange={(v) => {

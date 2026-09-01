@@ -1,6 +1,20 @@
 /**
- * Operations OS - Campaign Settings (Internal Only)
- * Configure visibility rules, approval requirements, and templates
+ * Operations — campaign settings. Internal only.
+ *
+ * Density tier: WORKING, at form width. This was six stacked cards, each with its own icon,
+ * title, description and 24px of padding, so a page of switches read as six unrelated
+ * objects. A setting is not an object you can click, move or delete, so the cards come off
+ * and the sections are separated by space and one hairline under each heading. The controls
+ * are unchanged, down to the last switch.
+ *
+ * The one place that keeps a real border is the danger zone, because destroying something is
+ * worth an edge.
+ *
+ * Honesty: a failed settings read used to fire a toast and then render the hardcoded
+ * defaults as though they were this campaign's saved settings, which is the worst version of
+ * the fabricated-fact problem on this screen: an operator could have looked at "clients
+ * cannot see banking details", believed it, and been wrong. A failed read now says so and
+ * refuses to draw the form.
  */
 
 'use client';
@@ -9,15 +23,11 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ProtectedOperationsRoute from '@/components/operations/ProtectedOperationsRoute';
 import { operationsApi } from '@/services/operationsApi';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +39,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -38,36 +47,17 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
+  Page, Sections, Group, PageHead, SectionHead,
+  State, Failed, Empty, Waiting, Note,
+} from '@/components/campaigns/surface';
 import {
-  Settings,
   Lock,
-  Eye,
-  Shield,
-  Users,
-  FileText,
-  CheckCircle,
-  AlertCircle,
   Save,
   RefreshCw,
   ChevronRight,
-  UserCheck,
   Mail,
-  Globe,
-  Palette,
-  Zap,
-  Bell,
-  Calendar,
   Plus,
   Trash,
-  Edit,
-  Copy
 } from 'lucide-react';
 import { useOperations } from '@/contexts/OperationsContext';
 import { toast } from 'sonner';
@@ -107,6 +97,21 @@ interface CampaignSettings {
   }>;
 }
 
+/** A switch and the sentence that explains it. 8px label to help text, 16px between rows. */
+function SwitchRow({
+  label, description, checked, onChange,
+}: { label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-start justify-between gap-ds-5 border-b border-border/70 py-ds-3 last:border-b-0">
+      <div className="flex min-w-0 flex-col gap-ds-1">
+        <Label className="text-ds-label">{label}</Label>
+        <p className="max-w-prose text-ds-caption text-muted-foreground">{description}</p>
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} className="mt-ds-1 shrink-0" />
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const params = useParams();
   const router = useRouter();
@@ -144,6 +149,7 @@ export default function SettingsPage() {
   });
 
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [newClientEmail, setNewClientEmail] = useState('');
 
@@ -178,7 +184,11 @@ export default function SettingsPage() {
           client_users: Array.isArray(saved.client_users) ? saved.client_users : prev.client_users,
         }));
       }
-    } catch (error) {
+      setLoadError(null);
+    } catch (error: any) {
+      /* Not a toast and then the defaults. A form drawn from defaults after a failed read
+         claims these ARE the campaign's settings, and saving would then write them. */
+      setLoadError(error?.message || 'The saved settings could not be read.');
       toast.error('Failed to load settings');
     } finally {
       setLoading(false);
@@ -265,547 +275,442 @@ export default function SettingsPage() {
 
   if (!userAccess.permissions.view_internal_notes) {
     return (
-      <div className="container mx-auto p-6">
-        <Alert variant="destructive">
-          <Lock className="h-4 w-4" />
-          <AlertTitle>Access Restricted</AlertTitle>
-          <AlertDescription>
-            Settings is available for internal users only
-          </AlertDescription>
-        </Alert>
-      </div>
+      <Page width="form">
+        <Sections>
+          <PageHead
+            title="Settings are internal only"
+            sub="This screen decides what a client can see, so only the team can open it."
+          />
+        </Sections>
+      </Page>
     );
   }
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Skeleton className="h-12 w-64" />
-        <Skeleton className="h-96" />
-      </div>
+      <Page width="form">
+        <Sections>
+          <PageHead title="Campaign settings" sub="What the client sees, and what needs approving." />
+          <Waiting lines={6} />
+        </Sections>
+      </Page>
     );
   }
 
+  const setVisibility = (key: keyof CampaignSettings['visibility'], checked: boolean) =>
+    setSettings(prev => ({ ...prev, visibility: { ...prev.visibility, [key]: checked } }));
+  const setNotification = (key: keyof CampaignSettings['notifications'], checked: boolean) =>
+    setSettings(prev => ({ ...prev, notifications: { ...prev.notifications, [key]: checked } }));
+
   return (
     <ProtectedOperationsRoute requiredPermission="view_settings">
-      <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <button
-              onClick={() => router.push(`/ops/campaigns/${campaignId}`)}
-              className="hover:underline"
-            >
-              {currentCampaign?.campaign_name}
-            </button>
-            <ChevronRight className="h-4 w-4" />
-            <span>Settings</span>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Settings className="h-8 w-8" />
-            Campaign Settings
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure visibility rules and approval requirements
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="destructive" className="flex items-center gap-1">
-            <Lock className="h-3 w-3" />
-            Internal Only
-          </Badge>
-          <Button onClick={handleSaveSettings} disabled={saving}>
-            {saving ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {/* Client Visibility Settings */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Eye className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Client Visibility Rules</CardTitle>
-          </div>
-          <CardDescription>
-            Control what clients can see and do in Operations
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            {[
-              {
-                key: 'client_can_view_internal_notes',
-                label: 'View Internal Notes',
-                description: 'Allow clients to see internal notes and comments'
-              },
-              {
-                key: 'client_can_view_checklists',
-                label: 'View Production Checklists',
-                description: 'Show production checklists and shoot day details'
-              },
-              {
-                key: 'client_can_view_banking',
-                label: 'View Banking Details',
-                description: 'Display creator banking information (highly sensitive)'
-              },
-              {
-                key: 'client_can_view_reliability_score',
-                label: 'View Reliability Scores',
-                description: 'Show creator reliability and performance metrics'
-              },
-              {
-                key: 'client_can_export_data',
-                label: 'Export Data',
-                description: 'Allow clients to export campaign data to CSV'
-              },
-              {
-                key: 'show_creator_contact_info',
-                label: 'Show Creator Contact Info',
-                description: 'Display creator email and phone numbers'
-              }
-            ].map(setting => (
-              <div key={setting.key} className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>{setting.label}</Label>
-                  <p className="text-sm text-muted-foreground">{setting.description}</p>
-                </div>
-                <Switch
-                  checked={settings.visibility[setting.key as keyof typeof settings.visibility]}
-                  onCheckedChange={(checked) => {
-                    setSettings(prev => ({
-                      ...prev,
-                      visibility: {
-                        ...prev.visibility,
-                        [setting.key]: checked
-                      }
-                    }));
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Approval Requirements */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Approval Requirements</CardTitle>
-          </div>
-          <CardDescription>
-            Configure when and how approvals are required
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Concept Approval Required</Label>
-                <p className="text-sm text-muted-foreground">
-                  Require client approval before moving to production
-                </p>
-              </div>
-              <Switch
-                checked={settings.approvals.concept_approval_required}
-                onCheckedChange={(checked) => {
-                  setSettings(prev => ({
-                    ...prev,
-                    approvals: {
-                      ...prev.approvals,
-                      concept_approval_required: checked
-                    }
-                  }));
-                }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Auto-Approve After Days</Label>
-                <p className="text-sm text-muted-foreground">
-                  Automatically approve concepts after specified days
-                </p>
-              </div>
-              <Input
-                type="number"
-                min="0"
-                max="30"
-                value={settings.approvals.auto_approve_after_days}
-                onChange={(e) => {
-                  setSettings(prev => ({
-                    ...prev,
-                    approvals: {
-                      ...prev.approvals,
-                      auto_approve_after_days: parseInt(e.target.value)
-                    }
-                  }));
-                }}
-                className="w-20"
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Require Approval for Posting</Label>
-                <p className="text-sm text-muted-foreground">
-                  Client must approve before content is posted
-                </p>
-              </div>
-              <Switch
-                checked={settings.approvals.require_client_approval_for_posting}
-                onCheckedChange={(checked) => {
-                  setSettings(prev => ({
-                    ...prev,
-                    approvals: {
-                      ...prev.approvals,
-                      require_client_approval_for_posting: checked
-                    }
-                  }));
-                }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Allow Internal Bypass</Label>
-                <p className="text-sm text-muted-foreground">
-                  Internal admins can bypass approval requirements
-                </p>
-              </div>
-              <Switch
-                checked={settings.approvals.allow_internal_bypass}
-                onCheckedChange={(checked) => {
-                  setSettings(prev => ({
-                    ...prev,
-                    approvals: {
-                      ...prev.approvals,
-                      allow_internal_bypass: checked
-                    }
-                  }));
-                }}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Default Templates */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Default Templates</CardTitle>
-          </div>
-          <CardDescription>
-            Set default values for new deliverables and concepts
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Default Deliverable Type</Label>
-            <Select
-              value={settings.templates.default_deliverable_type}
-              onValueChange={(v) => {
-                setSettings(prev => ({
-                  ...prev,
-                  templates: {
-                    ...prev.templates,
-                    default_deliverable_type: v
-                  }
-                }));
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="video">Video</SelectItem>
-                <SelectItem value="reel">Reel</SelectItem>
-                <SelectItem value="story_set">Story Set</SelectItem>
-                <SelectItem value="photo_set">Photo Set</SelectItem>
-                <SelectItem value="event_content">Event Content</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Default Assignment Scope</Label>
-            <Select
-              value={settings.templates.default_assignment_scope}
-              onValueChange={(v) => {
-                setSettings(prev => ({
-                  ...prev,
-                  templates: {
-                    ...prev.templates,
-                    default_assignment_scope: v
-                  }
-                }));
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="reel">1 Reel</SelectItem>
-                <SelectItem value="reel_stories">1 Reel + 3 Stories</SelectItem>
-                <SelectItem value="multiple_reels">Multiple Reels</SelectItem>
-                <SelectItem value="custom">Custom Scope</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Default Concept Template</Label>
-            <Textarea
-              value={settings.templates.default_concept_template}
-              onChange={(e) => {
-                setSettings(prev => ({
-                  ...prev,
-                  templates: {
-                    ...prev.templates,
-                    default_concept_template: e.target.value
-                  }
-                }));
-              }}
-              placeholder="Enter default concept template..."
-              rows={4}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notification Settings */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Notifications</CardTitle>
-          </div>
-          <CardDescription>
-            Configure when to send notifications
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {[
-            {
-              key: 'notify_on_approval_needed',
-              label: 'Approval Needed',
-              description: 'Notify when concepts need approval'
-            },
-            {
-              key: 'notify_on_status_change',
-              label: 'Status Changes',
-              description: 'Notify on deliverable status updates'
-            },
-            {
-              key: 'notify_on_overdue',
-              label: 'Overdue Items',
-              description: 'Alert when deliverables are overdue'
-            },
-            {
-              key: 'daily_summary',
-              label: 'Daily Summary',
-              description: 'Send daily campaign summary email'
+      <Page width="form">
+        <Sections>
+          <PageHead
+            back={
+              <button
+                onClick={() => router.push(`/ops/campaigns/${campaignId}`)}
+                className="flex w-fit items-center gap-ds-1 text-ds-caption text-muted-foreground hover:text-foreground"
+              >
+                {currentCampaign?.campaign_name || 'Campaign'}
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
             }
-          ].map(setting => (
-            <div key={setting.key} className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>{setting.label}</Label>
-                <p className="text-sm text-muted-foreground">{setting.description}</p>
-              </div>
-              <Switch
-                checked={settings.notifications[setting.key as keyof typeof settings.notifications]}
-                onCheckedChange={(checked) => {
-                  setSettings(prev => ({
-                    ...prev,
-                    notifications: {
-                      ...prev.notifications,
-                      [setting.key]: checked
+            title="Campaign settings"
+            sub="What the client can see, what has to be approved, and who gets told."
+            action={
+              <>
+                <State tone="neutral">
+                  <Lock className="mr-ds-1 h-3 w-3" />
+                  Internal only
+                </State>
+                <Button onClick={handleSaveSettings} disabled={saving || !!loadError}>
+                  {saving ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save changes
+                    </>
+                  )}
+                </Button>
+              </>
+            }
+          />
+
+          {loadError ? (
+            <Failed
+              what="The saved settings did not load"
+              detail={`${loadError} The form is not shown, because the values below would be defaults rather than this campaign's real settings, and saving them would overwrite it.`}
+              onRetry={loadSettings}
+            />
+          ) : (
+            <>
+              <Group>
+                <SectionHead
+                  title="What the client can see"
+                  sub="Everything here is off unless you turn it on."
+                />
+                <div className="flex flex-col">
+                  {([
+                    {
+                      key: 'client_can_view_internal_notes',
+                      label: 'Internal notes',
+                      description: 'Let the client read internal notes and comments.'
+                    },
+                    {
+                      key: 'client_can_view_checklists',
+                      label: 'Production checklists',
+                      description: 'Show production checklists and shoot day details.'
+                    },
+                    {
+                      key: 'client_can_view_banking',
+                      label: 'Banking details',
+                      description: 'Show creator banking information. Highly sensitive.'
+                    },
+                    {
+                      key: 'client_can_view_reliability_score',
+                      label: 'Reliability scores',
+                      description: 'Show creator reliability and performance scores.'
+                    },
+                    {
+                      key: 'client_can_export_data',
+                      label: 'Export data',
+                      description: 'Let the client export campaign data to CSV.'
+                    },
+                    {
+                      key: 'show_creator_contact_info',
+                      label: 'Creator contact details',
+                      description: 'Show creator email addresses and phone numbers.'
                     }
-                  }));
-                }}
-              />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+                  ] as const).map(setting => (
+                    <SwitchRow
+                      key={setting.key}
+                      label={setting.label}
+                      description={setting.description}
+                      checked={settings.visibility[setting.key]}
+                      onChange={(checked) => setVisibility(setting.key, checked)}
+                    />
+                  ))}
+                </div>
+              </Group>
 
-      {/* Client Access Management */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Client Access Management</CardTitle>
-          </div>
-          <CardDescription>
-            Manage which client users can access and approve content
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Add Client User */}
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Enter client email..."
-                value={newClientEmail}
-                onChange={(e) => setNewClientEmail(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddClientUser();
-                  }
-                }}
-              />
-              <Button onClick={handleAddClientUser}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add User
-              </Button>
-            </div>
+              <Group>
+                <SectionHead title="Approvals" sub="When work has to wait for a yes." />
+                <div className="flex flex-col">
+                  <SwitchRow
+                    label="Concept approval required"
+                    description="The client approves a concept before it goes into production."
+                    checked={settings.approvals.concept_approval_required}
+                    onChange={(checked) => setSettings(prev => ({
+                      ...prev,
+                      approvals: { ...prev.approvals, concept_approval_required: checked }
+                    }))}
+                  />
 
-            {/* Client Users Table */}
-            {settings.client_users.length > 0 && (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Can Approve</TableHead>
-                      <TableHead>Can Comment</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {settings.client_users.map(user => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
-                            {user.email}
+                  <div className="flex items-start justify-between gap-ds-5 border-b border-border/70 py-ds-3">
+                    <div className="flex min-w-0 flex-col gap-ds-1">
+                      <Label className="text-ds-label">Auto approve after</Label>
+                      <p className="max-w-prose text-ds-caption text-muted-foreground">
+                        Days a concept can sit with the client before it approves itself. Zero
+                        means never.
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-ds-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="30"
+                        value={settings.approvals.auto_approve_after_days}
+                        onChange={(e) => {
+                          const parsed = parseInt(e.target.value, 10);
+                          setSettings(prev => ({
+                            ...prev,
+                            approvals: {
+                              ...prev.approvals,
+                              // `parseInt('')` is NaN, which used to be written straight into
+                              // the saved settings.
+                              auto_approve_after_days: Number.isFinite(parsed) ? parsed : 0,
+                            }
+                          }));
+                        }}
+                        className="w-20"
+                      />
+                      <span className="text-ds-caption text-muted-foreground">days</span>
+                    </div>
+                  </div>
+
+                  <SwitchRow
+                    label="Approval required before posting"
+                    description="The client signs off content before it goes live."
+                    checked={settings.approvals.require_client_approval_for_posting}
+                    onChange={(checked) => setSettings(prev => ({
+                      ...prev,
+                      approvals: { ...prev.approvals, require_client_approval_for_posting: checked }
+                    }))}
+                  />
+
+                  <SwitchRow
+                    label="Internal bypass"
+                    description="Admins can move work past an approval that has not happened."
+                    checked={settings.approvals.allow_internal_bypass}
+                    onChange={(checked) => setSettings(prev => ({
+                      ...prev,
+                      approvals: { ...prev.approvals, allow_internal_bypass: checked }
+                    }))}
+                  />
+                </div>
+              </Group>
+
+              <Group>
+                <SectionHead
+                  title="Defaults"
+                  sub="What a new deliverable or concept starts out as."
+                />
+                <div className="flex flex-col gap-ds-3">
+                  <div className="flex flex-col gap-ds-2">
+                    <Label>Deliverable type</Label>
+                    <Select
+                      value={settings.templates.default_deliverable_type}
+                      onValueChange={(v: string) => {
+                        setSettings(prev => ({
+                          ...prev,
+                          templates: { ...prev.templates, default_deliverable_type: v }
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="video">Video</SelectItem>
+                        <SelectItem value="reel">Reel</SelectItem>
+                        <SelectItem value="story_set">Story Set</SelectItem>
+                        <SelectItem value="photo_set">Photo Set</SelectItem>
+                        <SelectItem value="event_content">Event Content</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-ds-2">
+                    <Label>Assignment scope</Label>
+                    <Select
+                      value={settings.templates.default_assignment_scope}
+                      onValueChange={(v: string) => {
+                        setSettings(prev => ({
+                          ...prev,
+                          templates: { ...prev.templates, default_assignment_scope: v }
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="reel">1 Reel</SelectItem>
+                        <SelectItem value="reel_stories">1 Reel + 3 Stories</SelectItem>
+                        <SelectItem value="multiple_reels">Multiple Reels</SelectItem>
+                        <SelectItem value="custom">Custom Scope</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-ds-2">
+                    <Label>Concept template</Label>
+                    <Textarea
+                      value={settings.templates.default_concept_template}
+                      onChange={(e) => {
+                        setSettings(prev => ({
+                          ...prev,
+                          templates: { ...prev.templates, default_concept_template: e.target.value }
+                        }));
+                      }}
+                      placeholder="The starting point for every new concept on this campaign..."
+                      rows={4}
+                    />
+                  </div>
+                </div>
+              </Group>
+
+              <Group>
+                <SectionHead title="Notifications" sub="What is worth telling someone about." />
+                <div className="flex flex-col">
+                  {([
+                    {
+                      key: 'notify_on_approval_needed',
+                      label: 'Approval needed',
+                      description: 'Tell people when a concept is waiting on a decision.'
+                    },
+                    {
+                      key: 'notify_on_status_change',
+                      label: 'Status changes',
+                      description: 'Tell people when a deliverable moves.'
+                    },
+                    {
+                      key: 'notify_on_overdue',
+                      label: 'Overdue items',
+                      description: 'Tell people when a deliverable passes its deadline.'
+                    },
+                    {
+                      key: 'daily_summary',
+                      label: 'Daily summary',
+                      description: 'One email a day with where the campaign stands.'
+                    }
+                  ] as const).map(setting => (
+                    <SwitchRow
+                      key={setting.key}
+                      label={setting.label}
+                      description={setting.description}
+                      checked={settings.notifications[setting.key]}
+                      onChange={(checked) => setNotification(setting.key, checked)}
+                    />
+                  ))}
+                </div>
+              </Group>
+
+              <Group>
+                <SectionHead
+                  title="Client access"
+                  sub="Who on the client side can open this campaign, and what they can do."
+                />
+                <div className="flex flex-col gap-ds-3">
+                  <div className="flex items-center gap-ds-2">
+                    <Input
+                      placeholder="Enter client email..."
+                      value={newClientEmail}
+                      onChange={(e) => setNewClientEmail(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleAddClientUser();
+                        }
+                      }}
+                    />
+                    <Button onClick={handleAddClientUser}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add user
+                    </Button>
+                  </div>
+
+                  {settings.client_users.length === 0 ? (
+                    <Empty>No client user has been given access to this campaign yet.</Empty>
+                  ) : (
+                    <div className="flex flex-col">
+                      {settings.client_users.map(user => (
+                        <div
+                          key={user.id}
+                          className="flex flex-wrap items-center gap-ds-3 border-b border-border/70 py-ds-3 last:border-b-0"
+                        >
+                          <div className="flex min-w-0 flex-1 items-center gap-ds-2">
+                            <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <div className="min-w-0">
+                              <p className="truncate text-ds-label">{user.email}</p>
+                              <p className="truncate text-ds-caption text-muted-foreground">{user.name}</p>
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell>{user.name}</TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={user.can_approve}
-                            onCheckedChange={() =>
-                              handleTogglePermission(user.id, 'can_approve')
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={user.can_comment}
-                            onCheckedChange={() =>
-                              handleTogglePermission(user.id, 'can_comment')
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
+                          <label className="flex items-center gap-ds-2 text-ds-caption text-muted-foreground">
+                            <Switch
+                              checked={user.can_approve}
+                              onCheckedChange={() => handleTogglePermission(user.id, 'can_approve')}
+                            />
+                            Approve
+                          </label>
+                          <label className="flex items-center gap-ds-2 text-ds-caption text-muted-foreground">
+                            <Switch
+                              checked={user.can_comment}
+                              onCheckedChange={() => handleTogglePermission(user.id, 'can_comment')}
+                            />
+                            Comment
+                          </label>
                           <Button
                             size="sm"
                             variant="ghost"
+                            aria-label={`Remove ${user.email}`}
                             onClick={() => handleRemoveClientUser(user.id)}
                           >
                             <Trash className="h-4 w-4 text-destructive" />
                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-      {/* Danger Zone */}
-      <Card className="border-destructive">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-destructive" />
-            <CardTitle>Danger Zone</CardTitle>
-          </div>
-          <CardDescription>
-            Actions that cannot be undone
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg">
-              <div>
-                <p className="font-medium">Reset All Settings</p>
-                <p className="text-sm text-muted-foreground">
-                  Reset all settings to default values
-                </p>
-              </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" disabled={saving}>
-                    Reset Settings
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Reset all settings?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Visibility, approvals, templates, notifications and client users
-                      will return to their default values. This cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleResetSettings}>Reset</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-            <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg">
-              <div>
-                <p className="font-medium">Archive Campaign</p>
-                <p className="text-sm text-muted-foreground">
-                  Archive this campaign and all its data
-                </p>
-              </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" disabled={saving}>
-                    Archive Campaign
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Archive this campaign?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      The campaign moves to archived status and disappears from active
-                      dashboards. You can restore it later by changing its status.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleArchiveCampaign}>Archive</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                  <Note>
+                    A user added here is saved with the rest of the settings. Nothing is sent
+                    to them until you save.
+                  </Note>
+                </div>
+              </Group>
+
+              {/* The one card left on the page. Destroying something is worth an edge. */}
+              <Group>
+                <SectionHead title="Careful" sub="These two cannot be undone from here." />
+                <div className="flex flex-col gap-ds-3 rounded-ds-surface border border-destructive/30 p-ds-4">
+                  <div className="flex flex-wrap items-center justify-between gap-ds-3">
+                    <div className="flex min-w-0 flex-col gap-ds-1">
+                      <p className="text-ds-label">Reset all settings</p>
+                      <p className="max-w-prose text-ds-caption text-muted-foreground">
+                        Everything on this page goes back to its default.
+                      </p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" disabled={saving}>
+                          Reset settings
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Reset all settings?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Visibility, approvals, templates, notifications and client users
+                            all return to their default values. This cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleResetSettings}>Reset</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-ds-3 border-t border-destructive/20 pt-ds-3">
+                    <div className="flex min-w-0 flex-col gap-ds-1">
+                      <p className="text-ds-label">Archive campaign</p>
+                      <p className="max-w-prose text-ds-caption text-muted-foreground">
+                        The campaign leaves the active dashboards. Its data stays.
+                      </p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" disabled={saving}>
+                          Archive campaign
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Archive this campaign?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            The campaign moves to archived status and disappears from active
+                            dashboards. You can restore it later by changing its status.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleArchiveCampaign}>Archive</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </Group>
+            </>
+          )}
+        </Sections>
+      </Page>
     </ProtectedOperationsRoute>
   );
 }
