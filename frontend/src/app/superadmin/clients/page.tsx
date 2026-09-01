@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -19,6 +18,7 @@ import {
 import { Search, Building2, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
 import { clientApi, type Client } from '@/services/clientManagementApi';
 import { ClientsHubHeader } from '@/components/console/ClientsHubHeader';
+import { Aed, CARD } from '@/components/console/primitives';
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -53,9 +53,19 @@ export default function ClientsPage() {
     return () => clearTimeout(timeout);
   }, [search]);
 
-  const formatAED = (amount: number) => {
-    if (!amount) return 'AED 0';
-    return `⃃ ${Number(amount).toLocaleString('en-AE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  /**
+   * A budget we were never told is a dash, not a zero.
+   *
+   * This read `if (!amount) return 'AED 0'`, which catches null and undefined alongside a
+   * genuine zero — so a client whose budget the list endpoint did not carry read as a
+   * client who has never spent anything. It also spelled that case "AED 0" in Latin while
+   * every real figure used the dirham mark, so the absent case was formatted differently
+   * as well as meaning something different. Absent returns null and the caller renders an
+   * em dash; a real zero formats like any other number.
+   */
+  const formatAED = (amount: number | null | undefined) => {
+    if (amount == null) return null;
+    return Number(amount).toLocaleString('en-AE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   };
 
   const getInitials = (name: string) => {
@@ -69,7 +79,7 @@ export default function ClientsPage() {
 
   return (
     <SuperadminLayout>
-    <div className="flex-1 space-y-6">
+    <div className="flex-1 space-y-ds-5">
       {/* Header — shared with Prospects, Proposals and Sourcing */}
       <ClientsHubHeader
         showStats
@@ -82,7 +92,7 @@ export default function ClientsPage() {
       />
 
       {/* Filters */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-ds-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -122,23 +132,21 @@ export default function ClientsPage() {
 
       {/* Client Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-ds-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-14 w-14 rounded-full" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-[120px]" />
-                    <Skeleton className="h-3 w-[80px]" />
-                  </div>
+            <div key={i} className={`${CARD} bg-[var(--tone-neutral-wash)] p-ds-4`}>
+              <div className="flex items-center gap-ds-3">
+                <Skeleton className="h-14 w-14 rounded-full" />
+                <div className="space-y-ds-2">
+                  <Skeleton className="h-4 w-[120px] rounded-ds-sm" />
+                  <Skeleton className="h-3 w-[80px] rounded-ds-sm" />
                 </div>
-                <div className="mt-4 space-y-2">
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="mt-ds-4 space-y-ds-2">
+                <Skeleton className="h-3 w-full rounded-ds-sm" />
+                <Skeleton className="h-3 w-2/3 rounded-ds-sm" />
+              </div>
+            </div>
           ))}
         </div>
       ) : clients.length === 0 ? (
@@ -150,76 +158,91 @@ export default function ClientsPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-ds-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {clients.map((client) => (
-            <Card
+            /* One card per client is the right number of boxes: each is a genuinely
+               different subject. What was wrong was the boxes inside it — Active and Total
+               each sat in its own tinted, rounded, padded panel, so two small numbers on a
+               card that already had an edge were wrapped in two more. They are plain
+               figures now, separated by the gap, which is the only thing those panels were
+               communicating. The numbers grow into the padding the panels were using. */
+            <button
               key={client.id}
-              className="group cursor-pointer transition-all hover:shadow-md hover:border-primary/30"
+              type="button"
+              className={`${CARD} group cursor-pointer bg-[var(--tone-neutral-wash)] p-ds-4 text-left transition-shadow
+                          hover:shadow-[0_2px_4px_rgba(16,20,12,0.05),0_18px_36px_-18px_rgba(16,20,12,0.24)]
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
               onClick={() => router.push(`/superadmin/clients/${client.id}`)}
             >
-              <CardContent className="p-6">
-                {/* Client Header */}
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-14 w-14 border-2 border-border">
-                    <AvatarImage src={client.logo_url || undefined} alt={client.company_name} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                      {getInitials(client.company_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate font-semibold group-hover:text-primary transition-colors">
-                      {client.company_name}
-                    </h3>
-                    {client.owner_name && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {client.owner_name}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground/70 truncate">
-                      {client.industry || client.subscription_tier}
+              {/* Client Header */}
+              <div className="flex items-center gap-ds-3">
+                <Avatar className="h-14 w-14 border-2 border-border">
+                  <AvatarImage src={client.logo_url || undefined} alt={client.company_name} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                    {getInitials(client.company_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate font-semibold group-hover:text-primary transition-colors">
+                    {client.company_name}
+                  </h3>
+                  {client.owner_name && (
+                    <p className="text-ds-caption text-muted-foreground truncate">
+                      {client.owner_name}
                     </p>
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-muted/50 p-2.5 text-center">
-                    <p className="text-lg font-bold">{client.active_campaigns}</p>
-                    <p className="text-xs text-muted-foreground">Active</p>
-                  </div>
-                  <div className="rounded-lg bg-muted/50 p-2.5 text-center">
-                    <p className="text-lg font-bold">{client.total_campaigns}</p>
-                    <p className="text-xs text-muted-foreground">Total</p>
-                  </div>
-                </div>
-
-                {/* Budget */}
-                <div className="mt-4 flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total Budget</span>
-                  <span className="font-semibold text-sm">{formatAED(client.total_budget)}</span>
-                </div>
-
-                {/* Badges */}
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {client.pending_proposals > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {client.pending_proposals} pending
-                    </Badge>
                   )}
-                  {client.unpaid_campaigns > 0 && (
-                    <Badge variant="destructive" className="text-xs">
-                      {client.unpaid_campaigns} unpaid
-                    </Badge>
-                  )}
-                  {client.active_campaigns > 0 && client.unpaid_campaigns === 0 && client.pending_proposals === 0 && (
-                    <Badge className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                      <TrendingUp className="mr-1 h-3 w-3" />
-                      Active
-                    </Badge>
-                  )}
+                  <p className="text-ds-caption text-muted-foreground/70 truncate">
+                    {client.industry || client.subscription_tier}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              {/* Campaigns and budget: three figures in a row, grouped by space */}
+              <div className="mt-ds-4 flex flex-wrap gap-x-ds-5 gap-y-ds-3">
+                <div>
+                  <p className="text-ds-caption font-medium text-muted-foreground">Active</p>
+                  <p className="mt-ds-1 text-[26px] font-semibold leading-none tracking-[-0.02em] tabular-nums">
+                    {client.active_campaigns ?? '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-ds-caption font-medium text-muted-foreground">Total</p>
+                  <p className="mt-ds-1 text-[26px] font-semibold leading-none tracking-[-0.02em] tabular-nums">
+                    {client.total_campaigns ?? '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-ds-caption font-medium text-muted-foreground">Total budget</p>
+                  <p className="mt-ds-1 text-[26px] font-semibold leading-none tracking-[-0.02em] tabular-nums">
+                    {/* The dirham mark is dropped from an absent figure rather than left
+                        sitting beside a dash. */}
+                    {formatAED(client.total_budget) === null
+                      ? '—'
+                      : <Aed>{formatAED(client.total_budget)}</Aed>}
+                  </p>
+                </div>
+              </div>
+
+              {/* Badges */}
+              <div className="mt-ds-3 flex flex-wrap gap-ds-1">
+                {client.pending_proposals > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {client.pending_proposals} pending
+                  </Badge>
+                )}
+                {client.unpaid_campaigns > 0 && (
+                  <Badge variant="destructive" className="text-xs">
+                    {client.unpaid_campaigns} unpaid
+                  </Badge>
+                )}
+                {client.active_campaigns > 0 && client.unpaid_campaigns === 0 && client.pending_proposals === 0 && (
+                  <Badge className="border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)] text-xs">
+                    <TrendingUp className="mr-1 h-3 w-3" />
+                    Active
+                  </Badge>
+                )}
+              </div>
+            </button>
           ))}
         </div>
       )}
