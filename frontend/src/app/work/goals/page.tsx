@@ -175,9 +175,9 @@ export default function GoalsPage() {
             )}
 
             {p && (
-              {/* The pace badge was a third set of hand-picked palette steps, so "on track"
-                  was a slightly different green here than on the brand heartbeat. It names
-                  the console tone tokens now. */}
+              /* The pace badge was a third set of hand-picked palette steps, so "on track"
+                 was a slightly different green here than on the brand heartbeat. It names
+                 the console tone tokens now. */
               <div className="mt-ds-3 space-y-ds-2 border-t pt-ds-3">
                 <div className="flex items-baseline justify-between">
                   <span className="text-sm text-muted-foreground">
