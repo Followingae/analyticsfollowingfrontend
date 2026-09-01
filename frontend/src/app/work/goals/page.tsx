@@ -107,12 +107,19 @@ export default function GoalsPage() {
   if (loading) {
     return (
       <SuperadminLayout>
-        <div className="space-y-8">
-          <Skeleton className="h-9 w-40" />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-[116px]" />)}
+        {/* The loaded band draws no box per figure, so the skeleton does not promise one. */}
+        <div className="space-y-ds-5">
+          <Skeleton className="h-9 w-40 rounded-ds-lg" />
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
+                <Skeleton className="h-3 w-24 rounded-ds-sm" />
+                <Skeleton className="h-9 w-20 rounded-ds-sm" />
+                <Skeleton className="h-3 w-32 rounded-ds-sm" />
+              </div>
+            ))}
           </div>
-          <Skeleton className="h-[300px]" />
+          <Skeleton className="h-[300px] rounded-ds-2xl" />
         </div>
       </SuperadminLayout>
     )
@@ -122,7 +129,7 @@ export default function GoalsPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-8">
+      <div className="space-y-ds-5">
         <PageHead
           title="Goals"
           sub="Set the rules once a month. Daily targets compute themselves from how many sourcing rounds are actually open, so nobody is chasing an arbitrary number."
@@ -142,7 +149,7 @@ export default function GoalsPage() {
           </StatGrid>
         )}
 
-        <div className="grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <div className="grid items-start gap-ds-4 lg:grid-cols-[1.4fr_1fr]">
           <Panel title="Last 14 days" description="Creators added, against the daily target">
             {trail.length > 0 ? (
               <ChartContainer config={CHART} className="h-[240px] w-full">
@@ -168,15 +175,18 @@ export default function GoalsPage() {
             )}
 
             {p && (
-              <div className="mt-4 space-y-2 border-t pt-4">
+              /* The pace badge was a third set of hand-picked palette steps, so "on track"
+                 was a slightly different green here than on the brand heartbeat. It names
+                 the console tone tokens now. */
+              <div className="mt-ds-3 space-y-ds-2 border-t pt-ds-3">
                 <div className="flex items-baseline justify-between">
                   <span className="text-sm text-muted-foreground">
                     <strong className="text-foreground tabular-nums">{today.done}</strong> of {today.target} today
                   </span>
                   <Badge className={
-                    p.tone === 'good' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600'
-                    : p.tone === 'warn' ? 'border-amber-500/20 bg-amber-500/10 text-amber-600'
-                    : 'border-destructive/20 bg-destructive/10 text-destructive'}>
+                    p.tone === 'good' ? 'border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]'
+                    : p.tone === 'warn' ? 'border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]'
+                    : 'border-transparent bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]'}>
                     {p.label}
                   </Badge>
                 </div>
@@ -187,12 +197,12 @@ export default function GoalsPage() {
 
           {canSet && rule && (
             <Panel title="Sourcing rules" description="Applies to every talent manager this month">
-              <div className="space-y-5">
+              <div className="space-y-ds-4">
                 {([
                   ['per_open_campaign', 'Per open round, per day', 'Until that roster locks'],
                   ['baseline_daily', 'When nothing is open', 'Creators to add to the database each day'],
                 ] as const).map(([k, title, sub]) => (
-                  <div key={k} className="flex items-center justify-between gap-4">
+                  <div key={k} className="flex items-center justify-between gap-ds-3">
                     <div>
                       <p className="text-sm font-medium">{title}</p>
                       <p className="text-xs text-muted-foreground">{sub}</p>
@@ -207,7 +217,7 @@ export default function GoalsPage() {
                   </div>
                 ))}
 
-                <div className="flex items-center justify-between gap-4 border-t pt-4">
+                <div className="flex items-center justify-between gap-ds-3 border-t pt-ds-3">
                   <div>
                     <p className="text-sm font-medium">Only count complete records</p>
                     <p className="text-xs text-muted-foreground">
@@ -219,7 +229,9 @@ export default function GoalsPage() {
                 </div>
 
                 {today?.has_rule && (
-                  <p className="rounded-lg border border-dashed p-3 text-xs leading-relaxed text-muted-foreground">
+                  /* This sentence was in a dashed box inside a panel that is itself a card:
+                     three edges deep for one line of arithmetic. The box comes off. */
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     {today.open_rounds} round{today.open_rounds === 1 ? '' : 's'} open today →
                     target <strong className="text-foreground">{today.target}</strong> creators.
                   </p>

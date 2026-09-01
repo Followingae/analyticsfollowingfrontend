@@ -176,7 +176,7 @@ function AreasPage() {
   return (
     <AuthGuard>
       <SuperAdminInterface>
-        <div className="mx-auto max-w-6xl space-y-6 p-6">
+        <div className="mx-auto max-w-6xl space-y-ds-4 p-ds-4">
           {canStock && <CreatorsHubHeader className="mb-0" bare />}
 
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -266,8 +266,12 @@ function AreasPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-lg border p-3 space-y-3">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">The brief</p>
+                      {/* The brief was boxed inside a dialog, which is already a surface —
+                          a box inside a box for a group the heading alone can name. The
+                          border comes off; a hairline above it marks where the brief starts,
+                          and the fields keep their own spacing. */}
+                      <div className="space-y-ds-3 border-t pt-ds-3">
+                        <p className="text-ds-overline uppercase text-muted-foreground">The brief</p>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1.5">
                             <Label className="text-xs">How many</Label>
@@ -329,7 +333,7 @@ function AreasPage() {
                                  placeholder="3000" />
                         </div>
                         {briefLine(brief) && (
-                          <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             They will read: <span className="text-foreground">{briefLine(brief)}</span>
                           </p>
                         )}
@@ -357,23 +361,21 @@ function AreasPage() {
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : shown.length === 0 ? (
-            <Card className={`${CARD} border-dashed bg-white/60 dark:bg-neutral-900/40`}>
-              <CardContent className="p-12 text-center">
-                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full border">
-                  <ListChecks className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <p className="mt-4 font-medium">
-                  {kind === "client" ? "No brands being sourced for" : "No sample packs yet"}
-                </p>
-                <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                  {kind === "client"
-                    ? "Release a brand with Start sourcing and the talent team is told what to look for."
-                    : "A pack like “Fitness UAE” lets anyone answer a prospect without waiting on a round."}
-                </p>
-              </CardContent>
-            </Card>
+            /* A dashed card with a bordered circle inside it: two boxes drawn round the
+               sentence "there is nothing here". Both come off — the words say it. */
+            <div className="py-16 text-center">
+              <ListChecks className="mx-auto h-6 w-6 text-muted-foreground/60" />
+              <p className="mt-ds-3 font-medium">
+                {kind === "client" ? "No brands being sourced for" : "No sample packs yet"}
+              </p>
+              <p className="mx-auto mt-ds-1 max-w-md text-sm text-muted-foreground">
+                {kind === "client"
+                  ? "Release a brand with Start sourcing and the talent team is told what to look for."
+                  : "A pack like “Fitness UAE” lets anyone answer a prospect without waiting on a round."}
+              </p>
+            </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-ds-4 sm:grid-cols-2 lg:grid-cols-3">
               {shown.map((a) => {
                 const line = briefLine(a.brief)
                 return (
@@ -413,7 +415,8 @@ function AreasPage() {
                           <Badge className="gap-1">{a.picked_count} picked</Badge>
                         )}
                         {(a.live_links ?? 0) > 0 && (
-                          <Badge variant="outline" className="gap-1 text-emerald-600 dark:text-emerald-400">
+                          /* Was its own emerald, a fifth green beside the console's one. */
+                          <Badge variant="outline" className="gap-1 border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
                             <Link2 className="h-3 w-3" />Live link
                           </Badge>
                         )}

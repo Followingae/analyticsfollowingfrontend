@@ -210,13 +210,13 @@ export default function RoundDetailPage() {
   return (
     <SuperadminLayout>
       {/* Cost and sell are on this page — stamp it so a screenshot is attributable. */}
-      <div className="space-y-8">
+      <div className="space-y-ds-5">
         <div>
           <Button variant="ghost" size="sm" className="mb-3 -ml-2"
                   onClick={() => router.push('/work/sourcing')}>
             <ArrowLeft className="mr-1.5 h-4 w-4" />All rounds
           </Button>
-          <div className="flex flex-wrap items-start gap-4">
+          <div className="flex flex-wrap items-start gap-ds-3">
             <div>
               <div className="mb-2 flex items-center gap-2">
                 <Badge variant="outline">Round {round.round_no}</Badge>
@@ -302,7 +302,7 @@ export default function RoundDetailPage() {
               <CardTitle className="text-base">The brief</CardTitle>
               <CardDescription>What to look for. Written when this round was opened.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm">
+            <CardContent className="space-y-ds-3 text-sm">
               <div className="flex flex-wrap gap-x-8 gap-y-3">
                 {briefFields.map(f => (
                   <div key={f.label}>
@@ -331,28 +331,26 @@ export default function RoundDetailPage() {
         ) : (
           /* A round with no brief is a round nobody can work. Say so, and let whoever may
              edit it fix it on the spot rather than guessing. */
-          <Card className="border-dashed">
-            <CardContent className="flex flex-wrap items-center gap-3 py-5 text-sm">
-              <span className="font-medium">No brief on this round yet.</span>
-              <span className="text-muted-foreground">
-                Nobody can tell what to look for — kind of creator, market, deliverables, budget.
-              </span>
-              {(isSuperAdmin || isFullAccessStaff) && (
-                <Button size="sm" variant="outline" className="ml-auto" onClick={openStepIn}>
-                  <UserCog className="mr-1.5 h-4 w-4" />Write it
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <div className="flex flex-wrap items-center gap-ds-3 border-t py-ds-3 text-sm">
+            <span className="font-medium">No brief on this round yet.</span>
+            <span className="text-muted-foreground">
+              Nobody can tell what to look for — kind of creator, market, deliverables, budget.
+            </span>
+            {(isSuperAdmin || isFullAccessStaff) && (
+              <Button size="sm" variant="outline" className="ml-auto" onClick={openStepIn}>
+                <UserCog className="mr-1.5 h-4 w-4" />Write it
+              </Button>
+            )}
+          </div>
         )}
 
         {items.length === 0 ? (
-          <Card><CardContent className="py-16 text-center">
+          <div className="py-16 text-center">
             <p className="text-sm font-medium">No creators yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">Add the first ones to get started.</p>
-          </CardContent></Card>
+            <p className="mt-ds-1 text-sm text-muted-foreground">Add the first ones to get started.</p>
+          </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-ds-4 sm:grid-cols-2 xl:grid-cols-3">
             {items.filter(i => i.internal_verdict !== 'struck').map(i => (
               <Card key={i.id}>
                 <CardHeader className="pb-3">
@@ -370,7 +368,7 @@ export default function RoundDetailPage() {
                       </CardDescription>
                     </div>
                     {i.internal_verdict === 'approved' && (
-                      <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                      <Badge className="border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
                         Approved
                       </Badge>
                     )}
@@ -383,13 +381,18 @@ export default function RoundDetailPage() {
                     ))}
                     {i.country && <Badge variant="outline" className="text-xs">{i.country}</Badge>}
                     {i.creator_status !== 'active' && (
-                      <Badge variant="outline" className="text-xs text-amber-600">
+                      <Badge variant="outline" className="border-transparent bg-[var(--tone-warn-wash)] text-xs text-[var(--tone-warn-ink)]">
                         not yet sellable
                       </Badge>
                     )}
                   </div>
+                  {/* The money block was a bordered, filled tile inside a card: a box inside
+                      a box, two edges to cross to read a rate. It keeps one hairline above
+                      it, which is the line where the subject genuinely changes from who this
+                      creator is to what they cost. Who may see which figure is untouched —
+                      canSeeCost and canSeeSell gate exactly what they gated before. */}
                   {(canSeeCost || canSeeSell) && (
-                    <div className="rounded-lg border bg-muted/40 px-3 py-2 text-xs">
+                    <div className="space-y-ds-1 border-t pt-ds-2 text-xs">
                       {canSeeCost && (
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Cost (reel)</span>
@@ -399,7 +402,7 @@ export default function RoundDetailPage() {
                         </div>
                       )}
                       {canSeeSell && (
-                        <div className="mt-1 flex justify-between">
+                        <div className="flex justify-between">
                           <span className="text-muted-foreground">Sell (reel)</span>
                           <span className="font-medium tabular-nums">
                             {aed(i.sell_reel_aed_cents) ?? '—'}
@@ -494,7 +497,7 @@ export default function RoundDetailPage() {
               written are kept. Both the old and the new owner are told.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-ds-3">
             <div>
               <Label className="text-xs">Owner</Label>
               <Select value={amend.owner || 'unassigned'}
@@ -511,7 +514,7 @@ export default function RoundDetailPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-ds-3">
               <div>
                 <Label className="text-xs">Due</Label>
                 <Input className="mt-1.5" type="date" value={amend.due}
@@ -524,7 +527,7 @@ export default function RoundDetailPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 border-t pt-4">
+            <div className="grid grid-cols-2 gap-ds-3 border-t pt-ds-3">
               <div>
                 <Label className="text-xs">What kind of creators</Label>
                 <Input className="mt-1.5" value={amend.categories} placeholder="food, family"
@@ -537,7 +540,7 @@ export default function RoundDetailPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-ds-3">
               <div>
                 <Label className="text-xs">Followers</Label>
                 <div className="mt-1.5 flex items-center gap-2">

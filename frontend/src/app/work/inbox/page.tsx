@@ -378,12 +378,19 @@ export default function InboxPage() {
   if (accessLoading || loading) {
     return (
       <SuperadminLayout>
-        <div className="space-y-8">
-          <Skeleton className="h-9 w-40" />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {[0, 1, 2].map(i => <Skeleton key={i} className="h-[116px]" />)}
+        {/* The loaded band draws no box per figure, so the skeleton does not promise one. */}
+        <div className="space-y-ds-5">
+          <Skeleton className="h-9 w-40 rounded-ds-lg" />
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
+                <Skeleton className="h-3 w-24 rounded-ds-sm" />
+                <Skeleton className="h-9 w-20 rounded-ds-sm" />
+                <Skeleton className="h-3 w-32 rounded-ds-sm" />
+              </div>
+            ))}
           </div>
-          <Skeleton className="h-[300px]" />
+          <Skeleton className="h-[300px] rounded-ds-2xl" />
         </div>
       </SuperadminLayout>
     )
@@ -394,24 +401,25 @@ export default function InboxPage() {
   if (!hasAnyQueue) {
     return (
       <SuperadminLayout>
-        <div className="space-y-8">
+        {/* A card drawn round the words "there is nothing here" is an edge spent on absence.
+            The heading stays — it is what the screen is saying — the box does not. */}
+        <div className="space-y-ds-5">
           {head}
-          <Panel title="Nothing is waiting on you" flush>
-            <div className="space-y-3 px-6 py-12 text-center">
-              <p className="text-sm font-medium">Nothing here needs a decision from you.</p>
-              <p className="mx-auto max-w-md text-sm text-muted-foreground">
-                Your work starts on Today and with your brands.
-              </p>
-              <div className="flex justify-center gap-2 pt-1">
-                <Button variant="outline" size="sm" onClick={() => router.push('/work/today')}>
-                  Today
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => router.push('/work/brands')}>
-                  Brands
-                </Button>
-              </div>
+          <div className="space-y-ds-2 py-ds-5 text-center">
+            <p className="text-ds-subheading">Nothing is waiting on you</p>
+            <p className="text-sm font-medium">Nothing here needs a decision from you.</p>
+            <p className="mx-auto max-w-md text-sm text-muted-foreground">
+              Your work starts on Today and with your brands.
+            </p>
+            <div className="flex justify-center gap-ds-2 pt-ds-2">
+              <Button variant="outline" size="sm" onClick={() => router.push('/work/today')}>
+                Today
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => router.push('/work/brands')}>
+                Brands
+              </Button>
             </div>
-          </Panel>
+          </div>
         </div>
       </SuperadminLayout>
     )
@@ -419,7 +427,7 @@ export default function InboxPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-8">
+      <div className="space-y-ds-5">
         {head}
 
         <StatGrid cols={3}>
@@ -449,18 +457,17 @@ export default function InboxPage() {
         </StatGrid>
 
         {total === 0 ? (
-          <Panel title="You are clear" flush>
-            <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500/60" />
-              <p className="text-sm font-medium">Nothing is waiting on a decision from you.</p>
-              <p className="max-w-md text-xs text-muted-foreground">
-                Your lists are shown above — open any of them to see what has already been
-                decided, or what is moving.
-              </p>
-            </div>
-          </Panel>
+          <div className="flex flex-col items-center gap-ds-2 py-ds-6 text-center">
+            <CheckCircle2 className="h-8 w-8 text-[var(--tone-good-dot)]" />
+            <p className="text-ds-subheading">You are clear</p>
+            <p className="text-sm font-medium">Nothing is waiting on a decision from you.</p>
+            <p className="max-w-md text-xs text-muted-foreground">
+              Your lists are shown above — open any of them to see what has already been
+              decided, or what is moving.
+            </p>
+          </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-ds-4">
             {groups.map(g => (
               <Panel
                 key={g.key}
@@ -505,7 +512,7 @@ export default function InboxPage() {
                   <button
                     type="button"
                     onClick={() => router.push(g.href)}
-                    className="w-full border-t px-6 py-3 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                    className="w-full border-t px-6 py-ds-2 text-left text-xs text-muted-foreground transition-colors hover:bg-black/[0.03] hover:text-foreground dark:hover:bg-white/[0.05]"
                   >
                     {g.items.length - 8} more waiting — open {g.label.toLowerCase()}
                   </button>

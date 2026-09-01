@@ -49,13 +49,21 @@ export default function TeamConsolePage() {
   if (loading) {
     return (
       <SuperadminLayout>
-        <div className="space-y-8">
-          <Skeleton className="h-9 w-48" />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-[116px]" />)}
+        {/* The loaded band draws no box per figure, so the skeleton does not promise one. */}
+        <div className="space-y-ds-5">
+          <Skeleton className="h-9 w-48 rounded-ds-lg" />
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
+                <Skeleton className="h-3 w-24 rounded-ds-sm" />
+                <Skeleton className="h-9 w-20 rounded-ds-sm" />
+                <Skeleton className="h-3 w-32 rounded-ds-sm" />
+              </div>
+            ))}
           </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Skeleton className="h-[280px]" /><Skeleton className="h-[280px]" />
+          <div className="grid gap-ds-4 lg:grid-cols-2">
+            <Skeleton className="h-[280px] rounded-ds-2xl" />
+            <Skeleton className="h-[280px] rounded-ds-2xl" />
           </div>
         </div>
       </SuperadminLayout>
@@ -70,7 +78,7 @@ export default function TeamConsolePage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-8">
+      <div className="space-y-ds-5">
         <PageHead
           title="Creator team"
           sub="What is waiting on you, who is moving, and who is not. Alerts here are raised on a pattern rather than one slow afternoon, and they are private to leadership."
@@ -92,7 +100,7 @@ export default function TeamConsolePage() {
                 hint="Private to leadership — the team never sees these" />
         </StatGrid>
 
-        <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="grid items-start gap-ds-4 lg:grid-cols-2">
           <Panel title="Alerts" description="Raised on a pattern, never on one slow afternoon" flush>
             {data.alerts.map((a: Alert, i: number) => (
               <Row
@@ -130,11 +138,15 @@ export default function TeamConsolePage() {
                   </span>
                 }
                 right={
+                  /* "Quiet week" and "Moving" were a hand-picked amber and emerald, a fourth
+                     set beside the three the console already decides once. They name the
+                     tone tokens now, and carry a wash rather than only coloured text so the
+                     state survives a print-out. */
                   p.overdue_rounds > 0
                     ? <Badge variant="destructive">{p.overdue_rounds} overdue</Badge>
                     : p.added_week === 0 && p.staff_role === 'talent_manager'
-                      ? <Badge variant="secondary" className="text-amber-600">Quiet week</Badge>
-                      : <Badge variant="outline" className="text-emerald-600">Moving</Badge>
+                      ? <Badge variant="outline" className="border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]">Quiet week</Badge>
+                      : <Badge variant="outline" className="border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">Moving</Badge>
                 }
               />
             ))}
