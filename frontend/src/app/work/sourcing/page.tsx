@@ -153,7 +153,7 @@ export default function SourcingBoardPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-8">
+      <div className="space-y-ds-5">
         <ClientsHubHeader
           note="Each client request for sample creators, with an owner, a target and a due date. If a round is open the talent team keeps sourcing; if it is locked they stop."
           action={
@@ -190,20 +190,19 @@ export default function SourcingBoardPage() {
         </Tabs>
 
         {loading ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {[0, 1, 2].map(i => <Skeleton key={i} className="h-[188px]" />)}
+          <div className="grid gap-ds-4 md:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map(i => <Skeleton key={i} className="h-[188px] rounded-ds-lg" />)}
           </div>
         ) : shown.length === 0 ? (
-          <Card>
-            <CardContent className="py-16 text-center">
-              <p className="text-sm font-medium">No rounds here</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Open one when a client asks to see creators.
-              </p>
-            </CardContent>
-          </Card>
+          /* A card drawn round the sentence "there are no cards" — the box comes off. */
+          <div className="py-16 text-center">
+            <p className="text-sm font-medium">No rounds here</p>
+            <p className="mt-ds-1 text-sm text-muted-foreground">
+              Open one when a client asks to see creators.
+            </p>
+          </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-ds-4 md:grid-cols-2 xl:grid-cols-3">
             {shown.map(r => {
               const d = due(r.due_at)
               const target = r.target_count || 0
@@ -237,9 +236,10 @@ export default function SourcingBoardPage() {
                       </div>
                     )}
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {/* "Due soon" picked its own amber-600 rather than the console's. */}
                       <span className={`inline-flex items-center gap-1 ${
                         d.late ? 'font-medium text-destructive'
-                        : d.soon ? 'font-medium text-amber-600' : ''}`}>
+                        : d.soon ? 'font-medium text-[var(--tone-warn-ink)]' : ''}`}>
                         <Clock className="h-3.5 w-3.5" />{d.text}
                       </span>
                       {r.approved > 0 && <span>· {r.approved} approved</span>}
@@ -265,13 +265,13 @@ export default function SourcingBoardPage() {
               what is still needed.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-ds-3">
             <div>
               <Label className="text-xs">Title</Label>
               <Input className="mt-1.5" value={form.title} placeholder="e.g. Boom Challenge — family creators"
                      onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-ds-3">
               <div>
                 <Label className="text-xs">How many creators</Label>
                 <Input className="mt-1.5" type="number" value={form.target} placeholder="12"
@@ -284,7 +284,7 @@ export default function SourcingBoardPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-ds-3">
               <div>
                 <Label className="text-xs">What kind of creators</Label>
                 <Input className="mt-1.5" value={form.categories} placeholder="food, family"
@@ -297,7 +297,7 @@ export default function SourcingBoardPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-ds-3">
               <div>
                 <Label className="text-xs">Followers</Label>
                 <div className="mt-1.5 flex items-center gap-2">
@@ -320,7 +320,7 @@ export default function SourcingBoardPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-ds-3">
               <div>
                 <Label className="text-xs">Deliverables</Label>
                 <Input className="mt-1.5" value={form.deliverables} placeholder="reel, story"
