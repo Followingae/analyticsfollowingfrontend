@@ -11,14 +11,13 @@
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { StandardMetricCard } from "@/components/ui/standard-metric-card"
+import { CARD, PageHead, Stat, StatGrid } from "@/components/console/primitives"
 import { Search, Users, BadgeCheck, TrendingUp, BarChart3, ArrowUpRight } from "lucide-react"
 import { API_CONFIG } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
@@ -38,8 +37,17 @@ interface AnalyzedCreator {
   content_type?: string
 }
 
-const fmt = (n?: number) => {
-  if (!n) return "0"
+/**
+ * A follower count we do not have is a dash, not a zero.
+ *
+ * `if (!n) return "0"` caught null and undefined alongside a real zero, so a creator whose
+ * analytics failed showed as a creator with no audience. On this screen in particular that
+ * is the wrong way round: a failed scrape is the thing you are here to notice, and printing
+ * it as a measured zero hides it among the genuinely small accounts.
+ */
+const fmt = (n?: number | null) => {
+  if (n == null) return "—"
+  if (n === 0) return "0"
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return String(n)
@@ -82,19 +90,22 @@ export default function AnalyzedCreatorsPage() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analyzed Creators</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Instagram creators run through Creator Analytics. Separate from the curated Master Database.
-          </p>
-        </div>
+      <div className="space-y-ds-5">
+        <PageHead
+          title="Analyzed Creators"
+          sub="Instagram creators run through Creator Analytics. Separate from the curated Master Database."
+        />
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <StandardMetricCard icon={BarChart3} label="Analyzed Creators" value={total} subtitle="in the analytics DB" />
-          <StandardMetricCard icon={BadgeCheck} label="Verified (this page)" value={verifiedCount} />
-          <StandardMetricCard icon={Users} label="Showing" value={creators.length} subtitle={`of ${total}`} />
-        </div>
+        {/* Three metric cards, each with its own border, background and padding, sitting
+            above a grid of cards that have borders too - so the screen opened with two
+            layers of boxes before a single creator's name. The three figures are the same
+            kind of thing in a row, which is the whole message a border round each was
+            carrying, so the gap carries it instead and the numbers take the room. */}
+        <StatGrid cols={3}>
+          <Stat icon={BarChart3} label="Analyzed creators" value={total} hint="in the analytics DB" />
+          <Stat icon={BadgeCheck} label="Verified (this page)" value={verifiedCount} />
+          <Stat icon={Users} label="Showing" value={creators.length} hint={`of ${total}`} />
+        </StatGrid>
 
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -107,8 +118,8 @@ export default function AnalyzedCreatorsPage() {
         </div>
 
         {loading && creators.length === 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-[120px] rounded-xl" />)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-ds-3">
+            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-[120px] rounded-ds-2xl" />)}
           </div>
         ) : creators.length === 0 ? (
           <div className="py-12">
@@ -120,12 +131,15 @@ export default function AnalyzedCreatorsPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-ds-3">
               {creators.map((c) => (
-                <Link key={c.id} href={`/creator-analytics/${c.username}`}>
-                  <Card className="group h-full transition-colors hover:bg-accent/40">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
+                /* One card per creator stays - each is a different person, which is the
+                   one thing a border is for. It moves to the console card shell so its
+                   radius and shadow match every other surface in here. */
+                <Link key={c.id} href={`/creator-analytics/${c.username}`}
+                      className={`${CARD} group block h-full bg-[var(--tone-neutral-wash)] p-ds-3 transition-colors
+                                  hover:bg-black/[0.02] dark:hover:bg-white/[0.04]`}>
+                      <div className="flex items-start gap-ds-2">
                         <Avatar className="h-11 w-11">
                           <AvatarImage src={cdnAvatar(c.profile_pic_url)} alt={c.username} />
                           <AvatarFallback>{(c.username || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
@@ -144,17 +158,15 @@ export default function AnalyzedCreatorsPage() {
                           )}
                         </div>
                       </div>
-                      <div className="mt-3 flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1 text-muted-foreground">
+                      <div className="mt-ds-2 flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-ds-1 text-muted-foreground">
                           <Users className="h-3.5 w-3.5" /> {fmt(c.followers_count)}
                         </span>
-                        <span className="flex items-center gap-1 text-muted-foreground">
+                        <span className="flex items-center gap-ds-1 text-muted-foreground">
                           <TrendingUp className="h-3.5 w-3.5" />
-                          {c.engagement_rate != null ? `${c.engagement_rate.toFixed(2)}%` : "-"}
+                          {c.engagement_rate != null ? `${c.engagement_rate.toFixed(2)}%` : "—"}
                         </span>
                       </div>
-                    </CardContent>
-                  </Card>
                 </Link>
               ))}
             </div>
