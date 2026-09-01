@@ -30,6 +30,7 @@ import {
   Compass as IconCompass,
   List as IconList,
   FileText as IconFileText,
+  Megaphone as IconMegaphone,
   Bell as IconBell,
 } from "lucide-react"
 
@@ -129,6 +130,13 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         title: "Proposals",
         url: "/proposals",
         icon: IconFileText,
+      },
+      // Run: the brand posts a brief, creators come back with their own price.
+      // The other direction to Proposals, which is us pitching a roster.
+      {
+        title: "Briefs",
+        url: "/run",
+        icon: IconMegaphone,
       },
     ]
 
