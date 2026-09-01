@@ -32,7 +32,6 @@ import { adminProposalApi } from "@/services/adminProposalMasterApi"
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { toast } from "sonner"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, ArrowRight, Plus, Save, Users, Loader2 } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
@@ -596,21 +595,23 @@ function CreateProposalContent() {
   if (loadingForm) {
     return (
       <SuperadminLayout>
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="h-9 w-20 bg-muted animate-pulse rounded" />
+        {/* The skeleton promised a bordered box that the loaded page no longer draws, so the
+            layout jumped once the data arrived. It now stands for what actually appears. */}
+        <div className="space-y-ds-4">
+          <div className="flex items-center gap-ds-3">
+            <div className="h-9 w-20 animate-pulse rounded-ds-md bg-muted" />
             <div>
-              <div className="h-6 w-48 bg-muted animate-pulse rounded" />
-              <div className="h-4 w-72 bg-muted animate-pulse rounded mt-2" />
+              <div className="h-6 w-48 animate-pulse rounded-ds-sm bg-muted" />
+              <div className="mt-ds-2 h-4 w-72 animate-pulse rounded-ds-sm bg-muted" />
             </div>
           </div>
-          <div className="rounded-lg border p-6 space-y-4">
-            <div className="h-5 w-36 bg-muted animate-pulse rounded" />
-            <div className="grid grid-cols-2 gap-4">
-              <div className="h-9 bg-muted animate-pulse rounded" />
-              <div className="h-9 bg-muted animate-pulse rounded" />
+          <div className="space-y-ds-3">
+            <div className="h-5 w-36 animate-pulse rounded-ds-sm bg-muted" />
+            <div className="grid grid-cols-2 gap-ds-3">
+              <div className="h-9 animate-pulse rounded-ds-md bg-muted" />
+              <div className="h-9 animate-pulse rounded-ds-md bg-muted" />
             </div>
-            <div className="h-20 bg-muted animate-pulse rounded" />
+            <div className="h-20 animate-pulse rounded-ds-md bg-muted" />
           </div>
         </div>
       </SuperadminLayout>
@@ -623,7 +624,7 @@ function CreateProposalContent() {
         variants={proposalMotion.staggerContainer}
         initial="hidden"
         animate="visible"
-        className="space-y-6 pb-24"
+        className="space-y-ds-5 pb-24"
       >
         {/* Header */}
         <motion.div variants={proposalMotion.staggerItem} className="flex items-center gap-4">
@@ -641,7 +642,7 @@ function CreateProposalContent() {
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold">{pageTitle}</h1>
+            <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">{pageTitle}</h1>
             <p className="text-sm text-muted-foreground mt-1">{pageDescription}</p>
           </div>
         </motion.div>
@@ -690,22 +691,26 @@ function CreateProposalContent() {
         {/* ================================================================ */}
         {/* Section 2 - The roster workbench                                 */}
         {/* ================================================================ */}
-        <motion.div variants={proposalMotion.staggerItem}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+        {/* The workbench used to sit inside a card of its own, and the two things inside it -
+            the picker and the roster - each carry their own border already. So every creator
+            row was three edges deep: row, panel, wrapper. The wrapper is gone; its title and
+            description are a plain section heading, which is what they always were, and the
+            picker and the roster are now the boxes. */}
+        <motion.div variants={proposalMotion.staggerItem} className="space-y-ds-3">
+            <div>
+              <h2 className="flex items-center gap-ds-2 text-ds-subheading">
                 <Users className="h-5 w-5" />
                 {isAddMoreMode ? "Select Additional Influencers" : "Add Influencers (optional)"}
-              </CardTitle>
-              <CardDescription>
+              </h2>
+              <p className="mt-ds-1 max-w-3xl text-ds-body-sm text-muted-foreground">
                 {isAddMoreMode
                   ? "Search master DB, pick FA members, or add by Instagram handle"
                   : "Optional - you can leave this empty and assign a talent manager to add creators in the approval workflow. Add here only if you want to pre-fill the list."}
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
 
-            <CardContent>
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
+            <div>
+              <div className="grid gap-ds-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
                 <CreatorSourcePicker
                   pickerTab={pickerTab}
                   onPickerTab={setPickerTab}
@@ -747,8 +752,7 @@ function CreateProposalContent() {
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
         </motion.div>
       </motion.div>
 
