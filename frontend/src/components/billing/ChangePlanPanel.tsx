@@ -54,7 +54,9 @@ import { toast } from 'sonner'
 import type { BillingStatus } from '@/services/billingManager'
 import {
   formatPlanPrice,
-  getBillingCurrency,
+  postsAllowanceLabel,
+  resolveCurrency,
+  unlockGates,
   getPlanLimits,
   normalizePlanTier,
   type PlanTier,
@@ -96,7 +98,7 @@ export function ChangePlanPanel({ status, managed, onChanged }: ChangePlanPanelP
   const hasSubscription = Boolean(status.stripe?.subscription_id)
   const renews = longDate(status.stripe?.current_period_end)
   const card = status.stripe?.payment_method
-  const currency = status.plan?.currency || getBillingCurrency()
+  const currency = resolveCurrency(status.plan?.currency)
 
   // The interval choice only exists where it can be honoured. Checkout takes
   // either; changing a subscription that already exists runs on the monthly
@@ -289,7 +291,7 @@ function PlanColumn({
   tier: PlanTier
   price: PlanPrice | undefined
   interval: BillingInterval
-  currency: string
+  currency: string | null
   move: Move
   busy: boolean
   anyBusy: boolean
@@ -309,15 +311,28 @@ function PlanColumn({
         ? formatPlanPrice(point.monthlyEquivalent, point.currency || currency)
         : formatPlanPrice(point.amount, point.currency || currency)
 
+  // The two gates. `plan.monthly_credits` is the FUNDING and
+  // `plan.monthly_profile_limit` is the CAP, and app/core/plans.py enforces
+  // them separately: buying credits raises what you can afford and never raises
+  // the count cap. This column used to print the cap alone under the label
+  // "Profile unlocks a month", which promised a Premium customer 2,000 unlocks
+  // when the plan pays for 1,000.
+  const gates = unlockGates({
+    monthlyCredits: live?.plan?.monthly_credits ?? table.monthlyCredits,
+    monthlyProfileLimit: live?.plan?.monthly_profile_limit ?? table.unlockCap,
+  })
+  const headroom = gates.headroom ?? 0
+
   const rows: Array<[string, string]> = [
     ['Seats', String(live?.plan?.max_team_members ?? table.seats)],
+    ['Profile unlocks a month', (gates.included ?? 0).toLocaleString()],
     [
-      'Profile unlocks a month',
-      (live?.plan?.monthly_profile_limit ?? table.monthlyUnlocks).toLocaleString(),
+      headroom > 0 ? 'Ceiling with top-ups' : 'Ceiling, top-ups included',
+      (gates.cap ?? 0).toLocaleString(),
     ],
     [
       'Post analyses a month',
-      (live?.plan?.monthly_posts_limit ?? table.monthlyPosts).toLocaleString(),
+      postsAllowanceLabel(live?.plan?.monthly_posts_limit ?? table.monthlyPosts),
     ],
     ['Credits a month', (live?.plan?.monthly_credits ?? table.monthlyCredits).toLocaleString()],
   ]
@@ -421,7 +436,7 @@ function ConfirmMove({
   move: Move | null
   price: PlanPrice | undefined
   interval: BillingInterval
-  currency: string
+  currency: string | null
   renews: string | null
   cardLast4: string | null
   onConfirm: () => void

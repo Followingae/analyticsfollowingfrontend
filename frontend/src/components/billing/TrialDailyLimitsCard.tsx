@@ -128,6 +128,11 @@ function LimitRow({ actionKey, item }: { actionKey: string; item: TrialLimitItem
 
 export function TrialDailyLimitsCard({
   limits,
+  // Both come from the live trial summary on the billing status and are only
+  // defaulted here so the card renders if a field is missing. Verified against
+  // app/services/trial_limit_service.py: TRIAL_TOTAL_CREDITS = 1750, and
+  // TRIAL_DAILY_LIMITS['credits'] = 250. These are enforced, in Redis, by
+  // check_trial_daily_limit.
   totalCreditsAllowed = 1750,
   dailyCreditLimit = 250,
   className = '',

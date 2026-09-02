@@ -27,7 +27,12 @@ import { Spinner } from '@/components/ui2/spinner'
 import { Check, ArrowRight, ListChecks, AlertCircle, Lock } from 'lucide-react'
 import { listsApiService, type List } from '@/services/listsApi'
 import { MODULES } from '@/config/modules'
-import { formatModulePrice, type ModuleAddonKey, type ModuleKey } from '@/config/planPricing'
+import {
+  MODULE_PRICING,
+  formatModulePrice,
+  type ModuleAddonKey,
+  type ModuleKey,
+} from '@/config/planPricing'
 import { useCommercialAccount, fmtCount } from '@/hooks/useCommercialAccount'
 import { RequestModuleDialog } from './RequestModuleDialog'
 
@@ -73,6 +78,9 @@ export function LockedModuleCard({ module }: LockedModuleCardProps) {
   }, [])
 
   const isAddon = def.availability === 'addon'
+  // An add-on we have not priced. formatModulePrice returns "Quoted" for it, so
+  // the line under it and the button both have to stop promising a purchase.
+  const isQuoted = isAddon && MODULE_PRICING[module] === 'quoted'
   const managed = account.isManaged
   // While the account is still loading we do not know whether this brand is
   // ever allowed to see a price, so we show neither price nor button yet.
@@ -179,7 +187,9 @@ export function LockedModuleCard({ module }: LockedModuleCardProps) {
                 <>
                   <p className="text-ds-heading">{formatModulePrice(module as ModuleAddonKey)}</p>
                   <p className="text-ds-body-sm text-muted-foreground">
-                    One add-on, cancellable on its own line in billing.
+                    {isQuoted
+                      ? 'A monthly fee and a percentage of what we settle, both agreed with you before it goes on.'
+                      : 'One add-on, cancellable on its own line in billing.'}
                   </p>
                 </>
               ) : (
@@ -192,7 +202,13 @@ export function LockedModuleCard({ module }: LockedModuleCardProps) {
             <div className="flex items-center gap-2">
               {accountKnown && (
                 <Button onClick={() => setRequesting(true)}>
-                  {managed ? 'Request' : isAddon ? `Add ${def.name}` : 'Talk to us'}
+                  {managed
+                    ? 'Request'
+                    : isQuoted
+                      ? 'Ask us to quote it'
+                      : isAddon
+                        ? `Add ${def.name}`
+                        : 'Talk to us'}
                 </Button>
               )}
               <Button asChild variant="ghost">

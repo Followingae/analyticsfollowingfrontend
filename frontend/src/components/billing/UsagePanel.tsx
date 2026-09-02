@@ -7,9 +7,16 @@
  * post analyses. The credit wallet sits underneath them, since credits are the
  * meter both are spent through.
  *
- * A limit of zero is not a bar at 0%. It means the plan does not include that
- * thing at all, and the line says so in words instead of drawing an empty
- * trough that reads as "you have used none of your allowance".
+ * A limit of zero is not a bar at 0%, and it does not mean the same thing for
+ * both figures. For unlocks it means the plan includes none. For post analyses
+ * it means NOT METERED (app/core/plans.py posts_limit_for_row), which is why
+ * Meter takes the sentence rather than assuming one.
+ *
+ * Unlocks have TWO limits, not one. The bar runs against the count cap, which
+ * is the number that refuses an unlock; the caption says what the plan funds,
+ * which is credits divided by 25. Topping up moves the second and never the
+ * first, so on Free and Standard, where the two are the same number, a top up
+ * buys no unlocks at all and this panel says so rather than selling one.
  */
 
 import { useEffect, useState } from 'react'
@@ -23,7 +30,8 @@ import type { BillingStatus } from '@/services/billingManager'
 import {
   CREDITS_PER_UNLOCK,
   formatPlanPrice,
-  getBillingCurrency,
+  resolveCurrency,
+  unlockGates,
   UNLOCK_ACTION_TYPES,
 } from '@/config/planPricing'
 import { NO_FIGURE } from './PlanSummaryCard'
@@ -41,12 +49,35 @@ interface PricingRule {
   is_active?: boolean
 }
 
-function Meter({ used, limit, label }: { used: number; limit: number; label: string }) {
+/**
+ * A used-of-limit bar, with a caption under it.
+ *
+ * `zeroMeans` matters. A zero limit is not one thing. For post analyses it means
+ * NOT METERED: app/core/plans.py posts_limit_for_row returns 0 for an account
+ * whose row was never given a real number, and app/api/post_analytics_routes.py
+ * does not meter those accounts at all, so rendering "not included on this
+ * plan" would tell a paying customer they have none of something they have
+ * been using freely.
+ */
+function Meter({
+  used,
+  limit,
+  label,
+  note,
+  zeroMeans = 'Not included on this plan',
+}: {
+  used: number
+  limit: number
+  label: string
+  note?: string
+  zeroMeans?: string
+}) {
   if (!limit || limit <= 0) {
     return (
       <div className="space-y-ds-1">
         <p className="text-ds-body-sm">{label}</p>
-        <p className="text-ds-caption text-muted-foreground">Not included on this plan</p>
+        <p className="text-ds-caption text-muted-foreground">{zeroMeans}</p>
+        {note ? <p className="text-ds-caption text-muted-foreground">{note}</p> : null}
       </div>
     )
   }
@@ -71,6 +102,7 @@ function Meter({ used, limit, label }: { used: number; limit: number; label: str
           style={{ width: `${pct}%` }}
         />
       </div>
+      {note ? <p className="text-ds-caption text-muted-foreground">{note}</p> : null}
     </div>
   )
 }
@@ -78,7 +110,7 @@ function Meter({ used, limit, label }: { used: number; limit: number; label: str
 export function UsagePanel({ status, managed }: { status: BillingStatus; managed: boolean }) {
   const usage = status.usage
   const credits = status.credits
-  const currency = status.plan?.currency || getBillingCurrency()
+  const currency = resolveCurrency(status.plan?.currency)
 
   const [packs, setPacks] = useState<TopupPackage[] | null>(null)
   const [perUnlock, setPerUnlock] = useState<number | null>(null)
@@ -122,6 +154,13 @@ export function UsagePanel({ status, managed }: { status: BillingStatus; managed
 
   const credited = perUnlock ?? CREDITS_PER_UNLOCK
 
+  const gates = unlockGates({
+    monthlyCredits: status.plan?.monthly_credits,
+    monthlyProfileLimit: status.plan?.monthly_profile_limit,
+    creditsPerUnlock: credited,
+  })
+  const hasHeadroom = (gates.headroom ?? 0) > 0
+
   return (
     <Card>
       <CardHeader>
@@ -131,17 +170,41 @@ export function UsagePanel({ status, managed }: { status: BillingStatus; managed
 
       <CardContent className="space-y-ds-4">
         <div className="grid gap-ds-4 sm:grid-cols-2">
+          {/* The bar is against the CAP, because that is the number that
+              refuses an unlock. The caption says what the plan funds, because
+              that is the number the plan pays for, and they are two different
+              limits. app/core/plans.py. */}
           <Meter
             used={usage?.profiles_used ?? 0}
             limit={usage?.profiles_limit ?? 0}
             label="Profile unlocks"
+            note={
+              gates.included === null
+                ? undefined
+                : hasHeadroom
+                  ? `${gates.included.toLocaleString()} funded by the plan, the rest needs topped up credits`
+                  : `${gates.included.toLocaleString()} funded by the plan, and the cap is the same number`
+            }
           />
           <Meter
             used={usage?.posts_used ?? 0}
             limit={usage?.posts_limit ?? 0}
             label="Post analyses"
+            zeroMeans="No monthly cap on this account"
+            note={
+              (usage?.posts_limit ?? 0) > 0 ? undefined : 'Metered in credits, like everything else'
+            }
           />
         </div>
+
+        {/* The second gate, said once. Both have to pass. */}
+        <p className="text-ds-body-sm text-muted-foreground max-w-prose">
+          An unlock needs two things: room under your monthly cap, and {credited} credits in the
+          wallet.{' '}
+          {hasHeadroom
+            ? 'Buying credits covers the second one and never raises the first, so the cap is where unlocks stop whatever your balance is.'
+            : 'Buying credits covers the second one and never raises the first, so on this plan a top up will not buy you more unlocks.'}
+        </p>
 
         <Separator />
 
@@ -179,17 +242,40 @@ export function UsagePanel({ status, managed }: { status: BillingStatus; managed
           <>
             <Separator />
             <div className="space-y-ds-2">
-              <p className="text-ds-label">More unlocks, on top of the plan</p>
+              {/* Only a plan with headroom can turn a top up into unlocks.
+                  Credits land in the same pooled balance and the count gate is
+                  applied on every unlock regardless, so on Free and Standard a
+                  pack buys post analyses and exports, not unlocks. */}
+              <p className="text-ds-label">
+                {hasHeadroom ? 'More unlocks, on top of the plan' : 'More credits, on top of the plan'}
+              </p>
+              {hasHeadroom ? null : (
+                <p className="text-ds-caption text-muted-foreground max-w-prose">
+                  These do not raise your unlock cap. They cover post analyses, campaign analysis
+                  and exports once the plan credits are gone.
+                </p>
+              )}
               <div className="grid gap-ds-2 sm:grid-cols-3">
                 {packs.map((pack) => {
                   const unlocks = credited > 0 ? Math.floor(pack.credits / credited) : null
+                  // Never more unlocks than the cap actually leaves room for.
+                  const usable =
+                    unlocks === null || gates.headroom === null
+                      ? unlocks
+                      : Math.min(unlocks, gates.headroom)
                   return (
                     <div key={pack.type} className="rounded-ds-surface border p-ds-3">
                       <p className="text-ds-subheading">
-                        {unlocks === null ? NO_FIGURE : `${unlocks.toLocaleString()} unlocks`}
+                        {hasHeadroom
+                          ? usable === null
+                            ? NO_FIGURE
+                            : `${usable.toLocaleString()} unlocks`
+                          : `${pack.credits.toLocaleString()} credits`}
                       </p>
                       <p className="text-ds-caption text-muted-foreground">
-                        {pack.credits.toLocaleString()} credits
+                        {hasHeadroom
+                          ? `${pack.credits.toLocaleString()} credits`
+                          : 'Not spendable on unlocks at this tier'}
                       </p>
                       <p className="mt-ds-2 text-ds-body-sm font-medium">
                         {typeof pack.discounted_price === 'number'

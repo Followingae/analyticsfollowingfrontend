@@ -11,11 +11,21 @@
  *     which is what the server actually enforces - not from a static table in
  *     the frontend, because those tables disagreed with the server (one said
  *     350 profile unlocks on Standard, the pricing page said 500).
- *  3. The usage meter and top-ups. Top-ups are sold as unlocks, with the
- *     credit figure underneath.
+ *  3. The usage meter and top-ups.
+ *
+ * Unlocks are quoted as TWO numbers, because there are two gates and they are
+ * not the same limit. plan.monthly_credits funds a number of unlocks; the
+ * separate count cap plan.monthly_profile_limit is the ceiling in a month even
+ * after you buy credits. On Free and Standard those are equal, which means a
+ * top-up buys no extra unlocks at all, and this screen says so rather than
+ * selling a refusal. See app/core/plans.py.
+ *
+ * There is no seat price anywhere on this screen. teams.max_team_members is a
+ * hard cap and the backend has no seat product, no price and no endpoint that
+ * sells one. The old copy quoted extra seats at AED 180 a month.
  *
  * Every number on this screen either came from a request or from
- * src/config/planPricing.ts. A request that did not answer renders an em-dash.
+ * src/config/planPricing.ts. A request that did not answer renders a dash.
  */
 
 import { useEffect, useState } from 'react'
@@ -25,16 +35,19 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { ItemGroup } from '@/components/ui2/item'
-import { AlertCircle, Users, Unlock, Coins, Building2 } from 'lucide-react'
+import { AlertCircle, Users, Unlock, Coins, Building2, Image } from 'lucide-react'
 import { API_CONFIG, ENDPOINTS, getAuthHeaders } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { MODULE_ORDER } from '@/config/modules'
 import {
   CREDITS_PER_UNLOCK,
+  NO_PRICE,
   UNLOCK_ACTION_TYPES,
   formatPlanPrice,
-  getSeatAmount,
-  getBillingCurrency,
+  postsAllowanceLabel,
+  resolveCurrency,
+  unlockCapNote,
+  unlockGates,
 } from '@/config/planPricing'
 import { useCommercialAccount, fmtCount } from '@/hooks/useCommercialAccount'
 import { ModuleRow } from './ModuleRow'
@@ -116,7 +129,7 @@ export function PlanScreen() {
 
   if (account.state === 'loading') {
     return (
-      <div className="space-y-6">
+      <div className="flex flex-col gap-ds-4">
         <Skeleton className="h-[160px]" />
         <Skeleton className="h-[320px]" />
       </div>
@@ -126,7 +139,7 @@ export function PlanScreen() {
   if (account.state === 'failed') {
     return (
       <Card>
-        <CardContent className="py-10 text-center space-y-3">
+        <CardContent className="py-10 text-center flex flex-col items-center gap-ds-2">
           <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground" />
           <p className="font-medium">We could not load your plan</p>
           <p className="text-ds-body-sm text-muted-foreground">
@@ -143,11 +156,24 @@ export function PlanScreen() {
   const plan = account.status?.plan
   const usage = account.status?.usage
   const credits = account.status?.credits
-  const currency = plan?.currency || getBillingCurrency()
+  const currency = resolveCurrency(plan?.currency)
   const managed = account.isManaged
 
+  // The two gates, from the live row. plan.monthly_credits is the FUNDING and
+  // plan.monthly_profile_limit is the CAP: app/core/plans.py derives the second
+  // from the first by a per-tier headroom multiple, and both are enforced
+  // separately (the count gate in user_discovery_service.unlock_profile_for_user,
+  // the money gate in spend_credits_atomic). Showing one without the other is
+  // how the platform ended up with four disagreeing unlock numbers.
+  const gates = unlockGates({
+    monthlyCredits: plan?.monthly_credits,
+    monthlyProfileLimit: plan?.monthly_profile_limit,
+    creditsPerUnlock,
+  })
+  const hasHeadroom = (gates.headroom ?? 0) > 0
+
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-ds-4">
       {/* ── Your plan ─────────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
@@ -166,14 +192,14 @@ export function PlanScreen() {
               : 'What you pay for, and the limits that come with it.'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex flex-wrap items-baseline gap-3">
-            <span className="text-ds-title capitalize">{plan?.tier ?? '—'}</span>
+        <CardContent className="flex flex-col gap-ds-4">
+          <div className="flex flex-wrap items-baseline gap-ds-3">
+            <span className="text-ds-title capitalize">{plan?.tier ?? NO_PRICE}</span>
             {!managed && (
               <span className="text-ds-body text-muted-foreground">
                 {typeof plan?.price_per_month === 'number'
                   ? `${formatPlanPrice(plan.price_per_month, currency)}/month`
-                  : '—'}
+                  : NO_PRICE}
               </span>
             )}
           </div>
@@ -181,24 +207,36 @@ export function PlanScreen() {
           <Separator />
 
           {/* The one place tier limits are shown. */}
-          <div className="grid gap-6 sm:grid-cols-3">
+          <div className="grid gap-ds-4 sm:grid-cols-2 lg:grid-cols-4">
             <LimitStat
               icon={Users}
               label="Seats"
               value={fmtCount(plan?.max_team_members)}
+              // No seat price. `teams.max_team_members` is a hard cap resolved
+              // by app/core/plans.py seat_cap_for_row, and there is no seat
+              // product, no Stripe price and no endpoint that sells one
+              // anywhere in the backend.
               note={
                 managed
                   ? 'Extra seats are on your quote'
-                  : `Extra seats ${formatPlanPrice(getSeatAmount(), currency)}/month each`
+                  : 'Fixed by the plan, not bought separately'
               }
             />
             <LimitStat
               icon={Unlock}
               label="Profile unlocks / month"
-              value={fmtCount(plan?.monthly_profile_limit)}
+              // The INCLUDED figure leads, because it is the one the plan pays
+              // for. The cap is the sentence underneath.
+              value={fmtCount(gates.included)}
+              note={unlockCapNote(gates) || 'Included with your plan'}
+            />
+            <LimitStat
+              icon={Image}
+              label="Post analyses / month"
+              value={postsAllowanceLabel(plan?.monthly_posts_limit)}
               note={
                 usage
-                  ? `${fmtCount(usage.profiles_used)} used this cycle`
+                  ? `${fmtCount(usage.posts_used)} used this cycle`
                   : 'Usage unavailable right now'
               }
             />
@@ -213,6 +251,19 @@ export function PlanScreen() {
               }
             />
           </div>
+
+          {/* The two gates, said once, in a sentence. An unlock needs BOTH: a
+              count under the cap and 25 credits in the wallet. */}
+          <p className="text-ds-body-sm text-muted-foreground max-w-prose">
+            An unlock costs {fmtCount(creditsPerUnlock)} credits and counts against your monthly
+            cap, and those are two separate limits.{' '}
+            {gates.included === null || gates.cap === null
+              ? 'We could not load your unlock allowance.'
+              : hasHeadroom
+                ? `Your plan funds ${fmtCount(gates.included)} unlocks a month, and topping up credits can take you to ${fmtCount(gates.cap)}. Past that the cap refuses the unlock whatever your balance is.`
+                : `Your plan funds ${fmtCount(gates.included)} unlocks a month, and the cap is the same number, so topping up credits will not buy you any more of them.`}
+            {usage ? ` ${fmtCount(usage.profiles_used)} used this cycle.` : ''}
+          </p>
         </CardContent>
       </Card>
 
@@ -227,7 +278,7 @@ export function PlanScreen() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ItemGroup className="gap-3">
+          <ItemGroup className="gap-ds-3">
             {MODULE_ORDER.map((key) => (
               <ModuleRow
                 key={key}
@@ -251,7 +302,7 @@ export function PlanScreen() {
           {rulesState === 'loading' && <Skeleton className="h-24" />}
 
           {rulesState === 'failed' && (
-            <p className="text-ds-body-sm text-muted-foreground flex items-start gap-2">
+            <p className="text-ds-body-sm text-muted-foreground flex items-start gap-ds-2 max-w-prose">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
               We could not load the credit costs. Rather than show you a number the server did
               not confirm, they are left blank - reload to try again.
@@ -283,16 +334,23 @@ export function PlanScreen() {
       {!managed && (
         <Card>
           <CardHeader>
-            <CardTitle>Need more unlocks</CardTitle>
+            <CardTitle>{hasHeadroom ? 'Need more unlocks' : 'Top up your credits'}</CardTitle>
             <CardDescription>
-              Bought as unlocks, not credits - one unlock is {fmtCount(creditsPerUnlock)} credits.
+              {/* The honest version of what a top-up buys. Credits land in the
+                  same pooled balance and the count gate is applied on EVERY
+                  unlock regardless of which credits paid for it, so on a tier
+                  with no headroom a top-up buys nothing extra. Selling it as
+                  "more unlocks" there would be selling a refusal. */}
+              {hasHeadroom
+                ? `Bought as unlocks, not credits: one unlock is ${fmtCount(creditsPerUnlock)} credits, and your plan leaves room for ${fmtCount(gates.headroom)} more this month.`
+                : `One unlock is ${fmtCount(creditsPerUnlock)} credits, but your monthly cap of ${fmtCount(gates.cap)} is already covered by the plan. Extra credits will not buy extra unlocks on this plan: they go to post analyses, campaign analysis and exports.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {topupState === 'loading' && <Skeleton className="h-24" />}
 
             {topupState === 'failed' && (
-              <p className="text-ds-body-sm text-muted-foreground flex items-start gap-2">
+              <p className="text-ds-body-sm text-muted-foreground flex items-start gap-ds-2 max-w-prose">
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                 We could not load top-up prices, and we are not going to quote one we have not
                 confirmed.
@@ -306,21 +364,31 @@ export function PlanScreen() {
             )}
 
             {topupState === 'loaded' && topups.length > 0 && (
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-ds-3 sm:grid-cols-3">
                 {topups.map((pack) => {
                   const unlocks = creditsPerUnlock > 0 ? Math.floor(pack.credits / creditsPerUnlock) : null
+                  // Only a tier with headroom can turn a pack into unlocks. On
+                  // the others the pack leads with what it really is: credits.
+                  const usableUnlocks =
+                    unlocks === null || gates.headroom === null
+                      ? unlocks
+                      : Math.min(unlocks, gates.headroom)
                   return (
-                    <div key={pack.type} className="rounded-ds-surface border p-4">
+                    <div key={pack.type} className="rounded-ds-surface border p-ds-3">
                       <p className="text-ds-heading">
-                        {unlocks === null ? '—' : `${fmtCount(unlocks)} more unlocks`}
+                        {hasHeadroom && usableUnlocks !== null
+                          ? `${fmtCount(usableUnlocks)} more unlocks`
+                          : `${fmtCount(pack.credits)} credits`}
                       </p>
                       <p className="text-ds-caption text-muted-foreground mt-0.5">
-                        {fmtCount(pack.credits)} credits
+                        {hasHeadroom
+                          ? `${fmtCount(pack.credits)} credits`
+                          : 'Spendable on posts, campaign analysis and exports'}
                       </p>
-                      <p className="text-ds-body-sm font-medium mt-3">
+                      <p className="text-ds-body-sm font-medium mt-ds-3">
                         {typeof pack.discounted_price === 'number'
                           ? formatPlanPrice(pack.discounted_price, currency)
-                          : '—'}
+                          : NO_PRICE}
                       </p>
                       {pack.discount_percentage > 0 && (
                         <Badge variant="secondary" className="mt-2">
@@ -351,8 +419,8 @@ function LimitStat({
   note: string
 }) {
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2 text-muted-foreground">
+    <div className="flex flex-col gap-ds-1">
+      <div className="flex items-center gap-ds-1 text-muted-foreground">
         <Icon className="h-4 w-4" />
         <span className="text-ds-label">{label}</span>
       </div>

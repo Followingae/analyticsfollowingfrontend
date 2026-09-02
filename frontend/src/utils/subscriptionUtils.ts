@@ -1,59 +1,52 @@
 // utils/subscriptionUtils.ts
 //
-// Plan PRICES are not defined here. They live in the single source of truth,
-// src/config/planPricing.ts (mirroring the backend app/core/plan_pricing.py).
-import { getPlanAmount } from '@/config/planPricing'
+// Tier names and cycle dates. NOT a second limits table.
+//
+// This file used to carry its own SUBSCRIPTION_LIMITS, which was the fourth
+// disagreeing copy of what a tier gets. Two things were wrong with it beyond
+// the duplication:
+//
+//   * it advertised `emails: 200` on Standard and `emails: 500` on Premium.
+//     There is no email allowance anywhere in the backend. `email_unlock` was
+//     removed from app/models/teams.py ACTION_CREDIT_COSTS because it was never
+//     charged, and there is no contact data to unlock in the first place.
+//   * it called getPlanAmount() at MODULE SCOPE, which runs at import time,
+//     before hydrateBillingCurrency() can be handed the currency the server
+//     charges in. That is the exact mechanism that quoted USD prices to a
+//     business billing in AED.
+//
+// Limits now come from PLAN_LIMITS in src/config/planPricing.ts, which mirrors
+// PLANS in app/core/plans.py. Prices are not in this file at all.
+import { getPlanLimits, unlockGatesForTier } from '@/config/planPricing'
 
 export type SubscriptionTier = 'free' | 'standard' | 'premium' | 'enterprise'
 
 export interface SubscriptionLimits {
+  /** Unlocks the plan FUNDS. See the two gates in src/config/planPricing.ts. */
   profiles: number
-  emails: number
+  /** The ceiling on unlocks in a month, topped-up credits included. */
+  profileCap: number
+  /** Post analyses a month. 0 means NOT METERED, not "none allowed". */
   posts: number
   teamMembers: number
-  price: number
-  topupDiscount?: number
-}
-
-export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
-  free: {
-    profiles: 5,
-    emails: 0,
-    posts: 0, 
-    teamMembers: 1,
-    price: 0
-  },
-  standard: {
-    profiles: 350,
-    emails: 200,
-    posts: 100,
-    teamMembers: 2,
-    price: getPlanAmount('standard')
-  },
-  premium: {
-    profiles: 1000,
-    emails: 500,
-    posts: 250,
-    teamMembers: 5,
-    price: getPlanAmount('premium'),
-    topupDiscount: 20
-  },
-  enterprise: {
-    profiles: 1000, // Same as premium
-    emails: 500,
-    posts: 250,
-    teamMembers: 5,
-    price: getPlanAmount('premium'),
-    topupDiscount: 20
-  }
 }
 
 /**
- * Get subscription limits for a given tier
+ * Get subscription limits for a given tier.
+ *
+ * Read from the one table, so this can no longer drift from what the server
+ * enforces. For a signed-in account prefer the live billing status, which
+ * carries the account's own row.
  */
 export function getSubscriptionLimits(tier: string | undefined): SubscriptionLimits {
   const normalizedTier = normalizeTierName(tier)
-  return SUBSCRIPTION_LIMITS[normalizedTier] || SUBSCRIPTION_LIMITS.free
+  const limits = getPlanLimits(normalizedTier)
+  return {
+    profiles: limits.includedUnlocks,
+    profileCap: limits.unlockCap,
+    posts: limits.monthlyPosts,
+    teamMembers: limits.seats,
+  }
 }
 
 /**
@@ -61,9 +54,9 @@ export function getSubscriptionLimits(tier: string | undefined): SubscriptionLim
  */
 export function normalizeTierName(tier: string | undefined): SubscriptionTier {
   if (!tier) return 'free'
-  
+
   const lowerTier = tier.toLowerCase()
-  
+
   switch (lowerTier) {
     case 'free':
     case 'brand_free':
@@ -87,7 +80,7 @@ export function normalizeTierName(tier: string | undefined): SubscriptionTier {
  */
 export function getTierDisplayName(tier: string | undefined): string {
   const normalizedTier = normalizeTierName(tier)
-  
+
   switch (normalizedTier) {
     case 'free':
       return 'Free'
@@ -103,7 +96,14 @@ export function getTierDisplayName(tier: string | undefined): string {
 }
 
 /**
- * Calculate remaining profile unlocks based on subscription tier and usage
+ * Remaining profile unlocks on the plan itself.
+ *
+ * `limit` is what the plan FUNDS, which is the number a customer can spend
+ * without buying anything. `cap` is the separate count gate: the ceiling in a
+ * month even with topped-up credits. On Free and Standard they are the same
+ * number, so top-ups buy no extra unlocks at all; on Premium the cap is double
+ * the included figure. Showing the cap as though it were the allowance would
+ * promise 2,000 unlocks to someone whose plan pays for 1,000.
  */
 export function calculateRemainingProfiles(
   subscriptionTier: string | undefined,
@@ -111,18 +111,24 @@ export function calculateRemainingProfiles(
 ): {
   remaining: number
   limit: number
+  cap: number
+  /** Unlocks reachable only by buying credits. 0 means top-ups buy nothing. */
+  headroom: number
   tier: SubscriptionTier
   tierDisplay: string
 } {
   const tier = normalizeTierName(subscriptionTier)
-  const limits = SUBSCRIPTION_LIMITS[tier]
-  const remaining = Math.max(0, limits.profiles - profilesUsed)
-  
+  const gates = unlockGatesForTier(tier)
+  const limit = gates.included ?? 0
+  const remaining = Math.max(0, limit - profilesUsed)
+
   return {
     remaining,
-    limit: limits.profiles,
+    limit,
+    cap: gates.cap ?? limit,
+    headroom: gates.headroom ?? 0,
     tier,
-    tierDisplay: getTierDisplayName(subscriptionTier)
+    tierDisplay: getTierDisplayName(subscriptionTier),
   }
 }
 
@@ -148,16 +154,16 @@ export function getTimeUntilReset(): {
   const now = new Date()
   const resetDate = getNextBillingDate()
   const timeDiff = resetDate.getTime() - now.getTime()
-  
+
   const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24))
   const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
   const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60))
-  
+
   return {
     days,
     hours,
     minutes,
-    resetDate
+    resetDate,
   }
 }
 
@@ -166,7 +172,7 @@ export function getTimeUntilReset(): {
  */
 export function formatResetTime(): string {
   const { days, hours, minutes } = getTimeUntilReset()
-  
+
   if (days > 0) {
     return `Resets in ${days}d ${hours}h`
   } else if (hours > 0) {

@@ -22,10 +22,9 @@ import {
   Search,
   BarChart3,
   Download,
-  Infinity,
   ShieldCheck,
 } from 'lucide-react'
-import { formatMonthlyPlanPrice } from '@/config/planPricing'
+import { getPlanLimits, unlockGatesForTier } from '@/config/planPricing'
 
 interface TrialLimitItem {
   current_usage: number
@@ -51,14 +50,50 @@ const ACTION_ICONS: Record<string, React.ElementType> = {
   bulk_export: Download,
 }
 
-const STANDARD_PLAN_LIMITS: Record<string, string> = {
-  profile_analysis: '500/month',
-  email_lookup: 'Unlimited',
-  post_analytics: 'Unlimited',
-  credits: '8,750/month',
-  discovery_search: 'Unlimited',
-  campaign_analysis: 'Unlimited',
-  bulk_export: 'Unlimited',
+/**
+ * What Standard actually gives you for the thing the trial just stopped.
+ *
+ * The daily caps here are trial-only (app/services/trial_limit_service.py
+ * TRIAL_DAILY_LIMITS); they do not exist on a paid plan. What DOES exist on
+ * Standard is a monthly allowance for three of them, and nothing at all for the
+ * rest, which are metered in credits like everything else.
+ *
+ * This table used to claim "500/month" profile unlocks (the server enforces
+ * 350) and "Unlimited" for five actions, including email lookups, which have no
+ * allowance and no price anywhere in the backend. An action with no enforced
+ * monthly number does not get one invented for it: it gets the truth, which is
+ * that the daily cap goes away and credits are the only meter left.
+ */
+function standardAllowance(action: string | undefined): { figure: string; note: string } {
+  const limits = getPlanLimits('standard')
+  const gates = unlockGatesForTier('standard')
+
+  switch (action) {
+    case 'profile_analysis':
+      // app/core/plans.py PLANS['standard']: 8,750 credits funds 350 unlocks,
+      // and unlock_cap_multiple 1.0 makes 350 the ceiling too.
+      return {
+        figure: `${(gates.included ?? 0).toLocaleString()} a month`,
+        note: 'Top-ups cannot take you past it',
+      }
+    case 'post_analytics':
+      // app/core/plans.py PLANS['standard'].monthly_posts_limit
+      return {
+        figure: `${limits.monthlyPosts.toLocaleString()} a month`,
+        note: 'No daily cap',
+      }
+    case 'credits':
+      // app/core/plans.py PLANS['standard'].monthly_credits
+      return {
+        figure: `${limits.monthlyCredits.toLocaleString()} a month`,
+        note: 'Renewed every billing month',
+      }
+    default:
+      return {
+        figure: 'No daily cap',
+        note: 'Metered in credits, like everything else',
+      }
+  }
 }
 
 export function TrialUpgradeModal({
@@ -70,7 +105,7 @@ export function TrialUpgradeModal({
   const router = useRouter()
   const Icon = limitHit ? (ACTION_ICONS[limitHit] || Clock) : Clock
   const displayName = limitInfo?.display_name || 'Daily Limit'
-  const standardLimit = limitHit ? STANDARD_PLAN_LIMITS[limitHit] : 'Unlimited'
+  const standard = standardAllowance(limitHit)
 
   const handleUpgrade = () => {
     onClose()
@@ -143,13 +178,8 @@ export function TrialUpgradeModal({
                 <ShieldCheck className="h-3.5 w-3.5 text-violet-500" />
                 <span className="text-xs font-medium text-violet-600 dark:text-violet-400">Standard</span>
               </div>
-              <div className="flex items-center gap-1">
-                <p className="text-sm font-semibold">{standardLimit}</p>
-                {standardLimit === 'Unlimited' && (
-                  <Infinity className="h-3.5 w-3.5 text-violet-500" />
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground">No daily restrictions</p>
+              <p className="text-sm font-semibold">{standard.figure}</p>
+              <p className="text-[11px] text-muted-foreground">{standard.note}</p>
             </div>
           </div>
         </div>
@@ -159,8 +189,12 @@ export function TrialUpgradeModal({
             onClick={handleUpgrade}
             className="w-full text-white border-0 bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 shadow-sm"
           >
+            {/* No price on this button. This modal has no pricing request
+                behind it, so the only price it could print would come from a
+                build-time default in the wrong currency. /pricing reads the
+                live one. */}
             <Zap className="h-4 w-4" />
-            Upgrade Now - {formatMonthlyPlanPrice('standard', undefined, '/mo')}
+            See the plans
             <ArrowRight className="h-4 w-4" />
           </Button>
           <Button

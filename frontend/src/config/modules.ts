@@ -5,13 +5,28 @@
  * src/config/planPricing.ts, which mirrors app/core/plan_pricing.py. Anything
  * here that needs a number imports it from there.
  *
- * Three modules, and only one of them is an add-on:
+ * Four modules, matching app/core/modules.py MODULES exactly. Two are add-ons:
  *
  *   find    Included in every plan, at every tier. Never sold separately, so
  *           it is never shown with a price and never has a buy button.
- *   run     The one add-on. Sold on its own, monthly.
+ *   run     An add-on with an agreed list price, sold on its own, monthly.
+ *   mor     An add-on, QUOTED. Merchant of Record was missing from this file
+ *           entirely, so a client could neither see nor ask for a module the
+ *           backend gates a whole product area on (app/api/mor_routes.py), and
+ *           the billing panel had to carry a hand-written fallback summary for
+ *           it. Its price is quoted because BOTH halves of it are unagreed: the
+ *           monthly fee is a placeholder in app/core/modules.py, and the
+ *           settlement percentage on top of it lives in run_money/config.py.
+ *           run_money/mor.py fee_structure() flags both `prices_are_provisional`.
  *   manage  Not an add-on - it is the Managed plan. Quoted, so its action is
- *           always "Talk to us", never a price.
+ *           always "Talk to us", never a price. It is also invoice-only
+ *           (INVOICE_ONLY_MODULES), so it can never go through card checkout;
+ *           apply_entitlement raises on billing_method='stripe' for it.
+ *
+ * Manage INCLUDES MoR at no charge (PLAN_INCLUDED_MODULES['managed']), because
+ * the 12.5% management service charge already covers us paying the creators.
+ * Nothing here may offer MoR as a paid add-on to a Manage client: that is the
+ * same work billed twice. `planIncludesModule()` in planPricing.ts is the check.
  */
 
 import type { ModuleKey } from '@/config/planPricing'
@@ -79,6 +94,28 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
     wallBody:
       'Campaigns, briefs, deliverables and content live in Run. Your shortlists stay exactly where they are - Run is what takes one of them and gets the posts made.',
   },
+  mor: {
+    key: 'mor',
+    name: 'Merchant of Record',
+    // The words app/services/run_money/mor.py uses to sell it.
+    summary:
+      'You pay us, we pay the creators, and you watch every payout move from awaiting funds to paid.',
+    contains: [
+      'We contract and pay the creators, so you raise one invoice instead of many',
+      'Every payout tracked from awaiting funds through to paid',
+      'Settlement reconciled against what each creator actually delivered',
+      'The settlement rate fixed onto a campaign when it is awarded, so a later change never reprices work already running',
+    ],
+    availability: 'addon',
+    href: '/campaigns',
+    // Nothing is route-gated on MoR today. The backend gate is on the payout
+    // and settlement endpoints (app/api/mor_routes.py), not on a page, so
+    // claiming a route here would lock a screen nothing enforces.
+    gatedRoutes: [],
+    wallHeadline: 'Merchant of Record pays your creators for you',
+    wallBody:
+      'You pay us once, we contract and pay every creator, and you watch each payout move from awaiting funds to paid. There is a monthly fee and a percentage of what we settle, and both are agreed with you before anything is switched on.',
+  },
   manage: {
     key: 'manage',
     name: 'Manage',
@@ -98,7 +135,9 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
   },
 }
 
-export const MODULE_ORDER: ModuleKey[] = ['find', 'run', 'manage']
+// Find first because everyone has it, then the two add-ons in the order they
+// are bought, then the plan you move to rather than buy.
+export const MODULE_ORDER: ModuleKey[] = ['find', 'run', 'mor', 'manage']
 
 export function getModule(key: string): ModuleDefinition | null {
   return (MODULES as Record<string, ModuleDefinition>)[key] ?? null

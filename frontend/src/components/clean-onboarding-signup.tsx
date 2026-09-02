@@ -17,9 +17,11 @@
  * Two rules this file must keep:
  *
  *  1. Never print a limit the server does not enforce. Every number on this page
- *     comes from PLAN_LIMITS in src/config/planPricing.ts, which mirrors
- *     SUBSCRIPTION_TIER_LIMITS in app/models/teams.py. The old copy advertised
- *     500 and 2,000 monthly unlocks while the server enforced 350 and 1,000.
+ *     comes from PLAN_LIMITS in src/config/planPricing.ts, which mirrors PLANS
+ *     in app/core/plans.py, the one definition the server enforces. The old copy
+ *     advertised 500 profile unlocks (the server funds 350 on Standard and 5 on
+ *     Free), 250 email reveals, which is not a limit that exists anywhere in the
+ *     backend, and extra seats at AED 180 a month, which nothing can sell.
  *  2. Never print a plan price here. Prices depend on the billing currency the
  *     SERVER charges in, which is only known from a live response. Anything with
  *     a number on it lives on /pricing and /checkout, which read that response.
@@ -400,8 +402,11 @@ function SignupForm() {
           </div>
 
           <ul className="space-y-4 text-sm">
+            {/* The included figure and the cap are the same number on Free
+                (app/core/plans.py PLANS['free'], unlock_cap_multiple 1.0), so
+                there is one honest number to print and no headroom to imply. */}
             <ValueLine>
-              {freeLimits.monthlyUnlocks} creator profiles a month, unlocked in full
+              {freeLimits.includedUnlocks} creator profiles a month, unlocked in full
             </ValueLine>
             <ValueLine>
               {freeLimits.monthlyCredits.toLocaleString()} credits, renewed every month

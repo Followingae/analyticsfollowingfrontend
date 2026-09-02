@@ -41,7 +41,10 @@ import {
   formatPlanPrice,
   getPlanLimits,
   hydrateBillingCurrency,
-  type BillingCurrency,
+  postsAllowanceLabel,
+  resolveCurrency,
+  unlockGatesForTier,
+  unlockSentence,
 } from '@/config/planPricing'
 
 type PaidTier = 'standard' | 'premium'
@@ -102,7 +105,10 @@ function CheckoutContent() {
     }
   }, [])
 
-  const currency = (pricing?.currency?.toUpperCase() as BillingCurrency) || 'AED'
+  // The currency this response named, never a literal. A hardcoded 'AED' here
+  // would have rendered a USD amount with a Dirham in front of it the moment
+  // the server was still charging in USD.
+  const currency = resolveCurrency(pricing?.currency)
 
   const line = useMemo<IntervalPricing | null>(() => {
     if (!tier || !pricing) return null
@@ -224,6 +230,7 @@ function CheckoutContent() {
   }
 
   const limits = getPlanLimits(tier)
+  const gates = unlockGatesForTier(tier)
   const perMonth =
     interval === 'annual'
       ? line.monthly_equivalent ?? Math.round(line.amount / 12)
@@ -254,13 +261,35 @@ function CheckoutContent() {
               <span className="font-medium">{interval === 'annual' ? 'Annual' : 'Monthly'}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Included</span>
+              <span className="text-muted-foreground">Profile unlocks</span>
               <span className="font-medium">
-                {limits.monthlyUnlocks.toLocaleString()} unlocks, {limits.seats} seat
-                {limits.seats === 1 ? '' : 's'}
+                {(gates.included ?? 0).toLocaleString()} a month
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Post analyses</span>
+              <span className="font-medium">{postsAllowanceLabel(limits.monthlyPosts)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Seats</span>
+              <span className="font-medium">
+                {limits.seats} seat{limits.seats === 1 ? '' : 's'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Credits</span>
+              <span className="font-medium">
+                {limits.monthlyCredits.toLocaleString()} a month
               </span>
             </div>
           </div>
+
+          {/* The second gate, said plainly before they pay. An unlock needs a
+              count under the cap AND the credits to pay for it, and buying
+              credits never raises the cap. app/core/plans.py. */}
+          <p className="text-sm text-muted-foreground max-w-prose">
+            {unlockSentence(gates)} Seats are fixed by the plan, not bought separately.
+          </p>
 
           <Separator />
 

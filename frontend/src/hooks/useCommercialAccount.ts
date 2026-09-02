@@ -19,7 +19,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { billingManager, type BillingStatus } from '@/services/billingManager'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
-import { hydrateBillingCurrency, normalizePlanTier, type ModuleKey } from '@/config/planPricing'
+import {
+  hydrateBillingCurrency,
+  normalizePlanTier,
+  planIncludesModule,
+  type ModuleKey,
+} from '@/config/planPricing'
 import { MODULES } from '@/config/modules'
 
 export type AccountLoadState = 'loading' | 'loaded' | 'failed'
@@ -73,7 +78,7 @@ export function resolveModules(
   status: BillingStatus | null,
   opts: { isSuperAdmin?: boolean } = {}
 ): Record<ModuleKey, boolean> {
-  const all: Record<ModuleKey, boolean> = { find: true, run: true, manage: true }
+  const all: Record<ModuleKey, boolean> = { find: true, run: true, mor: true, manage: true }
   if (opts.isSuperAdmin) return all
 
   const reported = (status as unknown as { modules?: unknown })?.modules
@@ -82,6 +87,7 @@ export function resolveModules(
     return {
       find: true, // Find is in every plan, at every tier, always.
       run: set.has('run'),
+      mor: set.has('mor'),
       manage: set.has('manage'),
     }
   }
@@ -101,6 +107,14 @@ export function resolveModules(
     find: true,
     // Grandfathered: everyone who has Run today keeps it.
     run: managed || (hasCampaignsFeature ?? tier !== 'free'),
+    // NOT grandfathered, and deliberately not derived from the tier. Merchant
+    // of Record is in PLAN_INCLUDED_MODULES only for 'managed', and nothing
+    // else grants it: a self-serve account gets it by buying it, not by being
+    // on Premium. Read through planIncludesModule so this mirrors
+    // app/core/modules.py rather than repeating its judgement in a boolean.
+    // Guessing it on would open a module nobody has bought, which is the mirror
+    // of the outage this fallback exists to avoid.
+    mor: managed && planIncludesModule('managed', 'mor'),
     manage: managed,
   }
 }

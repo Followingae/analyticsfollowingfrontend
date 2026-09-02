@@ -54,7 +54,8 @@ function ModuleContent() {
           <EmptyHeader>
             <EmptyTitle>No such module</EmptyTitle>
             <EmptyDescription>
-              There is no module called &ldquo;{key}&rdquo;. The modules are Find, Run and Manage.
+              There is no module called &ldquo;{key}&rdquo;. The modules are Find, Run, Merchant of
+              Record and Manage.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

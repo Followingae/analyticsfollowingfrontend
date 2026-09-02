@@ -71,21 +71,24 @@ import type { BillingStatus } from '@/services/billingManager'
 import type { BrandModulesResult } from '@/hooks/useBrandModules'
 import { resolveModules } from '@/hooks/useCommercialAccount'
 import { MODULES, MODULE_ORDER } from '@/config/modules'
-import { formatPlanPrice, type ModuleKey } from '@/config/planPricing'
+import {
+  MODULE_PRICING,
+  formatPlanPrice,
+  type AnyModuleKey,
+  type ModuleKey,
+} from '@/config/planPricing'
 import { RequestModuleDialog } from '@/components/commercial/RequestModuleDialog'
 import type { BrandModule, BrandModuleOffer } from '@/services/brandBillingApi'
 import { longDate } from './PlanSummaryCard'
 
-/** `mor` has no entry in src/config/modules.ts. Its one line lives here rather
- *  than being invented at render time when the server sends no description. */
-const FALLBACK_SUMMARY: Record<string, string> = {
-  mor: 'You pay us, we pay the creators, and you watch every payout move.',
-}
-
+/** The server's own words win, because it reads app/core/modules.py directly
+ *  and cannot fall behind it. The catalogue is the fallback, and it now has an
+ *  entry for every module the backend knows, `mor` included, so there is no
+ *  longer a hand-written line living here for a module the catalogue missed. */
 function summaryFor(key: string, fromServer: string | null): string {
   if (fromServer) return fromServer
   const known = (MODULES as Record<string, { summary: string }>)[key]
-  return known?.summary ?? FALLBACK_SUMMARY[key] ?? ''
+  return known?.summary ?? ''
 }
 
 interface ModulesPanelProps {
@@ -99,9 +102,12 @@ interface ModulesPanelProps {
 export function ModulesPanel({ status, managed, isSuperAdmin, modules }: ModulesPanelProps) {
   const [request, setRequest] = useState<{ module: ModuleKey; ending: boolean } | null>(null)
 
-  // `RequestModuleDialog` knows the three modules in src/config/modules.ts.
-  // Merchant of Record is not one of them, so its request is a plain note
-  // rather than a button that opens nothing.
+  // `RequestModuleDialog` knows every module in src/config/modules.ts, which is
+  // now all four including Merchant of Record, so MoR gets the same dialog as
+  // the rest rather than a bare mailto. The mailto stays as the fallback for a
+  // module the SERVER offers that this catalogue has never heard of: that is
+  // the drift this endpoint is designed to survive, and a dialog keyed on a
+  // missing definition would throw.
   const ask = (module: string, label: string, ending: boolean) => {
     const key = module as ModuleKey
     if (MODULES[key]) {
@@ -382,12 +388,27 @@ function HeldModule({
 
 function OfferedModule({ offer, onAdd }: { offer: BrandModuleOffer; onAdd: () => void }) {
   const amount = offer.price_aed_per_month ? Number(offer.price_aed_per_month) : NaN
+  // Whether this module has a price we are allowed to publish at all.
+  //
+  // GET /billing/account-modules sends `price_aed_per_month` for EVERY module
+  // it offers, straight out of app/core/modules.py module_price(). For
+  // Merchant of Record that number is MOR_ADDON_AED_PER_MONTH, which that file
+  // labels a PLACEHOLDER that has not been agreed commercially, and MoR is not
+  // in INVOICE_ONLY_MODULES, so `invoice_only` does not stop it. Rendering the
+  // response as it arrives would quote a customer a price nobody has set.
+  // app/core/plans.py addon_catalogue() carries the right flag as
+  // `price_agreed: False`; until that reaches this endpoint, MODULE_PRICING is
+  // the frontend's copy of the same judgement.
+  const publishable = MODULE_PRICING[offer.module as AnyModuleKey] === 'listed'
   // A quoted module carries no list price. Zero here means "there is no price
   // to show", not "it is free", so it is never rendered as an amount.
   const price =
-    !offer.invoice_only && Number.isFinite(amount) && amount > 0
-      ? `${formatPlanPrice(Math.round(amount), 'AED')} a month`
+    publishable && !offer.invoice_only && Number.isFinite(amount) && amount > 0
+      ? // The field is `price_aed_per_month`: the server states this one in AED
+        // by name, so AED is the currency, not an assumption.
+        `${formatPlanPrice(Math.round(amount), 'AED')} a month`
       : null
+  const quoted = !publishable && !offer.invoice_only
 
   return (
     <Item variant="outline" className="items-start">
@@ -398,14 +419,27 @@ function OfferedModule({ offer, onAdd }: { offer: BrandModuleOffer; onAdd: () =>
           <p className="mt-ds-1 text-ds-caption text-muted-foreground">
             Priced against the work and put on your invoice, never on a card.
           </p>
+        ) : quoted ? (
+          <p className="mt-ds-1 text-ds-caption text-muted-foreground">
+            There is a monthly fee and a percentage of what we settle, and both are agreed with
+            you before it goes on.
+          </p>
         ) : null}
       </ItemContent>
 
       <ItemActions className="self-center">
         <div className="space-y-ds-1 text-right">
-          {price ? <p className="text-ds-body-sm font-medium">{price}</p> : null}
-          <Button variant={offer.invoice_only ? 'outline' : 'default'} size="sm" onClick={onAdd}>
-            {offer.invoice_only ? 'Talk to us' : `Add ${offer.label}`}
+          {price ? (
+            <p className="text-ds-body-sm font-medium">{price}</p>
+          ) : quoted ? (
+            <p className="text-ds-body-sm font-medium">Quoted</p>
+          ) : null}
+          <Button
+            variant={offer.invoice_only || quoted ? 'outline' : 'default'}
+            size="sm"
+            onClick={onAdd}
+          >
+            {offer.invoice_only || quoted ? 'Talk to us' : `Add ${offer.label}`}
           </Button>
         </div>
       </ItemActions>

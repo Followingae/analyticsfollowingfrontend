@@ -10,6 +10,9 @@
  *  - show a price on a module that is included in the plan
  *  - show a price to a managed account (they get "Request")
  *  - hardcode a price (every figure comes from src/config/planPricing.ts)
+ *  - put a figure on a module whose price is not agreed. Merchant of Record
+ *    reads "Quoted", because both halves of its price, the monthly fee and the
+ *    settlement percentage, are provisional in the backend.
  */
 
 import { useState } from 'react'
@@ -17,14 +20,20 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@/components/ui2/item'
-import { Check, Search, Megaphone, Handshake, Lock } from 'lucide-react'
+import { Check, Search, Megaphone, Handshake, Wallet, Lock } from 'lucide-react'
 import { MODULES } from '@/config/modules'
-import { formatModulePrice, type ModuleAddonKey, type ModuleKey } from '@/config/planPricing'
+import {
+  MODULE_PRICING,
+  formatModulePrice,
+  type ModuleAddonKey,
+  type ModuleKey,
+} from '@/config/planPricing'
 import { RequestModuleDialog } from './RequestModuleDialog'
 
 const MODULE_ICON: Record<ModuleKey, typeof Search> = {
   find: Search,
   run: Megaphone,
+  mor: Wallet,
   manage: Handshake,
 }
 
@@ -53,6 +62,11 @@ export function ModuleRow({
 
   const isAddon = def.availability === 'addon'
   const isIncluded = def.availability === 'included'
+  // An add-on whose price is not published. formatModulePrice already returns
+  // "Quoted" rather than a figure for it, and the action has to match: "Add
+  // Merchant of Record" beside the word Quoted reads as a one-click purchase of
+  // something we have not priced.
+  const isQuoted = isAddon && MODULE_PRICING[module] === 'quoted'
 
   return (
     <>
@@ -101,7 +115,7 @@ export function ModuleRow({
         <ItemActions className="self-center">
           {owned ? (
             <div className="text-right">
-              {isAddon && !managed && (
+              {isAddon && !managed && !isQuoted && (
                 <p className="text-ds-body-sm font-medium">
                   {formatModulePrice(module as ModuleAddonKey)}
                 </p>
@@ -119,7 +133,12 @@ export function ModuleRow({
           ) : isAddon ? (
             <div className="text-right space-y-1">
               <p className="text-ds-body-sm font-medium">{formatModulePrice(module as ModuleAddonKey)}</p>
-              <Button onClick={() => setRequesting(true)}>Add {def.name}</Button>
+              <Button
+                variant={isQuoted ? 'outline' : 'default'}
+                onClick={() => setRequesting(true)}
+              >
+                {isQuoted ? 'Ask us to quote it' : `Add ${def.name}`}
+              </Button>
             </div>
           ) : (
             <Button variant="outline" onClick={() => setRequesting(true)}>

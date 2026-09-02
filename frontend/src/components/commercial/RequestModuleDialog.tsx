@@ -30,7 +30,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Mail } from 'lucide-react'
 import { MODULES } from '@/config/modules'
-import { formatModulePrice, type ModuleAddonKey, type ModuleKey } from '@/config/planPricing'
+import {
+  MODULE_PRICING,
+  formatModulePrice,
+  type ModuleAddonKey,
+  type ModuleKey,
+} from '@/config/planPricing'
 
 export const ACCOUNT_MANAGER_EMAIL = 'support@following.ae'
 
@@ -54,9 +59,16 @@ export function RequestModuleDialog({
   context,
 }: RequestModuleDialogProps) {
   const def = MODULES[module]
-  // Only an add-on carries a price; Find is included and Manage is quoted.
+  // Only an add-on with an AGREED price carries a figure. Find is included,
+  // Manage is quoted, and Merchant of Record is an add-on whose price is
+  // quoted: both its monthly fee and its settlement percentage are provisional
+  // in the backend (app/services/run_money/mor.py fee_structure), so this
+  // dialog must not tell someone what it costs.
+  const isQuoted = MODULE_PRICING[module] === 'quoted'
   const addonPrice =
-    def.availability === 'addon' ? formatModulePrice(module as ModuleAddonKey) : null
+    def.availability === 'addon' && !isQuoted
+      ? formatModulePrice(module as ModuleAddonKey)
+      : null
 
   const defaultNote = [
     `I'd like to add ${def.name} to our account.`,
@@ -83,7 +95,11 @@ export function RequestModuleDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {managed ? `Ask your account manager for ${def.name}` : `Add ${def.name}`}
+            {managed
+              ? `Ask your account manager for ${def.name}`
+              : isQuoted
+                ? `Ask us to quote ${def.name}`
+                : `Add ${def.name}`}
           </DialogTitle>
           <DialogDescription>
             {managed ? (
@@ -97,6 +113,14 @@ export function RequestModuleDialog({
                 {def.name} is {addonPrice}. Sending this switches it on and it
                 appears on your next invoice - you are not charged now, and no card is taken on
                 this screen.
+              </>
+            ) : module === 'mor' ? (
+              <>
+                Merchant of Record is quoted. There is a monthly fee while it is on, and a
+                percentage of every payout we settle for you, and the percentage is fixed onto a
+                campaign when it is awarded so a later change never reprices work already
+                running. Sending this asks us for both numbers in writing. Nothing is charged
+                here.
               </>
             ) : (
               <>

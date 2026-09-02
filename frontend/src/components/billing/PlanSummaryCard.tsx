@@ -24,7 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { AlertCircle, Building2, CreditCard, Clock } from 'lucide-react'
 import type { BillingStatus } from '@/services/billingManager'
-import { formatPlanPrice, getBillingCurrency, normalizePlanTier } from '@/config/planPricing'
+import { formatPlanPrice, normalizePlanTier, resolveCurrency } from '@/config/planPricing'
 import { money, type AccountInvoicesResult } from './useAccountInvoices'
 
 /** The one glyph this page uses for a figure it does not have. */
@@ -83,7 +83,7 @@ export function PlanSummaryCard({
   const plan = status.plan
   const stripe = status.stripe
   const tier = normalizePlanTier(plan?.tier)
-  const currency = plan?.currency || getBillingCurrency()
+  const currency = resolveCurrency(plan?.currency)
   const isFree = tier === 'free'
 
   // The dunning state wins where we have it: it is what the server locks

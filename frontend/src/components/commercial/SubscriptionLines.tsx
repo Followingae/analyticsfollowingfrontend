@@ -41,7 +41,7 @@ import { MODULE_ORDER, MODULES } from '@/config/modules'
 import {
   formatModulePrice,
   formatPlanPrice,
-  getBillingCurrency,
+  resolveCurrency,
   type ModuleAddonKey,
   type ModuleKey,
 } from '@/config/planPricing'
@@ -70,7 +70,7 @@ export function SubscriptionLines({ status, managed, owns }: SubscriptionLinesPr
 
   const plan = status.plan
   const stripe = status.stripe
-  const currency = plan?.currency || getBillingCurrency()
+  const currency = resolveCurrency(plan?.currency)
   const tier = (plan?.tier || 'free').toLowerCase()
   const isFree = tier === 'free'
 

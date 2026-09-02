@@ -106,6 +106,17 @@ const PAYMENT_COPY: Record<string, { tone: Tone; label: string; line: string }> 
   },
 }
 
+/**
+ * Modules with no agreed list price, which must never be shown as one.
+ *
+ * Manage is quoted per client, so `module_price` returns a bare zero for it. Merchant of
+ * Record returns MOR_ADDON_AED_PER_MONTH, which app/core/modules.py labels a PLACEHOLDER,
+ * NOT AN AGREED PRICE in the file itself. Printing either as a figure is how an operator
+ * ends up quoting a number over the phone that nobody has agreed to sell at, so the row
+ * says it is quoted and the amount is typed in from the signed quote instead.
+ */
+const QUOTED_MODULES = new Set(['mor', 'manage'])
+
 /* ------------------------------------------------------------- formatting */
 
 const fmtDate = (iso: string | null | undefined) => {
@@ -374,9 +385,11 @@ export function ClientModulesTab({ teamId, clientName }: { teamId: string; clien
                   meta={
                     included
                       ? 'Included in Manage, so it goes on at no charge'
-                      : canSeeSell && price
+                      : canSeeSell && price && !QUOTED_MODULES.has(a.module)
                         ? `${a.description}  ·  ${price} a month at list`
-                        : a.description
+                        : canSeeSell && QUOTED_MODULES.has(a.module)
+                          ? `${a.description}  ·  Quoted, no agreed list price`
+                          : a.description
                   }
                   actions={canChange ? (
                     <Button size="sm" variant="outline" className="h-8 gap-1.5 text-[12.5px]"
@@ -541,7 +554,12 @@ function AddModuleDialog({
 
   const [method, setMethod] = useState<BillingMethod>(includedInManage ? 'granted' : 'invoiced')
   const [interval, setInterval] = useState<'month' | 'year'>('month')
-  const [price, setPrice] = useState(isManage || includedInManage ? '' : target.listPrice)
+  // Not prefilled for a quoted module. Manage has no list price at all, and the Merchant of
+  // Record figure the catalogue carries is the placeholder named in app/core/modules.py, while
+  // the server reads the agreed fee from system_configurations when no price is sent. Sending
+  // the placeholder would stamp it onto the account in place of the real one.
+  const [price, setPrice] = useState(
+    QUOTED_MODULES.has(target.module) || includedInManage ? '' : target.listPrice)
   const [subscription, setSubscription] = useState('')
   const [reason, setReason] = useState('')
   const [align, setAlign] = useState(true)
@@ -631,7 +649,9 @@ function AddModuleDialog({
               <div className="space-y-1.5">
                 <Label htmlFor="mod-price">Price for a cycle, in AED</Label>
                 <Input id="mod-price" inputMode="decimal" value={price}
-                       placeholder={isManage ? 'From the signed quote' : target.listPrice}
+                       placeholder={isManage ? 'From the signed quote'
+                         : target.module === 'mor' ? 'Blank uses the agreed fee on file'
+                         : target.listPrice}
                        onChange={e => { setPrice(e.target.value); setProblem(null) }} />
               </div>
               <div className="space-y-1.5">

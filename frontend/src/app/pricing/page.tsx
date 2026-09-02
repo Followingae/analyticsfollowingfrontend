@@ -7,18 +7,37 @@
  * annual toggle takes 20% off, and it now survives the trip: /checkout posts
  * the interval it is handed, so someone who picks Annual is billed annually.
  *
- * Run is shown with its price but is a request, not a checkout line. Nothing
- * downstream can sell it yet, and a control that pretends otherwise is worse
- * than an honest one.
+ * Both add-ons are shown here, because this is where a plan is chosen. Run
+ * carries its agreed price. Merchant of Record says it is quoted, and says so
+ * about BOTH halves of its price: the monthly fee in app/core/modules.py is
+ * labelled a placeholder by that file itself, and there is a settlement
+ * percentage on top of it in run_money/config.py that is equally unagreed.
+ * run_money/mor.py fee_structure() returns prices_are_provisional over the
+ * pair, so naming only the fee would show a client half the model.
+ *
+ * MoR is also INCLUDED in Managed at no charge (PLAN_INCLUDED_MODULES), because
+ * the management service charge already pays for us settling with the creators,
+ * and the card says so: offering it as a paid extra beside Managed would bill
+ * the same work twice.
+ *
+ * Both add-ons are requests rather than checkout lines: there is no Stripe
+ * price object for either, and a control that pretends otherwise is worse than
+ * an honest one.
  *
  * Every plan price comes from the live /checkout/pricing response, in the
- * currency that response names. Nothing here writes a price literal. Run and
- * seat prices come from src/config/planPricing.ts, the one place the frontend
- * is allowed to know a price.
+ * currency that response names. Nothing here writes a price literal, and there
+ * is no seat price anywhere: seats are a hard cap per tier and the backend has
+ * nothing that sells one.
+ *
+ * Unlocks are quoted as TWO numbers because there are two gates. The plan funds
+ * a number of unlocks (credits / 25) and a separate count cap is the ceiling in
+ * a month even after a top-up. Premium is 1,000 included and 2,000 with bought
+ * credits; on Free and Standard the two are equal, so top-ups buy no unlocks at
+ * all and the page says so. app/core/plans.py.
  *
  * The loading, empty and failed states are three different screens on purpose.
- * A price that did not load is an em-dash and a disabled button - never a zero
- * and never a stale guess.
+ * A price that did not load is a dash and a disabled button, never a zero and
+ * never a stale guess.
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -30,15 +49,19 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
-import { Check, ArrowRight, Users, Zap, ShieldCheck, Handshake, AlertCircle, Megaphone } from 'lucide-react'
+import { Check, ArrowRight, Users, Zap, ShieldCheck, Handshake, AlertCircle, Megaphone, Wallet } from 'lucide-react'
 import { API_CONFIG, ENDPOINTS } from '@/config/api'
 import {
   ANNUAL_DISCOUNT,
+  NO_PRICE,
   formatPlanPrice,
-  getBillingCurrency,
+  resolveCurrency,
   getModuleAmount,
+  modulePriceLabel,
   getPlanLimits,
   hydrateBillingCurrency,
+  unlockGatesForTier,
+  unlockSentence,
   type BillingCurrency,
 } from '@/config/planPricing'
 import { MODULES } from '@/config/modules'
@@ -119,7 +142,7 @@ export default function PricingPage() {
   // The live response is the authority. The fallback is only ever reached before
   // that response lands, and this page renders a skeleton until it does, so no
   // price is ever drawn in a currency the server did not name.
-  const currency = (pricing?.currency?.toUpperCase() as BillingCurrency) || getBillingCurrency()
+  const currency = resolveCurrency(pricing?.currency)
   const interval = annual ? 'annual' : 'monthly'
 
   /** Monthly amount for a tier in the selected interval, or null if unknown. */
@@ -136,10 +159,14 @@ export default function PricingPage() {
     return typeof t.pricing.monthly?.amount === 'number' ? t.pricing.monthly.amount : null
   }
 
-  const runMonthly = useMemo(
-    () => getModuleAmount('run', annual ? 'annual' : 'monthly', currency) / (annual ? 12 : 1),
-    [annual, currency]
-  )
+  // Run is the only add-on with an agreed list price. Null until the server has
+  // named a currency, and rendered as the one mark for a figure we do not have
+  // rather than as a number in a currency we guessed at.
+  const runPrice = useMemo(() => {
+    const amount = getModuleAmount('run', annual ? 'annual' : 'monthly', currency)
+    if (amount === null) return NO_PRICE
+    return `${formatPlanPrice(Math.round(amount / (annual ? 12 : 1)), currency)}/mo`
+  }, [annual, currency])
 
   const selectedPlanMonthly = planMonthly(tier)
   const basketKnown = selectedPlanMonthly !== null
@@ -152,7 +179,7 @@ export default function PricingPage() {
   const totalAnnual = totalMonthly !== null ? Math.round(totalMonthly * 12) : null
 
   const priceCell = (value: number | null) =>
-    value === null ? '—' : formatPlanPrice(Math.round(value), currency)
+    value === null ? NO_PRICE : formatPlanPrice(Math.round(value), currency)
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (state === 'loading') {
@@ -198,8 +225,8 @@ export default function PricingPage() {
         <div className="mb-10">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Pricing</h1>
           <p className="mt-3 text-muted-foreground max-w-xl">
-            Pick a plan, add Run if you are running campaigns, and check out once. Find is in
-            every plan.
+            Pick a plan, add Run or Merchant of Record if you need them, and check out once. Find
+            is in every plan.
           </p>
 
           <div className="mt-8 flex items-center gap-3">
@@ -253,48 +280,40 @@ export default function PricingPage() {
               </Card>
             </section>
 
-            {/* ── The one add-on ───────────────────────────────────────── */}
+            {/* ── The add-ons ──────────────────────────────────────────── */}
             <section>
-              <h2 className="text-sm font-medium text-muted-foreground mb-3">2. Add-on</h2>
-              <Card>
-                <CardContent className="py-5">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <Megaphone className="h-5 w-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="font-medium">{MODULES.run.name}</p>
-                        <p className="text-sm text-muted-foreground max-w-md">
-                          {MODULES.run.summary}
-                        </p>
-                        <ul className="mt-3 space-y-1.5">
-                          {MODULES.run.contains.map((line) => (
-                            <li key={line} className="flex items-start gap-2 text-sm">
-                              <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-                              <span>{line}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                    <div className="text-right space-y-2">
-                      <p className="font-semibold">
-                        {formatPlanPrice(Math.round(runMonthly), currency)}
-                        <span className="text-sm font-normal text-muted-foreground">/mo</span>
-                      </p>
-                      {/* A request, not a checkout line: see the note by totalMonthly.
-                          This is the same route the in-product Run card takes. */}
-                      <Button variant="outline" asChild>
-                        <a href="mailto:support@following.ae?subject=Adding%20Run%20to%20my%20plan">
-                          Ask us to add Run
-                        </a>
-                      </Button>
-                      <p className="text-xs text-muted-foreground max-w-[12rem]">
-                        Added to your account by hand today, and billed on your next invoice.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <h2 className="text-sm font-medium text-muted-foreground mb-3">2. Add-ons</h2>
+              <div className="flex flex-col gap-ds-3">
+                <AddonCard
+                  icon={Megaphone}
+                  name={MODULES.run.name}
+                  summary={MODULES.run.summary}
+                  contains={MODULES.run.contains}
+                  // AED 1,200 a month, an agreed price:
+                  // app/core/modules.py RUN_ADDON_AED_PER_MONTH.
+                  price={runPrice}
+                  grants="Campaigns, briefs, deliverables and content collection unlock across the app, on top of whatever plan you are on."
+                  subject="Adding%20Run%20to%20my%20plan"
+                  cta="Ask us to add Run"
+                />
+                <AddonCard
+                  icon={Wallet}
+                  name={MODULES.mor.name}
+                  summary={MODULES.mor.summary}
+                  contains={MODULES.mor.contains}
+                  // QUOTED, never a number, and BOTH halves of it are quoted.
+                  // app/core/modules.py says MOR_ADDON_AED_PER_MONTH is a
+                  // PLACEHOLDER that has not been agreed; there is a settlement
+                  // percentage on top of it in run_money/config.py that is also
+                  // unagreed; and run_money/mor.py fee_structure() returns
+                  // prices_are_provisional: true over the pair. Naming only the
+                  // monthly fee would show a client half the commercial model.
+                  price={modulePriceLabel('mor', currency)}
+                  grants="Payouts and settlement switch on for your campaigns. There is a monthly fee while it is on, and a percentage of every payout we settle, and both are agreed with you in writing first. Included at no charge if you are on Managed, which already covers it."
+                  subject="Merchant%20of%20Record"
+                  cta="Ask us to quote it"
+                />
+              </div>
             </section>
           </div>
 
@@ -328,19 +347,20 @@ export default function PricingPage() {
                 </p>
               )}
 
-              <div className="text-xs text-muted-foreground space-y-1">
-                {/* No "extra seats at X each" line: max_team_members in
-                    app/models/teams.py is a hard cap per tier, there is no seat
-                    price anywhere in the backend and no way to buy one. Quoting a
-                    seat price would be advertising something nobody can sell. */}
+              <div className="flex flex-col gap-ds-1 text-xs text-muted-foreground">
+                {/* No "extra seats at X each" line: max_team_members is a hard
+                    cap per tier (app/core/plans.py seat_cap_for_row), there is
+                    no seat price anywhere in the backend and no way to buy one.
+                    Quoting a seat price would be advertising something nobody
+                    can sell, which is what "extra seats AED 180/month" was. */}
                 <p>
                   {getPlanLimits(tier).seats} seat{getPlanLimits(tier).seats === 1 ? '' : 's'}. More
                   people means the next plan up, or a word with us.
                 </p>
-                <p>
-                  {getPlanLimits(tier).monthlyUnlocks.toLocaleString()} profile unlocks a month,
-                  metered in credits.
-                </p>
+                {/* Both gates. An unlock needs a count under the cap AND 25
+                    credits in the wallet, and buying credits only ever moves
+                    the second one. app/core/plans.py. */}
+                <p>{unlockSentence(unlockGatesForTier(tier))}</p>
               </div>
 
               <Button
@@ -377,6 +397,82 @@ export default function PricingPage() {
 }
 
 // ──────────────────────────────────────────────
+// Add-on card
+// ──────────────────────────────────────────────
+
+/**
+ * One add-on, with the entitlement it grants said in words rather than implied.
+ *
+ * `price` is a STRING, already resolved by the caller, because two of the three
+ * things this card can show are not numbers: "Quoted" for a module whose price
+ * has not been agreed, and the one dash for a price we could not load. A card
+ * that took a number would have to invent one for both.
+ *
+ * Neither add-on is a checkout line. There is no Stripe price object for either
+ * (MODULE_STRIPE_PRICE_IDS is empty) and POST /checkout/create-session takes a
+ * tier and an interval with no add-on line, so the control is a real request
+ * rather than a button that would fail.
+ */
+function AddonCard({
+  icon: Icon,
+  name,
+  summary,
+  contains,
+  price,
+  grants,
+  subject,
+  cta,
+}: {
+  icon: typeof Megaphone
+  name: string
+  summary: string
+  contains: string[]
+  price: string
+  grants: string
+  subject: string
+  cta: string
+}) {
+  return (
+    <Card>
+      <CardContent className="py-5">
+        <div className="flex flex-wrap items-start justify-between gap-ds-3">
+          <div className="flex items-start gap-ds-2">
+            <Icon className="h-5 w-5 text-muted-foreground mt-0.5" />
+            <div className="flex flex-col gap-ds-2">
+              <div>
+                <p className="font-medium">{name}</p>
+                <p className="text-sm text-muted-foreground max-w-prose">{summary}</p>
+              </div>
+              <ul className="flex flex-col gap-ds-2">
+                {contains.map((line) => (
+                  <li key={line} className="flex items-start gap-ds-2 text-sm">
+                    <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-muted-foreground max-w-prose">
+                <span className="font-medium text-foreground">What it switches on: </span>
+                {grants}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-ds-2 text-right">
+            <p className="font-semibold">{price}</p>
+            <Button variant="outline" asChild>
+              <a href={`mailto:support@following.ae?subject=${subject}`}>{cta}</a>
+            </Button>
+            <p className="text-xs text-muted-foreground max-w-[12rem]">
+              Added to your account by hand today, and billed on your next invoice.
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ──────────────────────────────────────────────
 // Plan card
 // ──────────────────────────────────────────────
 
@@ -393,12 +489,13 @@ function PlanCard({
   selected: boolean
   onSelect: () => void
   monthly: number | null
-  currency: BillingCurrency
+  currency: BillingCurrency | null
   annual: boolean
   credits?: number
 }) {
   const Icon = TIER_ICON[tier]
   const limits = getPlanLimits(tier)
+  const gates = unlockGatesForTier(tier)
 
   return (
     <Card
@@ -423,7 +520,7 @@ function PlanCard({
         </div>
         <div className="flex items-baseline gap-1">
           <span className="text-2xl font-bold tracking-tight">
-            {monthly === null ? '—' : formatPlanPrice(monthly, currency)}
+            {monthly === null ? NO_PRICE : formatPlanPrice(monthly, currency)}
           </span>
           <span className="text-sm text-muted-foreground">/mo</span>
         </div>
@@ -432,8 +529,8 @@ function PlanCard({
         )}
       </CardHeader>
       <CardContent className="pt-0">
-        <ul className="space-y-1.5 text-sm">
-          <li className="flex items-start gap-2">
+        <ul className="flex flex-col gap-ds-2 text-sm">
+          <li className="flex items-start gap-ds-2">
             <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
             <span>
               {typeof credits === 'number'
@@ -442,17 +539,39 @@ function PlanCard({
               credits a month
             </span>
           </li>
-          <li className="flex items-start gap-2">
+          <li className="flex items-start gap-ds-2">
             <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-            <span>{limits.monthlyUnlocks.toLocaleString()} profile unlocks</span>
+            {/* The INCLUDED figure, with the cap on the line under it where the
+                two differ. One number for both gates is the conflation that
+                produced 500s and 2,000s on a server enforcing 350 and 1,000. */}
+            <span>
+              {(gates.included ?? 0).toLocaleString()} profile unlocks
+              {(gates.headroom ?? 0) > 0 ? (
+                <span className="block text-muted-foreground">
+                  up to {(gates.cap ?? 0).toLocaleString()} if you top up credits
+                </span>
+              ) : (
+                <span className="block text-muted-foreground">
+                  top-ups cannot take you past this
+                </span>
+              )}
+            </span>
           </li>
-          <li className="flex items-start gap-2">
+          <li className="flex items-start gap-ds-2">
+            <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+            <span>
+              {limits.monthlyPosts > 0
+                ? `${limits.monthlyPosts.toLocaleString()} post analyses a month`
+                : 'Post analyses metered in credits, with no monthly cap'}
+            </span>
+          </li>
+          <li className="flex items-start gap-ds-2">
             <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
             <span>
               {limits.seats} seat{limits.seats === 1 ? '' : 's'}
             </span>
           </li>
-          <li className="flex items-start gap-2">
+          <li className="flex items-start gap-ds-2">
             <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
             <span>Find included</span>
           </li>
