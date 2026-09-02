@@ -598,13 +598,13 @@ function SourcingSlide({ slide }: { slide: Slide }) {
         <Headline
           eyebrow={<><Pill>Right now</Pill><Pill tone="quiet">Talent</Pill></>}
           title="Sourcing"
-          meta={`${rows.length} round${rows.length === 1 ? '' : 's'} open`}
+          meta={`${rows.length} area${rows.length === 1 ? '' : 's'} open`}
         />
       </div>
       <div className="col-span-8 min-h-0">
         <Glass>
-          <GlassTitle icon={Search}>Rounds open</GlassTitle>
-          {rows.length === 0 ? <Empty>No rounds open</Empty> : (
+          <GlassTitle icon={Search}>Areas open</GlassTitle>
+          {rows.length === 0 ? <Empty>No areas open</Empty> : (
             <div className="grid flex-1 grid-cols-2 content-start gap-[1.1vw]">
               {rows.map((r: any) => {
                 const pct = r.target > 0 ? Math.min(100, Math.round((r.found / r.target) * 100)) : null
@@ -617,7 +617,7 @@ function SourcingSlide({ slide }: { slide: Slide }) {
                       </span>
                     </div>
                     <div className="mt-[0.4vw] truncate text-[0.76vw] text-white/60">
-                      {r.client_name ?? '—'} · Round {r.round_no}
+                      {r.client_name ?? '—'}{(r.round_no ?? 1) > 1 ? ` · Round ${r.round_no}` : ''}
                     </div>
                     <EasedProgress value={pct ?? 0} className="mt-[0.8vw] h-[0.45vw] bg-white/[0.10] [&>div]:bg-[#D3FF02]" />
                   </div>

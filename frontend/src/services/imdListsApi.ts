@@ -116,6 +116,22 @@ export interface ImdListCreator {
   share_views?: number | null
 }
 
+/**
+ * A creator this client has already turned down, held back from a proposal.
+ *
+ * `client_reason` is the client's own sentence, not our paraphrase of it. That is the whole
+ * value of the object: it is what lets whoever is adding them decide in two seconds whether
+ * the rejection still applies, rather than being told a count and guessing.
+ */
+export interface ClientRejection {
+  influencer_db_id: string
+  username: string
+  client_reason: string | null
+  rejected_at: string | null
+  area: string | null
+  round_no: number | null
+}
+
 /** Why a creator has no measured analytics — see availability.py. */
 export interface Unavailability {
   reason: string
@@ -244,6 +260,12 @@ export const imdListsApi = {
       /** Why each one was skipped — "no sell price" far more often than a duplicate. */
       skipped_detail?: { influencer_db_id: string; username?: string | null; reason: string }[];
       unpriced?: (string | null)[]; duplicates?: (string | null)[];
+      /**
+       * Held back because this client turned them down. The area's own drops are already
+       * filtered out of the id list, so these are rejections recorded on a DIFFERENT area
+       * belonging to the same client.
+       */
+      client_rejected?: ClientRejection[];
     }
   }> =>
     jfetch(`${BASE}/imd-lists/${id}/add-to-proposal/${proposalId}`, { method: 'POST', body: '{}' }),
@@ -255,10 +277,18 @@ export const imdListsApi = {
   addSelectionToProposal: (
     proposalId: string, influencerIds: string[],
     deliverable: { type: string; quantity: number } = { type: 'reel', quantity: 1 },
+    /**
+     * Go ahead with creators this client has already turned down. Requires a reason, which
+     * is written onto the proposal row and flags them for review, so an approver reads it
+     * before the proposal reaches the client.
+     */
+    override?: { reason: string },
   ): Promise<{
     data: {
       added: number; already_on_proposal: number; unpriced: string[]; no_cost: string[]
       deliverable: { type: string; quantity: number }; without_deliverable: string[]
+      client_rejected: ClientRejection[]
+      overridden: { influencer_db_id: string; username: string; note: string }[]
     }
   }> =>
     jfetch(`${BASE}/imd-lists/selection/add-to-proposal/${proposalId}`, {
@@ -267,6 +297,10 @@ export const imdListsApi = {
         influencer_ids: influencerIds,
         deliverable_type: deliverable.type,
         quantity: deliverable.quantity,
+        ...(override ? {
+          acknowledge_client_rejections: true,
+          override_reason: override.reason,
+        } : {}),
       }),
     }),
 

@@ -132,19 +132,19 @@ export default function GoalsPage() {
       <div className="space-y-ds-5">
         <PageHead
           title="Goals"
-          sub="Set the rules once a month. Daily targets compute themselves from how many sourcing rounds are actually open, so nobody is chasing an arbitrary number."
+          sub="Set the rules once a month. Daily targets compute themselves from how many brand areas are actually open, so nobody is chasing an arbitrary number."
         />
 
         {today?.has_rule && (
           <StatGrid>
             <Stat label="Today's target" value={today.target} icon={Target}
-                  hint={`${today.open_rounds} round${today.open_rounds === 1 ? '' : 's'} open right now`} />
+                  hint={`${today.open_rounds} area${today.open_rounds === 1 ? '' : 's'} open right now`} />
             <Stat label="Added today" value={today.done} icon={Users}
                   tone={p?.tone === 'good' ? 'good' : p?.tone === 'warn' ? 'warn' : p?.tone === 'bad' ? 'bad' : 'neutral'}
                   hint={p?.label} />
             <Stat label="This month" value={today.month_done} icon={CalendarDays}
                   hint={today.quality_required ? 'Only complete records count' : 'All records count'} />
-            <Stat label="Open rounds" value={today.open_rounds} icon={Layers}
+            <Stat label="Open areas" value={today.open_rounds} icon={Layers}
                   hint="Each one raises today's target" />
           </StatGrid>
         )}
@@ -232,7 +232,7 @@ export default function GoalsPage() {
                   /* This sentence was in a dashed box inside a panel that is itself a card:
                      three edges deep for one line of arithmetic. The box comes off. */
                   <p className="text-xs leading-relaxed text-muted-foreground">
-                    {today.open_rounds} round{today.open_rounds === 1 ? '' : 's'} open today →
+                    {today.open_rounds} area{today.open_rounds === 1 ? '' : 's'} open today →
                     target <strong className="text-foreground">{today.target}</strong> creators.
                   </p>
                 )}
@@ -264,7 +264,7 @@ export default function GoalsPage() {
               }
               meta={
                 <span className="pl-[38px]">
-                  {m.added} added this month · {m.costed} with a cost · {m.open_rounds} open round
+                  {m.added} added this month · {m.costed} with a cost · {m.open_rounds} open area
                   {m.open_rounds === 1 ? '' : 's'}
                   {m.overdue_rounds > 0 && ` · ${m.overdue_rounds} overdue`}
                 </span>

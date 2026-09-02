@@ -135,7 +135,7 @@ export default function TeamConsolePage() {
                 meta={
                   <span className="pl-[38px] capitalize">
                     {String(p.staff_role || '').replace(/_/g, ' ')} · {p.added_month} this month
-                    {p.open_rounds > 0 && ` · ${p.open_rounds} round${p.open_rounds === 1 ? '' : 's'}`}
+                    {p.open_rounds > 0 && ` · ${p.open_rounds} area${p.open_rounds === 1 ? '' : 's'}`}
                   </span>
                 }
                 right={

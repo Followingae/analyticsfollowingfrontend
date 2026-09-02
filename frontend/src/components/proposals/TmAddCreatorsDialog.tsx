@@ -280,8 +280,19 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
       const res = await imdListsApi.addToProposal(listId, proposalId);
       const added = res?.data?.added ?? 0;
       const detail: { username?: string | null; reason: string }[] = res?.data?.skipped_detail ?? [];
+      // Anyone this client has already turned down is held back by the server. Adding a
+      // whole area already excludes the ones dropped on that area, so this only fires for a
+      // creator they rejected on a DIFFERENT area of theirs. Rare, and exactly the case
+      // nobody would remember, so it is named rather than folded into a count.
+      const rejected = res?.data?.client_rejected ?? [];
+      const heldNote = rejected.length
+        ? `${rejected.length} left out, this client turned them down before: `
+          + rejected.slice(0, 3).map((r) => `@${r.username}`).join(", ")
+          + (rejected.length > 3 ? ` and ${rejected.length - 3} more` : "")
+        : "";
       toast.success(`Added ${added} creator${added === 1 ? "" : "s"}`, {
-        description: detail.length ? summariseSkips(detail) : undefined,
+        description: [detail.length ? summariseSkips(detail) : "", heldNote]
+          .filter(Boolean).join(" · ") || undefined,
       });
       onAdded?.();
       onOpenChange(false);
