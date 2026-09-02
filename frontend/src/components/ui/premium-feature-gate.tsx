@@ -11,7 +11,6 @@ import {
   Check,
   LucideIcon,
 } from "lucide-react"
-import { formatMonthlyPlanPrice } from '@/config/planPricing'
 
 interface FeatureHighlight {
   icon: LucideIcon
@@ -109,8 +108,13 @@ export function PremiumFeatureGate({
             </Button>
           </div>
 
+          {/* No price here on purpose. This gate has no pricing request behind
+              it, so the only number it could print is a build-time guess, and a
+              guessed currency is what had the product quoting dollars while
+              every other screen said dirhams. Pricing is one tap away and it
+              reads the server. */}
           <p className="text-[11px] text-muted-foreground/60 mt-3">
-            Plans start at {formatMonthlyPlanPrice('standard')} with full agency features
+            See the plans and what each one includes
           </p>
         </div>
       </div>

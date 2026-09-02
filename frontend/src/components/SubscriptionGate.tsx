@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Crown, Lock, Check, Zap, Star } from 'lucide-react'
-import { formatMonthlyPlanPrice } from '@/config/planPricing'
 
 interface SubscriptionGateProps {
   requiredTier: UserRole
@@ -63,21 +62,21 @@ function SubscriptionUpgradePrompt({ requiredTier, currentTier, feature }: Subsc
           name: 'Free',
           color: 'bg-muted',
           description: 'Basic features for getting started',
-          price: formatMonthlyPlanPrice('free')
+          price: ''
         }
       case 'brand_standard':
         return {
           name: 'Standard',
           color: 'bg-blue-500',
           description: 'Enhanced features for growing brands',
-          price: formatMonthlyPlanPrice('standard')
+          price: ''
         }
       case 'brand_premium':
         return {
           name: 'Premium',
           color: 'bg-gradient-to-r from-orange-500 to-pink-600',
           description: 'Advanced features for professional teams',
-          price: formatMonthlyPlanPrice('premium')
+          price: ''
         }
       case 'brand_enterprise':
         return {
@@ -209,7 +208,7 @@ function SubscriptionUpgradePrompt({ requiredTier, currentTier, feature }: Subsc
                   <Badge variant="outline">{currentTierInfo.name}</Badge>
                   <span className="text-sm text-muted-foreground">Current</span>
                 </div>
-                <span className="text-sm font-medium">{currentTierInfo.price}</span>
+                {currentTierInfo.price ? <span className="text-sm font-medium">{currentTierInfo.price}</span> : null}
               </div>
               <p className="text-xs text-muted-foreground">{currentTierInfo.description}</p>
             </div>
@@ -224,7 +223,7 @@ function SubscriptionUpgradePrompt({ requiredTier, currentTier, feature }: Subsc
                   <span className="text-sm text-orange-600 font-medium">Required</span>
                   <Star className="w-4 h-4 text-orange-500" />
                 </div>
-                <span className="text-sm font-medium">{requiredTierInfo.price}</span>
+                {requiredTierInfo.price ? <span className="text-sm font-medium">{requiredTierInfo.price}</span> : null}
               </div>
               <p className="text-xs text-muted-foreground mb-3">{requiredTierInfo.description}</p>
               

@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PageHead, Panel } from "@/components/console/primitives"
-import { formatMonthlyPlanPrice } from '@/config/planPricing'
 
 export const dynamic = 'force-dynamic'
 
@@ -497,13 +496,13 @@ export default function CreateBrandAccountPage() {
                 </SelectItem>
                 <SelectItem value="standard">
                   <div className="flex flex-col">
-                    <span className="font-medium">Standard - {formatMonthlyPlanPrice('standard')}</span>
+                    <span className="font-medium">Standard</span>
                     <span className="text-xs text-muted-foreground">350 profiles • 8,750 credits • 2 members</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="premium">
                   <div className="flex flex-col">
-                    <span className="font-medium">Premium - {formatMonthlyPlanPrice('premium')}</span>
+                    <span className="font-medium">Premium</span>
                     <span className="text-xs text-muted-foreground">1,000 profiles • 25,000 credits • 5 members</span>
                   </div>
                 </SelectItem>
