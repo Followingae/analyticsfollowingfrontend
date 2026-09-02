@@ -44,26 +44,14 @@ import { staffAdminApi } from "@/services/staffApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { CreatorsHubHeader } from "@/components/console/CreatorsHubHeader"
 import { CARD } from "@/components/console/primitives"
+import { BriefFields } from "@/components/console/BriefFields"
+// One brief, one sentence, built in one place. There were two copies of this function, one
+// here and one on the area screen, and both wrote a bare U+20C3 for the dirham into a plain
+// string, in a font that does not carry the glyph, so the money in every brief rendered as
+// an empty box. The sentence says "AED" instead, which is what the alert already said.
+import { briefLine } from "@/lib/areaBrief"
 
 type Kind = "client" | "sample"
-
-const DELIVERABLE_OPTIONS = ["reel", "post", "story", "carousel", "video"]
-
-/** The brief in one line, the way the alert that starts the work reads it. */
-function briefLine(b?: AreaBrief | null): string {
-  if (!b) return ""
-  const bits: string[] = []
-  if (b.target_count) bits.push(String(b.target_count))
-  if (b.categories?.length) bits.push(`${b.categories.join(", ")} creators`)
-  if (b.market) bits.push(`in ${b.market}`)
-  const k = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n))
-  if (b.followers_min && b.followers_max) bits.push(`${k(b.followers_min)}-${k(b.followers_max)}`)
-  else if (b.followers_min) bits.push(`${k(b.followers_min)}+`)
-  else if (b.followers_max) bits.push(`up to ${k(b.followers_max)}`)
-  if (b.deliverables?.length) bits.push(b.deliverables.join(", "))
-  if (b.budget_per_creator) bits.push(`up to ⃃ ${Number(b.budget_per_creator).toLocaleString()} each`)
-  return bits.join(" · ")
-}
 
 /** Reading the query needs a boundary in Next 15; the page itself is unchanged. */
 export default function AreasPageWrapper() {
@@ -288,7 +276,7 @@ function AreasPage() {
                             className="gap-2 rounded-full bg-neutral-900 px-5 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200">
                       <Rocket className="h-4 w-4" />Start sourcing</Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-lg">
+                  <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>Start sourcing for a brand</DialogTitle>
                       <DialogDescription>
@@ -296,7 +284,7 @@ function AreasPage() {
                         it goes out with the alert, so they know before they open anything.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+                    <div className="flex max-h-[62vh] flex-col gap-ds-3 overflow-y-auto pr-1">
                       <div className="space-y-1.5">
                         <Label>Brand *</Label>
                         {fromTeam ? (
@@ -344,78 +332,13 @@ function AreasPage() {
                         </div>
                       </div>
 
-                      {/* The brief was boxed inside a dialog, which is already a surface —
-                          a box inside a box for a group the heading alone can name. The
-                          border comes off; a hairline above it marks where the brief starts,
-                          and the fields keep their own spacing. */}
-                      <div className="space-y-ds-3 border-t pt-ds-3">
-                        <p className="text-ds-overline uppercase text-muted-foreground">The brief</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <Label className="text-xs">How many</Label>
-                            <Input type="number" min={1} value={brief.target_count ?? ""}
-                                   onChange={e => setBrief({ ...brief, target_count: e.target.value ? Number(e.target.value) : undefined })}
-                                   placeholder="8" />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-xs">Market</Label>
-                            <Input value={brief.market ?? ""} onChange={e => setBrief({ ...brief, market: e.target.value })}
-                                   placeholder="UAE" />
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Categories</Label>
-                          <Input value={(brief.categories ?? []).join(", ")}
-                                 onChange={e => setBrief({ ...brief, categories: e.target.value.split(",").map(x => x.trim()).filter(Boolean) })}
-                                 placeholder="food, lifestyle" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <Label className="text-xs">Followers from</Label>
-                            <Input type="number" value={brief.followers_min ?? ""}
-                                   onChange={e => setBrief({ ...brief, followers_min: e.target.value ? Number(e.target.value) : undefined })}
-                                   placeholder="20000" />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-xs">to</Label>
-                            <Input type="number" value={brief.followers_max ?? ""}
-                                   onChange={e => setBrief({ ...brief, followers_max: e.target.value ? Number(e.target.value) : undefined })}
-                                   placeholder="100000" />
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Deliverables</Label>
-                          <div className="flex flex-wrap gap-1.5">
-                            {DELIVERABLE_OPTIONS.map(d => {
-                              const on = (brief.deliverables ?? []).includes(d)
-                              return (
-                                <Button
-                                  key={d} type="button" size="sm"
-                                  variant={on ? "default" : "outline"}
-                                  className="h-7 rounded-full px-3 text-xs capitalize"
-                                  onClick={() => setBrief({
-                                    ...brief,
-                                    deliverables: on
-                                      ? (brief.deliverables ?? []).filter(x => x !== d)
-                                      : [...(brief.deliverables ?? []), d],
-                                  })}
-                                >{d}</Button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Budget per creator (AED)</Label>
-                          <Input type="number" value={brief.budget_per_creator ?? ""}
-                                 onChange={e => setBrief({ ...brief, budget_per_creator: e.target.value ? Number(e.target.value) : undefined })}
-                                 placeholder="3000" />
-                        </div>
-                        {briefLine(brief) && (
-                          <p className="text-xs text-muted-foreground">
-                            They will read: <span className="text-foreground">{briefLine(brief)}</span>
-                          </p>
-                        )}
-                      </div>
+                      {/* The brief. It was a flat run of eight inputs with the budget sitting
+                          between the follower range and the deliverables, which is three
+                          different subjects in three adjacent rows. It is now three groups in
+                          the order the questions get asked, and the fields that do not apply
+                          are not on screen at all. Same component the area screen edits with,
+                          so a field added there arrives here too. */}
+                      <BriefFields brief={brief} onChange={setBrief} />
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setOpenStart(false)} disabled={busy}>Cancel</Button>

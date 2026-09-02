@@ -24,16 +24,70 @@ async function jfetch(url: string, options: RequestInit = {}) {
   return res.json()
 }
 
-/** The brief, structured so the next round can filter by the same terms. */
+/** The three platforms we can brief, price and verify. Same words as fa_deliverables.platform. */
+export type BriefPlatform = 'instagram' | 'tiktok' | 'snapchat'
+
+/** One ask, on one platform, with a number attached. "2 Instagram reels" is a deliverable;
+ *  "reel" is a category of deliverable and does not tell a creator what to quote. */
+export interface BriefDeliverable {
+  platform: BriefPlatform
+  format: string
+  quantity: number
+}
+
+/**
+ * One thing in a barter package. Same shape as `campaigns.barter_items`, which the FA barter
+ * campaign already writes and the creator app already reads: `{name, value_aed, description}`,
+ * values in whole AED, never cents.
+ */
+export interface BriefBarterItem {
+  name: string
+  value_aed?: number
+  description?: string
+}
+
+/**
+ * The brief, structured so the next round can filter by the same terms.
+ *
+ * Everything here is optional and every reader tolerates its absence, because areas released
+ * before a field existed will never have it. Rendering lives in `src/lib/areaBrief.ts`.
+ */
 export interface AreaBrief {
+  /* Who the client wants. */
   categories?: string[]
   market?: string
   followers_min?: number
   followers_max?: number
-  deliverables?: string[]
-  budget_per_creator?: number
+  /** Who the brand wants REACHED, which is a different question from how big the creator is. */
+  audience?: string
   /** How many we are looking for. Mirrored onto the area itself as target_count. */
   target_count?: number
+
+  /* What we are offering. Absent means cash, because every area written before this was cash. */
+  comp_mode?: 'cash' | 'barter' | 'both'
+  budget_per_creator?: number
+  barter_items?: BriefBarterItem[]
+  /** How the barter reaches them. Same two words as campaigns.fulfilment_mode. */
+  fulfilment_mode?: 'delivery' | 'dine_in'
+
+  /* What we need back. */
+  /**
+   * The old, Instagram-shaped list: ['reel', 'story']. Still written on every save so that
+   * any reader not yet updated keeps working, and still read for areas that predate
+   * `deliverable_specs`. `deliverable_specs` wins where both are present.
+   */
+  deliverables?: string[]
+  deliverable_specs?: BriefDeliverable[]
+  usage_rights?: 'organic' | 'paid_ads' | 'full_buyout'
+  usage_days?: number
+  exclusivity_days?: number
+  /** Brands a creator must not have posted for, and must not post for during the term. */
+  avoid_brands?: string[]
+  /** When the content must go live, and whether that window can move. */
+  live_from?: string
+  live_to?: string
+  dates_firm?: boolean
+
   notes?: string
 }
 

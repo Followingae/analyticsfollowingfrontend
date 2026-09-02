@@ -19,32 +19,23 @@ import {
 import {
   ArrowLeft, Loader2, Plus, Search, Users, X, Globe, Check,
   Download, Link2, Copy, BarChart3, Link as LinkIcon , CheckCircle2, ShieldCheck, Ban,
-  Lock, RotateCcw, ThumbsDown } from "lucide-react"
+  Lock, RotateCcw, ThumbsDown, Pencil } from "lucide-react"
 import { toast } from "sonner"
 import { imdListsApi, creatorShareApi, type ImdListCreator, type ImdListSummary } from "@/services/imdListsApi"
 import { proposalApprovalApi } from "@/services/proposalApprovalApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { AddCreatorsDialog } from "@/components/superadmin/influencer-database/AddCreatorsDialog"
 import { cdnAvatar } from "@/lib/avatar"
+/* One brief sentence and one brief panel, both built in one place. This file used to carry
+   its own copy of the summary line, drifting from the create screen's copy and from the
+   backend's, and writing a bare U+20C3 for the dirham that rendered as an empty box. */
+import { briefLine } from "@/lib/areaBrief"
+import { BriefDetail } from "@/components/console/BriefDetail"
+import { BriefFields } from "@/components/console/BriefFields"
+import type { AreaBrief } from "@/services/imdListsApi"
 
 const ANY_COUNTRY = "__any__"
 const PAGE_SIZE = 40
-
-/** The brief in one line — the same sentence the alert carried when this was released. */
-function briefLine(b?: any): string {
-  if (!b) return ""
-  const bits: string[] = []
-  if (b.target_count) bits.push(String(b.target_count))
-  if (b.categories?.length) bits.push(`${b.categories.join(", ")} creators`)
-  if (b.market) bits.push(`in ${b.market}`)
-  const k = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n))
-  if (b.followers_min && b.followers_max) bits.push(`${k(b.followers_min)}-${k(b.followers_max)}`)
-  else if (b.followers_min) bits.push(`${k(b.followers_min)}+`)
-  else if (b.followers_max) bits.push(`up to ${k(b.followers_max)}`)
-  if (b.deliverables?.length) bits.push(b.deliverables.join(", "))
-  if (b.budget_per_creator) bits.push(`up to ⃃ ${Number(b.budget_per_creator).toLocaleString()} each`)
-  return bits.join(" · ")
-}
 
 function fmt(n?: number | null) {
   if (!n) return "0"
@@ -75,6 +66,17 @@ export default function ImdListDetailPage() {
   const [dropOpen, setDropOpen] = useState(false)
   const [dropWhy, setDropWhy] = useState("")
   const [roundBusy, setRoundBusy] = useState(false)
+  /**
+   * Editing the brief.
+   *
+   * The PATCH has always accepted a brief and no screen has ever sent one, so a brief written
+   * wrong at release stayed wrong for the life of the area and the manager worked from a
+   * sentence everyone knew was out of date. Founders only, because writing the brief is the
+   * same decision as releasing it.
+   */
+  const [briefOpen, setBriefOpen] = useState(false)
+  const [briefDraft, setBriefDraft] = useState<AreaBrief>({})
+  const [briefBusy, setBriefBusy] = useState(false)
 
   // add-creators picker
   const [open, setOpen] = useState(false)
@@ -316,6 +318,25 @@ export default function ImdListDetailPage() {
     }
   }
 
+  /** Save the brief. `target_count` lives on the area as well as in the brief, so both move
+   *  together or the card and the sentence start disagreeing about the same number. */
+  const saveBrief = async () => {
+    setBriefBusy(true)
+    try {
+      await imdListsApi.update(listId, {
+        brief: briefDraft,
+        target_count: briefDraft.target_count ?? null,
+      })
+      toast.success("Brief updated")
+      setBriefOpen(false)
+      await load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not save the brief")
+    } finally {
+      setBriefBusy(false)
+    }
+  }
+
   const lockRound = async () => {
     if (!window.confirm(
       "Close this round? Nothing in it changes again, and the client link stops taking answers."
@@ -532,6 +553,26 @@ export default function ImdListDetailPage() {
                 </div>
               )}
 
+              {/* The brief, in full.
+                  The header carries it as one sentence, which is the right shape for a
+                  glance and the wrong shape for the screen where the work happens. A manager
+                  about to write to a creator needs the usage term, the go-live window and the
+                  brands to avoid as separate facts she can check, and until now none of those
+                  existed anywhere. Not a card: a hairline and an eyebrow, like the closed
+                  round above it. */}
+              <section className="flex flex-col gap-ds-3 border-t pt-ds-3">
+                <div className="flex items-center justify-between gap-ds-3">
+                  <p className="text-ds-overline uppercase text-muted-foreground">The brief</p>
+                  {canDestroy && (
+                    <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2 text-xs"
+                            onClick={() => { setBriefDraft(list.brief || {}); setBriefOpen(true) }}>
+                      <Pencil className="h-3 w-3" />{list.brief ? "Edit" : "Write the brief"}
+                    </Button>
+                  )}
+                </div>
+                <BriefDetail brief={list.brief} dueAt={list.due_at} />
+              </section>
+
               {/* The gate. Anyone may stock an area; only a founder decides which of them a
                   client sees, which is what lets the talent team keep adding all week
                   behind a link that is already open. */}
@@ -713,6 +754,31 @@ export default function ImdListDetailPage() {
           areaName={list?.name}
           onAdded={load}
         />
+
+        {/* Rewriting the brief. The same fields the founder released with, so what she is
+            reading and what he wrote are never two different forms. */}
+        <Dialog open={briefOpen} onOpenChange={setBriefOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>The brief</DialogTitle>
+              <DialogDescription>
+                What the team is looking for, what we are offering and what we need back.
+                Everyone working this area reads it, so say the parts you know.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex max-h-[62vh] flex-col gap-ds-3 overflow-y-auto pr-1">
+              <BriefFields brief={briefDraft} onChange={setBriefDraft} />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBriefOpen(false)} disabled={briefBusy}>
+                Cancel
+              </Button>
+              <Button onClick={saveBrief} disabled={briefBusy}>
+                {briefBusy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Save the brief
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* The client's answer, written down. Same shape as striking, opposite author: this
             one records what they said, that one records what we decided. */}

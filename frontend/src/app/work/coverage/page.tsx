@@ -26,7 +26,7 @@ import { Empty, PageHead, Panel, Row, Stat, StatGrid } from '@/components/consol
 import { CreatorsHubHeader } from '@/components/console/CreatorsHubHeader'
 
 interface Cell { category: string; market: string; held: number; costed: number
-                 sellable: number; stale: number }
+                 quotable: number; sellable: number; stale: number; stale_unknown: number }
 
 const CHART: ChartConfig = {
   costed: { label: 'Quotable', color: 'var(--primary)' },
@@ -127,9 +127,18 @@ export default function CoveragePage() {
    */
   const held = data.totals?.held ?? null
   const costed = data.totals?.costed ?? null
+  /* Quotable is a SELL price, because that is the only thing the proposal picker enforces.
+     This tile was showing the COST count, so it printed one number and opened a list of a
+     different one. Costed keeps its own row further down, where it belongs: knowing what a
+     creator charges us and being able to quote them are two separate pieces of work. */
+  const quotable = data.totals?.quotable ?? null
   const stale = data.totals?.stale ?? null
-  const quotablePct = held == null || costed == null ? null
-    : held ? Math.round((costed / held) * 100) : 0
+  /* Rates whose age we do not know. Kept apart from `stale` so a zero can be read as "none
+     are old" rather than as "we have never recorded when any of them were captured". */
+  const staleUnknown = data.totals?.stale_unknown ?? null
+  const releasedUnpriced = data.totals?.released_unpriced ?? null
+  const quotablePct = held == null || quotable == null ? null
+    : held ? Math.round((quotable / held) * 100) : 0
 
   return (
     <SuperadminLayout>
@@ -146,16 +155,24 @@ export default function CoveragePage() {
           <Stat label="In the database" value={held ?? '—'} icon={Database}
                 hint={`${categories.length} categories · ${markets.length} markets`}
                 onClick={() => router.push('/work/influencers')} />
-          <Stat label="Quotable today" value={costed ?? '—'}
-                tone={costed == null ? 'neutral' : 'good'} icon={Coins}
+          <Stat label="Quotable today" value={quotable ?? '—'}
+                tone={quotable == null ? 'neutral' : 'good'} icon={Coins}
                 hint={quotablePct == null
-                  ? 'The share with a usable cost did not come back'
-                  : `${quotablePct}% of the database has a usable cost`}
-                onClick={() => router.push('/work/influencers?has_pricing=true')} />
-          <Stat label="Rates over six months old" value={stale ?? '—'}
-                tone={stale == null ? 'neutral' : stale ? 'warn' : 'neutral'}
-                icon={TimerReset} hint="Worth re-checking before they go in a proposal"
-                onClick={() => router.push('/work/influencers?has_pricing=true')} />
+                  ? 'The share we can put in a proposal did not come back'
+                  : `${quotablePct}% of the database has a sell price`
+                    + (costed != null ? ` · ${costed} have a cost researched` : '')}
+                onClick={() => router.push('/work/influencers?pricing=quotable')} />
+          {/* An age nobody has recorded is not an age of zero. Until rates start carrying a
+              capture date this reads "not recorded yet" rather than reporting all-clear on
+              a column that has never been written. */}
+          <Stat label="Rates over six months old"
+                value={staleUnknown ? 'Not recorded' : stale ?? '—'}
+                tone={stale == null ? 'neutral' : (stale || staleUnknown) ? 'warn' : 'neutral'}
+                icon={TimerReset}
+                hint={staleUnknown
+                  ? `${staleUnknown} rates carry no capture date, so their age is unknown`
+                  : 'Worth re-checking before they go in a proposal'}
+                onClick={() => router.push('/work/influencers?stale_costs=true')} />
           <Stat label="Missing a market" value={noMarket} tone={noMarket ? 'warn' : 'neutral'}
                 icon={MapPin} hint="Market is the first thing a client asks about"
                 onClick={() => router.push(`/work/influencers?countries=${encodeURIComponent(NO_VALUE)}`)} />
@@ -295,16 +312,30 @@ export default function CoveragePage() {
             {/* "Clear" is a claim, and an absent figure cannot make it — so when the count
                 did not come back the row says that instead of reporting all-clear. */}
             <Row
-              tone={stale == null ? 'neutral' : stale ? 'warn' : 'good'}
+              tone={stale == null ? 'neutral' : (stale || staleUnknown) ? 'warn' : 'good'}
               title={stale == null
                 ? 'How many rates are going stale did not come back'
-                : `${stale} rates are over six months old`}
+                : staleUnknown
+                  ? `${staleUnknown} rates carry no capture date, so we cannot say how old they are`
+                  : `${stale} rates are over six months old`}
               meta="Worth re-checking before quoting"
               right={<Badge variant="outline">
-                {stale == null ? 'Unknown' : stale ? 'Refresh' : 'Clear'}
+                {stale == null ? 'Unknown' : staleUnknown ? 'Not recorded' : stale ? 'Refresh' : 'Clear'}
               </Badge>}
-              onClick={() => router.push('/work/influencers?has_pricing=true')}
+              onClick={() => router.push(
+                staleUnknown ? '/work/influencers?pricing=costed' : '/work/influencers?stale_costs=true')}
             />
+            {/* Released but unpriceable. These read as active everywhere on the platform and
+                are refused by the proposal picker the moment somebody tries to use them. */}
+            {!!releasedUnpriced && (
+              <Row
+                tone="warn"
+                title={`${releasedUnpriced} creators are live but have no sell price`}
+                meta="They look ready everywhere, and the proposal picker refuses them"
+                right={<Badge variant="outline">Price</Badge>}
+                onClick={() => router.push('/work/influencers?status=active&pricing=unquotable')}
+              />
+            )}
           </Panel>
         </div>
       </div>

@@ -417,7 +417,7 @@ export class SuperadminApiService {
   async getInfluencerDatabase(filters?: any): Promise<ApiResponse<any>> {
     const params = new URLSearchParams()
     if (filters) {
-      const { page, page_size, search, status, pricing_tier, tags, categories, countries, followers_min, followers_max, engagement_min, engagement_max, is_verified, has_pricing, sort_by, sort_order } = filters
+      const { page, page_size, search, status, pricing_tier, tags, categories, countries, followers_min, followers_max, engagement_min, engagement_max, is_verified, has_pricing, pricing, stale_costs, sort_by, sort_order } = filters
       if (page) params.append('page', page.toString())
       if (page_size) params.append('page_size', page_size.toString())
       if (search) params.append('search', search)
@@ -433,6 +433,11 @@ export class SuperadminApiService {
       if (engagement_max !== undefined && engagement_max !== null) params.append('engagement_max', engagement_max.toString())
       if (is_verified !== undefined && is_verified !== null) params.append('is_verified', is_verified.toString())
       if (has_pricing !== undefined && has_pricing !== null) params.append('has_pricing', has_pricing.toString())
+      // Same three definitions the coverage counts use, sent by name rather than reasoned
+      // out again here. Two pieces of code answering "is this creator priced" separately is
+      // exactly what made a tile read 344 and open a list of 345.
+      if (pricing) params.append('pricing', pricing)
+      if (stale_costs !== undefined && stale_costs !== null) params.append('stale_costs', stale_costs.toString())
       if (sort_by) params.append('sort_by', sort_by)
       if (sort_order) params.append('sort_order', sort_order)
     }

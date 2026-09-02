@@ -66,6 +66,17 @@ export function InfluencerDatabasePage() {
     if (countries) params.countries = countries.split(",").filter(Boolean)
     const hasPricing = searchParams.get("has_pricing")
     if (hasPricing === "true" || hasPricing === "false") params.has_pricing = hasPricing === "true"
+    // Coverage links on the same three words it counts with. A param this screen does not
+    // recognise is not merely ignored: the URL-sync effect below rewrites the bar from
+    // `filters`, so an unread param is stripped a render later and the link silently opens
+    // the unfiltered database while the tile it came from claimed a number.
+    const pricing = searchParams.get("pricing")
+    if (pricing === "costed" || pricing === "quotable"
+        || pricing === "unquotable" || pricing === "none") params.pricing = pricing
+    const stale = searchParams.get("stale_costs")
+    if (stale === "true" || stale === "false") params.stale_costs = stale === "true"
+    const status = searchParams.get("status")
+    if (status) params.status = [status] as never
     return { ...DEFAULT_FILTERS, ...params }
   })
   const [viewMode, setViewMode] = useState<ViewMode>("table")
@@ -99,6 +110,9 @@ export function InfluencerDatabasePage() {
     if (filters.categories.length) params.set("categories", filters.categories.join(","))
     if (filters.countries.length) params.set("countries", filters.countries.join(","))
     if (filters.has_pricing !== null) params.set("has_pricing", String(filters.has_pricing))
+    if (filters.pricing) params.set("pricing", filters.pricing)
+    if (filters.stale_costs !== null) params.set("stale_costs", String(filters.stale_costs))
+    if (filters.status.length) params.set("status", filters.status[0])
     if (filters.page > 1) params.set("page", String(filters.page))
     if (filters.page_size !== DEFAULT_FILTERS.page_size) params.set("page_size", String(filters.page_size))
     const qs = params.toString()

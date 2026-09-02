@@ -220,6 +220,13 @@ export interface InfluencerDatabaseFilters {
   engagement_max: number | null
   is_verified: boolean | null
   has_pricing: boolean | null
+  /** The three words the Coverage screen counts with, so a tile and the list it opens
+   *  cannot disagree: `costed` = we know what they charge us, `quotable` = they have a sell
+   *  price and the proposal picker will accept them, `none` = neither. */
+  pricing: 'costed' | 'quotable' | 'unquotable' | 'none' | null
+  /** Rates captured over 180 days ago, measured from when the rate was captured and never
+   *  from updated_at, which moves whenever anyone edits anything on the row. */
+  stale_costs: boolean | null
   sort_by: string
   sort_order: 'asc' | 'desc'
   page: number
@@ -239,6 +246,8 @@ export const DEFAULT_FILTERS: InfluencerDatabaseFilters = {
   engagement_max: null,
   is_verified: null,
   has_pricing: null,
+  pricing: null,
+  stale_costs: null,
   sort_by: 'created_at',
   sort_order: 'desc',
   page: 1,

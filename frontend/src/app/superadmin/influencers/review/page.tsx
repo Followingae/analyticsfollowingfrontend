@@ -34,6 +34,8 @@ import { creatorIntakeApi, type PendingCreator } from '@/services/creatorIntakeA
 import { AddCreatorsDialog } from '@/components/superadmin/influencer-database/AddCreatorsDialog'
 import { CreatorsHubHeader } from '@/components/console/CreatorsHubHeader'
 import { Aed, CARD } from '@/components/console/primitives'
+import { briefLine } from '@/lib/areaBrief'
+import type { AreaBrief } from '@/services/imdListsApi'
 
 const DELIVERABLES = ['reel', 'post', 'story', 'carousel'] as const
 type Lane = 'needs_cost' | 'needs_sell'
@@ -329,6 +331,15 @@ export default function ReviewQueuePage() {
                       Found for <span className="text-foreground">{c.sourced_for_brand || c.sourced_for}</span>
                     </p>
                   )}
+                  {/* The area's brief. It was already being fetched here and rendered
+                      nowhere, so a founder pricing this creator could see which brand they
+                      were found for but not what they were found FOR, which is the half of
+                      the question that sets the price. */}
+                  {briefLine(c.sourced_brief as AreaBrief) && (
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
+                      {briefLine(c.sourced_brief as AreaBrief)}
+                    </p>
+                  )}
                   {(c.cost_note || c.submitted_note) && (
                     <p className="line-clamp-2 text-xs italic text-muted-foreground">
                       “{c.cost_note || c.submitted_note}”
@@ -407,6 +418,11 @@ export default function ReviewQueuePage() {
                           {top.sourced_for && (
                             <p className="text-sm text-muted-foreground">
                               Found for <span className="text-foreground">{top.sourced_for_brand || top.sourced_for}</span>
+                            </p>
+                          )}
+                          {briefLine(top.sourced_brief as AreaBrief) && (
+                            <p className="text-sm text-muted-foreground">
+                              {briefLine(top.sourced_brief as AreaBrief)}
                             </p>
                           )}
                           {(top.cost_note || top.submitted_note) && (
