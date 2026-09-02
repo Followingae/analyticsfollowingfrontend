@@ -4,8 +4,8 @@
  * Areas — the working roster for each brand, plus the standing sample packs.
  *
  * An area is where sourcing lives from the moment a founder decides we are chasing a brand
- * to the moment its creators go onto a proposal. It carries the brief, an owner, and every
- * creator we have researched, each one either internal or cleared for the client to see.
+ * to the moment its creators go onto a proposal. It carries the brief and every creator we
+ * have researched, each one either internal or cleared for the client to see.
  *
  * Two kinds, two tabs. A client area belongs to one brand and is opened by a founder
  * releasing it (that release is what tells the talent team to start). A sample pack belongs
@@ -40,7 +40,6 @@ import { Loader2, Plus, Users, Trash2, ListChecks, Building2, Link2, Rocket, Che
 import { toast } from "sonner"
 import { imdListsApi, type ImdListSummary, type AreaBrief } from "@/services/imdListsApi"
 import { clientApi } from "@/services/clientManagementApi"
-import { staffAdminApi } from "@/services/staffApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { CreatorsHubHeader } from "@/components/console/CreatorsHubHeader"
 import { CARD } from "@/components/console/primitives"
@@ -90,9 +89,7 @@ function AreasPage() {
   // start sourcing (client area)
   const [openStart, setOpenStart] = useState(!!fromTeam && params?.get("start") === "1")
   const [brands, setBrands] = useState<{ id: string; name: string }[]>([])
-  const [staff, setStaff] = useState<{ id: string; email: string; staff_role?: string | null }[]>([])
   const [teamId, setTeamId] = useState(fromTeam)
-  const [owner, setOwner] = useState("")
   const [due, setDue] = useState("")
   const [brief, setBrief] = useState<AreaBrief>({})
   const [busy, setBusy] = useState(false)
@@ -123,7 +120,6 @@ function AreasPage() {
     clientApi.list({ limit: 200 })
       .then((r: any) => setBrands(r?.data?.clients ?? r?.data ?? []))
       .catch(() => setBrands([]))
-    staffAdminApi.list().then((s: any) => setStaff(s ?? [])).catch(() => setStaff([]))
   }, [openStart])
 
   // A sample pack belongs to nobody, so the brand filter is a fact about client areas only.
@@ -172,12 +168,11 @@ function AreasPage() {
       const res = await imdListsApi.startSourcing({
         team_id: teamId,
         brief,
-        owner_user_id: owner || null,
         due_at: due || null,
         target_count: brief.target_count ?? null,
       })
       toast.success(`${res.data.brand} released — ${res.data.name} is open`)
-      setOpenStart(false); setTeamId(""); setOwner(""); setDue(""); setBrief({})
+      setOpenStart(false); setTeamId(""); setDue(""); setBrief({})
       // The area you just released is where the work is. Reloading the grid and leaving you
       // to find the card you just made is the same defect as the link that brought you here.
       router.push(`/work/areas/${res.data.id}`)
@@ -312,24 +307,17 @@ function AreasPage() {
                           </Select>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label>Hand it to</Label>
-                          <Select value={owner} onValueChange={setOwner}>
-                            <SelectTrigger><SelectValue placeholder="Owner" /></SelectTrigger>
-                            <SelectContent>
-                              {staff.map(s => (
-                                <SelectItem key={s.id} value={s.id}>
-                                  {s.email}{s.staff_role ? ` · ${s.staff_role.replace(/_/g, " ")}` : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label>Wanted by</Label>
-                          <Input type="date" value={due} onChange={e => setDue(e.target.value)} />
-                        </div>
+                      {/* No owner picker. A release goes to the talent team, and at this
+                          moment there is no individual to name: the list offered every staff
+                          member, account managers and business development included, and
+                          asking for a name invented a decision nobody had made. Who logged
+                          the brand, who released it and who it went to are all recorded
+                          already, and the area shows them. Handing an area to one named
+                          person stays available on the area afterwards. */}
+                      <div className="space-y-1.5">
+                        <Label>Wanted by</Label>
+                        <Input type="date" value={due} onChange={e => setDue(e.target.value)}
+                               className="max-w-[220px]" />
                       </div>
 
                       {/* The brief. It was a flat run of eight inputs with the budget sitting

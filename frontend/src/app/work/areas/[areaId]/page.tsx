@@ -374,6 +374,9 @@ export default function ImdListDetailPage() {
 
   const locked = !!list?.locked_at
   const roundNo = list?.round_no ?? 1
+  /** Internal people are known by their first name here, not by an address. */
+  const who = (email: string) => email.split("@")[0].replace(/[._]/g, " ")
+  const handedTo = list?.handed_to ?? []
   const droppedCount = (list?.items ?? []).filter(c => c.dropped_at).length
   const clearedCount = (list?.items ?? []).filter(c => c.cleared_at && !c.struck_at && !c.dropped_at).length
   const pickedByClient = (list?.items ?? []).filter(c => c.client_verdict === "selected").length
@@ -463,12 +466,21 @@ export default function ImdListDetailPage() {
                         <Ban className="h-3 w-3" />{droppedCount} turned down
                       </Badge>
                     )}
-                    {list.owner_email && (
-                      <Badge variant="outline" className="text-muted-foreground">
-                        {list.owner_email.split("@")[0]}
-                      </Badge>
-                    )}
                   </div>
+                  {/* How this area came to be, in the three names the business already knows:
+                      business development logged the brand, a founder released it, and it
+                      went to the talent team. Nobody is asked for any of this at release,
+                      because all three are already recorded. Each part is dropped when it is
+                      not known rather than printed as a blank. */}
+                  {(list.logged_by_email || list.released_by_email || handedTo.length > 0) && (
+                    <p className="mt-ds-2 text-ds-caption text-muted-foreground">
+                      {[
+                        list.logged_by_email && `Logged by ${who(list.logged_by_email)}`,
+                        list.released_by_email && `released by ${who(list.released_by_email)}`,
+                        handedTo.length > 0 && `with ${handedTo.map(who).join(", ")}`,
+                      ].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
                   {listLink?.expires_at && (
                     <p className="mt-2 text-sm text-muted-foreground">
                       Link open until {new Date(listLink.expires_at).toLocaleDateString('en-GB',

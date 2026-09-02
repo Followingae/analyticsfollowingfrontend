@@ -103,8 +103,21 @@ export interface ImdListSummary {
   kind?: 'client' | 'sample'
   team_id?: string | null
   team_name?: string | null
+  /**
+   * Set only when an area has been handed to one named person, which is an action on the
+   * area and no longer part of releasing it. A release goes to the talent team.
+   */
   owner_user_id?: string | null
   owner_email?: string | null
+  /**
+   * How the area came to be, from records that already existed: business development
+   * logged the brand (`teams.created_by`), a founder released it (`imd_lists.created_by`),
+   * and it went to the talent team (their client grants). Area detail only.
+   */
+  logged_by_email?: string | null
+  logged_at?: string | null
+  released_by_email?: string | null
+  handed_to?: string[]
   brief?: AreaBrief | null
   due_at?: string | null
   target_count?: number | null
@@ -242,10 +255,13 @@ export const imdListsApi = {
   /**
    * Release a brand to the talent team with the brief. Founders only — this is the gate
    * between business development logging interest and anyone researching creators.
+   *
+   * No owner. It is released to the talent team, and the release grants them the client;
+   * handing the area to one named person is a later action on the area (`update`).
    */
   startSourcing: (payload: {
     team_id: string; name?: string; brief?: AreaBrief
-    owner_user_id?: string | null; due_at?: string | null; target_count?: number | null
+    due_at?: string | null; target_count?: number | null
   }): Promise<{ data: { id: string; name: string; brand: string } }> =>
     jfetch(`${BASE}/imd-lists/start-sourcing`, { method: 'POST', body: JSON.stringify(payload) }),
 
