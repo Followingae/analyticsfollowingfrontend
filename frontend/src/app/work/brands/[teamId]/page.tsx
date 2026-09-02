@@ -116,6 +116,15 @@ export default function BrandBrowsePage() {
   const { brand, campaigns = [], areas = [], proposals = [], invoices = [] } = data
   const live = campaigns.filter((c: any) => LIVE.includes(String(c.status)))
   const openAreas = areas.filter((r: any) => !r.locked_at && !r.archived_at)
+  const openArea = openAreas[0]
+  /**
+   * Everything the sourcing screen needs to open on this brand instead of asking who it is.
+   * The id does the work; the name is carried only so Areas can say the brand's name before
+   * its own client list has come back.
+   */
+  const areasHref = (extra = '') =>
+    `/work/areas?team=${encodeURIComponent(String(teamId))}` +
+    `&brand=${encodeURIComponent(String(brand.name ?? ''))}${extra}`
   const out = proposals.filter((p: any) => p.status === 'sent')
   const unpaid = invoices.filter((i: any) => i.status !== 'paid')
 
@@ -151,12 +160,19 @@ export default function BrandBrowsePage() {
                     what the dialog on Areas is gated on, so the button that promises it is
                     only shown to a founder. Everyone else gets the roster itself, which is
                     a real destination rather than a promise the screen cannot keep. */}
-                {canDestroy ? (
-                  <Button variant="outline" onClick={() => router.push('/work/areas')}>
+                {openArea ? (
+                  /* One area per brand: the server refuses a second one. Offering "Start
+                     sourcing" here was offering a 409 — the brand is already released and
+                     the only thing anyone wants is the roster itself. */
+                  <Button variant="outline" onClick={() => router.push(`/work/areas/${openArea.id}`)}>
+                    <Layers className="mr-1.5 h-4 w-4" />Open the sourcing area
+                  </Button>
+                ) : canDestroy ? (
+                  <Button variant="outline" onClick={() => router.push(areasHref('&start=1'))}>
                     <Layers className="mr-1.5 h-4 w-4" />Start sourcing
                   </Button>
                 ) : (
-                  <Button variant="outline" onClick={() => router.push('/work/areas')}>
+                  <Button variant="outline" onClick={() => router.push(areasHref())}>
                     <Layers className="mr-1.5 h-4 w-4" />Open the brand roster
                   </Button>
                 )}
@@ -169,19 +185,28 @@ export default function BrandBrowsePage() {
         </div>
 
         <StatGrid>
+          {/* A tile counting N opened campaign #1, with nothing to say which one you were
+              about to get. The client's campaigns tab is the list the number is of. */}
           <Stat label="Campaigns" value={campaigns.length} icon={Megaphone}
                 hint={`${live.length} live right now`}
                 // Same reason as the tile below: the campaign timeline is the campaigns
                 // module, which business development do not hold.
-                onClick={canCampaigns && campaigns[0]
-                  ? () => router.push(`/work/campaigns/${campaigns[0].id}/timeline`) : undefined} />
+                onClick={canCampaigns
+                  ? () => router.push(campaigns.length === 1
+                      ? `/work/campaigns/${campaigns[0].id}/timeline`
+                      : `/work/clients/${teamId}?tab=campaigns`) : undefined} />
           <Stat label="Sourcing areas" value={areas.length} icon={Layers}
                 tone={openAreas.length ? 'info' : 'neutral'}
                 hint={openAreas.length ? `${openAreas.length} still open` : 'None open'}
-                onClick={canSource ? () => router.push('/work/areas') : undefined} />
+                onClick={canSource
+                  ? () => router.push(areas.length === 1
+                      ? `/work/areas/${areas[0].id}` : areasHref()) : undefined} />
           <Stat label="Proposals" value={proposals.length} icon={FileText}
                 hint={out.length ? `${out.length} with the client` : 'None waiting on them'}
-                onClick={can('proposals') ? () => router.push('/work/proposals') : undefined} />
+                onClick={can('proposals')
+                  ? () => router.push(proposals.length === 1
+                      ? `/work/proposals/${proposals[0].id}`
+                      : `/work/clients/${teamId}?tab=proposals`) : undefined} />
           <Stat label="Invoices" value={invoices.length} icon={Receipt}
                 tone={unpaid.length ? 'warn' : 'good'}
                 hint={invoices.length === 0 ? 'Not visible to your role, or none raised'
@@ -304,7 +329,9 @@ export default function BrandBrowsePage() {
                     </>
                   }
                   right={<Badge variant="outline">{i.status === 'paid' ? 'Paid' : 'Open'}</Badge>}
-                  onClick={() => router.push(`/work/clients/${teamId}`)}
+                  // "Agreement & invoices" is the tab this row is a line of. Landing on the
+                  // client's Scope tab meant finding the invoice again by hand.
+                  onClick={() => router.push(`/work/clients/${teamId}?tab=commercial`)}
                 />
               )
             })}

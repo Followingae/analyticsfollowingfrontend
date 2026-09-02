@@ -93,16 +93,33 @@ const DELIVERABLE_KINDS = new Set([
 const CAMPAIGN_KINDS = new Set(["application", "brand_approved", "brand_rejected"])
 const WITHDRAWAL_KINDS = new Set(["withdrawal_requested", "withdrawal_processed"])
 
+/** The event named a stage; the queue can now be opened on it instead of on "Active". */
+const DELIVERABLE_STAGE: Record<string, string> = {
+  content_submitted: "content_review",
+  content_edit_requested: "revision_requested",
+  content_approved: "content_approved",
+  proof_submitted: "proof_submitted",
+  deliverable_verified: "verified",
+}
+
 export function activityHref(item: ActivityItem): string {
   const k = item.kind
-  if (DELIVERABLE_KINDS.has(k)) return "/superadmin/fa/deliverables"
+  if (DELIVERABLE_KINDS.has(k)) {
+    const q = new URLSearchParams()
+    if (DELIVERABLE_STAGE[k]) q.set("stage", DELIVERABLE_STAGE[k])
+    if (item.campaign_id) q.set("campaign", item.campaign_id)
+    const qs = q.toString()
+    return `/superadmin/fa/deliverables${qs ? `?${qs}` : ""}`
+  }
   if (WITHDRAWAL_KINDS.has(k)) return "/superadmin/fa/withdrawals"
-  if (k === "signup") return "/superadmin/fa/members"
+  if (k === "signup") return "/superadmin/fa/members?tab=pending"
   if (k === "receipt_claim") return "/superadmin/fa/receipt-claims"
   if (CAMPAIGN_KINDS.has(k)) {
     return item.campaign_id ? `/campaigns/${item.campaign_id}/posts` : "/superadmin/fa/campaigns"
   }
-  return "/superadmin/fa/activity"
+  // A row that navigates to the page it is already on is a dead click. An event we cannot
+  // place goes to the FA overview, which at least moves.
+  return "/superadmin/fa"
 }
 
 export function ActivityRow({ item }: { item: ActivityItem }) {

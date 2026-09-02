@@ -15,7 +15,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -82,14 +82,28 @@ function AreasPage() {
   // Which half of the screen to open on. Business development are sent here for sample packs
   // and landed on client rosters every time, because the link asked for a tab nobody read.
   const params = useSearchParams()
+  const router = useRouter()
   const [kind, setKind] = useState<Kind>(params?.get("kind") === "sample" ? "sample" : "client")
   const [toDelete, setToDelete] = useState<ImdListSummary | null>(null)
 
+  /**
+   * Arriving from one brand.
+   *
+   * A person standing on Barakat, looking at the opportunity somebody logged this morning,
+   * pressed Start sourcing and was dropped on every brand we have and asked to pick the one
+   * they were already looking at. The brand travels now: `?team=` narrows the list to it and
+   * fixes it in the dialog, `?start=1` opens the dialog on arrival, and `?brand=` is only a
+   * label so the screen can name the brand before the client list has come back. The id is
+   * what is used; the name is never trusted for anything but display.
+   */
+  const fromTeam = params?.get("team") || ""
+  const fromBrand = params?.get("brand") || ""
+
   // start sourcing (client area)
-  const [openStart, setOpenStart] = useState(false)
+  const [openStart, setOpenStart] = useState(!!fromTeam && params?.get("start") === "1")
   const [brands, setBrands] = useState<{ id: string; name: string }[]>([])
   const [staff, setStaff] = useState<{ id: string; email: string; staff_role?: string | null }[]>([])
-  const [teamId, setTeamId] = useState("")
+  const [teamId, setTeamId] = useState(fromTeam)
   const [owner, setOwner] = useState("")
   const [due, setDue] = useState("")
   const [brief, setBrief] = useState<AreaBrief>({})
@@ -124,11 +138,44 @@ function AreasPage() {
     staffAdminApi.list().then((s: any) => setStaff(s ?? [])).catch(() => setStaff([]))
   }, [openStart])
 
-  const shown = useMemo(() => areas.filter(a => (a.kind ?? "client") === kind), [areas, kind])
+  // A sample pack belongs to nobody, so the brand filter is a fact about client areas only.
+  const clientAreas = useMemo(
+    () => areas.filter(a => (a.kind ?? "client") === "client" && (!fromTeam || a.team_id === fromTeam)),
+    [areas, fromTeam])
+  const shown = useMemo(
+    () => (kind === "client" ? clientAreas : areas.filter(a => a.kind === "sample")),
+    [areas, clientAreas, kind])
   const counts = useMemo(() => ({
-    client: areas.filter(a => (a.kind ?? "client") === "client").length,
+    client: clientAreas.length,
     sample: areas.filter(a => a.kind === "sample").length,
-  }), [areas])
+  }), [areas, clientAreas])
+
+  /**
+   * The brand's name, for the filter chip and for the fixed brand line in the dialog. The
+   * client list is only fetched when the dialog opens, so an area we already hold answers
+   * first, then the fetched list, and the label from the link covers the moment before
+   * either has arrived. Never used as an identifier.
+   */
+  const fromBrandName = useMemo(() => {
+    if (!fromTeam) return ""
+    return areas.find(a => a.team_id === fromTeam)?.team_name
+        || brands.find(b => b.id === fromTeam)?.name
+        || fromBrand
+  }, [areas, brands, fromTeam, fromBrand])
+
+  /** Changing tab is a place you can be sent back to, so it belongs in the URL. */
+  const switchKind = (v: Kind) => {
+    setKind(v)
+    const q = new URLSearchParams()
+    if (v === "sample") q.set("kind", "sample")
+    // A sample pack has no brand, so the brand filter is dropped when you cross to that tab.
+    else if (fromTeam) {
+      q.set("team", fromTeam)
+      if (fromBrand) q.set("brand", fromBrand)
+    }
+    const qs = q.toString()
+    router.replace(`/work/areas${qs ? `?${qs}` : ""}`, { scroll: false })
+  }
 
   const startSourcing = async () => {
     if (!teamId) return toast.error("Pick the brand")
@@ -143,7 +190,9 @@ function AreasPage() {
       })
       toast.success(`${res.data.brand} released — ${res.data.name} is open`)
       setOpenStart(false); setTeamId(""); setOwner(""); setDue(""); setBrief({})
-      load()
+      // The area you just released is where the work is. Reloading the grid and leaving you
+      // to find the card you just made is the same defect as the link that brought you here.
+      router.push(`/work/areas/${res.data.id}`)
     } catch (e) {
       toast.error((e as Error).message || "Could not start sourcing")
     } finally {
@@ -155,10 +204,16 @@ function AreasPage() {
     if (!packName.trim()) return toast.error("Give the pack a name")
     setBusy(true)
     try {
-      await imdListsApi.create({ name: packName.trim(), description: packDesc.trim() || undefined, kind: "sample" })
+      const res = await imdListsApi.create({
+        name: packName.trim(), description: packDesc.trim() || undefined, kind: "sample" })
       toast.success("Sample pack created")
       setOpenPack(false); setPackName(""); setPackDesc("")
-      load()
+      // An empty pack is worth nothing, and the only next step is stocking it. Landing back
+      // on the grid was worse than a dead end: the new pack is on the other tab, so it was
+      // not even on screen.
+      const newId = res?.data?.id
+      if (newId) router.push(`/work/areas/${newId}`)
+      else { switchKind("sample"); load() }
     } catch (e) {
       toast.error((e as Error).message || "Could not create the pack")
     } finally {
@@ -244,12 +299,30 @@ function AreasPage() {
                     <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
                       <div className="space-y-1.5">
                         <Label>Brand *</Label>
-                        <Select value={teamId} onValueChange={setTeamId}>
-                          <SelectTrigger><SelectValue placeholder="Pick the brand" /></SelectTrigger>
-                          <SelectContent>
-                            {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                        {fromTeam ? (
+                          /* You came here from this brand's record. Re-picking it from two
+                             hundred is not a choice, it is the question you already answered,
+                             and a dropdown here is a chance to release the wrong brand. */
+                          <div className="flex items-center gap-ds-2 rounded-ds-lg border px-3 py-2">
+                            <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span className="text-sm font-medium">{fromBrandName || "This brand"}</span>
+                            <button type="button"
+                                    className="ml-auto text-xs text-muted-foreground hover:text-foreground hover:underline"
+                                    onClick={() => {
+                                      setTeamId("")
+                                      router.replace("/work/areas", { scroll: false })
+                                    }}>
+                              Different brand
+                            </button>
+                          </div>
+                        ) : (
+                          <Select value={teamId} onValueChange={setTeamId}>
+                            <SelectTrigger><SelectValue placeholder="Pick the brand" /></SelectTrigger>
+                            <SelectContent>
+                              {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
@@ -356,12 +429,26 @@ function AreasPage() {
             </div>
           </div>
 
-          <Tabs value={kind} onValueChange={(v: string) => setKind(v as Kind)}>
-            <TabsList>
-              <TabsTrigger value="client">Client areas ({counts.client})</TabsTrigger>
-              <TabsTrigger value="sample">Sample packs ({counts.sample})</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex flex-wrap items-center gap-ds-3">
+            <Tabs value={kind} onValueChange={(v: string) => switchKind(v as Kind)}>
+              <TabsList>
+                <TabsTrigger value="client">Client areas ({counts.client})</TabsTrigger>
+                <TabsTrigger value="sample">Sample packs ({counts.sample})</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {/* You were sent here from one brand, so the screen says so rather than looking
+                like the whole roster is this short. */}
+            {fromTeam && kind === "client" && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Building2 className="h-3.5 w-3.5" />
+                <span className="text-foreground">{fromBrandName || "One brand"}</span>
+                <button type="button" className="hover:text-foreground hover:underline"
+                        onClick={() => router.replace("/work/areas", { scroll: false })}>
+                  · show every brand
+                </button>
+              </div>
+            )}
+          </div>
 
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -379,12 +466,16 @@ function AreasPage() {
             <div className="py-16 text-center">
               <ListChecks className="mx-auto h-6 w-6 text-muted-foreground/60" />
               <p className="mt-ds-3 font-medium">
-                {kind === "client" ? "No brands being sourced for" : "No sample packs yet"}
+                {kind === "sample" ? "No sample packs yet"
+                  : fromTeam ? `Nothing being sourced for ${fromBrandName || "this brand"} yet`
+                  : "No brands being sourced for"}
               </p>
               <p className="mx-auto mt-ds-1 max-w-md text-sm text-muted-foreground">
-                {kind === "client"
+                {kind === "sample"
+                  ? "A pack like “Fitness UAE” lets anyone answer a prospect without waiting on a round."
+                  : canDestroy
                   ? "Release a brand with Start sourcing and the talent team is told what to look for."
-                  : "A pack like “Fitness UAE” lets anyone answer a prospect without waiting on a round."}
+                  : "A founder releases a brand with the brief, and it appears here for the talent team to work."}
               </p>
             </div>
           ) : (

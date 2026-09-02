@@ -363,8 +363,19 @@ export default function ImdListDetailPage() {
     <AuthGuard>
       <SuperAdminInterface>
         <div className="mx-auto max-w-5xl space-y-ds-4 p-ds-4">
-          <Link href="/work/areas" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-3.5 w-3.5" />All areas
+          {/* Back to the half you came from. A sample pack sent you to the client tab every
+              time, which is the exact bug the inbound `?kind` link was added to fix. A
+              client area goes back to its brand, so a round of "open it, go back, open the
+              next" stays inside the brand you are working. */}
+          <Link
+            href={list?.kind === "sample" ? "/work/areas?kind=sample"
+                  : list?.team_id ? `/work/areas?team=${encodeURIComponent(list.team_id)}` +
+                      (list.team_name ? `&brand=${encodeURIComponent(list.team_name)}` : "")
+                  : "/work/areas"}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            {list?.kind === "sample" ? "All sample packs"
+             : list?.team_name ? `All areas for ${list.team_name}` : "All areas"}
           </Link>
 
           {loading ? (

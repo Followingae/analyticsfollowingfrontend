@@ -74,8 +74,9 @@ export default function TeamConsolePage() {
   }
 
   const areas = data.areas || []
-  const overdue = areas.filter((r: any) =>
-    r.due_at && new Date(r.due_at).getTime() < Date.now()).length
+  const overdueAreas = areas.filter((r: any) =>
+    r.due_at && new Date(r.due_at).getTime() < Date.now())
+  const overdue = overdueAreas.length
 
   return (
     <SuperadminLayout>
@@ -90,10 +91,13 @@ export default function TeamConsolePage() {
                 tone={data.waiting.count ? 'warn' : 'good'}
                 hint={data.waiting.oldest ? `Oldest ${ago(data.waiting.oldest)}` : 'Nothing waiting'}
                 onClick={() => router.push('/work/influencers/review')} />
+          {/* When exactly one area is late, the tile is about that area, so it opens it
+              rather than the grid it is one card of. */}
           <Stat label="Areas open" value={areas.length} icon={LayersIcon}
                 tone={overdue ? 'bad' : 'neutral'}
                 hint={overdue ? `${overdue} overdue` : 'All on time'}
-                onClick={() => router.push('/work/areas')} />
+                onClick={() => router.push(
+                  overdueAreas.length === 1 ? `/work/areas/${overdueAreas[0].id}` : '/work/areas')} />
           <Stat label="Added this week" value={data.people.reduce((a: number, p: any) => a + (p.added_week || 0), 0)}
                 icon={UserRound} hint="Across the whole team" />
           <Stat label="Alerts" value={data.alerts.length} icon={Bell}

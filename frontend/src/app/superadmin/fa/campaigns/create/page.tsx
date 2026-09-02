@@ -219,7 +219,9 @@ export default function CreateCashbackCampaignPage() {
         setCouponCampaignId(newId)
         setCouponOpen(true)
       } else {
-        router.push("/superadmin/fa/campaigns")
+        // The campaign you just made is the destination; the list is where you go to
+        // find one you have lost. `newId` was already in hand and thrown away.
+        router.push(newId ? `/superadmin/fa/campaigns/${newId}` : "/superadmin/fa/campaigns")
       }
     } catch (e: any) {
       toast.error(e?.message || "Failed to create campaign")
@@ -588,7 +590,7 @@ export default function CreateCashbackCampaignPage() {
             campaignId={couponCampaignId}
             campaignName={name}
             open={couponOpen}
-            onOpenChange={(o) => { setCouponOpen(o); if (!o) router.push("/superadmin/fa/campaigns") }}
+            onOpenChange={(o) => { setCouponOpen(o); if (!o) router.push(`/superadmin/fa/campaigns/${couponCampaignId}`) }}
           />
         </TooltipProvider>
       </SuperAdminInterface>

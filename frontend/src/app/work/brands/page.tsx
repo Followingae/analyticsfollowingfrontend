@@ -56,11 +56,21 @@ function BrandsPage() {
   const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'all' | 'attention' | 'ours'>('all')
   // "Log a brand" on Today used to land here and stop — the actual form was a second button
   // called something else. Arriving with ?new=1 opens it.
   const params = useSearchParams()
   const [newOpen, setNewOpen] = useState(params?.get('new') === '1')
+  // Which slice you were reading. It lived in state only, so opening a brand and pressing
+  // "All brands" put you back on All every time, however you had filtered.
+  const asked = params?.get('tab')
+  const [tab, setTab] = useState<'all' | 'attention' | 'ours'>(
+    asked === 'attention' || asked === 'ours' ? asked : 'all')
+
+  /** The slice you were reading, kept in the URL so returning from a brand restores it. */
+  const switchTab = (v: 'all' | 'attention' | 'ours') => {
+    setTab(v)
+    router.replace(v === 'all' ? '/work/brands' : `/work/brands?tab=${v}`, { scroll: false })
+  }
 
   // A refused request and an empty client list are different facts and must not
   // render the same. Failure is held here so the page can say the read failed,
@@ -157,7 +167,7 @@ function BrandsPage() {
                 onClick={() => setTab('attention')} />
         </StatGrid>
 
-        <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
+        <Tabs value={tab} onValueChange={v => switchTab(v as typeof tab)}>
           <TabsList>
             <TabsTrigger value="all">All brands</TabsTrigger>
             <TabsTrigger value="attention">Needs attention</TabsTrigger>

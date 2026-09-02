@@ -163,7 +163,8 @@ function ClientDetailPage() {
   // Every deep link into a client — chase the agreement, chase the invoice — landed on
   // Scope, because the record ignored where it was asked to open.
   const search = useSearchParams();
-  const TABS = ['scope','campaigns','proposals','barter','ugc','commercial','modules','finance','activity'];
+  // 'management' renders below but was missing here, so ?tab=management silently opened Scope.
+  const TABS = ['scope','campaigns','proposals','barter','ugc','commercial','modules','management','finance','activity'];
   const asked = search?.get('tab') || '';
   const [activeTab, setActiveTab] = useState(TABS.includes(asked) ? asked : 'scope');
   const [scopeYear, setScopeYear] = useState<string>('all');

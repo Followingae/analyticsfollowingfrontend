@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { Suspense, useState, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Button } from "@/components/ui/button"
@@ -91,21 +92,36 @@ const mediaKind = (url: string): "image" | "video" | "other" => {
   return "other"
 }
 
+/**
+ * Every route into this queue knew which campaign and which stage it meant — the FA
+ * dashboard's "Proofs to verify" tile, a campaign's "All deliverables", the internal inbox
+ * row naming one creator — and all of them landed on Active/All campaigns, so the filter
+ * was re-picked by hand every time. Both now travel in the URL, which also makes a queue
+ * something you can send someone.
+ */
 export default function FADeliverablesPage() {
+  return <Suspense fallback={null}><FADeliverables /></Suspense>
+}
+
+function FADeliverables() {
+  const params = useSearchParams()
+  const askedStage = params?.get("stage") || ""
+  const askedCampaign = params?.get("campaign") || ""
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
   const [loading, setLoading] = useState(true)
   /* Whether the list actually answered. It did not track this, so a failed request left
      the array empty and the screen said "No deliverables in this view" — which on a
      review queue reads as "nothing is waiting on you". */
   const [error, setError] = useState(false)
-  const [filter, setFilter] = useState("active")
+  const [filter, setFilter] = useState(
+    FILTERS.some(f => f.value === askedStage) ? askedStage : "active")
   const [busy, setBusy] = useState<string | null>(null)
   const [editNote, setEditNote] = useState("")
   // In-page content viewer: which deliverable's files are open + current index
   const [viewer, setViewer] = useState<{ d: Deliverable; urls: string[]; index: number } | null>(null)
   // Campaign filter — the pipeline spans every campaign, which is unusable once a
   // few are live. "all" keeps the old behaviour.
-  const [campaignId, setCampaignId] = useState<string>("all")
+  const [campaignId, setCampaignId] = useState<string>(askedCampaign || "all")
   const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([])
 
   const load = useCallback(async (stage: string, campaign: string) => {

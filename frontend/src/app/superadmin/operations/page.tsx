@@ -332,7 +332,7 @@ export default function AgencyOperationsPage() {
                     />
                   ))}
                 {deliverables.length > 0 && (
-                  <FullPageLink href="/superadmin/fa/deliverables" label="Open Deliverables" />
+                  <FullPageLink href="/superadmin/fa/deliverables?stage=proof_submitted" label="Open Deliverables" />
                 )}
               </TabsContent>
 
@@ -375,7 +375,7 @@ export default function AgencyOperationsPage() {
                     />
                   ))}
                 {members.length > 0 && (
-                  <FullPageLink href="/superadmin/fa/members" label="Open Members" />
+                  <FullPageLink href="/superadmin/fa/members?tab=pending" label="Open Members" />
                 )}
               </TabsContent>
             </Tabs>

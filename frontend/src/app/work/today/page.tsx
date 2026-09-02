@@ -102,7 +102,9 @@ const flowOf = (href?: string) =>
 
 const PRIMARY: Record<string, { label: string; href: string }> = {
   leadership: { label: 'Sign-offs', href: '/work/approvals' },
-  account: { label: 'Open my clients', href: '/work/clients' },
+  // The clients list holds no owner filter, so this opened everybody's book. Until it
+  // does, the label says what the destination actually is.
+  account: { label: 'Open the client list', href: '/work/clients' },
   business_development: { label: 'Log a brand', href: '/work/brands?new=1' },
 }
 

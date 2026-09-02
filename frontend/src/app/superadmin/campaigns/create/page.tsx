@@ -205,10 +205,12 @@ export default function SuperadminCreateCampaignPage() {
 
       toast.success("Campaign created successfully!")
 
+      // The UGC branch has always opened the campaign it just made; the other one dropped
+      // you on the list holding the same id it had used two lines earlier to attach posts.
       if (campaignType === "ugc") {
         router.push(`/campaigns/${campaignId}/ugc`)
       } else {
-        router.push(`/superadmin/campaigns`)
+        router.push(campaignId ? `/superadmin/campaigns/${campaignId}` : `/superadmin/campaigns`)
       }
     } catch (e: any) {
       toast.dismiss(loadingToast)

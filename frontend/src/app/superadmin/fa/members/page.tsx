@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { Suspense, useState, useEffect, useCallback, useMemo } from "react"
+import { useSearchParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { FirstPartyAudienceAnalytics } from "@/components/analytics/FirstPartyAudienceAnalytics"
@@ -840,8 +841,22 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
+type MemberTab = "pending" | "approved" | "rejected" | "incomplete"
+const MEMBER_TABS: MemberTab[] = ["pending", "approved", "rejected", "incomplete"]
+
+/**
+ * Every tile and alert that sent someone here meant a particular queue and none of them
+ * could say so, so the roster always opened on Pending — including the links that counted
+ * something else entirely.
+ */
 export default function FAMembersPage() {
-  const [tab, setTab] = useState<"pending" | "approved" | "rejected" | "incomplete">("pending")
+  return <Suspense fallback={null}><FAMembers /></Suspense>
+}
+
+function FAMembers() {
+  const askedTab = useSearchParams()?.get("tab") || ""
+  const [tab, setTab] = useState<MemberTab>(
+    MEMBER_TABS.includes(askedTab as MemberTab) ? (askedTab as MemberTab) : "pending")
   const [members, setMembers] = useState<FAMember[]>([])
   const [loading, setLoading] = useState(true)
   /* Whether the roster actually answered. Without it a failed request emptied the list and

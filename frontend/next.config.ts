@@ -127,7 +127,11 @@ const nextConfig: NextConfig = {
           // them to /superadmin/brands/{id}, which does not exist, and the brand page 404'd
           // while /work/brands (a static route, matched earlier) worked fine. Any new
           // directory added under src/app/work must be named here too.
-          source: '/work/:path((?!areas|brands|coverage|creators|goals|inbox|money|payables|sourcing|team|today).*)',
+          // `chasing` and `manual` are real directories under src/app/work that were never
+          // added here. They survive only because a static route is matched before these
+          // rewrites; the first dynamic segment under either would have 404'd exactly the
+          // way /work/brands/{id} did. `sourcing` is retired but harmless to keep.
+          source: '/work/:path((?!areas|brands|chasing|coverage|creators|goals|inbox|manual|money|payables|sourcing|team|today).*)',
           destination: '/superadmin/:path*',
         },
       ],

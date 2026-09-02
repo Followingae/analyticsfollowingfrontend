@@ -102,7 +102,9 @@ export default function FADashboardPage() {
       label: "Proofs to verify",
       value: summary?.deliverables_awaiting_review,
       icon: Camera,
-      href: "/superadmin/fa/deliverables",
+      // The tile counts one stage; it used to open the queue on "Active", which is a
+      // wider set, so the number you pressed was not the list you got.
+      href: "/superadmin/fa/deliverables?stage=proof_submitted",
     },
     {
       label: "Withdrawals to approve",
@@ -114,7 +116,7 @@ export default function FADashboardPage() {
       label: "Creators to decide on",
       value: stats?.pending_approvals,
       icon: UserCheck,
-      href: "/superadmin/fa/members",
+      href: "/superadmin/fa/members?tab=pending",
     },
     {
       label: "Signed up today",
@@ -133,7 +135,7 @@ export default function FADashboardPage() {
   // ─── (c) Platform overview — existing roll-up stat cards ──────────────
   const cards = [
     { label: "Creators signed up", value: stats?.total_members, icon: Users, href: "/superadmin/fa/members" },
-    { label: "Waiting on a decision", value: stats?.pending_approvals, icon: Clock, href: "/superadmin/fa/members" },
+    { label: "Waiting on a decision", value: stats?.pending_approvals, icon: Clock, href: "/superadmin/fa/members?tab=pending" },
     { label: "Merchants live", value: stats?.active_merchants, icon: Store, href: "/superadmin/fa/merchants" },
     { label: "Campaigns running", value: stats?.active_campaigns, icon: Megaphone, href: "/superadmin/fa/campaigns" },
     { label: "Deliverables outstanding", value: stats?.pending_deliverables, icon: ClipboardCheck, href: "/superadmin/fa/deliverables" },

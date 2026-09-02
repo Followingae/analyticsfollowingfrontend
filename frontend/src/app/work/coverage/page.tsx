@@ -102,6 +102,21 @@ export default function CoveragePage() {
 
   const uncategorised = cells.filter(c => c.category === 'uncategorised').reduce((a, c) => a + c.held, 0)
   const noMarket = cells.filter(c => c.market === 'unknown').reduce((a, c) => a + c.held, 0)
+
+  /**
+   * "uncategorised" and "unknown" are words this screen PRINTS, not values anybody holds.
+   * The server COALESCEs a missing category or country into them so the grid has a row and
+   * a column heading; passing them back as filter values asked the database for a creator
+   * literally tagged "unknown" and returned nothing, over 319 real people with no market
+   * and 233 with no category. `no_value` is the server's own token for the absence, sent
+   * with the payload so the two halves cannot drift apart again.
+   */
+  const NO_VALUE = data.no_value || '__none__'
+  const asFilterValue = (label: string) =>
+    label === 'uncategorised' || label === 'unknown' ? NO_VALUE : label
+  const cellHref = (category: string, market: string) =>
+    `/work/influencers?categories=${encodeURIComponent(asFilterValue(category))}` +
+    `&countries=${encodeURIComponent(asFilterValue(market))}`
   /**
    * A total that never arrived is a dash, not a zero.
    *
@@ -143,7 +158,7 @@ export default function CoveragePage() {
                 onClick={() => router.push('/work/influencers?has_pricing=true')} />
           <Stat label="Missing a market" value={noMarket} tone={noMarket ? 'warn' : 'neutral'}
                 icon={MapPin} hint="Market is the first thing a client asks about"
-                onClick={() => router.push('/work/influencers?countries=unknown')} />
+                onClick={() => router.push(`/work/influencers?countries=${encodeURIComponent(NO_VALUE)}`)} />
         </StatGrid>
 
         <Panel
@@ -210,9 +225,7 @@ export default function CoveragePage() {
                                 : `color-mix(in srgb, var(--primary) ${a * 100}%, transparent)`,
                               color: a > 0.55 ? 'var(--primary-foreground)' : undefined,
                             }}
-                            onClick={() => router.push(
-                              `/work/influencers?categories=${encodeURIComponent(cat)}` +
-                              `&countries=${encodeURIComponent(m)}`)}
+                            onClick={() => router.push(cellHref(cat, m))}
                             role="button"
                             tabIndex={0}
                             title={`${cat} · ${m}: open these creators`}
@@ -256,9 +269,7 @@ export default function CoveragePage() {
                 title={<span className="capitalize">{g.category} · {g.market}</span>}
                 meta={`${g.costed} quotable of ${g.held} held`}
                 right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                onClick={() => router.push(
-                  `/work/influencers?categories=${encodeURIComponent(g.category)}` +
-                  `&countries=${encodeURIComponent(g.market)}`)}
+                onClick={() => router.push(cellHref(g.category, g.market))}
               />
             ))}
             {(data.gaps || []).length === 0 && <Empty>No thin cells, coverage is even.</Empty>}
@@ -270,14 +281,16 @@ export default function CoveragePage() {
               title={`${uncategorised} creators have no category`}
               meta="They cannot appear in any coverage cell, or in a category filter"
               right={<Badge variant="outline">{uncategorised ? 'Fix' : 'Clear'}</Badge>}
-              onClick={() => router.push('/work/influencers?categories=uncategorised')}
+              onClick={() => router.push(
+                `/work/influencers?categories=${encodeURIComponent(NO_VALUE)}`)}
             />
             <Row
               tone={noMarket ? 'warn' : 'good'}
               title={`${noMarket} creators have no market`}
               meta="Market is the first thing a client asks about"
               right={<Badge variant="outline">{noMarket ? 'Fix' : 'Clear'}</Badge>}
-              onClick={() => router.push('/work/influencers?countries=unknown')}
+              onClick={() => router.push(
+                `/work/influencers?countries=${encodeURIComponent(NO_VALUE)}`)}
             />
             {/* "Clear" is a claim, and an absent figure cannot make it — so when the count
                 did not come back the row says that instead of reporting all-clear. */}

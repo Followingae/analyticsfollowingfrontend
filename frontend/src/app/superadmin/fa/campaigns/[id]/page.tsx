@@ -131,7 +131,8 @@ export default function FACampaignFunnelPage() {
                 </div>
               </div>
             </div>
-            <Link href="/superadmin/fa/deliverables">
+            {/* The queue has a campaign picker; it just never read the campaign you came from. */}
+            <Link href={`/superadmin/fa/deliverables?campaign=${id}`}>
               <Button size="sm" variant="outline"><ClipboardList className="h-4 w-4 mr-1.5" />All deliverables</Button>
             </Link>
           </div>

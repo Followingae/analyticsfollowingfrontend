@@ -203,13 +203,15 @@ export default function InboxPage() {
       key: 'deliverables',
       label: 'Content to check',
       description: 'A creator says the post is live. Nobody is paid until someone confirms it.',
-      href: '/work/fa/deliverables',
+      // listPending() is status='submitted', which the queue calls proof_submitted. The
+      // link opened it on Active, a different and wider list than the one counted here.
+      href: '/work/fa/deliverables?stage=proof_submitted',
       items: deliverables.map((x: any) => ({
         id: String(x.id),
         title: x.member_name || x.instagram_username || 'Creator',
         waitingFor: `${String(x.type || 'content').replace(/_/g, ' ')}${x.quantity > 1 ? ` ×${x.quantity}` : ''}: confirm it went live`,
         since: x.submitted_at || x.created_at,
-        href: '/work/fa/deliverables',
+        href: '/work/fa/deliverables?stage=proof_submitted',
       })),
     })
 
@@ -340,7 +342,7 @@ export default function InboxPage() {
   // still where the work happens, and each stays reachable whether or not it has anything in it.
   const tabs: HubTab[] = [
     { label: 'Waiting on me', href: '/work/inbox' },
-    { label: 'Content to check', href: '/work/fa/deliverables', module: 'fa',
+    { label: 'Content to check', href: '/work/fa/deliverables?stage=proof_submitted', module: 'fa',
       count: deliverables.length },
     { label: 'Cashback receipts', href: '/work/fa/receipt-claims', module: 'fa', when: mayMoney,
       count: receipts.length },

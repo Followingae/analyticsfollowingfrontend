@@ -8,6 +8,7 @@
  * through at lunchtime reads as on track rather than behind.
  */
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Button } from '@/components/ui/button'
@@ -54,6 +55,7 @@ const initials = (email: string) =>
   (email || '?').split('@')[0].split(/[._-]/).slice(0, 2).map(s => s[0]?.toUpperCase()).join('')
 
 export default function GoalsPage() {
+  const router = useRouter()
   const { isSuperAdmin, isFullAccessStaff } = useAdminAccess()
   const canSet = isSuperAdmin || isFullAccessStaff
 
@@ -144,8 +146,11 @@ export default function GoalsPage() {
                   hint={p?.label} />
             <Stat label="This month" value={today.month_done} icon={CalendarDays}
                   hint={today.quality_required ? 'Only complete records count' : 'All records count'} />
+            {/* The number the whole target is computed from, and the only way to change it
+                is to open or close an area. It was the one figure here you could not click. */}
             <Stat label="Open areas" value={today.open_rounds} icon={Layers}
-                  hint="Each one raises today's target" />
+                  hint="Each one raises today's target"
+                  onClick={() => router.push('/work/areas')} />
           </StatGrid>
         )}
 

@@ -746,7 +746,17 @@ export default function UserEditPage() {
               <div className="grid gap-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Team Name:</span>
-                  <span className="font-medium">{user.team_name || 'No team'}</span>
+                  {/* The team is the client record. Naming it and holding its id while
+                      making the reader search the clients list for it is the same defect
+                      as a button that drops its context. */}
+                  {user.team_id && user.team_name ? (
+                    <button type="button" className="font-medium hover:underline"
+                            onClick={() => router.push(`/superadmin/clients/${user.team_id}`)}>
+                      {user.team_name}
+                    </button>
+                  ) : (
+                    <span className="font-medium">{user.team_name || 'No team'}</span>
+                  )}
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Team Role:</span>
